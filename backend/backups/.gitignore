@@ -1,0 +1,6 @@
+# Ignorar todos os arquivos de backup
+*.sql
+*.sql.gz
+
+# Manter o diretório no git
+!.gitkeep

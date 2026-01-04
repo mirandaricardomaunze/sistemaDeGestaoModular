@@ -1,0 +1,140 @@
+{
+    "name": "Chat AI Assistant - n8n Workflow",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "chat-ai",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook - Receive Message",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "functionCode": "// Extract data from webhook\nconst message = $input.item.json.body.message || '';\nconst context = $input.item.json.body.context || {};\nconst userId = $input.item.json.body.userId || '';\nconst companyId = $input.item.json.body.companyId || '';\n\n// Build system prompt\nconst systemPrompt = `Você é um assistente inteligente de um sistema ERP moçambicano.\n\nDADOS DISPONÍVEIS:\n${JSON.stringify(context, null, 2)}\n\nREGRAS:\n1. Responda SEMPRE em português de Moçambique\n2. Seja conciso e profissional (máximo 200 palavras)\n3. Use os dados fornecidos para fundamentar sua resposta\n4. Se não souber ou não tiver dados, diga claramente\n5. Formate valores monetários em MZN (Meticais)\n6. Use bullet points para listas\n7. Sugira ações práticas quando apropriado`;\n\nreturn {\n  json: {\n    systemPrompt,\n    userMessage: message,\n    context,\n    userId,\n    companyId\n  }\n};"
+            },
+            "id": "process-context",
+            "name": "Process Context",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                450,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "model": "gemini-1.5-flash",
+                "prompt": "={{$json.systemPrompt}}\n\nPERGUNTA DO USUÁRIO: {{$json.userMessage}}\n\nRESPOSTA:",
+                "options": {
+                    "temperature": 0.7,
+                    "maxTokens": 1000
+                }
+            },
+            "id": "gemini-ai",
+            "name": "Google Gemini",
+            "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+            "typeVersion": 1,
+            "position": [
+                650,
+                300
+            ],
+            "credentials": {
+                "googleGeminiApi": {
+                    "id": "1",
+                    "name": "Google Gemini API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "functionCode": "// Format the response\nconst aiResponse = $input.item.json.response || $input.item.json.text || 'Desculpe, não consegui processar sua mensagem.';\n\nreturn {\n  json: {\n    response: aiResponse,\n    timestamp: new Date().toISOString(),\n    provider: 'gemini',\n    model: 'gemini-1.5-flash'\n  }\n};"
+            },
+            "id": "format-response",
+            "name": "Format Response",
+            "type": "n8n-nodes-base.function",
+            "typeVersion": 1,
+            "position": [
+                850,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{$json}}"
+            },
+            "id": "respond-webhook",
+            "name": "Respond to Webhook",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1050,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook - Receive Message": {
+            "main": [
+                [
+                    {
+                        "node": "Process Context",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process Context": {
+            "main": [
+                [
+                    {
+                        "node": "Google Gemini",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Google Gemini": {
+            "main": [
+                [
+                    {
+                        "node": "Format Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond to Webhook",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": null,
+    "tags": [],
+    "triggerCount": 0,
+    "updatedAt": "2025-12-28T14:26:00.000Z",
+    "versionId": "1"
+}

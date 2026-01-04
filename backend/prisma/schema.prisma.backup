@@ -1,0 +1,1083 @@
+// ============================================================================
+// Prisma Schema for Sistema de Gestão Comercial
+// Database: PostgreSQL
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Authentication & Users
+// ============================================================================
+
+enum UserRole {
+  admin
+  manager
+  operator
+  cashier
+  stock_keeper
+}
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String
+  name        String
+  role        UserRole  @default(operator)
+  phone       String?
+  avatar      String?
+  isActive    Boolean   @default(true)
+  lastLogin   DateTime?
+  otp         String?
+  otpExpiry   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  sales       Sale[]
+  employees   Employee[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// Products & Inventory
+// ============================================================================
+
+enum ProductCategory {
+  electronics
+  food
+  medicine
+  clothing
+  furniture
+  cosmetics
+  beverages
+  cleaning
+  office
+  other
+}
+
+enum StockStatus {
+  in_stock
+  low_stock
+  out_of_stock
+}
+
+model Product {
+  id           String          @id @default(uuid())
+  code         String          @unique
+  name         String
+  description  String?
+  category     ProductCategory @default(other)
+  price        Decimal         @db.Decimal(15, 2)
+  costPrice    Decimal         @db.Decimal(15, 2) @default(0)
+  currentStock Int             @default(0)
+  minStock     Int             @default(5)
+  maxStock     Int?
+  unit         String          @default("un")
+  barcode      String?         @unique
+  expiryDate   DateTime?
+  batchNumber  String?
+  location     String?
+  status       StockStatus     @default(in_stock)
+  imageUrl     String?
+  isActive     Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  // Relations
+  supplierId        String?
+  supplier          Supplier?           @relation(fields: [supplierId], references: [id])
+  saleItems         SaleItem[]
+  invoiceItems      InvoiceItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  warehouseStocks   WarehouseStock[]
+  transferItems     StockTransferItem[]
+  creditNoteItems   CreditNoteItem[]
+
+  @@map("products")
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  name        String
+  description String?
+  parentId    String?
+  parent      Category? @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  color       String?
+  icon        String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("categories")
+}
+
+// ============================================================================
+// Warehouse & Stock Transfers
+// ============================================================================
+
+model Warehouse {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  name        String
+  location    String?
+  responsible String?
+  isActive    Boolean   @default(true)
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  stocks              WarehouseStock[]
+  transfersFrom       StockTransfer[]  @relation("SourceWarehouse")
+  transfersTo         StockTransfer[]  @relation("TargetWarehouse")
+
+  @@map("warehouses")
+}
+
+model WarehouseStock {
+  id          String    @id @default(uuid())
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  quantity    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([warehouseId, productId])
+  @@map("warehouse_stocks")
+}
+
+enum TransferStatus {
+  pending
+  completed
+  cancelled
+}
+
+model StockTransfer {
+  id                String         @id @default(uuid())
+  number            String         @unique
+  sourceWarehouseId String
+  sourceWarehouse   Warehouse      @relation("SourceWarehouse", fields: [sourceWarehouseId], references: [id])
+  targetWarehouseId String
+  targetWarehouse   Warehouse      @relation("TargetWarehouse", fields: [targetWarehouseId], references: [id])
+  status            TransferStatus @default(pending)
+  responsible       String
+  reason            String?
+  date              DateTime       @default(now())
+  createdAt         DateTime       @default(now())
+
+  // Relations
+  items             StockTransferItem[]
+
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id           String        @id @default(uuid())
+  transferId   String
+  transfer     StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product       @relation(fields: [productId], references: [id])
+  quantity     Int
+
+  @@map("stock_transfer_items")
+}
+
+// ============================================================================
+// Customers
+// ============================================================================
+
+enum CustomerType {
+  individual
+  company
+}
+
+model Customer {
+  id             String       @id @default(uuid())
+  code           String       @unique
+  name           String
+  type           CustomerType @default(individual)
+  email          String?
+  phone          String
+  document       String?      // BI/NUIT
+  address        String?
+  city           String?
+  province       String?
+  notes          String?
+  creditLimit    Decimal?     @db.Decimal(15, 2)
+  currentBalance Decimal      @db.Decimal(15, 2) @default(0)
+  totalPurchases Decimal      @db.Decimal(15, 2) @default(0)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  sales       Sale[]
+  invoices    Invoice[]
+  creditNotes CreditNote[]
+
+  @@map("customers")
+}
+
+// ============================================================================
+// Suppliers & Purchases
+// ============================================================================
+
+model Supplier {
+  id             String    @id @default(uuid())
+  code           String    @unique
+  name           String
+  tradeName      String?
+  nuit           String?
+  email          String?
+  phone          String
+  phone2         String?
+  address        String?
+  city           String?
+  province       String?
+  contactPerson  String?
+  paymentTerms   String?
+  notes          String?
+  currentBalance Decimal   @db.Decimal(15, 2) @default(0)
+  totalPurchases Decimal   @db.Decimal(15, 2) @default(0)
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  products         Product[]
+  purchaseOrders   PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+enum PurchaseOrderStatus {
+  draft
+  ordered
+  partial
+  received
+  cancelled
+}
+
+model PurchaseOrder {
+  id                   String              @id @default(uuid())
+  orderNumber          String              @unique
+  supplierId           String
+  supplier             Supplier            @relation(fields: [supplierId], references: [id])
+  total                Decimal             @db.Decimal(15, 2)
+  status               PurchaseOrderStatus @default(draft)
+  expectedDeliveryDate DateTime?
+  receivedDate         DateTime?
+  notes                String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  // Relations
+  items PurchaseOrderItem[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  quantity        Int
+  receivedQty     Int           @default(0)
+  unitCost        Decimal       @db.Decimal(15, 2)
+  total           Decimal       @db.Decimal(15, 2)
+
+  @@map("purchase_order_items")
+}
+
+// ============================================================================
+// Customer Orders (Encomendas)
+// ============================================================================
+
+enum OrderStatus {
+  created
+  printed
+  separated
+  completed
+  cancelled
+}
+
+enum OrderPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+model CustomerOrder {
+  id              String          @id @default(uuid())
+  orderNumber     String          @unique
+  customerName    String
+  customerPhone   String
+  customerEmail   String?
+  customerAddress String?
+  total           Decimal         @db.Decimal(15, 2)
+  status          OrderStatus     @default(created)
+  priority        OrderPriority   @default(normal)
+  paymentMethod   String?
+  deliveryDate    DateTime?
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  items         CustomerOrderItem[]
+  transitions   OrderStatusTransition[]
+
+  @@map("customer_orders")
+}
+
+model CustomerOrderItem {
+  id          String        @id @default(uuid())
+  orderId     String
+  order       CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  productName String
+  quantity    Int
+  price       Decimal       @db.Decimal(15, 2)
+  total       Decimal       @db.Decimal(15, 2)
+
+  @@map("customer_order_items")
+}
+
+model OrderStatusTransition {
+  id              String        @id @default(uuid())
+  orderId         String
+  order           CustomerOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status          OrderStatus
+  responsibleName String?
+  notes           String?
+  timestamp       DateTime      @default(now())
+
+  @@map("order_status_transitions")
+}
+
+// ============================================================================
+// Sales & POS
+// ============================================================================
+
+enum PaymentMethod {
+  cash
+  card
+  pix
+  transfer
+  credit
+  mpesa
+  emola
+}
+
+model Sale {
+  id            String        @id @default(uuid())
+  receiptNumber String        @unique
+  customerId    String?
+  customer      Customer?     @relation(fields: [customerId], references: [id])
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  subtotal      Decimal       @db.Decimal(15, 2)
+  discount      Decimal       @db.Decimal(15, 2) @default(0)
+  tax           Decimal       @db.Decimal(15, 2) @default(0)
+  total         Decimal       @db.Decimal(15, 2)
+  paymentMethod PaymentMethod @default(cash)
+  amountPaid    Decimal       @db.Decimal(15, 2)
+  change        Decimal       @db.Decimal(15, 2) @default(0)
+  notes         String?
+  createdAt     DateTime      @default(now())
+
+  // Relations
+  items SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal @db.Decimal(15, 2)
+  discount  Decimal @db.Decimal(15, 2) @default(0)
+  total     Decimal @db.Decimal(15, 2)
+
+  @@map("sale_items")
+}
+
+// ============================================================================
+// Invoices
+// ============================================================================
+
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+  partial
+  overdue
+  cancelled
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  invoiceNumber   String        @unique
+  orderId         String?
+  orderNumber     String?
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  customerName    String
+  customerEmail   String?
+  customerPhone   String?
+  customerAddress String?
+  customerDocument String?
+  subtotal        Decimal       @db.Decimal(15, 2)
+  discount        Decimal       @db.Decimal(15, 2) @default(0)
+  tax             Decimal       @db.Decimal(15, 2) @default(0)
+  total           Decimal       @db.Decimal(15, 2)
+  amountPaid      Decimal       @db.Decimal(15, 2) @default(0)
+  amountDue       Decimal       @db.Decimal(15, 2)
+  status          InvoiceStatus @default(draft)
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  paidDate        DateTime?
+  notes           String?
+  terms           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  items       InvoiceItem[]
+  payments    InvoicePayment[]
+  creditNotes CreditNote[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(uuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+  description String
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(15, 2)
+  discount    Decimal @db.Decimal(15, 2) @default(0)
+  total       Decimal @db.Decimal(15, 2)
+
+  @@map("invoice_items")
+}
+
+model InvoicePayment {
+  id        String        @id @default(uuid())
+  invoiceId String
+  invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  date      DateTime      @default(now())
+  amount    Decimal       @db.Decimal(15, 2)
+  method    PaymentMethod
+  reference String?
+  notes     String?
+
+  @@map("invoice_payments")
+}
+
+// ============================================================================
+// Credit Notes
+// ============================================================================
+
+enum CreditNoteStatus {
+  draft
+  issued
+  refunded
+}
+
+model CreditNote {
+  id                    String           @id @default(uuid())
+  number                String           @unique
+  originalInvoiceId     String
+  originalInvoice       Invoice          @relation(fields: [originalInvoiceId], references: [id])
+  customerId            String?
+  customer              Customer?        @relation(fields: [customerId], references: [id])
+  customerName          String
+  subtotal              Decimal          @db.Decimal(15, 2)
+  tax                   Decimal          @db.Decimal(15, 2)
+  total                 Decimal          @db.Decimal(15, 2)
+  reason                String
+  status                CreditNoteStatus @default(draft)
+  issueDate             DateTime         @default(now())
+  notes                 String?
+  createdAt             DateTime         @default(now())
+
+  // Relations
+  items CreditNoteItem[]
+
+  @@map("credit_notes")
+}
+
+model CreditNoteItem {
+  id                     String     @id @default(uuid())
+  creditNoteId           String
+  creditNote             CreditNote @relation(fields: [creditNoteId], references: [id], onDelete: Cascade)
+  productId              String?
+  product                Product?   @relation(fields: [productId], references: [id])
+  description            String
+  quantity               Int
+  unitPrice              Decimal    @db.Decimal(15, 2)
+  total                  Decimal    @db.Decimal(15, 2)
+  originalInvoiceItemId  String?
+
+  @@map("credit_note_items")
+}
+
+// ============================================================================
+// Employees & HR
+// ============================================================================
+
+enum EmployeeRole {
+  admin
+  manager
+  operator
+  cashier
+  stock_keeper
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  late
+  half_day
+  leave
+  holiday
+  vacation
+}
+
+enum MaritalStatus {
+  single
+  married
+  divorced
+  widowed
+}
+
+enum EducationLevel {
+  ensino_fundamental
+  ensino_medio
+  tecnico
+  graduacao
+  pos_graduacao
+  mestrado
+  doutorado
+}
+
+enum ContractType {
+  indefinite
+  fixed_term
+}
+
+model Employee {
+  id                   String       @id @default(uuid())
+  code                 String       @unique
+  name                 String
+  email                String       @unique
+  phone                String
+  role                 EmployeeRole @default(operator)
+  department           String?
+  hireDate             DateTime
+  address              String?
+  documentNumber       String?      // BI
+  emergencyContact     String?
+  profileImage         String?
+  isActive             Boolean      @default(true)
+  birthDate            DateTime?
+  maritalStatus        MaritalStatus?
+  dependents           Int          @default(0)
+  
+  // Bank Info
+  bankName             String?
+  bankAccountNumber    String?
+  bankNib              String?
+  
+  // Tax/Gov IDs
+  socialSecurityNumber String?      // INSS
+  nuit                 String?      // NUIT
+  
+  // Salary & Benefits
+  baseSalary           Decimal      @db.Decimal(15, 2)
+  subsidyTransport     Decimal      @db.Decimal(15, 2) @default(0)
+  subsidyFood          Decimal      @db.Decimal(15, 2) @default(0)
+  
+  // Vacation
+  vacationDaysTotal    Int          @default(22)
+  vacationDaysUsed     Int          @default(0)
+  
+  // Contract
+  contractType         ContractType @default(indefinite)
+  contractExpiry       DateTime?
+  
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  
+  // Relations
+  userId               String?
+  user                 User?        @relation(fields: [userId], references: [id])
+  qualifications       AcademicQualification[]
+  attendanceRecords    AttendanceRecord[]
+  payrollRecords       PayrollRecord[]
+  vacationRequests     VacationRequest[]
+
+  @@map("employees")
+}
+
+model AcademicQualification {
+  id                String         @id @default(uuid())
+  employeeId        String
+  employee          Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  level             EducationLevel
+  courseName        String
+  institution       String
+  startYear         Int
+  endYear           Int?
+  isCompleted       Boolean        @default(false)
+  certificateNumber String?
+
+  @@map("academic_qualifications")
+}
+
+model AttendanceRecord {
+  id            String           @id @default(uuid())
+  employeeId    String
+  employee      Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date          DateTime
+  checkIn       DateTime?
+  checkOut      DateTime?
+  status        AttendanceStatus @default(present)
+  hoursWorked   Decimal?         @db.Decimal(5, 2)
+  notes         String?
+  justification String?
+
+  @@unique([employeeId, date])
+  @@map("attendance_records")
+}
+
+enum PayrollStatus {
+  draft
+  processed
+  paid
+}
+
+model PayrollRecord {
+  id              String        @id @default(uuid())
+  employeeId      String
+  employee        Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month           Int
+  year            Int
+  baseSalary      Decimal       @db.Decimal(15, 2)
+  otHours         Decimal       @db.Decimal(5, 2) @default(0)
+  otAmount        Decimal       @db.Decimal(15, 2) @default(0)
+  bonus           Decimal       @db.Decimal(15, 2) @default(0)
+  allowances      Decimal       @db.Decimal(15, 2) @default(0)
+  inssDeduction   Decimal       @db.Decimal(15, 2) @default(0)
+  irtDeduction    Decimal       @db.Decimal(15, 2) @default(0)
+  advances        Decimal       @db.Decimal(15, 2) @default(0)
+  totalEarnings   Decimal       @db.Decimal(15, 2)
+  totalDeductions Decimal       @db.Decimal(15, 2)
+  netSalary       Decimal       @db.Decimal(15, 2)
+  status          PayrollStatus @default(draft)
+  processedAt     DateTime?
+  paidAt          DateTime?
+  notes           String?
+
+  @@unique([employeeId, month, year])
+  @@map("payroll_records")
+}
+
+enum VacationStatus {
+  pending
+  approved
+  rejected
+  completed
+}
+
+model VacationRequest {
+  id         String         @id @default(uuid())
+  employeeId String
+  employee   Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  startDate  DateTime
+  endDate    DateTime
+  days       Int
+  status     VacationStatus @default(pending)
+  approvedBy String?
+  notes      String?
+  createdAt  DateTime       @default(now())
+
+  @@map("vacation_requests")
+}
+
+// ============================================================================
+// Financial Transactions
+// ============================================================================
+
+enum TransactionType {
+  income
+  expense
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  cancelled
+}
+
+model Transaction {
+  id            String            @id @default(uuid())
+  type          TransactionType
+  category      String
+  description   String
+  amount        Decimal           @db.Decimal(15, 2)
+  date          DateTime          @default(now())
+  dueDate       DateTime?
+  status        TransactionStatus @default(pending)
+  paymentMethod PaymentMethod?
+  reference     String?
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@map("transactions")
+}
+
+// ============================================================================
+// Alerts
+// ============================================================================
+
+enum AlertType {
+  low_stock
+  expired_product
+  payment_due
+  order_delayed
+  system
+  employee
+  sales
+}
+
+enum AlertPriority {
+  critical
+  high
+  medium
+  low
+}
+
+model Alert {
+  id          String        @id @default(uuid())
+  type        AlertType
+  priority    AlertPriority @default(medium)
+  title       String
+  message     String
+  isRead      Boolean       @default(false)
+  isResolved  Boolean       @default(false)
+  relatedId   String?
+  relatedType String?
+  createdAt   DateTime      @default(now())
+  resolvedAt  DateTime?
+
+  @@map("alerts")
+}
+
+// ============================================================================
+// Company Settings
+// ============================================================================
+
+model CompanySettings {
+  id          String  @id @default(uuid())
+  companyName String
+  tradeName   String?
+  nuit        String?
+  phone       String?
+  email       String?
+  address     String?
+  city        String?
+  province    String?
+  country     String  @default("Moçambique")
+  logo        String?
+  ivaRate     Decimal @db.Decimal(5, 2) @default(16)
+  currency    String  @default("MZN")
+
+  @@map("company_settings")
+}
+
+// ============================================================================
+// CRM - Campaigns
+// ============================================================================
+
+enum CampaignStatus {
+  draft
+  active
+  paused
+  completed
+  cancelled
+}
+
+enum DiscountType {
+  percentage
+  fixed
+  free_shipping
+  buy_x_get_y
+}
+
+model Campaign {
+  id                String         @id @default(uuid())
+  name              String
+  description       String?
+  code              String?        @unique
+  status            CampaignStatus @default(draft)
+  startDate         DateTime
+  endDate           DateTime
+  discountType      DiscountType
+  discountValue     Decimal        @db.Decimal(15, 2)
+  minPurchaseAmount Decimal?       @db.Decimal(15, 2)
+  maxDiscountAmount Decimal?       @db.Decimal(15, 2)
+  maxTotalUses      Int?
+  currentUses       Int            @default(0)
+  applyToAllProducts Boolean       @default(true)
+  createdBy         String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relations
+  usages            CampaignUsage[]
+
+  @@map("campaigns")
+}
+
+model CampaignUsage {
+  id           String   @id @default(uuid())
+  campaignId   String
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customerId   String?
+  customerName String?
+  orderId      String?
+  discount     Decimal  @db.Decimal(15, 2)
+  usedAt       DateTime @default(now())
+
+  @@map("campaign_usages")
+}
+
+// ============================================================================
+// Audit Log
+// ============================================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userName   String?
+  action     String
+  entity     String
+  entityId   String?
+  oldData    Json?
+  newData    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
+ 
+  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ / /   A l e r t   C o n f i g u r a t i o n  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ m o d e l   A l e r t C o n f i g   {  
+     i d                                             S t r i n g     @ i d   @ d e f a u l t ( u u i d ( ) )  
+     l o w S t o c k T h r e s h o l d               I n t           @ d e f a u l t ( 1 0 )  
+     e x p i r y W a r n i n g D a y s               I n t           @ d e f a u l t ( 3 0 )  
+     p a y m e n t D u e D a y s                     I n t           @ d e f a u l t ( 7 )  
+     e n a b l e E m a i l A l e r t s               B o o l e a n   @ d e f a u l t ( t r u e )  
+     e n a b l e P u s h N o t i f i c a t i o n s   B o o l e a n   @ d e f a u l t ( t r u e )  
+     c r e a t e d A t                               D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t                               D a t e T i m e   @ u p d a t e d A t  
+  
+     @ @ m a p ( " a l e r t _ c o n f i g " )  
+ }  
+  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ / /   C R M   -   F u n n e l   M a n a g e m e n t      
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ m o d e l   F u n n e l S t a g e   {  
+     i d                               S t r i n g     @ i d   @ d e f a u l t ( u u i d ( ) )  
+     c o d e                           S t r i n g     @ u n i q u e  
+     n a m e                           S t r i n g  
+     t y p e                           S t r i n g  
+     o r d e r                         I n t  
+     c o l o r                         S t r i n g  
+     i c o n                           S t r i n g ?  
+     d e s c r i p t i o n             S t r i n g ?  
+     i s C l o s e d S t a g e         B o o l e a n   @ d e f a u l t ( f a l s e )  
+     i s W o n S t a g e               B o o l e a n   @ d e f a u l t ( f a l s e )  
+     a u t o M o v e O n I n v o i c e   B o o l e a n   @ d e f a u l t ( f a l s e )  
+     c r e a t e d A t                 D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t                 D a t e T i m e   @ u p d a t e d A t  
+      
+     o p p o r t u n i t i e s   O p p o r t u n i t y [ ]  
+      
+     @ @ m a p ( " f u n n e l _ s t a g e s " )  
+ }  
+  
+ m o d e l   O p p o r t u n i t y   {  
+     i d                                 S t r i n g       @ i d   @ d e f a u l t ( u u i d ( ) )  
+     t i t l e                           S t r i n g  
+     d e s c r i p t i o n               S t r i n g ?  
+     v a l u e                           D e c i m a l     @ d b . D e c i m a l ( 1 5 ,   2 )  
+     p r o b a b i l i t y               I n t  
+     c u s t o m e r I d                 S t r i n g ?  
+     c u s t o m e r                     C u s t o m e r ?   @ r e l a t i o n ( f i e l d s :   [ c u s t o m e r I d ] ,   r e f e r e n c e s :   [ i d ] )  
+     s t a g e I d                       S t r i n g  
+     s t a g e                           F u n n e l S t a g e   @ r e l a t i o n ( f i e l d s :   [ s t a g e I d ] ,   r e f e r e n c e s :   [ i d ] )  
+     s t a g e T y p e                   S t r i n g  
+     e x p e c t e d C l o s e D a t e   D a t e T i m e ?  
+     c l o s e d A t                     D a t e T i m e ?  
+     c l o s e d R e a s o n             S t r i n g ?  
+     i n v o i c e I d                   S t r i n g ?  
+     u s e r I d                         S t r i n g ?  
+     n o t e s                           S t r i n g ?  
+     t a g s                             S t r i n g [ ]  
+     s t a g e C h a n g e d A t         D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     c r e a t e d A t                   D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t                   D a t e T i m e   @ u p d a t e d A t  
+      
+     i n t e r a c t i o n s   I n t e r a c t i o n [ ]  
+     s t a g e H i s t o r y   S t a g e H i s t o r y [ ]  
+      
+     @ @ m a p ( " o p p o r t u n i t i e s " )  
+ }  
+  
+ m o d e l   I n t e r a c t i o n   {  
+     i d                           S t r i n g             @ i d   @ d e f a u l t ( u u i d ( ) )  
+     o p p o r t u n i t y I d     S t r i n g  
+     o p p o r t u n i t y         O p p o r t u n i t y   @ r e l a t i o n ( f i e l d s :   [ o p p o r t u n i t y I d ] ,   r e f e r e n c e s :   [ i d ] ,   o n D e l e t e :   C a s c a d e )  
+     t y p e                       S t r i n g  
+     s u b j e c t                 S t r i n g ?  
+     n o t e s                     S t r i n g ?  
+     u s e r I d                   S t r i n g ?  
+     u s e r N a m e               S t r i n g ?  
+     o u t c o m e                 S t r i n g ?  
+     n e x t S t e p s             S t r i n g ?  
+     c r e a t e d A t             D a t e T i m e         @ d e f a u l t ( n o w ( ) )  
+      
+     @ @ m a p ( " i n t e r a c t i o n s " )  
+ }  
+  
+ m o d e l   S t a g e H i s t o r y   {  
+     i d                                     S t r i n g             @ i d   @ d e f a u l t ( u u i d ( ) )  
+     o p p o r t u n i t y I d               S t r i n g  
+     o p p o r t u n i t y                   O p p o r t u n i t y   @ r e l a t i o n ( f i e l d s :   [ o p p o r t u n i t y I d ] ,   r e f e r e n c e s :   [ i d ] ,   o n D e l e t e :   C a s c a d e )  
+     f r o m S t a g e I d                   S t r i n g  
+     f r o m S t a g e N a m e               S t r i n g  
+     t o S t a g e I d                       S t r i n g  
+     t o S t a g e N a m e                   S t r i n g  
+     c h a n g e d A t                       D a t e T i m e         @ d e f a u l t ( n o w ( ) )  
+     c h a n g e d B y                       S t r i n g ?  
+     r e a s o n                             S t r i n g ?  
+     t i m e I n P r e v i o u s S t a g e   I n t ?  
+      
+     @ @ m a p ( " s t a g e _ h i s t o r y " )  
+ }  
+  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ / /   F i s c a l   M a n a g e m e n t  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+  
+ m o d e l   T a x C o n f i g   {  
+     i d                         S t r i n g       @ i d   @ d e f a u l t ( u u i d ( ) )  
+     t y p e                     S t r i n g  
+     n a m e                     S t r i n g  
+     d e s c r i p t i o n       S t r i n g ?  
+     r a t e                     D e c i m a l     @ d b . D e c i m a l ( 5 ,   2 )  
+     i s A c t i v e             B o o l e a n     @ d e f a u l t ( t r u e )  
+     a p p l i c a b l e T o     S t r i n g [ ]  
+     e f f e c t i v e F r o m   D a t e T i m e  
+     e f f e c t i v e T o       D a t e T i m e ?  
+     c r e a t e d A t           D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t           D a t e T i m e   @ u p d a t e d A t  
+      
+     @ @ m a p ( " t a x _ c o n f i g s " )  
+ }  
+  
+ m o d e l   I R P S B r a c k e t   {  
+     i d                           S t r i n g       @ i d   @ d e f a u l t ( u u i d ( ) )  
+     m i n I n c o m e             D e c i m a l     @ d b . D e c i m a l ( 1 5 ,   2 )  
+     m a x I n c o m e             D e c i m a l ?   @ d b . D e c i m a l ( 1 5 ,   2 )  
+     r a t e                       D e c i m a l     @ d b . D e c i m a l ( 5 ,   2 )  
+     f i x e d D e d u c t i o n   D e c i m a l     @ d b . D e c i m a l ( 1 5 ,   2 )  
+     i s A c t i v e               B o o l e a n     @ d e f a u l t ( t r u e )  
+     y e a r                       I n t  
+     c r e a t e d A t             D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+      
+     @ @ m a p ( " i r p s _ b r a c k e t s " )  
+ }  
+  
+ m o d e l   T a x R e t e n t i o n   {  
+     i d                           S t r i n g       @ i d   @ d e f a u l t ( u u i d ( ) )  
+     t y p e                       S t r i n g  
+     e n t i t y T y p e           S t r i n g  
+     e n t i t y I d               S t r i n g  
+     p e r i o d                   S t r i n g  
+     b a s e A m o u n t           D e c i m a l     @ d b . D e c i m a l ( 1 5 ,   2 )  
+     r e t a i n e d A m o u n t   D e c i m a l     @ d b . D e c i m a l ( 1 5 ,   2 )  
+     r a t e                       D e c i m a l     @ d b . D e c i m a l ( 5 ,   2 )  
+     d e s c r i p t i o n         S t r i n g ?  
+     i s P a i d                   B o o l e a n     @ d e f a u l t ( f a l s e )  
+     p a i d A t                   D a t e T i m e ?  
+     c r e a t e d A t             D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t             D a t e T i m e   @ u p d a t e d A t  
+      
+     @ @ m a p ( " t a x _ r e t e n t i o n s " )  
+ }  
+  
+ m o d e l   F i s c a l R e p o r t   {  
+     i d                       S t r i n g       @ i d   @ d e f a u l t ( u u i d ( ) )  
+     t y p e                   S t r i n g  
+     p e r i o d               S t r i n g  
+     s t a t u s               S t r i n g  
+     r e p o r t D a t a       J s o n  
+     s u b m i t t e d A t     D a t e T i m e ?  
+     s u b m i t t e d B y     S t r i n g ?  
+     r e s p o n s e D a t a   J s o n ?  
+     c r e a t e d A t         D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t         D a t e T i m e   @ u p d a t e d A t  
+      
+     @ @ m a p ( " f i s c a l _ r e p o r t s " )  
+ }  
+  
+ m o d e l   F i s c a l D e a d l i n e   {  
+     i d                     S t r i n g       @ i d   @ d e f a u l t ( u u i d ( ) )  
+     t y p e                 S t r i n g  
+     n a m e                 S t r i n g  
+     d e s c r i p t i o n   S t r i n g ?  
+     d u e D a t e           D a t e T i m e  
+     p e r i o d             S t r i n g  
+     s t a t u s             S t r i n g       @ d e f a u l t ( " p e n d i n g " )  
+     c o m p l e t e d A t   D a t e T i m e ?  
+     c o m p l e t e d B y   S t r i n g ?  
+     c r e a t e d A t       D a t e T i m e   @ d e f a u l t ( n o w ( ) )  
+     u p d a t e d A t       D a t e T i m e   @ u p d a t e d A t  
+      
+     @ @ m a p ( " f i s c a l _ d e a d l i n e s " )  
+ }  
+ 

@@ -1,0 +1,85 @@
+
+
+// ============================================================================
+// CRM - Funnel Management
+// ============================================================================
+
+model FunnelStage {
+  id               String  @id @default(uuid())
+  code             String  @unique
+  name             String
+  type             String  // lead, opportunity, quote, negotiation, closed
+  order            Int
+  color            String
+  icon             String?
+  description      String?
+  isClosedStage    Boolean @default(false)
+  isWonStage       Boolean @default(false)
+  autoMoveOnInvoice Boolean @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  opportunities Opportunity[]
+  
+  @@map("funnel_stages")
+}
+
+model Opportunity {
+  id                String   @id @default(uuid())
+  title             String
+  description       String?
+  value             Decimal  @db.Decimal(15, 2)
+  probability       Int      // 0-100
+  customerId        String?
+  customer          Customer? @relation(fields: [customerId], references: [id])
+  stageId           String
+  stage             FunnelStage @relation(fields: [stageId], references: [id])
+  stageType         String
+  expectedCloseDate DateTime?
+  closedAt          DateTime?
+  closedReason      String?
+  invoiceId         String?
+  userId            String?
+  notes             String?
+  tags              String[]
+  stageChangedAt    DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  interactions Interaction[]
+  stageHistory StageHistory[]
+  
+  @@map("opportunities")
+}
+
+model Interaction {
+  id             String      @id @default(uuid())
+  opportunityId  String
+  opportunity    Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  type           String      // call, email, meeting, note, task
+  subject        String?
+  notes          String?
+  userId         String?
+  userName       String?
+  outcome        String?
+  nextSteps      String?
+  createdAt      DateTime    @default(now())
+  
+  @@map("interactions")
+}
+
+model StageHistory {
+  id                  String      @id @default(uuid())
+  opportunityId       String
+  opportunity         Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  fromStageId         String
+  fromStageName       String
+  toStageId           String
+  toStageName         String
+  changedAt           DateTime    @default(now())
+  changedBy           String?
+  reason              String?
+  timeInPreviousStage Int?        // days
+  
+  @@map("stage_history")
+}
