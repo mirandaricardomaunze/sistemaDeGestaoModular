@@ -62,8 +62,8 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 // Get order by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const order = await prisma.customerOrder.findUnique({
-            where: { id: req.params.id },
+        const order = await prisma.customerOrder.findFirst({
+            where: { id: req.params.id, companyId: req.companyId },
             include: {
                 items: true,
                 transitions: {
@@ -116,6 +116,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 paymentMethod,
                 deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
                 notes,
+                companyId: req.companyId, // Multi-tenancy isolation
                 items: {
                     create: items.map((item: any) => ({
                         productId: item.productId,
@@ -149,6 +150,14 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 router.patch('/:id/status', authenticate, async (req: AuthRequest, res) => {
     try {
         const { status, responsibleName, notes } = req.body;
+
+        // Verify ownership before status update
+        const existing = await prisma.customerOrder.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Encomenda não encontrada' });
+        }
 
         const order = await prisma.customerOrder.update({
             where: { id: req.params.id },
@@ -191,6 +200,14 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
             notes
         } = req.body;
 
+        // Verify ownership before update
+        const existing = await prisma.customerOrder.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Encomenda não encontrada' });
+        }
+
         const order = await prisma.customerOrder.update({
             where: { id: req.params.id },
             data: {
@@ -221,9 +238,13 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 // Delete order
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        await prisma.customerOrder.delete({
-            where: { id: req.params.id }
+        const result = await prisma.customerOrder.deleteMany({
+            where: { id: req.params.id, companyId: req.companyId }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Encomenda não encontrada' });
+        }
 
         res.json({ message: 'Encomenda eliminada com sucesso' });
     } catch (error) {

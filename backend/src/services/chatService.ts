@@ -26,7 +26,10 @@ export class ChatService {
             // 4. Se for pedido de PDF, gerar
             let pdfUrl;
             if (intent.generatePDF) {
-                pdfUrl = await pdfService.generateReport(data, intent.type);
+                const company = await prisma.company.findUnique({
+                    where: { id: companyId }
+                });
+                pdfUrl = await pdfService.generateReport(data, intent.type, company);
             }
 
             // 5. Gerar sugestões

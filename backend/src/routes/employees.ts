@@ -10,7 +10,11 @@ router.get('/attendance', authenticate, async (req: AuthRequest, res) => {
     try {
         const { employeeId, startDate, endDate, month, year } = req.query;
 
-        const where: any = {};
+        const where: any = {
+            employee: {
+                companyId: req.companyId // Multi-tenancy isolation
+            }
+        };
 
         if (employeeId) where.employeeId = String(employeeId);
 
@@ -264,6 +268,12 @@ router.post('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
         const attendanceDate = new Date(date);
         attendanceDate.setHours(0, 0, 0, 0);
 
+        // 🔒 Verify employee ownership
+        const employee = await prisma.employee.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+        if (!employee) return res.status(404).json({ error: 'Funcionário não encontrado ou acesso negado' });
+
         // Calculate hours worked
         let hoursWorked = null;
         if (checkIn && checkOut) {
@@ -320,6 +330,9 @@ router.get('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
         const records = await prisma.attendanceRecord.findMany({
             where: {
                 employeeId: req.params.id,
+                employee: {
+                    companyId: req.companyId // Multi-tenancy isolation
+                },
                 date: {
                     gte: startDate,
                     lte: endDate
@@ -354,8 +367,11 @@ router.post('/:id/payroll', authenticate, async (req: AuthRequest, res) => {
         const employeeId = req.params.id;
         const { month, year, otHours, bonus, advances, notes } = req.body;
 
-        const employee = await prisma.employee.findUnique({
-            where: { id: employeeId }
+        const employee = await prisma.employee.findFirst({
+            where: {
+                id: employeeId,
+                companyId: req.companyId // Multi-tenancy isolation
+            }
         });
 
         if (!employee) {
@@ -426,9 +442,20 @@ router.post('/:id/payroll', authenticate, async (req: AuthRequest, res) => {
 // Process payroll (mark as processed)
 router.post('/payroll/:payrollId/process', authenticate, async (req: AuthRequest, res) => {
     try {
-        const payroll = await prisma.payrollRecord.update({
+        const payroll = await prisma.payrollRecord.findFirst({
+            where: {
+                id: req.params.payrollId,
+                employee: { companyId: req.companyId }
+            },
+            include: { employee: true }
+        });
+
+        if (!payroll) {
+            return res.status(404).json({ error: 'Folha de pagamento não encontrada ou acesso negado' });
+        }
+
+        await prisma.payrollRecord.update({
             where: { id: req.params.payrollId },
-            include: { employee: true },
             data: {
                 status: 'processed',
                 processedAt: new Date()
@@ -506,6 +533,17 @@ router.post('/payroll/:payrollId/process', authenticate, async (req: AuthRequest
 // Mark payroll as paid
 router.post('/payroll/:payrollId/pay', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Verify ownership before payment
+        const existing = await prisma.payrollRecord.findFirst({
+            where: {
+                id: req.params.payrollId,
+                employee: { companyId: req.companyId }
+            }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Folha de pagamento não encontrada ou acesso negado' });
+        }
+
         const payroll = await prisma.payrollRecord.update({
             where: { id: req.params.payrollId },
             data: {
@@ -528,7 +566,11 @@ router.get('/payroll/month/:year/:month', authenticate, async (req: AuthRequest,
         const month = parseInt(req.params.month);
 
         const records = await prisma.payrollRecord.findMany({
-            where: { year, month },
+            where: {
+                year,
+                month,
+                employee: { companyId: req.companyId } // Multi-tenancy isolation
+            },
             include: {
                 employee: {
                     select: { id: true, name: true, code: true, department: true }
@@ -560,6 +602,14 @@ router.post('/:id/vacations', authenticate, async (req: AuthRequest, res) => {
         const end = new Date(endDate);
         const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
+        // Verify employee ownership before creating vacation request
+        const employee = await prisma.employee.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+        if (!employee) {
+            return res.status(404).json({ error: 'Funcionário não encontrado ou acesso negado' });
+        }
+
         const vacation = await prisma.vacationRequest.create({
             data: {
                 employeeId: req.params.id,
@@ -581,6 +631,17 @@ router.post('/:id/vacations', authenticate, async (req: AuthRequest, res) => {
 router.patch('/vacations/:vacationId', authenticate, async (req: AuthRequest, res) => {
     try {
         const { status, approvedBy } = req.body;
+
+        // Verify ownership before updating
+        const existing = await prisma.vacationRequest.findFirst({
+            where: {
+                id: req.params.vacationId,
+                employee: { companyId: req.companyId }
+            }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Pedido de férias não encontrado ou acesso negado' });
+        }
 
         const vacation = await prisma.vacationRequest.update({
             where: { id: req.params.vacationId },
@@ -609,7 +670,9 @@ router.get('/vacations/all', authenticate, async (req: AuthRequest, res) => {
     try {
         const { status, year } = req.query;
 
-        const where: any = {};
+        const where: any = {
+            employee: { companyId: req.companyId } // Multi-tenancy isolation
+        };
         if (status) where.status = status;
         if (year) {
             const y = parseInt(String(year));

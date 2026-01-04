@@ -40,15 +40,14 @@ export default function SupplierOrderManager() {
     const fetchOrders = async () => {
         try {
             setIsLoading(true);
-            const suppliers = await suppliersAPI.getAll(); // We need to fetch all orders for all suppliers
-            // Alternatively, iterate suppliers or have a specific 'all orders' endpoint.
-            // Current API design is get orders PER supplier.
-            // Let's modify frontend to fetch for all suppliers or add a general endpoint.
-            // For now, let's fetch suppliers first then their orders.
+            const response = await suppliersAPI.getAll();
+            const suppliersData = Array.isArray(response) ? response : (response.data || []);
 
-            const ordersPromises = suppliers.map(async (s: any) => {
+            const ordersPromises = suppliersData.map(async (s: any) => {
                 const orders = await suppliersAPI.getPurchaseOrders(s.id);
-                return orders.map((o: any) => ({ ...o, supplierName: s.name }));
+                // Ensure orders is also an array
+                const ordersData = Array.isArray(orders) ? orders : (orders.data || []);
+                return ordersData.map((o: any) => ({ ...o, supplierName: s.name }));
             });
 
             const allOrders = (await Promise.all(ordersPromises)).flat();

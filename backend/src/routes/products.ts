@@ -114,8 +114,11 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 // Get product by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const product = await prisma.product.findUnique({
-            where: { id: req.params.id },
+        const product = await prisma.product.findFirst({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             include: {
                 supplier: true,
                 warehouseStocks: {
@@ -145,9 +148,12 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             isReturnable, returnPrice, packSize
         } = req.body;
 
-        // Check if code already exists
-        const existing = await prisma.product.findUnique({
-            where: { code }
+        // Check if code already exists within the company
+        const existing = await prisma.product.findFirst({
+            where: {
+                code,
+                companyId: req.companyId
+            }
         });
 
         if (existing) {
@@ -176,6 +182,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 batchNumber,
                 location,
                 supplierId,
+                companyId: req.companyId, // Multi-tenancy isolation
                 imageUrl,
                 status,
                 isReturnable: isReturnable || false,
@@ -196,7 +203,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                         : `Stock baixo: ${product.name}`,
                     message: `${product.name} (${product.code}) tem apenas ${product.currentStock} unidades. Mínimo: ${product.minStock}`,
                     relatedId: product.id,
-                    relatedType: 'product'
+                    relatedType: 'product',
+                    companyId: req.companyId // Multi-tenancy isolation
                 }
             });
         }
@@ -214,9 +222,14 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
         const { id } = req.params;
         const updateData = req.body;
 
-        // Recalculate status if stock changed
+        // Verify ownership and recalculate status if stock changed
         if (updateData.currentStock !== undefined || updateData.minStock !== undefined) {
-            const current = await prisma.product.findUnique({ where: { id } });
+            const current = await prisma.product.findFirst({
+                where: {
+                    id,
+                    companyId: req.companyId
+                }
+            });
             if (current) {
                 const stock = updateData.currentStock ?? current.currentStock;
                 const min = updateData.minStock ?? current.minStock;
@@ -232,11 +245,29 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
             updateData.expiryDate = new Date(updateData.expiryDate);
         }
 
-        const product = await prisma.product.update({
-            where: { id },
-            data: updateData,
+        const result = await prisma.product.updateMany({
+            where: {
+                id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
+            data: updateData
+        });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Produto não encontrado ou acesso negado' });
+        }
+
+        const product = await prisma.product.findFirst({
+            where: {
+                id,
+                companyId: req.companyId
+            },
             include: { supplier: true }
         });
+
+        if (!product) {
+            return res.status(404).json({ error: 'Produto não encontrado ou acesso negado' });
+        }
 
         // Create alert if status changed to low/out, OR resolve if back to normal
         if (product.status !== 'in_stock') {
@@ -252,13 +283,13 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
                 await prisma.alert.create({
                     data: {
                         type: 'low_stock',
-                        priority: product.status === 'out_of_stock' ? 'critical' : 'high',
                         title: product.status === 'out_of_stock'
                             ? `Stock esgotado: ${product.name}`
                             : `Stock baixo: ${product.name}`,
                         message: `${product.name} (${product.code}) tem apenas ${product.currentStock} unidades. Mínimo: ${product.minStock}`,
                         relatedId: product.id,
-                        relatedType: 'product'
+                        relatedType: 'product',
+                        companyId: req.companyId // Multi-tenancy isolation
                     }
                 });
             }
@@ -287,10 +318,17 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 // Delete product (soft delete)
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        await prisma.product.update({
-            where: { id: req.params.id },
+        const result = await prisma.product.updateMany({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: { isActive: false }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Produto não encontrado ou acesso negado' });
+        }
 
         res.json({ message: 'Produto removido com sucesso' });
     } catch (error) {
@@ -305,7 +343,12 @@ router.patch('/:id/stock', authenticate, async (req: AuthRequest, res) => {
         const { id } = req.params;
         const { quantity, operation, warehouseId, reason } = req.body;
 
-        const product = await prisma.product.findUnique({ where: { id } });
+        const product = await prisma.product.findFirst({
+            where: {
+                id,
+                companyId: req.companyId // Multi-tenancy isolation
+            }
+        });
         if (!product) {
             return res.status(404).json({ error: 'Produto não encontrado' });
         }
@@ -326,10 +369,28 @@ router.patch('/:id/stock', authenticate, async (req: AuthRequest, res) => {
         if (newStock === 0) status = 'out_of_stock';
         else if (newStock <= product.minStock) status = 'low_stock';
 
-        const updated = await prisma.product.update({
-            where: { id },
+        const updated = await prisma.product.updateMany({
+            where: {
+                id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: { currentStock: newStock, status }
         });
+
+        if (updated.count === 0) {
+            return res.status(404).json({ error: 'Produto não encontrado ou acesso negado' });
+        }
+
+        const result = await prisma.product.findFirst({
+            where: {
+                id,
+                companyId: req.companyId
+            }
+        });
+
+        if (!result) {
+            return res.status(404).json({ error: 'Produto não encontrado ou acesso negado' });
+        }
 
         // Create alert if status is low/out and no open alert exists, OR resolve if back to normal
         if (status !== 'in_stock') {
@@ -347,11 +408,12 @@ router.patch('/:id/stock', authenticate, async (req: AuthRequest, res) => {
                         type: 'low_stock',
                         priority: status === 'out_of_stock' ? 'critical' : 'high',
                         title: status === 'out_of_stock'
-                            ? `Stock esgotado: ${updated.name}`
-                            : `Stock baixo: ${updated.name}`,
-                        message: `${updated.name} (${updated.code}) tem apenas ${updated.currentStock} unidades. Mínimo: ${updated.minStock}`,
-                        relatedId: updated.id,
-                        relatedType: 'product'
+                            ? `Stock esgotado: ${result.name}`
+                            : `Stock baixo: ${result.name}`,
+                        message: `${result.name} (${result.code}) tem apenas ${result.currentStock} unidades. Mínimo: ${result.minStock}`,
+                        relatedId: result.id,
+                        relatedType: 'product',
+                        companyId: req.companyId // Multi-tenancy isolation
                     }
                 });
             }
@@ -406,6 +468,7 @@ router.get('/alerts/low-stock', authenticate, async (req: AuthRequest, res) => {
     try {
         const products = await prisma.product.findMany({
             where: {
+                companyId: req.companyId, // Multi-tenancy isolation
                 isActive: true,
                 OR: [
                     { status: 'low_stock' },
@@ -431,6 +494,7 @@ router.get('/alerts/expiring', authenticate, async (req: AuthRequest, res) => {
 
         const products = await prisma.product.findMany({
             where: {
+                companyId: req.companyId, // Multi-tenancy isolation
                 isActive: true,
                 expiryDate: {
                     not: null,

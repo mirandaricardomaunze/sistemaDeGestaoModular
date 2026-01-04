@@ -11,7 +11,7 @@ const router = Router();
 router.get('/tax-configs', authenticate, async (req: AuthRequest, res) => {
     try {
         const configs = await prisma.taxConfig.findMany({
-            where: { isActive: true },
+            where: { isActive: true, companyId: req.companyId },
             orderBy: { type: 'asc' }
         });
         res.json(configs);
@@ -24,7 +24,10 @@ router.get('/tax-configs', authenticate, async (req: AuthRequest, res) => {
 router.post('/tax-configs', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
         const config = await prisma.taxConfig.create({
-            data: req.body
+            data: {
+                ...req.body,
+                companyId: req.companyId
+            }
         });
         res.status(201).json(config);
     } catch (error) {
@@ -85,6 +88,7 @@ router.get('/retentions', authenticate, async (req: AuthRequest, res) => {
         const { period, type } = req.query;
         const retentions = await prisma.taxRetention.findMany({
             where: {
+                companyId: req.companyId,
                 ...(period && { period: String(period) }),
                 ...(type && { type: String(type) })
             },
@@ -100,7 +104,10 @@ router.get('/retentions', authenticate, async (req: AuthRequest, res) => {
 router.post('/retentions', authenticate, async (req: AuthRequest, res) => {
     try {
         const retention = await prisma.taxRetention.create({
-            data: req.body
+            data: {
+                ...req.body,
+                companyId: req.companyId
+            }
         });
         res.status(201).json(retention);
     } catch (error) {
@@ -129,6 +136,7 @@ router.put('/retentions/:id', authenticate, async (req: AuthRequest, res) => {
 router.get('/reports', authenticate, async (req: AuthRequest, res) => {
     try {
         const reports = await prisma.fiscalReport.findMany({
+            where: { companyId: req.companyId },
             orderBy: { createdAt: 'desc' }
         });
         res.json(reports);
@@ -143,7 +151,8 @@ router.post('/reports', authenticate, authorize('admin', 'manager'), async (req:
         const report = await prisma.fiscalReport.create({
             data: {
                 ...req.body,
-                submittedBy: req.userId
+                submittedBy: req.userId,
+                companyId: req.companyId
             }
         });
         res.status(201).json(report);
@@ -173,6 +182,7 @@ router.put('/reports/:id', authenticate, authorize('admin', 'manager'), async (r
 router.get('/deadlines', authenticate, async (req: AuthRequest, res) => {
     try {
         const deadlines = await prisma.fiscalDeadline.findMany({
+            where: { companyId: req.companyId },
             orderBy: { dueDate: 'asc' }
         });
         res.json(deadlines);
@@ -185,7 +195,10 @@ router.get('/deadlines', authenticate, async (req: AuthRequest, res) => {
 router.post('/deadlines', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
         const deadline = await prisma.fiscalDeadline.create({
-            data: req.body
+            data: {
+                ...req.body,
+                companyId: req.companyId
+            }
         });
         res.status(201).json(deadline);
     } catch (error) {

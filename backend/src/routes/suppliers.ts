@@ -70,8 +70,11 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 // Get supplier by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const supplier = await prisma.supplier.findUnique({
-            where: { id: req.params.id },
+        const supplier = await prisma.supplier.findFirst({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             include: {
                 products: { take: 20 },
                 purchaseOrders: {
@@ -100,7 +103,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         const supplier = await prisma.supplier.create({
             data: {
                 ...req.body,
-                code
+                code,
+                companyId: req.companyId // Multi-tenancy isolation
             }
         });
 
@@ -114,12 +118,20 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 // Update supplier
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const supplier = await prisma.supplier.update({
-            where: { id: req.params.id },
+        const supplier = await prisma.supplier.updateMany({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: req.body
         });
 
-        res.json(supplier);
+        if (supplier.count === 0) {
+            return res.status(404).json({ error: 'Fornecedor não encontrado ou acesso negado' });
+        }
+
+        const updated = await prisma.supplier.findUnique({ where: { id: req.params.id } });
+        res.json(updated);
     } catch (error) {
         console.error('Update supplier error:', error);
         res.status(500).json({ error: 'Erro ao atualizar fornecedor' });
@@ -129,10 +141,17 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 // Delete supplier (soft delete)
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        await prisma.supplier.update({
-            where: { id: req.params.id },
+        const result = await prisma.supplier.updateMany({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: { isActive: false }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Fornecedor não encontrado ou acesso negado' });
+        }
 
         res.json({ message: 'Fornecedor removido com sucesso' });
     } catch (error) {
@@ -147,16 +166,21 @@ router.post('/:id/orders', authenticate, async (req: AuthRequest, res) => {
         const supplierId = req.params.id;
         const { items, expectedDeliveryDate, notes } = req.body;
 
-        const supplier = await prisma.supplier.findUnique({
-            where: { id: supplierId }
+        const supplier = await prisma.supplier.findFirst({
+            where: {
+                id: supplierId,
+                companyId: req.companyId // Multi-tenancy isolation
+            }
         });
 
         if (!supplier) {
-            return res.status(404).json({ error: 'Fornecedor não encontrado' });
+            return res.status(404).json({ error: 'Fornecedor não encontrado ou acesso negado' });
         }
 
-        // Generate order number
-        const count = await prisma.purchaseOrder.count();
+        // Generate order number (per company ideally, but global unique is fine)
+        const count = await prisma.purchaseOrder.count({
+            where: { supplier: { companyId: req.companyId } }
+        });
         const orderNumber = `OC-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
 
         // Calculate total
@@ -195,7 +219,10 @@ router.post('/:id/orders', authenticate, async (req: AuthRequest, res) => {
 router.get('/:id/orders', authenticate, async (req: AuthRequest, res) => {
     try {
         const orders = await prisma.purchaseOrder.findMany({
-            where: { supplierId: req.params.id },
+            where: {
+                supplierId: req.params.id,
+                supplier: { companyId: req.companyId } // Multi-tenancy isolation
+            },
             include: {
                 items: { include: { product: true } }
             },
@@ -215,13 +242,16 @@ router.post('/orders/:orderId/receive', authenticate, async (req: AuthRequest, r
         const { orderId } = req.params;
         const { items } = req.body; // Array of { itemId, receivedQty }
 
-        const order = await prisma.purchaseOrder.findUnique({
-            where: { id: orderId },
+        const order = await prisma.purchaseOrder.findFirst({
+            where: {
+                id: orderId,
+                supplier: { companyId: req.companyId } // Multi-tenancy isolation
+            },
             include: { items: true }
         });
 
         if (!order) {
-            return res.status(404).json({ error: 'Ordem de compra não encontrada' });
+            return res.status(404).json({ error: 'Ordem de compra não encontrada ou acesso negado' });
         }
 
         // Update received quantities and stock

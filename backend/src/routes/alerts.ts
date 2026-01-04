@@ -9,7 +9,9 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
     try {
         const { type, priority, isRead, isResolved, limit = 50 } = req.query;
 
-        const where: any = {};
+        const where: any = {
+            companyId: req.companyId // Multi-tenancy isolation
+        };
         if (type) where.type = type;
         if (priority) where.priority = priority;
         if (isRead !== undefined) where.isRead = isRead === 'true';
@@ -36,12 +38,12 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 router.get('/unread-count', authenticate, async (req: AuthRequest, res) => {
     try {
         const count = await prisma.alert.count({
-            where: { isRead: false, isResolved: false }
+            where: { companyId: req.companyId, isRead: false, isResolved: false }
         });
 
         const byCriticality = await prisma.alert.groupBy({
             by: ['priority'],
-            where: { isRead: false, isResolved: false },
+            where: { companyId: req.companyId, isRead: false, isResolved: false },
             _count: true
         });
 
@@ -62,7 +64,10 @@ router.get('/unread-count', authenticate, async (req: AuthRequest, res) => {
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     try {
         const alert = await prisma.alert.create({
-            data: req.body
+            data: {
+                ...req.body,
+                companyId: req.companyId // Multi-tenancy isolation
+            }
         });
 
         res.status(201).json(alert);
@@ -75,12 +80,16 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 // Mark alert as read
 router.patch('/:id/read', authenticate, async (req: AuthRequest, res) => {
     try {
-        const alert = await prisma.alert.update({
-            where: { id: req.params.id },
+        const result = await prisma.alert.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: { isRead: true }
         });
 
-        res.json(alert);
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Alerta não encontrado' });
+        }
+
+        res.json({ message: 'Alerta marcado como lido' });
     } catch (error) {
         console.error('Mark read error:', error);
         res.status(500).json({ error: 'Erro ao marcar como lido' });
@@ -91,7 +100,7 @@ router.patch('/:id/read', authenticate, async (req: AuthRequest, res) => {
 router.patch('/read-all', authenticate, async (req: AuthRequest, res) => {
     try {
         await prisma.alert.updateMany({
-            where: { isRead: false },
+            where: { companyId: req.companyId, isRead: false },
             data: { isRead: true }
         });
 
@@ -105,15 +114,19 @@ router.patch('/read-all', authenticate, async (req: AuthRequest, res) => {
 // Resolve alert
 router.patch('/:id/resolve', authenticate, async (req: AuthRequest, res) => {
     try {
-        const alert = await prisma.alert.update({
-            where: { id: req.params.id },
+        const result = await prisma.alert.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: {
                 isResolved: true,
                 resolvedAt: new Date()
             }
         });
 
-        res.json(alert);
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Alerta não encontrado' });
+        }
+
+        res.json({ message: 'Alerta resolvido' });
     } catch (error) {
         console.error('Resolve alert error:', error);
         res.status(500).json({ error: 'Erro ao resolver alerta' });
@@ -123,9 +136,13 @@ router.patch('/:id/resolve', authenticate, async (req: AuthRequest, res) => {
 // Delete alert
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        await prisma.alert.delete({
-            where: { id: req.params.id }
+        const result = await prisma.alert.deleteMany({
+            where: { id: req.params.id, companyId: req.companyId }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Alerta não encontrado' });
+        }
 
         res.json({ message: 'Alerta removido' });
     } catch (error) {
@@ -141,7 +158,7 @@ router.post('/generate', authenticate, async (req: AuthRequest, res) => {
 
         // Check low stock products based on actual values
         const products = await prisma.product.findMany({
-            where: { isActive: true }
+            where: { isActive: true, companyId: req.companyId }
         });
 
         const lowStockProducts = products.filter((p: typeof products[number]) =>
@@ -169,7 +186,8 @@ router.post('/generate', authenticate, async (req: AuthRequest, res) => {
                             : `Stock baixo: ${product.name}`,
                         message: `${product.name} (${product.code}) tem apenas ${product.currentStock} unidades. Mínimo: ${product.minStock}`,
                         relatedId: product.id,
-                        relatedType: 'product'
+                        relatedType: 'product',
+                        companyId: req.companyId
                     }
                 });
                 alerts.push(alert);
@@ -183,6 +201,7 @@ router.post('/generate', authenticate, async (req: AuthRequest, res) => {
         const expiringProducts = await prisma.product.findMany({
             where: {
                 isActive: true,
+                companyId: req.companyId,
                 expiryDate: {
                     lte: thirtyDaysFromNow,
                     gte: new Date()
@@ -211,7 +230,8 @@ router.post('/generate', authenticate, async (req: AuthRequest, res) => {
                         title: `Produto a expirar: ${product.name}`,
                         message: `${product.name} expira em ${daysUntilExpiry} dias (${product.expiryDate.toLocaleDateString('pt-MZ')})`,
                         relatedId: product.id,
-                        relatedType: 'product'
+                        relatedType: 'product',
+                        companyId: req.companyId
                     }
                 });
                 alerts.push(alert);
@@ -221,6 +241,7 @@ router.post('/generate', authenticate, async (req: AuthRequest, res) => {
         // Check overdue invoices
         const overdueInvoices = await prisma.invoice.findMany({
             where: {
+                companyId: req.companyId,
                 status: { in: ['sent', 'partial'] },
                 dueDate: { lt: new Date() },
                 amountDue: { gt: 0 }
@@ -248,7 +269,8 @@ router.post('/generate', authenticate, async (req: AuthRequest, res) => {
                         title: `Fatura vencida: ${invoice.invoiceNumber}`,
                         message: `Fatura de ${invoice.customerName} vencida há ${daysOverdue} dias. Valor: ${invoice.amountDue} MT`,
                         relatedId: invoice.id,
-                        relatedType: 'invoice'
+                        relatedType: 'invoice',
+                        companyId: req.companyId
                     }
                 });
                 alerts.push(alert);

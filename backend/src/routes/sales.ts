@@ -113,8 +113,11 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
             return res.status(400).json({ error: 'ID de venda inválido' });
         }
 
-        const sale = await prisma.sale.findUnique({
-            where: { id: req.params.id },
+        const sale = await prisma.sale.findFirst({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             include: {
                 customer: true,
                 user: { select: { id: true, name: true } },
@@ -190,8 +193,13 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             let customerData = null;
 
             if (customerId) {
-                customerData = await tx.customer.findUnique({ where: { id: customerId } });
-                if (!customerData) throw new Error('Cliente não encontrado');
+                customerData = await tx.customer.findFirst({
+                    where: {
+                        id: customerId,
+                        companyId: req.companyId // Multi-tenancy isolation
+                    }
+                });
+                if (!customerData) throw new Error('Cliente não encontrado ou acesso negado');
 
                 // Handle Redemption
                 if (redeemPoints && redeemPoints > 0) {
@@ -270,7 +278,10 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             // Step 4: Validate Products
             const productIds = items.map((item: any) => item.productId);
             const products = await tx.product.findMany({
-                where: { id: { in: productIds } },
+                where: {
+                    id: { in: productIds },
+                    companyId: req.companyId // Multi-tenancy isolation
+                },
                 select: { id: true, name: true, code: true, currentStock: true, minStock: true }
             });
 
@@ -287,6 +298,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             const createdSale = await tx.sale.create({
                 data: {
                     receiptNumber,
+                    companyId: req.companyId, // Multi-tenancy isolation
                     customerId,
                     userId: req.userId!,
                     subtotal,
@@ -344,7 +356,12 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                     statusUpdates.push({ id: product.id, status: newStatus });
                     if (newStatus !== 'in_stock') {
                         const existingAlert = await tx.alert.findFirst({
-                            where: { type: 'low_stock', relatedId: product.id, isResolved: false }
+                            where: {
+                                type: 'low_stock',
+                                relatedId: product.id,
+                                isResolved: false,
+                                companyId: req.companyId // Multi-tenancy isolation
+                            }
                         });
                         if (!existingAlert) {
                             alertsToCreate.push({
@@ -353,7 +370,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                                 title: newStatus === 'out_of_stock' ? `Stock esgotado: ${product.name}` : `Stock baixo: ${product.name}`,
                                 message: `${product.name} (${product.code}) tem apenas ${product.currentStock} unidades.`,
                                 relatedId: product.id,
-                                relatedType: 'product'
+                                relatedType: 'product',
+                                companyId: req.companyId // Multi-tenancy isolation
                             });
                         }
                     }
@@ -410,7 +428,11 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             if (tax && tax > 0) {
                 try {
                     const ivaConfig = await tx.taxConfig.findFirst({
-                        where: { type: 'iva', isActive: true }
+                        where: {
+                            type: 'iva',
+                            isActive: true,
+                            companyId: req.companyId // Multi-tenancy isolation
+                        }
                     });
 
                     await tx.taxRetention.create({
@@ -470,7 +492,9 @@ router.get('/stats/summary', authenticate, async (req: AuthRequest, res) => {
     try {
         const { startDate, endDate } = req.query;
 
-        const where: any = {};
+        const where: any = {
+            companyId: req.companyId // Multi-tenancy isolation
+        };
         if (startDate || endDate) {
             where.createdAt = {};
             if (startDate) where.createdAt.gte = new Date(String(startDate));
@@ -507,8 +531,11 @@ router.get('/stats/summary', authenticate, async (req: AuthRequest, res) => {
 
         const topProductsWithDetails = await Promise.all(
             topProducts.map(async (item) => {
-                const product = await prisma.product.findUnique({
-                    where: { id: item.productId },
+                const product = await prisma.product.findFirst({
+                    where: {
+                        id: item.productId,
+                        companyId: req.companyId // Multi-tenancy isolation
+                    },
                     select: { id: true, name: true, code: true }
                 });
                 return {
@@ -547,9 +574,12 @@ router.post('/:id/cancel', authenticate, authorize('admin', 'manager'), async (r
         const { reason } = req.body;
 
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Get sale with items
-            const sale = await tx.sale.findUnique({
-                where: { id },
+            // 1. Get sale with items and verify ownership
+            const sale = await tx.sale.findFirst({
+                where: {
+                    id,
+                    companyId: req.companyId // Multi-tenancy isolation
+                },
                 include: { items: true }
             });
 
@@ -616,6 +646,7 @@ router.get('/today/summary', authenticate, async (req: AuthRequest, res) => {
         const [sales, totals] = await Promise.all([
             prisma.sale.findMany({
                 where: {
+                    companyId: req.companyId, // Multi-tenancy isolation
                     createdAt: {
                         gte: today,
                         lte: endOfDay
@@ -629,6 +660,7 @@ router.get('/today/summary', authenticate, async (req: AuthRequest, res) => {
             }),
             prisma.sale.aggregate({
                 where: {
+                    companyId: req.companyId, // Multi-tenancy isolation
                     createdAt: {
                         gte: today,
                         lte: endOfDay

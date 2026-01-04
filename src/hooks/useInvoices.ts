@@ -19,8 +19,9 @@ export function useInvoices(params?: UseInvoicesParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await invoicesAPI.getAll(params);
-            setInvoices(result);
+            const response = await invoicesAPI.getAll(params);
+            const invoicesData = Array.isArray(response) ? response : (response.data || []);
+            setInvoices(invoicesData);
         } catch (err) {
             setError('Erro ao carregar facturas');
             console.error('Error fetching invoices:', err);

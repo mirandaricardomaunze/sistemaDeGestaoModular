@@ -11,6 +11,7 @@ const router = Router();
 router.get('/stages', authenticate, async (req: AuthRequest, res) => {
     try {
         const stages = await prisma.funnelStage.findMany({
+            where: { companyId: req.companyId },
             orderBy: { order: 'asc' }
         });
         res.json(stages);
@@ -23,7 +24,10 @@ router.get('/stages', authenticate, async (req: AuthRequest, res) => {
 router.post('/stages', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
     try {
         const stage = await prisma.funnelStage.create({
-            data: req.body
+            data: {
+                ...req.body,
+                companyId: req.companyId
+            }
         });
         res.status(201).json(stage);
     } catch (error) {
@@ -47,9 +51,12 @@ router.put('/stages/:id', authenticate, authorize('admin', 'manager'), async (re
 
 router.delete('/stages/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
-        await prisma.funnelStage.delete({
-            where: { id: req.params.id }
+        const result = await prisma.funnelStage.deleteMany({
+            where: { id: req.params.id, companyId: req.companyId }
         });
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Estágio não encontrado' });
+        }
         res.json({ message: 'Estágio removido' });
     } catch (error) {
         console.error('Delete stage error:', error);
@@ -66,6 +73,7 @@ router.get('/opportunities', authenticate, async (req: AuthRequest, res) => {
         const { stageId, customerId } = req.query;
         const opportunities = await prisma.opportunity.findMany({
             where: {
+                companyId: req.companyId,
                 ...(stageId && { stageId: String(stageId) }),
                 ...(customerId && { customerId: String(customerId) })
             },
@@ -86,8 +94,8 @@ router.get('/opportunities', authenticate, async (req: AuthRequest, res) => {
 
 router.get('/opportunities/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const opportunity = await prisma.opportunity.findUnique({
-            where: { id: req.params.id },
+        const opportunity = await prisma.opportunity.findFirst({
+            where: { id: req.params.id, companyId: req.companyId },
             include: {
                 stage: true,
                 customer: true,
@@ -112,7 +120,8 @@ router.post('/opportunities', authenticate, async (req: AuthRequest, res) => {
         const opportunity = await prisma.opportunity.create({
             data: {
                 ...req.body,
-                userId: req.userId
+                userId: req.userId,
+                companyId: req.companyId
             },
             include: {
                 stage: true,
@@ -146,9 +155,12 @@ router.put('/opportunities/:id', authenticate, async (req: AuthRequest, res) => 
 
 router.delete('/opportunities/:id', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
     try {
-        await prisma.opportunity.delete({
-            where: { id: req.params.id }
+        const result = await prisma.opportunity.deleteMany({
+            where: { id: req.params.id, companyId: req.companyId }
         });
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Oportunidade não encontrada' });
+        }
         res.json({ message: 'Oportunidade removida' });
     } catch (error) {
         console.error('Delete opportunity error:', error);
@@ -162,8 +174,8 @@ router.post('/opportunities/:id/move', authenticate, async (req: AuthRequest, re
         const { newStageId, reason } = req.body;
         const oppId = req.params.id;
 
-        const opp = await prisma.opportunity.findUnique({
-            where: { id: oppId },
+        const opp = await prisma.opportunity.findFirst({
+            where: { id: oppId, companyId: req.companyId },
             include: { stage: true }
         });
 
@@ -171,8 +183,8 @@ router.post('/opportunities/:id/move', authenticate, async (req: AuthRequest, re
             return res.status(404).json({ error: 'Oportunidade não encontrada' });
         }
 
-        const newStage = await prisma.funnelStage.findUnique({
-            where: { id: newStageId }
+        const newStage = await prisma.funnelStage.findFirst({
+            where: { id: newStageId, companyId: req.companyId }
         });
 
         if (!newStage) {

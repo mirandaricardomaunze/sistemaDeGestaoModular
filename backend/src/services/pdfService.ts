@@ -17,7 +17,7 @@ export class PDFService {
     /**
      * Gera relatório em PDF
      */
-    async generateReport(data: any, type: string): Promise<string> {
+    async generateReport(data: any, type: string, companyInfo?: any): Promise<string> {
         const filename = `report-${type}-${Date.now()}.pdf`;
         const filepath = path.join(this.uploadsDir, filename);
 
@@ -31,30 +31,40 @@ export class PDFService {
 
                 doc.pipe(stream);
 
-                // Header com logo (placeholder)
-                doc.fontSize(24)
-                    .fillColor('#1e40af')
-                    .text('Sistema de Gestão ERP', { align: 'center' });
+                // Header com Informações da Empresa
+                if (companyInfo) {
+                    doc.fontSize(20)
+                        .fillColor('#1e40af')
+                        .text(companyInfo.name || 'Sistema de Gestão ERP', { align: 'left' });
 
-                doc.moveDown(0.5);
-                doc.fontSize(18)
+                    doc.fontSize(10)
+                        .fillColor('#666666')
+                        .text(companyInfo.address || '', { align: 'left' })
+                        .text(`NUIT: ${companyInfo.nuit || 'N/A'} | Tel: ${companyInfo.phone || 'N/A'}`)
+                        .text(`Email: ${companyInfo.email || ''}`);
+                } else {
+                    doc.fontSize(24)
+                        .fillColor('#1e40af')
+                        .text('Sistema de Gestão ERP', { align: 'center' });
+                }
+
+                doc.moveDown(1);
+                doc.fontSize(16)
                     .fillColor('#000000')
-                    .text('Relatório Executivo', { align: 'center' });
+                    .text(`${this.getReportTypeName(type)}`, { align: 'right' });
 
-                doc.moveDown();
-                doc.fontSize(12)
+                doc.fontSize(10)
                     .fillColor('#666666')
-                    .text(`Tipo: ${this.getReportTypeName(type)}`, { align: 'center' });
-                doc.text(`Data: ${new Date().toLocaleDateString('pt-MZ', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric'
-                })}`, { align: 'center' });
+                    .text(`Data de Emissão: ${new Date().toLocaleDateString('pt-MZ', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric'
+                    })}`, { align: 'right' });
 
                 // Linha separadora
-                doc.moveDown(2);
-                doc.strokeColor('#1e40af')
-                    .lineWidth(2)
+                doc.moveDown(1);
+                doc.strokeColor('#e5e7eb')
+                    .lineWidth(1)
                     .moveTo(50, doc.y)
                     .lineTo(545, doc.y)
                     .stroke();

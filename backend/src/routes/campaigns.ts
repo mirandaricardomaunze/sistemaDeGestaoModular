@@ -9,7 +9,9 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
     try {
         const { status, active } = req.query;
 
-        const where: any = {};
+        const where: any = {
+            companyId: req.companyId // Multi-tenancy isolation
+        };
 
         if (status) {
             where.status = status;
@@ -40,8 +42,8 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 // Get campaign by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const campaign = await prisma.campaign.findUnique({
-            where: { id: req.params.id },
+        const campaign = await prisma.campaign.findFirst({
+            where: { id: req.params.id, companyId: req.companyId },
             include: {
                 usages: {
                     take: 50,
@@ -101,7 +103,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 maxDiscountAmount,
                 maxTotalUses,
                 applyToAllProducts: applyToAllProducts ?? true,
-                status: 'draft'
+                status: 'draft',
+                companyId: req.companyId // Multi-tenancy isolation
             }
         });
 
@@ -120,6 +123,14 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
         if (updateData.startDate) updateData.startDate = new Date(updateData.startDate);
         if (updateData.endDate) updateData.endDate = new Date(updateData.endDate);
 
+        // Verify ownership
+        const existing = await prisma.campaign.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Campanha não encontrada' });
+        }
+
         const campaign = await prisma.campaign.update({
             where: { id: req.params.id },
             data: updateData
@@ -135,6 +146,14 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 // Activate campaign
 router.post('/:id/activate', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Verify ownership
+        const existing = await prisma.campaign.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Campanha não encontrada' });
+        }
+
         const campaign = await prisma.campaign.update({
             where: { id: req.params.id },
             data: { status: 'active' }
@@ -150,6 +169,14 @@ router.post('/:id/activate', authenticate, async (req: AuthRequest, res) => {
 // Pause campaign
 router.post('/:id/pause', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Verify ownership
+        const existing = await prisma.campaign.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Campanha não encontrada' });
+        }
+
         const campaign = await prisma.campaign.update({
             where: { id: req.params.id },
             data: { status: 'paused' }
@@ -165,6 +192,14 @@ router.post('/:id/pause', authenticate, async (req: AuthRequest, res) => {
 // Cancel campaign
 router.post('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Verify ownership
+        const existing = await prisma.campaign.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+        if (!existing) {
+            return res.status(404).json({ error: 'Campanha não encontrada' });
+        }
+
         const campaign = await prisma.campaign.update({
             where: { id: req.params.id },
             data: { status: 'cancelled' }
@@ -182,8 +217,8 @@ router.post('/validate-code', authenticate, async (req: AuthRequest, res) => {
     try {
         const { code, cartTotal, customerId } = req.body;
 
-        const campaign = await prisma.campaign.findUnique({
-            where: { code: code.toUpperCase() }
+        const campaign = await prisma.campaign.findFirst({
+            where: { code: code.toUpperCase(), companyId: req.companyId }
         });
 
         if (!campaign) {
@@ -288,8 +323,8 @@ router.post('/:id/use', authenticate, async (req: AuthRequest, res) => {
 // Get campaign statistics
 router.get('/:id/stats', authenticate, async (req: AuthRequest, res) => {
     try {
-        const campaign = await prisma.campaign.findUnique({
-            where: { id: req.params.id }
+        const campaign = await prisma.campaign.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
         });
 
         if (!campaign) {

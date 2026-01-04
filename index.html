@@ -26,7 +26,38 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- Service Worker Registration -->
+  <!-- Service Worker Registration & Auto-Cleanup in Dev -->
+  <script>
+    // Force cache CLEAR on every reload in localhost to prevent ERR_CACHE_READ_FAILURE
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.port === '3000') {
+      window.addEventListener('load', () => {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            for (let registration of registrations) {
+              registration.unregister().then(() => {
+                console.log('🛠️ Service Worker unregistered (Dev Mode)');
+              });
+            }
+          });
+        }
+
+        if ('caches' in window) {
+          caches.keys().then(function (names) {
+            for (let name of names) {
+              caches.delete(name).then(() => {
+                console.log('🛠️ Cache Storage cleared:', name);
+              });
+            }
+          });
+        }
+
+        // Also clear local/session storage if it was a deep failure
+        if (performance.navigation.type === 1) { // Reload
+          console.log('🔄 Reload detected, ensuring fresh state...');
+        }
+      });
+    }
+  </script>
 
 </body>
 

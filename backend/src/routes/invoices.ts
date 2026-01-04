@@ -69,8 +69,11 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 // Get invoice by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const invoice = await prisma.invoice.findUnique({
-            where: { id: req.params.id },
+        const invoice = await prisma.invoice.findFirst({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             include: {
                 customer: true,
                 items: { include: { product: true } },
@@ -112,14 +115,18 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             orderNumber
         } = req.body;
 
-        // Generate invoice number
+        // Generate invoice number per company
         const year = new Date().getFullYear();
-        const count = await prisma.invoice.count();
+        const count = await prisma.invoice.count({
+            where: { companyId: req.companyId }
+        });
         const invoiceNumber = `FAT-${year}-${String(count + 1).padStart(5, '0')}`;
 
         const invoice = await prisma.invoice.create({
             data: {
+                ...req.body, // In real scenario, destructure to avoid companyId override
                 invoiceNumber,
+                companyId: req.companyId, // Multi-tenancy isolation
                 customerId,
                 customerName,
                 customerEmail,
@@ -157,11 +164,16 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         try {
             if (tax > 0) {
                 const ivaConfig = await prisma.taxConfig.findFirst({
-                    where: { type: 'iva', isActive: true }
+                    where: {
+                        type: 'iva',
+                        isActive: true,
+                        companyId: req.companyId
+                    }
                 });
 
                 await prisma.taxRetention.create({
                     data: {
+                        companyId: req.companyId,
                         type: 'iva',
                         entityType: 'invoice',
                         entityId: invoice.id,
@@ -191,9 +203,20 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
         const { items, ...updateData } = req.body;
 
         // Update invoice (not items)
-        const invoice = await prisma.invoice.update({
+        const result = await prisma.invoice.updateMany({
+            where: {
+                id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
+            data: updateData
+        });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Fatura não encontrada ou acesso negado' });
+        }
+
+        const invoice = await prisma.invoice.findUnique({
             where: { id },
-            data: updateData,
             include: {
                 customer: true,
                 items: true,
@@ -214,8 +237,11 @@ router.post('/:id/payments', authenticate, async (req: AuthRequest, res) => {
         const { id } = req.params;
         const { amount, method, reference, notes } = req.body;
 
-        const invoice = await prisma.invoice.findUnique({
-            where: { id }
+        const invoice = await prisma.invoice.findFirst({
+            where: {
+                id,
+                companyId: req.companyId // Multi-tenancy isolation
+            }
         });
 
         if (!invoice) {
@@ -229,7 +255,8 @@ router.post('/:id/payments', authenticate, async (req: AuthRequest, res) => {
                 amount,
                 method,
                 reference,
-                notes
+                notes,
+                companyId: req.companyId // Multi-tenancy isolation
             }
         });
 
@@ -264,12 +291,19 @@ router.post('/:id/payments', authenticate, async (req: AuthRequest, res) => {
 // Cancel invoice
 router.post('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
     try {
-        const invoice = await prisma.invoice.update({
-            where: { id: req.params.id },
+        const result = await prisma.invoice.updateMany({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: { status: 'cancelled' }
         });
 
-        res.json(invoice);
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Fatura não encontrada ou acesso negado' });
+        }
+
+        res.json({ message: 'Fatura cancelada com sucesso' });
     } catch (error) {
         console.error('Cancel invoice error:', error);
         res.status(500).json({ error: 'Erro ao cancelar fatura' });
@@ -279,12 +313,19 @@ router.post('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
 // Send invoice (mark as sent)
 router.post('/:id/send', authenticate, async (req: AuthRequest, res) => {
     try {
-        const invoice = await prisma.invoice.update({
-            where: { id: req.params.id },
+        const result = await prisma.invoice.updateMany({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: { status: 'sent' }
         });
 
-        res.json(invoice);
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Fatura não encontrada ou acesso negado' });
+        }
+
+        res.json({ message: 'Fatura marcada como enviada' });
     } catch (error) {
         console.error('Send invoice error:', error);
         res.status(500).json({ error: 'Erro ao enviar fatura' });
@@ -297,18 +338,23 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
         const invoiceId = req.params.id;
         const { items, reason, notes } = req.body;
 
-        const invoice = await prisma.invoice.findUnique({
-            where: { id: invoiceId },
+        const invoice = await prisma.invoice.findFirst({
+            where: {
+                id: invoiceId,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             include: { customer: true }
         });
 
         if (!invoice) {
-            return res.status(404).json({ error: 'Fatura não encontrada' });
+            return res.status(404).json({ error: 'Fatura não encontrada ou acesso negado' });
         }
 
         // Generate credit note number
         const year = new Date().getFullYear();
-        const count = await prisma.creditNote.count();
+        const count = await prisma.creditNote.count({
+            where: { companyId: req.companyId }
+        });
         const number = `NC-${year}-${String(count + 1).padStart(4, '0')}`;
 
         // Calculate totals
@@ -320,6 +366,7 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
         const creditNote = await prisma.creditNote.create({
             data: {
                 number,
+                companyId: req.companyId, // Multi-tenancy isolation
                 originalInvoiceId: invoiceId,
                 customerId: invoice.customerId,
                 customerName: invoice.customerName,
@@ -356,7 +403,9 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
 router.get('/credit-notes', authenticate, async (req: AuthRequest, res) => {
     try {
         const { invoiceId } = req.query;
-        const where: any = {};
+        const where: any = {
+            companyId: req.companyId // Multi-tenancy isolation
+        };
 
         if (invoiceId) {
             where.originalInvoiceId = invoiceId;
@@ -385,6 +434,7 @@ router.get('/alerts/overdue', authenticate, async (req: AuthRequest, res) => {
 
         const overdueInvoices = await prisma.invoice.findMany({
             where: {
+                companyId: req.companyId, // Multi-tenancy isolation
                 status: { in: ['sent', 'partial'] },
                 dueDate: { lt: today },
                 amountDue: { gt: 0 }

@@ -21,7 +21,9 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
         const limitNum = parseInt(limit as string);
         const skip = (pageNum - 1) * limitNum;
 
-        const where: any = {};
+        const where: any = {
+            companyId: req.companyId // Multi-tenancy isolation
+        };
 
         if (search) {
             where.OR = [
@@ -70,8 +72,11 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 // Get customer by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const customer = await prisma.customer.findUnique({
-            where: { id: req.params.id },
+        const customer = await prisma.customer.findFirst({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             include: {
                 sales: {
                     take: 10,
@@ -108,16 +113,9 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
         const customer = await prisma.customer.create({
             data: {
+                ...req.body,
                 code: customerCode,
-                name,
-                type: type || 'individual',
-                email,
-                phone,
-                document,
-                address,
-                city,
-                province,
-                notes,
+                companyId: req.companyId, // Multi-tenancy isolation
                 creditLimit: creditLimit || null
             }
         });
@@ -132,12 +130,20 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 // Update customer
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const customer = await prisma.customer.update({
-            where: { id: req.params.id },
+        const customer = await prisma.customer.updateMany({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: req.body
         });
 
-        res.json(customer);
+        if (customer.count === 0) {
+            return res.status(404).json({ error: 'Cliente não encontrado ou acesso negado' });
+        }
+
+        const updated = await prisma.customer.findUnique({ where: { id: req.params.id } });
+        res.json(updated);
     } catch (error) {
         console.error('Update customer error:', error);
         res.status(500).json({ error: 'Erro ao atualizar cliente' });
@@ -147,10 +153,17 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 // Delete customer (soft delete)
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        await prisma.customer.update({
-            where: { id: req.params.id },
+        const result = await prisma.customer.updateMany({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: { isActive: false }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Cliente não encontrado ou acesso negado' });
+        }
 
         res.json({ message: 'Cliente removido com sucesso' });
     } catch (error) {
@@ -164,7 +177,10 @@ router.get('/:id/purchases', authenticate, async (req: AuthRequest, res) => {
     try {
         const { startDate, endDate } = req.query;
 
-        const where: any = { customerId: req.params.id };
+        const where: any = {
+            customerId: req.params.id,
+            customer: { companyId: req.companyId } // Multi-tenancy isolation
+        };
 
         if (startDate || endDate) {
             where.createdAt = {};
@@ -194,8 +210,11 @@ router.patch('/:id/balance', authenticate, async (req: AuthRequest, res) => {
     try {
         const { amount, operation } = req.body;
 
-        const customer = await prisma.customer.findUnique({
-            where: { id: req.params.id }
+        const customer = await prisma.customer.findFirst({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            }
         });
 
         if (!customer) {
@@ -212,12 +231,20 @@ router.patch('/:id/balance', authenticate, async (req: AuthRequest, res) => {
             newBalance = amount;
         }
 
-        const updated = await prisma.customer.update({
-            where: { id: req.params.id },
+        const updated = await prisma.customer.updateMany({
+            where: {
+                id: req.params.id,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: { currentBalance: newBalance }
         });
 
-        res.json(updated);
+        if (updated.count === 0) {
+            return res.status(404).json({ error: 'Cliente não encontrado ou acesso negado' });
+        }
+
+        const result = await prisma.customer.findUnique({ where: { id: req.params.id } });
+        res.json(result);
     } catch (error) {
         console.error('Update customer balance error:', error);
         res.status(500).json({ error: 'Erro ao atualizar saldo do cliente' });

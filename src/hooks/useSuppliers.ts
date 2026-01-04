@@ -13,7 +13,8 @@ export function useSuppliers(params?: { search?: string }) {
         setError(null);
         try {
             const result = await suppliersAPI.getAll(params);
-            setSuppliers(result);
+            const suppliersData = Array.isArray(result) ? result : (result.data || []);
+            setSuppliers(suppliersData);
         } catch (err) {
             setError('Erro ao carregar fornecedores');
             console.error('Error fetching suppliers:', err);

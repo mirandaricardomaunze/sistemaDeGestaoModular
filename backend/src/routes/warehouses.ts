@@ -8,7 +8,7 @@ const router = Router();
 router.get('/', authenticate, async (req: AuthRequest, res) => {
     try {
         const warehouses = await prisma.warehouse.findMany({
-            where: { isActive: true },
+            where: { isActive: true, companyId: req.companyId },
             include: {
                 _count: {
                     select: { stocks: true }
@@ -27,8 +27,8 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 // Get warehouse by ID with stock
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const warehouse = await prisma.warehouse.findUnique({
-            where: { id: req.params.id },
+        const warehouse = await prisma.warehouse.findFirst({
+            where: { id: req.params.id, companyId: req.companyId },
             include: {
                 stocks: {
                     include: {
@@ -59,7 +59,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         const warehouse = await prisma.warehouse.create({
             data: {
                 ...req.body,
-                code
+                code,
+                companyId: req.companyId
             }
         });
 
@@ -121,7 +122,9 @@ router.get('/transfers/all', authenticate, async (req: AuthRequest, res) => {
     try {
         const { status, startDate, endDate } = req.query;
 
-        const where: any = {};
+        const where: any = {
+            companyId: req.companyId
+        };
         if (status) where.status = status;
         if (startDate || endDate) {
             where.date = {};
@@ -191,6 +194,7 @@ router.post('/transfers', authenticate, async (req: AuthRequest, res) => {
                 responsible,
                 reason,
                 status: 'completed',
+                companyId: req.companyId,
                 items: {
                     create: items.map((item: any) => ({
                         productId: item.productId,
@@ -308,7 +312,10 @@ router.post('/transfers/:id/cancel', authenticate, async (req: AuthRequest, res)
 router.get('/:id/stock', authenticate, async (req: AuthRequest, res) => {
     try {
         const stocks = await prisma.warehouseStock.findMany({
-            where: { warehouseId: req.params.id },
+            where: {
+                warehouseId: req.params.id,
+                warehouse: { companyId: req.companyId }
+            },
             include: {
                 product: true
             }

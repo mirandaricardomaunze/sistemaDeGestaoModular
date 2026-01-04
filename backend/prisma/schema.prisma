@@ -8,17 +8,17 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(uuid())
-  email     String     @unique
+  id        String           @id @default(uuid())
+  email     String           @unique
   password  String
   name      String
-  role      UserRole   @default(operator)
+  role      UserRole         @default(operator)
   phone     String?
   avatar    String?
-  isActive  Boolean    @default(true)
+  isActive  Boolean          @default(true)
   lastLogin DateTime?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
   otp       String?
   otpExpiry DateTime?
   companyId String?
@@ -33,39 +33,45 @@ model User {
 }
 
 model Company {
-  id           String          @id @default(uuid())
-  name         String
-  tradeName    String?
-  nuit         String?         @unique
-  phone        String?
-  email        String?
-  address      String?
-  businessType BusinessType    @default(retail)
-  status       CompanyStatus   @default(active)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  settings     Json?
-  modules      CompanyModule[]
-  products     Product[]
-  users        User[]
-  employees    Employee[]
-  categories   Category[]
-  suppliers    Supplier[]
-  pharmacySales PharmacySale[]
-  prescriptions Prescription[]
-  rooms        Room[]
-  bookings     Booking[]
-  customers    Customer[]
-  taxConfigs   TaxConfig[]
-  sales        Sale[]
-  invoices     Invoice[]
-  alerts       Alert[]
-  warehouses   Warehouse[]
-  stockTransfers StockTransfer[]
-  customerOrders CustomerOrder[]
-  auditLogs    AuditLog[]
+  id                String             @id @default(uuid())
+  name              String
+  tradeName         String?
+  nuit              String?            @unique
+  phone             String?
+  email             String?
+  address           String?
+  businessType      BusinessType       @default(retail)
+  status            CompanyStatus      @default(active)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  settings          Json?
+  modules           CompanyModule[]
+  products          Product[]
+  users             User[]
+  employees         Employee[]
+  categories        Category[]
+  suppliers         Supplier[]
+  pharmacySales     PharmacySale[]
+  prescriptions     Prescription[]
+  rooms             Room[]
+  bookings          Booking[]
+  customers         Customer[]
+  taxConfigs        TaxConfig[]
+  sales             Sale[]
+  invoices          Invoice[]
+  alerts            Alert[]
+  warehouses        Warehouse[]
+  stockTransfers    StockTransfer[]
+  customerOrders    CustomerOrder[]
+  auditLogs         AuditLog[]
   housekeepingTasks HousekeepingTask[]
-  transactions Transaction[]
+  transactions      Transaction[]
+  campaigns         Campaign[]
+  funnelStages      FunnelStage[]
+  opportunities     Opportunity[]
+  taxRetentions     TaxRetention[]
+  fiscalReports     FiscalReport[]
+  fiscalDeadlines   FiscalDeadline[]
 
   @@map("companies")
 }
@@ -238,7 +244,7 @@ model Warehouse {
   transfersTo    StockTransfer[]  @relation("TargetWarehouse")
   stocks         WarehouseStock[]
   companyId      String?
-  company        Company?        @relation(fields: [companyId], references: [id])
+  company        Company?         @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@map("warehouses")
@@ -713,20 +719,20 @@ model Transaction {
   paymentMethod PaymentMethod?
   reference     String?
   notes         String?
-  
+
   // Multi-tenancy
-  companyId     String?
-  company       Company?          @relation(fields: [companyId], references: [id])
-  
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   // Hospitality-specific fields
-  bookingId     String?
-  booking       Booking?          @relation(fields: [bookingId], references: [id])
-  roomId        String?
-  room          Room?             @relation(fields: [roomId], references: [id])
-  module        String?           // hospitality, pharmacy, retail, etc.
-  
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  roomId    String?
+  room      Room?    @relation(fields: [roomId], references: [id])
+  module    String? // hospitality, pharmacy, retail, etc.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([bookingId])
@@ -735,7 +741,6 @@ model Transaction {
   @@index([date])
   @@map("transactions")
 }
-
 
 model Alert {
   id          String        @id @default(uuid())
@@ -794,7 +799,10 @@ model Campaign {
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   usages             CampaignUsage[]
+  companyId          String?
+  company            Company?        @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("campaigns")
 }
 
@@ -863,7 +871,10 @@ model FunnelStage {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   opportunities     Opportunity[]
+  companyId         String?
+  company           Company?      @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("funnel_stages")
 }
 
@@ -890,7 +901,10 @@ model Opportunity {
   customer          Customer?      @relation(fields: [customerId], references: [id])
   stage             FunnelStage    @relation(fields: [stageId], references: [id])
   stageHistory      StageHistory[]
+  companyId         String?
+  company           Company?       @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("opportunities")
 }
 
@@ -972,7 +986,10 @@ model TaxRetention {
   paidAt         DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  companyId      String?
+  company        Company?  @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("tax_retentions")
 }
 
@@ -987,7 +1004,10 @@ model FiscalReport {
   responseData Json?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+  companyId    String?
+  company      Company?  @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("fiscal_reports")
 }
 
@@ -1003,7 +1023,10 @@ model FiscalDeadline {
   completedBy String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  companyId   String?
+  company     Company?  @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("fiscal_deadlines")
 }
 

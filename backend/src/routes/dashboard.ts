@@ -43,22 +43,23 @@ router.get('/metrics', authenticate, async (req: AuthRequest, res) => {
             salesItems
         ] = await Promise.all([
             prisma.sale.aggregate({
-                where: { createdAt: { gte: today, lte: endOfDay } },
+                where: { companyId: req.companyId, createdAt: { gte: today, lte: endOfDay } },
                 _sum: { total: true },
                 _count: true
             }),
             prisma.sale.aggregate({
-                where: { createdAt: { gte: startOfMonth, lte: endOfMonth } },
+                where: { companyId: req.companyId, createdAt: { gte: startOfMonth, lte: endOfMonth } },
                 _sum: { total: true },
                 _count: true
             }),
             prisma.sale.aggregate({
-                where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } },
+                where: { companyId: req.companyId, createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } },
                 _sum: { total: true }
             }),
             prisma.product.count({
                 where: {
                     isActive: true,
+                    companyId: req.companyId,
                     OR: [
                         { status: 'low_stock' },
                         { status: 'out_of_stock' }
@@ -66,27 +67,29 @@ router.get('/metrics', authenticate, async (req: AuthRequest, res) => {
                 }
             }),
             prisma.employee.count({
-                where: { isActive: true }
+                where: { isActive: true, companyId: req.companyId }
             }),
             prisma.alert.count({
-                where: { isResolved: false }
+                where: { isResolved: false, companyId: req.companyId }
             }),
             prisma.invoice.count({
                 where: {
+                    companyId: req.companyId,
                     status: { in: ['sent', 'partial', 'overdue'] },
                     dueDate: { lt: new Date() },
                     amountDue: { gt: 0 }
                 }
             }),
             prisma.customer.count({
-                where: { isActive: true }
+                where: { isActive: true, companyId: req.companyId }
             }),
             prisma.product.count({
-                where: { isActive: true }
+                where: { isActive: true, companyId: req.companyId }
             }),
             prisma.saleItem.findMany({
                 where: {
                     sale: {
+                        companyId: req.companyId,
                         createdAt: { gte: startOfMonth, lte: endOfMonth }
                     }
                 },
@@ -164,7 +167,7 @@ router.get('/charts/sales', authenticate, async (req: AuthRequest, res) => {
         }
 
         const sales = await prisma.sale.findMany({
-            where: { createdAt: { gte: startDate } },
+            where: { companyId: req.companyId, createdAt: { gte: startDate } },
             select: { createdAt: true, total: true }
         });
 
@@ -213,7 +216,9 @@ router.get('/charts/top-products', authenticate, async (req: AuthRequest, res) =
             const days = parseInt(String(period));
             const startDate = new Date();
             startDate.setDate(startDate.getDate() - days);
-            where.sale = { createdAt: { gte: startDate } };
+            where.sale = { companyId: req.companyId, createdAt: { gte: startDate } };
+        } else {
+            where.sale = { companyId: req.companyId };
         }
 
         const topProducts = await prisma.saleItem.groupBy({
@@ -262,6 +267,7 @@ router.get('/charts/categories', authenticate, async (req: AuthRequest, res) => 
             startDate.setDate(startDate.getDate() - days);
             where.createdAt = { gte: startDate };
         }
+        where.companyId = req.companyId;
 
         const sales = await prisma.saleItem.findMany({
             where: { sale: where },
@@ -299,6 +305,7 @@ router.get('/charts/payment-methods', authenticate, async (req: AuthRequest, res
             startDate.setDate(startDate.getDate() - days);
             where.createdAt = { gte: startDate };
         }
+        where.companyId = req.companyId;
 
         const breakdown = await prisma.sale.groupBy({
             by: ['paymentMethod'],
@@ -323,6 +330,7 @@ router.get('/recent-activity', authenticate, async (req: AuthRequest, res) => {
     try {
         const [recentSales, recentInvoices, recentAlerts] = await Promise.all([
             prisma.sale.findMany({
+                where: { companyId: req.companyId },
                 take: 5,
                 orderBy: { createdAt: 'desc' },
                 include: {
@@ -331,6 +339,7 @@ router.get('/recent-activity', authenticate, async (req: AuthRequest, res) => {
                 }
             }),
             prisma.invoice.findMany({
+                where: { companyId: req.companyId },
                 take: 5,
                 orderBy: { createdAt: 'desc' },
                 select: {
@@ -343,8 +352,8 @@ router.get('/recent-activity', authenticate, async (req: AuthRequest, res) => {
                 }
             }),
             prisma.alert.findMany({
+                where: { companyId: req.companyId, isResolved: false },
                 take: 5,
-                where: { isResolved: false },
                 orderBy: { createdAt: 'desc' }
             })
         ]);
