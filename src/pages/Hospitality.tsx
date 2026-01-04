@@ -85,9 +85,6 @@ export default function Hospitality() {
         hasInitialData.current = true;
     }
 
-    // Room pagination using usePagination hook
-    const roomPagination = usePagination(rooms, 10);
-
     // Check-in multi-step state
     const checkInStepper = useStepper(2);
     const checkInSteps = [
@@ -138,6 +135,7 @@ export default function Hospitality() {
             return matchesStatus && matchesSearch;
         });
     }, [rooms, filter, debouncedSearch]);
+    const roomPagination = usePagination(filteredRooms, 12);
 
     const fetchHistory = async (page = 1) => {
         setHistoryLoading(true);
@@ -484,111 +482,121 @@ export default function Hospitality() {
                                         }
                                     />
                                 ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                        {filteredRooms.map(room => (
-                                            <Card key={room.id} className="group overflow-hidden border-gray-200 dark:border-dark-700 hover:shadow-xl hover:border-primary-400 transition-all duration-300">
-                                                {/* Card Header with Status Badge */}
-                                                <div className={`h-2 w-full ${room.status === 'available' ? 'bg-green-500' :
-                                                    room.status === 'occupied' ? 'bg-blue-500' :
-                                                        room.status === 'dirty' ? 'bg-amber-500' :
-                                                            'bg-red-500'}`} />
+                                    <>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                            {roomPagination.paginatedItems.map(room => (
+                                                <Card key={room.id} className="group overflow-hidden border-gray-200 dark:border-dark-700 hover:shadow-xl hover:border-primary-400 transition-all duration-300">
+                                                    {/* Card Header with Status Badge */}
+                                                    <div className={`h-2 w-full ${room.status === 'available' ? 'bg-green-500' :
+                                                        room.status === 'occupied' ? 'bg-blue-500' :
+                                                            room.status === 'dirty' ? 'bg-amber-500' :
+                                                                'bg-red-500'}`} />
 
-                                                <div className="p-4 border-b border-gray-100 dark:border-dark-700 flex justify-between items-start">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`p-2 rounded-xl ${room.status === 'available' ? 'bg-green-50 text-green-600' :
-                                                            room.status === 'occupied' ? 'bg-blue-50 text-blue-600' :
-                                                                room.status === 'dirty' ? 'bg-amber-50 text-amber-600' :
-                                                                    'bg-red-50 text-red-600'}`}>
-                                                            <HiOutlineHome className="w-6 h-6" />
-                                                        </div>
-                                                        <div>
-                                                            <h3 className="text-xl font-black text-gray-900 dark:text-white">Q-{room.number}</h3>
-                                                            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{room.type}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${room.status === 'available' ? 'bg-green-100 text-green-700' :
-                                                        room.status === 'occupied' ? 'bg-blue-100 text-blue-700' :
-                                                            room.status === 'dirty' ? 'bg-amber-100 text-amber-700' :
-                                                                'bg-red-100 text-red-700'}`}>
-                                                        {getStatusLabel(room.status)}
-                                                    </div>
-                                                </div>
-
-                                                <div className="p-4 space-y-4">
-                                                    {/* Content Area */}
-                                                    <div className="min-h-[60px]">
-                                                        {room.status === 'occupied' && room.bookings?.[0] ? (
-                                                            <div className="space-y-2">
-                                                                <div className="flex items-center gap-2">
-                                                                    <HiOutlineUsers className="w-4 h-4 text-primary-500" />
-                                                                    <span className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                                        {room.bookings[0].customerName}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex justify-between items-center bg-gray-50 dark:bg-dark-800 p-2 rounded-lg border border-gray-100 dark:border-dark-700">
-                                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">Consumos</span>
-                                                                    <span className="text-xs font-black text-primary-600">
-                                                                        {room.bookings[0].consumptions?.reduce((acc: number, c: any) => acc + Number(c.total), 0).toLocaleString()} MT
-                                                                    </span>
-                                                                </div>
+                                                    <div className="p-4 border-b border-gray-100 dark:border-dark-700 flex justify-between items-start">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`p-2 rounded-xl ${room.status === 'available' ? 'bg-green-50 text-green-600' :
+                                                                room.status === 'occupied' ? 'bg-blue-50 text-blue-600' :
+                                                                    room.status === 'dirty' ? 'bg-amber-50 text-amber-600' :
+                                                                        'bg-red-50 text-red-600'}`}>
+                                                                <HiOutlineHome className="w-6 h-6" />
                                                             </div>
-                                                        ) : (
-                                                            <p className="text-xs text-gray-500 italic flex items-center gap-2 pt-2">
-                                                                <HiOutlineChartBar className="w-4 h-4 opacity-30" />
-                                                                {room.status === 'available' ? 'Disponível para nova entrada' :
-                                                                    room.status === 'dirty' ? 'Aguardando serviço de limpeza' :
-                                                                        room.status === 'maintenance' ? 'Em manutenção técnica' : '—'}
-                                                            </p>
-                                                        )}
+                                                            <div>
+                                                                <h3 className="text-xl font-black text-gray-900 dark:text-white">Q-{room.number}</h3>
+                                                                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">{room.type}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-tighter ${room.status === 'available' ? 'bg-green-100 text-green-700' :
+                                                            room.status === 'occupied' ? 'bg-blue-100 text-blue-700' :
+                                                                room.status === 'dirty' ? 'bg-amber-100 text-amber-700' :
+                                                                    'bg-red-100 text-red-700'}`}>
+                                                            {getStatusLabel(room.status)}
+                                                        </div>
                                                     </div>
 
-                                                    {/* Financial / Type Info */}
-                                                    <div className="flex justify-between items-center text-xs border-t border-gray-100 dark:border-dark-700 pt-3">
-                                                        <span className="text-gray-400 font-medium">Preço p/ Noite</span>
-                                                        <span className="font-bold text-gray-900 dark:text-white">{room.price?.toLocaleString()} MT</span>
-                                                    </div>
+                                                    <div className="p-4 space-y-4">
+                                                        {/* Content Area */}
+                                                        <div className="min-h-[60px]">
+                                                            {room.status === 'occupied' && room.bookings?.[0] ? (
+                                                                <div className="space-y-2">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <HiOutlineUsers className="w-4 h-4 text-primary-500" />
+                                                                        <span className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                                            {room.bookings[0].customerName}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center bg-gray-50 dark:bg-dark-800 p-2 rounded-lg border border-gray-100 dark:border-dark-700">
+                                                                        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tight">Consumos</span>
+                                                                        <span className="text-xs font-black text-primary-600">
+                                                                            {room.bookings[0].consumptions?.reduce((acc: number, c: any) => acc + Number(c.total), 0).toLocaleString()} MT
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-xs text-gray-500 italic flex items-center gap-2 pt-2">
+                                                                    <HiOutlineChartBar className="w-4 h-4 opacity-30" />
+                                                                    {room.status === 'available' ? 'Disponível para nova entrada' :
+                                                                        room.status === 'dirty' ? 'Aguardando serviço de limpeza' :
+                                                                            room.status === 'maintenance' ? 'Em manutenção técnica' : '—'}
+                                                                </p>
+                                                            )}
+                                                        </div>
 
-                                                    {/* Action Area */}
-                                                    <div className="grid grid-cols-1 gap-2 pt-1">
-                                                        {room.status === 'available' ? (
-                                                            <Button fullWidth size="sm" onClick={() => { setSelectedRoom(room); setIsCheckInModalOpen(true); }} className="shadow-sm">Realizar Check-in</Button>
-                                                        ) : room.status === 'occupied' ? (
-                                                            <div className="space-y-2">
-                                                                <div className="flex gap-2">
-                                                                    <Button fullWidth variant="danger" size="sm" onClick={() => room.bookings?.[0] && handleCheckout(room.bookings[0].id)}>Check-out</Button>
-                                                                    <Button variant="outline" size="sm" className="px-3" onClick={() => room.bookings?.[0] && generateBookingReceipt(room.bookings[0], companySettings)} title="Imprimir Recibo">
-                                                                        <HiOutlinePrinter className="w-5 h-5" />
+                                                        {/* Financial / Type Info */}
+                                                        <div className="flex justify-between items-center text-xs border-t border-gray-100 dark:border-dark-700 pt-3">
+                                                            <span className="text-gray-400 font-medium">Preço p/ Noite</span>
+                                                            <span className="font-bold text-gray-900 dark:text-white">{room.price?.toLocaleString()} MT</span>
+                                                        </div>
+
+                                                        {/* Action Area */}
+                                                        <div className="grid grid-cols-1 gap-2 pt-1">
+                                                            {room.status === 'available' ? (
+                                                                <Button fullWidth size="sm" onClick={() => { setSelectedRoom(room); setIsCheckInModalOpen(true); }} className="shadow-sm">Realizar Check-in</Button>
+                                                            ) : room.status === 'occupied' ? (
+                                                                <div className="space-y-2">
+                                                                    <div className="flex gap-2">
+                                                                        <Button fullWidth variant="danger" size="sm" onClick={() => room.bookings?.[0] && handleCheckout(room.bookings[0].id)}>Check-out</Button>
+                                                                        <Button variant="outline" size="sm" className="px-3" onClick={() => room.bookings?.[0] && generateBookingReceipt(room.bookings[0], companySettings)} title="Imprimir Recibo">
+                                                                            <HiOutlinePrinter className="w-5 h-5" />
+                                                                        </Button>
+                                                                    </div>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                        fullWidth
+                                                                        leftIcon={<HiOutlineShoppingCart className="w-4 h-4" />}
+                                                                        onClick={() => { setSelectedRoom(room); setIsConsumptionModalOpen(true); }}
+                                                                        className="text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                                                                    >
+                                                                        Registrar Consumo
                                                                     </Button>
                                                                 </div>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    fullWidth
-                                                                    leftIcon={<HiOutlineShoppingCart className="w-4 h-4" />}
-                                                                    onClick={() => { setSelectedRoom(room); setIsConsumptionModalOpen(true); }}
-                                                                    className="text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
-                                                                >
-                                                                    Registrar Consumo
-                                                                </Button>
-                                                            </div>
-                                                        ) : room.status === 'dirty' ? (
-                                                            <Button fullWidth variant="outline" size="sm" onClick={() => updateRoom(room.id, { status: 'available' })} leftIcon={<HiOutlineCheck className="w-4 h-4" />}>Marcar como Limpo</Button>
-                                                        ) : (
-                                                            <Button fullWidth variant="outline" size="sm" onClick={() => updateRoom(room.id, { status: 'available' })}>Concluir Manutenção</Button>
-                                                        )}
+                                                            ) : room.status === 'dirty' ? (
+                                                                <Button fullWidth variant="outline" size="sm" onClick={() => updateRoom(room.id, { status: 'available' })} leftIcon={<HiOutlineCheck className="w-4 h-4" />}>Marcar como Limpo</Button>
+                                                            ) : (
+                                                                <Button fullWidth variant="outline" size="sm" onClick={() => updateRoom(room.id, { status: 'available' })}>Concluir Manutenção</Button>
+                                                            )}
 
-                                                        {/* Quick State Toggle for management */}
-                                                        {room.status !== 'occupied' && (
-                                                            <div className="flex justify-center gap-4 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <button onClick={() => updateRoom(room.id, { status: 'dirty' })} className="text-[10px] text-amber-600 hover:underline font-bold">Set Sujo</button>
-                                                                <button onClick={() => updateRoom(room.id, { status: 'maintenance' })} className="text-[10px] text-red-600 hover:underline font-bold">Set Manut.</button>
-                                                            </div>
-                                                        )}
+                                                            {/* Quick State Toggle for management */}
+                                                            {room.status !== 'occupied' && (
+                                                                <div className="flex justify-center gap-4 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button onClick={() => updateRoom(room.id, { status: 'dirty' })} className="text-[10px] text-amber-600 hover:underline font-bold">Set Sujo</button>
+                                                                    <button onClick={() => updateRoom(room.id, { status: 'maintenance' })} className="text-[10px] text-red-600 hover:underline font-bold">Set Manut.</button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </Card>
-                                        ))}
-                                    </div>
+                                                </Card>
+                                            ))}
+                                        </div>
+
+                                        <Pagination
+                                            currentPage={roomPagination.currentPage}
+                                            totalItems={roomPagination.totalItems}
+                                            itemsPerPage={roomPagination.itemsPerPage}
+                                            onPageChange={roomPagination.setCurrentPage}
+                                            onItemsPerPageChange={roomPagination.setItemsPerPage}
+                                        />
+                                    </>
                                 )}
                             </div>
                         )}

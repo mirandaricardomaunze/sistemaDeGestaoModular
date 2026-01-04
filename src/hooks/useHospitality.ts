@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { hospitalityAPI } from '../services/api';
 
@@ -19,6 +19,9 @@ export function useHospitality(params?: { status?: string; type?: string; search
             setIsLoading(false);
         }
     }, [params?.status, params?.type, params?.search]);
+    useEffect(() => {
+        fetchRooms();
+    }, [fetchRooms]);
 
     const seedRooms = async () => {
         try {
@@ -85,6 +88,17 @@ export function useHospitality(params?: { status?: string; type?: string; search
         }
     };
 
+    const addConsumption = async (bookingId: string, data: { productId: string; quantity: number }) => {
+        try {
+            await hospitalityAPI.addConsumption(bookingId, data);
+            await fetchRooms();
+            toast.success('Consumo registrado com sucesso!');
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Erro ao registrar consumo');
+            throw err;
+        }
+    };
+
     return {
         rooms,
         isLoading,
@@ -96,5 +110,6 @@ export function useHospitality(params?: { status?: string; type?: string; search
         addRoom,
         updateRoom,
         deleteRoom,
+        addConsumption,
     };
 }
