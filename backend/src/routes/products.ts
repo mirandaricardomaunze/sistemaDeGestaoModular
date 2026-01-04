@@ -3,6 +3,13 @@ import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { cacheService, CacheKeys } from '../services/cache.service';
 import { logger } from '../utils/logger';
+import {
+    createProductSchema,
+    updateProductSchema,
+    adjustStockSchema,
+    formatZodError,
+    ZodError
+} from '../validation';
 
 const router = Router();
 
@@ -141,17 +148,22 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
 // Create product
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Validate request body
+        const validatedData = createProductSchema.parse(req.body);
         const {
-            code, name, description, category, price, costPrice,
+            code, name, description, categoryId, price, costPrice,
             currentStock, minStock, maxStock, unit, barcode,
-            expiryDate, batchNumber, location, supplierId, imageUrl,
-            isReturnable, returnPrice, packSize
-        } = req.body;
+            expiryDate, batchNumber, location, supplierId, taxRate,
+            isActive, isService, requiresPrescription, dosageForm, strength, manufacturer
+        } = validatedData;
+
+        // Use provided code or generate one
+        const productCode = code || `PROD-${Date.now().toString().slice(-6)}`;
 
         // Check if code already exists within the company
         const existing = await prisma.product.findFirst({
             where: {
-                code,
+                code: productCode,
                 companyId: req.companyId
             }
         });
@@ -161,20 +173,22 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         }
 
         // Determine stock status
+        const stock = currentStock || 0;
+        const min = minStock || 5;
         let status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
-        if (currentStock === 0) status = 'out_of_stock';
-        else if (currentStock <= minStock) status = 'low_stock';
+        if (stock === 0) status = 'out_of_stock';
+        else if (stock <= min) status = 'low_stock';
 
         const product = await prisma.product.create({
             data: {
-                code,
+                code: productCode,
                 name,
                 description,
-                category: category || 'other',
+                category: 'other', // Default category
                 price,
                 costPrice: costPrice || 0,
-                currentStock: currentStock || 0,
-                minStock: minStock || 5,
+                currentStock: stock,
+                minStock: min,
                 maxStock,
                 unit: unit || 'un',
                 barcode,
@@ -183,11 +197,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 location,
                 supplierId,
                 companyId: req.companyId, // Multi-tenancy isolation
-                imageUrl,
                 status,
-                isReturnable: isReturnable || false,
-                returnPrice: returnPrice || 0,
-                packSize: packSize || 1
+                isActive: isActive ?? true
             },
             include: { supplier: true }
         });
@@ -211,6 +222,12 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
         res.status(201).json(product);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         logger.error('Create product error:', error);
         res.status(500).json({ error: 'Erro ao criar produto' });
     }
@@ -220,7 +237,10 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
         const { id } = req.params;
-        const updateData = req.body;
+
+        // Validate request body
+        const validatedData = updateProductSchema.parse(req.body);
+        const updateData: any = { ...validatedData };
 
         // Verify ownership and recalculate status if stock changed
         if (updateData.currentStock !== undefined || updateData.minStock !== undefined) {
@@ -310,6 +330,12 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 
         res.json(product);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         logger.error('Update product error:', error);
         res.status(500).json({ error: 'Erro ao atualizar produto' });
     }
@@ -341,7 +367,10 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
 router.patch('/:id/stock', authenticate, async (req: AuthRequest, res) => {
     try {
         const { id } = req.params;
-        const { quantity, operation, warehouseId, reason } = req.body;
+
+        // Validate request body
+        const validatedData = adjustStockSchema.parse(req.body);
+        const { quantity, operation, warehouseId, reason } = validatedData;
 
         const product = await prisma.product.findFirst({
             where: {
@@ -458,6 +487,12 @@ router.patch('/:id/stock', authenticate, async (req: AuthRequest, res) => {
 
         res.json(updated);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         logger.error('Update stock error:', error);
         res.status(500).json({ error: 'Erro ao atualizar stock' });
     }

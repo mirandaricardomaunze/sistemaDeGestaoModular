@@ -1,6 +1,12 @@
 import { Router } from 'express';
 import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import {
+    createOrderSchema,
+    updateOrderStatusSchema,
+    formatZodError,
+    ZodError
+} from '../validation';
 
 const router = Router();
 
@@ -86,44 +92,43 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
 // Create order
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Validate request body
+        const validatedData = createOrderSchema.parse(req.body);
         const {
             customerName,
             customerPhone,
-            customerEmail,
             customerAddress,
             items,
             total,
-            priority,
-            paymentMethod,
             deliveryDate,
-            notes
-        } = req.body;
+            notes,
+            paymentMethod
+        } = validatedData;
 
         // Generate order number
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
         const count = await prisma.customerOrder.count();
-        const orderNumber = `ENC - ${dateStr} -${String(count + 1).padStart(4, '0')} `;
+        const orderNumber = `ENC-${dateStr}-${String(count + 1).padStart(4, '0')}`;
 
         const order = await prisma.customerOrder.create({
             data: {
                 orderNumber,
                 customerName,
                 customerPhone,
-                customerEmail,
                 customerAddress,
                 total,
-                priority: priority || 'normal',
+                priority: 'normal',
                 paymentMethod,
                 deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
                 notes,
                 companyId: req.companyId, // Multi-tenancy isolation
                 items: {
-                    create: items.map((item: any) => ({
+                    create: items.map((item) => ({
                         productId: item.productId,
-                        productName: item.productName,
+                        productName: '', // Will be filled from product lookup if needed
                         quantity: item.quantity,
-                        price: item.price,
-                        total: item.quantity * item.price
+                        price: item.unitPrice,
+                        total: item.quantity * item.unitPrice
                     }))
                 },
                 transitions: {
@@ -141,6 +146,12 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
         res.status(201).json(order);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         console.error('Create order error:', error);
         res.status(500).json({ error: 'Erro ao criar encomenda' });
     }
@@ -149,7 +160,9 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 // Update order status
 router.patch('/:id/status', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { status, responsibleName, notes } = req.body;
+        // Validate request body
+        const validatedData = updateOrderStatusSchema.parse(req.body);
+        const { status, responsibleName, notes } = validatedData;
 
         // Verify ownership before status update
         const existing = await prisma.customerOrder.findFirst({
@@ -181,6 +194,12 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res) => {
 
         res.json(order);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         console.error('Update order status error:', error);
         res.status(500).json({ error: 'Erro ao atualizar status da encomenda' });
     }

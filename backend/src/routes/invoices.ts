@@ -1,6 +1,14 @@
 import { Router } from 'express';
 import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import {
+    createInvoiceSchema,
+    updateInvoiceSchema,
+    addPaymentSchema,
+    creditNoteSchema,
+    formatZodError,
+    ZodError
+} from '../validation';
 
 const router = Router();
 
@@ -96,24 +104,22 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
 // Create invoice
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     try {
+        const validatedData = createInvoiceSchema.parse(req.body);
         const {
             customerId,
             customerName,
             customerEmail,
             customerPhone,
             customerAddress,
-            customerDocument,
             items,
             subtotal,
             discount,
-            tax,
             total,
             dueDate,
             notes,
-            terms,
             orderId,
             orderNumber
-        } = req.body;
+        } = validatedData;
 
         // Generate invoice number per company
         const year = new Date().getFullYear();
@@ -124,27 +130,13 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
         const invoice = await prisma.invoice.create({
             data: {
-                ...req.body, // In real scenario, destructure to avoid companyId override
+                ...validatedData,
                 invoiceNumber,
                 companyId: req.companyId, // Multi-tenancy isolation
-                customerId,
-                customerName,
-                customerEmail,
-                customerPhone,
-                customerAddress,
-                customerDocument,
-                orderId,
-                orderNumber,
-                subtotal,
-                discount: discount || 0,
-                tax: tax || 0,
-                total,
+                dueDate: dueDate ? new Date(dueDate) : new Date(),
                 amountDue: total,
-                dueDate: new Date(dueDate),
-                notes,
-                terms,
                 items: {
-                    create: items.map((item: any) => ({
+                    create: items.map((item) => ({
                         productId: item.productId,
                         description: item.description,
                         quantity: item.quantity,
@@ -162,6 +154,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
         // Register IVA Retention in Fiscal Module
         try {
+            const tax = validatedData.taxAmount || 0;
             if (tax > 0) {
                 const ivaConfig = await prisma.taxConfig.findFirst({
                     where: {
@@ -191,6 +184,9 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
         res.status(201).json(invoice);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Create invoice error:', error);
         res.status(500).json({ error: 'Erro ao criar fatura' });
     }
@@ -200,7 +196,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
         const { id } = req.params;
-        const { items, ...updateData } = req.body;
+        const validatedData = updateInvoiceSchema.parse(req.body);
+        const { items, ...updateData } = validatedData;
 
         // Update invoice (not items)
         const result = await prisma.invoice.updateMany({
@@ -208,7 +205,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
                 id,
                 companyId: req.companyId // Multi-tenancy isolation
             },
-            data: updateData
+            data: updateData as any
         });
 
         if (result.count === 0) {
@@ -226,6 +223,9 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 
         res.json(invoice);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Update invoice error:', error);
         res.status(500).json({ error: 'Erro ao atualizar fatura' });
     }
@@ -235,7 +235,8 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 router.post('/:id/payments', authenticate, async (req: AuthRequest, res) => {
     try {
         const { id } = req.params;
-        const { amount, method, reference, notes } = req.body;
+        const validatedData = addPaymentSchema.parse(req.body);
+        const { amount, method, reference, notes } = validatedData;
 
         const invoice = await prisma.invoice.findFirst({
             where: {
@@ -253,7 +254,7 @@ router.post('/:id/payments', authenticate, async (req: AuthRequest, res) => {
             data: {
                 invoiceId: id,
                 amount,
-                method,
+                method: method as any,
                 reference,
                 notes,
                 companyId: req.companyId // Multi-tenancy isolation
@@ -283,6 +284,9 @@ router.post('/:id/payments', authenticate, async (req: AuthRequest, res) => {
 
         res.status(201).json(payment);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Add payment error:', error);
         res.status(500).json({ error: 'Erro ao adicionar pagamento' });
     }
@@ -336,7 +340,8 @@ router.post('/:id/send', authenticate, async (req: AuthRequest, res) => {
 router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => {
     try {
         const invoiceId = req.params.id;
-        const { items, reason, notes } = req.body;
+        const validatedData = creditNoteSchema.parse(req.body);
+        const { items, reason, notes } = validatedData;
 
         const invoice = await prisma.invoice.findFirst({
             where: {
@@ -358,7 +363,7 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
         const number = `NC-${year}-${String(count + 1).padStart(4, '0')}`;
 
         // Calculate totals
-        const subtotal = items.reduce((sum: number, item: any) => sum + item.total, 0);
+        const subtotal = items.reduce((sum: number, item) => sum + item.total, 0);
         const taxRate = 0.16; // 16% IVA
         const tax = subtotal * taxRate;
         const total = subtotal + tax;
@@ -376,7 +381,7 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
                 reason,
                 notes,
                 items: {
-                    create: items.map((item: any) => ({
+                    create: items.map((item) => ({
                         productId: item.productId,
                         description: item.description,
                         quantity: item.quantity,
@@ -394,6 +399,9 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
 
         res.status(201).json(creditNote);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Create credit note error:', error);
         res.status(500).json({ error: 'Erro ao criar nota de crédito' });
     }

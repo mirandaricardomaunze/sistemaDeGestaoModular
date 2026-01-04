@@ -7,6 +7,19 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
 import { User, BusinessType } from '@prisma/client';
 import rateLimit from 'express-rate-limit';
+import {
+    loginSchema,
+    registerSchema,
+    updateProfileSchema,
+    changePasswordSchema,
+    forgotPasswordSchema,
+    verifyOtpSchema,
+    resetPasswordSchema,
+    updateUserSchema,
+    updateUserStatusSchema,
+    formatZodError,
+    ZodError
+} from '../validation';
 
 
 const router = Router();
@@ -23,11 +36,8 @@ const loginLimiter = rateLimit({
 // Login
 router.post('/login', loginLimiter, async (req, res) => {
     try {
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email e senha são obrigatórios' });
-        }
+        const validatedData = loginSchema.parse(req.body);
+        const { email, password } = validatedData;
 
         const user = await prisma.user.findUnique({
             where: { email: email.toLowerCase() },
@@ -132,6 +142,9 @@ router.post('/login', loginLimiter, async (req, res) => {
             permissions
         });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         logger.error('Login error', { error: error instanceof Error ? error.message : 'Unknown', email: req.body.email });
         res.status(500).json({ error: 'Erro ao fazer login' });
     }
@@ -150,24 +163,14 @@ const MODULE_TO_BUSINESS_TYPE: Record<string, BusinessType> = {
 // Register with Company and Module Selection
 router.post('/register', async (req, res) => {
     try {
+        const validatedData = registerSchema.parse(req.body);
         const {
             email, password, name, role, phone,
             companyName, companyTradeName, companyNuit,
             companyPhone, companyEmail, companyAddress,
             moduleCode
-        } = req.body;
+        } = validatedData;
         logger.info('[Register Debug] Request Body: %o', { email, name, companyName, companyNuit, moduleCode });
-
-        // Validate required fields
-        if (!email || !password || !name) {
-            logger.warn('[Register Debug] Missing basic fields');
-            return res.status(400).json({ error: 'Campos obrigatórios: email, password, name' });
-        }
-
-        if (!companyName || !companyNuit || !moduleCode) {
-            logger.warn('[Register Debug] Missing companyName, companyNuit or moduleCode');
-            return res.status(400).json({ error: 'Campos obrigatórios: companyName, companyNuit, moduleCode' });
-        }
 
         // Check if user email already exists
         const existingUser = await prisma.user.findUnique({
@@ -309,6 +312,9 @@ router.post('/register', async (req, res) => {
             activeModules: [result.moduleCode]
         });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         logger.error('Register error', { error: error instanceof Error ? error.message : 'Unknown' });
         res.status(500).json({ error: 'Erro ao criar utilizador' });
     }
@@ -381,16 +387,20 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
 // Update profile
 router.put('/profile', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { name, email, phone } = req.body;
+        const validatedData = updateProfileSchema.parse(req.body);
+        const { name, phone } = validatedData;
 
         const user = await prisma.user.update({
             where: { id: req.userId },
-            data: { name, email, phone }
+            data: { name, phone }
         });
 
         const { password: _, ...userWithoutPassword } = user;
         res.json(userWithoutPassword);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         logger.error('Update profile error', { error: error instanceof Error ? error.message : 'Unknown', userId: req.userId });
         res.status(500).json({ error: 'Erro ao atualizar perfil' });
     }
@@ -399,7 +409,8 @@ router.put('/profile', authenticate, async (req: AuthRequest, res) => {
 // Change password
 router.put('/change-password', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { currentPassword, newPassword } = req.body;
+        const validatedData = changePasswordSchema.parse(req.body);
+        const { currentPassword, newPassword } = validatedData;
 
         const user = await prisma.user.findUnique({
             where: { id: req.userId }
@@ -434,6 +445,9 @@ router.put('/change-password', authenticate, async (req: AuthRequest, res) => {
 
         res.json({ message: 'Senha alterada com sucesso' });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         logger.error('Change password error', { error: error instanceof Error ? error.message : 'Unknown', userId: req.userId });
         res.status(500).json({ error: 'Erro ao alterar senha' });
     }
@@ -482,7 +496,8 @@ router.put('/users/:id', authenticate, async (req: AuthRequest, res) => {
         }
 
         const { id } = req.params;
-        const { name, email, role, phone } = req.body;
+        const validatedData = updateUserSchema.parse(req.body);
+        const { name, email, role, phone } = validatedData;
 
         const targetUser = await prisma.user.findUnique({ where: { id } });
 
@@ -516,7 +531,8 @@ router.patch('/users/:id/status', authenticate, async (req: AuthRequest, res) =>
         }
 
         const { id } = req.params;
-        const { isActive } = req.body;
+        const validatedData = updateUserStatusSchema.parse(req.body);
+        const { isActive } = validatedData;
 
         const targetUser = await prisma.user.findUnique({ where: { id } });
 
@@ -576,11 +592,8 @@ router.delete('/users/:id', authenticate, async (req: AuthRequest, res) => {
 // Forgot Password - Request OTP
 router.post('/forgot-password', async (req, res) => {
     try {
-        const { email } = req.body;
-
-        if (!email) {
-            return res.status(400).json({ error: 'Email é obrigatório' });
-        }
+        const validatedData = forgotPasswordSchema.parse(req.body);
+        const { email } = validatedData;
 
         const user: User | null = await prisma.user.findUnique({
             where: { email: email.toLowerCase() }
@@ -613,6 +626,9 @@ router.post('/forgot-password', async (req, res) => {
 
         res.json({ message: 'Código de recuperação enviado para o seu e-mail.' });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         logger.error('Forgot password error', { error: error instanceof Error ? error.message : 'Unknown' });
         res.status(500).json({ error: 'Erro ao processar pedido de recuperação' });
     }
@@ -621,11 +637,8 @@ router.post('/forgot-password', async (req, res) => {
 // Verify OTP
 router.post('/verify-otp', async (req, res) => {
     try {
-        const { email, otp } = req.body;
-
-        if (!email || !otp) {
-            return res.status(400).json({ error: 'Email e código são obrigatórios' });
-        }
+        const validatedData = verifyOtpSchema.parse(req.body);
+        const { email, otp } = validatedData;
 
         const user: User | null = await prisma.user.findUnique({
             where: { email: email.toLowerCase() }
@@ -643,6 +656,9 @@ router.post('/verify-otp', async (req, res) => {
 
         res.json({ message: 'Código verificado com sucesso' });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         logger.error('Verify OTP error', { error: error instanceof Error ? error.message : 'Unknown' });
         res.status(500).json({ error: 'Erro ao verificar código' });
     }
@@ -651,11 +667,8 @@ router.post('/verify-otp', async (req, res) => {
 // Reset Password
 router.post('/reset-password', async (req, res) => {
     try {
-        const { email, otp, newPassword } = req.body;
-
-        if (!email || !otp || !newPassword) {
-            return res.status(400).json({ error: 'Todos os campos são obrigatórios' });
-        }
+        const validatedData = resetPasswordSchema.parse(req.body);
+        const { email, otp, newPassword } = validatedData;
 
         const user: User | null = await prisma.user.findUnique({
             where: { email: email.toLowerCase() }
@@ -684,6 +697,9 @@ router.post('/reset-password', async (req, res) => {
 
         res.json({ message: 'Senha alterada com sucesso' });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         logger.error('Reset password error', { error: error instanceof Error ? error.message : 'Unknown' });
         res.status(500).json({ error: 'Erro ao redefinir senha' });
     }

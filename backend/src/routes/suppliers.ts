@@ -1,6 +1,14 @@
 import { Router } from 'express';
 import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import {
+    createSupplierSchema,
+    updateSupplierSchema,
+    createPurchaseOrderSchema,
+    receivePurchaseOrderSchema,
+    formatZodError,
+    ZodError
+} from '../validation';
 
 const router = Router();
 
@@ -98,11 +106,14 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
 // Create supplier
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     try {
-        const code = req.body.code || `FOR-${Date.now().toString().slice(-6)}`;
+        // Validate request body
+        const validatedData = createSupplierSchema.parse(req.body);
+
+        const code = validatedData.code || `FOR-${Date.now().toString().slice(-6)}`;
 
         const supplier = await prisma.supplier.create({
             data: {
-                ...req.body,
+                ...validatedData,
                 code,
                 companyId: req.companyId // Multi-tenancy isolation
             }
@@ -110,6 +121,12 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
         res.status(201).json(supplier);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         console.error('Create supplier error:', error);
         res.status(500).json({ error: 'Erro ao criar fornecedor' });
     }
@@ -118,12 +135,15 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 // Update supplier
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Validate request body
+        const validatedData = updateSupplierSchema.parse(req.body);
+
         const supplier = await prisma.supplier.updateMany({
             where: {
                 id: req.params.id,
                 companyId: req.companyId // Multi-tenancy isolation
             },
-            data: req.body
+            data: validatedData
         });
 
         if (supplier.count === 0) {
@@ -133,6 +153,12 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
         const updated = await prisma.supplier.findUnique({ where: { id: req.params.id } });
         res.json(updated);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         console.error('Update supplier error:', error);
         res.status(500).json({ error: 'Erro ao atualizar fornecedor' });
     }
@@ -164,7 +190,10 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
 router.post('/:id/orders', authenticate, async (req: AuthRequest, res) => {
     try {
         const supplierId = req.params.id;
-        const { items, expectedDeliveryDate, notes } = req.body;
+
+        // Validate request body
+        const validatedData = createPurchaseOrderSchema.parse(req.body);
+        const { items, expectedDeliveryDate, notes } = validatedData;
 
         const supplier = await prisma.supplier.findFirst({
             where: {
@@ -184,7 +213,7 @@ router.post('/:id/orders', authenticate, async (req: AuthRequest, res) => {
         const orderNumber = `OC-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
 
         // Calculate total
-        const total = items.reduce((sum: number, item: any) => sum + (item.quantity * item.unitCost), 0);
+        const total = items.reduce((sum: number, item) => sum + (item.quantity * (item.unitCost || 0)), 0);
 
         const order = await prisma.purchaseOrder.create({
             data: {
@@ -194,11 +223,11 @@ router.post('/:id/orders', authenticate, async (req: AuthRequest, res) => {
                 expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
                 notes,
                 items: {
-                    create: items.map((item: any) => ({
+                    create: items.map((item) => ({
                         productId: item.productId,
                         quantity: item.quantity,
-                        unitCost: item.unitCost,
-                        total: item.quantity * item.unitCost
+                        unitCost: item.unitCost || 0,
+                        total: item.quantity * (item.unitCost || 0)
                     }))
                 }
             },
@@ -210,6 +239,12 @@ router.post('/:id/orders', authenticate, async (req: AuthRequest, res) => {
 
         res.status(201).json(order);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         console.error('Create purchase order error:', error);
         res.status(500).json({ error: 'Erro ao criar ordem de compra' });
     }
@@ -240,7 +275,10 @@ router.get('/:id/orders', authenticate, async (req: AuthRequest, res) => {
 router.post('/orders/:orderId/receive', authenticate, async (req: AuthRequest, res) => {
     try {
         const { orderId } = req.params;
-        const { items } = req.body; // Array of { itemId, receivedQty }
+
+        // Validate request body
+        const validatedData = receivePurchaseOrderSchema.parse(req.body);
+        const { items } = validatedData;
 
         const order = await prisma.purchaseOrder.findFirst({
             where: {
@@ -293,6 +331,12 @@ router.post('/orders/:orderId/receive', authenticate, async (req: AuthRequest, r
 
         res.json({ message: 'Itens recebidos com sucesso' });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         console.error('Receive order error:', error);
         res.status(500).json({ error: 'Erro ao receber ordem de compra' });
     }

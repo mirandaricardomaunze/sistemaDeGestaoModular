@@ -1,6 +1,13 @@
 import { Router } from 'express';
 import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import {
+    createCustomerSchema,
+    updateCustomerSchema,
+    updateCustomerBalanceSchema,
+    formatZodError
+} from '../utils/validation';
+import { ZodError } from 'zod';
 
 const router = Router();
 
@@ -103,25 +110,28 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
 // Create customer
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     try {
-        const {
-            code, name, type, email, phone, document,
-            address, city, province, notes, creditLimit
-        } = req.body;
+        // Validate request body
+        const validatedData = createCustomerSchema.parse(req.body);
 
         // Generate code if not provided
-        const customerCode = code || `CLI-${Date.now().toString().slice(-6)}`;
+        const customerCode = validatedData.code || `CLI-${Date.now().toString().slice(-6)}`;
 
         const customer = await prisma.customer.create({
             data: {
-                ...req.body,
+                ...validatedData,
                 code: customerCode,
-                companyId: req.companyId, // Multi-tenancy isolation
-                creditLimit: creditLimit || null
+                companyId: req.companyId // Multi-tenancy isolation
             }
         });
 
         res.status(201).json(customer);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         console.error('Create customer error:', error);
         res.status(500).json({ error: 'Erro ao criar cliente' });
     }
@@ -130,12 +140,15 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 // Update customer
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Validate request body
+        const validatedData = updateCustomerSchema.parse(req.body);
+
         const customer = await prisma.customer.updateMany({
             where: {
                 id: req.params.id,
                 companyId: req.companyId // Multi-tenancy isolation
             },
-            data: req.body
+            data: validatedData
         });
 
         if (customer.count === 0) {
@@ -145,6 +158,12 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
         const updated = await prisma.customer.findUnique({ where: { id: req.params.id } });
         res.json(updated);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         console.error('Update customer error:', error);
         res.status(500).json({ error: 'Erro ao atualizar cliente' });
     }
@@ -208,7 +227,8 @@ router.get('/:id/purchases', authenticate, async (req: AuthRequest, res) => {
 // Update customer balance
 router.patch('/:id/balance', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { amount, operation } = req.body;
+        // Validate request body
+        const { amount, operation } = updateCustomerBalanceSchema.parse(req.body);
 
         const customer = await prisma.customer.findFirst({
             where: {
@@ -246,6 +266,12 @@ router.patch('/:id/balance', authenticate, async (req: AuthRequest, res) => {
         const result = await prisma.customer.findUnique({ where: { id: req.params.id } });
         res.json(result);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         console.error('Update customer balance error:', error);
         res.status(500).json({ error: 'Erro ao atualizar saldo do cliente' });
     }

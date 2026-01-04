@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { updateCompanyStatusSchema, formatZodError, ZodError } from '../validation';
 
 const router = Router();
 
@@ -208,11 +209,8 @@ router.get('/companies/:id', authenticate, requireSuperAdmin, async (req: AuthRe
 router.patch('/companies/:id/status', authenticate, requireSuperAdmin, async (req: AuthRequest, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
-
-        if (!['active', 'inactive', 'suspended'].includes(status)) {
-            return res.status(400).json({ error: 'Status inválido' });
-        }
+        const validatedData = updateCompanyStatusSchema.parse(req.body);
+        const { status } = validatedData;
 
         const company = await prisma.company.update({
             where: { id },
@@ -237,6 +235,9 @@ router.patch('/companies/:id/status', authenticate, requireSuperAdmin, async (re
             company
         });
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Toggle company status error:', error);
         res.status(500).json({ error: 'Erro ao alterar status da empresa' });
     }

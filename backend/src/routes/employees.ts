@@ -1,6 +1,16 @@
 import { Router } from 'express';
 import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import {
+    createEmployeeSchema,
+    updateEmployeeSchema,
+    recordAttendanceSchema,
+    generatePayrollSchema,
+    requestVacationSchema,
+    approveVacationSchema,
+    formatZodError,
+    ZodError
+} from '../validation';
 
 const router = Router();
 
@@ -174,21 +184,25 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
 // Create employee
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     try {
-        const code = req.body.code || `EMP-${Date.now().toString().slice(-6)}`;
+        const validatedData = createEmployeeSchema.parse(req.body);
+        const code = validatedData.code || `EMP-${Date.now().toString().slice(-6)}`;
 
         const employee = await prisma.employee.create({
             data: {
-                ...req.body,
+                ...validatedData,
                 code,
                 companyId: req.companyId, // 🔒 Associate with user's company
-                hireDate: new Date(req.body.hireDate),
-                birthDate: req.body.birthDate ? new Date(req.body.birthDate) : null,
-                contractExpiry: req.body.contractExpiry ? new Date(req.body.contractExpiry) : null
+                hireDate: new Date(validatedData.hireDate),
+                birthDate: validatedData.birthDate ? new Date(validatedData.birthDate) : null,
+                contractExpiry: validatedData.contractExpiry ? new Date(validatedData.contractExpiry) : null
             }
         });
 
         res.status(201).json(employee);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Create employee error:', error);
         res.status(500).json({ error: 'Erro ao criar funcionário' });
     }
@@ -197,6 +211,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 // Update employee
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
+        const validatedData = updateEmployeeSchema.parse(req.body);
+
         // 🔒 CRITICAL: Verify employee belongs to user's company before update
         const existing = await prisma.employee.findUnique({
             where: { id: req.params.id },
@@ -211,7 +227,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
             return res.status(403).json({ error: 'Acesso negado: funcionário pertence a outra empresa' });
         }
 
-        const updateData = { ...req.body };
+        const updateData: any = { ...validatedData };
 
         if (updateData.hireDate) updateData.hireDate = new Date(updateData.hireDate);
         if (updateData.birthDate) updateData.birthDate = new Date(updateData.birthDate);
@@ -224,6 +240,9 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 
         res.json(employee);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Update employee error:', error);
         res.status(500).json({ error: 'Erro ao atualizar funcionário' });
     }
@@ -263,7 +282,8 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
 // Record attendance
 router.post('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { date, checkIn, checkOut, status, notes, justification } = req.body;
+        const validatedData = recordAttendanceSchema.parse(req.body);
+        const { date, checkIn, checkOut, status, notes, justification } = validatedData;
 
         const attendanceDate = new Date(date);
         attendanceDate.setHours(0, 0, 0, 0);
@@ -277,8 +297,10 @@ router.post('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
         // Calculate hours worked
         let hoursWorked = null;
         if (checkIn && checkOut) {
-            const start = new Date(`${date}T${checkIn}`);
-            const end = new Date(`${date}T${checkOut}`);
+            const startStr = `${date.split('T')[0]}T${checkIn}`;
+            const endStr = `${date.split('T')[0]}T${checkOut}`;
+            const start = new Date(startStr);
+            const end = new Date(endStr);
             hoursWorked = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
         }
 
@@ -290,8 +312,8 @@ router.post('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
                 }
             },
             update: {
-                checkIn: checkIn ? new Date(`${date}T${checkIn}`) : null,
-                checkOut: checkOut ? new Date(`${date}T${checkOut}`) : null,
+                checkIn: checkIn ? new Date(`${date.split('T')[0]}T${checkIn}`) : null,
+                checkOut: checkOut ? new Date(`${date.split('T')[0]}T${checkOut}`) : null,
                 status: status || 'present',
                 hoursWorked,
                 notes,
@@ -300,8 +322,8 @@ router.post('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
             create: {
                 employeeId: req.params.id,
                 date: attendanceDate,
-                checkIn: checkIn ? new Date(`${date}T${checkIn}`) : null,
-                checkOut: checkOut ? new Date(`${date}T${checkOut}`) : null,
+                checkIn: checkIn ? new Date(`${date.split('T')[0]}T${checkIn}`) : null,
+                checkOut: checkOut ? new Date(`${date.split('T')[0]}T${checkOut}`) : null,
                 status: status || 'present',
                 hoursWorked,
                 notes,
@@ -311,6 +333,9 @@ router.post('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
 
         res.json(attendance);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Record attendance error:', error);
         res.status(500).json({ error: 'Erro ao registrar presença' });
     }
@@ -365,7 +390,8 @@ router.get('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
 router.post('/:id/payroll', authenticate, async (req: AuthRequest, res) => {
     try {
         const employeeId = req.params.id;
-        const { month, year, otHours, bonus, advances, notes } = req.body;
+        const validatedData = generatePayrollSchema.parse(req.body);
+        const { month, year, otHours, bonus, advances, notes } = validatedData;
 
         const employee = await prisma.employee.findFirst({
             where: {
@@ -434,6 +460,9 @@ router.post('/:id/payroll', authenticate, async (req: AuthRequest, res) => {
 
         res.json(payroll);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Create payroll error:', error);
         res.status(500).json({ error: 'Erro ao processar folha de pagamento' });
     }
@@ -596,7 +625,8 @@ router.get('/payroll/month/:year/:month', authenticate, async (req: AuthRequest,
 // Request vacation
 router.post('/:id/vacations', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { startDate, endDate, notes } = req.body;
+        const validatedData = requestVacationSchema.parse(req.body);
+        const { startDate, endDate, notes } = validatedData;
 
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -622,6 +652,9 @@ router.post('/:id/vacations', authenticate, async (req: AuthRequest, res) => {
 
         res.status(201).json(vacation);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Request vacation error:', error);
         res.status(500).json({ error: 'Erro ao solicitar férias' });
     }
@@ -630,7 +663,8 @@ router.post('/:id/vacations', authenticate, async (req: AuthRequest, res) => {
 // Approve/Reject vacation
 router.patch('/vacations/:vacationId', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { status, approvedBy } = req.body;
+        const validatedData = approveVacationSchema.parse(req.body);
+        const { status, approvedBy } = validatedData;
 
         // Verify ownership before updating
         const existing = await prisma.vacationRequest.findFirst({
@@ -660,6 +694,9 @@ router.patch('/vacations/:vacationId', authenticate, async (req: AuthRequest, re
 
         res.json(vacation);
     } catch (error) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        }
         console.error('Update vacation error:', error);
         res.status(500).json({ error: 'Erro ao atualizar férias' });
     }
