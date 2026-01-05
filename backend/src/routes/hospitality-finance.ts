@@ -1,11 +1,11 @@
-import { Router, Request, Response } from 'express';
-import { authenticate } from '../middleware/auth';
+import { Router, Response } from 'express';
+import { authenticate, AuthRequest } from '../middleware/auth';
 import { HospitalityFinanceService } from '../services/hospitality-finance.service';
 
 const router = Router();
 
 // Dashboard data
-router.get('/dashboard', authenticate, async (req: Request, res: Response) => {
+router.get('/dashboard', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const { period = '1m' } = req.query;
         const dashboard = await HospitalityFinanceService.getDashboard(req.companyId!, period as string);
@@ -17,7 +17,7 @@ router.get('/dashboard', authenticate, async (req: Request, res: Response) => {
 });
 
 // Revenues
-router.get('/revenues', authenticate, async (req: Request, res: Response) => {
+router.get('/revenues', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const revenues = await HospitalityFinanceService.getRevenues(req.companyId!, req.query);
         res.json(revenues);
@@ -28,7 +28,7 @@ router.get('/revenues', authenticate, async (req: Request, res: Response) => {
 });
 
 // Expenses
-router.get('/expenses', authenticate, async (req: Request, res: Response) => {
+router.get('/expenses', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const expenses = await HospitalityFinanceService.getExpenses(req.companyId!, req.query);
         res.json(expenses);
@@ -38,7 +38,7 @@ router.get('/expenses', authenticate, async (req: Request, res: Response) => {
     }
 });
 
-router.post('/expenses', authenticate, async (req: Request, res: Response) => {
+router.post('/expenses', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const expense = await HospitalityFinanceService.createExpense(req.companyId!, req.body);
         res.status(201).json(expense);
@@ -48,7 +48,7 @@ router.post('/expenses', authenticate, async (req: Request, res: Response) => {
     }
 });
 
-router.put('/expenses/:id', authenticate, async (req: Request, res: Response) => {
+router.put('/expenses/:id', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const expense = await HospitalityFinanceService.updateExpense(req.params.id, req.companyId!, req.body);
         res.json(expense);
@@ -58,7 +58,7 @@ router.put('/expenses/:id', authenticate, async (req: Request, res: Response) =>
     }
 });
 
-router.delete('/expenses/:id', authenticate, async (req: Request, res: Response) => {
+router.delete('/expenses/:id', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         await HospitalityFinanceService.deleteExpense(req.params.id, req.companyId!);
         res.json({ message: 'Expense deleted successfully' });
@@ -69,7 +69,7 @@ router.delete('/expenses/:id', authenticate, async (req: Request, res: Response)
 });
 
 // Reports
-router.get('/reports/profit-loss', authenticate, async (req: Request, res: Response) => {
+router.get('/reports/profit-loss', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const { startDate, endDate } = req.query;
         if (!startDate || !endDate) {
@@ -87,7 +87,7 @@ router.get('/reports/profit-loss', authenticate, async (req: Request, res: Respo
     }
 });
 
-router.get('/reports/by-room', authenticate, async (req: Request, res: Response) => {
+router.get('/reports/by-room', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const { startDate, endDate } = req.query;
         const report = await HospitalityFinanceService.getByRoom(

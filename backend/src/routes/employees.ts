@@ -11,14 +11,26 @@ import {
     formatZodError,
     ZodError
 } from '../validation';
+import { AttendanceService } from '../services/attendance.service';
 
 const router = Router();
 
-// Get attendance (generic/bulk) - MOVED TO TOP to avoid conflicts
+// Get attendance (generic/bulk) with pagination
 router.get('/attendance', authenticate, async (req: AuthRequest, res) => {
-    console.log('GET /api/employees/attendance hit', req.query);
     try {
-        const { employeeId, startDate, endDate, month, year } = req.query;
+        const {
+            employeeId,
+            startDate,
+            endDate,
+            month,
+            year,
+            page = '1',
+            limit = '20'
+        } = req.query;
+
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
 
         const where: any = {
             employee: {
@@ -42,28 +54,47 @@ router.get('/attendance', authenticate, async (req: AuthRequest, res) => {
             where.date = { gte: start, lte: end };
         }
 
-        const records = await prisma.attendanceRecord.findMany({
-            where,
-            include: {
-                employee: {
-                    select: { id: true, name: true, code: true }
-                }
-            },
-            orderBy: { date: 'desc' }
-        });
+        // Get total count and paginated records in parallel
+        const [total, records] = await Promise.all([
+            prisma.attendanceRecord.count({ where }),
+            prisma.attendanceRecord.findMany({
+                where,
+                include: {
+                    employee: {
+                        select: { id: true, name: true, code: true }
+                    }
+                },
+                orderBy: { date: 'desc' },
+                skip,
+                take: limitNum
+            })
+        ]);
 
-        // Calculate summary
+        // Calculate summary (Note: Summary for the *filtered* set, not just current page)
+        // If summary needs to be for all data, we might need another aggregation query
+        const allRecordsForSummary = await prisma.attendanceRecord.findMany({ where });
+
         const summary = {
-            totalDays: records.length,
-            presentDays: records.filter(r => r.status === 'present').length,
-            absentDays: records.filter(r => r.status === 'absent').length,
-            lateDays: records.filter(r => r.status === 'late').length,
-            leaveDays: records.filter(r => r.status === 'leave').length,
-            vacationDays: records.filter(r => r.status === 'vacation').length,
-            totalHours: records.reduce((sum, r) => sum + (Number(r.hoursWorked) || 0), 0)
+            totalDays: allRecordsForSummary.length,
+            presentDays: allRecordsForSummary.filter(r => r.status === 'present').length,
+            absentDays: allRecordsForSummary.filter(r => r.status === 'absent').length,
+            lateDays: allRecordsForSummary.filter(r => r.status === 'late').length,
+            leaveDays: allRecordsForSummary.filter(r => r.status === 'leave').length,
+            vacationDays: allRecordsForSummary.filter(r => r.status === 'vacation').length,
+            totalHours: allRecordsForSummary.reduce((sum, r) => sum + (Number(r.hoursWorked) || 0), 0)
         };
 
-        res.json({ records, summary });
+        res.json({
+            data: records,
+            summary,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + records.length < total
+            }
+        });
     } catch (error) {
         console.error('Get bulk attendance error:', error);
         res.status(500).json({ error: 'Erro ao buscar presenças' });
@@ -187,14 +218,18 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         const validatedData = createEmployeeSchema.parse(req.body);
         const code = validatedData.code || `EMP-${Date.now().toString().slice(-6)}`;
 
+        // Destructure and prepare data for Prisma
+        const { notes, ...employeeData } = validatedData as any;
+
         const employee = await prisma.employee.create({
             data: {
-                ...validatedData,
+                ...employeeData,
                 code,
-                companyId: req.companyId, // 🔒 Associate with user's company
                 hireDate: new Date(validatedData.hireDate),
                 birthDate: validatedData.birthDate ? new Date(validatedData.birthDate) : null,
-                contractExpiry: validatedData.contractExpiry ? new Date(validatedData.contractExpiry) : null
+                contractExpiry: validatedData.contractExpiry ? new Date(validatedData.contractExpiry) : null,
+                // Use connect syntax for relation
+                ...(req.companyId ? { company: { connect: { id: req.companyId } } } : {})
             }
         });
 
@@ -341,10 +376,19 @@ router.post('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
     }
 });
 
-// Get attendance for month
+// Get attendance for month with pagination
 router.get('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { month, year } = req.query;
+        const {
+            month,
+            year,
+            page = '1',
+            limit = '31'
+        } = req.query;
+
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
 
         const m = parseInt(String(month)) || new Date().getMonth() + 1;
         const y = parseInt(String(year)) || new Date().getFullYear();
@@ -352,32 +396,52 @@ router.get('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
         const startDate = new Date(y, m - 1, 1);
         const endDate = new Date(y, m, 0);
 
-        const records = await prisma.attendanceRecord.findMany({
-            where: {
-                employeeId: req.params.id,
-                employee: {
-                    companyId: req.companyId // Multi-tenancy isolation
-                },
-                date: {
-                    gte: startDate,
-                    lte: endDate
-                }
+        const where: any = {
+            employeeId: req.params.id,
+            employee: {
+                companyId: req.companyId // Multi-tenancy isolation
             },
-            orderBy: { date: 'asc' }
-        });
-
-        // Calculate summary
-        const summary = {
-            totalDays: records.length,
-            presentDays: records.filter(r => r.status === 'present').length,
-            absentDays: records.filter(r => r.status === 'absent').length,
-            lateDays: records.filter(r => r.status === 'late').length,
-            leaveDays: records.filter(r => r.status === 'leave').length,
-            vacationDays: records.filter(r => r.status === 'vacation').length,
-            totalHours: records.reduce((sum, r) => sum + (Number(r.hoursWorked) || 0), 0)
+            date: {
+                gte: startDate,
+                lte: endDate
+            }
         };
 
-        res.json({ records, summary });
+        // Get total count and paginated records in parallel
+        const [total, records] = await Promise.all([
+            prisma.attendanceRecord.count({ where }),
+            prisma.attendanceRecord.findMany({
+                where,
+                orderBy: { date: 'asc' },
+                skip,
+                take: limitNum
+            })
+        ]);
+
+        // Calculate summary for the month
+        const allRecordsForSummary = await prisma.attendanceRecord.findMany({ where });
+
+        const summary = {
+            totalDays: allRecordsForSummary.length,
+            presentDays: allRecordsForSummary.filter(r => r.status === 'present').length,
+            absentDays: allRecordsForSummary.filter(r => r.status === 'absent').length,
+            lateDays: allRecordsForSummary.filter(r => r.status === 'late').length,
+            leaveDays: allRecordsForSummary.filter(r => r.status === 'leave').length,
+            vacationDays: allRecordsForSummary.filter(r => r.status === 'vacation').length,
+            totalHours: allRecordsForSummary.reduce((sum, r) => sum + (Number(r.hoursWorked) || 0), 0)
+        };
+
+        res.json({
+            data: records,
+            summary,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + records.length < total
+            }
+        });
     } catch (error) {
         console.error('Get attendance error:', error);
         res.status(500).json({ error: 'Erro ao buscar presenças' });
@@ -588,32 +652,61 @@ router.post('/payroll/:payrollId/pay', authenticate, async (req: AuthRequest, re
     }
 });
 
-// Get payroll for month
+// Get payroll for month with pagination
 router.get('/payroll/month/:year/:month', authenticate, async (req: AuthRequest, res) => {
     try {
+        const {
+            page = '1',
+            limit = '20'
+        } = req.query;
+
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
+
         const year = parseInt(req.params.year);
         const month = parseInt(req.params.month);
 
-        const records = await prisma.payrollRecord.findMany({
-            where: {
-                year,
-                month,
-                employee: { companyId: req.companyId } // Multi-tenancy isolation
-            },
-            include: {
-                employee: {
-                    select: { id: true, name: true, code: true, department: true }
-                }
-            }
-        });
+        const where: any = {
+            year,
+            month,
+            employee: { companyId: req.companyId } // Multi-tenancy isolation
+        };
 
-        const totals = records.reduce((acc, r) => ({
+        // Get total count and paginated records in parallel
+        const [total, records] = await Promise.all([
+            prisma.payrollRecord.count({ where }),
+            prisma.payrollRecord.findMany({
+                where,
+                include: {
+                    employee: {
+                        select: { id: true, name: true, code: true, department: true }
+                    }
+                },
+                skip,
+                take: limitNum
+            })
+        ]);
+
+        // Calculate totals for the month (should be for all, not just paginated)
+        const allRecordsForTotals = await prisma.payrollRecord.findMany({ where });
+        const totals = allRecordsForTotals.reduce((acc, r) => ({
             totalEarnings: acc.totalEarnings + Number(r.totalEarnings),
             totalDeductions: acc.totalDeductions + Number(r.totalDeductions),
             totalNetSalary: acc.totalNetSalary + Number(r.netSalary)
         }), { totalEarnings: 0, totalDeductions: 0, totalNetSalary: 0 });
 
-        res.json({ records, totals });
+        res.json({
+            data: records,
+            totals,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + records.length < total
+            }
+        });
     } catch (error) {
         console.error('Get payroll month error:', error);
         res.status(500).json({ error: 'Erro ao buscar folha mensal' });
@@ -702,10 +795,19 @@ router.patch('/vacations/:vacationId', authenticate, async (req: AuthRequest, re
     }
 });
 
-// Get all vacation requests
+// Get all vacation requests with pagination
 router.get('/vacations/all', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { status, year } = req.query;
+        const {
+            status,
+            year,
+            page = '1',
+            limit = '20'
+        } = req.query;
+
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
 
         const where: any = {
             employee: { companyId: req.companyId } // Multi-tenancy isolation
@@ -719,20 +821,96 @@ router.get('/vacations/all', authenticate, async (req: AuthRequest, res) => {
             };
         }
 
-        const vacations = await prisma.vacationRequest.findMany({
-            where,
-            include: {
-                employee: {
-                    select: { id: true, name: true, code: true, department: true }
-                }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        // Get total count and paginated items in parallel
+        const [total, vacations] = await Promise.all([
+            prisma.vacationRequest.count({ where }),
+            prisma.vacationRequest.findMany({
+                where,
+                include: {
+                    employee: {
+                        select: { id: true, name: true, code: true, department: true }
+                    }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limitNum
+            })
+        ]);
 
-        res.json(vacations);
+        res.json({
+            data: vacations,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + vacations.length < total
+            }
+        });
     } catch (error) {
         console.error('Get vacations error:', error);
         res.status(500).json({ error: 'Erro ao buscar férias' });
+    }
+});
+
+// === ATTENDANCE ROSTER (NEW) ===
+
+// Get current roster
+router.get('/roster', authenticate, async (req: AuthRequest, res) => {
+    try {
+        const roster = await AttendanceService.getRoster(req.companyId!);
+        res.json(roster);
+    } catch (error) {
+        console.error('Get roster error:', error);
+        res.status(500).json({ error: 'Erro ao buscar área de ponto' });
+    }
+});
+
+// Add to roster (by IDs or Department)
+router.patch('/roster/add', authenticate, async (req: AuthRequest, res) => {
+    try {
+        const { employeeIds, department } = req.body;
+        await AttendanceService.addToRoster(req.companyId!, employeeIds, department);
+        res.json({ message: 'Funcionários adicionados à área de ponto' });
+    } catch (error: any) {
+        console.error('Add to roster error:', error);
+        res.status(400).json({ error: error.message || 'Erro ao adicionar à área de ponto' });
+    }
+});
+
+// Remove from roster (Admin only)
+router.delete('/roster/remove/:id', authenticate, async (req: AuthRequest, res) => {
+    try {
+        // Check role (Senior Architecture: Policy enforcement in route layer)
+        if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
+            return res.status(403).json({ error: 'Acesso negado: Somente administradores podem remover da lista de ponto' });
+        }
+
+        await AttendanceService.removeFromRoster(req.companyId!, req.params.id);
+        res.json({ message: 'Funcionário removido da área de ponto' });
+    } catch (error) {
+        console.error('Remove from roster error:', error);
+        res.status(500).json({ error: 'Erro ao remover da área de ponto' });
+    }
+});
+
+// Record time (Check-in / Check-out)
+router.post('/roster/record/:id', authenticate, async (req: AuthRequest, res) => {
+    try {
+        const { type, timestamp } = req.body;
+        const date = timestamp ? new Date(timestamp) : new Date();
+
+        const record = await AttendanceService.recordTime(
+            req.companyId!,
+            req.params.id,
+            type as 'checkIn' | 'checkOut',
+            date
+        );
+
+        res.json(record);
+    } catch (error: any) {
+        console.error('Record time error:', error);
+        res.status(400).json({ error: error.message || 'Erro ao registrar tempo' });
     }
 });
 

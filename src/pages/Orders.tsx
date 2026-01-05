@@ -76,8 +76,22 @@ export default function Orders() {
     const { products: productsData, updateProduct } = useProducts();
     const products = Array.isArray(productsData) ? productsData : [];
 
-    // Use real orders from API
-    const { orders: rawOrders, addOrder, updateOrderStatus } = useOrders();
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(20);
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+
+    // Use real orders from API with pagination
+    const {
+        orders: rawOrders,
+        pagination,
+        isLoading,
+        addOrder,
+        updateOrderStatus
+    } = useOrders({
+        page,
+        limit: pageSize,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+    });
 
     const [showWizard, setShowWizard] = useState(false);
     const [showPrintPreview, setShowPrintPreview] = useState(false);
@@ -89,7 +103,6 @@ export default function Orders() {
 
     // Transform API orders to local Order type
     const orders: Order[] = useMemo(() => {
-        console.log('Orders Component - rawOrders received:', rawOrders);
         const list = Array.isArray(rawOrders) ? rawOrders : [];
         return list.map((o: ApiOrder) => ({
             id: o.id,
@@ -287,11 +300,19 @@ export default function Orders() {
             {/* Dashboard */}
             <OrdersDashboard
                 orders={dashboardOrders}
+                pagination={pagination}
+                page={page}
+                pageSize={pageSize}
+                setPage={setPage}
+                setPageSize={setPageSize}
+                statusFilter={statusFilter}
+                setStatusFilter={setStatusFilter}
                 onNewOrder={() => setShowWizard(true)}
                 onViewOrder={handleViewOrder}
                 onPrintOrder={handlePrintOrder}
                 onCompleteOrder={handleCompleteOrderClick}
                 onCancelOrder={handleCancelOrderClick}
+                isLoading={isLoading}
             />
 
             {/* Creation Wizard */}

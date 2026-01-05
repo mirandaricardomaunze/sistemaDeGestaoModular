@@ -130,11 +130,22 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
         const invoice = await prisma.invoice.create({
             data: {
-                ...validatedData,
                 invoiceNumber,
-                companyId: req.companyId, // Multi-tenancy isolation
+                customerId: customerId || null,
+                customerName: customerName || '',
+                customerEmail: customerEmail || null,
+                customerPhone: customerPhone || null,
+                customerAddress: customerAddress || null,
+                orderId: orderId || null,
+                orderNumber: orderNumber || null,
+                subtotal,
+                discount: discount || 0,
+                tax: validatedData.taxAmount || 0,
+                total,
                 dueDate: dueDate ? new Date(dueDate) : new Date(),
                 amountDue: total,
+                notes: notes || null,
+                companyId: req.companyId,
                 items: {
                     create: items.map((item) => ({
                         productId: item.productId,
@@ -145,7 +156,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                         total: item.total
                     }))
                 }
-            },
+            } as any,
             include: {
                 customer: true,
                 items: true
@@ -175,7 +186,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                         retainedAmount: tax,
                         rate: ivaConfig?.rate || 16,
                         description: `IVA da Fatura ${invoiceNumber}`
-                    }
+                    } as any
                 });
             }
         } catch (fiscalError) {
@@ -256,8 +267,7 @@ router.post('/:id/payments', authenticate, async (req: AuthRequest, res) => {
                 amount,
                 method: method as any,
                 reference,
-                notes,
-                companyId: req.companyId // Multi-tenancy isolation
+                notes
             }
         });
 
@@ -357,9 +367,7 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
 
         // Generate credit note number
         const year = new Date().getFullYear();
-        const count = await prisma.creditNote.count({
-            where: { companyId: req.companyId }
-        });
+        const count = await prisma.creditNote.count();
         const number = `NC-${year}-${String(count + 1).padStart(4, '0')}`;
 
         // Calculate totals
@@ -371,7 +379,6 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
         const creditNote = await prisma.creditNote.create({
             data: {
                 number,
-                companyId: req.companyId, // Multi-tenancy isolation
                 originalInvoiceId: invoiceId,
                 customerId: invoice.customerId,
                 customerName: invoice.customerName,
@@ -407,10 +414,19 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
     }
 });
 
-// Get credit notes
+// Get credit notes with pagination
 router.get('/credit-notes', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { invoiceId } = req.query;
+        const {
+            invoiceId,
+            page = '1',
+            limit = '20'
+        } = req.query;
+
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
+
         const where: any = {
             companyId: req.companyId // Multi-tenancy isolation
         };
@@ -419,41 +435,73 @@ router.get('/credit-notes', authenticate, async (req: AuthRequest, res) => {
             where.originalInvoiceId = invoiceId;
         }
 
-        const creditNotes = await prisma.creditNote.findMany({
-            where,
-            include: {
-                originalInvoice: true,
-                items: true
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        // Get total count and paginated items in parallel
+        const [total, creditNotes] = await Promise.all([
+            prisma.creditNote.count({ where }),
+            prisma.creditNote.findMany({
+                where,
+                include: {
+                    originalInvoice: true,
+                    items: true
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limitNum
+            })
+        ]);
 
-        res.json(creditNotes);
+        res.json({
+            data: creditNotes,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + creditNotes.length < total
+            }
+        });
     } catch (error) {
         console.error('Get credit notes error:', error);
         res.status(500).json({ error: 'Erro ao buscar notas de crédito' });
     }
 });
 
-// Get overdue invoices
+// Get overdue invoices with pagination
 router.get('/alerts/overdue', authenticate, async (req: AuthRequest, res) => {
     try {
+        const {
+            page = '1',
+            limit = '20'
+        } = req.query;
+
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
+
         const today = new Date();
 
-        const overdueInvoices = await prisma.invoice.findMany({
-            where: {
-                companyId: req.companyId, // Multi-tenancy isolation
-                status: { in: ['sent', 'partial'] },
-                dueDate: { lt: today },
-                amountDue: { gt: 0 }
-            },
-            include: {
-                customer: { select: { id: true, name: true, phone: true } }
-            },
-            orderBy: { dueDate: 'asc' }
-        });
+        const where: any = {
+            companyId: req.companyId, // Multi-tenancy isolation
+            status: { in: ['sent', 'partial'] },
+            dueDate: { lt: today },
+            amountDue: { gt: 0 }
+        };
 
-        // Update status to overdue
+        // Get total count and paginated items in parallel
+        const [total, overdueInvoices] = await Promise.all([
+            prisma.invoice.count({ where }),
+            prisma.invoice.findMany({
+                where,
+                include: {
+                    customer: { select: { id: true, name: true, phone: true } }
+                },
+                orderBy: { dueDate: 'asc' },
+                skip,
+                take: limitNum
+            })
+        ]);
+
+        // Update status to overdue for those found (background optimization might be better but this works)
         for (const inv of overdueInvoices) {
             if (inv.status !== 'overdue') {
                 await prisma.invoice.update({
@@ -463,7 +511,16 @@ router.get('/alerts/overdue', authenticate, async (req: AuthRequest, res) => {
             }
         }
 
-        res.json(overdueInvoices);
+        res.json({
+            data: overdueInvoices,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + overdueInvoices.length < total
+            }
+        });
     } catch (error) {
         console.error('Get overdue invoices error:', error);
         res.status(500).json({ error: 'Erro ao buscar faturas vencidas' });

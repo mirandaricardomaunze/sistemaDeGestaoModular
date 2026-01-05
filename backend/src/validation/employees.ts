@@ -2,6 +2,7 @@
  * Validation Schemas - Employees
  * 
  * Schemas for employee CRUD, attendance, payroll, and vacation operations.
+ * Aligned with Prisma Employee model.
  */
 
 import { z } from 'zod';
@@ -13,24 +14,27 @@ import { z } from 'zod';
 export const createEmployeeSchema = z.object({
     code: z.string().max(50, 'Código muito longo').optional(),
     name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(200, 'Nome muito longo'),
-    email: z.string().email('Email inválido').optional().nullable(),
-    phone: z.string().max(50, 'Telefone muito longo').optional().nullable(),
-    address: z.string().max(500, 'Endereço muito longo').optional().nullable(),
-    documentId: z.string().max(50, 'Documento muito longo').optional().nullable(),
-    documentType: z.enum(['bi', 'passport', 'dire', 'other']).optional().default('bi'),
-    position: z.string().max(100, 'Cargo muito longo').optional().nullable(),
+    email: z.string().email('Email inválido'),
+    phone: z.string().max(50, 'Telefone muito longo'),
+    role: z.enum(['admin', 'manager', 'operator', 'cashier', 'stock_keeper']).optional().default('operator'),
     department: z.string().max(100, 'Departamento muito longo').optional().nullable(),
-    salary: z.number().min(0, 'Salário não pode ser negativo').optional().default(0),
     hireDate: z.string().datetime({ message: 'Data de contratação inválida' }),
-    birthDate: z.string().datetime({ message: 'Data de nascimento inválida' }).optional().nullable(),
-    contractType: z.enum(['permanent', 'temporary', 'contract', 'intern']).optional().default('permanent'),
-    contractExpiry: z.string().datetime({ message: 'Data de expiração inválida' }).optional().nullable(),
-    bankName: z.string().max(100, 'Nome do banco muito longo').optional().nullable(),
-    bankAccount: z.string().max(50, 'Conta bancária muito longa').optional().nullable(),
-    nuit: z.string().max(20, 'NUIT muito longo').optional().nullable(),
-    inssNumber: z.string().max(50, 'Número INSS muito longo').optional().nullable(),
+    address: z.string().max(500, 'Endereço muito longo').optional().nullable(),
+    documentNumber: z.string().max(50, 'Documento muito longo').optional().nullable(),
     emergencyContact: z.string().max(200, 'Contacto de emergência muito longo').optional().nullable(),
-    emergencyPhone: z.string().max(50, 'Telefone de emergência muito longo').optional().nullable(),
+    birthDate: z.string().datetime({ message: 'Data de nascimento inválida' }).optional().nullable(),
+    maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']).optional().nullable(),
+    dependents: z.number().int().min(0).optional().default(0),
+    bankName: z.string().max(100, 'Nome do banco muito longo').optional().nullable(),
+    bankAccountNumber: z.string().max(50, 'Conta bancária muito longa').optional().nullable(),
+    bankNib: z.string().max(50, 'NIB muito longo').optional().nullable(),
+    socialSecurityNumber: z.string().max(50, 'Número da segurança social muito longo').optional().nullable(),
+    nuit: z.string().max(20, 'NUIT muito longo').optional().nullable(),
+    baseSalary: z.number().min(0, 'Salário não pode ser negativo'),
+    subsidyTransport: z.number().min(0).optional().default(0),
+    subsidyFood: z.number().min(0).optional().default(0),
+    contractType: z.enum(['indefinite', 'fixed_term']).optional().default('indefinite'),
+    contractExpiry: z.string().datetime({ message: 'Data de expiração inválida' }).optional().nullable(),
     notes: z.string().max(1000, 'Notas muito longas').optional().nullable(),
     isActive: z.boolean().optional().default(true)
 });
@@ -45,7 +49,7 @@ export const recordAttendanceSchema = z.object({
     date: z.string().datetime({ message: 'Data inválida' }),
     checkIn: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Hora de entrada inválida (HH:MM)').optional().nullable(),
     checkOut: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Hora de saída inválida (HH:MM)').optional().nullable(),
-    status: z.enum(['present', 'absent', 'late', 'half_day', 'holiday', 'vacation', 'sick']).optional().default('present'),
+    status: z.enum(['present', 'absent', 'late', 'half_day', 'leave', 'holiday', 'vacation']).optional().default('present'),
     notes: z.string().max(500, 'Notas muito longas').optional().nullable(),
     justification: z.string().max(500, 'Justificação muito longa').optional().nullable()
 });
@@ -82,9 +86,7 @@ export const requestVacationSchema = z.object({
 );
 
 export const approveVacationSchema = z.object({
-    status: z.enum(['approved', 'rejected'], {
-        errorMap: () => ({ message: 'Status deve ser: approved ou rejected' })
-    }),
+    status: z.enum(['approved', 'rejected']),
     approvedBy: z.string().max(200, 'Nome do aprovador muito longo').optional().nullable()
 });
 

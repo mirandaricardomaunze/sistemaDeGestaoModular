@@ -41,9 +41,7 @@ export const updateProductSchema = createProductSchema.partial();
 
 export const adjustStockSchema = z.object({
     quantity: z.number().int('Quantidade deve ser um número inteiro'),
-    operation: z.enum(['add', 'subtract', 'set'], {
-        errorMap: () => ({ message: 'Operação deve ser: add, subtract ou set' })
-    }),
+    operation: z.enum(['add', 'subtract', 'set']),
     warehouseId: z.string().uuid('ID do armazém inválido').optional().nullable(),
     reason: z.string().max(500, 'Motivo muito longo').optional().nullable()
 }).refine(

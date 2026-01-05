@@ -7,9 +7,7 @@
 import { z } from 'zod';
 
 export const updateCompanyStatusSchema = z.object({
-    status: z.enum(['active', 'inactive', 'suspended'], {
-        message: 'Status deve ser: active, inactive ou suspended'
-    })
+    status: z.enum(['active', 'trial', 'blocked', 'cancelled'])
 });
 
 export type UpdateCompanyStatusInput = z.infer<typeof updateCompanyStatusSchema>;

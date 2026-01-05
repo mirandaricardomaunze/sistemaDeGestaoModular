@@ -624,6 +624,7 @@ model Employee {
   contractExpiry       DateTime?
   contractType         ContractType            @default(indefinite)
   companyId            String?
+  inAttendanceRoster   Boolean                 @default(false)
   qualifications       AcademicQualification[]
   attendanceRecords    AttendanceRecord[]
   user                 User?                   @relation(fields: [userId], references: [id])

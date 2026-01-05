@@ -116,11 +116,16 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         // Generate code if not provided
         const customerCode = validatedData.code || `CLI-${Date.now().toString().slice(-6)}`;
 
+        // Extract the validated data and remove code to avoid duplication
+        const { code, ...customerData } = validatedData;
+
         const customer = await prisma.customer.create({
             data: {
-                ...validatedData,
+                ...customerData,
                 code: customerCode,
-                companyId: req.companyId // Multi-tenancy isolation
+                phone: customerData.phone || '', // Ensure phone is not null
+                // Use connect syntax for company relation
+                ...(req.companyId ? { company: { connect: { id: req.companyId } } } : {})
             }
         });
 
@@ -143,12 +148,20 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
         // Validate request body
         const validatedData = updateCustomerSchema.parse(req.body);
 
+        // Filter out null values for non-nullable fields (phone is required in schema)
+        const updateData: any = {};
+        for (const [key, value] of Object.entries(validatedData)) {
+            if (value !== null) {
+                updateData[key] = value;
+            }
+        }
+
         const customer = await prisma.customer.updateMany({
             where: {
                 id: req.params.id,
                 companyId: req.companyId // Multi-tenancy isolation
             },
-            data: validatedData
+            data: updateData
         });
 
         if (customer.count === 0) {
@@ -191,10 +204,19 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     }
 });
 
-// Get customer purchase history
+// Get customer purchase history with pagination
 router.get('/:id/purchases', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { startDate, endDate } = req.query;
+        const {
+            startDate,
+            endDate,
+            page = '1',
+            limit = '10'
+        } = req.query;
+
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
 
         const where: any = {
             customerId: req.params.id,
@@ -207,17 +229,32 @@ router.get('/:id/purchases', authenticate, async (req: AuthRequest, res) => {
             if (endDate) where.createdAt.lte = new Date(String(endDate));
         }
 
-        const sales = await prisma.sale.findMany({
-            where,
-            include: {
-                items: {
-                    include: { product: true }
-                }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        // Get total count and paginated sales in parallel
+        const [total, sales] = await Promise.all([
+            prisma.sale.count({ where }),
+            prisma.sale.findMany({
+                where,
+                include: {
+                    items: {
+                        include: { product: true }
+                    }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limitNum
+            })
+        ]);
 
-        res.json(sales);
+        res.json({
+            data: sales,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + sales.length < total
+            }
+        });
     } catch (error) {
         console.error('Get customer purchases error:', error);
         res.status(500).json({ error: 'Erro ao buscar histórico de compras' });

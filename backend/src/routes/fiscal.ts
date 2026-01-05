@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { prisma } from '../index';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
+import { FiscalService } from '../services/fiscal.service';
 
 const router = Router();
+const fiscalService = new FiscalService(prisma);
 
 // ============================================================================
 // Tax Configs
@@ -10,10 +12,7 @@ const router = Router();
 
 router.get('/tax-configs', authenticate, async (req: AuthRequest, res) => {
     try {
-        const configs = await prisma.taxConfig.findMany({
-            where: { isActive: true, companyId: req.companyId },
-            orderBy: { type: 'asc' }
-        });
+        const configs = await fiscalService.getTaxConfigs(req.companyId!);
         res.json(configs);
     } catch (error) {
         console.error('Get tax configs error:', error);
@@ -86,14 +85,7 @@ router.post('/irps-brackets', authenticate, authorize('admin'), async (req: Auth
 router.get('/retentions', authenticate, async (req: AuthRequest, res) => {
     try {
         const { period, type } = req.query;
-        const retentions = await prisma.taxRetention.findMany({
-            where: {
-                companyId: req.companyId,
-                ...(period && { period: String(period) }),
-                ...(type && { type: String(type) })
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        const retentions = await fiscalService.getRetentions(req.companyId!, period as string, type as string);
         res.json(retentions);
     } catch (error) {
         console.error('Get retentions error:', error);

@@ -3,8 +3,25 @@ import toast from 'react-hot-toast';
 import { suppliersAPI } from '../services/api';
 import type { Supplier } from '../types';
 
-export function useSuppliers(params?: { search?: string }) {
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
+interface UseSuppliersParams {
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+}
+
+export function useSuppliers(params?: UseSuppliersParams) {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -12,8 +29,23 @@ export function useSuppliers(params?: { search?: string }) {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await suppliersAPI.getAll(params);
-            const suppliersData = Array.isArray(result) ? result : (result.data || []);
+            const response = await suppliersAPI.getAll(params);
+
+            let suppliersData: Supplier[] = [];
+            if (response.data && response.pagination) {
+                suppliersData = response.data;
+                setPagination(response.pagination);
+            } else {
+                suppliersData = Array.isArray(response) ? response : (response.data || []);
+                setPagination({
+                    page: params?.page || 1,
+                    limit: params?.limit || suppliersData.length,
+                    total: suppliersData.length,
+                    totalPages: 1,
+                    hasMore: false
+                });
+            }
+
             setSuppliers(suppliersData);
         } catch (err) {
             setError('Erro ao carregar fornecedores');
@@ -21,7 +53,13 @@ export function useSuppliers(params?: { search?: string }) {
         } finally {
             setIsLoading(false);
         }
-    }, [params?.search]);
+    }, [
+        params?.search,
+        params?.page,
+        params?.limit,
+        params?.sortBy,
+        params?.sortOrder
+    ]);
 
     useEffect(() => {
         fetchSuppliers();
@@ -30,7 +68,7 @@ export function useSuppliers(params?: { search?: string }) {
     const addSupplier = async (data: Parameters<typeof suppliersAPI.create>[0]) => {
         try {
             const newSupplier = await suppliersAPI.create(data);
-            setSuppliers((prev) => [...prev, newSupplier]);
+            setSuppliers((prev) => [newSupplier, ...prev]);
             toast.success('Fornecedor criado com sucesso!');
             return newSupplier;
         } catch (err) {
@@ -64,6 +102,7 @@ export function useSuppliers(params?: { search?: string }) {
 
     return {
         suppliers,
+        pagination,
         isLoading,
         error,
         refetch: fetchSuppliers,

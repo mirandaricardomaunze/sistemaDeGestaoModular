@@ -2,8 +2,35 @@ import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { hospitalityAPI } from '../services/api';
 
-export function useHospitality(params?: { status?: string; type?: string; search?: string }) {
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
+interface UseHospitalityParams {
+    status?: string;
+    type?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+}
+
+export function useHospitality(params?: UseHospitalityParams) {
     const [rooms, setRooms] = useState<any[]>([]);
+    const [bookings, setBookings] = useState<any[]>([]);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+    const [metrics, setMetrics] = useState({
+        available: 0,
+        occupied: 0,
+        dirty: 0,
+        maintenance: 0,
+        total: 0
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -11,17 +38,54 @@ export function useHospitality(params?: { status?: string; type?: string; search
         setIsLoading(true);
         setError(null);
         try {
-            const data = await hospitalityAPI.getRooms(params);
-            setRooms(data);
+            const response = await hospitalityAPI.getRooms(params);
+
+            let roomsData: any[] = [];
+            if (response.data && response.pagination) {
+                roomsData = response.data;
+                setPagination(response.pagination);
+                if (response.metrics) {
+                    setMetrics(response.metrics);
+                }
+            } else {
+                roomsData = Array.isArray(response) ? response : (response.data || []);
+            }
+
+            setRooms(roomsData);
         } catch (err: any) {
             setError(err.message || 'Erro ao carregar quartos');
         } finally {
             setIsLoading(false);
         }
-    }, [params?.status, params?.type, params?.search]);
+    }, [
+        params?.status,
+        params?.type,
+        params?.search,
+        params?.page,
+        params?.limit,
+        params?.sortBy,
+        params?.sortOrder
+    ]);
+
     useEffect(() => {
         fetchRooms();
     }, [fetchRooms]);
+
+    const fetchBookings = useCallback(async (bookingParams?: { page?: number; limit?: number; status?: string }) => {
+        try {
+            const response = await hospitalityAPI.getBookings(bookingParams);
+            if (response.data && response.pagination) {
+                setBookings(response.data);
+                return response;
+            }
+            const bookingsData = Array.isArray(response) ? response : (response.data || []);
+            setBookings(bookingsData);
+            return { data: bookingsData };
+        } catch (err) {
+            console.error('Error fetching bookings:', err);
+            throw err;
+        }
+    }, []);
 
     const seedRooms = async () => {
         try {
@@ -101,9 +165,13 @@ export function useHospitality(params?: { status?: string; type?: string; search
 
     return {
         rooms,
+        bookings,
+        pagination,
+        metrics,
         isLoading,
         error,
         refetch: fetchRooms,
+        fetchBookings,
         seedRooms,
         createBooking,
         checkout,

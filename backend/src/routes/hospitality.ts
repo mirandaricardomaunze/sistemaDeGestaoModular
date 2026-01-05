@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { prisma } from '../index';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { HospitalityService } from '../services/hospitality.service';
 
 const router = Router();
+const hospitalityService = new HospitalityService(prisma);
 
 // ============================================================================
 // ROOMS CRUD
@@ -12,36 +14,17 @@ const router = Router();
 router.get('/rooms', authenticate, async (req: AuthRequest, res) => {
     try {
         const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({ message: 'Empresa não identificada' });
-        }
+        if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        const { status, type, search } = req.query;
-        const where: any = { companyId };
-
-        if (status && status !== 'all') where.status = status;
-        if (type && type !== 'all') where.type = type;
-        if (search) {
-            where.number = { contains: String(search), mode: 'insensitive' };
-        }
-
-        const rooms = await prisma.room.findMany({
-            where,
-            include: {
-                bookings: {
-                    where: { status: 'checked_in' },
-                    include: {
-                        consumptions: {
-                            include: { product: { select: { id: true, name: true, code: true, price: true } } }
-                        }
-                    },
-                    orderBy: { checkIn: 'desc' },
-                    take: 1
-                }
-            },
-            orderBy: { number: 'asc' }
+        const result = await hospitalityService.getRooms(companyId, {
+            status: req.query.status as string,
+            type: req.query.type as string,
+            search: req.query.search as string,
+            page: parseInt(String(req.query.page)) || 1,
+            limit: parseInt(String(req.query.limit)) || 100
         });
-        res.json(rooms);
+
+        res.json(result);
     } catch (error: any) {
         console.error('GET /rooms error:', error);
         res.status(500).json({ message: error.message });
@@ -52,25 +35,9 @@ router.get('/rooms', authenticate, async (req: AuthRequest, res) => {
 router.post('/rooms', authenticate, async (req: AuthRequest, res) => {
     try {
         const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({ message: 'Empresa não identificada' });
-        }
+        if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        const { number, type, price, priceNoMeal, priceBreakfast, priceHalfBoard, priceFullBoard, notes } = req.body;
-        const room = await prisma.room.create({
-            data: {
-                number,
-                type,
-                price,
-                priceNoMeal: priceNoMeal || price,
-                priceBreakfast: priceBreakfast || null,
-                priceHalfBoard: priceHalfBoard || null,
-                priceFullBoard: priceFullBoard || null,
-                notes,
-                status: 'available',
-                companyId
-            }
-        });
+        const room = await hospitalityService.createRoom(companyId, req.body);
         res.status(201).json(room);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -81,25 +48,9 @@ router.post('/rooms', authenticate, async (req: AuthRequest, res) => {
 router.put('/rooms/:id', authenticate, async (req: AuthRequest, res) => {
     try {
         const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({ message: 'Empresa não identificada' });
-        }
+        if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        const { number, type, price, priceNoMeal, priceBreakfast, priceHalfBoard, priceFullBoard, status, notes } = req.body;
-        const room = await prisma.room.update({
-            where: { id: req.params.id, companyId },
-            data: {
-                number,
-                type,
-                price,
-                priceNoMeal,
-                priceBreakfast,
-                priceHalfBoard,
-                priceFullBoard,
-                status,
-                notes
-            }
-        });
+        const room = await hospitalityService.updateRoom(companyId, req.params.id, req.body);
         res.json(room);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -110,11 +61,9 @@ router.put('/rooms/:id', authenticate, async (req: AuthRequest, res) => {
 router.delete('/rooms/:id', authenticate, async (req: AuthRequest, res) => {
     try {
         const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({ message: 'Empresa não identificada' });
-        }
+        if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        await prisma.room.delete({ where: { id: req.params.id, companyId } });
+        await hospitalityService.deleteRoom(companyId, req.params.id);
         res.json({ message: 'Room deleted' });
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -129,123 +78,27 @@ router.delete('/rooms/:id', authenticate, async (req: AuthRequest, res) => {
 router.get('/bookings', authenticate, async (req: AuthRequest, res) => {
     try {
         const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({ message: 'Empresa não identificada' });
-        }
+        if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        const page = parseInt(String(req.query.page)) || 1;
-        const limit = parseInt(String(req.query.limit)) || 10;
-        const status = req.query.status as string | undefined;
-        const skip = (page - 1) * limit;
-
-        const where: any = { room: { companyId } };
-        if (status && status !== 'all') {
-            where.status = status;
-        }
-
-        const [bookings, total] = await Promise.all([
-            prisma.booking.findMany({
-                where,
-                include: {
-                    room: true,
-                    consumptions: {
-                        include: { product: { select: { id: true, name: true, code: true, price: true } } }
-                    }
-                },
-                orderBy: { checkIn: 'desc' },
-                skip,
-                take: limit
-            }),
-            prisma.booking.count({ where })
-        ]);
-
-        res.json({
-            data: bookings,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit)
-            }
+        const result = await hospitalityService.getBookings(companyId, {
+            status: req.query.status as string,
+            page: parseInt(String(req.query.page)) || 1,
+            limit: parseInt(String(req.query.limit)) || 10
         });
+
+        res.json(result);
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
 });
 
 // POST /api/hospitality/bookings (Check-in)
-router.post('/bookings', authenticate, async (req: any, res) => {
+router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
     try {
-        const {
-            roomId,
-            customerId,
-            customerName,
-            guestCount,
-            guestDocumentType,
-            guestDocumentNumber,
-            guestNationality,
-            guestPhone,
-            checkIn,
-            checkOut,
-            totalPrice,
-            mealPlan,
-            notes
-        } = req.body;
+        const companyId = req.companyId;
+        if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        const result = await prisma.$transaction(async (tx) => {
-            // Overbooking prevention: Double check room status
-            const room = await tx.room.findUnique({ where: { id: roomId } });
-            if (!room || room.status !== 'available') {
-                throw new Error('Quarto não disponível para ocupação');
-            }
-
-            // Determine price based on meal plan
-            let finalPrice = totalPrice || room.price;
-            if (mealPlan && !totalPrice) {
-                switch (mealPlan) {
-                    case 'none':
-                        finalPrice = room.priceNoMeal || room.price;
-                        break;
-                    case 'breakfast':
-                        finalPrice = room.priceBreakfast || room.price;
-                        break;
-                    case 'half_board':
-                        finalPrice = room.priceHalfBoard || room.price;
-                        break;
-                    case 'full_board':
-                        finalPrice = room.priceFullBoard || room.price;
-                        break;
-                }
-            }
-
-            const booking = await (tx.booking as any).create({
-                data: {
-                    roomId,
-                    customerId: customerId || null,
-                    customerName,
-                    guestCount: parseInt(guestCount) || 1,
-                    guestDocumentType,
-                    guestDocumentNumber,
-                    guestNationality,
-                    guestPhone,
-                    checkIn: new Date(checkIn),
-                    checkOut: checkOut ? new Date(checkOut) : null,
-                    expectedCheckout: checkOut ? new Date(checkOut) : null,
-                    totalPrice: finalPrice,
-                    mealPlan: mealPlan || 'none',
-                    status: 'checked_in',
-                    notes
-                }
-            });
-
-            await tx.room.update({
-                where: { id: roomId },
-                data: { status: 'occupied' }
-            });
-
-            return booking;
-        });
-
+        const result = await hospitalityService.checkIn(companyId, req.body);
         res.status(201).json(result);
     } catch (error: any) {
         res.status(400).json({ message: error.message });
@@ -622,40 +475,11 @@ router.get('/bookings/:id/details', authenticate, async (req, res) => {
 router.get('/housekeeping', authenticate, async (req: AuthRequest, res) => {
     try {
         const companyId = req.companyId;
-        if (!companyId) {
-            return res.status(400).json({ message: 'Empresa não identificada' });
-        }
+        if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        const { status, date } = req.query;
-        const where: any = { companyId };
-
-        if (status && status !== 'all') {
-            where.status = status;
-        }
-
-        if (date) {
-            const targetDate = new Date(date as string);
-            targetDate.setHours(0, 0, 0, 0);
-            const nextDay = new Date(targetDate);
-            nextDay.setDate(nextDay.getDate() + 1);
-
-            where.createdAt = {
-                gte: targetDate,
-                lt: nextDay
-            };
-        }
-
-        const tasks = await prisma.housekeepingTask.findMany({
-            where,
-            include: {
-                room: {
-                    select: { id: true, number: true, type: true, status: true }
-                }
-            },
-            orderBy: [
-                { priority: 'desc' },
-                { createdAt: 'desc' }
-            ]
+        const tasks = await hospitalityService.getHousekeepingTasks(companyId, {
+            status: req.query.status as string,
+            date: req.query.date as string
         });
 
         res.json(tasks);

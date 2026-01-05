@@ -34,9 +34,8 @@ interface EmployeeListProps {
 }
 
 export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProps) {
-    const { employees: employeesData, isLoading, refetch, updateEmployee } = useEmployees();
-    const employees = Array.isArray(employeesData) ? employeesData : [];
-
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
     const [selectedRole, setSelectedRole] = useState<EmployeeRole | 'all'>('all');
@@ -45,17 +44,17 @@ export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProp
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [employeeToToggle, setEmployeeToToggle] = useState<Employee | null>(null);
 
-    // Filter employees locally for the table
-    const filteredEmployees = useMemo(() => {
-        return employees.filter((emp) => {
-            const matchesRole = selectedRole === 'all' || emp.role === selectedRole;
-            const matchesStatus =
-                selectedStatus === 'all' ||
-                (selectedStatus === 'active' && emp.isActive) ||
-                (selectedStatus === 'inactive' && !emp.isActive);
-            return matchesRole && matchesStatus;
-        });
-    }, [employees, selectedRole, selectedStatus]);
+    // Use API hooks with pagination and filters
+    const { employees: employeesData, pagination, isLoading, refetch, updateEmployee } = useEmployees({
+        search: globalFilter,
+        role: selectedRole === 'all' ? undefined : selectedRole,
+        isActive: selectedStatus === 'all' ? undefined : (selectedStatus === 'active'),
+        page,
+        limit: pageSize,
+        sortBy: sorting[0]?.id || 'name',
+        sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
+    });
+    const employees = Array.isArray(employeesData) ? employeesData : [];
 
     const handleToggleStatus = (employee: Employee) => {
         setEmployeeToToggle(employee);
@@ -190,7 +189,7 @@ export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProp
     );
 
     const table = useReactTable({
-        data: filteredEmployees,
+        data: employees,
         columns,
         state: {
             sorting,
@@ -199,12 +198,10 @@ export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProp
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        initialState: {
-            pagination: { pageSize: 10 },
-        },
+        manualPagination: true,
+        manualFiltering: true,
+        manualSorting: true,
     });
 
     const roleOptions = [
@@ -326,11 +323,14 @@ export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProp
                 {/* Pagination */}
                 <div className="px-6 pb-4">
                     <Pagination
-                        currentPage={table.getState().pagination.pageIndex + 1}
-                        totalItems={filteredEmployees.length}
-                        itemsPerPage={table.getState().pagination.pageSize}
-                        onPageChange={(page) => table.setPageIndex(page - 1)}
-                        onItemsPerPageChange={(size) => table.setPageSize(size)}
+                        currentPage={page}
+                        totalItems={pagination?.total || 0}
+                        itemsPerPage={pageSize}
+                        onPageChange={setPage}
+                        onItemsPerPageChange={(size) => {
+                            setPageSize(size);
+                            setPage(1);
+                        }}
                         itemsPerPageOptions={[5, 10, 25, 50]}
                         showInfo={true}
                         showItemsPerPage={true}

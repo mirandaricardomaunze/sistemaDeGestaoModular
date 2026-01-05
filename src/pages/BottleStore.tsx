@@ -48,11 +48,36 @@ type TimeRange = '1M' | '2M' | '3M' | '6M' | '1Y';
 
 export default function BottleStore() {
     const [view, setView] = useState<'pos' | 'dashboard' | 'inventory' | 'reports'>('pos');
-    const { products, isLoading, refetch: refetchProducts } = useProducts();
-    const { sales, refetch: refetchSales } = useSales();
-    const { customers } = useCustomers();
+
+    // Pagination State
+    const [prodPage, setProdPage] = useState(1);
+    const [prodPageSize, setProdPageSize] = useState(20);
+
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 500);
+    const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>('all');
+
+    const {
+        products,
+        pagination: prodPagination,
+        isLoading,
+        refetch: refetchProducts
+    } = useProducts({
+        category: 'beverages',
+        search: debouncedSearch,
+        status: stockFilter === 'all' ? undefined : stockFilter,
+        page: prodPage,
+        limit: view === 'pos' ? 100 : prodPageSize // More items for POS view
+    });
+
+    const {
+        sales,
+        refetch: refetchSales
+    } = useSales({
+        limit: view === 'dashboard' || view === 'reports' ? 1000 : 100 // Need more for stats
+    });
+
+    const { customers } = useCustomers();
 
     // POS State
     const [cart, setCart] = useState<any[]>([]);
@@ -149,41 +174,16 @@ export default function BottleStore() {
         new Date().toISOString().split('T')[0]
     );
 
-    // Inventory State
-    const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>('all');
-
-    // Filter only beverage/bottle products
+    // Filter only beverage/bottle products (redundant now as API filters, but kept for extra safety)
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
-            // Only show beverages in Bottle Store
             if (p.category !== 'beverages') return false;
-
-            const matchesSearch = !debouncedSearch ||
-                p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                p.code.toLowerCase().includes(debouncedSearch.toLowerCase());
-
-            const matchesStock = stockFilter === 'all' ||
-                (stockFilter === 'low' && p.currentStock > 0 && p.currentStock <= (p.minStock || 10)) ||
-                (stockFilter === 'out' && p.currentStock <= 0);
-
-            return matchesSearch && matchesStock;
+            return true;
         });
-    }, [products, debouncedSearch, stockFilter]);
+    }, [products]);
 
-    const bottleProducts = useMemo(() => {
-        // POS usually shows everything available or match search
-        return products.filter(p => {
-            // Only show beverages in Bottle Store
-            if (p.category !== 'beverages') return false;
+    const bottleProducts = filteredProducts;
 
-            const matchesSearch = !debouncedSearch ||
-                p.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-                p.code.toLowerCase().includes(debouncedSearch.toLowerCase());
-            return matchesSearch;
-        });
-    }, [products, debouncedSearch]);
-
-    const inventoryPagination = usePagination(filteredProducts, 10);
 
     // Cart Logic
     const clearCart = () => {
@@ -657,7 +657,7 @@ export default function BottleStore() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                                        {inventoryPagination.paginatedItems.map(p => (
+                                        {products.map(p => (
                                             <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
                                                 <td className="px-6 py-4">
                                                     <div className="font-bold text-gray-900 dark:text-white">{p.name}</div>
@@ -675,7 +675,7 @@ export default function BottleStore() {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {inventoryPagination.paginatedItems.length === 0 && (
+                                        {products.length === 0 && (
                                             <tr>
                                                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                                     <EmptyState
@@ -693,11 +693,14 @@ export default function BottleStore() {
                             {/* Pagination */}
                             <div className="px-6 py-6 bg-gray-50 dark:bg-dark-800/50">
                                 <Pagination
-                                    currentPage={inventoryPagination.currentPage}
-                                    totalItems={inventoryPagination.totalItems}
-                                    itemsPerPage={inventoryPagination.itemsPerPage}
-                                    onPageChange={inventoryPagination.setCurrentPage}
-                                    onItemsPerPageChange={inventoryPagination.setItemsPerPage}
+                                    currentPage={prodPage}
+                                    totalItems={prodPagination?.total || 0}
+                                    itemsPerPage={prodPageSize}
+                                    onPageChange={setProdPage}
+                                    onItemsPerPageChange={(size) => {
+                                        setProdPageSize(size);
+                                        setProdPage(1);
+                                    }}
                                     itemsPerPageOptions={[10, 20, 50]}
                                 />
                             </div>
@@ -1586,6 +1589,7 @@ function ReportsView({ sales, products, period, setPeriod, startDate, setStartDa
                         itemsPerPage={salesPagination.itemsPerPage}
                         onPageChange={salesPagination.setCurrentPage}
                         onItemsPerPageChange={salesPagination.setItemsPerPage}
+                        itemsPerPageOptions={[5, 10, 20]}
                     />
                 </div>
             </Card>

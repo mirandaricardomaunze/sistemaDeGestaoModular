@@ -10,16 +10,21 @@ import {
     HiOutlineUserGroup,
     HiOutlineCog,
     HiOutlineHome,
+    HiOutlineRefresh,
+    HiOutlinePlus,
+    HiOutlineCalculator
 } from 'react-icons/hi';
 import SalesFunnel from '../components/crm/SalesFunnel';
 import CampaignManager from '../components/crm/CampaignManager';
 import CRMDashboard from '../components/crm/CRMDashboard';
-import { Card } from '../components/ui';
+import { Card, Button } from '../components/ui';
+import ModuleFiscalView from '../components/shared/ModuleFiscalView';
+import { cn } from '../utils/helpers';
 import { useCRMStore } from '../stores/useCRMStore';
 import { useCampaigns } from '../hooks/useData';
 import { formatCurrency } from '../utils/helpers';
 
-type CRMTab = 'dashboard' | 'funnel' | 'campaigns' | 'customers' | 'settings';
+type CRMTab = 'dashboard' | 'funnel' | 'campaigns' | 'customers' | 'settings' | 'fiscal';
 
 export default function CRM() {
     const [activeTab, setActiveTab] = useState<CRMTab>('dashboard');
@@ -33,24 +38,50 @@ export default function CRM() {
     );
 
     const tabs = [
-        { id: 'dashboard' as const, label: 'Dashboard', icon: HiOutlineHome },
-        { id: 'funnel' as const, label: 'Funil de Vendas', icon: HiOutlineChartBar },
-        { id: 'campaigns' as const, label: 'Campanhas', icon: HiOutlineTag },
-        { id: 'customers' as const, label: 'Segmentação', icon: HiOutlineUserGroup },
-        { id: 'settings' as const, label: 'Configuração', icon: HiOutlineCog },
+        { id: 'dashboard' as const, label: 'Estatísticas', icon: <HiOutlineHome className="w-5 h-5" /> },
+        { id: 'funnel' as const, label: 'Funil de Vendas', icon: <HiOutlineChartBar className="w-5 h-5" /> },
+        { id: 'campaigns' as const, label: 'Campanhas', icon: <HiOutlineTag className="w-5 h-5" /> },
+        { id: 'customers' as const, label: 'Segmentação', icon: <HiOutlineUserGroup className="w-5 h-5" /> },
+        { id: 'fiscal' as const, label: 'Fiscal', icon: <HiOutlineCalculator className="w-5 h-5" /> },
+        { id: 'settings' as const, label: 'Configuração', icon: <HiOutlineCog className="w-5 h-5" /> },
     ];
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        CRM & Campanhas
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1">
-                        Gestão de relacionamento com clientes e campanhas promocionais
-                    </p>
+            <div className="bg-white dark:bg-dark-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">CRM & Marketing</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Gestão de Clientes, Oportunidades e Campanhas</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                        <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />}>Actualizar</Button>
+                        {activeTab === 'funnel' && (
+                            <Button size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />}>Nova Oportunidade</Button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Responsive Tabs Navigation */}
+                <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
+                    <div className="flex overflow-x-auto no-scrollbar -mb-px">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as CRMTab)}
+                                className={cn(
+                                    "flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    activeTab === tab.id
+                                        ? "border-primary-500 text-primary-600 dark:text-primary-400"
+                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
+                                )}
+                            >
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -113,34 +144,13 @@ export default function CRM() {
                 </Card>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="border-b border-gray-200 dark:border-dark-700">
-                <nav className="flex gap-1 overflow-x-auto pb-px">
-                    {tabs.map((tab) => {
-                        const Icon = tab.icon;
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${isActive
-                                    ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/10 rounded-t-lg'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-800 rounded-t-lg'
-                                    }`}
-                            >
-                                <Icon className="w-5 h-5" />
-                                {tab.label}
-                            </button>
-                        );
-                    })}
-                </nav>
-            </div>
 
             {/* Tab Content */}
             <div className="min-h-[500px]">
                 {activeTab === 'dashboard' && <CRMDashboard />}
                 {activeTab === 'funnel' && <SalesFunnel />}
                 {activeTab === 'campaigns' && <CampaignManager />}
+                {activeTab === 'fiscal' && <ModuleFiscalView module="crm" title="Vendas & CRM" />}
                 {activeTab === 'customers' && (
                     <Card padding="lg" className="text-center">
                         <HiOutlineUserGroup className="w-16 h-16 text-gray-300 mx-auto mb-4" />

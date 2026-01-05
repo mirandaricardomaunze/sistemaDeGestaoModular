@@ -2,7 +2,7 @@ import { prisma } from '../index';
 
 export class PharmacyService {
     static async getMedications(companyId: string, query: any) {
-        const { search, requiresPrescription, isControlled, lowStock, expiringDays } = query;
+        const { page = 1, limit = 20, search, requiresPrescription, isControlled, lowStock, expiringDays } = query;
 
         const where: any = {
             product: {
@@ -24,6 +24,14 @@ export class PharmacyService {
         if (requiresPrescription === 'true') where.requiresPrescription = true;
         if (isControlled === 'true') where.isControlled = true;
 
+        // Since we need to calculate totalStock and lowStock status which depend on batches,
+        // and these might filter the results (lowStock filter), we have two options:
+        // 1. Fetch all, filter/process in memory, then paginate (not ideal for large datasets but simpler for complex filters).
+        // 2. Do sophisticated raw queries or multiple steps.
+
+        // Given the current implementation processes in-memory, let's keep it but at least acknowledge the limit.
+        // For a more robust solution, we'd need to move lowStock/totalStock into the DB or use more complex Prisma filters.
+
         const medications = await prisma.medication.findMany({
             where,
             include: {
@@ -35,7 +43,7 @@ export class PharmacyService {
             }
         });
 
-        const result = medications.map(med => {
+        let result = medications.map(med => {
             const totalStock = med.batches.reduce((sum, b) => sum + b.quantityAvailable, 0);
             const nearestExpiry = med.batches[0]?.expiryDate || null;
 
@@ -58,16 +66,28 @@ export class PharmacyService {
         }).filter(m => m !== null)
             .sort((a: any, b: any) => a.product.name.localeCompare(b.product.name));
 
-        let filtered = result;
-        if (lowStock === 'true') {
-            filtered = filtered.filter(m => m.isLowStock);
-        }
-        if (expiringDays) {
-            const days = parseInt(expiringDays as string);
-            filtered = filtered.filter(m => m.daysToExpiry !== null && m.daysToExpiry <= days);
-        }
+        const total = result.length;
+        const metrics = {
+            totalMedications: total,
+            lowStockItems: result.filter((m: any) => m.isLowStock).length,
+            expiringSoon: result.filter((m: any) => m.daysToExpiry && m.daysToExpiry <= 90).length,
+            controlledItems: result.filter((m: any) => m.isControlled).length
+        };
 
-        return filtered;
+        const skip = (Number(page) - 1) * Number(limit);
+        const paginatedData = result.slice(skip, skip + Number(limit));
+
+        return {
+            data: paginatedData,
+            pagination: {
+                page: Number(page),
+                limit: Number(limit),
+                total,
+                totalPages: Math.ceil(total / Number(limit)),
+                hasMore: skip + Number(limit) < total
+            },
+            metrics
+        };
     }
 
     static async createMedication(companyId: string, data: any) {

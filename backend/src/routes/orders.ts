@@ -113,8 +113,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         const order = await prisma.customerOrder.create({
             data: {
                 orderNumber,
-                customerName,
-                customerPhone,
+                customerName: customerName || 'Cliente',
+                customerPhone: customerPhone || '',
                 customerAddress,
                 total,
                 priority: 'normal',
@@ -133,11 +133,11 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 },
                 transitions: {
                     create: {
-                        status: 'created',
+                        status: 'created' as any,
                         responsibleName: 'Sistema'
                     }
                 }
-            },
+            } as any,
             include: {
                 items: true,
                 transitions: true
@@ -175,15 +175,15 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res) => {
         const order = await prisma.customerOrder.update({
             where: { id: req.params.id },
             data: {
-                status,
+                status: status as any,
                 transitions: {
                     create: {
-                        status,
+                        status: status as any,
                         responsibleName: responsibleName || 'Sistema',
                         notes
                     }
                 }
-            },
+            } as any,
             include: {
                 items: true,
                 transitions: {

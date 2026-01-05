@@ -247,7 +247,7 @@ router.post('/register', async (req, res) => {
                     email: email.toLowerCase(),
                     password: hashedPassword,
                     name,
-                    role: role || 'admin', // Backward compatibility / Internal use
+                    role: (role || 'admin') as any, // Backward compatibility / Internal use
                     phone,
                     companyId: company.id
                 }
@@ -512,7 +512,7 @@ router.put('/users/:id', authenticate, async (req: AuthRequest, res) => {
 
         const updatedUser = await prisma.user.update({
             where: { id },
-            data: { name, email, role, phone }
+            data: { name, email, role: role as any, phone }
         });
 
         const { password: _, ...userWithoutPassword } = updatedUser;

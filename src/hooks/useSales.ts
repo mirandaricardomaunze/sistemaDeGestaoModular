@@ -4,15 +4,29 @@ import { salesAPI } from '../services/api';
 import { db } from '../db/offlineDB';
 import type { Sale } from '../types';
 
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
 interface UseSalesParams {
     startDate?: string;
     endDate?: string;
     customerId?: string;
     paymentMethod?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
 }
 
 export function useSales(params?: UseSalesParams) {
     const [sales, setSales] = useState<Sale[]>([]);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +35,22 @@ export function useSales(params?: UseSalesParams) {
         setError(null);
         try {
             const response = await salesAPI.getAll(params);
-            const salesData = Array.isArray(response) ? response : (response.data || []);
+
+            let salesData: Sale[] = [];
+            if (response.data && response.pagination) {
+                salesData = response.data;
+                setPagination(response.pagination);
+            } else {
+                salesData = Array.isArray(response) ? response : (response.data || []);
+                setPagination({
+                    page: params?.page || 1,
+                    limit: params?.limit || salesData.length,
+                    total: salesData.length,
+                    totalPages: 1,
+                    hasMore: false
+                });
+            }
+
             setSales(salesData);
         } catch (err) {
             setError('Erro ao carregar vendas');
@@ -29,7 +58,17 @@ export function useSales(params?: UseSalesParams) {
         } finally {
             setIsLoading(false);
         }
-    }, [params?.startDate, params?.endDate, params?.customerId, params?.paymentMethod]);
+    }, [
+        params?.startDate,
+        params?.endDate,
+        params?.customerId,
+        params?.paymentMethod,
+        params?.search,
+        params?.page,
+        params?.limit,
+        params?.sortBy,
+        params?.sortOrder
+    ]);
 
     useEffect(() => {
         fetchSales();
@@ -69,6 +108,7 @@ export function useSales(params?: UseSalesParams) {
 
     return {
         sales,
+        pagination,
         isLoading,
         error,
         refetch: fetchSales,

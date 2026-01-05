@@ -4,14 +4,27 @@ import { productsAPI } from '../services/api';
 import { db } from '../db/offlineDB';
 import type { Product } from '../types';
 
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
 interface UseProductsParams {
     search?: string;
     category?: string;
     status?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
 }
 
 export function useProducts(params?: UseProductsParams) {
     const [products, setProducts] = useState<Product[]>([]);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,21 +34,45 @@ export function useProducts(params?: UseProductsParams) {
         try {
             if (navigator.onLine) {
                 const response = await productsAPI.getAll(params);
-                const productsData = Array.isArray(response) ? response : (response.data || []);
+
+                let productsData: Product[] = [];
+                if (response.data && response.pagination) {
+                    productsData = response.data;
+                    setPagination(response.pagination);
+                } else {
+                    productsData = Array.isArray(response) ? response : (response.data || []);
+                    setPagination({
+                        page: params?.page || 1,
+                        limit: params?.limit || productsData.length,
+                        total: productsData.length,
+                        totalPages: 1,
+                        hasMore: false
+                    });
+                }
 
                 setProducts(productsData);
 
-                try {
-                    await db.products.clear();
-                    if (productsData.length > 0) {
-                        await db.products.bulkPut(productsData);
+                // Offline caching - only cache when on first page or no pagination to avoid clearing all for a partial load
+                if (!params?.page || params.page === 1) {
+                    try {
+                        await db.products.clear();
+                        if (productsData.length > 0) {
+                            await db.products.bulkPut(productsData);
+                        }
+                    } catch (dexieError) {
+                        console.error('Dexie error in useProducts:', dexieError);
                     }
-                } catch (dexieError) {
-                    console.error('Dexie error in useProducts:', dexieError);
                 }
             } else {
                 const cached = await db.products.toArray();
                 setProducts(cached);
+                setPagination({
+                    page: 1,
+                    limit: cached.length,
+                    total: cached.length,
+                    totalPages: 1,
+                    hasMore: false
+                });
                 toast('A usar catálogo de produtos offline', { icon: '📦' });
             }
         } catch (err) {
@@ -44,7 +81,15 @@ export function useProducts(params?: UseProductsParams) {
         } finally {
             setIsLoading(false);
         }
-    }, [params?.search, params?.category, params?.status]);
+    }, [
+        params?.search,
+        params?.category,
+        params?.status,
+        params?.page,
+        params?.limit,
+        params?.sortBy,
+        params?.sortOrder
+    ]);
 
     useEffect(() => {
         fetchProducts();
@@ -53,7 +98,7 @@ export function useProducts(params?: UseProductsParams) {
     const addProduct = async (data: Parameters<typeof productsAPI.create>[0]) => {
         try {
             const newProduct = await productsAPI.create(data);
-            setProducts((prev) => [...prev, newProduct]);
+            setProducts((prev) => [newProduct, ...prev]);
             toast.success('Produto criado com sucesso!');
             return newProduct;
         } catch (err) {
@@ -104,6 +149,7 @@ export function useProducts(params?: UseProductsParams) {
 
     return {
         products,
+        pagination,
         isLoading,
         error,
         refetch: fetchProducts,

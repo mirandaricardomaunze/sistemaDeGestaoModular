@@ -3,14 +3,27 @@ import toast from 'react-hot-toast';
 import { employeesAPI } from '../services/api';
 import type { Employee } from '../types';
 
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
 interface UseEmployeesParams {
     search?: string;
     department?: string;
     role?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
 }
 
 export function useEmployees(params?: UseEmployeesParams) {
     const [employees, setEmployees] = useState<Employee[]>([]);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +32,22 @@ export function useEmployees(params?: UseEmployeesParams) {
         setError(null);
         try {
             const response = await employeesAPI.getAll(params);
-            const employeesData = Array.isArray(response) ? response : (response.data || []);
+
+            let employeesData: Employee[] = [];
+            if (response.data && response.pagination) {
+                employeesData = response.data;
+                setPagination(response.pagination);
+            } else {
+                employeesData = Array.isArray(response) ? response : (response.data || []);
+                setPagination({
+                    page: params?.page || 1,
+                    limit: params?.limit || employeesData.length,
+                    total: employeesData.length,
+                    totalPages: 1,
+                    hasMore: false
+                });
+            }
+
             setEmployees(employeesData);
         } catch (err) {
             setError('Erro ao carregar funcionários');
@@ -27,7 +55,15 @@ export function useEmployees(params?: UseEmployeesParams) {
         } finally {
             setIsLoading(false);
         }
-    }, [params?.search, params?.department, params?.role]);
+    }, [
+        params?.search,
+        params?.department,
+        params?.role,
+        params?.page,
+        params?.limit,
+        params?.sortBy,
+        params?.sortOrder
+    ]);
 
     useEffect(() => {
         fetchEmployees();
@@ -36,7 +72,7 @@ export function useEmployees(params?: UseEmployeesParams) {
     const addEmployee = async (data: Parameters<typeof employeesAPI.create>[0]) => {
         try {
             const newEmployee = await employeesAPI.create(data);
-            setEmployees((prev) => [...prev, newEmployee]);
+            setEmployees((prev) => [newEmployee, ...prev]);
             toast.success('Funcionário criado com sucesso!');
             return newEmployee;
         } catch (err) {
@@ -70,6 +106,7 @@ export function useEmployees(params?: UseEmployeesParams) {
 
     return {
         employees,
+        pagination,
         isLoading,
         error,
         refetch: fetchEmployees,

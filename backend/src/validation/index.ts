@@ -12,6 +12,7 @@
 export * from './base';
 
 // Domain-specific schemas
+export * from './admin';
 export * from './auth';
 export * from './customers';
 export * from './suppliers';

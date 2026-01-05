@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import api from '../services/api/client';
 
 interface PaginationParams {
     page?: number;
@@ -66,8 +64,8 @@ export function usePaginatedData<T = any>({
 
     const [page, setPage] = useState(initialPage);
     const [limit, setLimit] = useState(initialLimit);
-    const [sortBy, setSortBy] = useState('name');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+    const [sortBy, setSortBy] = useState('createdAt');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     const abortControllerRef = useRef<AbortController | null>(null);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -92,15 +90,16 @@ export function usePaginatedData<T = any>({
         setError(null);
 
         try {
-            const params = new URLSearchParams({
+            const params = {
                 page: page.toString(),
                 limit: limit.toString(),
                 sortBy,
                 sortOrder,
                 ...filters,
-            });
+            };
 
-            const response = await axios.get(`${API_URL}/${endpoint}?${params}`, {
+            const response = await api.get(`/${endpoint}`, {
+                params,
                 signal: abortControllerRef.current.signal,
             });
 
@@ -112,11 +111,12 @@ export function usePaginatedData<T = any>({
                 setPagination(responseData.pagination);
             } else {
                 // Fallback for non-paginated endpoints
-                setData(Array.isArray(responseData) ? responseData : [responseData]);
+                const dataArray = Array.isArray(responseData) ? responseData : (responseData.data || [responseData]);
+                setData(dataArray);
                 setPagination({
                     page: 1,
-                    limit: responseData.length,
-                    total: responseData.length,
+                    limit: dataArray.length,
+                    total: dataArray.length,
                     totalPages: 1,
                     hasMore: false,
                 });
@@ -126,7 +126,7 @@ export function usePaginatedData<T = any>({
                 onSuccess(responseData.data || responseData);
             }
         } catch (err: any) {
-            if (err.name === 'CanceledError') {
+            if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
                 // Request was cancelled, ignore
                 return;
             }
@@ -194,29 +194,31 @@ export function usePaginatedData<T = any>({
     };
 }
 
-// Hook específico para produtos com paginação
+// Specific hooks
 export function usePaginatedProducts(filters: Record<string, any> = {}) {
-    return usePaginatedData({
-        endpoint: 'products',
-        filters,
-        initialLimit: 20,
-    });
+    return usePaginatedData({ endpoint: 'products', filters });
 }
 
-// Hook específico para clientes com paginação
 export function usePaginatedCustomers(filters: Record<string, any> = {}) {
-    return usePaginatedData({
-        endpoint: 'customers',
-        filters,
-        initialLimit: 20,
-    });
+    return usePaginatedData({ endpoint: 'customers', filters });
 }
 
-// Hook específico para funcionários com paginação
 export function usePaginatedEmployees(filters: Record<string, any> = {}) {
-    return usePaginatedData({
-        endpoint: 'employees',
-        filters,
-        initialLimit: 20,
-    });
+    return usePaginatedData({ endpoint: 'employees', filters });
+}
+
+export function usePaginatedInvoices(filters: Record<string, any> = {}) {
+    return usePaginatedData({ endpoint: 'invoices', filters });
+}
+
+export function usePaginatedOrders(filters: Record<string, any> = {}) {
+    return usePaginatedData({ endpoint: 'orders', filters });
+}
+
+export function usePaginatedSuppliers(filters: Record<string, any> = {}) {
+    return usePaginatedData({ endpoint: 'suppliers', filters });
+}
+
+export function usePaginatedSales(filters: Record<string, any> = {}) {
+    return usePaginatedData({ endpoint: 'sales', filters });
 }

@@ -49,13 +49,29 @@ interface Order {
     assignedTo?: string;
 }
 
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
 interface OrdersDashboardProps {
     orders: Order[];
+    pagination: PaginationMeta | null;
+    page: number;
+    pageSize: number;
+    setPage: (page: number) => void;
+    setPageSize: (size: number) => void;
+    statusFilter: string;
+    setStatusFilter: (status: string) => void;
     onNewOrder: () => void;
     onViewOrder: (order: Order) => void;
     onPrintOrder: (order: Order) => void;
     onCompleteOrder: (order: Order) => void;
     onCancelOrder: (order: Order) => void;
+    isLoading?: boolean;
 }
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
@@ -86,14 +102,21 @@ const periodOptions: { value: TimePeriod; label: string }[] = [
 
 export default function OrdersDashboard({
     orders,
+    pagination,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    statusFilter,
+    setStatusFilter,
     onNewOrder,
     onViewOrder,
     onPrintOrder,
     onCompleteOrder,
     onCancelOrder,
+    isLoading
 }: OrdersDashboardProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
     const [dateFilter, setDateFilter] = useState<string>('all');
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
 
@@ -158,9 +181,9 @@ export default function OrdersDashboard({
         return data;
     }, [periodOrders]);
 
-    // Filtered orders for table
+    // Filtered orders for table display (mostly for search/date which might not be handled by backend yet or to refine current view)
     const filteredOrders = useMemo(() => {
-        return periodOrders.filter((order) => {
+        return orders.filter((order) => {
             // Search filter
             if (searchTerm) {
                 const search = searchTerm.toLowerCase();
@@ -170,11 +193,6 @@ export default function OrdersDashboard({
                 ) {
                     return false;
                 }
-            }
-
-            // Status filter
-            if (statusFilter !== 'all' && order.status !== statusFilter) {
-                return false;
             }
 
             // Date filter
@@ -191,17 +209,7 @@ export default function OrdersDashboard({
 
             return true;
         });
-    }, [periodOrders, searchTerm, statusFilter, dateFilter]);
-
-    // Pagination
-    const {
-        currentPage,
-        setCurrentPage,
-        itemsPerPage,
-        setItemsPerPage,
-        paginatedItems: paginatedOrders,
-        totalItems,
-    } = usePagination(filteredOrders, 10);
+    }, [orders, searchTerm, dateFilter]);
 
     const statusOptions = [
         { value: 'all', label: 'Todos os Status' },
@@ -427,11 +435,11 @@ export default function OrdersDashboard({
                                 {filteredOrders.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                                            Nenhuma encomenda encontrada
+                                            {isLoading ? 'Carregando encomendas...' : 'Nenhuma encomenda encontrada'}
                                         </td>
                                     </tr>
                                 ) : (
-                                    paginatedOrders.map((order) => (
+                                    filteredOrders.map((order) => (
                                         <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                             <td className="px-4 py-3">
                                                 <span className="font-mono font-medium text-gray-900 dark:text-white">
@@ -510,13 +518,19 @@ export default function OrdersDashboard({
                     </div>
 
                     {/* Pagination */}
-                    <Pagination
-                        currentPage={currentPage}
-                        totalItems={totalItems}
-                        itemsPerPage={itemsPerPage}
-                        onPageChange={setCurrentPage}
-                        onItemsPerPageChange={setItemsPerPage}
-                    />
+                    <div className="px-4 py-4">
+                        <Pagination
+                            currentPage={page}
+                            totalItems={pagination?.total || 0}
+                            itemsPerPage={pageSize}
+                            onPageChange={setPage}
+                            onItemsPerPageChange={(size) => {
+                                setPageSize(size);
+                                setPage(1);
+                            }}
+                            itemsPerPageOptions={[10, 20, 50]}
+                        />
+                    </div>
                 </div>
             </Card>
         </div>

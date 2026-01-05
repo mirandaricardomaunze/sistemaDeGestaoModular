@@ -66,6 +66,16 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
             where.supplierId = supplierId;
         }
 
+        const { warehouseId } = req.query;
+        if (warehouseId && warehouseId !== 'all') {
+            where.warehouseStocks = {
+                some: {
+                    warehouseId: String(warehouseId),
+                    quantity: { gt: 0 }
+                }
+            };
+        }
+
         // Create cache key
         const cacheKey = CacheKeys.productList(pageNum, JSON.stringify(where));
 

@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import { prisma } from '../index';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
+import { CRMService } from '../services/crm.service';
 
 const router = Router();
+const crmService = new CRMService(prisma);
 
 // ============================================================================
 // Funnel Stages
@@ -70,21 +72,7 @@ router.delete('/stages/:id', authenticate, authorize('admin'), async (req: AuthR
 
 router.get('/opportunities', authenticate, async (req: AuthRequest, res) => {
     try {
-        const { stageId, customerId } = req.query;
-        const opportunities = await prisma.opportunity.findMany({
-            where: {
-                companyId: req.companyId,
-                ...(stageId && { stageId: String(stageId) }),
-                ...(customerId && { customerId: String(customerId) })
-            },
-            include: {
-                stage: true,
-                customer: { select: { id: true, name: true } },
-                interactions: { orderBy: { createdAt: 'desc' }, take: 10 },
-                stageHistory: { orderBy: { changedAt: 'desc' } }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        const opportunities = await crmService.getOpportunities(req.companyId!);
         res.json(opportunities);
     } catch (error) {
         console.error('Get opportunities error:', error);

@@ -3,15 +3,29 @@ import toast from 'react-hot-toast';
 import { invoicesAPI } from '../services/api';
 import type { Invoice } from '../types';
 
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
 interface UseInvoicesParams {
     status?: string;
     customerId?: string;
+    search?: string;
     startDate?: string;
     endDate?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
 }
 
 export function useInvoices(params?: UseInvoicesParams) {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +34,22 @@ export function useInvoices(params?: UseInvoicesParams) {
         setError(null);
         try {
             const response = await invoicesAPI.getAll(params);
-            const invoicesData = Array.isArray(response) ? response : (response.data || []);
+
+            let invoicesData: Invoice[] = [];
+            if (response.data && response.pagination) {
+                invoicesData = response.data;
+                setPagination(response.pagination);
+            } else {
+                invoicesData = Array.isArray(response) ? response : (response.data || []);
+                setPagination({
+                    page: params?.page || 1,
+                    limit: params?.limit || invoicesData.length,
+                    total: invoicesData.length,
+                    totalPages: 1,
+                    hasMore: false
+                });
+            }
+
             setInvoices(invoicesData);
         } catch (err) {
             setError('Erro ao carregar facturas');
@@ -28,7 +57,17 @@ export function useInvoices(params?: UseInvoicesParams) {
         } finally {
             setIsLoading(false);
         }
-    }, [params?.status, params?.customerId, params?.startDate, params?.endDate]);
+    }, [
+        params?.status,
+        params?.customerId,
+        params?.search,
+        params?.startDate,
+        params?.endDate,
+        params?.page,
+        params?.limit,
+        params?.sortBy,
+        params?.sortOrder
+    ]);
 
     useEffect(() => {
         fetchInvoices();
@@ -87,6 +126,7 @@ export function useInvoices(params?: UseInvoicesParams) {
 
     return {
         invoices,
+        pagination,
         isLoading,
         error,
         refetch: fetchInvoices,

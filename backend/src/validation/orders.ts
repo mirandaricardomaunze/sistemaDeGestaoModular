@@ -37,9 +37,7 @@ export const createOrderSchema = z.object({
 });
 
 export const updateOrderStatusSchema = z.object({
-    status: z.enum(['pending', 'confirmed', 'preparing', 'ready', 'delivering', 'delivered', 'cancelled'], {
-        errorMap: () => ({ message: 'Status inválido' })
-    }),
+    status: z.enum(['created', 'printed', 'separated', 'completed', 'cancelled']),
     responsibleName: z.string().max(200, 'Nome do responsável muito longo').optional().nullable(),
     notes: z.string().max(500, 'Notas muito longas').optional().nullable()
 });

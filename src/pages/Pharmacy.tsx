@@ -27,15 +27,17 @@ import {
     HiOutlineHashtag,
     HiOutlineShieldCheck,
     HiOutlineCheck,
-    HiOutlineX
+    HiOutlineX,
+    HiOutlineCalculator
 } from 'react-icons/hi';
+import ModuleFiscalView from '../components/shared/ModuleFiscalView';
 import * as XLSX from 'xlsx';
 import { generatePharmacyStockReport, generatePharmacyExpiringReport, generatePharmacySalesReport } from '../utils/documentGenerator';
 import { useStore } from '../stores/useStore';
 import Pagination, { usePagination } from '../components/ui/Pagination';
 import { formatCurrency, formatDate, cn } from '../utils/helpers';
 
-type MainTab = 'medications' | 'stock' | 'prescriptions' | 'reports';
+type MainTab = 'medications' | 'stock' | 'prescriptions' | 'reports' | 'fiscal';
 
 interface Medication {
     id: string;
@@ -68,15 +70,36 @@ interface Medication {
     alertLevel: 'critical' | 'warning' | 'normal';
 }
 
+import { usePharmacy } from '../hooks/usePharmacy';
+
 export default function Pharmacy() {
     const { companySettings } = useStore();
     const [activeTab, setActiveTab] = useState<MainTab>('medications');
-    const [isLoading, setIsLoading] = useState(true);
 
     // Medications state
-    const [medications, setMedications] = useState<Medication[]>([]);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const [medSearch, setMedSearch] = useState('');
     const [medFilter, setMedFilter] = useState<'all' | 'lowStock' | 'expiring' | 'controlled'>('all');
+
+    const {
+        medications,
+        pagination: medPaginationMeta,
+        metrics,
+        isLoading: isPharmacyLoading,
+        addMedication,
+        updateMedication,
+        deleteMedication,
+        addBatch,
+        refetch: fetchMedications
+    } = usePharmacy({
+        page,
+        limit: pageSize,
+        search: medSearch,
+        lowStock: medFilter === 'lowStock',
+        expiringDays: medFilter === 'expiring' ? 90 : undefined,
+        isControlled: medFilter === 'controlled' ? true : undefined
+    });
 
     // Reports state
     const [expiringReport, setExpiringReport] = useState<any>(null);
@@ -90,17 +113,6 @@ export default function Pharmacy() {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [selectedMedication, setSelectedMedication] = useState<Medication | null>(null);
-
-    // Metrics state
-    const [metrics, setMetrics] = useState({
-        totalMedications: 0,
-        lowStockItems: 0,
-        expiringSoon: 0,
-        controlledItems: 0
-    });
-
-    // Pagination Hooks
-    const medPagination = usePagination(medications, 10);
 
     // Stock Entry Form
     const [batchForm, setBatchForm] = useState({
@@ -150,32 +162,6 @@ export default function Pharmacy() {
     // Products for new medication creation
     const { products } = useProducts();
 
-
-
-    // Fetch medications
-    const fetchMedications = async () => {
-        try {
-            const params: any = {};
-            if (medSearch) params.search = medSearch;
-            if (medFilter === 'lowStock') params.lowStock = true;
-            if (medFilter === 'expiring') params.expiringDays = 90;
-            if (medFilter === 'controlled') params.isControlled = true;
-
-            const data = await pharmacyAPI.getMedications(params);
-            setMedications(data);
-
-            // Calculate metrics
-            setMetrics({
-                totalMedications: data.length,
-                lowStockItems: data.filter((m: any) => m.isLowStock).length,
-                expiringSoon: data.filter((m: any) => m.daysToExpiry && m.daysToExpiry <= 90).length,
-                controlledItems: data.filter((m: any) => m.isControlled).length
-            });
-        } catch (error) {
-            console.error('Error fetching medications:', error);
-        }
-    };
-
     // Fetch reports
     const fetchReports = async () => {
         try {
@@ -191,25 +177,12 @@ export default function Pharmacy() {
     };
 
     useEffect(() => {
-        const loadData = async () => {
-            setIsLoading(true);
-            await fetchMedications();
-            setIsLoading(false);
-        };
-        loadData();
-    }, []);
-
-    useEffect(() => {
-        if (activeTab === 'medications') {
-            fetchMedications();
-        } else if (activeTab === 'reports') {
+        if (activeTab === 'reports') {
             fetchReports();
         }
-    }, [activeTab, medFilter]);
+    }, [activeTab]);
 
-
-
-
+    const isLoading = isPharmacyLoading;
 
     const handleCreateOrUpdateMedication = async () => {
         try {
@@ -219,16 +192,13 @@ export default function Pharmacy() {
             }
 
             if (isEditing && selectedMedication) {
-                await pharmacyAPI.updateMedication(selectedMedication.id, medicationForm);
-                toast.success('Medicamento atualizado com sucesso!');
+                await updateMedication(selectedMedication.id, medicationForm);
             } else {
-                await pharmacyAPI.createMedication(medicationForm);
-                toast.success('Medicamento criado com sucesso!');
+                await addMedication(medicationForm);
             }
 
             setIsNewMedicationModalOpen(false);
             resetMedicationForm();
-            fetchMedications();
         } catch (error: any) {
             toast.error(error.message || 'Erro ao processar medicamento');
         }
@@ -334,20 +304,29 @@ export default function Pharmacy() {
         XLSX.writeFile(workbook, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
-    // Filtered medications moved up for initialization order
+    const tabs = [
+        { id: 'medications', label: 'Medicamentos', icon: <HiOutlineBeaker className="w-5 h-5" /> },
+        { id: 'stock', label: 'Stock', icon: <HiOutlineCube className="w-5 h-5" /> },
+        { id: 'prescriptions', label: 'Receitas', icon: <HiOutlineClipboardList className="w-5 h-5" /> },
+        { id: 'fiscal', label: 'Fiscal', icon: <HiOutlineCalculator className="w-5 h-5" /> },
+        { id: 'reports', label: 'Relatórios', icon: <HiOutlineDocumentReport className="w-5 h-5" /> },
+    ];
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center py-20">
+            <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
                 <LoadingSpinner size="xl" />
-                <p className="mt-4 text-sm text-gray-400">A carregar sistema de farmácia...</p>
+                <p className="mt-4 text-sm font-bold text-gray-400 uppercase tracking-widest animate-pulse">Iniciando sistema de farmácia...</p>
             </div>
         );
     }
 
+    const ModuleFiscalViewExport = () => <ModuleFiscalView module="pharmacy" title="Farmácia & Fiscal" />;
+
+
     return (
         <div className="space-y-6 px-2 pt-6 pb-6 md:px-6">
-            {/* Header */}
+            {/* Header with Responsive Tabs */}
             <div className="bg-white dark:bg-dark-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
@@ -355,51 +334,42 @@ export default function Pharmacy() {
                             <HiOutlineBeaker className="w-7 h-7 text-primary-600" />
                             Gestão de Farmácia
                         </h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                            Medicamentos, Vendas, Stock e Receitas
-                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Controle de Medicamentos, Stock, Receitas e Vendas</p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-4 h-4" />}
-                            onClick={() => { fetchMedications(); if (activeTab === 'reports') fetchReports(); }}>
-                            Actualizar
-                        </Button>
+                    <div className="flex flex-wrap gap-3">
+                        <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />} onClick={() => { fetchMedications(); if (activeTab === 'reports') fetchReports(); }}>Actualizar</Button>
                         {activeTab === 'medications' && (
-                            <Button size="sm" leftIcon={<HiOutlinePlus className="w-4 h-4" />}
-                                onClick={() => setIsNewMedicationModalOpen(true)}
-                            >
-                                Novo Medicamento
-                            </Button>
+                            <Button size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => setIsNewMedicationModalOpen(true)}>Novo Medicamento</Button>
                         )}
                         {activeTab === 'stock' && (
-                            <Button size="sm" leftIcon={<HiOutlinePlus className="w-4 h-4" />}
-                                onClick={() => setIsBatchModalOpen(true)}>
-                                Entrada de Lote
-                            </Button>
+                            <Button size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => setIsBatchModalOpen(true)}>Entrada de Lote</Button>
+                        )}
+                        {activeTab === 'prescriptions' && (
+                            <Button size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => setIsPrescriptionModalOpen(true)}>Nova Receita</Button>
                         )}
                     </div>
                 </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="flex gap-2 border-b border-gray-200 dark:border-dark-700 pb-0 overflow-x-auto">
-                {[
-                    { id: 'medications', label: 'Medicamentos', icon: HiOutlineBeaker },
-                    { id: 'stock', label: 'Stock', icon: HiOutlineCube },
-                    { id: 'prescriptions', label: 'Receitas', icon: HiOutlineClipboardList },
-                    { id: 'reports', label: 'Relatórios', icon: HiOutlineDocumentReport }
-                ].map(tab => (
-                    <Button
-                        key={tab.id}
-                        variant={activeTab === tab.id ? 'primary' : 'ghost'}
-                        onClick={() => setActiveTab(tab.id as MainTab)}
-                        leftIcon={<tab.icon className="w-4 h-4" />}
-                        size="sm"
-                        className="px-4 py-2 rounded-b-none whitespace-nowrap"
-                    >
-                        {tab.label}
-                    </Button>
-                ))}
+                {/* Tab Navigation */}
+                <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
+                    <div className="flex overflow-x-auto no-scrollbar -mb-px">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as MainTab)}
+                                className={cn(
+                                    "flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    activeTab === tab.id
+                                        ? "border-primary-500 text-primary-600 dark:text-primary-400"
+                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
+                                )}
+                            >
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
             {/* Tab Content */}
@@ -499,7 +469,7 @@ export default function Pharmacy() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y dark:divide-dark-700">
-                                        {medPagination.paginatedItems.map(med => (
+                                        {medications.map(med => (
                                             <tr key={med.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
                                                 <td className="px-6 py-4">
                                                     <p className="font-semibold text-gray-900 dark:text-white">{med.product.name}</p>
@@ -572,11 +542,14 @@ export default function Pharmacy() {
 
                             {/* Pagination Controls */}
                             <Pagination
-                                currentPage={medPagination.currentPage}
-                                totalItems={medPagination.totalItems}
-                                itemsPerPage={medPagination.itemsPerPage}
-                                onPageChange={medPagination.setCurrentPage}
-                                onItemsPerPageChange={medPagination.setItemsPerPage}
+                                currentPage={page}
+                                totalItems={medPaginationMeta?.total || 0}
+                                itemsPerPage={pageSize}
+                                onPageChange={setPage}
+                                onItemsPerPageChange={(size) => {
+                                    setPageSize(size);
+                                    setPage(1);
+                                }}
                                 className="p-4 bg-white dark:bg-dark-800"
                             />
                         </Card>
@@ -764,26 +737,21 @@ export default function Pharmacy() {
                     )
                 }
 
+                {/* FISCAL TAB */}
+                {activeTab === 'fiscal' && <ModuleFiscalView module="pharmacy" title="Farmácia & Fiscal" />}
+
                 {/* PRESCRIPTIONS TAB */}
-                {
-                    activeTab === 'prescriptions' && (
-                        <div className="space-y-4">
-                            <Button
-                                leftIcon={<HiOutlinePlus className="w-4 h-4" />}
-                                onClick={() => setIsPrescriptionModalOpen(true)}
-                            >
-                                Nova Receita
-                            </Button>
-                            <Card className="p-6">
-                                <EmptyState
-                                    icon={<HiOutlineClipboardList className="w-12 h-12" />}
-                                    title="Gestão de Receitas Médicas"
-                                    description="Clique em 'Nova Receita' para registar uma prescrição médica. As receitas registadas permitem controlo de medicamentos dispensados."
-                                />
-                            </Card>
-                        </div>
-                    )
-                }
+                {activeTab === 'prescriptions' && (
+                    <div className="space-y-4 animate-in fade-in duration-500">
+                        <Card className="p-6">
+                            <EmptyState
+                                icon={<HiOutlineClipboardList className="w-12 h-12" />}
+                                title="Gestão de Receitas Médicas"
+                                description="Registe prescrições médicas para controlo rigoroso de medicamentos dispensados, especialmente os de venda controlada."
+                            />
+                        </Card>
+                    </div>
+                )}
             </div >
 
             {/* Batch Entry Modal */}

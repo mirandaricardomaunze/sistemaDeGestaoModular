@@ -37,13 +37,27 @@ export interface CustomerOrder {
     transitions: OrderTransition[];
 }
 
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
 interface UseOrdersParams {
     status?: string;
     priority?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
 }
 
 export function useOrders(params?: UseOrdersParams) {
     const [orders, setOrders] = useState<CustomerOrder[]>([]);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -52,9 +66,24 @@ export function useOrders(params?: UseOrdersParams) {
         setError(null);
         try {
             const response = await ordersAPI.getAll(params);
-            const ordersData = (response && response.data && Array.isArray(response.data))
-                ? response.data
-                : (Array.isArray(response) ? response : []);
+
+            let ordersData: CustomerOrder[] = [];
+            if (response.data && response.pagination) {
+                ordersData = response.data;
+                setPagination(response.pagination);
+            } else {
+                ordersData = (response && response.data && Array.isArray(response.data))
+                    ? response.data
+                    : (Array.isArray(response) ? response : []);
+
+                setPagination({
+                    page: params?.page || 1,
+                    limit: params?.limit || ordersData.length,
+                    total: ordersData.length,
+                    totalPages: 1,
+                    hasMore: false
+                });
+            }
 
             setOrders(ordersData);
         } catch (err) {
@@ -64,7 +93,15 @@ export function useOrders(params?: UseOrdersParams) {
         } finally {
             setIsLoading(false);
         }
-    }, [params?.status, params?.priority]);
+    }, [
+        params?.status,
+        params?.priority,
+        params?.search,
+        params?.page,
+        params?.limit,
+        params?.sortBy,
+        params?.sortOrder
+    ]);
 
     useEffect(() => {
         fetchOrders();
@@ -119,6 +156,7 @@ export function useOrders(params?: UseOrdersParams) {
 
     return {
         orders,
+        pagination,
         isLoading,
         error,
         refetch: fetchOrders,

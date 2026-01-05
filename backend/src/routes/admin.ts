@@ -231,7 +231,7 @@ router.patch('/companies/:id/status', authenticate, requireSuperAdmin, async (re
         });
 
         res.json({
-            message: `Empresa ${status === 'active' ? 'activada' : status === 'suspended' ? 'suspensa' : 'desactivada'} com sucesso`,
+            message: `Empresa ${status === 'active' ? 'activada' : status === 'blocked' ? 'bloqueada' : status === 'cancelled' ? 'cancelada' : 'em trial'} com sucesso`,
             company
         });
     } catch (error) {

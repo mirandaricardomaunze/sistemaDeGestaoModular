@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { HiOutlineCalendar, HiOutlineUsers, HiOutlineChartBar, HiOutlineCash } from 'react-icons/hi';
+import { HiOutlineCalendar, HiOutlineUsers, HiOutlineChartBar, HiOutlineCash, HiOutlineCheckCircle } from 'react-icons/hi';
 import EmployeeList from '../components/employees/EmployeeList';
 import EmployeeForm from '../components/employees/EmployeeForm';
 import EmployeeAttendance from '../components/employees/EmployeeAttendance';
 import EmployeesDashboard from '../components/employees/EmployeesDashboard';
 import PayrollManager from '../components/employees/PayrollManager';
 import VacationManager from '../components/employees/VacationManager';
-import { Button } from '../components/ui';
+import AttendanceControl from '../components/employees/AttendanceControl';
+import { cn } from '../utils/helpers';
 import type { Employee } from '../types';
 
-type Tab = 'dashboard' | 'list' | 'attendance' | 'vacations' | 'payroll';
+type Tab = 'dashboard' | 'list' | 'attendance' | 'ponto' | 'vacations' | 'payroll';
 
 export default function Employees() {
     const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -34,7 +35,7 @@ export default function Employees() {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                         Funcionários
@@ -43,42 +44,33 @@ export default function Employees() {
                         Gerencie sua equipe e recursos humanos
                     </p>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                    <Button
-                        variant={activeTab === 'dashboard' ? 'primary' : 'outline'}
-                        onClick={() => setActiveTab('dashboard')}
-                        leftIcon={<HiOutlineChartBar className="w-4 h-4" />}
-                    >
-                        Visão Geral
-                    </Button>
-                    <Button
-                        variant={activeTab === 'list' ? 'primary' : 'outline'}
-                        onClick={() => setActiveTab('list')}
-                        leftIcon={<HiOutlineUsers className="w-4 h-4" />}
-                    >
-                        Colaboradores
-                    </Button>
-                    <Button
-                        variant={activeTab === 'attendance' ? 'primary' : 'outline'}
-                        onClick={() => setActiveTab('attendance')}
-                        leftIcon={<HiOutlineCalendar className="w-4 h-4" />}
-                    >
-                        Assiduidade
-                    </Button>
-                    <Button
-                        variant={activeTab === 'vacations' ? 'primary' : 'outline'}
-                        onClick={() => setActiveTab('vacations')}
-                        leftIcon={<HiOutlineCalendar className="w-4 h-4" />}
-                    >
-                        Gestão de Férias
-                    </Button>
-                    <Button
-                        variant={activeTab === 'payroll' ? 'primary' : 'outline'}
-                        onClick={() => setActiveTab('payroll')}
-                        leftIcon={<HiOutlineCash className="w-4 h-4" />}
-                    >
-                        Salários
-                    </Button>
+
+                {/* Responsive Tabs */}
+                <div className="border-b border-gray-200 dark:border-dark-700">
+                    <div className="flex overflow-x-auto no-scrollbar -mb-px">
+                        {[
+                            { id: 'dashboard', label: 'Visão Geral', icon: <HiOutlineChartBar className="w-5 h-5" /> },
+                            { id: 'list', label: 'Colaboradores', icon: <HiOutlineUsers className="w-5 h-5" /> },
+                            { id: 'attendance', label: 'Assiduidade', icon: <HiOutlineCalendar className="w-5 h-5" /> },
+                            { id: 'vacations', label: 'Gestão de Férias', icon: <HiOutlineCalendar className="w-5 h-5" /> },
+                            { id: 'ponto', label: 'Área de Ponto', icon: <HiOutlineCheckCircle className="w-5 h-5" /> },
+                            { id: 'payroll', label: 'Salários', icon: <HiOutlineCash className="w-5 h-5" /> },
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as Tab)}
+                                className={cn(
+                                    "flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all whitespace-nowrap",
+                                    activeTab === tab.id
+                                        ? "border-primary-500 text-primary-600 dark:text-primary-400"
+                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
+                                )}
+                            >
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -98,6 +90,8 @@ export default function Employees() {
             )}
 
             {activeTab === 'attendance' && <EmployeeAttendance />}
+
+            {activeTab === 'ponto' && <AttendanceControl />}
 
             {activeTab === 'vacations' && <VacationManager />}
 

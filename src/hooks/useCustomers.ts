@@ -4,13 +4,26 @@ import { customersAPI } from '../services/api';
 import { db } from '../db/offlineDB';
 import type { Customer } from '../types';
 
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
 interface UseCustomersParams {
     search?: string;
     type?: string;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
 }
 
 export function useCustomers(params?: UseCustomersParams) {
     const [customers, setCustomers] = useState<Customer[]>([]);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -20,21 +33,45 @@ export function useCustomers(params?: UseCustomersParams) {
         try {
             if (navigator.onLine) {
                 const response = await customersAPI.getAll(params);
-                const customersData = Array.isArray(response) ? response : (response.data || []);
+
+                let customersData: Customer[] = [];
+                if (response.data && response.pagination) {
+                    customersData = response.data;
+                    setPagination(response.pagination);
+                } else {
+                    customersData = Array.isArray(response) ? response : (response.data || []);
+                    setPagination({
+                        page: params?.page || 1,
+                        limit: params?.limit || customersData.length,
+                        total: customersData.length,
+                        totalPages: 1,
+                        hasMore: false
+                    });
+                }
 
                 setCustomers(customersData);
 
-                try {
-                    await db.customers.clear();
-                    if (customersData.length > 0) {
-                        await db.customers.bulkPut(customersData);
+                // Offline caching - only cache when on first page
+                if (!params?.page || params.page === 1) {
+                    try {
+                        await db.customers.clear();
+                        if (customersData.length > 0) {
+                            await db.customers.bulkPut(customersData);
+                        }
+                    } catch (dexieError) {
+                        console.error('Dexie error in useCustomers:', dexieError);
                     }
-                } catch (dexieError) {
-                    console.error('Dexie error in useCustomers:', dexieError);
                 }
             } else {
                 const cached = await db.customers.toArray();
                 setCustomers(cached);
+                setPagination({
+                    page: 1,
+                    limit: cached.length,
+                    total: cached.length,
+                    totalPages: 1,
+                    hasMore: false
+                });
                 toast('A usar lista de clientes offline', { icon: '👥' });
             }
         } catch (err) {
@@ -43,7 +80,14 @@ export function useCustomers(params?: UseCustomersParams) {
         } finally {
             setIsLoading(false);
         }
-    }, [params?.search, params?.type]);
+    }, [
+        params?.search,
+        params?.type,
+        params?.page,
+        params?.limit,
+        params?.sortBy,
+        params?.sortOrder
+    ]);
 
     useEffect(() => {
         fetchCustomers();
@@ -52,7 +96,7 @@ export function useCustomers(params?: UseCustomersParams) {
     const addCustomer = async (data: Parameters<typeof customersAPI.create>[0]) => {
         try {
             const newCustomer = await customersAPI.create(data);
-            setCustomers((prev) => [...prev, newCustomer]);
+            setCustomers((prev) => [newCustomer, ...prev]);
             toast.success('Cliente criado com sucesso!');
             return newCustomer;
         } catch (err) {
@@ -86,6 +130,7 @@ export function useCustomers(params?: UseCustomersParams) {
 
     return {
         customers,
+        pagination,
         isLoading,
         error,
         refetch: fetchCustomers,

@@ -27,10 +27,8 @@ interface InventoryTableProps {
 }
 
 export default function InventoryTable({ onEdit, onView, onAddProduct }: InventoryTableProps) {
-    // Use API hooks
-    const { products, isLoading, refetch, deleteProduct } = useProducts();
-    const { warehouses } = useWarehouses();
-
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState('');
@@ -43,20 +41,18 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Filter products
-    const filteredProducts = useMemo(() => {
-        return products.filter((product) => {
-            if (selectedCategory !== 'all' && product.category !== selectedCategory) return false;
-            if (selectedStatus !== 'all' && product.status !== selectedStatus) return false;
-
-            if (selectedWarehouse !== 'all') {
-                const stockInWarehouse = product.stocks?.[selectedWarehouse] ?? (selectedWarehouse === '1' ? product.currentStock : 0);
-                if (stockInWarehouse <= 0) return false;
-            }
-
-            return true;
-        });
-    }, [products, selectedCategory, selectedStatus, selectedWarehouse]);
+    // Use API hooks with pagination and filters
+    const { products, pagination, isLoading, refetch, deleteProduct } = useProducts({
+        search: globalFilter,
+        category: selectedCategory === 'all' ? undefined : selectedCategory,
+        status: selectedStatus === 'all' ? undefined : selectedStatus,
+        warehouseId: selectedWarehouse === 'all' ? undefined : selectedWarehouse,
+        page,
+        limit: pageSize,
+        sortBy: sorting[0]?.id || 'name',
+        sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
+    });
+    const { warehouses } = useWarehouses();
 
     // Status badge colors
     const getStatusBadge = (status: StockStatus) => {
@@ -177,7 +173,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
 
     // React Table instance
     const table = useReactTable({
-        data: filteredProducts,
+        data: products,
         columns,
         state: {
             sorting,
@@ -188,12 +184,10 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
         onColumnFiltersChange: setColumnFilters,
         onGlobalFilterChange: setGlobalFilter,
         getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        initialState: {
-            pagination: { pageSize: 10 },
-        },
+        manualPagination: true,
+        manualFiltering: true,
+        manualSorting: true,
     });
 
     const handleView = (product: Product) => {
@@ -360,11 +354,14 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
                 {/* Pagination */}
                 <div className="px-6">
                     <Pagination
-                        currentPage={table.getState().pagination.pageIndex + 1}
-                        totalItems={filteredProducts.length}
-                        itemsPerPage={table.getState().pagination.pageSize}
-                        onPageChange={(page) => table.setPageIndex(page - 1)}
-                        onItemsPerPageChange={(size) => table.setPageSize(size)}
+                        currentPage={page}
+                        totalItems={pagination?.total || 0}
+                        itemsPerPage={pageSize}
+                        onPageChange={setPage}
+                        onItemsPerPageChange={(size) => {
+                            setPageSize(size);
+                            setPage(1);
+                        }}
                         itemsPerPageOptions={[5, 10, 25, 50]}
                     />
                 </div>

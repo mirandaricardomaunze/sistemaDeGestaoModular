@@ -115,8 +115,9 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             data: {
                 ...validatedData,
                 code,
+                phone: validatedData.phone || '', // Ensure phone is not null
                 companyId: req.companyId // Multi-tenancy isolation
-            }
+            } as any
         });
 
         res.status(201).json(supplier);
@@ -138,12 +139,20 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
         // Validate request body
         const validatedData = updateSupplierSchema.parse(req.body);
 
+        // Filter out null values for non-nullable fields
+        const updateData: any = {};
+        for (const [key, value] of Object.entries(validatedData)) {
+            if (value !== null) {
+                updateData[key] = value;
+            }
+        }
+
         const supplier = await prisma.supplier.updateMany({
             where: {
                 id: req.params.id,
                 companyId: req.companyId // Multi-tenancy isolation
             },
-            data: validatedData
+            data: updateData
         });
 
         if (supplier.count === 0) {
@@ -250,21 +259,47 @@ router.post('/:id/orders', authenticate, async (req: AuthRequest, res) => {
     }
 });
 
-// Get supplier's purchase orders
+// Get supplier's purchase orders with pagination
 router.get('/:id/orders', authenticate, async (req: AuthRequest, res) => {
     try {
-        const orders = await prisma.purchaseOrder.findMany({
-            where: {
-                supplierId: req.params.id,
-                supplier: { companyId: req.companyId } // Multi-tenancy isolation
-            },
-            include: {
-                items: { include: { product: true } }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        const {
+            page = '1',
+            limit = '10'
+        } = req.query;
 
-        res.json(orders);
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
+
+        const where: any = {
+            supplierId: req.params.id,
+            supplier: { companyId: req.companyId } // Multi-tenancy isolation
+        };
+
+        // Get total count and paginated orders in parallel
+        const [total, orders] = await Promise.all([
+            prisma.purchaseOrder.count({ where }),
+            prisma.purchaseOrder.findMany({
+                where,
+                include: {
+                    items: { include: { product: true } }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limitNum
+            })
+        ]);
+
+        res.json({
+            data: orders,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + orders.length < total
+            }
+        });
     } catch (error) {
         console.error('Get supplier orders error:', error);
         res.status(500).json({ error: 'Erro ao buscar ordens de compra' });

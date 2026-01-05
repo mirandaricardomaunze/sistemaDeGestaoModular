@@ -165,4 +165,25 @@ export const employeesAPI = {
         const response = await api.put(`/employees/vacations/${id}`, data);
         return response.data;
     },
+
+    // Attendance Roster
+    getRoster: async () => {
+        const response = await api.get('/employees/roster');
+        return response.data;
+    },
+
+    addToRoster: async (data: { employeeIds?: string[]; department?: string }) => {
+        const response = await api.patch('/employees/roster/add', data);
+        return response.data;
+    },
+
+    removeFromRoster: async (id: string) => {
+        const response = await api.delete(`/employees/roster/remove/${id}`);
+        return response.data;
+    },
+
+    recordRosterTime: async (id: string, data: { type: 'checkIn' | 'checkOut'; timestamp?: string }) => {
+        const response = await api.post(`/employees/roster/record/${id}`, data);
+        return response.data;
+    },
 };
