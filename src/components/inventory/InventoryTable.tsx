@@ -2,16 +2,13 @@ import { useState, useMemo } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
-    flexRender,
     createColumnHelper,
     type SortingState,
     type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineEye, HiOutlinePlus, HiOutlineOfficeBuilding, HiOutlineRefresh } from 'react-icons/hi';
-import { Button, Badge, Modal, Card, Input, Select, Pagination, LoadingSpinner } from '../ui';
+import { Button, Badge, Modal, Card, Input, Select, Pagination, DataTable } from '../ui';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { categoryLabels, statusLabels } from '../../utils/constants';
 import type { Product, ProductCategory, StockStatus } from '../../types';
@@ -231,13 +228,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
         ...warehouses.map(w => ({ value: w.id, label: w.name })),
     ];
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <LoadingSpinner size="lg" />
-            </div>
-        );
-    }
+    // Loading logic handled by DataTable
 
     return (
         <div className="space-y-4">
@@ -299,57 +290,16 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
 
             {/* Table */}
             <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead>
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                <tr key={headerGroup.id}>
-                                    {headerGroup.headers.map((header) => (
-                                        <th
-                                            key={header.id}
-                                            className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-dark-800 cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
-                                            onClick={header.column.getToggleSortingHandler()}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                {flexRender(header.column.columnDef.header, header.getContext())}
-                                                {header.column.getIsSorted() && (
-                                                    <span className="text-primary-500">
-                                                        {header.column.getIsSorted() === 'asc' ? '↑' : '↓'}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            ))}
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {table.getRowModel().rows.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={columns.length}
-                                        className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
-                                    >
-                                        Nenhum produto encontrado
-                                    </td>
-                                </tr>
-                            ) : (
-                                table.getRowModel().rows.map((row) => (
-                                    <tr
-                                        key={row.id}
-                                        className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors"
-                                    >
-                                        {row.getVisibleCells().map((cell) => (
-                                            <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    table={table}
+                    isLoading={isLoading}
+                    isEmpty={products.length === 0}
+                    emptyTitle="Nenhum produto encontrado"
+                    emptyDescription="Tente ajustar seus filtros ou adicione um novo produto."
+                    onEmptyAction={onAddProduct}
+                    emptyActionLabel="Adicionar Produto"
+                    minHeight="450px"
+                />
 
                 {/* Pagination */}
                 <div className="px-6">

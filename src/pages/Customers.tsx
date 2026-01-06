@@ -13,9 +13,8 @@ import {
     HiOutlinePhone,
     HiOutlineMail,
     HiOutlineCurrencyDollar,
-    HiOutlineRefresh,
 } from 'react-icons/hi';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, LoadingSpinner } from '../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer } from '../components/ui';
 import { formatCurrency, cn } from '../utils/helpers';
 import type { Customer, CustomerType } from '../types';
 import { useCustomers } from '../hooks/useData';
@@ -202,27 +201,7 @@ export default function Customers() {
         { value: 'company', label: 'Empresa' },
     ];
 
-    // Loading state
-    if (isLoading && customers.length === 0) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <LoadingSpinner size="lg" />
-            </div>
-        );
-    }
-
-    // Error state
-    if (error && customers.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center h-96 gap-4">
-                <p className="text-red-500">{error}</p>
-                <Button onClick={() => refetch()}>
-                    <HiOutlineRefresh className="w-5 h-5 mr-2" />
-                    Tentar Novamente
-                </Button>
-            </div>
-        );
-    }
+    // Loading and error states handled by TableContainer
 
     return (
         <div className="space-y-6">
@@ -315,7 +294,18 @@ export default function Customers() {
 
             {/* Customer List */}
             <Card padding="none">
-                <div className="overflow-x-auto">
+                <TableContainer
+                    isLoading={isLoading}
+                    isEmpty={customers.length === 0}
+                    isError={!!error}
+                    errorMessage={error || undefined}
+                    onRetry={() => refetch()}
+                    emptyTitle="Nenhum cliente encontrado"
+                    emptyDescription="Tente ajustar sua busca ou adicione um novo cliente."
+                    onEmptyAction={() => setShowFormModal(true)}
+                    emptyActionLabel="Adicionar Cliente"
+                    minHeight="450px"
+                >
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
                         <thead>
                             <tr className="bg-gray-50 dark:bg-dark-800">
@@ -329,90 +319,80 @@ export default function Customers() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {customers.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                                        Nenhum cliente encontrado
-                                    </td>
-                                </tr>
-                            ) : (
-                                customers.map((customer) => {
-                                    const TypeIcon = typeConfig[customer.type].icon;
-                                    return (
-                                        // ... (keep row wrapper)
-                                        <tr key={customer.id} className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800">
-                                            <td className="px-6 py-4">
-                                                {/* (keep name/code cell) */}
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                                        <TypeIcon className="w-5 h-5 text-primary-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-medium text-gray-900 dark:text-white">{customer.name}</p>
-                                                        <p className="text-xs text-gray-500">{customer.code}</p>
-                                                    </div>
+                            {customers.map((customer) => {
+                                const TypeIcon = typeConfig[customer.type].icon;
+                                return (
+                                    <tr key={customer.id} className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                                                    <TypeIcon className="w-5 h-5 text-primary-600" />
                                                 </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <Badge variant={typeConfig[customer.type].color as any}>
-                                                    {typeConfig[customer.type].label}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                                                        <HiOutlinePhone className="w-4 h-4" />
-                                                        <span>{customer.phone}</span>
+                                                <div>
+                                                    <p className="font-medium text-gray-900 dark:text-white">{customer.name}</p>
+                                                    <p className="text-xs text-gray-500">{customer.code}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <Badge variant={typeConfig[customer.type].color as any}>
+                                                {typeConfig[customer.type].label}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1">
+                                                <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                                                    <HiOutlinePhone className="w-4 h-4" />
+                                                    <span>{customer.phone}</span>
+                                                </div>
+                                                {customer.email && (
+                                                    <div className="flex items-center gap-1 text-sm text-gray-500">
+                                                        <HiOutlineMail className="w-4 h-4" />
+                                                        <span className="truncate max-w-[150px]">{customer.email}</span>
                                                     </div>
-                                                    {customer.email && (
-                                                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                                                            <HiOutlineMail className="w-4 h-4" />
-                                                            <span className="truncate max-w-[150px]">{customer.email}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                                                {customer.city && customer.province
-                                                    ? `${customer.city}, ${customer.province}`
-                                                    : customer.city || customer.province || '-'}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <Badge variant="warning" size="sm">
-                                                    {customer.loyaltyPoints || 0} pts
-                                                </Badge>
-                                            </td>
-                                            <td className="px-6 py-4 text-right font-semibold text-green-600">
-                                                {formatCurrency(customer.totalPurchases)}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex justify-center gap-1">
-                                                    <button
-                                                        onClick={() => handleEdit(customer)}
-                                                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600"
-                                                        title="Editar"
-                                                    >
-                                                        <HiOutlinePencil className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            setCustomerToDelete(customer);
-                                                            setDeleteModalOpen(true);
-                                                        }}
-                                                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-red-600"
-                                                        title="Excluir"
-                                                    >
-                                                        <HiOutlineTrash className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })
-                            )}
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
+                                            {customer.city && customer.province
+                                                ? `${customer.city}, ${customer.province}`
+                                                : customer.city || customer.province || '-'}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <Badge variant="warning" size="sm">
+                                                {customer.loyaltyPoints || 0} pts
+                                            </Badge>
+                                        </td>
+                                        <td className="px-6 py-4 text-right font-semibold text-green-600">
+                                            {formatCurrency(customer.totalPurchases)}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex justify-center gap-1">
+                                                <button
+                                                    onClick={() => handleEdit(customer)}
+                                                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <HiOutlinePencil className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setCustomerToDelete(customer);
+                                                        setDeleteModalOpen(true);
+                                                    }}
+                                                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-red-600 transition-colors"
+                                                    title="Excluir"
+                                                >
+                                                    <HiOutlineTrash className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
-                </div>
+                </TableContainer>
             </Card>
 
             {/* Pagination */}
@@ -570,6 +550,6 @@ export default function Customers() {
                     </div>
                 </div>
             </Modal>
-        </div>
+        </div >
     );
 }

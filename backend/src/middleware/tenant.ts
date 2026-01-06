@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth';
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 import { logger } from '../utils/logger';
 
 export const tenantMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {

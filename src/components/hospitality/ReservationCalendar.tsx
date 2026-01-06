@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Card, Button, LoadingSpinner, Modal, Input, Select } from '../ui';
+import { Card, Button, Modal, Input, Select, TableContainer } from '../ui';
 import { hospitalityAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -192,14 +192,6 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
 
     const monthYear = currentDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center py-20">
-                <LoadingSpinner size="lg" />
-            </div>
-        );
-    }
-
     return (
         <div className="space-y-6">
             {/* Toolbar */}
@@ -238,105 +230,107 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
             </div>
 
             {/* Calendar Grid */}
-            <Card className="p-4 overflow-x-auto">
-                <div className="min-w-[800px]">
-                    {/* Header Row - Days */}
-                    <div className="grid" style={{ gridTemplateColumns: `120px repeat(${calendarDays.length}, minmax(40px, 1fr))` }}>
-                        <div className="p-2 font-bold text-xs text-gray-500 uppercase border-b border-r dark:border-dark-700">
-                            Quarto
-                        </div>
-                        {calendarDays.map((day, i) => (
-                            <div
-                                key={i}
-                                className={`p-1 text-center text-xs font-bold border-b dark:border-dark-700 ${isToday(day)
-                                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600'
-                                    : 'text-gray-500'
-                                    }`}
-                            >
-                                <div>{day.getDate()}</div>
-                                <div className="text-[9px] uppercase">
-                                    {day.toLocaleDateString('pt-PT', { weekday: 'short' }).replace('.', '')}
+            <TableContainer isLoading={isLoading} minHeight="600px">
+                <Card className="p-4 overflow-x-auto">
+                    <div className="min-w-[800px]">
+                        {/* Header Row - Days */}
+                        <div className="grid" style={{ gridTemplateColumns: `120px repeat(${calendarDays.length}, minmax(40px, 1fr))` }}>
+                            <div className="p-2 font-bold text-xs text-gray-500 uppercase border-b border-r dark:border-dark-700">
+                                Quarto
+                            </div>
+                            {calendarDays.map((day, i) => (
+                                <div
+                                    key={i}
+                                    className={`p-1 text-center text-xs font-bold border-b dark:border-dark-700 ${isToday(day)
+                                        ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600'
+                                        : 'text-gray-500'
+                                        }`}
+                                >
+                                    <div>{day.getDate()}</div>
+                                    <div className="text-[9px] uppercase">
+                                        {day.toLocaleDateString('pt-PT', { weekday: 'short' }).replace('.', '')}
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+
+                        {/* Room Rows */}
+                        {rooms.map((room) => (
+                            <div
+                                key={room.id}
+                                className="grid"
+                                style={{ gridTemplateColumns: `120px repeat(${calendarDays.length}, minmax(40px, 1fr))` }}
+                            >
+                                {/* Room Info */}
+                                <div className="p-2 border-b border-r dark:border-dark-700 flex items-center gap-2">
+                                    <HiOutlineHome className="w-4 h-4 text-gray-400" />
+                                    <div>
+                                        <span className="font-bold text-gray-900 dark:text-white">Q-{room.number}</span>
+                                        <span className="text-xs text-gray-500 ml-1 capitalize">({room.type})</span>
+                                    </div>
+                                </div>
+
+                                {/* Day Cells */}
+                                {calendarDays.map((day, i) => {
+                                    const booking = getBookingForDate(room.id, day);
+                                    const occupied = !!booking;
+                                    const isPast = day < new Date(new Date().setHours(0, 0, 0, 0));
+                                    const isCheckInDay = booking && new Date(booking.checkIn).toDateString() === day.toDateString();
+
+                                    return (
+                                        <div
+                                            key={i}
+                                            className={`p-1 min-h-[40px] border-b dark:border-dark-700 cursor-pointer transition-all ${occupied
+                                                ? booking.status === 'checked_in'
+                                                    ? 'bg-blue-100 dark:bg-blue-900/30'
+                                                    : 'bg-amber-100 dark:bg-amber-900/30'
+                                                : isPast
+                                                    ? 'bg-gray-50 dark:bg-dark-800'
+                                                    : 'hover:bg-green-50 dark:hover:bg-green-900/20'
+                                                } ${isToday(day) ? 'ring-2 ring-primary-500 ring-inset' : ''}`}
+                                            onClick={() => !isPast && handleCellClick(room.id, day)}
+                                            title={
+                                                occupied
+                                                    ? `${booking.customerName} (${booking.status === 'checked_in' ? 'Ocupado' : 'Reservado'})`
+                                                    : isPast
+                                                        ? 'Data passada'
+                                                        : 'Clique para reservar'
+                                            }
+                                        >
+                                            {isCheckInDay && booking && (
+                                                <div className="text-[9px] font-bold text-gray-700 dark:text-gray-300 truncate flex items-center gap-0.5">
+                                                    <HiOutlineUser className="w-2.5 h-2.5" />
+                                                    {booking.customerName.split(' ')[0]}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         ))}
                     </div>
 
-                    {/* Room Rows */}
-                    {rooms.map((room) => (
-                        <div
-                            key={room.id}
-                            className="grid"
-                            style={{ gridTemplateColumns: `120px repeat(${calendarDays.length}, minmax(40px, 1fr))` }}
-                        >
-                            {/* Room Info */}
-                            <div className="p-2 border-b border-r dark:border-dark-700 flex items-center gap-2">
-                                <HiOutlineHome className="w-4 h-4 text-gray-400" />
-                                <div>
-                                    <span className="font-bold text-gray-900 dark:text-white">Q-{room.number}</span>
-                                    <span className="text-xs text-gray-500 ml-1 capitalize">({room.type})</span>
-                                </div>
-                            </div>
-
-                            {/* Day Cells */}
-                            {calendarDays.map((day, i) => {
-                                const booking = getBookingForDate(room.id, day);
-                                const occupied = !!booking;
-                                const isPast = day < new Date(new Date().setHours(0, 0, 0, 0));
-                                const isCheckInDay = booking && new Date(booking.checkIn).toDateString() === day.toDateString();
-
-                                return (
-                                    <div
-                                        key={i}
-                                        className={`p-1 min-h-[40px] border-b dark:border-dark-700 cursor-pointer transition-all ${occupied
-                                            ? booking.status === 'checked_in'
-                                                ? 'bg-blue-100 dark:bg-blue-900/30'
-                                                : 'bg-amber-100 dark:bg-amber-900/30'
-                                            : isPast
-                                                ? 'bg-gray-50 dark:bg-dark-800'
-                                                : 'hover:bg-green-50 dark:hover:bg-green-900/20'
-                                            } ${isToday(day) ? 'ring-2 ring-primary-500 ring-inset' : ''}`}
-                                        onClick={() => !isPast && handleCellClick(room.id, day)}
-                                        title={
-                                            occupied
-                                                ? `${booking.customerName} (${booking.status === 'checked_in' ? 'Ocupado' : 'Reservado'})`
-                                                : isPast
-                                                    ? 'Data passada'
-                                                    : 'Clique para reservar'
-                                        }
-                                    >
-                                        {isCheckInDay && booking && (
-                                            <div className="text-[9px] font-bold text-gray-700 dark:text-gray-300 truncate flex items-center gap-0.5">
-                                                <HiOutlineUser className="w-2.5 h-2.5" />
-                                                {booking.customerName.split(' ')[0]}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                    {/* Legend */}
+                    <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t dark:border-dark-700">
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded"></div>
+                            <span>Ocupado (Check-in)</span>
                         </div>
-                    ))}
-                </div>
-
-                {/* Legend */}
-                <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t dark:border-dark-700">
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <div className="w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded"></div>
-                        <span>Ocupado (Check-in)</span>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="w-4 h-4 bg-amber-100 dark:bg-amber-900/30 rounded"></div>
+                            <span>Reservado</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="w-4 h-4 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800"></div>
+                            <span>Disponível</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="w-4 h-4 ring-2 ring-primary-500 rounded"></div>
+                            <span>Hoje</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <div className="w-4 h-4 bg-amber-100 dark:bg-amber-900/30 rounded"></div>
-                        <span>Reservado</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <div className="w-4 h-4 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800"></div>
-                        <span>Disponível</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <div className="w-4 h-4 ring-2 ring-primary-500 rounded"></div>
-                        <span>Hoje</span>
-                    </div>
-                </div>
-            </Card>
+                </Card>
+            </TableContainer>
 
             {/* New Reservation Modal */}
             <Modal

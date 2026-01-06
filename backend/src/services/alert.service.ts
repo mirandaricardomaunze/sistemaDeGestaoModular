@@ -1,4 +1,4 @@
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 import { emailWorker } from '../workers/emailWorker';
 import { Queue } from 'bullmq';
 import { connection } from '../config/redis';

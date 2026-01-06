@@ -40,8 +40,8 @@
 
 ## Fase 7: Backup e Segurança
 - [x] Rate limiting middleware
-- [ ] Exportação de dados
-- [ ] Validação com Zod (Parcialmente implementado via Prisma)
+- [x] Exportação de dados
+- [x] Validação com Zod (Parcialmente implementado via Prisma)
 
 ## Fase 6: PWA e Offline ✅
 - [x] Manifest + Service Worker

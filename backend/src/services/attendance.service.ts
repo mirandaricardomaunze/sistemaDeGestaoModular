@@ -1,4 +1,4 @@
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 
 export class AttendanceService {
     /**
@@ -16,8 +16,7 @@ export class AttendanceService {
                 name: true,
                 code: true,
                 department: true,
-                phone: true,
-                status: true // If status exists based on recent attendance
+                phone: true
             },
             orderBy: { name: 'asc' }
         });

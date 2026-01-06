@@ -16,7 +16,6 @@ import {
     HiOutlinePrinter,
     HiOutlineRefresh,
     HiOutlineCalculator,
-    HiOutlineChartBar,
     HiOutlineDocumentReport,
 } from 'react-icons/hi';
 import {
@@ -27,7 +26,7 @@ import {
     Tooltip,
 } from 'recharts';
 import { format, parseISO, isBefore, addDays, subDays } from 'date-fns';
-import { Card, Button, Input, Select, Modal, Pagination, LoadingSpinner, EmptyState } from '../components/ui';
+import { Card, Button, Input, Select, Modal, Pagination, TableContainer } from '../components/ui';
 import { InvoicePrintPreview, CreditNoteManager } from '../components/invoices';
 import { formatCurrency, generateId, cn } from '../utils/helpers';
 import ModuleFiscalView from '../components/shared/ModuleFiscalView';
@@ -167,6 +166,7 @@ export default function Invoices() {
         pagination,
         isLoading,
         error,
+        refetch,
         createInvoice,
         updateInvoice,
         addPayment: registerInvoicePayment,
@@ -254,6 +254,13 @@ export default function Invoices() {
             notes: '',
         },
     });
+
+    const paymentMethods = [
+        { value: 'pix', label: 'PIX' },
+        { value: 'cash', label: 'Dinheiro' },
+        { value: 'card', label: 'Cartão' },
+        { value: 'transfer', label: 'Transferência' },
+    ];
 
     // Calculate totals
     const calculateTotals = useMemo(() => {
@@ -375,7 +382,6 @@ export default function Invoices() {
                     items: data.items,
                     discount: data.discount,
                     tax: data.tax,
-                    issueDate: data.issueDate,
                     dueDate: data.dueDate,
                     notes: data.notes,
                     terms: data.terms,
@@ -397,7 +403,6 @@ export default function Invoices() {
             await registerInvoicePayment(selectedInvoice.id, {
                 amount: data.amount,
                 method: data.method as any,
-                date: data.date,
                 reference: data.reference,
                 notes: data.notes,
             });
@@ -412,16 +417,8 @@ export default function Invoices() {
 
     // Actions
     const handleSendInvoice = (invoice: Invoice) => {
-        setInvoices(prev => prev.map(inv => {
-            if (inv.id === invoice.id) {
-                const today = new Date();
-                const dueDate = parseISO(inv.dueDate);
-                const isOverdue = isBefore(dueDate, today) && inv.amountDue > 0;
-                return { ...inv, status: isOverdue ? 'overdue' : 'sent', updatedAt: new Date().toISOString() };
-            }
-            return inv;
-        }));
-        toast.success('Fatura enviada!');
+        updateInvoice(invoice.id, { status: 'sent' });
+        toast.success('Factura enviada!');
     };
 
     const closeFormModal = () => {
@@ -634,7 +631,18 @@ export default function Invoices() {
 
                         {/* Invoice List */}
                         <Card padding="none">
-                            <div className="overflow-x-auto">
+                            <TableContainer
+                                isLoading={isLoading}
+                                isEmpty={invoices.length === 0}
+                                isError={!!error}
+                                errorMessage={error || undefined}
+                                onRetry={() => refetch()}
+                                emptyTitle="Nenhuma fatura encontrada"
+                                emptyDescription="Tente ajustar sua busca ou crie uma nova fatura."
+                                onEmptyAction={() => setShowFormModal(true)}
+                                emptyActionLabel="Nova Fatura"
+                                minHeight="450px"
+                            >
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
                                     <thead className="bg-gray-50 dark:bg-dark-800">
                                         <tr>
@@ -648,38 +656,34 @@ export default function Invoices() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                                        {invoices.length === 0 ? (
-                                            <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-500">Nenhuma fatura encontrada</td></tr>
-                                        ) : (
-                                            invoices.map((inv) => (
-                                                <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
-                                                    <td className="px-4 py-3 font-mono font-medium text-gray-900 dark:text-white">{inv.invoiceNumber}</td>
-                                                    <td className="px-4 py-3">
-                                                        <p className="font-medium text-gray-900 dark:text-white">{inv.customerName}</p>
-                                                        {inv.customerEmail && <p className="text-xs text-gray-500">{inv.customerEmail}</p>}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{format(parseISO(inv.dueDate), 'dd/MM/yyyy')}</td>
-                                                    <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(inv.total)}</td>
-                                                    <td className="px-4 py-3 text-right text-green-600">{formatCurrency(inv.amountPaid)}</td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusConfig[inv.status].bgColor, statusConfig[inv.status].color)}>
-                                                            {statusConfig[inv.status].label}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex justify-center gap-1">
-                                                            <button onClick={() => { setSelectedInvoice(inv); setShowDetailsModal(true); }} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded" title="Ver"><HiOutlineEye className="w-4 h-4 text-gray-500" /></button>
-                                                            <button onClick={() => handlePrintInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded" title="Imprimir"><HiOutlinePrinter className="w-4 h-4 text-primary-500" /></button>
-                                                            {inv.status === 'draft' && <button onClick={() => handleSendInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded" title="Enviar"><HiOutlineMail className="w-4 h-4 text-blue-500" /></button>}
-                                                            {(inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue') && <button onClick={() => { setSelectedInvoice(inv); resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') }); setShowPaymentModal(true); }} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded" title="Pagamento"><HiOutlineCash className="w-4 h-4 text-green-500" /></button>}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
+                                        {invoices.map((inv) => (
+                                            <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
+                                                <td className="px-4 py-3 font-mono font-medium text-gray-900 dark:text-white">{inv.invoiceNumber}</td>
+                                                <td className="px-4 py-3">
+                                                    <p className="font-medium text-gray-900 dark:text-white">{inv.customerName}</p>
+                                                    {inv.customerEmail && <p className="text-xs text-gray-500">{inv.customerEmail}</p>}
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{format(parseISO(inv.dueDate), 'dd/MM/yyyy')}</td>
+                                                <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(inv.total)}</td>
+                                                <td className="px-4 py-3 text-right text-green-600">{formatCurrency(inv.amountPaid)}</td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusConfig[inv.status].bgColor, statusConfig[inv.status].color)}>
+                                                        {statusConfig[inv.status].label}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex justify-center gap-1">
+                                                        <button onClick={() => { setSelectedInvoice(inv); setShowDetailsModal(true); }} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Ver"><HiOutlineEye className="w-4 h-4 text-gray-500" /></button>
+                                                        <button onClick={() => handlePrintInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Imprimir"><HiOutlinePrinter className="w-4 h-4 text-primary-500" /></button>
+                                                        {inv.status === 'draft' && <button onClick={() => handleSendInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Enviar"><HiOutlineMail className="w-4 h-4 text-blue-500" /></button>}
+                                                        {(inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue') && <button onClick={() => { setSelectedInvoice(inv); resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') }); setShowPaymentModal(true); }} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Pagamento"><HiOutlineCash className="w-4 h-4 text-green-500" /></button>}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
-                            </div>
+                            </TableContainer>
                         </Card>
 
                         {/* Pagination */}

@@ -24,7 +24,7 @@ import {
 } from 'recharts';
 import { format, isToday, subDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Card, Button, Badge, Input, Select, Pagination, usePagination } from '../ui';
+import { Card, Button, Badge, Input, Select, Pagination, TableContainer } from '../ui';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { OrderStatus } from './OrderStatusTracker';
 
@@ -404,7 +404,15 @@ export default function OrdersDashboard({
                     </div>
 
                     {/* Table */}
-                    <div className="overflow-x-auto">
+                    <TableContainer
+                        isLoading={isLoading}
+                        isEmpty={filteredOrders.length === 0}
+                        minHeight="450px"
+                        emptyTitle="Nenhuma encomenda encontrada"
+                        emptyDescription="Tente ajustar sua busca ou crie uma nova encomenda."
+                        onEmptyAction={onNewOrder}
+                        emptyActionLabel="Nova Encomenda"
+                    >
                         <table className="w-full">
                             <thead className="bg-gray-50 dark:bg-dark-700">
                                 <tr>
@@ -432,90 +440,82 @@ export default function OrdersDashboard({
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-dark-600">
-                                {filteredOrders.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                                            {isLoading ? 'Carregando encomendas...' : 'Nenhuma encomenda encontrada'}
+                                {filteredOrders.map((order) => (
+                                    <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <span className="font-mono font-medium text-gray-900 dark:text-white">
+                                                #{order.orderNumber}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <p className="font-medium text-gray-900 dark:text-white">
+                                                {order.customerName}
+                                            </p>
+                                            <p className="text-sm text-gray-500">{order.customerPhone}</p>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className={cn(
+                                                'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                                                statusConfig[order.status].bgColor,
+                                                statusConfig[order.status].color
+                                            )}>
+                                                {statusConfig[order.status].label}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <Badge variant={priorityConfig[order.priority].color}>
+                                                {priorityConfig[order.priority].label}
+                                            </Badge>
+                                        </td>
+                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                            {format(parseISO(order.deliveryDate), 'dd/MM/yyyy')}
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
+                                            {formatCurrency(order.total)}
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex justify-center gap-1">
+                                                <button
+                                                    onClick={() => onViewOrder(order)}
+                                                    className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
+                                                    title="Ver detalhes"
+                                                >
+                                                    <HiOutlineEye className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                                                </button>
+                                                {order.status === 'created' && (
+                                                    <button
+                                                        onClick={() => onPrintOrder(order)}
+                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
+                                                        title="Imprimir"
+                                                    >
+                                                        <HiOutlinePrinter className="w-5 h-5 text-purple-600" />
+                                                    </button>
+                                                )}
+                                                {(order.status === 'printed' || order.status === 'separated') && (
+                                                    <button
+                                                        onClick={() => onCompleteOrder(order)}
+                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
+                                                        title="Finalizar"
+                                                    >
+                                                        <HiOutlineCheck className="w-5 h-5 text-green-600" />
+                                                    </button>
+                                                )}
+                                                {order.status !== 'completed' && order.status !== 'cancelled' && (
+                                                    <button
+                                                        onClick={() => onCancelOrder(order)}
+                                                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg group transition-colors"
+                                                        title="Cancelar Encomenda"
+                                                    >
+                                                        <HiOutlineTrash className="w-5 h-5 text-gray-400 group-hover:text-red-600 transition-colors" />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
-                                ) : (
-                                    filteredOrders.map((order) => (
-                                        <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-dark-700">
-                                            <td className="px-4 py-3">
-                                                <span className="font-mono font-medium text-gray-900 dark:text-white">
-                                                    #{order.orderNumber}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <p className="font-medium text-gray-900 dark:text-white">
-                                                    {order.customerName}
-                                                </p>
-                                                <p className="text-sm text-gray-500">{order.customerPhone}</p>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className={cn(
-                                                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                                                    statusConfig[order.status].bgColor,
-                                                    statusConfig[order.status].color
-                                                )}>
-                                                    {statusConfig[order.status].label}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <Badge variant={priorityConfig[order.priority].color}>
-                                                    {priorityConfig[order.priority].label}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                                                {format(parseISO(order.deliveryDate), 'dd/MM/yyyy')}
-                                            </td>
-                                            <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
-                                                {formatCurrency(order.total)}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex justify-center gap-1">
-                                                    <button
-                                                        onClick={() => onViewOrder(order)}
-                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg"
-                                                        title="Ver detalhes"
-                                                    >
-                                                        <HiOutlineEye className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                                    </button>
-                                                    {order.status === 'created' && (
-                                                        <button
-                                                            onClick={() => onPrintOrder(order)}
-                                                            className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg"
-                                                            title="Imprimir"
-                                                        >
-                                                            <HiOutlinePrinter className="w-5 h-5 text-purple-600" />
-                                                        </button>
-                                                    )}
-                                                    {(order.status === 'printed' || order.status === 'separated') && (
-                                                        <button
-                                                            onClick={() => onCompleteOrder(order)}
-                                                            className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg"
-                                                            title="Finalizar"
-                                                        >
-                                                            <HiOutlineCheck className="w-5 h-5 text-green-600" />
-                                                        </button>
-                                                    )}
-                                                    {order.status !== 'completed' && order.status !== 'cancelled' && (
-                                                        <button
-                                                            onClick={() => onCancelOrder(order)}
-                                                            className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg group"
-                                                            title="Cancelar Encomenda"
-                                                        >
-                                                            <HiOutlineTrash className="w-5 h-5 text-gray-400 group-hover:text-red-600 transition-colors" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                ))}
                             </tbody>
                         </table>
-                    </div>
+                    </TableContainer>
 
                     {/* Pagination */}
                     <div className="px-4 py-4">

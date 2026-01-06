@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -7,17 +7,30 @@ const router = Router();
 // Get company settings
 router.get('/company', authenticate, async (req: AuthRequest, res) => {
     try {
-        let settings = await prisma.companySettings.findFirst();
+        const companyId = req.companyId;
+
+        // First try to find settings linked to the user's company
+        let settings = companyId
+            ? await prisma.companySettings.findFirst({
+                where: { companyId }
+            })
+            : null;
+
+        // If no company-specific settings, fallback to legacy behavior (first record)
+        if (!settings) {
+            settings = await prisma.companySettings.findFirst();
+        }
 
         if (!settings) {
-            // Create default settings
+            // Create default settings (linked to company if available)
             settings = await prisma.companySettings.create({
                 data: {
                     companyName: 'Minha Empresa',
                     tradeName: 'Minha Empresa',
                     country: 'Moçambique',
                     currency: 'MZN',
-                    ivaRate: 16
+                    ivaRate: 16,
+                    ...(companyId && { companyId })
                 }
             });
         }
@@ -32,7 +45,17 @@ router.get('/company', authenticate, async (req: AuthRequest, res) => {
 // Update company settings
 router.put('/company', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
-        const existing = await prisma.companySettings.findFirst();
+        const companyId = req.companyId;
+
+        // Find existing settings for this specific company
+        let existing = companyId
+            ? await prisma.companySettings.findFirst({ where: { companyId } })
+            : null;
+
+        // Fallback to legacy (unlinked) settings if no company-specific settings exist
+        if (!existing) {
+            existing = await prisma.companySettings.findFirst({ where: { companyId: null } });
+        }
 
         const allowedFields = [
             'companyName', 'tradeName', 'nuit', 'phone', 'email',
@@ -54,13 +77,21 @@ router.put('/company', authenticate, authorize('admin'), async (req: AuthRequest
 
         let settings;
         if (existing) {
+            // If the existing record is not linked to a company, link it now
+            if (companyId && !existing.companyId) {
+                updateData.companyId = companyId;
+            }
             settings = await prisma.companySettings.update({
                 where: { id: existing.id },
                 data: updateData
             });
         } else {
+            // Create new settings linked to this company
             settings = await prisma.companySettings.create({
-                data: updateData
+                data: {
+                    ...updateData,
+                    ...(companyId && { companyId })
+                }
             });
         }
 

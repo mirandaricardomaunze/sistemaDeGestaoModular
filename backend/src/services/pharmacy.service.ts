@@ -1,4 +1,4 @@
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 
 export class PharmacyService {
     static async getMedications(companyId: string, query: any) {
@@ -117,7 +117,19 @@ export class PharmacyService {
         });
     }
 
-    static async updateMedication(id: string, data: any) {
+    static async updateMedication(id: string, companyId: string, data: any) {
+        // Verify medication belongs to this company
+        const medication = await prisma.medication.findFirst({
+            where: {
+                id,
+                product: { companyId }
+            }
+        });
+
+        if (!medication) {
+            throw new Error('Medicamento não encontrado ou não pertence a esta empresa');
+        }
+
         return await prisma.medication.update({
             where: { id },
             data,
@@ -125,9 +137,12 @@ export class PharmacyService {
         });
     }
 
-    static async deleteMedication(id: string) {
-        const med = await prisma.medication.findUnique({
-            where: { id },
+    static async deleteMedication(id: string, companyId: string) {
+        const med = await prisma.medication.findFirst({
+            where: {
+                id,
+                product: { companyId }
+            },
             include: {
                 batches: {
                     where: { quantityAvailable: { gt: 0 } }
@@ -135,7 +150,7 @@ export class PharmacyService {
             }
         });
 
-        if (!med) throw new Error('Medicamento não encontrado');
+        if (!med) throw new Error('Medicamento não encontrado ou não pertence a esta empresa');
         if (med.batches.length > 0) {
             throw new Error('Não é possível eliminar um medicamento com stock disponível');
         }

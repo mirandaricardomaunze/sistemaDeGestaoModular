@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 import { logger } from '../utils/logger';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
@@ -256,6 +256,7 @@ router.post('/register', async (req, res) => {
             // 4. Create CompanySettings for sidebar and settings page
             await tx.companySettings.create({
                 data: {
+                    companyId: company.id,
                     companyName: companyName,
                     tradeName: companyTradeName || companyName,
                     nuit: companyNuit,

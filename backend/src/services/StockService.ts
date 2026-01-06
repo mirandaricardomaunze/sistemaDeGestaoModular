@@ -1,5 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import { prisma as defaultPrisma } from '../index';
+import { prisma as defaultPrisma } from '../lib/prisma';
 
 export type OriginModule = 'PHARMACY' | 'COMMERCIAL' | 'BOTTLE_STORE' | 'HOTEL' | 'RESTAURANT' | 'LOGISTICS';
 export type MovementReferenceType = 'SALE' | 'PURCHASE' | 'TRANSFER' | 'ADJUSTMENT' | 'RETURN' | 'EXPIRY';

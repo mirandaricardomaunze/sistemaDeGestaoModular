@@ -4,6 +4,8 @@ import { HiOutlineChartBar, HiOutlineDocumentReport, HiOutlineFilter, HiOutlineE
 import { fiscalAPI } from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import toast from 'react-hot-toast';
+import PaymentGuidePrint from './PaymentGuidePrint';
+import Modelo10Print from './Modelo10Print';
 
 interface ModuleFiscalViewProps {
     module: string;
@@ -14,17 +16,14 @@ export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProp
     const [metrics, setMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [retentions, setRetentions] = useState<any[]>([]);
+    const [showGuide, setShowGuide] = useState(false);
+    const [showModelo10, setShowModelo10] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // In a real senior implementation, we would have a specific endpoint /api/fiscal/metrics/:module
-                // For now we'll simulate or use a generic one if available.
-                // const res = await fiscalAPI.getModuleMetrics(module);
-                // setMetrics(res);
-
-                // Simulating metrics for now since we're refactoring
+                // Simulating metrics for now
                 setTimeout(() => {
                     setMetrics({
                         totalInvoiced: 1250000,
@@ -139,9 +138,31 @@ export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProp
 
             {/* Quick Actions */}
             <div className="flex justify-end gap-3">
-                <Button variant="outline" leftIcon={<HiOutlineExternalLink />}>Ver Guia de Pagamento</Button>
-                <Button variant="primary" leftIcon={<HiOutlineDocumentReport />}>Gerar Relatório Modelo 10</Button>
+                <Button variant="outline" leftIcon={<HiOutlineExternalLink />} onClick={() => setShowGuide(true)}>
+                    Ver Guia de Pagamento
+                </Button>
+                <Button variant="primary" leftIcon={<HiOutlineDocumentReport />} onClick={() => setShowModelo10(true)}>
+                    Gerar Relatório Modelo 10
+                </Button>
             </div>
+
+            {/* Payment Guide Modal */}
+            {metrics && (
+                <PaymentGuidePrint
+                    isOpen={showGuide}
+                    onClose={() => setShowGuide(false)}
+                    metrics={metrics}
+                    moduleTitle={title}
+                />
+            )}
+
+            {/* Modelo 10 Modal */}
+            <Modelo10Print
+                isOpen={showModelo10}
+                onClose={() => setShowModelo10(false)}
+                retentions={retentions}
+                moduleTitle={title}
+            />
         </div>
     );
 }

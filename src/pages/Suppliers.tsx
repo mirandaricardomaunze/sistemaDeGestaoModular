@@ -17,7 +17,7 @@ import {
     HiOutlineCheck,
     HiOutlineX
 } from 'react-icons/hi';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, LoadingSpinner } from '../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, TableContainer } from '../components/ui';
 import { formatCurrency, cn } from '../utils/helpers';
 import type { Supplier } from '../types';
 import { useSuppliers } from '../hooks/useData';
@@ -207,27 +207,7 @@ export default function Suppliers() {
         reset();
     };
 
-    // Loading state
-    if (isLoading && suppliers.length === 0) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <LoadingSpinner size="lg" />
-            </div>
-        );
-    }
-
-    // Error state
-    if (error && suppliers.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center h-96 gap-4">
-                <p className="text-red-500">{error}</p>
-                <Button onClick={() => refetch()}>
-                    <HiOutlineRefresh className="w-5 h-5 mr-2" />
-                    Tentar Novamente
-                </Button>
-            </div>
-        );
-    }
+    // Loading and error states handled by TableContainer
 
     return (
         <div className="space-y-6">
@@ -340,7 +320,18 @@ export default function Suppliers() {
 
                     {/* Supplier List */}
                     <Card padding="none">
-                        <div className="overflow-x-auto">
+                        <TableContainer
+                            isLoading={isLoading}
+                            isEmpty={suppliers.length === 0}
+                            isError={!!error}
+                            errorMessage={error || undefined}
+                            onRetry={() => refetch()}
+                            emptyTitle="Nenhum fornecedor encontrado"
+                            emptyDescription="Tente ajustar sua busca ou adicione um novo fornecedor."
+                            onEmptyAction={() => setShowFormModal(true)}
+                            emptyActionLabel="Adicionar Fornecedor"
+                            minHeight="450px"
+                        >
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
                                 <thead>
                                     <tr className="bg-gray-50 dark:bg-dark-800">
@@ -437,7 +428,7 @@ export default function Suppliers() {
                                     )}
                                 </tbody>
                             </table>
-                        </div>
+                        </TableContainer>
                     </Card>
 
                     <div className="px-6 py-4">

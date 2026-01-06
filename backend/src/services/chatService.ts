@@ -1,4 +1,4 @@
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 import { aiService } from './aiService';
 import { pdfService } from './pdfService';
 import { logger } from '../utils/logger';

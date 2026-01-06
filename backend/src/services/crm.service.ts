@@ -6,7 +6,7 @@ export class CRMService {
     async getOpportunities(companyId: string) {
         return this.prisma.opportunity.findMany({
             where: { companyId },
-            include: { customer: true, stage: true, campaign: true },
+            include: { customer: true, stage: true },
             orderBy: { updatedAt: 'desc' }
         });
     }

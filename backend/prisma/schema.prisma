@@ -72,6 +72,7 @@ model Company {
   taxRetentions     TaxRetention[]
   fiscalReports     FiscalReport[]
   fiscalDeadlines   FiscalDeadline[]
+  companySettings   CompanySettings?
 
   @@map("companies")
 }
@@ -777,7 +778,12 @@ model CompanySettings {
   ivaRate      Decimal      @default(16) @db.Decimal(5, 2)
   currency     String       @default("MZN")
   businessType BusinessType @default(retail)
+  
+  // Multi-tenancy
+  companyId    String?      @unique
+  company      Company?     @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("company_settings")
 }
 

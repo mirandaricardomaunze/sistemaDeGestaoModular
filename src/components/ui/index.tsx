@@ -466,3 +466,5 @@ export { SkeletonText, SkeletonCard, SkeletonTable, SkeletonAvatar, SkeletonButt
 
 export { NoDataFound, NoResultsFound, ErrorState, ComingSoon, NoItems } from './EmptyState';
 
+export { DataTable, TableContainer } from './DataTable';
+

@@ -15,6 +15,7 @@ interface UseEmployeesParams {
     search?: string;
     department?: string;
     role?: string;
+    isActive?: boolean;
     page?: number;
     limit?: number;
     sortBy?: string;
@@ -59,6 +60,7 @@ export function useEmployees(params?: UseEmployeesParams) {
         params?.search,
         params?.department,
         params?.role,
+        params?.isActive,
         params?.page,
         params?.limit,
         params?.sortBy,

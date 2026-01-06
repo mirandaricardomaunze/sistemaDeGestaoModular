@@ -28,7 +28,11 @@ router.post('/medications', async (req: Request, res: Response) => {
 
 router.put('/medications/:id', async (req: Request, res: Response) => {
     try {
-        const medication = await PharmacyService.updateMedication(req.params.id, req.body);
+        const medication = await PharmacyService.updateMedication(
+            req.params.id,
+            (req as AuthRequest).companyId!,
+            req.body
+        );
         res.json(medication);
     } catch (error: any) {
         console.error('Error updating medication:', error);
@@ -38,7 +42,10 @@ router.put('/medications/:id', async (req: Request, res: Response) => {
 
 router.delete('/medications/:id', async (req: Request, res: Response) => {
     try {
-        await PharmacyService.deleteMedication(req.params.id);
+        await PharmacyService.deleteMedication(
+            req.params.id,
+            (req as AuthRequest).companyId!
+        );
         res.json({ message: 'Medicamento eliminado com sucesso' });
     } catch (error: any) {
         console.error('Error deleting medication:', error);

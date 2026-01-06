@@ -16,6 +16,7 @@ interface UseProductsParams {
     search?: string;
     category?: string;
     status?: string;
+    warehouseId?: string;
     page?: number;
     limit?: number;
     sortBy?: string;
@@ -88,7 +89,8 @@ export function useProducts(params?: UseProductsParams) {
         params?.page,
         params?.limit,
         params?.sortBy,
-        params?.sortOrder
+        params?.sortOrder,
+        params?.warehouseId
     ]);
 
     useEffect(() => {

@@ -4,7 +4,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import cron from 'node-cron';
 import { googleDriveService } from './googleDrive.service';
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 
 const execAsync = promisify(exec);
 

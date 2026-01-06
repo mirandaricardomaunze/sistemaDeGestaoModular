@@ -12,7 +12,9 @@ export {
     EmptyState,
     LoadingSpinner,
     Pagination,
-    usePagination
+    usePagination,
+    DataTable,
+    TableContainer
 } from './index.tsx';
 
 // Loading Components

@@ -1,4 +1,4 @@
-import { prisma } from '../index';
+import { prisma } from '../lib/prisma';
 
 export class HospitalityFinanceService {
     static async getDashboard(companyId: string, period: string) {

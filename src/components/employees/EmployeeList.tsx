@@ -19,7 +19,7 @@ import {
     HiOutlineRefresh,
 } from 'react-icons/hi';
 import { useEmployees } from '../../hooks/useData';
-import { Button, Card, Input, Select, Modal, Badge, Pagination, LoadingSpinner } from '../ui';
+import { Button, Card, Input, Select, Modal, Badge, Pagination, DataTable } from '../ui';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { roleLabels } from '../../utils/constants';
 import type { Employee, EmployeeRole } from '../../types';
@@ -215,13 +215,7 @@ export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProp
         { value: 'inactive', label: 'Inativos' },
     ];
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <LoadingSpinner size="lg" />
-            </div>
-        );
-    }
+    // Loading and Empty logic handled by DataTable
 
     return (
         <div className="space-y-4">
@@ -265,78 +259,34 @@ export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProp
 
             {/* Table */}
             <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead>
-                            {table.getHeaderGroups().map((headerGroup) => (
-                                <tr key={headerGroup.id}>
-                                    {headerGroup.headers.map((header) => (
-                                        <th
-                                            key={header.id}
-                                            className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-dark-800 cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
-                                            onClick={header.column.getToggleSortingHandler()}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                {flexRender(header.column.columnDef.header, header.getContext())}
-                                                {header.column.getIsSorted() && (
-                                                    <span className="text-primary-500">
-                                                        {header.column.getIsSorted() === 'asc' ? '↑' : '↓'}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </th>
-                                    ))}
-                                </tr>
-                            ))}
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {table.getRowModel().rows.length === 0 ? (
-                                <tr>
-                                    <td
-                                        colSpan={columns.length}
-                                        className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
-                                    >
-                                        Nenhum colaborador encontrado
-                                    </td>
-                                </tr>
-                            ) : (
-                                table.getRowModel().rows.map((row) => (
-                                    <tr
-                                        key={row.id}
-                                        className={cn(
-                                            "bg-white dark:bg-dark-900 transition-colors",
-                                            row.original.isActive ? "hover:bg-gray-50 dark:hover:bg-dark-800" : "opacity-60 bg-gray-50/50 dark:bg-dark-800/30"
-                                        )}
-                                    >
-                                        {row.getVisibleCells().map((cell) => (
-                                            <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                            </td>
-                                        ))}
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="px-6 pb-4">
-                    <Pagination
-                        currentPage={page}
-                        totalItems={pagination?.total || 0}
-                        itemsPerPage={pageSize}
-                        onPageChange={setPage}
-                        onItemsPerPageChange={(size) => {
-                            setPageSize(size);
-                            setPage(1);
-                        }}
-                        itemsPerPageOptions={[5, 10, 25, 50]}
-                        showInfo={true}
-                        showItemsPerPage={true}
-                    />
-                </div>
+                <DataTable
+                    table={table}
+                    isLoading={isLoading}
+                    isEmpty={employees.length === 0}
+                    emptyTitle="Nenhum colaborador encontrado"
+                    emptyDescription="Tente ajustar sua busca ou adicione um novo colaborador."
+                    onEmptyAction={onAddEmployee}
+                    emptyActionLabel="Adicionar Colaborador"
+                    minHeight="450px"
+                />
             </Card>
+
+            {/* Pagination */}
+            <div className="px-6 pb-4">
+                <Pagination
+                    currentPage={page}
+                    totalItems={pagination?.total || 0}
+                    itemsPerPage={pageSize}
+                    onPageChange={setPage}
+                    onItemsPerPageChange={(size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    }}
+                    itemsPerPageOptions={[5, 10, 25, 50]}
+                    showInfo={true}
+                    showItemsPerPage={true}
+                />
+            </div>
 
             {/* Toggle Status Modal */}
             <Modal
