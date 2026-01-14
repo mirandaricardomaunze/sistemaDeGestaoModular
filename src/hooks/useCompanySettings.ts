@@ -17,6 +17,10 @@ export function useCompanySettings() {
         logo?: string;
         ivaRate: number;
         currency: string;
+        // Print settings
+        printerType?: 'thermal' | 'a4';
+        thermalPaperWidth?: '80mm' | '58mm';
+        autoPrintReceipt?: boolean;
     } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

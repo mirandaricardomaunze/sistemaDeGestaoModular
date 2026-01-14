@@ -36,21 +36,17 @@ router.get('/stats', authenticate, requireSuperAdmin, async (req: AuthRequest, r
 
         // Get module usage stats
         const moduleUsage = await prisma.companyModule.groupBy({
-            by: ['moduleId'],
-            _count: { moduleId: true },
+            by: ['moduleCode'],
+            _count: { moduleCode: true },
             where: { isActive: true }
         });
 
-        // Get module details
-        const modules = await prisma.module.findMany();
-        const moduleStats = moduleUsage.map(mu => {
-            const module = modules.find(m => m.id === mu.moduleId);
-            return {
-                moduleCode: module?.code,
-                moduleName: module?.name,
-                companiesUsing: mu._count.moduleId
-            };
-        });
+        // Get module details - moduleCode is stored directly
+        const moduleStats = moduleUsage.map(mu => ({
+            moduleCode: mu.moduleCode,
+            moduleName: mu.moduleCode,
+            companiesUsing: mu._count?.moduleCode || 0
+        }));
 
         // Recent activity - last 7 days
         const sevenDaysAgo = new Date();
@@ -115,13 +111,9 @@ router.get('/companies', authenticate, requireSuperAdmin, async (req: AuthReques
                 },
                 modules: {
                     where: { isActive: true },
-                    include: {
-                        module: {
-                            select: {
-                                code: true,
-                                name: true
-                            }
-                        }
+                    select: {
+                        moduleCode: true,
+                        isActive: true
                     }
                 }
             },
@@ -141,8 +133,8 @@ router.get('/companies', authenticate, requireSuperAdmin, async (req: AuthReques
             userCount: company._count.users,
             moduleCount: company._count.modules,
             activeModules: company.modules.map(cm => ({
-                code: cm.module.code,
-                name: cm.module.name
+                code: cm.moduleCode,
+                name: cm.moduleCode
             }))
         }));
 
@@ -173,8 +165,10 @@ router.get('/companies/:id', authenticate, requireSuperAdmin, async (req: AuthRe
                     }
                 },
                 modules: {
-                    include: {
-                        module: true
+                    select: {
+                        moduleCode: true,
+                        isActive: true,
+                        expiresAt: true
                     }
                 },
                 _count: {

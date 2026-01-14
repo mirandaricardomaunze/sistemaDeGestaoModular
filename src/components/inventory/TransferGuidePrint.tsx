@@ -86,12 +86,12 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                 </Button>
             </div>
 
-            <Card padding="none" className="max-h-[70vh] overflow-y-auto bg-gray-50/50 dark:bg-dark-900/50 flex justify-center p-4">
-                <div ref={printRef} className="bg-white text-gray-900 shadow-lg p-8 max-w-[800px] w-full mx-auto relative flex flex-col min-h-[29.7cm]">
+            <Card padding="none" className="max-h-[85vh] overflow-y-auto bg-gray-100 dark:bg-dark-950 p-4 md:p-8">
+                <div ref={printRef} className="bg-white text-gray-900 shadow-lg p-6 max-w-[800px] w-full mx-auto relative flex flex-col">
                     <style>{`
                         @media print {
-                            @page { margin: 0; size: auto; }
-                            body { margin: 0; padding: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Inter', sans-serif; }
+                            @page { margin: 10mm; size: auto; }
+                            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Inter', sans-serif; }
                             .no-print { display: none !important; }
                             .shadow-lg { box-shadow: none !important; }
                             .bg-gray-50 { background-color: #f9fafb !important; }
@@ -102,108 +102,116 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                     `}</style>
 
                     {/* Header */}
-                    <div className="flex justify-between items-start mb-8 pb-6 header-line">
-                        <div className="flex gap-4">
+                    <div className="flex justify-between items-start mb-4 pb-4 header-line">
+                        <div className="flex gap-3">
                             {companySettings.logo ? (
-                                <img src={companySettings.logo} alt="Logo" className="w-16 h-16 object-contain" />
+                                <img src={companySettings.logo} alt="Logo" className="w-12 h-12 object-contain" />
                             ) : (
-                                <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                                    <HiOutlineOfficeBuilding className="w-10 h-10" />
+                                <div className="w-12 h-12 bg-blue-100 rounded flex items-center justify-center text-blue-600">
+                                    <HiOutlineOfficeBuilding className="w-8 h-8" />
                                 </div>
                             )}
                             <div>
-                                <h1 className="text-xl font-bold text-gray-900 uppercase tracking-tight">{companySettings?.tradeName ?? 'Empresa'}</h1>
-                                <div className="text-sm text-gray-500 mt-1 space-y-0.5">
-                                    <p>{companySettings?.address ?? ''}</p>
-                                    <p>{companySettings?.city ?? ''} - {companySettings?.state ?? ''}</p>
+                                <h1 className="text-lg font-bold text-gray-900 uppercase tracking-tight">{companySettings?.tradeName ?? 'Empresa'}</h1>
+                                <div className="text-[10px] text-gray-500 mt-0.5 space-y-0">
+                                    <p>{companySettings?.address ?? ''}, {companySettings?.city ?? ''}</p>
                                     <p>Tel: {companySettings?.phone ?? ''}</p>
                                 </div>
                             </div>
                         </div>
                         <div className="text-right">
-                            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
+                            <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1">
                                 Guia de Transferência
                             </span>
-                            <h2 className="text-2xl font-bold text-gray-900">{transfer.number}</h2>
-                            <p className="text-sm text-gray-500 mt-1">Data: <span className="font-medium text-gray-900">{format(parseISO(transfer.date), 'dd/MM/yyyy HH:mm')}</span></p>
+                            <h2 className="text-xl font-bold text-gray-900">{transfer.number}</h2>
+                            <p className="text-[10px] text-gray-500 mt-0.5">Data: <span className="font-medium text-gray-900">{format(parseISO(transfer.date), 'dd/MM/yyyy HH:mm')}</span></p>
                         </div>
                     </div>
 
                     {/* Warehouses Info */}
-                    <div className="grid grid-cols-2 gap-8 mb-8">
-                        <div className="bg-gray-50 p-5 rounded-xl border border-gray-100 relative">
-                            <div className="absolute top-0 right-0 p-2 text-gray-300">
-                                <HiOutlineTruck className="w-12 h-12 opacity-10" />
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 relative">
+                            <div className="absolute top-0 right-0 p-1 text-gray-300">
+                                <HiOutlineTruck className="w-8 h-8 opacity-10" />
                             </div>
-                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Origem</h3>
-                            <p className="font-bold text-lg text-gray-900">{source?.name}</p>
-                            <p className="text-sm text-gray-600">{source?.location}</p>
-                            <p className="text-xs text-gray-400 mt-1">Resp: {source?.responsible}</p>
+                            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Origem</h3>
+                            <p className="font-bold text-base text-gray-900">{source?.name}</p>
+                            <p className="text-xs text-gray-600 line-clamp-1">{source?.location}</p>
                         </div>
-                        <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
-                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Destino</h3>
-                            <p className="font-bold text-lg text-gray-900">{target?.name}</p>
-                            <p className="text-sm text-gray-600">{target?.location}</p>
-                            <p className="text-xs text-gray-400 mt-1">Resp: {target?.responsible}</p>
+                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Destino</h3>
+                            <p className="font-bold text-base text-gray-900">{target?.name}</p>
+                            <p className="text-xs text-gray-600 line-clamp-1">{target?.location}</p>
                         </div>
                     </div>
 
                     {/* Items Table */}
-                    <div className="mb-8 border rounded-lg overflow-hidden border-gray-200">
-                        <table className="w-full text-sm">
+                    <div className="mb-4 border rounded overflow-hidden border-gray-200">
+                        <table className="w-full text-xs">
                             <thead className="bg-header">
                                 <tr>
-                                    <th className="px-4 py-3 text-left font-semibold w-16">#</th>
-                                    <th className="px-4 py-3 text-left font-semibold">Produto</th>
-                                    <th className="px-4 py-3 text-right font-semibold w-32">Quantidade</th>
-                                    <th className="px-4 py-3 text-center font-semibold w-32">Conferência</th>
+                                    <th className="px-3 py-2 text-left font-semibold w-32">Cód. Barras</th>
+                                    <th className="px-3 py-2 text-left font-semibold w-24">REF</th>
+                                    <th className="px-3 py-2 text-left font-semibold">Produto / Descrição</th>
+                                    <th className="px-3 py-2 text-right font-semibold w-20">Qtd</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                                {transfer.items.map((item, index) => (
-                                    <tr key={index} className="odd:bg-white even:bg-gray-50">
-                                        <td className="px-4 py-3 text-gray-500">{index + 1}</td>
-                                        <td className="px-4 py-3 font-medium text-gray-900">{item.productName}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-gray-900">{item.quantity}</td>
-                                        <td className="px-4 py-3 border-l border-gray-100"></td> {/* Checkbox area for manual check */}
-                                    </tr>
-                                ))}
+                                {transfer.items.map((item, index) => {
+                                    const productName = item.product?.name || item.productName;
+                                    const productCode = item.product?.code || item.productCode;
+                                    const productDescription = item.product?.description || item.productDescription;
+
+                                    return (
+                                        <tr key={index} className="odd:bg-white even:bg-[#fafafa]">
+                                            <td className="px-3 py-1.5 font-mono text-[10px] text-gray-600 truncate max-w-[120px]" title={item.product?.barcode || item.productBarcode}>{item.product?.barcode || item.productBarcode || 'N/A'}</td>
+                                            <td className="px-3 py-1.5 font-mono text-[10px] text-gray-500">{productCode || 'N/A'}</td>
+                                            <td className="px-3 py-1.5 text-left">
+                                                <p className="font-semibold text-gray-900 text-xs">{productName}</p>
+                                                {productDescription && (
+                                                    <p className="text-[10px] text-gray-500 line-clamp-1 italic">{productDescription}</p>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-1.5 text-right font-bold text-gray-900 tabular-nums">{item.quantity}</td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
 
                     {/* Footer Info */}
-                    <div className="mt-4 mb-12 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="mb-6 p-3 bg-gray-50 rounded border border-gray-100">
+                        <div className="grid grid-cols-2 gap-4 text-xs font-inter">
                             <div>
-                                <span className="block text-gray-500 text-xs uppercase mb-1">Motivo / Observações</span>
-                                <p className="text-gray-900 font-medium">{transfer.reason || 'N/A'}</p>
+                                <span className="block text-gray-500 text-[10px] uppercase mb-0.5">Motivo / Observações</span>
+                                <p className="text-gray-900">{transfer.reason || 'N/A'}</p>
                             </div>
                             <div>
-                                <span className="block text-gray-500 text-xs uppercase mb-1">Responsável pela Emissão</span>
+                                <span className="block text-gray-500 text-[10px] uppercase mb-0.5">Emissor</span>
                                 <p className="text-gray-900 font-medium">{transfer.responsible}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Signatures */}
-                    <div className="grid grid-cols-3 gap-8 mt-auto pt-12 pb-8">
+                    <div className="grid grid-cols-3 gap-6 pt-4 pb-4 mt-auto">
                         <div className="text-center">
-                            <div className="border-b border-gray-300 mb-2 h-8"></div>
-                            <p className="text-xs text-gray-500 uppercase">Emitente</p>
+                            <div className="border-b border-gray-300 mb-1 h-6"></div>
+                            <p className="text-[9px] text-gray-500 uppercase">Emitente</p>
                         </div>
                         <div className="text-center">
-                            <div className="border-b border-gray-300 mb-2 h-8"></div>
-                            <p className="text-xs text-gray-500 uppercase">Transportador</p>
+                            <div className="border-b border-gray-300 mb-1 h-6"></div>
+                            <p className="text-[9px] text-gray-500 uppercase">Transportador</p>
                         </div>
                         <div className="text-center">
-                            <div className="border-b border-gray-300 mb-2 h-8"></div>
-                            <p className="text-xs text-gray-500 uppercase">Recebedor</p>
+                            <div className="border-b border-gray-300 mb-1 h-6"></div>
+                            <p className="text-[9px] text-gray-500 uppercase">Recebedor</p>
                         </div>
                     </div>
 
-                    <div className="text-center text-xs text-gray-400 pt-8 border-t border-gray-100">
-                        <p>Documento gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')} • Sistema de Gestão</p>
+                    <div className="text-center text-[9px] text-gray-400 pt-4 border-t border-gray-100">
+                        <p>Gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')} • Sistema de Gestão</p>
                     </div>
                 </div>
             </Card>

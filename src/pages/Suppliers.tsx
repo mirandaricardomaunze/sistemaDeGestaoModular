@@ -22,6 +22,7 @@ import { formatCurrency, cn } from '../utils/helpers';
 import type { Supplier } from '../types';
 import { useSuppliers } from '../hooks/useData';
 import { SupplierOrderManager } from '../components/suppliers';
+import { ExportSuppliersButton } from '../components/common/ExportButton';
 
 // Validation Schema
 const supplierSchema = z.object({
@@ -218,10 +219,13 @@ export default function Suppliers() {
                     <p className="text-gray-500 dark:text-gray-400">{t('suppliers.description')}</p>
                 </div>
                 {activeTab === 'directory' && (
-                    <Button onClick={() => setShowFormModal(true)}>
-                        <HiOutlinePlus className="w-5 h-5 mr-2" />
-                        {t('suppliers.newSupplier')}
-                    </Button>
+                    <div className="flex gap-2">
+                        <ExportSuppliersButton data={suppliers} />
+                        <Button onClick={() => setShowFormModal(true)}>
+                            <HiOutlinePlus className="w-5 h-5 mr-2" />
+                            {t('suppliers.newSupplier')}
+                        </Button>
+                    </div>
                 )}
             </div>
 

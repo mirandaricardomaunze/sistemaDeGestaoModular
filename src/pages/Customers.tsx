@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,6 +16,7 @@ import {
     HiOutlineCurrencyDollar,
 } from 'react-icons/hi';
 import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer } from '../components/ui';
+import { ExportCustomersButton } from '../components/common/ExportButton';
 import { formatCurrency, cn } from '../utils/helpers';
 import type { Customer, CustomerType } from '../types';
 import { useCustomers } from '../hooks/useData';
@@ -55,10 +57,19 @@ const provinceOptions = [
 ];
 
 export default function Customers() {
+    const [searchParams] = useSearchParams();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
-    const [search, setSearch] = useState('');
-    const [typeFilter, setTypeFilter] = useState<CustomerType | 'all'>('all');
+    const [search, setSearch] = useState(searchParams.get('search') || '');
+    const [typeFilter, setTypeFilter] = useState<CustomerType | 'all'>((searchParams.get('type') as CustomerType) || 'all');
+
+    useEffect(() => {
+        const searchParam = searchParams.get('search');
+        if (searchParam !== null) setSearch(searchParam);
+
+        const typeParam = searchParams.get('type');
+        if (typeParam !== null) setTypeFilter(typeParam as CustomerType | 'all');
+    }, [searchParams]);
 
     // Use API hook for real data with pagination
     const {
@@ -214,10 +225,13 @@ export default function Customers() {
                     <p className="text-gray-500 dark:text-gray-400">
                         {t('customers.description')}
                     </p></div>
-                <Button onClick={() => setShowFormModal(true)}>
-                    <HiOutlinePlus className="w-5 h-5 mr-2" />
-                    {t('customers.addCustomer')}
-                </Button>
+                <div className="flex gap-3">
+                    <ExportCustomersButton data={customers} />
+                    <Button onClick={() => setShowFormModal(true)}>
+                        <HiOutlinePlus className="w-5 h-5 mr-2" />
+                        {t('customers.addCustomer')}
+                    </Button>
+                </div>
             </div>
 
             {/* Metrics */}

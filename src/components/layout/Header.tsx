@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../../stores/useStore';
 import { useAuthStore, roleLabels } from '../../stores/useAuthStore';
 import {
     HiOutlineMenu,
-    HiOutlineBell,
     HiOutlineSearch,
     HiOutlineMoon,
     HiOutlineSun,
@@ -15,44 +14,46 @@ import {
     HiRefresh,
     HiOutlineTruck,
     HiOutlineTag,
+    HiChevronRight,
 } from 'react-icons/hi';
-import { formatRelativeTime } from '../../utils/helpers';
 import LanguageSelector from '../common/LanguageSelector';
-
-import { useAlerts } from '../../hooks/useData';
+import { NotificationBadge } from '../notifications';
 import {
     productsAPI,
     customersAPI,
     employeesAPI,
     ordersAPI,
     suppliersAPI,
-    settingsAPI
+    settingsAPI,
+    pharmacyAPI,
+    hospitalityAPI,
+    crmAPI,
+    invoicesAPI,
+    salesAPI
 } from '../../services/api';
 import { HiCube, HiUserGroup, HiShoppingBag, HiCloud } from 'react-icons/hi2';
-import { MdCloudOff } from 'react-icons/md';
+import { MdCloudOff, MdMedicalServices, MdHotel, MdReceiptLong, MdShowChart } from 'react-icons/md';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
+import { useTenant } from '../../contexts/TenantContext';
 
 export default function Header() {
+    const location = useLocation();
     const navigate = useNavigate();
     const { theme, toggleTheme, toggleSidebar } = useStore();
     const { user, logout } = useAuthStore();
-    const { alerts, unreadCount, markAsRead, markAllAsRead } = useAlerts();
     const { isOnline, isSyncing, pendingCount, syncSales } = useOfflineSync();
-    const [showNotifications, setShowNotifications] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [showSearchResults, setShowSearchResults] = useState(false);
+    const { hasModule } = useTenant();
     const { t } = useTranslation();
 
+    // Clear search on route change
+    useEffect(() => {
+        setSearchQuery('');
+        setShowSearchResults(false);
+    }, [location.pathname, location.search]);
 
-    const recentAlerts = alerts.slice(0, 5);
-
-    const priorityColors = {
-        critical: 'bg-red-500',
-        high: 'bg-orange-500',
-        medium: 'bg-yellow-500',
-        low: 'bg-blue-500',
-    };
 
     // Get user initials
     const getUserInitials = (name: string) => {
@@ -78,59 +79,137 @@ export default function Header() {
         employees: any[];
         suppliers: any[];
         categories: any[];
-    }>({ products: [], customers: [], orders: [], employees: [], suppliers: [], categories: [] });
+        medications: any[];
+        rooms: any[];
+        bookings: any[];
+        opportunities: any[];
+        invoices: any[];
+        sales: any[];
+    }>({
+        products: [],
+        customers: [],
+        orders: [],
+        employees: [],
+        suppliers: [],
+        categories: [],
+        medications: [],
+        rooms: [],
+        bookings: [],
+        opportunities: [],
+        invoices: [],
+        sales: []
+    });
     const [isSearching, setIsSearching] = useState(false);
 
     useEffect(() => {
         const delayDebounceFn = setTimeout(async () => {
             if (searchQuery.trim().length === 0) {
-                setSearchResults({ products: [], customers: [], orders: [], employees: [], suppliers: [], categories: [] });
+                setSearchResults({
+                    products: [],
+                    customers: [],
+                    orders: [],
+                    employees: [],
+                    suppliers: [],
+                    categories: [],
+                    medications: [],
+                    rooms: [],
+                    bookings: [],
+                    opportunities: [],
+                    invoices: [],
+                    sales: []
+                });
                 return;
             }
 
             setIsSearching(true);
             try {
                 // Execute searches in parallel
-                const [productsRes, customersRes, employeesRes, ordersRes, suppliersRes, categoriesRes] = await Promise.all([
-                    // Search Products
-                    productsAPI.getAll({ search: searchQuery }).catch(() => []),
-                    // Search Customers
-                    customersAPI.getAll({ search: searchQuery }).catch(() => []),
-                    // Search Employees
-                    employeesAPI.getAll({ search: searchQuery }).catch(() => []),
-                    // Search Orders
-                    ordersAPI.getAll ? ordersAPI.getAll().then(res => {
+                const [
+                    productsRes,
+                    customersRes,
+                    employeesRes,
+                    ordersRes,
+                    suppliersRes,
+                    categoriesRes,
+                    medicationsRes,
+                    roomsRes,
+                    bookingsRes,
+                    opportunitiesRes,
+                    invoicesRes,
+                    salesRes
+                ] = await Promise.all([
+                    // Core/Inventory
+                    hasModule('inventory') ? productsAPI.getAll({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
+                    hasModule('crm') || hasModule('inventory') ? customersAPI.getAll({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
+                    hasModule('hr') ? employeesAPI.getAll({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
+                    hasModule('inventory') && (ordersAPI as any).getAll ? (ordersAPI as any).getAll().then((res: any) => {
                         const allOrders = Array.isArray(res) ? res : (res.data || []);
                         return allOrders.filter((o: any) =>
                             o.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             o.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
-                        ).slice(0, 5);
+                        );
                     }).catch(() => []) : Promise.resolve([]),
-                    // Search Suppliers
-                    suppliersAPI.getAll({ search: searchQuery }).catch(() => []),
-                    // Search Categories (fetch all and filter)
-                    settingsAPI.getCategories().then(res => {
+                    hasModule('inventory') ? suppliersAPI.getAll({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
+                    hasModule('inventory') ? settingsAPI.getCategories().then((res: any) => {
                         const allCats = Array.isArray(res) ? res : (res.data || []);
                         return allCats.filter((c: any) =>
                             c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             c.code?.toLowerCase().includes(searchQuery.toLowerCase())
-                        ).slice(0, 5);
-                    }).catch(() => [])
+                        );
+                    }).catch(() => []) : Promise.resolve([]),
+
+                    // Specialized Modules
+                    hasModule('pharmacy') && (pharmacyAPI as any).getMedications ? (pharmacyAPI as any).getMedications({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
+                    hasModule('hospitality') && (hospitalityAPI as any).getRooms ? (hospitalityAPI as any).getRooms({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
+                    hasModule('hospitality') && (hospitalityAPI as any).getBookings ? (hospitalityAPI as any).getBookings().then((res: any) => {
+                        const items = Array.isArray(res) ? res : (res.data || []);
+                        return items.filter((b: any) =>
+                            b.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            b.room?.number?.toLowerCase().includes(searchQuery.toLowerCase())
+                        );
+                    }).catch(() => []) : Promise.resolve([]),
+                    hasModule('crm') && (crmAPI as any).getOpportunities ? (crmAPI as any).getOpportunities().then((res: any) => {
+                        const items = Array.isArray(res) ? res : (res.data || []);
+                        return items.filter((o: any) =>
+                            o.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            o.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                        );
+                    }).catch(() => []) : Promise.resolve([]),
+                    hasModule('invoices') && (invoicesAPI as any).getAll ? (invoicesAPI as any).getAll().then((res: any) => {
+                        const items = Array.isArray(res) ? res : (res.data || []);
+                        return items.filter((i: any) =>
+                            i.invoiceNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            i.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
+                        );
+                    }).catch(() => []) : Promise.resolve([]),
+                    hasModule('pos') && (salesAPI as any).getAll ? (salesAPI as any).getAll().then((res: any) => {
+                        const items = Array.isArray(res) ? res : (res.data || []);
+                        return items.filter((s: any) =>
+                            s.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            s.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
+                        );
+                    }).catch(() => []) : Promise.resolve([])
                 ]);
 
-                // Normalize results (handle pagination wrapper if present)
+                // Normalize results
                 const getItems = (res: any) => {
                     const items = Array.isArray(res) ? res : (res.data || []);
-                    return items.slice(0, 5); // Limit to 5 items per category
+                    return items.slice(0, 5);
                 };
 
                 setSearchResults({
                     products: getItems(productsRes),
                     customers: getItems(customersRes),
                     employees: getItems(employeesRes),
-                    orders: ordersRes,  // Already filtered and sliced
+                    orders: getItems(ordersRes),
                     suppliers: getItems(suppliersRes),
-                    categories: categoriesRes // Already filtered and sliced
+                    categories: getItems(categoriesRes),
+                    medications: getItems(medicationsRes),
+                    rooms: getItems(roomsRes),
+                    bookings: getItems(bookingsRes),
+                    opportunities: getItems(opportunitiesRes),
+                    invoices: getItems(invoicesRes),
+                    sales: getItems(salesRes)
                 });
             } catch (error) {
                 console.error('Search failed:', error);
@@ -142,15 +221,9 @@ export default function Header() {
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery]);
 
-    const hasResults = searchResults.products.length > 0 ||
-        searchResults.customers.length > 0 ||
-        searchResults.orders.length > 0 ||
-        searchResults.employees.length > 0 ||
-        searchResults.suppliers.length > 0 ||
-        searchResults.categories.length > 0;
+    const hasResults = Object.values(searchResults).some(arr => arr.length > 0);
 
-    const handleSearchItemClick = (path: string) => {
-        navigate(path);
+    const handleSearchItemClick = () => {
         setSearchQuery('');
         setShowSearchResults(false);
     };
@@ -200,25 +273,196 @@ export default function Header() {
                                         {/* Products */}
                                         {searchResults.products.length > 0 && (
                                             <div>
-                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <HiCube className="w-3.5 h-3.5" />
                                                     {t('products.title')}
                                                 </div>
                                                 {searchResults.products.map((product) => (
-                                                    <button
+                                                    <Link
                                                         key={product.id}
-                                                        onMouseDown={() => handleSearchItemClick('/inventory')}
-                                                        className="w-full px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-700 flex items-center gap-3 text-left transition-colors"
+                                                        to={`/inventory?search=${product.code}`}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
                                                     >
-                                                        <HiCube className="w-5 h-5 text-primary-500" />
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                                                {product.name}
-                                                            </p>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-gray-100 dark:bg-dark-700 text-gray-500 uppercase tracking-tight">PRODUTO</span>
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                    {product.name}
+                                                                </p>
+                                                            </div>
                                                             <p className="text-xs text-gray-500 dark:text-gray-400">
                                                                 {product.code} • {product.currentStock} em stock
                                                             </p>
                                                         </div>
-                                                    </button>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Medications (Pharmacy) */}
+                                        {hasModule('pharmacy') && searchResults.medications.length > 0 && (
+                                            <div>
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <MdMedicalServices className="w-3.5 h-3.5" />
+                                                    Farmácia
+                                                </div>
+                                                {searchResults.medications.map((med) => (
+                                                    <Link
+                                                        key={med.id}
+                                                        to={`/pharmacy?search=${med.name}`}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
+                                                    >
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 uppercase tracking-tight">MEDICAMENTO</span>
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                    {med.name}
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                {med.concentration} • {med.dosageForm}
+                                                            </p>
+                                                        </div>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Hospitality (Rooms & Bookings) */}
+                                        {hasModule('hospitality') && (searchResults.rooms.length > 0 || searchResults.bookings.length > 0) && (
+                                            <div>
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <MdHotel className="w-3.5 h-3.5" />
+                                                    Hospitalidade
+                                                </div>
+                                                {searchResults.rooms.map((room) => (
+                                                    <Link
+                                                        key={room.id}
+                                                        to={`/hotel/rooms?number=${room.number}`}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
+                                                    >
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">QUARTO</span>
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                    Quarto {room.number}
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                {room.type} • {room.status}
+                                                            </p>
+                                                        </div>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
+                                                ))}
+                                                {searchResults.bookings.map((booking) => (
+                                                    <Link
+                                                        key={booking.id}
+                                                        to={`/hotel/reservations?search=${booking.customerName}`}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
+                                                    >
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">RESERVA</span>
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                    {booking.customerName}
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                Quarto {booking.room?.number} • {booking.status}
+                                                            </p>
+                                                        </div>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Invoices & Sales */}
+                                        {(hasModule('invoices') || hasModule('pos')) && (searchResults.invoices.length > 0 || searchResults.sales.length > 0) && (
+                                            <div>
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <MdReceiptLong className="w-3.5 h-3.5" />
+                                                    Vendas & Facturas
+                                                </div>
+                                                {hasModule('invoices') && searchResults.invoices.map((inv) => (
+                                                    <Link
+                                                        key={inv.id}
+                                                        to={`/invoices?search=${inv.invoiceNumber}`}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
+                                                    >
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 uppercase tracking-tight">FACTURA</span>
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                    {inv.invoiceNumber}
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                {inv.customerName} • {inv.status}
+                                                            </p>
+                                                        </div>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
+                                                ))}
+                                                {hasModule('pos') && searchResults.sales.map((sale) => (
+                                                    <Link
+                                                        key={sale.id}
+                                                        to={`/financial?search=${sale.receiptNumber}`}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
+                                                    >
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 uppercase tracking-tight">VENDA</span>
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                    {sale.receiptNumber}
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                {sale.customerName} • {sale.total} MT
+                                                            </p>
+                                                        </div>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* CRM Opportunities */}
+                                        {hasModule('crm') && searchResults.opportunities.length > 0 && (
+                                            <div>
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <MdShowChart className="w-3.5 h-3.5" />
+                                                    Oportunidades (CRM)
+                                                </div>
+                                                {searchResults.opportunities.map((opp) => (
+                                                    <Link
+                                                        key={opp.id}
+                                                        to={`/crm?search=${opp.title}`}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
+                                                    >
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 uppercase tracking-tight">OPORTUNIDADE</span>
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                    {opp.title}
+                                                                </p>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                {opp.customer?.name} • {opp.status}
+                                                            </p>
+                                                        </div>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
                                                 ))}
                                             </div>
                                         )}
@@ -226,25 +470,30 @@ export default function Header() {
                                         {/* Customers */}
                                         {searchResults.customers.length > 0 && (
                                             <div>
-                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <HiUserGroup className="w-3.5 h-3.5" />
                                                     {t('customers.title')}
                                                 </div>
                                                 {searchResults.customers.map((customer) => (
-                                                    <button
+                                                    <Link
                                                         key={customer.id}
-                                                        onMouseDown={() => handleSearchItemClick('/customers')}
-                                                        className="w-full px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-700 flex items-center gap-3 text-left transition-colors"
+                                                        to={`/customers?search=${customer.name}`}
+                                                        onMouseDown={handleSearchItemClick}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
                                                     >
-                                                        <HiUserGroup className="w-5 h-5 text-secondary-500" />
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                                                {customer.name}
-                                                            </p>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 uppercase tracking-tight">CLIENTE</span>
+                                                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                                    {customer.name}
+                                                                </p>
+                                                            </div>
                                                             <p className="text-xs text-gray-500 dark:text-gray-400">
                                                                 {customer.phone} • {customer.email || 'Sem email'}
                                                             </p>
                                                         </div>
-                                                    </button>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
                                                 ))}
                                             </div>
                                         )}
@@ -252,16 +501,17 @@ export default function Header() {
                                         {/* Suppliers */}
                                         {searchResults.suppliers.length > 0 && (
                                             <div>
-                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <HiOutlineTruck className="w-3.5 h-3.5" />
                                                     Fornecedores
                                                 </div>
                                                 {searchResults.suppliers.map((supplier) => (
-                                                    <button
+                                                    <Link
                                                         key={supplier.id}
-                                                        onMouseDown={() => handleSearchItemClick('/suppliers')}
-                                                        className="w-full px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-700 flex items-center gap-3 text-left transition-colors"
+                                                        to="/suppliers"
+                                                        onMouseDown={handleSearchItemClick}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
                                                     >
-                                                        <HiOutlineTruck className="w-5 h-5 text-indigo-500" />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                                                 {supplier.name}
@@ -270,7 +520,8 @@ export default function Header() {
                                                                 {supplier.contactPerson} • {supplier.phone}
                                                             </p>
                                                         </div>
-                                                    </button>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
                                                 ))}
                                             </div>
                                         )}
@@ -278,16 +529,17 @@ export default function Header() {
                                         {/* Categories */}
                                         {searchResults.categories.length > 0 && (
                                             <div>
-                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <HiOutlineTag className="w-3.5 h-3.5" />
                                                     Categorias
                                                 </div>
                                                 {searchResults.categories.map((category) => (
-                                                    <button
+                                                    <Link
                                                         key={category.id}
-                                                        onMouseDown={() => handleSearchItemClick('/categories')}
-                                                        className="w-full px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-700 flex items-center gap-3 text-left transition-colors"
+                                                        to="/categories"
+                                                        onMouseDown={handleSearchItemClick}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
                                                     >
-                                                        <HiOutlineTag className="w-5 h-5 text-pink-500" />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                                                 {category.name}
@@ -296,7 +548,8 @@ export default function Header() {
                                                                 {category.code}
                                                             </p>
                                                         </div>
-                                                    </button>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
                                                 ))}
                                             </div>
                                         )}
@@ -304,16 +557,17 @@ export default function Header() {
                                         {/* Employees */}
                                         {searchResults.employees.length > 0 && (
                                             <div>
-                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <HiOutlineUser className="w-3.5 h-3.5" />
                                                     Funcionários
                                                 </div>
                                                 {searchResults.employees.map((employee) => (
-                                                    <button
+                                                    <Link
                                                         key={employee.id}
-                                                        onMouseDown={() => handleSearchItemClick('/employees')}
-                                                        className="w-full px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-700 flex items-center gap-3 text-left transition-colors"
+                                                        to="/employees"
+                                                        onMouseDown={handleSearchItemClick}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
                                                     >
-                                                        <HiOutlineUser className="w-5 h-5 text-purple-500" />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                                                 {employee.name}
@@ -322,7 +576,8 @@ export default function Header() {
                                                                 {employee.role}
                                                             </p>
                                                         </div>
-                                                    </button>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
                                                 ))}
                                             </div>
                                         )}
@@ -330,16 +585,17 @@ export default function Header() {
                                         {/* Orders */}
                                         {searchResults.orders.length > 0 && (
                                             <div>
-                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                    <HiShoppingBag className="w-3.5 h-3.5" />
                                                     {t('orders.title')}
                                                 </div>
                                                 {searchResults.orders.map((order) => (
-                                                    <button
+                                                    <Link
                                                         key={order.id}
-                                                        onMouseDown={() => handleSearchItemClick('/orders')}
-                                                        className="w-full px-4 py-2 hover:bg-gray-50 dark:hover:bg-dark-700 flex items-center gap-3 text-left transition-colors"
+                                                        to="/orders"
+                                                        onMouseDown={handleSearchItemClick}
+                                                        className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
                                                     >
-                                                        <HiShoppingBag className="w-5 h-5 text-accent-500" />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                                                 {order.orderNumber}
@@ -348,7 +604,8 @@ export default function Header() {
                                                                 {order.customerName}
                                                             </p>
                                                         </div>
-                                                    </button>
+                                                        <HiChevronRight className="w-4 h-4 text-gray-300 group-hover:text-primary-500 transition-colors" />
+                                                    </Link>
                                                 ))}
                                             </div>
                                         )}
@@ -412,104 +669,14 @@ export default function Header() {
                         )}
                     </div>
 
-                    {/* Notifications */}
-                    <div className="relative">
-                        <button
-                            onClick={() => {
-                                setShowNotifications(!showNotifications);
-                                setShowUserMenu(false);
-                            }}
-                            className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300 transition-colors relative"
-                        >
-                            <HiOutlineBell className="w-5 h-5" />
-                            {unreadCount > 0 && (
-                                <span className="absolute top-1 right-1 w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full flex items-center justify-center">
-                                    {unreadCount > 9 ? '9+' : unreadCount}
-                                </span>
-                            )}
-                        </button>
+                    {/* Notifications - Using new modular NotificationCenter */}
+                    <NotificationBadge />
 
-                        {/* Notifications Dropdown */}
-                        {showNotifications && (
-                            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-dark-800 rounded-2xl shadow-xl border border-gray-200 dark:border-dark-700 overflow-hidden animate-slide-up">
-                                <div className="p-4 border-b border-gray-200 dark:border-dark-700">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="font-semibold text-gray-900 dark:text-white">
-                                            {t('nav.alerts')}
-                                        </h3>
-                                        <div className="flex items-center gap-2">
-                                            {unreadCount > 0 && (
-                                                <button
-                                                    onClick={() => markAllAsRead()}
-                                                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
-                                                >
-                                                    {t('alerts.markAsRead')}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="max-h-80 overflow-y-auto scrollbar-thin">
-                                    {recentAlerts.length === 0 ? (
-                                        <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                                            {t('messages.noResults')}
-                                        </div>
-                                    ) : (
-                                        recentAlerts.map((alert) => (
-                                            <div
-                                                key={alert.id}
-                                                onClick={() => {
-                                                    if (!alert.isRead) markAsRead(alert.id);
-                                                }}
-                                                className={`p-4 border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors cursor-pointer ${!alert.isRead ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''
-                                                    }`}
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div
-                                                        className={`w-2.5 h-2.5 mt-1.5 rounded-full flex-shrink-0 ${priorityColors[alert.priority]
-                                                            }`}
-                                                    />
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-start">
-                                                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                                                {alert.title}
-                                                            </p>
-                                                            {!alert.isRead && (
-                                                                <span className="w-2 h-2 rounded-full bg-primary-600"></span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
-                                                            {alert.message}
-                                                        </p>
-                                                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                                            {formatRelativeTime(alert.createdAt)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-
-                                <Link
-                                    to="/alerts"
-                                    onClick={() => setShowNotifications(false)}
-                                    className="block p-3 text-center text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
-                                >
-                                    {t('alerts.title')}
-                                </Link>
-                            </div>
-                        )}
-                    </div>
 
                     {/* User Menu */}
                     <div className="relative">
                         <button
-                            onClick={() => {
-                                setShowUserMenu(!showUserMenu);
-                                setShowNotifications(false);
-                            }}
+                            onClick={() => setShowUserMenu(!showUserMenu)}
                             className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
                         >
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
@@ -571,14 +738,11 @@ export default function Header() {
             </div>
 
             {/* Click outside to close dropdowns */}
-            {(showNotifications || showUserMenu) && (
+            {showUserMenu && (
                 <div
                     className="fixed inset-0"
                     style={{ zIndex: 40 }}
-                    onClick={() => {
-                        setShowNotifications(false);
-                        setShowUserMenu(false);
-                    }}
+                    onClick={() => setShowUserMenu(false)}
                 />
             )}
         </header>

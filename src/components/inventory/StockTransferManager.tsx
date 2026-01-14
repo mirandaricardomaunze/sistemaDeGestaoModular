@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Button, Card, Input, Modal, Select, Pagination, usePagination } from '../ui';
-import { HiOutlinePlus, HiOutlineDocumentDownload, HiOutlineSearch, HiOutlineTrash } from 'react-icons/hi';
+import { HiOutlineDocumentDownload, HiOutlineSearch, HiOutlineTrash } from 'react-icons/hi';
 import { generateId, formatDate } from '../../utils/helpers';
 import type { StockTransfer } from '../../types';
 import toast from 'react-hot-toast';
@@ -9,8 +9,8 @@ import { useProducts, useWarehouses, useStockTransfers } from '../../hooks/useDa
 
 export default function StockTransferManager() {
     // Use data hooks instead of store
-    const { products: productsData } = useProducts();
-    const { warehouses: warehousesData, addWarehouse, updateWarehouse } = useWarehouses();
+    const { products: productsData, refetch: refetchProducts } = useProducts();
+    const { warehouses: warehousesData } = useWarehouses();
     const { transfers: transfersData, createTransfer } = useStockTransfers();
 
     // Ensure arrays are never undefined
@@ -30,7 +30,15 @@ export default function StockTransferManager() {
     const [selectedProduct, setSelectedProduct] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [productSearch, setProductSearch] = useState('');
-    const [transferItems, setTransferItems] = useState<{ productId: string; productName: string; quantity: number }[]>([]);
+    const [transferItems, setTransferItems] = useState<{
+        productId: string;
+        productName: string;
+        productCode?: string;
+        productBarcode?: string;
+        productDescription?: string;
+        unit?: string;
+        quantity: number
+    }[]>([]);
 
     // History Filters
     const [historySearch, setHistorySearch] = useState('');
@@ -64,20 +72,31 @@ export default function StockTransferManager() {
 
     const filteredHistory = useMemo(() => {
         return transfers.filter(t => {
-            // Search by number or responsible
-            const matchesSearch = t.number.toLowerCase().includes(historySearch.toLowerCase()) ||
-                t.responsible.toLowerCase().includes(historySearch.toLowerCase());
+            // Search by number, responsible or products
+            const searchLower = historySearch.toLowerCase();
+            const matchesSearch =
+                (t.number?.toLowerCase() || '').includes(searchLower) ||
+                (t.responsible?.toLowerCase() || '').includes(searchLower) ||
+                t.items?.some(item => (item.productName?.toLowerCase() || '').includes(searchLower));
+
             if (!matchesSearch) return false;
 
             // Filter by warehouse (either source or target)
             if (historyWarehouse !== 'all' && t.sourceWarehouseId !== historyWarehouse && t.targetWarehouseId !== historyWarehouse) return false;
 
             // Filter by date
-            if (startDate && new Date(t.date) < new Date(startDate)) return false;
-            if (endDate && new Date(t.date) > new Date(endDate)) {
+            if (startDate) {
+                const transferDate = new Date(t.date);
+                const start = new Date(startDate);
+                start.setHours(0, 0, 0, 0);
+                if (transferDate < start) return false;
+            }
+
+            if (endDate) {
+                const transferDate = new Date(t.date);
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
-                if (new Date(t.date) > end) return false;
+                if (transferDate > end) return false;
             }
 
             return true;
@@ -113,7 +132,15 @@ export default function StockTransferManager() {
         if (existingItem) {
             setTransferItems(prev => prev.map(i => i.productId === selectedProduct ? { ...i, quantity: i.quantity + quantity } : i));
         } else {
-            setTransferItems([...transferItems, { productId: product.id, productName: product.name, quantity }]);
+            setTransferItems([...transferItems, {
+                productId: product.id,
+                productName: product.name,
+                productCode: product.code,
+                productBarcode: product.barcode,
+                productDescription: product.description,
+                unit: product.unit,
+                quantity
+            }]);
         }
 
         setSelectedProduct('');
@@ -125,7 +152,7 @@ export default function StockTransferManager() {
         setTransferItems(prev => prev.filter((_, i) => i !== idx));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!sourceId || !targetId || !responsible || transferItems.length === 0) {
             toast.error('Preencha todos os campos obrigatórios');
             return;
@@ -149,7 +176,8 @@ export default function StockTransferManager() {
             createdAt: new Date().toISOString(),
         };
 
-        createTransfer(newTransfer);
+        await createTransfer(newTransfer);
+        await refetchProducts();
         toast.success('Transferência realizada com sucesso!');
         setIsModalOpen(false);
         resetForm();
@@ -170,15 +198,8 @@ export default function StockTransferManager() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Transferências de Estoque</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Movimentação de produtos entre armazéns</p>
-                </div>
-                <Button onClick={() => setIsModalOpen(true)} leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
-                    Nova Transferência
-                </Button>
-            </div>
+            <button id="new-transfer-btn" className="hidden" onClick={() => setIsModalOpen(true)} />
+
 
             {/* History Filters */}
             <Card padding="md">
@@ -233,37 +254,45 @@ export default function StockTransferManager() {
                                     </td>
                                 </tr>
                             ) : (
-                                paginatedHistory.map((transfer) => (
-                                    <tr key={transfer.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                            {transfer.number}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {formatDate(transfer.date)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {getWarehouseName(transfer.sourceWarehouseId)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {getWarehouseName(transfer.targetWarehouseId)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
-                                            {transfer.items.length}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedTransfer(transfer);
-                                                    setShowPrintModal(true);
-                                                }}
-                                                className="text-blue-600 hover:text-blue-900 dark:hover:text-blue-400"
-                                                title="Imprimir Guia"
-                                            >
-                                                <HiOutlineDocumentDownload className="w-5 h-5" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
+                                <>
+                                    {paginatedHistory.map((transfer) => (
+                                        <tr key={transfer.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                                {transfer.number}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                {formatDate(transfer.date)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                {getWarehouseName(transfer.sourceWarehouseId)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                                {getWarehouseName(transfer.targetWarehouseId)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
+                                                {transfer.items.length}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedTransfer(transfer);
+                                                        setShowPrintModal(true);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-900 dark:hover:text-blue-400"
+                                                    title="Imprimir Guia"
+                                                >
+                                                    <HiOutlineDocumentDownload className="w-5 h-5" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {/* Placeholder rows to maintain 10-item height */}
+                                    {paginatedHistory.length > 0 && paginatedHistory.length < itemsPerPage && Array.from({ length: itemsPerPage - paginatedHistory.length }).map((_, i) => (
+                                        <tr key={`placeholder-${i}`} className="h-[73px]">
+                                            <td colSpan={6}>&nbsp;</td>
+                                        </tr>
+                                    ))}
+                                </>
                             )}
                         </tbody>
                     </table>

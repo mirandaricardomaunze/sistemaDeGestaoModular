@@ -30,8 +30,9 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const hasModule = (moduleCode: string) => {
         if (!user) return false;
-        // Commercial is the base module for many things, but we check strictly
-        return activeModules.includes(moduleCode.toUpperCase());
+        // Case-insensitive comparison to handle both lowercase and uppercase module codes
+        const normalizedCode = moduleCode.toLowerCase();
+        return activeModules.some(m => m.toLowerCase() === normalizedCode);
     };
 
     // Sync businessType in useStore with activeModules

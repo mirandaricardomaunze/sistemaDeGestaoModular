@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { dateSchema } from './base';
 
 // ============================================================================
 // Employee Schemas
@@ -18,11 +19,11 @@ export const createEmployeeSchema = z.object({
     phone: z.string().max(50, 'Telefone muito longo'),
     role: z.enum(['admin', 'manager', 'operator', 'cashier', 'stock_keeper']).optional().default('operator'),
     department: z.string().max(100, 'Departamento muito longo').optional().nullable(),
-    hireDate: z.string().datetime({ message: 'Data de contratação inválida' }),
+    hireDate: dateSchema,
     address: z.string().max(500, 'Endereço muito longo').optional().nullable(),
     documentNumber: z.string().max(50, 'Documento muito longo').optional().nullable(),
     emergencyContact: z.string().max(200, 'Contacto de emergência muito longo').optional().nullable(),
-    birthDate: z.string().datetime({ message: 'Data de nascimento inválida' }).optional().nullable(),
+    birthDate: dateSchema.optional().nullable(),
     maritalStatus: z.enum(['single', 'married', 'divorced', 'widowed']).optional().nullable(),
     dependents: z.number().int().min(0).optional().default(0),
     bankName: z.string().max(100, 'Nome do banco muito longo').optional().nullable(),
@@ -34,7 +35,7 @@ export const createEmployeeSchema = z.object({
     subsidyTransport: z.number().min(0).optional().default(0),
     subsidyFood: z.number().min(0).optional().default(0),
     contractType: z.enum(['indefinite', 'fixed_term']).optional().default('indefinite'),
-    contractExpiry: z.string().datetime({ message: 'Data de expiração inválida' }).optional().nullable(),
+    contractExpiry: dateSchema.optional().nullable(),
     notes: z.string().max(1000, 'Notas muito longas').optional().nullable(),
     isActive: z.boolean().optional().default(true)
 });
@@ -46,7 +47,7 @@ export const updateEmployeeSchema = createEmployeeSchema.partial();
 // ============================================================================
 
 export const recordAttendanceSchema = z.object({
-    date: z.string().datetime({ message: 'Data inválida' }),
+    date: dateSchema,
     checkIn: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Hora de entrada inválida (HH:MM)').optional().nullable(),
     checkOut: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Hora de saída inválida (HH:MM)').optional().nullable(),
     status: z.enum(['present', 'absent', 'late', 'half_day', 'leave', 'holiday', 'vacation']).optional().default('present'),
@@ -77,8 +78,8 @@ export const processPayrollSchema = z.object({
 // ============================================================================
 
 export const requestVacationSchema = z.object({
-    startDate: z.string().datetime({ message: 'Data de início inválida' }),
-    endDate: z.string().datetime({ message: 'Data de fim inválida' }),
+    startDate: dateSchema,
+    endDate: dateSchema,
     notes: z.string().max(500, 'Notas muito longas').optional().nullable()
 }).refine(
     (data) => new Date(data.startDate) < new Date(data.endDate),

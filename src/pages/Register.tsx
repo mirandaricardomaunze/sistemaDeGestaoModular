@@ -36,19 +36,17 @@ import { modulesAPI, type BusinessModule } from '../services/api';
 
 // Module icons mapping
 const moduleIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-    PHARMACY: HiOutlineBeaker,
-    COMMERCIAL: HiOutlineShoppingCart,
-    BOTTLE_STORE: HiOutlineBuildingStorefront,
-    HOTEL: HiOutlineHomeModern,
-    LOGISTICS: HiOutlineTruck,
-    RESTAURANT: HiOutlineShoppingCart,
+    pharmacy: HiOutlineBeaker,
+    inventory: HiOutlineCube,
+    hospitality: HiOutlineHomeModern,
+    logistics: HiOutlineTruck,
 };
 
-// Integrated Pillars configuration
+// Integrated Pillars configuration (shown for all modules)
 const integratedPillars = [
+    { name: 'POS', icon: HiOutlineShoppingCart, color: 'text-green-500' },
     { name: 'CRM', icon: HiOutlineUsers, color: 'text-blue-500' },
     { name: 'RH', icon: HiOutlineBriefcase, color: 'text-purple-500' },
-    { name: 'Estoque', icon: HiOutlineCube, color: 'text-orange-500' },
     { name: 'Fiscal', icon: HiOutlineDocumentCheck, color: 'text-emerald-500' },
 ];
 

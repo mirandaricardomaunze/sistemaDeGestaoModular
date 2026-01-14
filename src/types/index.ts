@@ -61,6 +61,36 @@ export interface ProductFilters {
     maxPrice?: number;
 }
 
+export type MovementType =
+    | 'purchase'
+    | 'sale'
+    | 'return_in'
+    | 'return_out'
+    | 'adjustment'
+    | 'expired'
+    | 'transfer'
+    | 'loss';
+
+export interface StockMovement {
+    id: string;
+    productId: string;
+    warehouseId?: string;
+    movementType: MovementType;
+    quantity: number;
+    balanceBefore: number;
+    balanceAfter: number;
+    reference?: string;
+    referenceType?: string;
+    reason?: string;
+    performedBy: string;
+    createdAt: string;
+    warehouse?: {
+        id: string;
+        name: string;
+        code: string;
+    };
+}
+
 // ============================================================================
 // Warehouse & Stock Transfer Types
 // ============================================================================
@@ -84,9 +114,21 @@ export interface StockTransfer {
     items: {
         productId: string;
         productName: string;
+        productCode?: string;
+        productBarcode?: string;
+        productDescription?: string;
+        unit?: string;
         quantity: number;
+        product?: {
+            id: string;
+            name: string;
+            code: string;
+            barcode?: string;
+            description?: string;
+            unit: string;
+        };
     }[];
-    status: 'completed' | 'cancelled';
+    status: 'pending' | 'completed' | 'cancelled';
     responsible: string;
     reason: string;
     date: string;

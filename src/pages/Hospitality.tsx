@@ -10,12 +10,11 @@ import {
     Input,
     Badge,
     useStepper,
-    ConfirmationModal
+    ConfirmationModal,
 } from '../components/ui';
 import Pagination from '../components/ui/Pagination';
 import {
     HospitalityDashboard,
-    HospitalityReports,
     HospitalityHistory,
     HospitalityManagement,
     GuestProfileModal,
@@ -24,8 +23,10 @@ import {
     RoomFormModal,
     ConsumptionModal,
     CheckInModal,
+    CheckoutModal,
     CheckoutNotifications
 } from '../components/hospitality';
+import { ExportBookingsButton } from '../components/common/ExportButton';
 import { cn } from '../utils/helpers';
 import {
     HiOutlineCheck,
@@ -36,21 +37,18 @@ import {
     HiOutlineClipboardList,
     HiOutlineCog,
     HiOutlineChartBar,
-    HiOutlineDocumentReport,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineUsers,
     HiOutlinePlus,
     HiOutlineRefresh,
     HiOutlineUserAdd,
-    HiOutlineCalculator
 } from 'react-icons/hi';
 import { useHospitality } from '../hooks/useData';
 import { useDebounce } from '../hooks/useDebounce';
-import ModuleFiscalView from '../components/shared/ModuleFiscalView';
 
 
-type MainTab = 'rooms' | 'history' | 'management' | 'dashboard' | 'reports' | 'housekeeping' | 'calendar' | 'fiscal';
+type MainTab = 'rooms' | 'history' | 'management' | 'dashboard' | 'housekeeping' | 'calendar';
 
 export default function Hospitality() {
     const [searchParams] = useSearchParams();
@@ -71,8 +69,6 @@ export default function Hospitality() {
         { id: 'history', label: 'Histórico', icon: <HiOutlineClipboardList className="w-5 h-5" /> },
         { id: 'management', label: 'Configuração', icon: <HiOutlineCog className="w-5 h-5" /> },
         { id: 'dashboard', label: 'Estatísticas', icon: <HiOutlineChartBar className="w-5 h-5" /> },
-        { id: 'reports', label: 'Relatórios', icon: <HiOutlineDocumentReport className="w-5 h-5" /> },
-        { id: 'fiscal', label: 'Fiscal', icon: <HiOutlineCalculator className="w-5 h-5" /> },
     ];
 
     useTranslation();
@@ -85,7 +81,6 @@ export default function Hospitality() {
         refetch,
         fetchBookings,
         createBooking,
-        checkout,
         addRoom,
         updateRoom,
         deleteRoom,
@@ -101,7 +96,7 @@ export default function Hospitality() {
     const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
     const [isConsumptionModalOpen, setIsConsumptionModalOpen] = useState(false);
     const [isGuestProfileModalOpen, setIsGuestProfileModalOpen] = useState(false);
-    const [checkoutConfirmOpen, setCheckoutConfirmOpen] = useState(false);
+    const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [deleteRoomConfirmOpen, setDeleteRoomConfirmOpen] = useState(false);
     const [selectedBookingForCheckout, setSelectedBookingForCheckout] = useState<string | null>(null);
     const [selectedRoomForDelete, setSelectedRoomForDelete] = useState<string | null>(null);
@@ -113,15 +108,17 @@ export default function Hospitality() {
     const [historyMeta, setHistoryMeta] = useState<any>(null);
     const [historyLoading, setHistoryLoading] = useState(false);
 
+    const [selectedRoom, setSelectedRoom] = useState<any>(null);
+    const [editingRoom, setEditingRoom] = useState<any>(null);
+
     // Check-in multi-step state
-    const checkInStepper = useStepper(2);
     const checkInSteps = [
-        { id: 'form', label: 'Dados do Hóspede', icon: <HiOutlineClipboardList className="w-4 h-4" /> },
+        ...(!selectedRoom ? [{ id: 'room-select', label: 'Quarto', icon: <HiOutlineHome className="w-4 h-4" /> }] : []),
+        { id: 'form', label: 'Hóspede', icon: <HiOutlineClipboardList className="w-4 h-4" /> },
         { id: 'confirm', label: 'Confirmação', icon: <HiOutlineCheck className="w-4 h-4" /> }
     ];
 
-    const [selectedRoom, setSelectedRoom] = useState<any>(null);
-    const [editingRoom, setEditingRoom] = useState<any>(null);
+    const checkInStepper = useStepper(checkInSteps.length);
 
     const [checkInData, setCheckInData] = useState({
         customerName: '',
@@ -213,17 +210,13 @@ export default function Hospitality() {
 
     const handleCheckout = async (bookingId: string) => {
         setSelectedBookingForCheckout(bookingId);
-        setCheckoutConfirmOpen(true);
+        setIsCheckoutModalOpen(true);
     };
 
     const performCheckout = async () => {
-        if (!selectedBookingForCheckout) return;
-        try {
-            await checkout(selectedBookingForCheckout);
-            refetch();
-            setCheckoutConfirmOpen(false);
-            setSelectedBookingForCheckout(null);
-        } catch (err) { }
+        refetch();
+        setIsCheckoutModalOpen(false);
+        setSelectedBookingForCheckout(null);
     };
 
     const handleRoomSubmit = async (e: React.FormEvent) => {
@@ -365,14 +358,14 @@ export default function Hospitality() {
                                 </div>
                                 <div className="p-2 bg-gray-50 dark:bg-dark-800 rounded-lg">
                                     <p>Total</p>
-                                    <p className="text-primary-600 text-xs">{new Intl.NumberFormat('pt-MZ').format(activeBooking.grandTotal)} MT</p>
+                                    <p className="text-primary-600 text-xs">{new Intl.NumberFormat('pt-MZ').format(Number(activeBooking.grandTotal) || 0)} MT</p>
                                 </div>
                             </div>
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col justify-center items-center py-4 opacity-40">
                             <HiOutlineHome className="w-12 h-12 text-gray-300 mb-2" />
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{new Intl.NumberFormat('pt-MZ').format(room.price)} MT / Noite</p>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{new Intl.NumberFormat('pt-MZ').format(Number(room.price) || 0)} MT / Noite</p>
                         </div>
                     )}
                 </div>
@@ -407,6 +400,7 @@ export default function Hospitality() {
                     </div>
                     <div className="flex flex-wrap gap-3">
                         <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />} onClick={() => refetch()}>Actualizar</Button>
+                        {activeMainTab === 'history' && <ExportBookingsButton data={bookingHistory} />}
                         {activeMainTab === 'rooms' && (
                             <Button size="sm" leftIcon={<HiOutlineUserAdd className="w-5 h-5" />} onClick={() => { setSelectedRoom(null); setIsCheckInModalOpen(true); }}>Novo Check-in</Button>
                         )}
@@ -415,20 +409,21 @@ export default function Hospitality() {
 
                 {/* Responsive Tabs Navigation */}
                 <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
-                    <div className="flex overflow-x-auto no-scrollbar -mb-px">
+                    <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveMainTab(tab.id as MainTab)}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
                                     activeMainTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                                 )}
                             >
-                                {tab.icon}
-                                {tab.label}
+                                <span className="shrink-0">{tab.icon}</span>
+                                <span className="hidden sm:inline-block">{tab.label}</span>
+                                <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
                             </button>
                         ))}
                     </div>
@@ -502,17 +497,11 @@ export default function Hospitality() {
                         {/* Tab Content: Dashboard */}
                         {activeMainTab === 'dashboard' && <HospitalityDashboard />}
 
-                        {/* Tab Content: Reports */}
-                        {activeMainTab === 'reports' && <HospitalityReports />}
-
                         {/* Tab Content: Housekeeping */}
                         {activeMainTab === 'housekeeping' && <HousekeepingPanel onRoomCleaned={() => refetch()} />}
 
                         {/* Tab Content: Calendar */}
                         {activeMainTab === 'calendar' && <ReservationCalendar onRefresh={() => refetch()} />}
-
-                        {/* Tab Content: Fiscal */}
-                        {activeMainTab === 'fiscal' && <ModuleFiscalView module="hospitality" title="Hospitalidade" />}
 
                         {/* Tab Content: Management */}
                         {activeMainTab === 'management' && <HospitalityManagement />}
@@ -603,9 +592,15 @@ export default function Hospitality() {
 
             <CheckInModal
                 isOpen={isCheckInModalOpen}
-                onClose={() => setIsCheckInModalOpen(false)}
+                onClose={() => {
+                    setIsCheckInModalOpen(false);
+                    setSelectedRoom(null);
+                    checkInStepper.reset();
+                }}
                 onConfirm={handleCheckIn}
                 room={selectedRoom}
+                onRoomSelect={setSelectedRoom}
+                availableRooms={rooms.filter(r => r.status === 'available')}
                 data={checkInData}
                 setData={setCheckInData}
                 stepper={checkInStepper}
@@ -628,13 +623,11 @@ export default function Hospitality() {
                 onCheckout={(id) => handleCheckout(id)}
             />
 
-            <ConfirmationModal
-                isOpen={checkoutConfirmOpen}
-                onClose={() => setCheckoutConfirmOpen(false)}
-                onConfirm={performCheckout}
-                title="Confirmar Checkout"
-                message="Tem certeza que deseja realizar o checkout deste hóspede? Esta ação irá liberar o quarto e registrar o encerramento da estadia."
-                variant="info"
+            <CheckoutModal
+                isOpen={isCheckoutModalOpen}
+                onClose={() => setIsCheckoutModalOpen(false)}
+                onSuccess={performCheckout}
+                bookingId={selectedBookingForCheckout}
             />
 
             <ConfirmationModal

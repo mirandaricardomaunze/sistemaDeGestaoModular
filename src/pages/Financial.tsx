@@ -11,17 +11,15 @@ import {
     HiOutlineTrash,
     HiOutlineCheck,
     HiOutlineRefresh,
-    HiOutlineCalculator,
-    HiOutlineDocumentReport,
     HiOutlineCog,
-    HiOutlineHome,
 } from 'react-icons/hi';
 import { subDays, parseISO } from 'date-fns';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, LoadingSpinner, EmptyState } from '../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination } from '../components/ui';
 import { formatCurrency, formatDate, generateId, cn } from '../utils/helpers';
-import ModuleFiscalView from '../components/shared/ModuleFiscalView';
 import type { Transaction, TransactionType, TransactionStatus } from '../types';
 import toast from 'react-hot-toast';
+
+type TransactionFormData = z.infer<typeof transactionSchema>;
 
 // Time period options
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
@@ -44,7 +42,7 @@ const transactionSchema = z.object({
     notes: z.string().optional(),
 });
 
-type FinancialTab = 'transactions' | 'reports' | 'fiscal' | 'settings';
+type FinancialTab = 'transactions' | 'settings';
 
 export default function Financial() {
     // Local state for transactions (would come from store in production)
@@ -96,7 +94,7 @@ export default function Financial() {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
-    const { t } = useTranslation();
+    useTranslation();
 
     // Get date range based on period
     const periodStartDate = useMemo(() => {
@@ -148,14 +146,15 @@ export default function Financial() {
         });
     }, [periodTransactions, search, filterType, filterStatus]);
 
-    // Pagination (manual implementation since usePagination was removed or to match other pages)
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(10);
-    const totalItems = filteredTransactions.length;
-    const paginatedTransactions = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return filteredTransactions.slice(start, start + itemsPerPage);
-    }, [filteredTransactions, currentPage, itemsPerPage]);
+    // Pagination using standard hook
+    const {
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        paginatedItems: paginatedTransactions,
+        totalItems,
+    } = usePagination(filteredTransactions, 10);
 
     // Calculate summary (based on period)
     const summary = useMemo(() => {
@@ -229,10 +228,14 @@ export default function Financial() {
         { value: 'expense', label: 'Despesas' },
     ];
 
+    const statusOptions = [
+        { value: 'all', label: 'Todos' },
+        { value: 'completed', label: 'Concluído' },
+        { value: 'pending', label: 'Pendente' },
+    ];
+
     const tabs = [
         { id: 'transactions' as const, label: 'Lançamentos', icon: <HiOutlineTrendingUp className="w-5 h-5" /> },
-        { id: 'reports' as const, label: 'Relatórios', icon: <HiOutlineDocumentReport className="w-5 h-5" /> },
-        { id: 'fiscal' as const, label: 'Fiscal', icon: <HiOutlineCalculator className="w-5 h-5" /> },
         { id: 'settings' as const, label: 'Configuração', icon: <HiOutlineCog className="w-5 h-5" /> },
     ];
 
@@ -254,20 +257,21 @@ export default function Financial() {
 
                 {/* Tab Navigation */}
                 <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
-                    <div className="flex overflow-x-auto no-scrollbar -mb-px">
+                    <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as FinancialTab)}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                                 )}
                             >
-                                {tab.icon}
-                                {tab.label}
+                                <span className="shrink-0">{tab.icon}</span>
+                                <span className="hidden sm:inline-block">{tab.label}</span>
+                                <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
                             </button>
                         ))}
                     </div>
@@ -488,20 +492,12 @@ export default function Financial() {
                                 itemsPerPage={itemsPerPage}
                                 onPageChange={setCurrentPage}
                                 onItemsPerPageChange={setItemsPerPage}
+                                itemsPerPageOptions={[5, 10, 20, 50]}
                             />
                         </div>
                     </div>
                 )}
 
-                {activeTab === 'reports' && (
-                    <Card padding="lg" className="flex flex-col items-center justify-center py-20">
-                        <HiOutlineDocumentReport className="w-16 h-16 text-gray-300 mb-4" />
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">Relatórios Financeiros</h3>
-                        <p className="text-gray-500 text-center max-w-md">Gere relatórios detalhados de DRE, fluxo de caixa e balancetes.</p>
-                    </Card>
-                )}
-
-                {activeTab === 'fiscal' && <ModuleFiscalView module="financial" title="Gestão Financeira & Fiscal" />}
 
                 {activeTab === 'settings' && (
                     <Card padding="lg" className="flex flex-col items-center justify-center py-20">

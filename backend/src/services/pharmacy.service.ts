@@ -292,6 +292,7 @@ export class PharmacyService {
         if (!items || items.length === 0) throw new Error('A venda deve ter pelo menos um item');
 
         const lastSale = await prisma.pharmacySale.findFirst({
+            where: { companyId },
             orderBy: { createdAt: 'desc' },
             select: { saleNumber: true }
         });
@@ -302,8 +303,13 @@ export class PharmacyService {
         const saleItems = [];
 
         for (const item of items) {
-            const batch = await prisma.medicationBatch.findUnique({
-                where: { id: item.batchId },
+            const batch = await prisma.medicationBatch.findFirst({
+                where: {
+                    id: item.batchId,
+                    medication: {
+                        product: { companyId }
+                    }
+                },
                 include: { medication: { include: { product: true } } }
             });
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -7,8 +7,11 @@ import {
     type SortingState,
     type ColumnFiltersState,
 } from '@tanstack/react-table';
-import { HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineEye, HiOutlinePlus, HiOutlineOfficeBuilding, HiOutlineRefresh } from 'react-icons/hi';
+import { HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineEye, HiOutlineOfficeBuilding, HiOutlineRefresh, HiOutlinePlusCircle, HiOutlineClock } from 'react-icons/hi';
 import { Button, Badge, Modal, Card, Input, Select, Pagination, DataTable } from '../ui';
+import StockAdjustmentModal from './StockAdjustmentModal';
+import { ProductStockHistory } from './ProductStockHistory';
+import { ExportProductsButton } from '../common/ExportButton';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { categoryLabels, statusLabels } from '../../utils/constants';
 import type { Product, ProductCategory, StockStatus } from '../../types';
@@ -21,9 +24,10 @@ interface InventoryTableProps {
     onEdit?: (product: Product) => void;
     onView?: (product: Product) => void;
     onAddProduct?: () => void;
+    initialSearch?: string;
 }
 
-export default function InventoryTable({ onEdit, onView, onAddProduct }: InventoryTableProps) {
+export default function InventoryTable({ onEdit, onView, onAddProduct, initialSearch }: InventoryTableProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -35,8 +39,17 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [detailModalOpen, setDetailModalOpen] = useState(false);
+    const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+    const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Sync global filter with initial search
+    useEffect(() => {
+        if (initialSearch !== undefined) {
+            setGlobalFilter(initialSearch);
+        }
+    }, [initialSearch]);
 
     // Use API hooks with pagination and filters
     const { products, pagination, isLoading, refetch, deleteProduct } = useProducts({
@@ -140,6 +153,26 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
                 header: 'Ações',
                 cell: ({ row }) => (
                     <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => {
+                                setSelectedProduct(row.original);
+                                setAdjustmentModalOpen(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-green-600 transition-colors"
+                            title="Ajustar Stock"
+                        >
+                            <HiOutlinePlusCircle className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => {
+                                setSelectedProduct(row.original);
+                                setHistoryModalOpen(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 transition-colors"
+                            title="Ver Histórico de Stock"
+                        >
+                            <HiOutlineClock className="w-4 h-4" />
+                        </button>
                         <button
                             onClick={() => handleView(row.original)}
                             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 transition-colors"
@@ -272,19 +305,19 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
                         />
                     </div>
 
-                    {/* Refresh Button */}
-                    <Button
-                        variant="ghost"
-                        onClick={() => refetch()}
-                        leftIcon={<HiOutlineRefresh className="w-5 h-5" />}
-                    >
-                        Atualizar
-                    </Button>
-
-                    {/* Add Button */}
-                    <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={onAddProduct}>
-                        Novo Produto
-                    </Button>
+                    {/* Export Button */}
+                    <div className="flex gap-2">
+                        <Button
+                            variant="ghost"
+                            size="md"
+                            onClick={() => refetch()}
+                            isLoading={isLoading}
+                            title="Atualizar dados"
+                        >
+                            <HiOutlineRefresh className="w-5 h-5 text-gray-500" />
+                        </Button>
+                        <ExportProductsButton data={products} />
+                    </div>
                 </div>
             </Card>
 
@@ -295,9 +328,9 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
                     isLoading={isLoading}
                     isEmpty={products.length === 0}
                     emptyTitle="Nenhum produto encontrado"
-                    emptyDescription="Tente ajustar seus filtros ou adicione um novo produto."
+                    emptyDescription="Tente ajustar seus filtros ou termos de busca."
                     onEmptyAction={onAddProduct}
-                    emptyActionLabel="Adicionar Produto"
+                    emptyActionLabel="Novo Produto"
                     minHeight="450px"
                 />
 
@@ -476,6 +509,23 @@ export default function InventoryTable({ onEdit, onView, onAddProduct }: Invento
                     </div>
                 )}
             </Modal>
+
+            {/* Stock Adjustment Modal */}
+            <StockAdjustmentModal
+                isOpen={adjustmentModalOpen}
+                onClose={() => setAdjustmentModalOpen(false)}
+                product={selectedProduct}
+                onSuccess={() => refetch()}
+            />
+
+            {/* Product Stock History Modal */}
+            {selectedProduct && (
+                <ProductStockHistory
+                    isOpen={historyModalOpen}
+                    onClose={() => setHistoryModalOpen(false)}
+                    product={selectedProduct}
+                />
+            )}
         </div>
     );
 }

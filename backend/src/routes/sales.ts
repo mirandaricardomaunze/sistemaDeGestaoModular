@@ -240,7 +240,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 isActive: boolean;
             }>>`
                 SELECT * FROM document_series 
-                WHERE prefix = 'FR' AND "isActive" = true 
+                WHERE prefix = 'FR' AND "isActive" = true AND "companyId" = ${req.companyId}
                 ORDER BY "createdAt" DESC 
                 LIMIT 1 
                 FOR UPDATE
@@ -256,7 +256,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                         prefix: 'FR',
                         series: 'A',
                         lastNumber: 0,
-                        isActive: true
+                        isActive: true,
+                        companyId: req.companyId
                     }
                 });
             }
@@ -328,15 +329,35 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 }
             });
 
-            // Step 6: Update Stock
-            await Promise.all(
-                items.map((item: any) =>
-                    tx.product.update({
-                        where: { id: item.productId },
-                        data: { currentStock: { decrement: item.quantity } }
-                    })
-                )
-            );
+            // Step 6: Update Stock & Log Movements
+            for (const item of items) {
+                const product = productMap.get(item.productId);
+                const balanceBefore = product?.currentStock || 0;
+                const balanceAfter = balanceBefore - item.quantity;
+
+                // Update Quantities
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: { currentStock: { decrement: item.quantity } }
+                });
+
+                // Log Movement (Audit)
+                await tx.stockMovement.create({
+                    data: {
+                        productId: item.productId,
+                        movementType: 'sale',
+                        quantity: -item.quantity,
+                        balanceBefore,
+                        balanceAfter,
+                        reference: receiptNumber,
+                        referenceType: 'sale',
+                        reason: `Venda ${receiptNumber}`,
+                        performedBy: req.userName || 'PDV', // Potentially user ID or Name
+                        companyId: req.companyId,
+                        originModule: 'pos'
+                    }
+                });
+            }
 
             // Step 7: Update Product Status & Alerts (Logic unchanged, summarized for brevity)
             const updatedProducts = await tx.product.findMany({
@@ -524,6 +545,9 @@ router.get('/stats/summary', authenticate, async (req: AuthRequest, res) => {
         // Top products
         const topProducts = await prisma.saleItem.groupBy({
             by: ['productId'],
+            where: {
+                sale: { companyId: req.companyId }
+            },
             _sum: { quantity: true, total: true },
             orderBy: { _sum: { total: 'desc' } },
             take: 10
@@ -587,11 +611,38 @@ router.post('/:id/cancel', authenticate, authorize('admin', 'manager'), async (r
                 throw new Error('Venda não encontrada');
             }
 
-            // 2. Restore stock
+            // 2. Restore stock and log movements
+            const productIds = sale.items.map(i => i.productId);
+            const products = await tx.product.findMany({
+                where: { id: { in: productIds } }
+            });
+            const productMap = new Map(products.map(p => [p.id, p]));
+
             for (const item of sale.items) {
+                const product = productMap.get(item.productId);
+                const balanceBefore = product?.currentStock || 0;
+                const balanceAfter = balanceBefore + item.quantity;
+
                 await tx.product.update({
                     where: { id: item.productId },
                     data: { currentStock: { increment: item.quantity } }
+                });
+
+                // Log Movement (Audit)
+                await tx.stockMovement.create({
+                    data: {
+                        productId: item.productId,
+                        movementType: 'return_in',
+                        quantity: item.quantity,
+                        balanceBefore,
+                        balanceAfter,
+                        reason: `Anulação de Venda ${sale.receiptNumber}`,
+                        performedBy: req.userName || 'Admin',
+                        companyId: req.companyId,
+                        originModule: 'pos',
+                        reference: sale.receiptNumber,
+                        referenceType: 'sale'
+                    }
                 });
             }
 

@@ -335,9 +335,16 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                                 <div className="text-right">
                                     <div className="inline-block border-2 border-primary-100 p-4 rounded-2xl bg-primary-50/30 text-left min-w-[200px]">
                                         <p className="text-[8px] font-bold text-primary-500 uppercase tracking-widest mb-2 text-center">Dados Bancários para Transferência</p>
-                                        <p className="text-[10px] text-gray-700"><strong>Millenium BIM:</strong> 123456789</p>
-                                        <p className="text-[10px] text-gray-700"><strong>Standard Bank:</strong> 987654321</p>
-                                        <p className="text-[10px] text-gray-700"><strong>M-Pesa:</strong> 84 000 0000</p>
+                                        {company.bankAccounts && company.bankAccounts.length > 0 ? (
+                                            company.bankAccounts.map((bank, idx) => (
+                                                <p key={idx} className="text-[10px] text-gray-700">
+                                                    <strong>{bank.bankName}:</strong> {bank.accountNumber}
+                                                    {bank.nib && <span className="block text-[8px] text-gray-500">NIB: {bank.nib}</span>}
+                                                </p>
+                                            ))
+                                        ) : (
+                                            <p className="text-[10px] text-gray-400 italic">Pagar em numerário ou M-Pesa</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>

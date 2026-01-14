@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button, Card, Input, Modal, Badge, Pagination, usePagination } from '../ui';
-import { HiOutlinePlus, HiOutlinePencil, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
+import { HiOutlinePencil, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import { useWarehouses } from '../../hooks/useData';
 
@@ -87,15 +87,8 @@ export default function WarehouseManager() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Gerir Armazéns</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Cadastre e gerencie seus locais de estoque</p>
-                </div>
-                <Button onClick={() => handleOpenModal()} leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
-                    Novo Armazém
-                </Button>
-            </div>
+            <button id="new-warehouse-btn" className="hidden" onClick={() => handleOpenModal()} />
+
 
             <Card padding="none">
                 <div className="overflow-x-auto">

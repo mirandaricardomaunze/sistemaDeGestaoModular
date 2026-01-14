@@ -367,7 +367,9 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
 
         // Generate credit note number
         const year = new Date().getFullYear();
-        const count = await prisma.creditNote.count();
+        const count = await prisma.creditNote.count({
+            where: { companyId: req.companyId }
+        });
         const number = `NC-${year}-${String(count + 1).padStart(4, '0')}`;
 
         // Calculate totals
@@ -387,6 +389,7 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
                 total,
                 reason,
                 notes,
+                companyId: req.companyId,
                 items: {
                     create: items.map((item) => ({
                         productId: item.productId,
@@ -394,7 +397,8 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
                         quantity: item.quantity,
                         unitPrice: item.unitPrice,
                         total: item.total,
-                        originalInvoiceItemId: item.originalInvoiceItemId
+                        originalInvoiceItemId: item.originalInvoiceItemId,
+                        companyId: req.companyId
                     }))
                 }
             },

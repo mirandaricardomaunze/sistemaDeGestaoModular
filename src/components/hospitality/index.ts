@@ -14,4 +14,5 @@ export { default as ReservationCalendar } from './ReservationCalendar';
 export { default as RoomFormModal } from './RoomFormModal';
 export { default as ConsumptionModal } from './ConsumptionModal';
 export { default as CheckInModal } from './CheckInModal';
+export { default as CheckoutModal } from './CheckoutModal';
 export { default as CheckoutNotifications } from './CheckoutNotifications';

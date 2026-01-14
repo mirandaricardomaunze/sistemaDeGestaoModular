@@ -33,59 +33,78 @@ model User {
 }
 
 model Company {
-  id                String             @id @default(uuid())
-  name              String
-  tradeName         String?
-  nuit              String?            @unique
-  phone             String?
-  email             String?
-  address           String?
-  businessType      BusinessType       @default(retail)
-  status            CompanyStatus      @default(active)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  settings          Json?
-  modules           CompanyModule[]
-  products          Product[]
-  users             User[]
-  employees         Employee[]
-  categories        Category[]
-  suppliers         Supplier[]
-  pharmacySales     PharmacySale[]
-  prescriptions     Prescription[]
-  rooms             Room[]
-  bookings          Booking[]
-  customers         Customer[]
-  taxConfigs        TaxConfig[]
-  sales             Sale[]
-  invoices          Invoice[]
-  alerts            Alert[]
-  warehouses        Warehouse[]
-  stockTransfers    StockTransfer[]
-  customerOrders    CustomerOrder[]
-  auditLogs         AuditLog[]
-  housekeepingTasks HousekeepingTask[]
-  transactions      Transaction[]
-  campaigns         Campaign[]
-  funnelStages      FunnelStage[]
-  opportunities     Opportunity[]
-  taxRetentions     TaxRetention[]
-  fiscalReports     FiscalReport[]
-  fiscalDeadlines   FiscalDeadline[]
-  companySettings   CompanySettings?
+  id                      String                   @id @default(uuid())
+  name                    String
+  tradeName               String?
+  nuit                    String?                  @unique
+  phone                   String?
+  email                   String?
+  address                 String?
+  businessType            BusinessType             @default(retail)
+  status                  CompanyStatus            @default(active)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  settings                Json?
+  modules                 CompanyModule[]
+  products                Product[]
+  users                   User[]
+  employees               Employee[]
+  categories              Category[]
+  suppliers               Supplier[]
+  pharmacySales           PharmacySale[]
+  prescriptions           Prescription[]
+  rooms                   Room[]
+  bookings                Booking[]
+  customers               Customer[]
+  taxConfigs              TaxConfig[]
+  sales                   Sale[]
+  invoices                Invoice[]
+  alerts                  Alert[]
+  warehouses              Warehouse[]
+  stockTransfers          StockTransfer[]
+  customerOrders          CustomerOrder[]
+  auditLogs               AuditLog[]
+  housekeepingTasks       HousekeepingTask[]
+  transactions            Transaction[]
+  campaigns               Campaign[]
+  funnelStages            FunnelStage[]
+  opportunities           Opportunity[]
+  taxRetentions           TaxRetention[]
+  fiscalReports           FiscalReport[]
+  fiscalDeadlines         FiscalDeadline[]
+  companySettings         CompanySettings?
+  mpesaTransactions       MpesaTransaction[]
+  documentSeries          DocumentSeries[]
+  creditNotes             CreditNote[]
+  purchaseOrders          PurchaseOrder[]
+  alertConfig             AlertConfig?
+  irpsBrackets            IRPSBracket[]
+  pharmacyDashboardCaches PharmacyDashboardCache[]
+  medications             Medication[]
+  medicationBatches       MedicationBatch[]
+  payrollRecords          PayrollRecord[]
+  attendanceRecords       AttendanceRecord[]
+  vacationRequests        VacationRequest[]
+  academicQualifications  AcademicQualification[]
+  // Logistics Module
+  vehicles                Vehicle[]
+  drivers                 Driver[]
+  deliveryRoutes          DeliveryRoute[]
+  deliveries              Delivery[]
+  parcels                 Parcel[]
 
   @@map("companies")
 }
 
 model Module {
-  id          String          @id @default(uuid())
-  code        String          @unique
+  id          String  @id @default(uuid())
+  code        String  @unique
   name        String
   description String?
-  isActive    Boolean         @default(true)
+  isActive    Boolean @default(true)
   color       String?
   icon        String?
-  companies   CompanyModule[]
+  // Note: This model is now optional - modules are defined statically in backend/src/constants/modules.constants.ts
 
   @@map("modules")
 }
@@ -157,22 +176,21 @@ model CustomerHistory {
 }
 
 model CompanyModule {
-  id        String    @id @default(uuid())
-  companyId String
-  moduleId  String
-  isActive  Boolean   @default(true)
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
-  company   Company   @relation(fields: [companyId], references: [id])
-  module    Module    @relation(fields: [moduleId], references: [id])
+  id         String    @id @default(uuid())
+  companyId  String
+  moduleCode String // Static module code from OPTIONAL_MODULES or CORE_MODULES
+  isActive   Boolean   @default(true)
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  company    Company   @relation(fields: [companyId], references: [id])
 
-  @@unique([companyId, moduleId])
+  @@unique([companyId, moduleCode])
   @@map("company_modules")
 }
 
 model Product {
   id                  String               @id @default(uuid())
-  code                String               @unique
+  code                String
   name                String
   description         String?
   category            ProductCategory      @default(other)
@@ -182,7 +200,7 @@ model Product {
   minStock            Int                  @default(5)
   maxStock            Int?
   unit                String               @default("un")
-  barcode             String?              @unique
+  barcode             String?
   expiryDate          DateTime?
   batchNumber         String?
   location            String?
@@ -207,13 +225,16 @@ model Product {
   stockMovements      StockMovement[]
   transferItems       StockTransferItem[]
   warehouseStocks     WarehouseStock[]
+  deliveryItems       DeliveryItem[]
 
+  @@unique([companyId, code])
+  @@unique([companyId, barcode])
   @@map("products")
 }
 
 model Category {
   id          String     @id @default(uuid())
-  code        String     @unique
+  code        String
   name        String
   description String?
   parentId    String?
@@ -227,12 +248,13 @@ model Category {
   parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryTree")
 
+  @@unique([companyId, code])
   @@map("categories")
 }
 
 model Warehouse {
   id             String           @id @default(uuid())
-  code           String           @unique
+  code           String
   name           String
   location       String?
   responsible    String?
@@ -244,9 +266,11 @@ model Warehouse {
   transfersFrom  StockTransfer[]  @relation("SourceWarehouse")
   transfersTo    StockTransfer[]  @relation("TargetWarehouse")
   stocks         WarehouseStock[]
+  parcels        Parcel[]
   companyId      String?
   company        Company?         @relation(fields: [companyId], references: [id])
 
+  @@unique([companyId, code])
   @@index([companyId])
   @@map("warehouses")
 }
@@ -267,7 +291,7 @@ model WarehouseStock {
 
 model StockTransfer {
   id                String              @id @default(uuid())
-  number            String              @unique
+  number            String
   sourceWarehouseId String
   targetWarehouseId String
   status            TransferStatus      @default(pending)
@@ -281,6 +305,7 @@ model StockTransfer {
   companyId         String?
   company           Company?            @relation(fields: [companyId], references: [id])
 
+  @@unique([companyId, number])
   @@index([companyId])
   @@map("stock_transfers")
 }
@@ -373,7 +398,7 @@ model Supplier {
 
 model PurchaseOrder {
   id                   String              @id @default(uuid())
-  orderNumber          String              @unique
+  orderNumber          String
   supplierId           String
   total                Decimal             @db.Decimal(15, 2)
   status               PurchaseOrderStatus @default(draft)
@@ -384,8 +409,37 @@ model PurchaseOrder {
   updatedAt            DateTime            @updatedAt
   items                PurchaseOrderItem[]
   supplier             Supplier            @relation(fields: [supplierId], references: [id])
+  companyId            String?
+  company              Company?            @relation(fields: [companyId], references: [id])
 
+  @@unique([companyId, orderNumber])
+  @@index([companyId])
   @@map("purchase_orders")
+}
+
+model CreditNote {
+  id                String           @id @default(uuid())
+  number            String
+  originalInvoiceId String
+  customerId        String?
+  customerName      String
+  subtotal          Decimal          @db.Decimal(15, 2)
+  tax               Decimal          @db.Decimal(15, 2)
+  total             Decimal          @db.Decimal(15, 2)
+  reason            String
+  status            CreditNoteStatus @default(draft)
+  issueDate         DateTime         @default(now())
+  notes             String?
+  createdAt         DateTime         @default(now())
+  items             CreditNoteItem[]
+  customer          Customer?        @relation(fields: [customerId], references: [id])
+  originalInvoice   Invoice          @relation(fields: [originalInvoiceId], references: [id])
+  companyId         String?
+  company           Company?         @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, number])
+  @@index([companyId])
+  @@map("credit_notes")
 }
 
 model PurchaseOrderItem {
@@ -404,7 +458,7 @@ model PurchaseOrderItem {
 
 model CustomerOrder {
   id              String                  @id @default(uuid())
-  orderNumber     String                  @unique
+  orderNumber     String
   customerName    String
   customerPhone   String
   customerEmail   String?
@@ -422,6 +476,7 @@ model CustomerOrder {
   companyId       String?
   company         Company?                @relation(fields: [companyId], references: [id])
 
+  @@unique([companyId, orderNumber])
   @@index([companyId])
   @@map("customer_orders")
 }
@@ -453,7 +508,7 @@ model OrderStatusTransition {
 
 model Sale {
   id            String        @id @default(uuid())
-  receiptNumber String        @unique
+  receiptNumber String
   customerId    String?
   userId        String
   subtotal      Decimal       @db.Decimal(15, 2)
@@ -474,6 +529,7 @@ model Sale {
   companyId     String?
   company       Company?      @relation(fields: [companyId], references: [id])
 
+  @@unique([companyId, receiptNumber])
   @@index([companyId])
   @@map("sales")
 }
@@ -494,7 +550,7 @@ model SaleItem {
 
 model Invoice {
   id               String           @id @default(uuid())
-  invoiceNumber    String           @unique
+  invoiceNumber    String
   orderId          String?
   orderNumber      String?
   customerId       String?
@@ -554,27 +610,6 @@ model InvoicePayment {
   invoice   Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@map("invoice_payments")
-}
-
-model CreditNote {
-  id                String           @id @default(uuid())
-  number            String           @unique
-  originalInvoiceId String
-  customerId        String?
-  customerName      String
-  subtotal          Decimal          @db.Decimal(15, 2)
-  tax               Decimal          @db.Decimal(15, 2)
-  total             Decimal          @db.Decimal(15, 2)
-  reason            String
-  status            CreditNoteStatus @default(draft)
-  issueDate         DateTime         @default(now())
-  notes             String?
-  createdAt         DateTime         @default(now())
-  items             CreditNoteItem[]
-  customer          Customer?        @relation(fields: [customerId], references: [id])
-  originalInvoice   Invoice          @relation(fields: [originalInvoiceId], references: [id])
-
-  @@map("credit_notes")
 }
 
 model CreditNoteItem {
@@ -648,7 +683,10 @@ model AcademicQualification {
   isCompleted       Boolean        @default(false)
   certificateNumber String?
   employee          Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  companyId         String?
+  company           Company?       @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("academic_qualifications")
 }
 
@@ -663,8 +701,11 @@ model AttendanceRecord {
   notes         String?
   justification String?
   employee      Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  companyId     String?
+  company       Company?         @relation(fields: [companyId], references: [id])
 
   @@unique([employeeId, date])
+  @@index([companyId])
   @@map("attendance_records")
 }
 
@@ -689,8 +730,11 @@ model PayrollRecord {
   paidAt          DateTime?
   notes           String?
   employee        Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  companyId       String?
+  company         Company?      @relation(fields: [companyId], references: [id])
 
   @@unique([employeeId, month, year])
+  @@index([companyId])
   @@map("payroll_records")
 }
 
@@ -705,7 +749,12 @@ model VacationRequest {
   notes      String?
   createdAt  DateTime       @default(now())
   employee   Employee       @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  reason     String?
+  updatedAt  DateTime       @updatedAt
+  companyId  String?
+  company    Company?       @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("vacation_requests")
 }
 
@@ -733,11 +782,19 @@ model Transaction {
   room      Room?    @relation(fields: [roomId], references: [id])
   module    String? // hospitality, pharmacy, retail, etc.
 
+  // Logistics integration
+  parcelId      String?
+  parcel        Parcel?  @relation(fields: [parcelId], references: [id])
+  deliveryId    String?
+  delivery      Delivery? @relation(fields: [deliveryId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([companyId])
   @@index([bookingId])
+  @@index([parcelId])
+  @@index([deliveryId])
   @@index([module])
   @@index([type])
   @@index([date])
@@ -750,16 +807,22 @@ model Alert {
   priority    AlertPriority @default(medium)
   title       String
   message     String
+  module      String? // pos, hospitality, pharmacy, crm, invoices, inventory
   isRead      Boolean       @default(false)
   isResolved  Boolean       @default(false)
   relatedId   String?
   relatedType String?
+  actionUrl   String? // URL to navigate when clicked
+  metadata    Json? // Additional data for the alert
   createdAt   DateTime      @default(now())
   resolvedAt  DateTime?
   companyId   String?
   company     Company?      @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
+  @@index([module])
+  @@index([type])
+  @@index([isRead, isResolved])
   @@map("alerts")
 }
 
@@ -772,16 +835,24 @@ model CompanySettings {
   email        String?
   address      String?
   city         String?
+  zipCode      String?
   province     String?
   country      String       @default("Moçambique")
   logo         String?
   ivaRate      Decimal      @default(16) @db.Decimal(5, 2)
   currency     String       @default("MZN")
   businessType BusinessType @default(retail)
-  
+
+  // Print settings
+  printerType       String  @default("thermal") // "thermal" | "a4"
+  thermalPaperWidth String  @default("80mm") // "80mm" | "58mm"
+  autoPrintReceipt  Boolean @default(true)
+  bankAccounts      Json? // List of bank accounts for documents
+
+
   // Multi-tenancy
-  companyId    String?      @unique
-  company      Company?     @relation(fields: [companyId], references: [id])
+  companyId String?  @unique
+  company   Company? @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@map("company_settings")
@@ -859,7 +930,10 @@ model AlertConfig {
   enablePushNotifications Boolean  @default(true)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+  companyId               String?  @unique
+  company                 Company? @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("alert_config")
 }
 
@@ -975,7 +1049,10 @@ model IRPSBracket {
   isActive       Boolean  @default(true)
   year           Int
   createdAt      DateTime @default(now())
+  companyId      String?
+  company        Company? @relation(fields: [companyId], references: [id])
 
+  @@index([companyId])
   @@map("irps_brackets")
 }
 
@@ -1039,7 +1116,7 @@ model FiscalDeadline {
 
 model DocumentSeries {
   id         String   @id @default(uuid())
-  code       String   @unique
+  code       String
   name       String
   prefix     String
   series     String
@@ -1047,13 +1124,17 @@ model DocumentSeries {
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  companyId  String?
+  company    Company? @relation(fields: [companyId], references: [id])
 
+  @@unique([companyId, code])
+  @@index([companyId])
   @@map("document_series")
 }
 
 model Room {
   id                String             @id @default(uuid())
-  number            String             @unique
+  number            String
   type              RoomType           @default(single)
   status            RoomStatus         @default(available)
   price             Decimal            @db.Decimal(15, 2)
@@ -1070,6 +1151,7 @@ model Room {
   housekeepingTasks HousekeepingTask[]
   transactions      Transaction[]
 
+  @@unique([number, companyId])
   @@index([companyId])
   @@map("rooms")
 }
@@ -1158,9 +1240,12 @@ model Medication {
   concentration        String?
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
+  companyId            String?
+  company              Company?          @relation(fields: [companyId], references: [id])
   batches              MedicationBatch[]
   product              Product           @relation(fields: [productId], references: [id])
 
+  @@index([companyId])
   @@map("medications")
 }
 
@@ -1180,15 +1265,18 @@ model MedicationBatch {
   notes             String?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
+  companyId         String?
+  company           Company?           @relation(fields: [companyId], references: [id])
   medication        Medication         @relation(fields: [medicationId], references: [id])
   saleItems         PharmacySaleItem[]
 
+  @@index([companyId])
   @@map("medication_batches")
 }
 
 model PharmacySale {
   id             String             @id @default(uuid())
-  saleNumber     String             @unique
+  saleNumber     String
   customerId     String?
   customerName   String?
   prescriptionId String?
@@ -1208,6 +1296,7 @@ model PharmacySale {
   customer       Customer?          @relation(fields: [customerId], references: [id])
   prescription   Prescription?      @relation(fields: [prescriptionId], references: [id])
 
+  @@unique([companyId, saleNumber])
   @@map("pharmacy_sales")
 }
 
@@ -1229,7 +1318,7 @@ model PharmacySaleItem {
 
 model Prescription {
   id               String             @id @default(uuid())
-  prescriptionNo   String             @unique
+  prescriptionNo   String
   patientName      String
   patientPhone     String?
   patientBirthDate DateTime?
@@ -1295,15 +1384,6 @@ model StockMovement {
   @@index([productId])
   @@index([warehouseId])
   @@map("stock_movements")
-}
-
-model PharmacyDashboardCache {
-  id        String   @id @default(uuid())
-  metric    String   @unique
-  value     Json
-  updatedAt DateTime @updatedAt
-
-  @@map("pharmacy_dashboard_cache")
 }
 
 enum CompanyStatus {
@@ -1472,13 +1552,39 @@ enum TransactionStatus {
 }
 
 enum AlertType {
+  // Inventory
   low_stock
+  out_of_stock
   expired_product
+  expiring_soon
+
+  // Invoices/Payments
   payment_due
+  payment_overdue
+
+  // Hospitality
+  checkout_today
+  checkout_overdue
+  room_cleaning_required
+  booking_pending
+
+  // Pharmacy
+  controlled_medication_low
+  prescription_pending
+  batch_expiring
+
+  // CRM
+  opportunity_stale
+  follow_up_due
+
+  // Orders
   order_delayed
+
+  // General
   system
   employee
   sales
+  custom
 }
 
 enum AlertPriority {
@@ -1588,4 +1694,345 @@ enum MovementType {
   expired
   transfer
   loss
+}
+
+model PharmacyDashboardCache {
+  id        String   @id @default(uuid())
+  metric    String
+  value     Json
+  updatedAt DateTime @updatedAt
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  @@unique([companyId, metric])
+  @@index([companyId])
+  @@map("pharmacy_dashboard_cache")
+}
+
+// ============================================================================
+// M-Pesa Payment Integration
+// ============================================================================
+
+model MpesaTransaction {
+  id                String    @id @default(uuid())
+  transactionId     String?   @unique // M-Pesa transaction ID
+  conversationId    String? // M-Pesa conversation ID
+  phone             String
+  amount            Decimal   @db.Decimal(15, 2)
+  reference         String // Internal reference (e.g., INV-2024-00001)
+  status            String    @default("pending") // pending, processing, completed, failed, cancelled
+  module            String // pos, invoice, hospitality, pharmacy
+  moduleReferenceId String? // saleId, invoiceId, bookingId
+  errorCode         String?
+  errorMessage      String?
+  requestPayload    Json? // Store request for debugging
+  responsePayload   Json? // Store response for debugging
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  completedAt       DateTime?
+
+  // Multi-tenancy
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([status])
+  @@index([phone])
+  @@index([transactionId])
+  @@map("mpesa_transactions")
+}
+
+// ============================================================================
+// LOGISTICS MODULE - Vehicles, Drivers, Routes, Deliveries, Parcels
+// ============================================================================
+
+model Vehicle {
+  id              String               @id @default(uuid())
+  plate           String
+  brand           String
+  model           String
+  year            Int?
+  type            VehicleType          @default(truck)
+  capacity        Decimal?             @db.Decimal(10, 2)
+  capacityUnit    String?              @default("kg")
+  fuelType        String?
+  status          VehicleStatus        @default(available)
+  lastMaintenance DateTime?
+  nextMaintenance DateTime?
+  mileage         Int                  @default(0)
+  insuranceExpiry DateTime?
+  notes           String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  companyId       String?
+  company         Company?             @relation(fields: [companyId], references: [id])
+  maintenances    VehicleMaintenance[]
+  deliveries      Delivery[]
+
+  @@unique([companyId, plate])
+  @@index([companyId])
+  @@map("vehicles")
+}
+
+model Driver {
+  id            String       @id @default(uuid())
+  code          String
+  name          String
+  phone         String
+  email         String?
+  licenseNumber String
+  licenseType   String?
+  licenseExpiry DateTime?
+  status        DriverStatus @default(available)
+  hireDate      DateTime?
+  address       String?
+  emergencyContact String?
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  companyId     String?
+  company       Company?     @relation(fields: [companyId], references: [id])
+  deliveries    Delivery[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("drivers")
+}
+
+model VehicleMaintenance {
+  id          String            @id @default(uuid())
+  vehicleId   String
+  type        MaintenanceType   @default(preventive)
+  description String
+  cost        Decimal           @db.Decimal(15, 2)
+  date        DateTime          @default(now())
+  nextDate    DateTime?
+  mileageAt   Int?
+  status      MaintenanceStatus @default(scheduled)
+  provider    String?
+  notes       String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  vehicle     Vehicle           @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@map("vehicle_maintenances")
+}
+
+model DeliveryRoute {
+  id            String     @id @default(uuid())
+  code          String
+  name          String
+  origin        String
+  destination   String
+  distance      Decimal?   @db.Decimal(10, 2)
+  estimatedTime Int?       // em minutos
+  tollCost      Decimal?   @db.Decimal(10, 2)
+  fuelEstimate  Decimal?   @db.Decimal(10, 2)
+  isActive      Boolean    @default(true)
+  notes         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  companyId     String?
+  company       Company?   @relation(fields: [companyId], references: [id])
+  deliveries    Delivery[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("delivery_routes")
+}
+
+model Delivery {
+  id              String         @id @default(uuid())
+  number          String
+  orderId         String?
+  customerId      String?
+  routeId         String?
+  vehicleId       String?
+  driverId        String?
+  status          DeliveryStatus @default(pending)
+  priority        DeliveryPriority @default(normal)
+  scheduledDate   DateTime?
+  departureDate   DateTime?
+  deliveredDate   DateTime?
+  recipientName   String?
+  recipientPhone  String?
+  recipientSign   String?        // Base64 da assinatura
+  deliveryAddress String
+  latitude        Decimal?       @db.Decimal(10, 8)
+  longitude       Decimal?       @db.Decimal(11, 8)
+  notes           String?
+  proofOfDelivery String?        // URL da foto
+  failureReason   String?
+  attempts        Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  companyId       String?
+  company         Company?       @relation(fields: [companyId], references: [id])
+  route           DeliveryRoute? @relation(fields: [routeId], references: [id])
+  vehicle         Vehicle?       @relation(fields: [vehicleId], references: [id])
+  driver          Driver?        @relation(fields: [driverId], references: [id])
+  country         String?        @default("Moçambique")
+  province        String?
+  city            String?
+  shippingCost    Decimal?       @db.Decimal(15, 2)
+  isPaid          Boolean        @default(false)
+  transactionId   String?
+  items           DeliveryItem[]
+  transactions    Transaction[]
+
+  @@unique([companyId, number])
+  @@index([companyId])
+  @@index([status])
+  @@map("deliveries")
+}
+
+model DeliveryItem {
+  id          String   @id @default(uuid())
+  deliveryId  String
+  productId   String?
+  description String
+  quantity    Int      @default(1)
+  weight      Decimal? @db.Decimal(10, 2)
+  notes       String?
+  delivery    Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  product     Product? @relation(fields: [productId], references: [id])
+
+  @@index([deliveryId])
+  @@map("delivery_items")
+}
+
+model Parcel {
+  id               String        @id @default(uuid())
+  trackingNumber   String
+  senderName       String
+  senderPhone      String
+  senderEmail      String?
+  senderAddress    String?
+  recipientName    String
+  recipientPhone   String
+  recipientEmail   String?
+  recipientAddress String?
+  recipientDocument String?
+  description      String?
+  weight           Decimal?      @db.Decimal(10, 2)
+  dimensions       String?       // "LxWxH cm"
+  status           ParcelStatus  @default(received)
+  receivedAt       DateTime      @default(now())
+  expectedPickup   DateTime?
+  pickedUpAt       DateTime?
+  pickedUpBy       String?       // Nome de quem levantou
+  pickedUpDocument String?       // Documento de quem levantou
+  pickupSignature  String?       // Base64 da assinatura
+  storageLocation  String?       // Prateleira/local no armazém
+  warehouseId      String?
+  fees             Decimal       @default(0) @db.Decimal(15, 2)
+  isPaid           Boolean       @default(false)
+  paymentMethod    String?
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  companyId        String?
+  company          Company?      @relation(fields: [companyId], references: [id])
+  warehouse        Warehouse?    @relation(fields: [warehouseId], references: [id])
+  receiverRelationship String?  // Relação com o destinatário
+  transactionId   String?       // Link para transação financeira
+  notifications    ParcelNotification[]
+  transactions     Transaction[]
+
+  @@unique([companyId, trackingNumber])
+  @@index([companyId])
+  @@index([status])
+  @@index([recipientPhone])
+  @@map("parcels")
+}
+
+model ParcelNotification {
+  id        String           @id @default(uuid())
+  parcelId  String
+  type      NotificationType @default(email)
+  recipient String
+  message   String
+  sentAt    DateTime         @default(now())
+  status    String           @default("sent")
+  errorMsg  String?
+  parcel    Parcel           @relation(fields: [parcelId], references: [id], onDelete: Cascade)
+
+  @@index([parcelId])
+  @@map("parcel_notifications")
+}
+
+// ============================================================================
+// LOGISTICS ENUMS
+// ============================================================================
+
+enum VehicleType {
+  truck
+  van
+  motorcycle
+  car
+  bicycle
+  other
+}
+
+enum VehicleStatus {
+  available
+  in_use
+  maintenance
+  inactive
+}
+
+enum DriverStatus {
+  available
+  on_delivery
+  off_duty
+  inactive
+}
+
+enum MaintenanceType {
+  preventive
+  corrective
+  inspection
+  emergency
+}
+
+enum MaintenanceStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+enum DeliveryStatus {
+  pending
+  scheduled
+  in_transit
+  out_for_delivery
+  delivered
+  failed
+  returned
+  cancelled
+}
+
+enum DeliveryPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+enum ParcelStatus {
+  received
+  awaiting_pickup
+  picked_up
+  overdue
+  returned_to_sender
+  lost
+}
+
+enum NotificationType {
+  email
+  sms
+  whatsapp
+  push
 }

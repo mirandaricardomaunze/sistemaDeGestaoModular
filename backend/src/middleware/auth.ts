@@ -6,6 +6,7 @@ import type { User } from '@prisma/client';
 export interface AuthRequest extends Request {
     userId?: string;
     userRole?: string;
+    userName?: string;
     companyId?: string;
     companyStatus?: string;
     permissions?: string[];
@@ -13,7 +14,7 @@ export interface AuthRequest extends Request {
     user?: User;  // ✅ Fixed: was 'any'
 }
 
-export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const authHeader = req.headers.authorization;
 
@@ -34,6 +35,13 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
         req.userId = decoded.userId;
         req.userRole = decoded.role;
         req.companyId = decoded.companyId;
+
+        // Fetch user name for audit purposes
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: { name: true }
+        });
+        req.userName = user?.name || 'Sistema';
 
         next();
     } catch (error) {
@@ -132,8 +140,8 @@ export const hasModule = (moduleCode: string) => {
 
             const companyModule = await prisma.companyModule.findFirst({
                 where: {
-                    companyId: req.companyId,
-                    module: { code: moduleCode.toUpperCase() },
+                    companyId: req.companyId!,
+                    moduleCode: moduleCode.toUpperCase(),
                     isActive: true
                 }
             });

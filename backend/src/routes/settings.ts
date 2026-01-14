@@ -8,19 +8,14 @@ const router = Router();
 router.get('/company', authenticate, async (req: AuthRequest, res) => {
     try {
         const companyId = req.companyId;
+        if (!companyId) return res.status(400).json({ error: 'Empresa não identificada' });
 
         // First try to find settings linked to the user's company
-        let settings = companyId
-            ? await prisma.companySettings.findFirst({
-                where: { companyId }
-            })
-            : null;
+        let settings = await prisma.companySettings.findFirst({
+            where: { companyId }
+        });
 
-        // If no company-specific settings, fallback to legacy behavior (first record)
-        if (!settings) {
-            settings = await prisma.companySettings.findFirst();
-        }
-
+        // If no company-specific settings, create default
         if (!settings) {
             // Create default settings (linked to company if available)
             settings = await prisma.companySettings.create({
@@ -30,7 +25,7 @@ router.get('/company', authenticate, async (req: AuthRequest, res) => {
                     country: 'Moçambique',
                     currency: 'MZN',
                     ivaRate: 16,
-                    ...(companyId && { companyId })
+                    companyId
                 }
             });
         }
@@ -46,21 +41,15 @@ router.get('/company', authenticate, async (req: AuthRequest, res) => {
 router.put('/company', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
         const companyId = req.companyId;
-
-        // Find existing settings for this specific company
-        let existing = companyId
-            ? await prisma.companySettings.findFirst({ where: { companyId } })
-            : null;
-
-        // Fallback to legacy (unlinked) settings if no company-specific settings exist
-        if (!existing) {
-            existing = await prisma.companySettings.findFirst({ where: { companyId: null } });
-        }
+        if (!companyId) return res.status(400).json({ error: 'Empresa não identificada' });
 
         const allowedFields = [
             'companyName', 'tradeName', 'nuit', 'phone', 'email',
-            'address', 'city', 'province', 'country', 'logo',
-            'ivaRate', 'currency', 'businessType'
+            'address', 'city', 'zipCode', 'province', 'country', 'logo',
+            'ivaRate', 'currency', 'businessType',
+            // Print settings
+            'printerType', 'thermalPaperWidth', 'autoPrintReceipt',
+            'bankAccounts'
         ];
 
         const updateData: any = {};
@@ -75,25 +64,14 @@ router.put('/company', authenticate, authorize('admin'), async (req: AuthRequest
             updateData.ivaRate = Number(updateData.ivaRate);
         }
 
-        let settings;
-        if (existing) {
-            // If the existing record is not linked to a company, link it now
-            if (companyId && !existing.companyId) {
-                updateData.companyId = companyId;
+        const settings = await prisma.companySettings.upsert({
+            where: { companyId },
+            update: updateData,
+            create: {
+                ...updateData,
+                companyId
             }
-            settings = await prisma.companySettings.update({
-                where: { id: existing.id },
-                data: updateData
-            });
-        } else {
-            // Create new settings linked to this company
-            settings = await prisma.companySettings.create({
-                data: {
-                    ...updateData,
-                    ...(companyId && { companyId })
-                }
-            });
-        }
+        });
 
         res.json(settings);
     } catch (error) {
@@ -109,12 +87,16 @@ router.put('/company', authenticate, authorize('admin'), async (req: AuthRequest
 // Get alert configuration
 router.get('/alert-config', authenticate, async (req: AuthRequest, res) => {
     try {
-        let config = await prisma.alertConfig.findFirst();
+        const companyId = req.companyId;
+        let config = await prisma.alertConfig.findFirst({
+            where: { companyId }
+        });
 
         if (!config) {
             // Create default config
             config = await prisma.alertConfig.create({
                 data: {
+                    companyId,
                     lowStockThreshold: 10,
                     expiryWarningDays: 30,
                     paymentDueDays: 7,
@@ -134,19 +116,15 @@ router.get('/alert-config', authenticate, async (req: AuthRequest, res) => {
 // Update alert configuration
 router.put('/alert-config', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
-        const existing = await prisma.alertConfig.findFirst();
-
-        let config;
-        if (existing) {
-            config = await prisma.alertConfig.update({
-                where: { id: existing.id },
-                data: req.body
-            });
-        } else {
-            config = await prisma.alertConfig.create({
-                data: req.body
-            });
-        }
+        const companyId = req.companyId;
+        const config = await prisma.alertConfig.upsert({
+            where: { companyId },
+            update: req.body,
+            create: {
+                ...req.body,
+                companyId
+            }
+        });
 
         res.json(config);
     } catch (error) {
@@ -159,7 +137,7 @@ router.put('/alert-config', authenticate, authorize('admin'), async (req: AuthRe
 router.get('/categories', authenticate, async (req: AuthRequest, res) => {
     try {
         const categories = await prisma.category.findMany({
-            where: { isActive: true },
+            where: { isActive: true, companyId: req.companyId },
             include: {
                 parent: { select: { id: true, name: true } },
                 children: { select: { id: true, name: true } }
@@ -170,7 +148,7 @@ router.get('/categories', authenticate, async (req: AuthRequest, res) => {
         // Get product counts per category (ProductCategory enum)
         const productCounts = await prisma.product.groupBy({
             by: ['category'],
-            where: { isActive: true },
+            where: { isActive: true, companyId: req.companyId },
             _count: { id: true }
         });
 
@@ -245,7 +223,8 @@ router.post('/categories', authenticate, authorize('admin', 'manager'), async (r
                 name,
                 description,
                 color,
-                parentId
+                parentId,
+                companyId: req.companyId
             }
         });
 
@@ -259,11 +238,16 @@ router.post('/categories', authenticate, authorize('admin', 'manager'), async (r
 // Update category
 router.put('/categories/:id', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
     try {
-        const category = await prisma.category.update({
-            where: { id: req.params.id },
+        const result = await prisma.category.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: req.body
         });
 
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Categoria não encontrada' });
+        }
+
+        const category = await prisma.category.findUnique({ where: { id: req.params.id } });
         // For now return 0, ideally we should fetch the count again or return the existing count if not modified
         res.json({ ...category, productCount: 0 });
     } catch (error) {
@@ -275,10 +259,14 @@ router.put('/categories/:id', authenticate, authorize('admin', 'manager'), async
 // Delete category
 router.delete('/categories/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
-        await prisma.category.update({
-            where: { id: req.params.id },
+        const result = await prisma.category.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: { isActive: false }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Categoria não encontrada' });
+        }
 
         res.json({ message: 'Categoria removida' });
     } catch (error) {
@@ -292,7 +280,7 @@ router.get('/audit-logs', authenticate, authorize('admin'), async (req: AuthRequ
     try {
         const { entity, userId, startDate, endDate, limit = 100 } = req.query;
 
-        const where: any = {};
+        const where: any = { companyId: req.companyId };
         if (entity) where.entity = entity;
         if (userId) where.userId = userId;
         if (startDate || endDate) {
@@ -320,7 +308,8 @@ router.post('/audit-logs', authenticate, async (req: AuthRequest, res) => {
         const log = await prisma.auditLog.create({
             data: {
                 ...req.body,
-                userId: req.userId
+                userId: req.userId,
+                companyId: req.companyId
             }
         });
 
@@ -344,14 +333,14 @@ router.get('/stats', authenticate, authorize('admin'), async (req: AuthRequest, 
             invoicesCount,
             warehousesCount
         ] = await Promise.all([
-            prisma.user.count(),
-            prisma.product.count({ where: { isActive: true } }),
-            prisma.customer.count({ where: { isActive: true } }),
-            prisma.supplier.count({ where: { isActive: true } }),
-            prisma.employee.count({ where: { isActive: true } }),
-            prisma.sale.count(),
-            prisma.invoice.count(),
-            prisma.warehouse.count({ where: { isActive: true } })
+            prisma.user.count({ where: { companyId: req.companyId } }),
+            prisma.product.count({ where: { isActive: true, companyId: req.companyId } }),
+            prisma.customer.count({ where: { isActive: true, companyId: req.companyId } }),
+            prisma.supplier.count({ where: { isActive: true, companyId: req.companyId } }),
+            prisma.employee.count({ where: { isActive: true, companyId: req.companyId } }),
+            prisma.sale.count({ where: { companyId: req.companyId } }),
+            prisma.invoice.count({ where: { companyId: req.companyId } }),
+            prisma.warehouse.count({ where: { isActive: true, companyId: req.companyId } })
         ]);
 
         res.json({
@@ -373,15 +362,16 @@ router.get('/stats', authenticate, authorize('admin'), async (req: AuthRequest, 
 // Backup (simplified - just returns data counts)
 router.get('/backup/info', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
+        const companyId = req.companyId;
         const counts = {
-            users: await prisma.user.count(),
-            products: await prisma.product.count(),
-            customers: await prisma.customer.count(),
-            suppliers: await prisma.supplier.count(),
-            employees: await prisma.employee.count(),
-            sales: await prisma.sale.count(),
-            invoices: await prisma.invoice.count(),
-            warehouses: await prisma.warehouse.count(),
+            users: await prisma.user.count({ where: { companyId } }),
+            products: await prisma.product.count({ where: { companyId } }),
+            customers: await prisma.customer.count({ where: { companyId } }),
+            suppliers: await prisma.supplier.count({ where: { companyId } }),
+            employees: await prisma.employee.count({ where: { companyId } }),
+            sales: await prisma.sale.count({ where: { companyId } }),
+            invoices: await prisma.invoice.count({ where: { companyId } }),
+            warehouses: await prisma.warehouse.count({ where: { companyId } }),
             lastBackup: null // Would be tracked separately
         };
 

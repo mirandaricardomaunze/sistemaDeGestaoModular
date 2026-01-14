@@ -13,18 +13,33 @@ import toast from 'react-hot-toast';
 
 // Mapping from Backend Module Codes to Frontend BusinessType
 export const MODULE_TO_BUSINESS_TYPE: Record<string, BusinessType> = {
+    // Lowercase codes (from backend registration)
+    'inventory': 'retail',
+    'pharmacy': 'pharmacy',
+    'hospitality': 'hotel',
+    'bottle_store': 'bottlestore',
+    'logistics': 'logistics',
+    // Uppercase codes (legacy compatibility)
     'COMMERCIAL': 'retail',
     'PHARMACY': 'pharmacy',
     'SUPERMARKET': 'supermarket',
     'BOTTLE_STORE': 'bottlestore',
     'HOTEL': 'hotel',
-    'RESTAURANT': 'retail', // Fallback to retail for restaurant for now
+    'RESTAURANT': 'retail',
     'LOGISTICS': 'logistics',
 };
+
 
 // ============================================================================
 // Company Settings Interface
 // ============================================================================
+
+export interface BankAccount {
+    bankName: string;
+    accountNumber: string;
+    nib?: string;
+    holderName?: string;
+}
 
 export interface CompanySettings {
     companyName: string;
@@ -44,6 +59,7 @@ export interface CompanySettings {
     printerType: 'thermal' | 'a4';
     thermalPaperWidth: '80mm' | '58mm';
     autoPrintReceipt: boolean;
+    bankAccounts: BankAccount[];
 }
 
 // Default company settings
@@ -64,6 +80,7 @@ const defaultCompanySettings: CompanySettings = {
     printerType: 'thermal',
     thermalPaperWidth: '80mm',
     autoPrintReceipt: false,
+    bankAccounts: [],
 };
 
 // ============================================================================
@@ -115,6 +132,9 @@ interface AppState {
     updateCompanySettings: (settings: Partial<CompanySettings>) => Promise<void>;
     loadCompanySettings: () => Promise<void>;
     isLoadingSettings: boolean;
+
+    // Reset State
+    reset: () => void;
 }
 
 // ============================================================================
@@ -330,6 +350,7 @@ export const useStore = create<AppState>()(
                         email: settings.email,
                         address: settings.address,
                         city: settings.city,
+                        zipCode: settings.zipCode,
                         province: settings.province,
                         logo: settings.logo,
                         ivaRate: settings.ivaRate,
@@ -343,6 +364,17 @@ export const useStore = create<AppState>()(
                     // TODO: Add to sync queue for retry
                 }
             },
+
+            // Reset State
+            reset: () => set({
+                cart: [],
+                sales: [],
+                alerts: [],
+                companySettings: defaultCompanySettings,
+                businessType: 'retail',
+                isLoadingSettings: false,
+                isLoadingAlertConfig: false,
+            }),
         }),
         {
             name: 'app-store',

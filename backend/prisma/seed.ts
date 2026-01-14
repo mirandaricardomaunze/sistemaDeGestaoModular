@@ -227,17 +227,20 @@ async function main() {
     console.log('✅ Operator user created:', operator.email);
 
     // Create default warehouse
-    const warehouse = await prisma.warehouse.upsert({
-        where: { code: 'WH-PRINCIPAL' },
-        update: {},
-        create: {
-            code: 'WH-PRINCIPAL',
-            name: 'Armazém Principal',
-            location: 'Maputo, Moçambique',
-            responsible: 'Administrador',
-            isDefault: true
-        }
+    let warehouse = await prisma.warehouse.findFirst({
+        where: { code: 'WH-PRINCIPAL' }
     });
+    if (!warehouse) {
+        warehouse = await prisma.warehouse.create({
+            data: {
+                code: 'WH-PRINCIPAL',
+                name: 'Armazém Principal',
+                location: 'Maputo, Moçambique',
+                responsible: 'Administrador',
+                isDefault: true
+            }
+        });
+    }
     console.log('✅ Default warehouse created:', warehouse.name);
 
     // Create company settings
@@ -271,11 +274,14 @@ async function main() {
     ];
 
     for (const cat of categories) {
-        await prisma.category.upsert({
-            where: { code: cat.code },
-            update: {},
-            create: cat
+        const existingCat = await prisma.category.findFirst({
+            where: { code: cat.code }
         });
+        if (!existingCat) {
+            await prisma.category.create({
+                data: cat
+            });
+        }
     }
     console.log('✅ Categories created:', categories.length);
 
@@ -318,16 +324,19 @@ async function main() {
         if (prod.currentStock === 0) status = 'out_of_stock';
         else if (prod.currentStock <= prod.minStock) status = 'low_stock';
 
-        const product = await prisma.product.upsert({
-            where: { code: prod.code },
-            update: {},
-            create: {
-                ...prod,
-                status,
-                supplierId: supplier.id,
-                category: prod.category as any
-            }
+        let product = await prisma.product.findFirst({
+            where: { code: prod.code }
         });
+        if (!product) {
+            product = await prisma.product.create({
+                data: {
+                    ...prod,
+                    status,
+                    supplierId: supplier.id,
+                    category: prod.category as any
+                }
+            });
+        }
 
         // Add to warehouse stock
         await prisma.warehouseStock.upsert({

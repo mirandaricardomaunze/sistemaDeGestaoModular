@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { salesAPI } from '../services/api';
+import { useInvoiceTaxes, getCurrentFiscalPeriod } from '../utils/fiscalIntegration';
 import { db } from '../db/offlineDB';
 import type { Sale } from '../types';
 
@@ -29,6 +30,7 @@ export function useSales(params?: UseSalesParams) {
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { calculateInvoiceIVA } = useInvoiceTaxes();
 
     const fetchSales = useCallback(async () => {
         setIsLoading(true);
@@ -91,14 +93,39 @@ export function useSales(params?: UseSalesParams) {
                     items: data.items
                 };
 
+                // 📊 Auto-register IVA in Fiscal module even when offline
+                calculateInvoiceIVA(
+                    mockSale.subtotal,
+                    mockSale.customerId || 'anonymous',
+                    mockSale.customer?.name || 'Consumidor Final',
+                    mockSale.customer?.document || '',
+                    mockSale.receiptNumber,
+                    mockSale.createdAt.split('T')[0],
+                    getCurrentFiscalPeriod(),
+                    true // createRetention
+                );
+
                 setSales((prev) => [mockSale, ...prev]);
-                toast('Venda guardada localmente (Sem Internet)', { icon: '📴' });
+                toast('Venda guardada e IVA registado (Offline)', { icon: '📴' });
                 return mockSale;
             }
 
             const newSale = await salesAPI.create(data);
+
+            // 📊 Auto-register IVA in Fiscal module
+            calculateInvoiceIVA(
+                newSale.subtotal,
+                newSale.customerId || 'anonymous',
+                newSale.customer?.name || 'Consumidor Final',
+                newSale.customer?.document || '',
+                newSale.receiptNumber || `SALE-${newSale.id.slice(-6)}`,
+                newSale.createdAt ? newSale.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+                getCurrentFiscalPeriod(),
+                true // createRetention
+            );
+
             setSales((prev) => [newSale, ...prev]);
-            toast.success('Venda realizada com sucesso!');
+            toast.success('Venda realizada e IVA registado na Gestão Fiscal!');
             return newSale;
         } catch (err) {
             console.error('Error creating sale:', err);

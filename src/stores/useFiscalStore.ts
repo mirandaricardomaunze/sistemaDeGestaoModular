@@ -138,6 +138,11 @@ interface FiscalState {
 
     // Dashboard Metrics
     getDashboardMetrics: () => FiscalDashboardMetrics;
+    logisticsMetrics: any;
+    fetchLogisticsMetrics: () => Promise<void>;
+
+    // Reset State
+    reset: () => void;
 }
 
 // ============================================================================
@@ -155,6 +160,7 @@ export const useFiscalStore = create<FiscalState>()(
             auditLogs: [],
             deadlines: [],
             isSyncing: false,
+            logisticsMetrics: null,
 
             // Database Actions
             loadFiscalDataFromDatabase: async () => {
@@ -162,21 +168,21 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     // Load Tax Configs
                     const configs = await fiscalAPI.getTaxConfigs();
-                    if (configs && configs.length > 0) {
+                    if (Array.isArray(configs)) {
                         set({ taxConfigs: configs });
                     }
 
                     // Load IRPS Brackets
                     const brackets = await fiscalAPI.getIRPSBrackets();
-                    if (brackets && brackets.length > 0) {
+                    if (Array.isArray(brackets)) {
                         set({ irpsBrackets: brackets });
                     }
 
                     // Load Retentions
-                    const retentions = await fiscalAPI.getRetentions();
-                    if (retentions && Array.isArray(retentions)) {
+                    const retentionsResult = await fiscalAPI.getRetentions();
+                    if (Array.isArray(retentionsResult)) {
                         set({
-                            retentions: retentions.map((r: any) => ({
+                            retentions: retentionsResult.map((r: any) => ({
                                 ...r,
                                 baseAmount: Number(r.baseAmount),
                                 retainedAmount: Number(r.retainedAmount),
@@ -187,15 +193,18 @@ export const useFiscalStore = create<FiscalState>()(
 
                     // Load Reports
                     const reports = await fiscalAPI.getReports();
-                    if (reports && Array.isArray(reports)) {
+                    if (Array.isArray(reports)) {
                         set({ fiscalReports: reports });
                     }
 
                     // Load Deadlines
                     const deadlines = await fiscalAPI.getDeadlines();
-                    if (deadlines && Array.isArray(deadlines)) {
+                    if (Array.isArray(deadlines)) {
                         set({ deadlines });
                     }
+
+                    // Load Logistics Metrics
+                    await get().fetchLogisticsMetrics();
                 } catch (error) {
                     console.error('Failed to load fiscal data from database:', error);
                 } finally {
@@ -234,7 +243,8 @@ export const useFiscalStore = create<FiscalState>()(
 
             deleteTaxConfig: async (id) => {
                 // Not standard to delete tax configs, usually just deactivate
-                const config = get().taxConfigs.find(c => c.id === id);
+                const configs = get().taxConfigs;
+                const config = Array.isArray(configs) ? configs.find(c => c.id === id) : null;
                 if (config) {
                     await get().updateTaxConfig(id, { isActive: false });
                 }
@@ -430,8 +440,10 @@ export const useFiscalStore = create<FiscalState>()(
 
             // INSS Calculation
             calculateINSS: (grossSalary) => {
-                const employeeConfig = get().taxConfigs.find((c) => c.type === 'inss_employee' && c.isActive);
-                const employerConfig = get().taxConfigs.find((c) => c.type === 'inss_employer' && c.isActive);
+                const configs = get().taxConfigs;
+                const configList = Array.isArray(configs) ? configs : [];
+                const employeeConfig = configList.find((c) => c.type === 'inss_employee' && c.isActive);
+                const employerConfig = configList.find((c) => c.type === 'inss_employer' && c.isActive);
 
                 const employeeContribution = employeeConfig ? grossSalary * (employeeConfig.rate / 100) : 0;
                 const employerContribution = employerConfig ? grossSalary * (employerConfig.rate / 100) : 0;
@@ -441,7 +453,9 @@ export const useFiscalStore = create<FiscalState>()(
 
             // IVA Calculation
             calculateIVA: (amount) => {
-                const ivaConfig = get().taxConfigs.find((c) => c.type === 'iva' && c.isActive);
+                const configs = get().taxConfigs;
+                const configList = Array.isArray(configs) ? configs : [];
+                const ivaConfig = configList.find((c) => c.type === 'iva' && c.isActive);
                 const rate = ivaConfig?.rate || 16;
 
                 const iva = amount * (rate / 100);
@@ -515,6 +529,34 @@ export const useFiscalStore = create<FiscalState>()(
                     complianceStatus,
                 };
             },
+
+            fetchLogisticsMetrics: async () => {
+                try {
+                    const response = await fetch(`${process.env.VITE_API_URL || 'http://localhost:3001/api'}/fiscal/metrics/logistics`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        set({ logisticsMetrics: data });
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch logistics metrics:', error);
+                }
+            },
+
+            // Reset State
+            reset: () => set({
+                taxConfigs: defaultTaxConfigs,
+                irpsBrackets: defaultIRPSBrackets,
+                retentions: [],
+                fiscalReports: [],
+                auditLogs: [],
+                deadlines: [],
+                isSyncing: false,
+                logisticsMetrics: null,
+            }),
         }),
         {
             name: 'fiscal-storage',

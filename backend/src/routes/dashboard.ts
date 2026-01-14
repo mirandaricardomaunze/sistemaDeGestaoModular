@@ -9,7 +9,8 @@ const router = Router();
 // Get dashboard metrics
 router.get('/metrics', authenticate, async (req: AuthRequest, res) => {
     try {
-        const cacheKey = CacheKeys.dashboardMetrics();
+        if (!req.companyId) return res.status(400).json({ error: 'Company not identified' });
+        const cacheKey = CacheKeys.dashboardMetrics(req.companyId);
 
         // Try cache first (5 minute TTL)
         const cached = cacheService.get(cacheKey);
@@ -202,7 +203,8 @@ router.get('/charts/sales', authenticate, async (req: AuthRequest, res) => {
 router.get('/charts/top-products', authenticate, async (req: AuthRequest, res) => {
     try {
         const { limit = 10, period } = req.query;
-        const cacheKey = CacheKeys.dashboardTopProducts(parseInt(String(limit)), parseInt(String(period) || '30'));
+        if (!req.companyId) return res.status(400).json({ error: 'Company not identified' });
+        const cacheKey = CacheKeys.dashboardTopProducts(req.companyId, parseInt(String(limit)), parseInt(String(period) || '30'));
 
         // Try cache first (5 minutes)
         const cached = cacheService.get(cacheKey);

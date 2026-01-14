@@ -3,9 +3,11 @@ import { Toaster } from 'react-hot-toast';
 import { useStore } from '../../stores/useStore';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import Footer from './Footer';
 import ChatWidget from '../chat/ChatWidget';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
+import { LoadingOverlay } from '../ui/Loading';
 
 export default function Layout() {
     const { theme, sidebarOpen } = useStore();
@@ -23,7 +25,7 @@ export default function Layout() {
     }, [theme]);
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-dark-900 transition-colors duration-200">
+        <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-dark-900 transition-colors duration-200">
             {/* Toast Container */}
             <Toaster
                 position="top-right"
@@ -56,16 +58,21 @@ export default function Layout() {
 
             {/* Main Content */}
             <div
-                className={`transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'
+                className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'
                     }`}
             >
                 {/* Header */}
                 <Header />
 
                 {/* Page Content */}
-                <main className="p-4 lg:p-6 min-h-[calc(100vh-64px)]">
-                    <Outlet />
+                <main className="flex-1 overflow-y-auto p-4 lg:p-6 pb-12 scrollbar-thin">
+                    <Suspense fallback={<LoadingOverlay />}>
+                        <Outlet />
+                    </Suspense>
                 </main>
+
+                {/* Footer */}
+                <Footer />
             </div>
 
             {/* AI Chat Assistant */}

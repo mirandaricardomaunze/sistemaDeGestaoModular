@@ -520,6 +520,22 @@ export default function InvoicePrintPreview({ isOpen, onClose, invoice }: Invoic
                         </div>
                     )}
 
+                    {/* Bank Accounts */}
+                    {company.bankAccounts && company.bankAccounts.length > 0 && (
+                        <div style={{ marginTop: '20px', padding: '15px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                            <h4 style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', letterSpacing: '0.05em' }}>Dados Bancários</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' }}>
+                                {company.bankAccounts.map((bank, idx) => (
+                                    <div key={idx} style={{ fontSize: '13px' }}>
+                                        <p style={{ fontWeight: 600, color: '#1e293b' }}>{bank.bankName}</p>
+                                        <p style={{ color: '#475569' }}>Conta: {bank.accountNumber}</p>
+                                        {bank.nib && <p style={{ color: '#64748b', fontSize: '11px' }}>NIB: {bank.nib}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Footer */}
                     <div className="footer">
                         <p>Obrigado pela preferência!</p>
@@ -529,6 +545,6 @@ export default function InvoicePrintPreview({ isOpen, onClose, invoice }: Invoic
                     </div>
                 </div>
             </Card>
-        </Modal>
+        </Modal >
     );
 }

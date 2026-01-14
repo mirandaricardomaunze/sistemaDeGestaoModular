@@ -19,6 +19,8 @@ import {
     getPeriodRange,
     validateFiscalReport,
 } from '../../utils/fiscalCalculations';
+import { exportData } from '../../utils/exportUtils';
+import type { ExportOptions } from '../../utils/exportUtils';
 import type { FiscalReport, FiscalReportType, TaxType, ExportFormat } from '../../types/fiscal';
 import toast from 'react-hot-toast';
 
@@ -201,19 +203,45 @@ export default function FiscalReportGenerator() {
                 mimeType = 'application/xml;charset=utf-8;';
                 break;
 
+            case 'pdf':
+            case 'excel':
+                const exportOptions: ExportOptions = {
+                    filename: `Relatorio_Fiscal_${report.type}_${report.period}`,
+                    title: report.name,
+                    subtitle: companySettings?.companyName || 'Sistema de Gestão',
+                    companyName: companySettings?.companyName,
+                    columns: [
+                        { key: 'documentType', header: 'Tipo Doc', width: 15 },
+                        { key: 'documentNumber', header: 'Nº Documento', width: 20 },
+                        { key: 'entityName', header: 'Entidade', width: 30 },
+                        { key: 'entityNuit', header: 'NUIT', width: 15 },
+                        { key: 'baseAmount', header: 'Base Tributável', format: 'currency', width: 20, align: 'right' },
+                        { key: 'retainedAmount', header: 'Imposto', format: 'currency', width: 20, align: 'right' },
+                        { key: 'date', header: 'Data', format: 'date', width: 15 },
+                    ],
+                    data: report.retentions,
+                    footerText: `Relatório gerado automaticamente pelo sistema em ${new Date().toLocaleString('pt-MZ')}`,
+                    orientation: 'landscape'
+                };
+                exportData(exportOptions, format === 'pdf' ? 'pdf' : 'excel');
+                filename = `${exportOptions.filename}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
+                break;
+
             default:
                 toast.error('Formato não suportado');
                 return;
         }
 
-        // Download file
-        const blob = new Blob([content], { type: mimeType });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (format !== 'pdf' && format !== 'excel') {
+            // Download file for CSV/XML
+            const blob = new Blob([content], { type: mimeType });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         // Update report with exported format
         if (!report.exportedFormats.includes(format)) {
@@ -367,6 +395,20 @@ export default function FiscalReportGenerator() {
                                                     <HiOutlineDocumentReport className="w-5 h-5" />
                                                 </button>
                                                 <button
+                                                    onClick={() => handleExport(report, 'pdf')}
+                                                    className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                                                    title="Exportar PDF"
+                                                >
+                                                    <HiOutlineDownload className="w-5 h-5 text-red-500" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleExport(report, 'excel')}
+                                                    className="p-2 text-gray-400 hover:text-green-700 transition-colors"
+                                                    title="Exportar Excel"
+                                                >
+                                                    <HiOutlineDownload className="w-5 h-5 text-green-600" />
+                                                </button>
+                                                <button
                                                     onClick={() => handleExport(report, 'csv')}
                                                     className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                                                     title="Exportar CSV"
@@ -446,7 +488,7 @@ export default function FiscalReportGenerator() {
                                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Documento</th>
                                         <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Entidade</th>
                                         <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Base</th>
-                                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Retido</th>
+                                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Imposto</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
@@ -455,7 +497,7 @@ export default function FiscalReportGenerator() {
                                             <td className="px-3 py-2 font-mono">{r.documentNumber}</td>
                                             <td className="px-3 py-2">{r.entityName}</td>
                                             <td className="px-3 py-2 text-right font-mono">{formatCurrency(r.baseAmount)}</td>
-                                            <td className="px-3 py-2 text-right font-mono font-bold">{formatCurrency(r.retainedAmount)}</td>
+                                            <td className="px-3 py-2 text-right font-mono font-bold text-primary-600">{formatCurrency(r.retainedAmount)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -472,14 +514,22 @@ export default function FiscalReportGenerator() {
                                     </Badge>
                                 ))}
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2 justify-end">
+                                <Button variant="primary" onClick={() => handleExport(previewReport, 'pdf')}>
+                                    <HiOutlineDownload className="w-4 h-4 mr-2" />
+                                    PDF
+                                </Button>
+                                <Button variant="success" onClick={() => handleExport(previewReport, 'excel')}>
+                                    <HiOutlineDownload className="w-4 h-4 mr-2" />
+                                    Excel
+                                </Button>
                                 <Button variant="outline" onClick={() => handleExport(previewReport, 'csv')}>
                                     <HiOutlineDownload className="w-4 h-4 mr-2" />
-                                    Exportar CSV
+                                    CSV
                                 </Button>
                                 <Button variant="outline" onClick={() => handleExport(previewReport, 'xml')}>
                                     <HiOutlineDownload className="w-4 h-4 mr-2" />
-                                    Exportar XML
+                                    XML
                                 </Button>
                             </div>
                         </div>

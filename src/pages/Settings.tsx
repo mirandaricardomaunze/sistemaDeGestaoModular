@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -35,10 +35,16 @@ const companySchema = z.object({
     address: z.string().min(5, 'Endereço é obrigatório'),
     city: z.string().min(2, 'Cidade é obrigatória'),
     state: z.string().min(2, 'Estado é obrigatório'),
-    zipCode: z.string().min(8, 'CEP inválido'),
+    zipCode: z.string().optional(),
     printerType: z.enum(['thermal', 'a4']),
     thermalPaperWidth: z.enum(['80mm', '58mm']),
     autoPrintReceipt: z.boolean(),
+    bankAccounts: z.array(z.object({
+        bankName: z.string().min(1, 'Banco é obrigatório'),
+        accountNumber: z.string().min(1, 'Conta é obrigatória'),
+        nib: z.string().optional(),
+        holderName: z.string().optional(),
+    })).default([]),
 });
 
 type CompanyFormData = z.infer<typeof companySchema>;
@@ -113,6 +119,7 @@ export default function Settings() {
     // Company Form
     const {
         register: registerCompany,
+        control: controlCompany,
         handleSubmit: handleSubmitCompany,
         reset: resetCompany,
         watch: watchCompany,
@@ -120,6 +127,11 @@ export default function Settings() {
     } = useForm<CompanyFormData>({
         resolver: zodResolver(companySchema) as never,
         defaultValues: companySettings,
+    });
+
+    const { fields: bankFields, append: appendBank, remove: removeBank } = useFieldArray({
+        control: controlCompany,
+        name: 'bankAccounts' as never,
     });
 
     // Reset company form when store data changes
@@ -632,7 +644,7 @@ export default function Settings() {
                                 error={companyErrors.state?.message}
                             />
                             <Input
-                                label="CEP *"
+                                label="Código Postal"
                                 {...registerCompany('zipCode')}
                                 error={companyErrors.zipCode?.message}
                             />
@@ -671,6 +683,63 @@ export default function Settings() {
                                         Imprimir recibo automaticamente
                                     </label>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-gray-200 dark:border-dark-700 pt-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-md font-semibold text-gray-900 dark:text-white">
+                                    Dados Bancários (Para Documentos)
+                                </h3>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => appendBank({ bankName: '', accountNumber: '', nib: '', holderName: '' })}
+                                >
+                                    + Adicionar Banco
+                                </Button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {bankFields.map((field, index) => (
+                                    <div key={field.id} className="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg relative border border-gray-200 dark:border-dark-700">
+                                        <button
+                                            type="button"
+                                            onClick={() => removeBank(index)}
+                                            className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                                        >
+                                            <HiOutlineTrash className="w-5 h-5" />
+                                        </button>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <Input
+                                                label="Banco *"
+                                                placeholder="Ex: BIM, Standard Bank"
+                                                {...registerCompany(`bankAccounts.${index}.bankName` as never)}
+                                            />
+                                            <Input
+                                                label="Nº da Conta *"
+                                                placeholder="Ex: 123456789"
+                                                {...registerCompany(`bankAccounts.${index}.accountNumber` as never)}
+                                            />
+                                            <Input
+                                                label="NIB / IBAN"
+                                                placeholder="Para transferências"
+                                                {...registerCompany(`bankAccounts.${index}.nib` as never)}
+                                            />
+                                            <Input
+                                                label="Titular"
+                                                placeholder="Nome do titular"
+                                                {...registerCompany(`bankAccounts.${index}.holderName` as never)}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                                {bankFields.length === 0 && (
+                                    <div className="text-center py-6 border-2 border-dashed border-gray-200 dark:border-dark-700 rounded-lg">
+                                        <p className="text-sm text-gray-500">Nenhum banco configurado. Adicione um para exibir nas faturas A4.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -5,10 +5,11 @@ import api from './client';
 // ============================================================================
 
 export interface BusinessModule {
-    id: string;
     code: string;
     name: string;
     description: string;
+    icon?: string;
+    color?: string;
 }
 
 export const modulesAPI = {

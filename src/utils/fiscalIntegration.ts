@@ -100,7 +100,8 @@ export function usePayrollTaxes() {
 
             // INSS Employee Retention
             if (inssEmployee > 0) {
-                const inssEmployeeConfig = taxConfigs.find(c => c.type === 'inss_employee' && c.isActive);
+                const configList = Array.isArray(taxConfigs) ? taxConfigs : [];
+                const inssEmployeeConfig = configList.find(c => c.type === 'inss_employee' && c.isActive);
                 const inssEmployeeRetention: TaxRetention = {
                     id: generateId(),
                     type: 'inss_employee',
@@ -124,7 +125,8 @@ export function usePayrollTaxes() {
 
             // INSS Employer Retention (company obligation)
             if (inssEmployer > 0) {
-                const inssEmployerConfig = taxConfigs.find(c => c.type === 'inss_employer' && c.isActive);
+                const configList = Array.isArray(taxConfigs) ? taxConfigs : [];
+                const inssEmployerConfig = configList.find(c => c.type === 'inss_employer' && c.isActive);
                 const inssEmployerRetention: TaxRetention = {
                     id: generateId(),
                     type: 'inss_employer',
@@ -161,10 +163,11 @@ export function usePayrollTaxes() {
      * Get current tax rates from configuration
      */
     const getTaxRates = () => {
-        const inssEmployeeConfig = taxConfigs.find(c => c.type === 'inss_employee' && c.isActive);
-        const inssEmployerConfig = taxConfigs.find(c => c.type === 'inss_employer' && c.isActive);
-        const ivaConfig = taxConfigs.find(c => c.type === 'iva' && c.isActive);
-        const withholdingConfig = taxConfigs.find(c => c.type === 'withholding' && c.isActive);
+        const configList = Array.isArray(taxConfigs) ? taxConfigs : [];
+        const inssEmployeeConfig = configList.find(c => c.type === 'inss_employee' && c.isActive);
+        const inssEmployerConfig = configList.find(c => c.type === 'inss_employer' && c.isActive);
+        const ivaConfig = configList.find(c => c.type === 'iva' && c.isActive);
+        const withholdingConfig = configList.find(c => c.type === 'withholding' && c.isActive);
 
         return {
             inssEmployee: inssEmployeeConfig?.rate || 3,
@@ -200,7 +203,8 @@ export function useInvoiceTaxes() {
         createRetention: boolean = false
     ): InvoiceTaxResult => {
         const result = calculateIVA(subtotal);
-        const ivaConfig = taxConfigs.find(c => c.type === 'iva' && c.isActive);
+        const configList = Array.isArray(taxConfigs) ? taxConfigs : [];
+        const ivaConfig = configList.find(c => c.type === 'iva' && c.isActive);
         const ivaRate = ivaConfig?.rate || 16;
 
         if (createRetention && result.iva > 0) {
@@ -238,7 +242,8 @@ export function useInvoiceTaxes() {
      * Get current IVA rate
      */
     const getIVARate = (): number => {
-        const ivaConfig = taxConfigs.find(c => c.type === 'iva' && c.isActive);
+        const configList = Array.isArray(taxConfigs) ? taxConfigs : [];
+        const ivaConfig = configList.find(c => c.type === 'iva' && c.isActive);
         return ivaConfig?.rate || 16;
     };
 
@@ -267,7 +272,8 @@ export function useSupplierTaxes() {
         period: string,
         createRetention: boolean = false
     ): SupplierPaymentResult => {
-        const withholdingConfig = taxConfigs.find(c => c.type === 'withholding' && c.isActive);
+        const configList = Array.isArray(taxConfigs) ? taxConfigs : [];
+        const withholdingConfig = configList.find(c => c.type === 'withholding' && c.isActive);
         const rate = withholdingConfig?.rate || 10;
         const withholdingAmount = grossAmount * (rate / 100);
         const netPayment = grossAmount - withholdingAmount;
@@ -307,7 +313,8 @@ export function useSupplierTaxes() {
      * Get current withholding rate
      */
     const getWithholdingRate = (): number => {
-        const config = taxConfigs.find(c => c.type === 'withholding' && c.isActive);
+        const configList = Array.isArray(taxConfigs) ? taxConfigs : [];
+        const config = configList.find(c => c.type === 'withholding' && c.isActive);
         return config?.rate || 10;
     };
 

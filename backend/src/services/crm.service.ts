@@ -21,7 +21,7 @@ export class CRMService {
     async getCampaigns(companyId: string) {
         return this.prisma.campaign.findMany({
             where: { companyId },
-            include: { _count: { select: { opportunities: true } } },
+            include: { _count: { select: { usages: true } } },
             orderBy: { createdAt: 'desc' }
         });
     }

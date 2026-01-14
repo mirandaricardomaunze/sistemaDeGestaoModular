@@ -20,6 +20,7 @@ import {
 } from 'react-icons/hi';
 import { useEmployees } from '../../hooks/useData';
 import { Button, Card, Input, Select, Modal, Badge, Pagination, DataTable } from '../ui';
+import { ExportEmployeesButton } from '../common/ExportButton';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { roleLabels } from '../../utils/constants';
 import type { Employee, EmployeeRole } from '../../types';
@@ -251,6 +252,7 @@ export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProp
                     >
                         Atualizar
                     </Button>
+                    <ExportEmployeesButton data={employees} />
                     <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={onAddEmployee}>
                         Adicionar Colaborador
                     </Button>

@@ -29,7 +29,7 @@ import {
     HiOutlinePlus,
     HiOutlineRefresh,
 } from 'react-icons/hi';
-import { Card, Button, Badge, LoadingSpinner } from '../components/ui';
+import { Card, Button, Badge, Skeleton, SkeletonCard, SkeletonTable, SkeletonText } from '../components/ui';
 import { formatCurrency, formatRelativeTime, cn } from '../utils/helpers';
 import { categoryLabels } from '../utils/constants';
 import { useDashboard, useProducts, useAlerts, useEmployees, useCategories } from '../hooks/useData';
@@ -178,8 +178,68 @@ export default function Dashboard() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-96">
-                <LoadingSpinner size="lg" />
+            <div className="space-y-6 animate-pulse">
+                {/* Header Skeleton */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-2">
+                        <Skeleton height={32} className="w-48" />
+                        <Skeleton height={20} className="w-64" />
+                    </div>
+                    <div className="flex gap-3">
+                        <Skeleton height={40} className="w-24" />
+                        <Skeleton height={40} className="w-32" />
+                        <Skeleton height={40} className="w-24" />
+                    </div>
+                </div>
+
+                {/* Metrics Grid Skeleton */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map((i) => (
+                        <Card key={i} padding="md">
+                            <div className="flex items-center justify-between mb-4">
+                                <Skeleton variant="circular" width={48} height={48} />
+                                <Skeleton height={20} className="w-12" />
+                            </div>
+                            <Skeleton height={32} className="w-24 mb-2" />
+                            <Skeleton height={16} className="w-32" />
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Profit Metrics Skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {[1, 2, 3].map((i) => (
+                        <Card key={i} padding="md">
+                            <div className="flex items-center gap-4">
+                                <Skeleton variant="circular" width={48} height={48} />
+                                <div className="space-y-2">
+                                    <Skeleton height={16} className="w-24" />
+                                    <Skeleton height={24} className="w-32" />
+                                </div>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+
+                {/* Charts Skeleton */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="lg:col-span-2" padding="md">
+                        <div className="flex justify-between mb-6">
+                            <Skeleton height={24} className="w-48" />
+                            <Skeleton height={24} className="w-24" />
+                        </div>
+                        <Skeleton height={288} className="w-full" />
+                    </Card>
+                    <Card padding="md">
+                        <Skeleton height={24} className="w-48 mb-6" />
+                        <Skeleton variant="circular" width={160} height={160} className="mx-auto mb-6" />
+                        <div className="grid grid-cols-2 gap-4">
+                            {[1, 2, 3, 4].map((i) => (
+                                <Skeleton key={i} height={16} className="w-full" />
+                            ))}
+                        </div>
+                    </Card>
+                </div>
             </div>
         );
     }

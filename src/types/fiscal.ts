@@ -87,7 +87,7 @@ export type FiscalReportType =
 
 export type FiscalReportStatus = 'draft' | 'generated' | 'validated' | 'submitted' | 'accepted' | 'rejected';
 
-export type ExportFormat = 'pdf' | 'csv' | 'xml' | 'saft';
+export type ExportFormat = 'pdf' | 'csv' | 'xml' | 'saft' | 'excel';
 
 export interface FiscalReportSummary {
     totalBaseAmount: number;

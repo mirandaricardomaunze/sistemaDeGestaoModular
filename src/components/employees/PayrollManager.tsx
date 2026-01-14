@@ -10,6 +10,7 @@ import { useEmployees, usePayroll } from '../../hooks/useData';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { Button, Card, Pagination, usePagination } from '../ui';
 import { formatCurrency, generateId } from '../../utils/helpers';
+import { usePayrollTaxes, getFiscalPeriodFromDate } from '../../utils/fiscalIntegration';
 import type { PayrollRecord, Employee } from '../../types';
 import toast from 'react-hot-toast';
 import PayslipGenerator from './PayslipGenerator.tsx';
@@ -20,6 +21,7 @@ export default function PayrollManager() {
     const employees = Array.isArray(employeesData) ? employeesData : [];
     const payroll = Array.isArray(payrollData) ? payrollData : [];
     const { calculateIRPS, taxConfigs } = useFiscalStore();
+    const { calculatePayrollTaxes } = usePayrollTaxes();
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
@@ -28,7 +30,8 @@ export default function PayrollManager() {
 
     // Get current INSS rate from fiscal configuration
     const inssEmployeeRate = useMemo(() => {
-        const config = taxConfigs.find(c => c.type === 'inss_employee' && c.isActive);
+        const configList = Array.isArray(taxConfigs) ? taxConfigs : [];
+        const config = configList.find(c => c.type === 'inss_employee' && c.isActive);
         return config?.rate || 3;
     }, [taxConfigs]);
 
@@ -195,8 +198,18 @@ export default function PayrollManager() {
     };
 
     const handleSaveMonth = () => {
-        // Save all drafts
+        const period = getFiscalPeriodFromDate(selectedMonth + 1, selectedYear);
+
+        // Save all drafts and create fiscal records
         currentPayrollData.forEach(record => {
+            // Create official retention records in the fiscal module
+            calculatePayrollTaxes(
+                record.employee,
+                record.baseSalary, // IRPS is calculated on base salary in this system's logic
+                period,
+                true // createRetentions: true
+            );
+
             if (record.id.startsWith('draft-')) {
                 const newId = generateId();
                 const { employee, id, ...cleanRecord } = record;
@@ -205,7 +218,7 @@ export default function PayrollManager() {
                 updatePayroll(record.id, { status: 'processed' });
             }
         });
-        toast.success('Folha processada com sucesso!');
+        toast.success('Folha processada e impostos registados na Gestão Fiscal!');
     };
 
     const months = [

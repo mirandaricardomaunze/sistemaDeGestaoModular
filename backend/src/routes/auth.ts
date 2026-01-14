@@ -7,6 +7,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
 import { User, BusinessType } from '@prisma/client';
 import rateLimit from 'express-rate-limit';
+import { OPTIONAL_MODULES, getModuleByCode } from '../constants/modules.constants';
 import {
     loginSchema,
     registerSchema,
@@ -45,10 +46,7 @@ router.post('/login', loginLimiter, async (req, res) => {
                 company: {
                     include: {
                         modules: {
-                            where: { isActive: true },
-                            include: {
-                                module: true
-                            }
+                            where: { isActive: true }
                         }
                     }
                 },
@@ -101,8 +99,8 @@ router.post('/login', loginLimiter, async (req, res) => {
             { expiresIn: '7d' }
         );
 
-        // Extract active module codes
-        const activeModules = user.company?.modules?.map(cm => cm.module.code) || [];
+        // Extract active module codes (now stored directly as moduleCode)
+        const activeModules = user.company?.modules?.map(cm => cm.moduleCode) || [];
 
         // Extract and flatten permissions
         const permissionsSet = new Set<string>();
@@ -204,13 +202,11 @@ router.post('/register', async (req, res) => {
             }
         }
 
-        // Find the selected module
-        const selectedModule = await prisma.module.findUnique({
-            where: { code: moduleCode.toUpperCase() }
-        });
+        // Validate module against static definitions (no database lookup needed)
+        const selectedModule = getModuleByCode(moduleCode.toLowerCase());
 
         if (!selectedModule) {
-            logger.warn('[Register Debug] Module not found: %s', moduleCode);
+            logger.warn('[Register Debug] Module not found in static definitions: %s', moduleCode);
             return res.status(400).json({ error: 'Módulo inválido' });
         }
 
@@ -232,11 +228,11 @@ router.post('/register', async (req, res) => {
                 }
             });
 
-            // 2. Link Module to Company
+            // 2. Link Module to Company (using static module code)
             await tx.companyModule.create({
                 data: {
                     companyId: company.id,
-                    moduleId: selectedModule.id,
+                    moduleCode: selectedModule.code,
                     isActive: true
                 }
             });
@@ -330,10 +326,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
                 company: {
                     include: {
                         modules: {
-                            where: { isActive: true },
-                            include: {
-                                module: true
-                            }
+                            where: { isActive: true }
                         }
                     }
                 },
@@ -357,8 +350,8 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
             return res.status(404).json({ error: 'Utilizador não encontrado' });
         }
 
-        // Extract active module codes
-        const activeModules = user.company?.modules?.map(cm => cm.module.code) || [];
+        // Extract active module codes (now stored directly as moduleCode)
+        const activeModules = user.company?.modules?.map(cm => cm.moduleCode) || [];
 
         // Extract and flatten permissions
         const permissionsSet = new Set<string>();

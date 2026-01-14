@@ -4,7 +4,7 @@ import POSInterface from '../components/pos/POSInterface';
 export default function POS() {
     const { t } = useTranslation();
     return (
-        <div className="space-y-6">
+        <div className="flex-1 flex flex-col space-y-4 min-h-0">
             {/* Page Header */}
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -16,7 +16,9 @@ export default function POS() {
             </div>
 
             {/* POS Interface */}
-            <POSInterface />
+            <div className="flex-1 min-h-0">
+                <POSInterface />
+            </div>
         </div>
     );
 }

@@ -40,10 +40,14 @@ router.post('/stages', authenticate, authorize('admin', 'manager'), async (req: 
 
 router.put('/stages/:id', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
     try {
-        const stage = await prisma.funnelStage.update({
-            where: { id: req.params.id },
+        const result = await prisma.funnelStage.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: req.body
         });
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Estágio não encontrado ou acesso negado' });
+        }
+        const stage = await prisma.funnelStage.findUnique({ where: { id: req.params.id } });
         res.json(stage);
     } catch (error) {
         console.error('Update stage error:', error);
@@ -126,9 +130,15 @@ router.post('/opportunities', authenticate, async (req: AuthRequest, res) => {
 
 router.put('/opportunities/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const opportunity = await prisma.opportunity.update({
+        const result = await prisma.opportunity.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
+            data: req.body
+        });
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Oportunidade não encontrada ou acesso negado' });
+        }
+        const opportunity = await prisma.opportunity.findUnique({
             where: { id: req.params.id },
-            data: req.body,
             include: {
                 stage: true,
                 interactions: true
@@ -187,7 +197,7 @@ router.post('/opportunities/:id/move', authenticate, async (req: AuthRequest, re
         // Update opportunity and create history
         const [updatedOpp] = await prisma.$transaction([
             prisma.opportunity.update({
-                where: { id: oppId },
+                where: { id: oppId }, // Filtered by findFirst above, but could be more explicit
                 data: {
                     stageId: newStageId,
                     stageType: newStage.type,
@@ -222,6 +232,15 @@ router.post('/opportunities/:id/move', authenticate, async (req: AuthRequest, re
 
 router.post('/opportunities/:id/interactions', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Verify opportunity ownership
+        const opp = await prisma.opportunity.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+
+        if (!opp) {
+            return res.status(404).json({ error: 'Oportunidade não encontrada' });
+        }
+
         const interaction = await prisma.interaction.create({
             data: {
                 opportunityId: req.params.id,
@@ -239,6 +258,15 @@ router.post('/opportunities/:id/interactions', authenticate, async (req: AuthReq
 
 router.get('/opportunities/:id/interactions', authenticate, async (req: AuthRequest, res) => {
     try {
+        // Verify opportunity ownership
+        const opp = await prisma.opportunity.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
+
+        if (!opp) {
+            return res.status(404).json({ error: 'Oportunidade não encontrada' });
+        }
+
         const interactions = await prisma.interaction.findMany({
             where: { opportunityId: req.params.id },
             orderBy: { createdAt: 'desc' }

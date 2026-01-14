@@ -170,3 +170,40 @@ export function formatZodError(error: z.ZodError): ValidationError[] {
         message: err.message
     }));
 }
+
+// ============================================================================
+// Hospitality Validation Schemas
+// ============================================================================
+
+export const createRoomSchema = z.object({
+    number: z.string().min(1, 'Número do quarto é obrigatório').max(20, 'Número do quarto não pode ter mais de 20 caracteres'),
+    type: z.enum(['single', 'double', 'suite', 'deluxe']).optional().default('single'),
+    price: z.union([z.string(), z.number()]).transform((val) => typeof val === 'string' ? parseFloat(val) : val).refine((val) => !isNaN(val) && val > 0, 'Preço deve ser maior que zero'),
+    priceNoMeal: z.union([z.string(), z.number(), z.null()]).optional().transform((val) => val === null || val === '' || val === undefined ? null : typeof val === 'string' ? parseFloat(val) || null : val),
+    priceBreakfast: z.union([z.string(), z.number(), z.null()]).optional().transform((val) => val === null || val === '' || val === undefined ? null : typeof val === 'string' ? parseFloat(val) || null : val),
+    priceHalfBoard: z.union([z.string(), z.number(), z.null()]).optional().transform((val) => val === null || val === '' || val === undefined ? null : typeof val === 'string' ? parseFloat(val) || null : val),
+    priceFullBoard: z.union([z.string(), z.number(), z.null()]).optional().transform((val) => val === null || val === '' || val === undefined ? null : typeof val === 'string' ? parseFloat(val) || null : val),
+    notes: z.string().max(500, 'Notas não podem ter mais de 500 caracteres').optional().nullable()
+});
+
+export const updateRoomSchema = createRoomSchema.partial();
+
+export const checkInSchema = z.object({
+    roomId: z.string().uuid('ID do quarto inválido'),
+    customerId: z.string().uuid('ID do cliente inválido').optional().nullable(),
+    customerName: z.string().min(2, 'Nome do hóspede deve ter pelo menos 2 caracteres').max(200),
+    guestCount: z.union([z.string(), z.number()]).transform((val) => typeof val === 'string' ? parseInt(val) || 1 : val).optional().default(1),
+    guestDocumentType: z.string().max(20).optional(),
+    guestDocumentNumber: z.string().max(50).optional(),
+    guestNationality: z.string().max(100).optional(),
+    guestPhone: z.string().max(50).optional(),
+    checkIn: z.string().datetime({ message: 'Data de check-in inválida' }).optional(),
+    checkOut: z.string().datetime({ message: 'Data de check-out inválida' }).optional().nullable(),
+    totalPrice: z.union([z.string(), z.number(), z.null()]).optional().transform((val) => val === null || val === '' || val === undefined ? null : typeof val === 'string' ? parseFloat(val) || null : val),
+    mealPlan: z.enum(['none', 'breakfast', 'half_board', 'full_board']).optional().default('none'),
+    notes: z.string().max(1000).optional().nullable()
+});
+
+export type CreateRoomInput = z.infer<typeof createRoomSchema>;
+export type UpdateRoomInput = z.infer<typeof updateRoomSchema>;
+export type CheckInInput = z.infer<typeof checkInSchema>;

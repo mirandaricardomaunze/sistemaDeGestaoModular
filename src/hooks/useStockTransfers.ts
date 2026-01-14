@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { warehousesAPI } from '../services/api';
+import type { StockTransfer } from '../types';
 
 interface UseTransfersParams {
     sourceWarehouseId?: string;
@@ -9,17 +10,7 @@ interface UseTransfersParams {
 }
 
 export function useStockTransfers(params?: UseTransfersParams) {
-    const [transfers, setTransfers] = useState<Array<{
-        id: string;
-        number: string;
-        sourceWarehouseId: string;
-        targetWarehouseId: string;
-        status: 'pending' | 'completed' | 'cancelled';
-        responsible: string;
-        reason?: string;
-        date: string;
-        items: Array<{ productId: string; quantity: number }>;
-    }>>([]);
+    const [transfers, setTransfers] = useState<StockTransfer[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 

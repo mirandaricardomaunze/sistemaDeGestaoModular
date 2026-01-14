@@ -105,9 +105,9 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             paymentMethod
         } = validatedData;
 
-        // Generate order number
+        // Generate order number (scoped to company for privacy)
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const count = await prisma.customerOrder.count();
+        const count = await prisma.customerOrder.count({ where: { companyId: req.companyId } });
         const orderNumber = `ENC-${dateStr}-${String(count + 1).padStart(4, '0')}`;
 
         const order = await prisma.customerOrder.create({
@@ -172,8 +172,8 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res) => {
             return res.status(404).json({ error: 'Encomenda não encontrada' });
         }
 
-        const order = await prisma.customerOrder.update({
-            where: { id: req.params.id },
+        const result = await prisma.customerOrder.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: {
                 status: status as any,
                 transitions: {
@@ -183,7 +183,15 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res) => {
                         notes
                     }
                 }
-            } as any,
+            } as any
+        });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Encomenda não encontrada' });
+        }
+
+        const order = await prisma.customerOrder.findUnique({
+            where: { id: req.params.id },
             include: {
                 items: true,
                 transitions: {
@@ -227,8 +235,8 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
             return res.status(404).json({ error: 'Encomenda não encontrada' });
         }
 
-        const order = await prisma.customerOrder.update({
-            where: { id: req.params.id },
+        const result = await prisma.customerOrder.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: {
                 customerName,
                 customerPhone,
@@ -238,7 +246,15 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
                 paymentMethod,
                 deliveryDate: deliveryDate ? new Date(deliveryDate) : undefined,
                 notes
-            },
+            }
+        });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Encomenda não encontrada' });
+        }
+
+        const order = await prisma.customerOrder.findUnique({
+            where: { id: req.params.id },
             include: {
                 items: true,
                 transitions: {

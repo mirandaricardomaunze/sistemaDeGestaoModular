@@ -11,20 +11,31 @@ export class FiscalService {
     }
 
     async getModuleFiscalMetrics(companyId: string, module: string) {
-        // Shared logic to aggregate taxes for a specific module
-        // This is a placeholder for the senior implementation of complex fiscal logic
+        // Detailed aggregation for specific modules
         const transactions = await this.prisma.transaction.findMany({
             where: { companyId, module, status: 'completed' },
-            select: { amount: true, category: true }
+            select: { amount: true, type: true, category: true }
         });
 
-        // Simplified aggregation
-        const totalAmount = transactions.reduce((sum, t) => sum + Number(t.amount), 0);
-        const estimatedTax = totalAmount * 0.16; // 16% IVA example
+        const income = transactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+
+        const expenses = transactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + Number(t.amount), 0);
+
+        // Logistics-specific category breakdown if applicable
+        const maintenanceCosts = transactions
+            .filter(t => t.category === 'maintenance')
+            .reduce((sum, t) => sum + Number(t.amount), 0);
 
         return {
-            totalAmount,
-            estimatedTax,
+            income,
+            expenses,
+            profit: income - expenses,
+            maintenanceCosts,
+            estimatedTax: income * 0.16, // Simplified 16% IVA calculation
             count: transactions.length
         };
     }

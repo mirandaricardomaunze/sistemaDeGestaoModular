@@ -31,6 +31,7 @@ import { formatCurrency, formatDate } from '../utils/helpers';
 import ShareButton from '../components/share/ShareButton';
 import { useTenant } from '../contexts/TenantContext';
 import { HospitalityReports } from '../components/hospitality';
+import { ExportSalesButton } from '../components/common/ExportButton';
 import type { Sale } from '../types';
 
 // Time period options
@@ -421,6 +422,7 @@ export default function Reports() {
                         companyName={companySettings?.companyName ?? 'Empresa'}
                         onGeneratePDF={generatePDF}
                     />
+                    <ExportSalesButton data={filteredSales} />
                     <Button variant="outline" onClick={generateCSV}>
                         <HiOutlineDownload className="w-5 h-5 mr-2" />
                         Exportar CSV

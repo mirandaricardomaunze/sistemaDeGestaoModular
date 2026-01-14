@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, Button, Badge, LoadingSpinner, Input, Modal, Select } from '../components/ui';
+import { Card, Button, Badge, LoadingSpinner, Input, Modal, Select, Pagination } from '../components/ui';
 import { productsAPI } from '../services/api';
 import { useProducts } from '../hooks/useData';
 import {
@@ -21,7 +21,9 @@ import * as XLSX from 'xlsx';
 export default function PharmacyControl() {
     const { companySettings } = useStore();
     const navigate = useNavigate();
-    const [expiringSoon, setExpiringSoon] = useState<any[]>([]);
+    const [expiringSoonData, setExpiringSoonData] = useState<{ data: any[], pagination?: any }>({ data: [] });
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const { products, isLoading: isLoadingProducts, updateProduct } = useProducts();
 
     const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
@@ -34,8 +36,8 @@ export default function PharmacyControl() {
 
     const fetchExpiring = async () => {
         try {
-            const data = await productsAPI.getExpiring(90); // Look ahead 90 days
-            setExpiringSoon(data);
+            const data = await productsAPI.getExpiring(90, { page, limit: pageSize }); // Look ahead 90 days
+            setExpiringSoonData(data);
         } catch (err: any) {
             console.error('Erro ao carregar produtos a expirar');
         }
@@ -43,10 +45,10 @@ export default function PharmacyControl() {
 
     useEffect(() => {
         fetchExpiring();
-    }, []);
+    }, [page, pageSize]);
 
     const exportToExcel = () => {
-        const data = expiringSoon.map(p => ({
+        const data = expiringSoonData.data.map(p => ({
             'Produto': p.name,
             'Código': p.code,
             'Lote': p.batchNumber,
@@ -93,7 +95,7 @@ export default function PharmacyControl() {
                     <Button variant="outline" leftIcon={<HiOutlineRefresh className="w-5 h-5" />} onClick={fetchExpiring}>Actualizar</Button>
                     <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 gap-1 border border-gray-200 dark:border-dark-700">
                         <Button variant="ghost" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={exportToExcel}>Excel</Button>
-                        <Button variant="ghost" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => generatePharmacyExpirationReport(expiringSoon, companySettings)}>PDF</Button>
+                        <Button variant="ghost" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => generatePharmacyExpirationReport(expiringSoonData.data, companySettings)}>PDF</Button>
                     </div>
                     <Button leftIcon={<HiOutlineViewGrid className="w-5 h-5" />} variant="outline" onClick={() => navigate('/inventory')}>Ver Inventário</Button>
                     <Button leftIcon={<HiOutlineBeaker className="w-5 h-5" />} onClick={() => setIsBatchModalOpen(true)}>Entrada de Lote</Button>
@@ -110,7 +112,7 @@ export default function PharmacyControl() {
                             </div>
                             <h3 className="font-bold text-lg text-gray-900 dark:text-white">Validades Próximas (90 dias)</h3>
                         </div>
-                        <Badge variant="danger">{expiringSoon.length} Alertas</Badge>
+                        <Badge variant="danger">{expiringSoonData.pagination?.total || 0} Alertas</Badge>
                     </div>
 
                     <div className="overflow-x-auto">
@@ -124,7 +126,7 @@ export default function PharmacyControl() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y dark:divide-dark-700">
-                                {expiringSoon.length > 0 ? expiringSoon.map(item => (
+                                {expiringSoonData.data.length > 0 ? expiringSoonData.data.map(item => (
                                     <tr key={item.id} className="text-sm hover:bg-gray-50 dark:hover:bg-dark-700/50">
                                         <td className="py-4 px-2">
                                             <div className="font-bold text-gray-900 dark:text-white">{item.name}</div>
@@ -150,15 +152,32 @@ export default function PharmacyControl() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination */}
+                    {expiringSoonData.pagination && expiringSoonData.pagination.totalPages > 1 && (
+                        <div className="mt-4 pt-4 border-t dark:border-dark-700">
+                            <Pagination
+                                currentPage={page}
+                                totalItems={expiringSoonData.pagination.total}
+                                itemsPerPage={pageSize}
+                                onPageChange={setPage}
+                                onItemsPerPageChange={(size) => {
+                                    setPageSize(size);
+                                    setPage(1);
+                                }}
+                                itemsPerPageOptions={[5, 10, 20]}
+                            />
+                        </div>
+                    )}
                 </Card>
 
                 <div className="space-y-6">
                     {/* Quick Stats */}
                     <Card variant="glass" className="p-6 bg-primary-600 text-white relative overflow-hidden transition-all hover:scale-[1.02]">
                         <HiOutlineTrendingDown className="w-16 h-16 absolute -bottom-4 -right-4 opacity-10" />
-                        <h4 className="text-primary-100 text-sm font-medium">Perdas Potenciais</h4>
+                        <h4 className="text-primary-100 text-sm font-medium">Perdas Potenciais (Página)</h4>
                         <p className="text-3xl font-black mt-1">
-                            {expiringSoon.reduce((acc, i) => acc + (i.price * i.currentStock), 0).toLocaleString()} MT
+                            {expiringSoonData.data.reduce((acc, i) => acc + (i.price * i.currentStock), 0).toLocaleString()} MT
                         </p>
                         <p className="text-xs text-primary-200 mt-2">Valor em stock a vencer brevemente</p>
                     </Card>

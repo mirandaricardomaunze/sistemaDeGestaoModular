@@ -16,7 +16,7 @@ import {
     HiOutlineCalendar,
     HiOutlineChevronRight,
 } from 'react-icons/hi';
-import { Card, Badge } from '../ui';
+import { Card, Badge, Pagination, usePagination } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { getFunnelDashboardData, getFollowUpAlerts, type FollowUpAlert } from '../../utils/crmIntegration';
 import { useCampaigns } from '../../hooks/useData';
@@ -39,6 +39,16 @@ export default function CRMDashboard() {
             metrics: c.metrics || { ordersGenerated: 0 },
         }));
     }, [campaignsData]);
+
+    // Pagination for Top Opportunities
+    const {
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        paginatedItems: paginatedOpportunities,
+        totalItems,
+    } = usePagination(dashboardData.topOpportunities, 5);
 
     // Format days overdue
     const formatDaysOverdue = (days: number): string => {
@@ -357,7 +367,7 @@ export default function CRMDashboard() {
                             </tr>
                         </thead>
                         <tbody>
-                            {dashboardData.topOpportunities.map((opp) => (
+                            {paginatedOpportunities.map((opp) => (
                                 <tr
                                     key={opp.id}
                                     className="border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700"
@@ -394,7 +404,7 @@ export default function CRMDashboard() {
                                     </td>
                                 </tr>
                             ))}
-                            {dashboardData.topOpportunities.length === 0 && (
+                            {paginatedOpportunities.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="py-8 text-center text-gray-500">
                                         Nenhuma oportunidade em aberto
@@ -404,6 +414,20 @@ export default function CRMDashboard() {
                         </tbody>
                     </table>
                 </div>
+
+                {/* Pagination */}
+                {dashboardData.topOpportunities.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-dark-700">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                            itemsPerPageOptions={[5, 10, 20]}
+                        />
+                    </div>
+                )}
             </Card>
         </div>
     );

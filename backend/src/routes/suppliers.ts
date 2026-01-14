@@ -159,7 +159,9 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
             return res.status(404).json({ error: 'Fornecedor não encontrado ou acesso negado' });
         }
 
-        const updated = await prisma.supplier.findUnique({ where: { id: req.params.id } });
+        const updated = await prisma.supplier.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
+        });
         res.json(updated);
     } catch (error) {
         if (error instanceof ZodError) {
@@ -229,6 +231,7 @@ router.post('/:id/orders', authenticate, async (req: AuthRequest, res) => {
                 orderNumber,
                 supplierId,
                 total,
+                companyId: req.companyId, // Multi-tenancy isolation
                 expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
                 notes,
                 items: {
@@ -332,14 +335,20 @@ router.post('/orders/:orderId/receive', authenticate, async (req: AuthRequest, r
             const orderItem = order.items.find(i => i.id === received.itemId);
             if (orderItem) {
                 // Update order item
-                await prisma.purchaseOrderItem.update({
-                    where: { id: received.itemId },
+                await prisma.purchaseOrderItem.updateMany({
+                    where: {
+                        id: received.itemId,
+                        purchaseOrder: { companyId: req.companyId }
+                    },
                     data: { receivedQty: { increment: received.receivedQty } }
                 });
 
                 // Update product stock
-                await prisma.product.update({
-                    where: { id: orderItem.productId },
+                await prisma.product.updateMany({
+                    where: {
+                        id: orderItem.productId,
+                        companyId: req.companyId
+                    },
                     data: {
                         currentStock: { increment: received.receivedQty },
                         status: 'in_stock'
@@ -349,15 +358,18 @@ router.post('/orders/:orderId/receive', authenticate, async (req: AuthRequest, r
         }
 
         // Check if fully received
-        const updatedOrder = await prisma.purchaseOrder.findUnique({
-            where: { id: orderId },
+        const updatedOrder = await prisma.purchaseOrder.findFirst({
+            where: { id: orderId, companyId: req.companyId },
             include: { items: true }
         });
 
         const allReceived = updatedOrder?.items.every(i => i.receivedQty >= i.quantity);
 
-        await prisma.purchaseOrder.update({
-            where: { id: orderId },
+        await prisma.purchaseOrder.updateMany({
+            where: {
+                id: orderId,
+                companyId: req.companyId // Multi-tenancy isolation
+            },
             data: {
                 status: allReceived ? 'received' : 'partial',
                 receivedDate: allReceived ? new Date() : null

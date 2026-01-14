@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { invoicesAPI } from '../services/api';
+import { useInvoiceTaxes, getCurrentFiscalPeriod } from '../utils/fiscalIntegration';
 import type { Invoice } from '../types';
 
 interface PaginationMeta {
@@ -28,6 +29,7 @@ export function useInvoices(params?: UseInvoicesParams) {
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { calculateInvoiceIVA } = useInvoiceTaxes();
 
     const fetchInvoices = useCallback(async () => {
         setIsLoading(true);
@@ -76,8 +78,21 @@ export function useInvoices(params?: UseInvoicesParams) {
     const createInvoice = async (data: Parameters<typeof invoicesAPI.create>[0]) => {
         try {
             const newInvoice = await invoicesAPI.create(data);
+
+            // 📊 Auto-register IVA in Fiscal module
+            calculateInvoiceIVA(
+                newInvoice.total - (newInvoice.tax || 0), // Base amount (approx)
+                newInvoice.customerId || 'anonymous',
+                newInvoice.customerName,
+                newInvoice.customerDocument || '',
+                newInvoice.invoiceNumber,
+                newInvoice.issueDate || new Date().toISOString().split('T')[0],
+                getCurrentFiscalPeriod(),
+                true // createRetention
+            );
+
             setInvoices((prev) => [newInvoice, ...prev]);
-            toast.success('Factura criada com sucesso!');
+            toast.success('Factura criada e IVA registado na Gestão Fiscal!');
             return newInvoice;
         } catch (err) {
             console.error('Error creating invoice:', err);

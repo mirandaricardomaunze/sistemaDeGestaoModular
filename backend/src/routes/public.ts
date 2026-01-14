@@ -54,12 +54,16 @@ const calculateNights = (checkIn: Date, checkOut: Date): number => {
 // ============================================================================
 router.get('/rooms/available', queryLimiter, async (req, res) => {
     try {
-        const { checkIn, checkOut, guests, type } = req.query;
+        const { checkIn, checkOut, guests, type, companyId } = req.query;
+
+        if (!companyId) {
+            return res.status(400).json({ message: 'companyId is required' });
+        }
 
         if (!checkIn || !checkOut) {
             return res.status(400).json({
                 message: 'Data de check-in e check-out são obrigatórias',
-                example: '?checkIn=2024-01-15&checkOut=2024-01-18'
+                example: '?checkIn=2024-01-15&checkOut=2024-01-18&companyId=xxx'
             });
         }
 
@@ -80,6 +84,7 @@ router.get('/rooms/available', queryLimiter, async (req, res) => {
         // Find rooms that DON'T have overlapping bookings
         const occupiedRoomIds = await prisma.booking.findMany({
             where: {
+                room: { companyId: companyId as string },
                 status: { in: ['checked_in', 'confirmed', 'pending'] },
                 OR: [
                     {
@@ -100,6 +105,7 @@ router.get('/rooms/available', queryLimiter, async (req, res) => {
 
         // Build room query
         const roomWhere: any = {
+            companyId: companyId as string,
             status: { in: ['available', 'dirty'] }, // Dirty rooms can be cleaned before arrival
             id: { notIn: occupiedIds }
         };
@@ -185,8 +191,11 @@ router.get('/rooms/available', queryLimiter, async (req, res) => {
 // ============================================================================
 router.get('/rooms/:id', queryLimiter, async (req, res) => {
     try {
-        const room = await prisma.room.findUnique({
-            where: { id: req.params.id },
+        const { companyId } = req.query;
+        if (!companyId) return res.status(400).json({ message: 'companyId is required' });
+
+        const room = await prisma.room.findFirst({
+            where: { id: req.params.id, companyId: companyId as string },
             select: {
                 id: true,
                 number: true,
@@ -284,21 +293,23 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
     try {
         const {
             roomId,
+            companyId,
             customerName,
-            guestCount,
             email,
             phone,
+            guestCount,
             checkIn,
             checkOut,
             mealPlan,
             notes,
-            specialRequests
+            paymentMethod
         } = req.body;
 
         // Validation
+        if (!companyId) return res.status(400).json({ message: 'companyId is required' });
         if (!roomId || !customerName || !checkIn || !checkOut) {
             return res.status(400).json({
-                message: 'Campos obrigatórios: roomId, customerName, checkIn, checkOut'
+                message: 'Campos obrigatórios: roomId, companyId, customerName, checkIn, checkOut'
             });
         }
 
@@ -310,8 +321,6 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
 
         const checkInDate = new Date(checkIn + 'T12:00:00');
         const checkOutDate = new Date(checkOut + 'T12:00:00');
-
-        // Validate dates - compare date strings to avoid timezone issues
         const todayStr = new Date().toISOString().split('T')[0];
 
         if (checkIn < todayStr) {
@@ -322,33 +331,29 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
             return res.status(400).json({ message: 'Data de check-out deve ser posterior ao check-in' });
         }
 
-        // Check room exists
-        const room = await prisma.room.findUnique({ where: { id: roomId } });
-        if (!room) {
-            return res.status(404).json({ message: 'Quarto não encontrado' });
-        }
+        // 1. Verify room exists and belongs to company
+        const room = await prisma.room.findFirst({
+            where: { id: roomId, companyId }
+        });
+        if (!room) return res.status(404).json({ message: 'Quarto não encontrado para esta empresa' });
 
-        // Check availability
-        const existingBooking = await prisma.booking.findFirst({
+        // 2. Check availability
+        const conflicting = await prisma.booking.findFirst({
             where: {
                 roomId,
-                status: { in: ['checked_in', 'confirmed', 'pending'] },
+                companyId,
+                status: { in: ['confirmed', 'checked_in', 'pending'] },
                 OR: [
                     {
                         checkIn: { lt: checkOutDate },
                         expectedCheckout: { gt: checkInDate }
-                    },
-                    {
-                        checkIn: { gte: checkInDate, lt: checkOutDate }
                     }
                 ]
             }
         });
 
-        if (existingBooking) {
-            return res.status(409).json({
-                message: 'Quarto não disponível para as datas selecionadas'
-            });
+        if (conflicting) {
+            return res.status(409).json({ message: 'Quarto não disponível para as datas selecionadas' });
         }
 
         // Calculate price
@@ -376,18 +381,19 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
         const booking = await prisma.booking.create({
             data: {
                 roomId,
+                companyId,
                 customerName,
-                guestCount: parseInt(guestCount) || 1,
+                guestCount: parseInt(String(guestCount)) || 1,
                 guestPhone: phone,
                 checkIn: checkInDate,
                 expectedCheckout: checkOutDate,
                 totalPrice,
                 mealPlan: mealPlan || 'none',
-                status: 'confirmed', // Auto-confirmed for online bookings
+                status: 'confirmed',
                 notes: [
                     notes,
-                    specialRequests ? `Pedidos especiais: ${specialRequests}` : null,
                     email ? `Email: ${email}` : null,
+                    paymentMethod ? `Método de Pagamento: ${paymentMethod}` : null,
                     `Código: ${confirmationCode}`
                 ].filter(Boolean).join('\n')
             },
@@ -398,7 +404,6 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
             }
         });
 
-        // Response for website
         res.status(201).json({
             success: true,
             message: 'Reserva criada com sucesso!',
@@ -415,8 +420,8 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
                     count: booking.guestCount
                 },
                 dates: {
-                    checkIn: checkIn,
-                    checkOut: checkOut,
+                    checkIn,
+                    checkOut,
                     nights
                 },
                 pricing: {
@@ -440,16 +445,88 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
 });
 
 // ============================================================================
-// GET /reservations/:code - Check reservation status by confirmation code
+// GET /reservations/:id - Get reservation details by ID
 // ============================================================================
-router.get('/reservations/:code', queryLimiter, async (req, res) => {
+router.get('/reservations/:id', queryLimiter, async (req, res) => {
     try {
+        const { companyId } = req.query;
+        if (!companyId) return res.status(400).json({ message: 'companyId is required' });
+
+        const reservation = await prisma.booking.findFirst({
+            where: { id: req.params.id, companyId: companyId as string },
+            include: {
+                room: {
+                    select: { number: true, type: true }
+                }
+            }
+        });
+
+        if (!reservation) {
+            return res.status(404).json({ message: 'Reserva não encontrada' });
+        }
+
+        const statusLabels: Record<string, string> = {
+            'pending': 'Pendente',
+            'confirmed': 'Confirmada',
+            'checked_in': 'Check-in Realizado',
+            'checked_out': 'Concluída',
+            'cancelled': 'Cancelada',
+            'no_show': 'Não Compareceu'
+        };
+
+        // Extract confirmation code from notes
+        const confirmationCodeMatch = reservation.notes?.match(/Código: (\w+)/);
+        const confirmationCode = confirmationCodeMatch ? confirmationCodeMatch[1] : 'N/A';
+
+        res.json({
+            id: reservation.id,
+            confirmationCode: confirmationCode,
+            status: reservation.status,
+            statusLabel: statusLabels[reservation.status] || reservation.status,
+            room: {
+                number: reservation.room.number,
+                type: reservation.room.type
+            },
+            guest: {
+                name: reservation.customerName,
+                count: reservation.guestCount,
+                phone: reservation.guestPhone
+            },
+            dates: {
+                checkIn: reservation.checkIn.toISOString().split('T')[0],
+                checkOut: reservation.expectedCheckout?.toISOString().split('T')[0] || null,
+                nights: reservation.expectedCheckout ? calculateNights(reservation.checkIn, reservation.expectedCheckout) : 0
+            },
+            pricing: {
+                mealPlan: reservation.mealPlan,
+                mealPlanLabel: getMealPlanLabel(reservation.mealPlan),
+                totalPrice: reservation.totalPrice,
+                currency: 'MZN'
+            },
+            notes: reservation.notes
+        });
+
+    } catch (error: any) {
+        console.error('Error fetching reservation:', error);
+        res.status(500).json({ message: 'Erro ao buscar reserva' });
+    }
+});
+
+// ============================================================================
+// GET /reservations/code/:code - Check reservation status by confirmation code
+// ============================================================================
+router.get('/reservations/code/:code', queryLimiter, async (req, res) => {
+    try {
+        const { companyId } = req.query;
+        if (!companyId) return res.status(400).json({ message: 'companyId is required' });
+
         const code = req.params.code.toUpperCase();
 
         // Search for booking with code in notes
         const booking = await prisma.booking.findFirst({
             where: {
-                notes: { contains: code }
+                companyId: companyId as string,
+                notes: { contains: `Código: ${code}` }
             },
             include: {
                 room: {

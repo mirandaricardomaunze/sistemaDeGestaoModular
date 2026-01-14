@@ -153,7 +153,8 @@ export class HospitalityService {
                     checkOut: data.checkOut ? new Date(data.checkOut) : null,
                     expectedCheckout: data.checkOut ? new Date(data.checkOut) : null,
                     totalPrice: finalPrice,
-                    status: 'checked_in'
+                    status: 'checked_in',
+                    companyId
                 }
             });
 

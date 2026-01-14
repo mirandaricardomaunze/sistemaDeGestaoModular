@@ -4,6 +4,8 @@ import type { User, UserRole } from '../types';
 import toast from 'react-hot-toast';
 import { authAPI } from '../services/api';
 import { useAuditStore } from './useAuditStore';
+import { useStore } from './useStore';
+import { useFiscalStore } from './useFiscalStore';
 
 // ============================================================================
 // Auth Store Interface
@@ -160,6 +162,10 @@ export const useAuthStore = create<AuthStore>()(
 
                 // Clear token from localStorage
                 localStorage.removeItem('auth_token');
+
+                // Reset other stores to prevent multi-company data leakage
+                useStore.getState().reset();
+                useFiscalStore.getState().reset();
 
                 set({
                     user: null,

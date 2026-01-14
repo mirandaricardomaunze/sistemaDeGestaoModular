@@ -43,10 +43,15 @@ export const paginationSchema = z.object({
     { message: 'Limite deve estar entre 1 e 100' }
 );
 
+/** Flexible Date validation (accepts ISO and YYYY-MM-DD) */
+export const dateSchema = z.string().refine(val => !isNaN(Date.parse(val)), {
+    message: 'Data inválida'
+});
+
 /** Date range for queries */
 export const dateRangeSchema = z.object({
-    startDate: z.string().datetime({ message: 'Data inicial inválida' }).optional(),
-    endDate: z.string().datetime({ message: 'Data final inválida' }).optional()
+    startDate: dateSchema.optional(),
+    endDate: dateSchema.optional()
 });
 
 // ============================================================================

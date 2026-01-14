@@ -11,6 +11,8 @@ import TaxConfigManager from '../components/fiscal/TaxConfigManager';
 import FiscalReportGenerator from '../components/fiscal/FiscalReportGenerator';
 import FiscalAuditLog from '../components/fiscal/FiscalAuditLog';
 import DeadlineManager from '../components/fiscal/DeadlineManager';
+import { useStore } from '../stores/useStore';
+import { Badge } from '../components/ui';
 
 type FiscalTab = 'dashboard' | 'config' | 'reports' | 'audit' | 'deadlines';
 
@@ -24,6 +26,7 @@ const tabs: { id: FiscalTab; label: string; icon: typeof HiOutlineChartPie }[] =
 
 export default function Fiscal() {
     const [activeTab, setActiveTab] = useState<FiscalTab>('dashboard');
+    const { companySettings } = useStore();
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -47,8 +50,11 @@ export default function Fiscal() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                         Gestão Fiscal
+                        <Badge variant="outline" className="text-sm font-medium">
+                            {companySettings.tradeName || companySettings.companyName}
+                        </Badge>
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">
                         Impostos, retenções, relatórios e conformidade fiscal

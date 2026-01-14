@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,8 +16,6 @@ import {
     HiOutlineMail,
     HiOutlinePrinter,
     HiOutlineRefresh,
-    HiOutlineCalculator,
-    HiOutlineDocumentReport,
 } from 'react-icons/hi';
 import {
     PieChart,
@@ -25,12 +24,13 @@ import {
     ResponsiveContainer,
     Tooltip,
 } from 'recharts';
-import { format, parseISO, isBefore, addDays, subDays } from 'date-fns';
+import { format, parseISO, addDays, subDays } from 'date-fns';
 import { Card, Button, Input, Select, Modal, Pagination, TableContainer } from '../components/ui';
 import { InvoicePrintPreview, CreditNoteManager } from '../components/invoices';
+import MobilePaymentModal from '../components/pos/MobilePaymentModal';
 import { formatCurrency, generateId, cn } from '../utils/helpers';
-import ModuleFiscalView from '../components/shared/ModuleFiscalView';
-import type { Invoice, InvoicePayment, InvoiceStatus, PaymentMethod } from '../types';
+import { ExportInvoicesButton } from '../components/common/ExportButton';
+import type { Invoice, InvoiceStatus } from '../types';
 import toast from 'react-hot-toast';
 
 // Time period options
@@ -155,10 +155,19 @@ const sampleOrders: SampleOrder[] = [
 import { useInvoices } from '../hooks/useData';
 
 export default function Invoices() {
+    const [searchParams] = useSearchParams();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const [search, setSearch] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [search, setSearch] = useState(searchParams.get('search') || '');
+    const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
+
+    useEffect(() => {
+        const searchParam = searchParams.get('search');
+        if (searchParam !== null) setSearch(searchParam);
+
+        const statusParam = searchParams.get('status');
+        if (statusParam !== null) setStatusFilter(statusParam);
+    }, [searchParams]);
 
     // Use API hook for real data with pagination
     const {
@@ -170,7 +179,6 @@ export default function Invoices() {
         createInvoice,
         updateInvoice,
         addPayment: registerInvoicePayment,
-        cancelInvoice
     } = useInvoices({
         search,
         status: statusFilter === 'all' ? undefined : statusFilter,
@@ -186,8 +194,9 @@ export default function Invoices() {
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>('');
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
-    const [activeTab, setActiveTab] = useState<'invoices' | 'credit_notes' | 'fiscal' | 'reports'>('invoices');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [activeTab, setActiveTab] = useState<'invoices' | 'credit_notes'>('invoices');
+    const [showMpesaModal, setShowMpesaModal] = useState(false);
+    const [mpesaAmount, setMpesaAmount] = useState(0);
 
     // Get date range based on period
     const periodStartDate = useMemo(() => {
@@ -260,6 +269,7 @@ export default function Invoices() {
         { value: 'cash', label: 'Dinheiro' },
         { value: 'card', label: 'Cartão' },
         { value: 'transfer', label: 'Transferência' },
+        { value: 'mpesa', label: 'M-Pesa' },
     ];
 
     // Calculate totals
@@ -308,16 +318,7 @@ export default function Invoices() {
     // Pagination logic (now server-side)
     const totalItems = pagination?.total || 0;
 
-    // Generate invoice number from order number
-    const generateInvoiceNumber = (orderNum?: string) => {
-        if (orderNum) {
-            // Extract the number from the order number and use it for the invoice
-            const num = orderNum.replace('ENC-', '');
-            return `FAT-${num}`;
-        }
-        const count = invoices.length + 1;
-        return `FAT-${String(count).padStart(3, '0')}`;
-    };
+
 
     // Handle order selection and auto-fill
     const handleOrderSelect = (orderNumber: string) => {
@@ -365,7 +366,6 @@ export default function Invoices() {
 
     // Submit invoice
     const onSubmit = async (data: InvoiceFormData) => {
-        setIsSubmitting(true);
         try {
             if (editingInvoice) {
                 await updateInvoice(editingInvoice.id, {
@@ -391,14 +391,20 @@ export default function Invoices() {
         } catch (err) {
             console.error('Error saving invoice:', err);
         } finally {
-            setIsSubmitting(false);
         }
     };
 
     // Submit payment
     const onSubmitPayment = async (data: PaymentFormData) => {
         if (!selectedInvoice) return;
-        setIsSubmitting(true);
+
+        if (data.method === 'mpesa') {
+            setMpesaAmount(data.amount);
+            setShowPaymentModal(false);
+            setShowMpesaModal(true);
+            return;
+        }
+
         try {
             await registerInvoicePayment(selectedInvoice.id, {
                 amount: data.amount,
@@ -411,7 +417,6 @@ export default function Invoices() {
         } catch (err) {
             console.error('Error registering payment:', err);
         } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -446,8 +451,6 @@ export default function Invoices() {
     const tabs = [
         { id: 'invoices' as const, label: 'Faturas', icon: <HiOutlineDocumentText className="w-5 h-5" /> },
         { id: 'credit_notes' as const, label: 'Notas de Crédito', icon: <HiOutlineCash className="w-5 h-5" /> },
-        { id: 'fiscal' as const, label: 'Fiscal', icon: <HiOutlineCalculator className="w-5 h-5" /> },
-        { id: 'reports' as const, label: 'Relatórios', icon: <HiOutlineDocumentReport className="w-5 h-5" /> },
     ];
 
     return (
@@ -460,6 +463,7 @@ export default function Invoices() {
                         <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Gestão de Faturas, Notas de Crédito e Pagamentos</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
+                        <ExportInvoicesButton data={invoices} />
                         <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />}>Actualizar</Button>
                         <Button size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => setShowFormModal(true)}>Nova Fatura</Button>
                     </div>
@@ -467,20 +471,21 @@ export default function Invoices() {
 
                 {/* Tab Navigation */}
                 <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
-                    <div className="flex overflow-x-auto no-scrollbar -mb-px">
+                    <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                                 )}
                             >
-                                {tab.icon}
-                                {tab.label}
+                                <span className="shrink-0">{tab.icon}</span>
+                                <span className="hidden sm:inline-block">{tab.label}</span>
+                                <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
                             </button>
                         ))}
                     </div>
@@ -490,15 +495,6 @@ export default function Invoices() {
             <div className="min-h-[400px]">
                 {activeTab === 'credit_notes' && <CreditNoteManager invoices={invoices} />}
 
-                {activeTab === 'fiscal' && <ModuleFiscalView module="invoices" title="Faturação & Fiscal" />}
-
-                {activeTab === 'reports' && (
-                    <Card padding="lg" className="flex flex-col items-center justify-center py-20 text-center">
-                        <HiOutlineDocumentReport className="w-16 h-16 text-gray-300 mb-4" />
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">Relatórios de Faturação</h3>
-                        <p className="text-gray-500 max-w-md">Análise profunda de vendas, impostos e dívidas de clientes.</p>
-                    </Card>
-                )}
 
                 {activeTab === 'invoices' && (
                     <div className="space-y-6 animate-in fade-in duration-500">
@@ -902,6 +898,29 @@ export default function Invoices() {
                     invoice={selectedInvoice}
                 />
             )}
+
+            {/* M-Pesa Payment Modal */}
+            <MobilePaymentModal
+                isOpen={showMpesaModal}
+                onClose={() => setShowMpesaModal(false)}
+                amount={mpesaAmount}
+                provider="mpesa"
+                module="invoice"
+                moduleReferenceId={selectedInvoice?.id}
+                reference={selectedInvoice?.invoiceNumber}
+                onConfirm={(phoneNumber) => {
+                    if (selectedInvoice) {
+                        registerInvoicePayment(selectedInvoice.id, {
+                            amount: mpesaAmount,
+                            method: 'mpesa',
+                            reference: `MPESA-${phoneNumber}`,
+                            notes: `Pagamento via M-Pesa (${phoneNumber})`,
+                        });
+                    }
+                    setShowMpesaModal(false);
+                    resetPayment();
+                }}
+            />
         </div>
     );
 }

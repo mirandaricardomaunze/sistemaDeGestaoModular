@@ -3,7 +3,7 @@
  * Professional pharmacy module with POS, medications, stock, prescriptions, and reports
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, Button, Badge, LoadingSpinner, Modal, ConfirmationModal, Input, Select, EmptyState } from '../components/ui';
 import { pharmacyAPI } from '../services/api';
 import { useProducts } from '../hooks/useData';
@@ -11,16 +11,13 @@ import toast from 'react-hot-toast';
 import {
     HiOutlineBeaker,
     HiOutlineClipboardList,
-    HiOutlineDocumentReport,
     HiOutlineCube,
     HiOutlineRefresh,
     HiOutlinePlus,
     HiOutlineSearch,
     HiOutlineFilter,
     HiOutlineExclamation,
-    HiOutlineDownload,
     HiOutlineClock,
-    HiOutlineDocumentDownload,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineCalendar,
@@ -28,16 +25,11 @@ import {
     HiOutlineShieldCheck,
     HiOutlineCheck,
     HiOutlineX,
-    HiOutlineCalculator
 } from 'react-icons/hi';
-import ModuleFiscalView from '../components/shared/ModuleFiscalView';
-import * as XLSX from 'xlsx';
-import { generatePharmacyStockReport, generatePharmacyExpiringReport, generatePharmacySalesReport } from '../utils/documentGenerator';
-import { useStore } from '../stores/useStore';
-import Pagination, { usePagination } from '../components/ui/Pagination';
+import Pagination from '../components/ui/Pagination';
 import { formatCurrency, formatDate, cn } from '../utils/helpers';
 
-type MainTab = 'medications' | 'stock' | 'prescriptions' | 'reports' | 'fiscal';
+type MainTab = 'medications' | 'stock' | 'prescriptions';
 
 interface Medication {
     id: string;
@@ -73,7 +65,7 @@ interface Medication {
 import { usePharmacy } from '../hooks/usePharmacy';
 
 export default function Pharmacy() {
-    const { companySettings } = useStore();
+    // const { companySettings } = useStore();
     const [activeTab, setActiveTab] = useState<MainTab>('medications');
 
     // Medications state
@@ -89,8 +81,6 @@ export default function Pharmacy() {
         isLoading: isPharmacyLoading,
         addMedication,
         updateMedication,
-        deleteMedication,
-        addBatch,
         refetch: fetchMedications
     } = usePharmacy({
         page,
@@ -101,10 +91,7 @@ export default function Pharmacy() {
         isControlled: medFilter === 'controlled' ? true : undefined
     });
 
-    // Reports state
-    const [expiringReport, setExpiringReport] = useState<any>(null);
-    const [stockReport, setStockReport] = useState<any>(null);
-    const [reportPeriod, setReportPeriod] = useState<'7days' | '30days' | '90days' | '180days' | '1year'>('30days');
+
 
     // Modals
     const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
@@ -162,25 +149,7 @@ export default function Pharmacy() {
     // Products for new medication creation
     const { products } = useProducts();
 
-    // Fetch reports
-    const fetchReports = async () => {
-        try {
-            const [expiring, stock] = await Promise.all([
-                pharmacyAPI.getExpiringReport(90),
-                pharmacyAPI.getStockReport()
-            ]);
-            setExpiringReport(expiring);
-            setStockReport(stock);
-        } catch (error) {
-            console.error('Error fetching reports:', error);
-        }
-    };
 
-    useEffect(() => {
-        if (activeTab === 'reports') {
-            fetchReports();
-        }
-    }, [activeTab]);
 
     const isLoading = isPharmacyLoading;
 
@@ -261,55 +230,14 @@ export default function Pharmacy() {
     };
 
 
-    const handleExportSalesReport = async () => {
-        try {
-            const days = reportPeriod === '7days' ? 7 :
-                reportPeriod === '30days' ? 30 :
-                    reportPeriod === '90days' ? 90 :
-                        reportPeriod === '180days' ? 180 : 365;
 
-            const periodLabel =
-                reportPeriod === '7days' ? 'Últimos 7 Dias' :
-                    reportPeriod === '30days' ? 'Últimos 30 Dias' :
-                        reportPeriod === '90days' ? 'Últimos 3 Meses' :
-                            reportPeriod === '180days' ? 'Últimos 6 Meses' : 'Último Ano';
 
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - days);
 
-            const response = await pharmacyAPI.getSales({
-                startDate: startDate.toISOString(),
-                endDate: endDate.toISOString(),
-                limit: 1000
-            });
-
-            if (response && response.items && response.items.length > 0) {
-                generatePharmacySalesReport(response.items, periodLabel, companySettings);
-                toast.success('Relatório de vendas gerado!');
-            } else {
-                toast.error('Sem dados de vendas para este período');
-            }
-        } catch (error) {
-            console.error('Error generating report:', error);
-            toast.error('Erro ao gerar relatório');
-        }
-    };
-
-    // Export functions
-    const exportToExcel = (data: any[], filename: string) => {
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Dados');
-        XLSX.writeFile(workbook, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
-    };
 
     const tabs = [
         { id: 'medications', label: 'Medicamentos', icon: <HiOutlineBeaker className="w-5 h-5" /> },
         { id: 'stock', label: 'Stock', icon: <HiOutlineCube className="w-5 h-5" /> },
         { id: 'prescriptions', label: 'Receitas', icon: <HiOutlineClipboardList className="w-5 h-5" /> },
-        { id: 'fiscal', label: 'Fiscal', icon: <HiOutlineCalculator className="w-5 h-5" /> },
-        { id: 'reports', label: 'Relatórios', icon: <HiOutlineDocumentReport className="w-5 h-5" /> },
     ];
 
     if (isLoading) {
@@ -321,7 +249,6 @@ export default function Pharmacy() {
         );
     }
 
-    const ModuleFiscalViewExport = () => <ModuleFiscalView module="pharmacy" title="Farmácia & Fiscal" />;
 
 
     return (
@@ -337,7 +264,7 @@ export default function Pharmacy() {
                         <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Controle de Medicamentos, Stock, Receitas e Vendas</p>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                        <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />} onClick={() => { fetchMedications(); if (activeTab === 'reports') fetchReports(); }}>Actualizar</Button>
+                        <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />} onClick={() => { fetchMedications(); }}>Actualizar</Button>
                         {activeTab === 'medications' && (
                             <Button size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => setIsNewMedicationModalOpen(true)}>Novo Medicamento</Button>
                         )}
@@ -352,20 +279,21 @@ export default function Pharmacy() {
 
                 {/* Tab Navigation */}
                 <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
-                    <div className="flex overflow-x-auto no-scrollbar -mb-px">
+                    <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as MainTab)}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                                 )}
                             >
-                                {tab.icon}
-                                {tab.label}
+                                <span className="shrink-0">{tab.icon}</span>
+                                <span className="hidden sm:inline-block">{tab.label}</span>
+                                <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
                             </button>
                         ))}
                     </div>
@@ -609,136 +537,7 @@ export default function Pharmacy() {
                     )
                 }
 
-                {/* REPORTS TAB */}
-                {
-                    activeTab === 'reports' && (
-                        <div className="space-y-6">
-                            {/* Filter & Period */}
-                            <div className="flex flex-wrap items-center gap-4 bg-gray-50 dark:bg-dark-700/50 p-4 rounded-xl border border-gray-100 dark:border-dark-700">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-gray-500">Período:</span>
-                                    <div className="flex gap-1">
-                                        {[
-                                            { id: '7days', label: '7D' },
-                                            { id: '30days', label: '1M' },
-                                            { id: '90days', label: '3M' },
-                                            { id: '180days', label: '6M' },
-                                            { id: '1year', label: '1A' }
-                                        ].map(p => (
-                                            <button
-                                                key={p.id}
-                                                onClick={() => setReportPeriod(p.id as any)}
-                                                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${reportPeriod === p.id
-                                                    ? 'bg-primary-600 text-white shadow-sm'
-                                                    : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-dark-600'
-                                                    }`}
-                                            >
-                                                {p.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
 
-                            {/* Export Buttons */}
-                            <div className="flex flex-wrap gap-3">
-                                <Button
-                                    variant="outline"
-                                    leftIcon={<HiOutlineDownload className="w-4 h-4" />}
-                                    onClick={() => expiringReport && exportToExcel(expiringReport.items, 'Relatorio_Validades')}
-                                >
-                                    Excel Validades
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    leftIcon={<HiOutlineDownload className="w-4 h-4" />}
-                                    onClick={() => stockReport && exportToExcel(stockReport.items, 'Relatorio_Stock')}
-                                >
-                                    Excel Stock
-                                </Button>
-                                <div className="border-l border-gray-300 dark:border-dark-600 mx-2" />
-                                <Button
-                                    className="bg-red-600 hover:bg-red-700 text-white"
-                                    leftIcon={<HiOutlineDocumentDownload className="w-4 h-4" />}
-                                    onClick={() => expiringReport && generatePharmacyExpiringReport(expiringReport, companySettings)}
-                                >
-                                    PDF Validades
-                                </Button>
-                                <Button
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                    leftIcon={<HiOutlineDocumentDownload className="w-4 h-4" />}
-                                    onClick={() => stockReport && generatePharmacyStockReport(stockReport, companySettings)}
-                                >
-                                    PDF Stock
-                                </Button>
-                                <Button
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                                    leftIcon={<HiOutlineDocumentDownload className="w-4 h-4" />}
-                                    onClick={handleExportSalesReport}
-                                >
-                                    PDF Vendas
-                                </Button>
-                            </div>
-
-                            {/* Stock Report Summary */}
-                            {stockReport && (
-                                <Card className="p-6">
-                                    <h3 className="font-bold mb-4">Resumo de Inventário Farmacêutico</h3>
-                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                        <div>
-                                            <p className="text-sm text-gray-500">Total Produtos</p>
-                                            <p className="text-2xl font-bold">{stockReport.summary.totalProducts}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Total Unidades</p>
-                                            <p className="text-2xl font-bold">{stockReport.summary.totalStock}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Valor Total</p>
-                                            <p className="text-2xl font-bold text-green-600">{formatCurrency(Number(stockReport.summary.totalValue))}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Custo Total</p>
-                                            <p className="text-2xl font-bold">{formatCurrency(Number(stockReport.summary.totalCost))}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-gray-500">Baixo Stock</p>
-                                            <p className="text-2xl font-bold text-amber-600">{stockReport.summary.lowStockCount}</p>
-                                        </div>
-                                    </div>
-                                </Card>
-                            )}
-
-                            {/* Expiring Report */}
-                            {expiringReport && (
-                                <Card className="p-6">
-                                    <h3 className="font-bold mb-4">Medicamentos Próximos do Fim da Validade (90 dias)</h3>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                                        <div className="p-3 bg-red-50 dark:bg-red-900/10 rounded">
-                                            <p className="text-sm text-gray-500">Expirados</p>
-                                            <p className="text-xl font-bold text-red-600">{expiringReport.summary.expiredCount}</p>
-                                        </div>
-                                        <div className="p-3 bg-amber-50 dark:bg-amber-900/10 rounded">
-                                            <p className="text-sm text-gray-500">A Expirar</p>
-                                            <p className="text-xl font-bold text-amber-600">{expiringReport.summary.expiringCount}</p>
-                                        </div>
-                                        <div className="p-3 bg-gray-50 dark:bg-dark-700 rounded">
-                                            <p className="text-sm text-gray-500">Total Itens</p>
-                                            <p className="text-xl font-bold">{expiringReport.summary.totalItems}</p>
-                                        </div>
-                                        <div className="p-3 bg-gray-50 dark:bg-dark-700 rounded">
-                                            <p className="text-sm text-gray-500">Valor em Risco</p>
-                                            <p className="text-xl font-bold text-red-600">{formatCurrency(Number(expiringReport.summary.totalValue))}</p>
-                                        </div>
-                                    </div>
-                                </Card>
-                            )}
-                        </div>
-                    )
-                }
-
-                {/* FISCAL TAB */}
-                {activeTab === 'fiscal' && <ModuleFiscalView module="pharmacy" title="Farmácia & Fiscal" />}
 
                 {/* PRESCRIPTIONS TAB */}
                 {activeTab === 'prescriptions' && (
@@ -782,7 +581,6 @@ export default function Pharmacy() {
                         setIsBatchModalOpen(false);
                         setBatchForm({ medicationId: '', batchNumber: '', quantity: '', expiryDate: '', costPrice: '', sellingPrice: '', supplier: '', invoiceNumber: '' });
                         fetchMedications();
-                        if (activeTab === 'reports') fetchReports();
                     } catch (error: any) {
                         toast.error(error.message || 'Erro ao adicionar lote');
                     }

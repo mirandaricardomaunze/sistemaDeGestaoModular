@@ -37,8 +37,7 @@ export const tenantMiddleware = async (req: AuthRequest, res: Response, next: Ne
             where: { id: companyId },
             include: {
                 modules: {
-                    where: { isActive: true },
-                    include: { module: true }
+                    where: { isActive: true }
                 }
             }
         });
@@ -53,7 +52,7 @@ export const tenantMiddleware = async (req: AuthRequest, res: Response, next: Ne
 
         // Injetar status e lista de módulos ativos no request para uso posterior
         req.companyStatus = company.status;
-        (req as any).activeModules = company.modules.map(cm => cm.module.code);
+        (req as any).activeModules = company.modules.map(cm => cm.moduleCode);
 
         next();
     } catch (error) {

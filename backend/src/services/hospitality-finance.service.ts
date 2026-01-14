@@ -216,7 +216,7 @@ export class HospitalityFinanceService {
     static async updateExpense(id: string, companyId: string, data: any) {
         const { amount, date, dueDate, ...rest } = data;
 
-        return await prisma.transaction.update({
+        const result = await prisma.transaction.updateMany({
             where: { id, companyId },
             data: {
                 ...rest,
@@ -225,12 +225,24 @@ export class HospitalityFinanceService {
                 dueDate: dueDate === null ? null : (dueDate ? new Date(dueDate) : undefined),
             }
         });
+
+        if (result.count === 0) {
+            throw new Error('Transação não encontrada ou não pertence a esta empresa');
+        }
+
+        return await prisma.transaction.findUnique({ where: { id } });
     }
 
     static async deleteExpense(id: string, companyId: string) {
-        return await prisma.transaction.delete({
+        const result = await prisma.transaction.deleteMany({
             where: { id, companyId }
         });
+
+        if (result.count === 0) {
+            throw new Error('Transação não encontrada ou não pertence a esta empresa');
+        }
+
+        return { id };
     }
 
     static async getProfitLoss(companyId: string, startDate: string, endDate: string) {

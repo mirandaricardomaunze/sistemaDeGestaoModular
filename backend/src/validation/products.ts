@@ -5,6 +5,7 @@
  */
 
 import { z } from 'zod';
+import { dateSchema } from './base';
 
 // ============================================================================
 // Product Schemas
@@ -15,7 +16,7 @@ export const createProductSchema = z.object({
     barcode: z.string().max(100, 'Código de barras muito longo').optional().nullable(),
     name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(200, 'Nome muito longo'),
     description: z.string().max(1000, 'Descrição muito longa').optional().nullable(),
-    categoryId: z.string().uuid('ID da categoria inválido').optional().nullable(),
+    category: z.string().optional().default('other'),
     price: z.number().positive('Preço deve ser maior que zero'),
     costPrice: z.number().min(0, 'Custo não pode ser negativo').optional().default(0),
     currentStock: z.number().int().min(0, 'Stock não pode ser negativo').optional().default(0),
@@ -25,7 +26,7 @@ export const createProductSchema = z.object({
     location: z.string().max(100, 'Localização muito longa').optional().nullable(),
     warehouseId: z.string().uuid('ID do armazém inválido').optional().nullable(),
     supplierId: z.string().uuid('ID do fornecedor inválido').optional().nullable(),
-    expiryDate: z.string().datetime({ message: 'Data de validade inválida' }).optional().nullable(),
+    expiryDate: dateSchema.optional().nullable(),
     batchNumber: z.string().max(100, 'Número do lote muito longo').optional().nullable(),
     taxRate: z.number().min(0, 'Taxa de imposto não pode ser negativa').max(100, 'Taxa de imposto inválida').optional().default(16),
     isActive: z.boolean().optional().default(true),

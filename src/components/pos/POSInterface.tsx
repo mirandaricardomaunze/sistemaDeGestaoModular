@@ -29,6 +29,8 @@ import { calculatePOSDiscounts, recordCampaignUsages, searchCustomersForPOS, app
 import { useProducts, useCustomers, useSales, useAlerts } from '../../hooks/useData';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type { KeyboardShortcut } from '../../hooks/useKeyboardShortcuts';
+import { useCompanySettings } from '../../hooks/useCompanySettings';
+import { useInvoiceTaxes } from '../../utils/fiscalIntegration';
 
 
 export default function POSInterface() {
@@ -37,6 +39,9 @@ export default function POSInterface() {
     const { customers, isLoading: isLoadingCustomers } = useCustomers();
     const { createSale } = useSales();
     const { refetch: refetchAlerts } = useAlerts();
+
+    // Company settings for print configuration
+    const { settings: companySettings } = useCompanySettings();
 
     // Local store for cart management
     const { cart, addToCart, removeFromCart, updateCartQuantity, clearCart, addSale } = useStore();
@@ -126,7 +131,12 @@ export default function POSInterface() {
             key: 'F9',
             action: () => {
                 if (lastSale) {
-                    setThermalPreviewOpen(true);
+                    // Use print setting to open correct preview
+                    if (companySettings?.printerType === 'a4') {
+                        setA4PreviewOpen(true);
+                    } else {
+                        setThermalPreviewOpen(true);
+                    }
                     toast('🖨️ Último recibo', { duration: 1000 });
                 } else {
                     toast.error('Nenhuma venda recente');
@@ -212,9 +222,10 @@ export default function POSInterface() {
     const pointsToRedeem = redeemPoints ? Math.min(Math.floor(cartSubtotal - campaignDiscount), maxRedeemablePoints) : 0;
     const loyaltyDiscount = pointsToRedeem * POINT_VALUE;
 
-    const IVA_RATE = 0.16; // 16% IVA Moçambique
+    const { getIVARate } = useInvoiceTaxes();
+    const IVA_RATE_VAL = getIVARate() / 100;
     const discountedSubtotal = Math.max(0, cartSubtotal - campaignDiscount - loyaltyDiscount);
-    const cartTax = discountedSubtotal * IVA_RATE;
+    const cartTax = discountedSubtotal * IVA_RATE_VAL;
     const cartDiscount = campaignDiscount + loyaltyDiscount; // Total discount
     const cartTotal = discountedSubtotal + cartTax;
     const change = parseFloat(amountPaid || '0') - cartTotal;
@@ -482,7 +493,12 @@ export default function POSInterface() {
             }
 
             setCheckoutModalOpen(false);
-            setThermalPreviewOpen(true);
+            // Open preview based on print settings
+            if (companySettings?.printerType === 'a4') {
+                setA4PreviewOpen(true);
+            } else {
+                setThermalPreviewOpen(true);
+            }
             clearCart();
             setAmountPaid('');
             setCustomerPhone('');
@@ -605,7 +621,7 @@ export default function POSInterface() {
     // 🔒 MELHORIA 3: Loading state com skeleton loader profissional
     if (isLoadingProducts || isLoadingCustomers) {
         return (
-            <div className="h-[calc(100vh-120px)] flex gap-4">
+            <div className="h-full flex gap-4">
                 {/* Left Panel Skeleton */}
                 <div className="flex-1 flex flex-col">
                     {/* Search Skeleton */}
@@ -659,452 +675,454 @@ export default function POSInterface() {
     }
 
     return (
-        <div className="h-[calc(100vh-120px)] flex gap-4">
-            <MobilePaymentModal
-                isOpen={mobilePaymentModalOpen}
-                onClose={() => setMobilePaymentModalOpen(false)}
-                amount={cartTotal}
-                provider={mobilePaymentProvider}
-                onConfirm={handleMobilePaymentConfirm}
-            />
-            {/* Left Panel - Products */}
-            <div className="flex-1 flex flex-col">
-                {/* Search */}
-                <Card padding="md" className="mb-4">
-                    <Input
-                        ref={searchInputRef}
-                        placeholder="Escaneie o código de barras ou busque por código/nome..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={handleBarcodeSearch}
-                        leftIcon={<HiOutlineSearch className="w-5 h-5" />}
-                        autoFocus
-                    />
-                    <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                            💡 <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-700 rounded text-xs font-mono">Enter</kbd> adicionar produto
-                        </p>
-                        <div className="flex gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">F2</kbd> Busca</span>
-                            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">F4</kbd> Pagar</span>
-                            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">F8</kbd> Gaveta</span>
-                            <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">ESC</kbd> Limpar</span>
+        <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex-1 flex gap-4 min-h-0 px-1 pb-16">
+                <MobilePaymentModal
+                    isOpen={mobilePaymentModalOpen}
+                    onClose={() => setMobilePaymentModalOpen(false)}
+                    amount={cartTotal}
+                    provider={mobilePaymentProvider}
+                    onConfirm={handleMobilePaymentConfirm}
+                />
+                {/* Left Panel - Products */}
+                <div className="flex-1 flex flex-col min-h-0">
+                    {/* Search */}
+                    <Card padding="md" className="mb-4">
+                        <Input
+                            ref={searchInputRef}
+                            placeholder="Escaneie o código de barras ou busque por código/nome..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={handleBarcodeSearch}
+                            leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                            autoFocus
+                        />
+                        <div className="flex items-center justify-between mt-2">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                💡 <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-700 rounded text-xs font-mono">Enter</kbd> adicionar produto
+                            </p>
+                            <div className="flex gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">F2</kbd> Busca</span>
+                                <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">F4</kbd> Pagar</span>
+                                <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">F8</kbd> Gaveta</span>
+                                <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">ESC</kbd> Limpar</span>
+                            </div>
                         </div>
-                    </div>
-                </Card>
+                    </Card>
 
-                {/* Hardware Toolbar */}
-                <div className="flex items-center justify-between gap-3 mb-4 p-3 bg-white dark:bg-dark-800 rounded-xl border border-gray-200 dark:border-dark-700">
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Hardware:</span>
-                        {/* Scale Button */}
+                    {/* Hardware Toolbar */}
+                    <div className="flex items-center justify-between gap-3 mb-4 p-3 bg-white dark:bg-dark-800 rounded-xl border border-gray-200 dark:border-dark-700">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Hardware:</span>
+                            {/* Scale Button */}
+                            <button
+                                onClick={() => {
+                                    if (filteredProducts.length > 0) {
+                                        setScaleProduct(filteredProducts[0]);
+                                        setScaleWeight('');
+                                        setScaleModalOpen(true);
+                                    } else {
+                                        toast.error('Selecione um produto primeiro');
+                                    }
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors text-sm"
+                                title="Abrir Balança"
+                            >
+                                <HiOutlineScale className="w-4 h-4" />
+                                <span className="font-medium">Balança</span>
+                            </button>
+
+                            {/* Cash Drawer Open/Close */}
+                            <button
+                                onClick={cashDrawerOpen ? handleCloseCashDrawer : handleOpenCashDrawer}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm ${cashDrawerOpen
+                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200'
+                                    : 'bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
+                                    }`}
+                                title={cashDrawerOpen ? 'Fechar Gaveta' : 'Abrir Gaveta'}
+                            >
+                                {cashDrawerOpen ? (
+                                    <>
+                                        <HiOutlineLockOpen className="w-4 h-4" />
+                                        <span className="font-medium">Aberta</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <HiOutlineLockClosed className="w-4 h-4" />
+                                        <span className="font-medium">Gaveta</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Cash Balance */}
                         <button
-                            onClick={() => {
-                                if (filteredProducts.length > 0) {
-                                    setScaleProduct(filteredProducts[0]);
-                                    setScaleWeight('');
-                                    setScaleModalOpen(true);
-                                } else {
-                                    toast.error('Selecione um produto primeiro');
-                                }
-                            }}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors text-sm"
-                            title="Abrir Balança"
+                            onClick={() => setCashDrawerModalOpen(true)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-sm"
+                            title="Gestão da Gaveta"
                         >
-                            <HiOutlineScale className="w-4 h-4" />
-                            <span className="font-medium">Balança</span>
-                        </button>
-
-                        {/* Cash Drawer Open/Close */}
-                        <button
-                            onClick={cashDrawerOpen ? handleCloseCashDrawer : handleOpenCashDrawer}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm ${cashDrawerOpen
-                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200'
-                                : 'bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-                                }`}
-                            title={cashDrawerOpen ? 'Fechar Gaveta' : 'Abrir Gaveta'}
-                        >
-                            {cashDrawerOpen ? (
-                                <>
-                                    <HiOutlineLockOpen className="w-4 h-4" />
-                                    <span className="font-medium">Aberta</span>
-                                </>
-                            ) : (
-                                <>
-                                    <HiOutlineLockClosed className="w-4 h-4" />
-                                    <span className="font-medium">Gaveta</span>
-                                </>
-                            )}
+                            <HiOutlineCash className="w-4 h-4" />
+                            <span className="font-medium">Caixa: {formatCurrency(cashDrawerBalance)}</span>
                         </button>
                     </div>
 
-                    {/* Cash Balance */}
-                    <button
-                        onClick={() => setCashDrawerModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-sm"
-                        title="Gestão da Gaveta"
-                    >
-                        <HiOutlineCash className="w-4 h-4" />
-                        <span className="font-medium">Caixa: {formatCurrency(cashDrawerBalance)}</span>
-                    </button>
+                    {/* Products Grid */}
+                    <Card padding="md" className="flex-1 overflow-hidden">
+                        <div className="h-full overflow-y-auto scrollbar-thin">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                {filteredProducts.map((product) => (
+                                    <button
+                                        key={product.id}
+                                        onClick={() => handleAddProduct(product)}
+                                        className="p-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 bg-white dark:bg-dark-800 text-left transition-all hover:shadow-lg group overflow-hidden"
+                                    >
+                                        <div className="w-full h-16 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-2 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors flex-shrink-0">
+                                            <span className="text-2xl">📦</span>
+                                        </div>
+                                        <p className="text-xs text-primary-600 dark:text-primary-400 font-mono mb-1 truncate">
+                                            {product.code}
+                                        </p>
+                                        <p className="text-sm font-medium text-gray-900 dark:text-white mb-1 line-clamp-2 break-words min-h-[2.5rem]">
+                                            {product.name}
+                                        </p>
+                                        <div className="flex items-center justify-between gap-1">
+                                            <span className="text-sm font-bold text-primary-600 dark:text-primary-400 truncate">
+                                                {formatCurrency(product.price)}
+                                            </span>
+                                            <Badge variant={product.currentStock > 10 ? 'success' : 'warning'} size="sm">
+                                                {product.currentStock}
+                                            </Badge>
+                                        </div>
+                                    </button>
+                                ))}
+
+                                {filteredProducts.length === 0 && (
+                                    <div className="col-span-full py-12 text-center text-gray-500 dark:text-gray-400">
+                                        Nenhum produto encontrado
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </Card>
                 </div>
 
-                {/* Products Grid */}
-                <Card padding="md" className="flex-1 overflow-hidden">
-                    <div className="h-full overflow-y-auto scrollbar-thin">
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                            {filteredProducts.map((product) => (
-                                <button
-                                    key={product.id}
-                                    onClick={() => handleAddProduct(product)}
-                                    className="p-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 bg-white dark:bg-dark-800 text-left transition-all hover:shadow-lg group overflow-hidden"
-                                >
-                                    <div className="w-full h-16 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-2 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors flex-shrink-0">
-                                        <span className="text-2xl">📦</span>
+                {/* Right Panel - Cart */}
+                <div className="w-96 flex flex-col min-h-0">
+                    <Card padding="none" className="flex-1 flex flex-col">
+                        {/* Cart Header */}
+                        <div className="p-4 border-b border-gray-200 dark:border-dark-700">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    Carrinho
+                                </h2>
+                                {cart.length > 0 && (
+                                    <button
+                                        onClick={clearCart}
+                                        className="text-sm text-red-600 hover:text-red-700 dark:text-red-400"
+                                    >
+                                        Limpar
+                                    </button>
+                                )}
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                {cart.length} {cart.length === 1 ? 'item' : 'itens'}
+                            </p>
+
+                            {/* Customer Selection */}
+                            <div className="mt-3 relative">
+                                {selectedCustomer ? (
+                                    <div className="flex items-center justify-between p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
+                                        <div className="flex items-center gap-2">
+                                            <HiOutlineUserCircle className="w-5 h-5 text-primary-600" />
+                                            <div>
+                                                <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
+                                                    {selectedCustomer.name}
+                                                </p>
+                                                <p className="text-xs text-primary-600 dark:text-primary-400">
+                                                    {selectedCustomer.code}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                setSelectedCustomer(null);
+                                                setCustomerSearchQuery('');
+                                            }}
+                                            className="p-1 text-primary-400 hover:text-red-500"
+                                        >
+                                            <HiOutlineX className="w-4 h-4" />
+                                        </button>
                                     </div>
-                                    <p className="text-xs text-primary-600 dark:text-primary-400 font-mono mb-1 truncate">
-                                        {product.code}
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white mb-1 line-clamp-2 break-words min-h-[2.5rem]">
-                                        {product.name}
-                                    </p>
-                                    <div className="flex items-center justify-between gap-1">
-                                        <span className="text-sm font-bold text-primary-600 dark:text-primary-400 truncate">
-                                            {formatCurrency(product.price)}
+                                ) : (
+                                    <div className="relative">
+                                        <Input
+                                            placeholder="Selecionar cliente (opcional)..."
+                                            value={customerSearchQuery}
+                                            onChange={(e) => {
+                                                setCustomerSearchQuery(e.target.value);
+                                                setShowCustomerSearch(true);
+                                            }}
+                                            onFocus={() => setShowCustomerSearch(true)}
+                                            leftIcon={<HiOutlineUserCircle className="w-5 h-5 text-gray-400" />}
+                                        />
+                                        {showCustomerSearch && customerSearchResults.length > 0 && (
+                                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 max-h-48 overflow-y-auto">
+                                                {customerSearchResults.map((customer) => (
+                                                    <button
+                                                        key={customer.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedCustomer(customers?.find(c => c.id === customer.id) || null);
+                                                            setShowCustomerSearch(false);
+                                                            setCustomerSearchQuery('');
+                                                        }}
+                                                        className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-dark-700 flex items-center justify-between"
+                                                    >
+                                                        <div>
+                                                            <p className="text-sm font-medium">{customer.name}</p>
+                                                            <p className="text-xs text-gray-500">{customer.phone}</p>
+                                                        </div>
+                                                        {customer.activeCampaigns > 0 && (
+                                                            <Badge variant="success" size="sm">
+                                                                <HiOutlineTag className="w-3 h-3 mr-1" />
+                                                                {customer.activeCampaigns}
+                                                            </Badge>
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Loyalty Points Redemption */}
+                            {selectedCustomer && (selectedCustomer.loyaltyPoints || 0) > 0 && (
+                                <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/20">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                            Pontos de Fidelidade
                                         </span>
-                                        <Badge variant={product.currentStock > 10 ? 'success' : 'warning'} size="sm">
-                                            {product.currentStock}
+                                        <Badge variant="warning" size="sm">
+                                            {selectedCustomer.loyaltyPoints} pts
                                         </Badge>
                                     </div>
-                                </button>
-                            ))}
-
-                            {filteredProducts.length === 0 && (
-                                <div className="col-span-full py-12 text-center text-gray-500 dark:text-gray-400">
-                                    Nenhum produto encontrado
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </Card>
-            </div>
-
-            {/* Right Panel - Cart */}
-            <div className="w-96 flex flex-col">
-                <Card padding="none" className="flex-1 flex flex-col">
-                    {/* Cart Header */}
-                    <div className="p-4 border-b border-gray-200 dark:border-dark-700">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                Carrinho
-                            </h2>
-                            {cart.length > 0 && (
-                                <button
-                                    onClick={clearCart}
-                                    className="text-sm text-red-600 hover:text-red-700 dark:text-red-400"
-                                >
-                                    Limpar
-                                </button>
-                            )}
-                        </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {cart.length} {cart.length === 1 ? 'item' : 'itens'}
-                        </p>
-
-                        {/* Customer Selection */}
-                        <div className="mt-3 relative">
-                            {selectedCustomer ? (
-                                <div className="flex items-center justify-between p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
                                     <div className="flex items-center gap-2">
-                                        <HiOutlineUserCircle className="w-5 h-5 text-primary-600" />
-                                        <div>
-                                            <p className="text-sm font-medium text-primary-700 dark:text-primary-300">
-                                                {selectedCustomer.name}
-                                            </p>
-                                            <p className="text-xs text-primary-600 dark:text-primary-400">
-                                                {selectedCustomer.code}
-                                            </p>
-                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            id="redeemPoints"
+                                            checked={redeemPoints}
+                                            onChange={(e) => setRedeemPoints(e.target.checked)}
+                                            className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                            disabled={cartSubtotal === 0}
+                                        />
+                                        <label htmlFor="redeemPoints" className="text-xs text-amber-700 dark:text-amber-300 cursor-pointer select-none">
+                                            Usar pontos para desconto
+                                        </label>
                                     </div>
-                                    <button
-                                        onClick={() => {
-                                            setSelectedCustomer(null);
-                                            setCustomerSearchQuery('');
-                                        }}
-                                        className="p-1 text-primary-400 hover:text-red-500"
-                                    >
-                                        <HiOutlineX className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="relative">
-                                    <Input
-                                        placeholder="Selecionar cliente (opcional)..."
-                                        value={customerSearchQuery}
-                                        onChange={(e) => {
-                                            setCustomerSearchQuery(e.target.value);
-                                            setShowCustomerSearch(true);
-                                        }}
-                                        onFocus={() => setShowCustomerSearch(true)}
-                                        leftIcon={<HiOutlineUserCircle className="w-5 h-5 text-gray-400" />}
-                                    />
-                                    {showCustomerSearch && customerSearchResults.length > 0 && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 max-h-48 overflow-y-auto">
-                                            {customerSearchResults.map((customer) => (
-                                                <button
-                                                    key={customer.id}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setSelectedCustomer(customers?.find(c => c.id === customer.id) || null);
-                                                        setShowCustomerSearch(false);
-                                                        setCustomerSearchQuery('');
-                                                    }}
-                                                    className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-dark-700 flex items-center justify-between"
-                                                >
-                                                    <div>
-                                                        <p className="text-sm font-medium">{customer.name}</p>
-                                                        <p className="text-xs text-gray-500">{customer.phone}</p>
-                                                    </div>
-                                                    {customer.activeCampaigns > 0 && (
-                                                        <Badge variant="success" size="sm">
-                                                            <HiOutlineTag className="w-3 h-3 mr-1" />
-                                                            {customer.activeCampaigns}
-                                                        </Badge>
-                                                    )}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    {redeemPoints && (
+                                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
+                                            Desconto: -{formatCurrency(pointsToRedeem * POINT_VALUE)} ({pointsToRedeem} pts)
+                                        </p>
                                     )}
                                 </div>
                             )}
-                        </div>
 
-                        {/* Loyalty Points Redemption */}
-                        {selectedCustomer && (selectedCustomer.loyaltyPoints || 0) > 0 && (
-                            <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/20">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                                        Pontos de Fidelidade
-                                    </span>
-                                    <Badge variant="warning" size="sm">
-                                        {selectedCustomer.loyaltyPoints} pts
-                                    </Badge>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="checkbox"
-                                        id="redeemPoints"
-                                        checked={redeemPoints}
-                                        onChange={(e) => setRedeemPoints(e.target.checked)}
-                                        className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-                                        disabled={cartSubtotal === 0}
-                                    />
-                                    <label htmlFor="redeemPoints" className="text-xs text-amber-700 dark:text-amber-300 cursor-pointer select-none">
-                                        Usar pontos para desconto
+                            {/* Optional Customer Name Input (for walk-in customers) */}
+                            {!selectedCustomer && (
+                                <div className="mt-3">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Nome do Cliente (Opcional)
                                     </label>
-                                </div>
-                                {redeemPoints && (
-                                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 ml-6">
-                                        Desconto: -{formatCurrency(pointsToRedeem * POINT_VALUE)} ({pointsToRedeem} pts)
+                                    <Input
+                                        placeholder="Ex: João Silva"
+                                        value={customerName}
+                                        onChange={(e) => setCustomerName(e.target.value)}
+                                        leftIcon={<HiOutlineUserCircle className="w-5 h-5 text-gray-400" />}
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Este nome aparecerá no recibo
                                     </p>
+                                </div>
+                            )}
+
+                            {/* Promo Code Input */}
+                            <div className="mt-3">
+                                <div className="flex gap-2">
+                                    <Input
+                                        placeholder="Código promocional..."
+                                        value={promoCode}
+                                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                                        disabled={promoCodeApplied}
+                                        leftIcon={<HiOutlineTag className="w-4 h-4 text-gray-400" />}
+                                        className="flex-1"
+                                    />
+                                    <Button
+                                        size="sm"
+                                        variant="primary"
+                                        className={promoCodeApplied ? 'bg-green-600 hover:bg-green-700' : ''}
+                                        disabled={!promoCode || promoCodeApplied || cartSubtotal === 0}
+                                        onClick={() => {
+                                            const result = applyPromoCode(promoCode, cartSubtotal);
+                                            if (result.success && result.campaign) {
+                                                // Check if already applied
+                                                const alreadyApplied = appliedCampaigns.some(
+                                                    c => c.campaignId === result.campaign!.campaignId
+                                                );
+                                                if (!alreadyApplied) {
+                                                    setAppliedCampaigns([...appliedCampaigns, result.campaign]);
+                                                    setPromoCodeApplied(true);
+                                                    toast.success(result.message);
+                                                } else {
+                                                    toast.error('Este código já foi aplicado');
+                                                }
+                                            } else {
+                                                toast.error(result.message);
+                                            }
+                                        }}
+                                    >
+                                        {promoCodeApplied ? '✓' : 'Aplicar'}
+                                    </Button>
+                                </div>
+                                {promoCodeApplied && (
+                                    <button
+                                        className="text-xs text-red-500 hover:text-red-600 mt-1"
+                                        onClick={() => {
+                                            // Remove the promo code campaign
+                                            setAppliedCampaigns(appliedCampaigns.filter(c => c.code?.toLowerCase() !== promoCode.toLowerCase()));
+                                            setPromoCode('');
+                                            setPromoCodeApplied(false);
+                                            toast('Código removido');
+                                        }}
+                                    >
+                                        Remover código
+                                    </button>
                                 )}
                             </div>
-                        )}
 
-                        {/* Optional Customer Name Input (for walk-in customers) */}
-                        {!selectedCustomer && (
-                            <div className="mt-3">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Nome do Cliente (Opcional)
-                                </label>
-                                <Input
-                                    placeholder="Ex: João Silva"
-                                    value={customerName}
-                                    onChange={(e) => setCustomerName(e.target.value)}
-                                    leftIcon={<HiOutlineUserCircle className="w-5 h-5 text-gray-400" />}
-                                />
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Este nome aparecerá no recibo
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Promo Code Input */}
-                        <div className="mt-3">
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder="Código promocional..."
-                                    value={promoCode}
-                                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                                    disabled={promoCodeApplied}
-                                    leftIcon={<HiOutlineTag className="w-4 h-4 text-gray-400" />}
-                                    className="flex-1"
-                                />
-                                <Button
-                                    size="sm"
-                                    variant="primary"
-                                    className={promoCodeApplied ? 'bg-green-600 hover:bg-green-700' : ''}
-                                    disabled={!promoCode || promoCodeApplied || cartSubtotal === 0}
-                                    onClick={() => {
-                                        const result = applyPromoCode(promoCode, cartSubtotal);
-                                        if (result.success && result.campaign) {
-                                            // Check if already applied
-                                            const alreadyApplied = appliedCampaigns.some(
-                                                c => c.campaignId === result.campaign!.campaignId
-                                            );
-                                            if (!alreadyApplied) {
-                                                setAppliedCampaigns([...appliedCampaigns, result.campaign]);
-                                                setPromoCodeApplied(true);
-                                                toast.success(result.message);
-                                            } else {
-                                                toast.error('Este código já foi aplicado');
-                                            }
-                                        } else {
-                                            toast.error(result.message);
-                                        }
-                                    }}
-                                >
-                                    {promoCodeApplied ? '✓' : 'Aplicar'}
-                                </Button>
-                            </div>
-                            {promoCodeApplied && (
-                                <button
-                                    className="text-xs text-red-500 hover:text-red-600 mt-1"
-                                    onClick={() => {
-                                        // Remove the promo code campaign
-                                        setAppliedCampaigns(appliedCampaigns.filter(c => c.code?.toLowerCase() !== promoCode.toLowerCase()));
-                                        setPromoCode('');
-                                        setPromoCodeApplied(false);
-                                        toast('Código removido');
-                                    }}
-                                >
-                                    Remover código
-                                </button>
+                            {/* Applied Campaigns */}
+                            {appliedCampaigns.length > 0 && (
+                                <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                    <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-1 flex items-center gap-1">
+                                        <HiOutlineTag className="w-3 h-3" />
+                                        Descontos Aplicados
+                                    </p>
+                                    {appliedCampaigns.map((campaign) => (
+                                        <div key={campaign.campaignId} className="flex items-center justify-between text-xs">
+                                            <span className="text-green-600 dark:text-green-400 truncate">
+                                                {campaign.campaignName}
+                                                {campaign.code && <span className="ml-1 opacity-75">({campaign.code})</span>}
+                                            </span>
+                                            <span className="text-green-700 dark:text-green-300 font-medium">
+                                                -{formatCurrency(campaign.calculatedDiscount)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
 
-                        {/* Applied Campaigns */}
-                        {appliedCampaigns.length > 0 && (
-                            <div className="mt-3 p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-1 flex items-center gap-1">
-                                    <HiOutlineTag className="w-3 h-3" />
-                                    Descontos Aplicados
-                                </p>
-                                {appliedCampaigns.map((campaign) => (
-                                    <div key={campaign.campaignId} className="flex items-center justify-between text-xs">
-                                        <span className="text-green-600 dark:text-green-400 truncate">
-                                            {campaign.campaignName}
-                                            {campaign.code && <span className="ml-1 opacity-75">({campaign.code})</span>}
-                                        </span>
-                                        <span className="text-green-700 dark:text-green-300 font-medium">
-                                            -{formatCurrency(campaign.calculatedDiscount)}
-                                        </span>
+                        {/* Cart Items */}
+                        <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3">
+                            {cart.length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+                                    <div className="text-center">
+                                        <HiOutlineSearch className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                        <p>Carrinho vazio</p>
+                                        <p className="text-sm">Busque e adicione produtos</p>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Cart Items */}
-                    <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3">
-                        {cart.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
-                                <div className="text-center">
-                                    <HiOutlineSearch className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                    <p>Carrinho vazio</p>
-                                    <p className="text-sm">Busque e adicione produtos</p>
-                                </div>
-                            </div>
-                        ) : (
-                            cart.map((item) => (
-                                <div
-                                    key={item.productId}
-                                    className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl"
-                                >
-                                    <div className="w-12 h-12 rounded-lg bg-white dark:bg-dark-600 flex items-center justify-center flex-shrink-0">
-                                        <span className="text-xl">📦</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                            {item.product.name}
-                                        </p>
-                                        <p className="text-sm text-primary-600 dark:text-primary-400">
-                                            {formatCurrency(item.unitPrice)}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
-                                            className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-dark-500 transition-colors"
-                                        >
-                                            <HiOutlineMinus className="w-3 h-3" />
-                                        </button>
-                                        <span className="w-8 text-center font-medium text-gray-900 dark:text-white">
-                                            {item.quantity}
-                                        </span>
-                                        <button
-                                            onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
-                                            className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-dark-500 transition-colors"
-                                        >
-                                            <HiOutlinePlus className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                    <button
-                                        onClick={() => removeFromCart(item.productId)}
-                                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                                    >
-                                        <HiOutlineTrash className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))
-                        )}
-                    </div>
-
-                    {/* Cart Summary */}
-                    <div className="p-4 border-t border-gray-200 dark:border-dark-700 space-y-3">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
-                            <span className="text-gray-900 dark:text-white">{formatCurrency(cartSubtotal)}</span>
-                        </div>
-                        {cartDiscount > 0 && (
-                            <div className="flex justify-between text-sm">
-                                <span className="text-gray-500 dark:text-gray-400">Desconto</span>
-                                <span className="text-green-600">-{formatCurrency(cartDiscount)}</span>
-                            </div>
-                        )}
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-500 dark:text-gray-400">IVA (16%)</span>
-                            <span className="text-gray-900 dark:text-white">{formatCurrency(cartTax)}</span>
-                        </div>
-                        <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200 dark:border-dark-700">
-                            <span className="text-gray-900 dark:text-white">Total</span>
-                            <span className="text-primary-600 dark:text-primary-400">{formatCurrency(cartTotal)}</span>
-                        </div>
-
-                        {/* 🔒 MELHORIA 3: Feedback visual aprimorado no botão de checkout */}
-                        <Button
-                            onClick={handleCheckout}
-                            disabled={cart.length === 0 || isProcessing}
-                            className={`w-full ${isProcessing ? 'opacity-75 cursor-not-allowed' : ''}`}
-                            size="lg"
-                        >
-                            {isProcessing ? (
-                                <div className="flex items-center justify-center gap-2">
-                                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <span>Processando...</span>
                                 </div>
                             ) : (
-                                <>
-                                    <HiOutlineCash className="w-5 h-5" />
-                                    Finalizar Venda ({formatCurrency(cartTotal)})
-                                </>
+                                cart.map((item) => (
+                                    <div
+                                        key={item.productId}
+                                        className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl"
+                                    >
+                                        <div className="w-12 h-12 rounded-lg bg-white dark:bg-dark-600 flex items-center justify-center flex-shrink-0">
+                                            <span className="text-xl">📦</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                                {item.product.name}
+                                            </p>
+                                            <p className="text-sm text-primary-600 dark:text-primary-400">
+                                                {formatCurrency(item.unitPrice)}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
+                                                className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-dark-500 transition-colors"
+                                            >
+                                                <HiOutlineMinus className="w-3 h-3" />
+                                            </button>
+                                            <span className="w-8 text-center font-medium text-gray-900 dark:text-white">
+                                                {item.quantity}
+                                            </span>
+                                            <button
+                                                onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
+                                                className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-dark-500 transition-colors"
+                                            >
+                                                <HiOutlinePlus className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                        <button
+                                            onClick={() => removeFromCart(item.productId)}
+                                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <HiOutlineTrash className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))
                             )}
-                        </Button>
-                    </div>
-                </Card>
+                        </div>
+
+                        {/* Cart Summary */}
+                        <div className="p-4 pb-12 border-t border-gray-200 dark:border-dark-700 space-y-3">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">Subtotal</span>
+                                <span className="text-gray-900 dark:text-white">{formatCurrency(cartSubtotal)}</span>
+                            </div>
+                            {cartDiscount > 0 && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500 dark:text-gray-400">Desconto</span>
+                                    <span className="text-green-600">-{formatCurrency(cartDiscount)}</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-sm">
+                                <span className="text-gray-500 dark:text-gray-400">IVA (16%)</span>
+                                <span className="text-gray-900 dark:text-white">{formatCurrency(cartTax)}</span>
+                            </div>
+                            <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200 dark:border-dark-700">
+                                <span className="text-gray-900 dark:text-white">Total</span>
+                                <span className="text-primary-600 dark:text-primary-400">{formatCurrency(cartTotal)}</span>
+                            </div>
+
+                            {/* 🔒 MELHORIA 3: Feedback visual aprimorado no botão de checkout */}
+                            <Button
+                                onClick={handleCheckout}
+                                disabled={cart.length === 0 || isProcessing}
+                                className={`w-full ${isProcessing ? 'opacity-75 cursor-not-allowed' : ''}`}
+                                size="lg"
+                            >
+                                {isProcessing ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <span>Processando...</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <HiOutlineCash className="w-5 h-5" />
+                                        Finalizar Venda ({formatCurrency(cartTotal)})
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
             </div>
 
             {/* Checkout Modal */}
@@ -1257,7 +1275,11 @@ export default function POSInterface() {
                             </Button>
                             <Button className="flex-1" onClick={() => {
                                 setReceiptModalOpen(false);
-                                setThermalPreviewOpen(true);
+                                if (companySettings?.printerType === 'a4') {
+                                    setA4PreviewOpen(true);
+                                } else {
+                                    setThermalPreviewOpen(true);
+                                }
                             }}>
                                 <HiOutlinePrinter className="w-4 h-4 mr-2" />
                                 Ver Recibo / Imprimir

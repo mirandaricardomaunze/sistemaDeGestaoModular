@@ -37,10 +37,16 @@ router.post('/tax-configs', authenticate, authorize('admin'), async (req: AuthRe
 
 router.put('/tax-configs/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
-        const config = await prisma.taxConfig.update({
-            where: { id: req.params.id },
+        const result = await prisma.taxConfig.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: req.body
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Configuração não encontrada' });
+        }
+
+        const config = await prisma.taxConfig.findUnique({ where: { id: req.params.id } });
         res.json(config);
     } catch (error) {
         console.error('Update tax config error:', error);
@@ -51,12 +57,19 @@ router.put('/tax-configs/:id', authenticate, authorize('admin'), async (req: Aut
 // ============================================================================
 // IRPS Brackets
 // ============================================================================
-
 router.get('/irps-brackets', authenticate, async (req: AuthRequest, res) => {
     try {
-        const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
+        const { year } = req.query;
+        const currentYear = year ? Number(year) : new Date().getFullYear();
         const brackets = await prisma.iRPSBracket.findMany({
-            where: { year, isActive: true },
+            where: {
+                year: currentYear,
+                isActive: true,
+                OR: [
+                    { companyId: req.companyId },
+                    { companyId: null }
+                ]
+            },
             orderBy: { minIncome: 'asc' }
         });
         res.json(brackets);
@@ -69,7 +82,10 @@ router.get('/irps-brackets', authenticate, async (req: AuthRequest, res) => {
 router.post('/irps-brackets', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
         const bracket = await prisma.iRPSBracket.create({
-            data: req.body
+            data: {
+                ...req.body,
+                companyId: req.companyId
+            }
         });
         res.status(201).json(bracket);
     } catch (error) {
@@ -110,10 +126,16 @@ router.post('/retentions', authenticate, async (req: AuthRequest, res) => {
 
 router.put('/retentions/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        const retention = await prisma.taxRetention.update({
-            where: { id: req.params.id },
+        const result = await prisma.taxRetention.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: req.body
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Retenção não encontrada' });
+        }
+
+        const retention = await prisma.taxRetention.findUnique({ where: { id: req.params.id } });
         res.json(retention);
     } catch (error) {
         console.error('Update retention error:', error);
@@ -156,10 +178,16 @@ router.post('/reports', authenticate, authorize('admin', 'manager'), async (req:
 
 router.put('/reports/:id', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
     try {
-        const report = await prisma.fiscalReport.update({
-            where: { id: req.params.id },
+        const result = await prisma.fiscalReport.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: req.body
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Relatório não encontrado' });
+        }
+
+        const report = await prisma.fiscalReport.findUnique({ where: { id: req.params.id } });
         res.json(report);
     } catch (error) {
         console.error('Update report error:', error);
@@ -201,10 +229,16 @@ router.post('/deadlines', authenticate, authorize('admin'), async (req: AuthRequ
 
 router.put('/deadlines/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
-        const deadline = await prisma.fiscalDeadline.update({
-            where: { id: req.params.id },
+        const result = await prisma.fiscalDeadline.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: req.body
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Prazo não encontrado' });
+        }
+
+        const deadline = await prisma.fiscalDeadline.findUnique({ where: { id: req.params.id } });
         res.json(deadline);
     } catch (error) {
         console.error('Update deadline error:', error);
@@ -214,18 +248,38 @@ router.put('/deadlines/:id', authenticate, authorize('admin'), async (req: AuthR
 
 router.post('/deadlines/:id/complete', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
     try {
-        const deadline = await prisma.fiscalDeadline.update({
-            where: { id: req.params.id },
+        const result = await prisma.fiscalDeadline.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: {
                 status: 'completed',
                 completedAt: new Date(),
                 completedBy: req.userId
             }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Prazo não encontrado' });
+        }
+
+        const deadline = await prisma.fiscalDeadline.findUnique({ where: { id: req.params.id } });
         res.json(deadline);
     } catch (error) {
         console.error('Complete deadline error:', error);
         res.status(500).json({ error: 'Erro ao completar prazo fiscal' });
+    }
+});
+
+// ============================================================================
+// Fiscal Metrics for Modules
+// ============================================================================
+
+router.get('/metrics/:module', authenticate, async (req: AuthRequest, res) => {
+    try {
+        const metrics = await fiscalService.getModuleFiscalMetrics(req.companyId!, req.params.module);
+        res.json(metrics);
+    } catch (error) {
+        console.error('Get module metrics error:', error);
+        res.status(500).json({ error: 'Erro ao buscar métricas do módulo' });
     }
 });
 

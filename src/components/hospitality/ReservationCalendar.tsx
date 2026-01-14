@@ -1,6 +1,7 @@
 /**
  * ReservationCalendar Component
  * Visual calendar showing room occupancy and future reservations
+ * Supports international guests with country, dial codes, and email
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -14,8 +15,11 @@ import {
     HiOutlinePlus,
     HiOutlineRefresh,
     HiOutlineHome,
-    HiOutlineUser
+    HiOutlineUser,
+    HiOutlineMail,
+    HiOutlineGlobe
 } from 'react-icons/hi';
+import { COUNTRIES, getCountryByCode, type Country } from '../../config/countries';
 
 interface Room {
     id: string;
@@ -50,17 +54,24 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
     const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<{ roomId: string; date: string } | null>(null);
 
-    // Reservation form state
+    // Reservation form state with international guest support
     const [reservationForm, setReservationForm] = useState({
         roomId: '',
         customerName: '',
+        guestEmail: '',
         guestCount: '1',
+        guestCountry: 'MZ',
         guestPhone: '',
         checkIn: '',
         expectedCheckout: '',
         mealPlan: 'none',
         notes: ''
     });
+
+    // Get current country for phone dial code
+    const selectedCountry = useMemo(() =>
+        getCountryByCode(reservationForm.guestCountry) || COUNTRIES[0],
+        [reservationForm.guestCountry]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Get days in current month view
@@ -153,7 +164,9 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
         setReservationForm({
             roomId,
             customerName: '',
+            guestEmail: '',
             guestCount: '1',
+            guestCountry: 'MZ',
             guestPhone: '',
             checkIn: date.toISOString().split('T')[0],
             expectedCheckout: nextDay.toISOString().split('T')[0],
@@ -168,11 +181,18 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
         setIsSubmitting(true);
 
         try {
+            // Format phone with country dial code
+            const formattedPhone = reservationForm.guestPhone
+                ? `${selectedCountry.dialCode} ${reservationForm.guestPhone.replace(/^\+?\d{1,4}\s*/, '')}`
+                : undefined;
+
             await hospitalityAPI.createReservation({
                 roomId: reservationForm.roomId,
                 customerName: reservationForm.customerName,
+                guestEmail: reservationForm.guestEmail || undefined,
+                guestCountry: reservationForm.guestCountry,
                 guestCount: parseInt(reservationForm.guestCount),
-                guestPhone: reservationForm.guestPhone || undefined,
+                guestPhone: formattedPhone,
                 checkIn: reservationForm.checkIn,
                 expectedCheckout: reservationForm.expectedCheckout,
                 mealPlan: reservationForm.mealPlan,
@@ -366,13 +386,55 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                         placeholder="Nome completo"
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Telefone"
-                            value={reservationForm.guestPhone}
-                            onChange={(e) => setReservationForm({ ...reservationForm, guestPhone: e.target.value })}
-                            placeholder="+258..."
-                        />
+                    {/* Email */}
+                    <Input
+                        label="Email"
+                        type="email"
+                        value={reservationForm.guestEmail}
+                        onChange={(e) => setReservationForm({ ...reservationForm, guestEmail: e.target.value })}
+                        placeholder="email@exemplo.com"
+                    />
+
+                    {/* Country and Phone */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <HiOutlineGlobe className="w-4 h-4 inline mr-1" />
+                                País de Origem
+                            </label>
+                            <select
+                                value={reservationForm.guestCountry}
+                                onChange={(e) => setReservationForm({ ...reservationForm, guestCountry: e.target.value })}
+                                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-sm focus:ring-2 focus:ring-primary-500"
+                            >
+                                {COUNTRIES.map(country => (
+                                    <option key={country.code} value={country.code}>
+                                        {country.flag} {country.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Telefone
+                            </label>
+                            <div className="flex">
+                                <span className="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-dark-600 border border-r-0 border-gray-300 dark:border-dark-600 rounded-l-lg">
+                                    {selectedCountry.flag} {selectedCountry.dialCode}
+                                </span>
+                                <input
+                                    type="tel"
+                                    value={reservationForm.guestPhone}
+                                    onChange={(e) => setReservationForm({ ...reservationForm, guestPhone: e.target.value })}
+                                    placeholder="84 123 4567"
+                                    className="flex-1 px-3 py-2 rounded-r-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-sm focus:ring-2 focus:ring-primary-500"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Guest Count and Dates */}
+                    <div className="grid grid-cols-3 gap-4">
                         <Input
                             label="Hóspedes"
                             type="number"
@@ -380,9 +442,6 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                             value={reservationForm.guestCount}
                             onChange={(e) => setReservationForm({ ...reservationForm, guestCount: e.target.value })}
                         />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Check-in"
                             type="date"
@@ -416,8 +475,9 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                         label="Notas / Observações"
                         value={reservationForm.notes}
                         onChange={(e) => setReservationForm({ ...reservationForm, notes: e.target.value })}
-                        placeholder="Observações especiais..."
+                        placeholder="Observações especiais, pedidos, restrições alimentares..."
                     />
+
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-4 border-t dark:border-dark-700">

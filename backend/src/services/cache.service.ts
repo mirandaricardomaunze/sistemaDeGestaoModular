@@ -106,27 +106,27 @@ export const cacheService = new CacheService();
 // Export cache key builders for consistency
 export const CacheKeys = {
     // Dashboard
-    dashboardMetrics: () => 'dashboard:metrics',
-    dashboardSales: (period: string) => `dashboard:sales:${period}`,
-    dashboardTopProducts: (limit: number, period: number) =>
-        `dashboard:top-products:${limit}:${period}`,
+    dashboardMetrics: (companyId: string) => `dashboard:metrics:${companyId}`,
+    dashboardSales: (companyId: string, period: string) => `dashboard:sales:${companyId}:${period}`,
+    dashboardTopProducts: (companyId: string, limit: number, period: number) =>
+        `dashboard:top-products:${companyId}:${limit}:${period}`,
 
     // Products
-    productList: (page: number, filters: string) =>
-        `products:list:${page}:${filters}`,
-    productById: (id: string) => `product:${id}`,
-    productsLowStock: () => 'products:low-stock',
-    productsExpiring: (days: number) => `products:expiring:${days}`,
+    productList: (companyId: string, page: number, filters: string) =>
+        `products:list:${companyId}:${page}:${filters}`,
+    productById: (companyId: string, id: string) => `product:${companyId}:${id}`,
+    productsLowStock: (companyId: string) => `products:low-stock:${companyId}`,
+    productsExpiring: (companyId: string, days: number) => `products:expiring:${companyId}:${days}`,
 
     // Customers
-    customerList: (page: number, filters: string) =>
-        `customers:list:${page}:${filters}`,
-    customerById: (id: string) => `customer:${id}`,
+    customerList: (companyId: string, page: number, filters: string) =>
+        `customers:list:${companyId}:${page}:${filters}`,
+    customerById: (companyId: string, id: string) => `customer:${companyId}:${id}`,
 
     // Sales
-    salesList: (page: number, filters: string) =>
-        `sales:list:${page}:${filters}`,
-    salesStats: (period: string) => `sales:stats:${period}`,
+    salesList: (companyId: string, page: number, filters: string) =>
+        `sales:list:${companyId}:${page}:${filters}`,
+    salesStats: (companyId: string, period: string) => `sales:stats:${companyId}:${period}`,
 
     // General
     list: (entity: string, page: number, filters?: any) =>

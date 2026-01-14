@@ -52,15 +52,15 @@ async function migrate() {
             // Vincular à empresa padrão
             await prisma.companyModule.upsert({
                 where: {
-                    companyId_moduleId: {
+                    companyId_moduleCode: {
                         companyId: defaultCompany.id,
-                        moduleId: module.id
+                        moduleCode: m.code
                     }
                 },
                 update: { isActive: true },
                 create: {
                     companyId: defaultCompany.id,
-                    moduleId: module.id,
+                    moduleCode: m.code,
                     isActive: true
                 }
             });

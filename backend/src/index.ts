@@ -27,6 +27,9 @@ import pharmacyRoutes from './routes/pharmacy';
 import adminRoutes from './routes/admin';
 import backupsRoutes from './routes/backups';
 import gdriveRoutes from './routes/gdrive';
+import paymentsRoutes from './routes/payments';
+import modulesRoutes from './routes/modules';
+import logisticsRoutes from './routes/logistics';
 
 // Initialize Prisma is now handled in lib/prisma.ts
 
@@ -73,6 +76,9 @@ app.use('/api/pharmacy', pharmacyRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/backups', backupsRoutes);
 app.use('/api/gdrive', gdriveRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/modules', modulesRoutes);
+app.use('/api/logistics', logisticsRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

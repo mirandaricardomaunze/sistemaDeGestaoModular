@@ -16,8 +16,10 @@ import { prisma } from '../lib/prisma';
 jest.mock('../middleware/auth', () => ({
     authenticate: (req: any, res: any, next: any) => {
         req.userId = 'test-user-id';
+        req.companyId = 'test-company-id';
         next();
     },
+    authorize: () => (req: any, res: any, next: any) => next(),
     AuthRequest: {} as any
 }));
 
@@ -28,12 +30,35 @@ describe('Sales Route', () => {
 
     beforeAll(async () => {
         // Setup test data
+        await prisma.company.upsert({
+            where: { id: 'test-company-id' },
+            update: {},
+            create: {
+                id: 'test-company-id',
+                name: 'Test Company',
+                nuit: '123456789'
+            }
+        });
+
+        await prisma.user.upsert({
+            where: { email: 'test@example.com' },
+            update: { id: 'test-user-id', companyId: 'test-company-id' },
+            create: {
+                id: 'test-user-id',
+                email: 'test@example.com',
+                password: 'password',
+                name: 'Test User',
+                companyId: 'test-company-id'
+            }
+        });
+
         const customer = await prisma.customer.create({
             data: {
                 code: 'TEST-001',
                 name: 'Test Customer',
                 phone: '123456789',
-                type: 'individual'
+                type: 'individual',
+                companyId: 'test-company-id'
             }
         });
         testCustomerId = customer.id;
@@ -45,17 +70,40 @@ describe('Sales Route', () => {
                 price: 100,
                 costPrice: 50,
                 currentStock: 100,
-                minStock: 10
+                minStock: 10,
+                companyId: 'test-company-id'
             }
         });
         testProductId = product.id;
+
+        // Setup Tax Config for Fiscal Integration
+        await prisma.taxConfig.create({
+            data: {
+                type: 'iva',
+                name: 'IVA 16%',
+                rate: 16,
+                isActive: true,
+                companyId: 'test-company-id',
+                applicableTo: ['sale'],
+                effectiveFrom: new Date()
+            }
+        });
     });
 
     afterAll(async () => {
-        // Cleanup
-        await prisma.sale.deleteMany({});
-        await prisma.product.delete({ where: { id: testProductId } });
-        await prisma.customer.delete({ where: { id: testCustomerId } });
+        // Cleanup in reverse order of dependencies
+        await prisma.loyaltyTransaction.deleteMany({ where: { customer: { companyId: 'test-company-id' } } });
+        await prisma.taxRetention.deleteMany({ where: { companyId: 'test-company-id' } });
+        await prisma.alert.deleteMany({ where: { companyId: 'test-company-id' } });
+        await prisma.auditLog.deleteMany({ where: { companyId: 'test-company-id' } });
+        await prisma.saleItem.deleteMany({ where: { sale: { companyId: 'test-company-id' } } });
+        await prisma.sale.deleteMany({ where: { companyId: 'test-company-id' } });
+        await prisma.taxConfig.deleteMany({ where: { companyId: 'test-company-id' } });
+        await prisma.product.deleteMany({ where: { companyId: 'test-company-id' } });
+        await prisma.customer.deleteMany({ where: { companyId: 'test-company-id' } });
+        await prisma.user.deleteMany({ where: { companyId: 'test-company-id' } });
+        await prisma.documentSeries.deleteMany({ where: { prefix: 'FR' } });
+        await prisma.company.delete({ where: { id: 'test-company-id' } });
         await prisma.$disconnect();
     });
 
@@ -247,6 +295,48 @@ describe('Sales Route', () => {
             expect(alert).toBeTruthy();
             expect(alert!.priority).toBe('high');
         });
+
+        it('should register fiscal retention for IVA', async () => {
+            const saleData = {
+                customerId: testCustomerId,
+                items: [
+                    {
+                        productId: testProductId,
+                        quantity: 1,
+                        unitPrice: 100,
+                        discount: 0,
+                        total: 100
+                    }
+                ],
+                subtotal: 100,
+                discount: 0,
+                tax: 16, // 16% IVA
+                total: 116,
+                paymentMethod: 'cash',
+                amountPaid: 116,
+                change: 0
+            };
+
+            const response = await request(app)
+                .post('/api/sales')
+                .send(saleData)
+                .expect(201);
+
+            const saleId = response.body.id;
+
+            // Verify tax retention record
+            const retention = await prisma.taxRetention.findFirst({
+                where: {
+                    entityId: saleId,
+                    entityType: 'sale',
+                    type: 'iva'
+                }
+            });
+
+            expect(retention).toBeTruthy();
+            expect(Number(retention!.retainedAmount)).toBe(16);
+            expect(Number(retention!.baseAmount)).toBe(100);
+        });
     });
 
     describe('GET /sales', () => {
@@ -325,6 +415,7 @@ describe('Sales Route', () => {
                     data: {
                         receiptNumber: `TEST-CANCEL-${Date.now()}`,
                         userId: 'test-user-id',
+                        companyId: 'test-company-id',
                         subtotal: 200,
                         total: 200,
                         paymentMethod: 'cash',
@@ -379,8 +470,35 @@ describe('Sales Route', () => {
                 await request(app)
                     .post(`/api/sales/${fakeId}/cancel`)
                     .send({ reason: 'Test' })
-                    .expect(500); // Or 404 depending on how I handled the error throw, I used throw new Error which goes to 500 catch block. Ideally checking valid error content.
+                    .expect(500);
             });
+        });
+    });
+
+    describe('GET /sales/stats/summary', () => {
+        it('should return sales statistics', async () => {
+            const response = await request(app)
+                .get('/api/sales/stats/summary')
+                .expect(200);
+
+            expect(response.body).toHaveProperty('totalRevenue');
+            expect(response.body).toHaveProperty('salesCount');
+            expect(response.body).toHaveProperty('avgSale');
+            expect(response.body).toHaveProperty('byPaymentMethod');
+            expect(response.body).toHaveProperty('topProducts');
+        });
+    });
+
+    describe('GET /sales/today/summary', () => {
+        it('should return today\'s sales summary', async () => {
+            const response = await request(app)
+                .get('/api/sales/today/summary')
+                .expect(200);
+
+            expect(response.body).toHaveProperty('sales');
+            expect(response.body).toHaveProperty('totals');
+            expect(response.body.totals).toHaveProperty('count');
+            expect(response.body.totals).toHaveProperty('total');
         });
     });
 });

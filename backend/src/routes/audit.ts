@@ -66,8 +66,8 @@ router.get('/', authenticate, authorize('admin'), async (req: AuthRequest, res) 
 // Get audit log by ID
 router.get('/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     try {
-        const log = await prisma.auditLog.findUnique({
-            where: { id: req.params.id }
+        const log = await prisma.auditLog.findFirst({
+            where: { id: req.params.id, companyId: req.companyId }
         });
 
         if (!log) {
@@ -96,6 +96,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 oldData: oldData || undefined,
                 newData: newData || undefined,
                 ipAddress: ipAddress || req.ip,
+                companyId: req.companyId
             }
         });
 

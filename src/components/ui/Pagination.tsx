@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
@@ -192,7 +192,11 @@ export function usePagination<T>(items: T[] | undefined | null, initialItemsPerP
 
     const totalPages = Math.ceil(safeItems.length / itemsPerPage);
 
-    // Reset to page 1 when items change significantly
+    // Reset to page 1 when items change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [safeItems.length]);
+
     const resetToFirstPage = () => setCurrentPage(1);
 
     return {

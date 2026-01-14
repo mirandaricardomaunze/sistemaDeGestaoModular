@@ -18,6 +18,7 @@ export const settingsAPI = {
         email: string;
         address: string;
         city: string;
+        zipCode: string;
         province: string;
         country: string;
         logo: string;
@@ -151,45 +152,128 @@ export const campaignsAPI = {
 };
 
 // ============================================================================
-// Alerts API
+// Alerts API - Module-aware notifications system
 // ============================================================================
 
+export type AlertModule = 'pos' | 'hospitality' | 'pharmacy' | 'crm' | 'invoices' | 'inventory';
+export type AlertPriority = 'critical' | 'high' | 'medium' | 'low';
+
+export interface Alert {
+    id: string;
+    type: string;
+    priority: AlertPriority;
+    title: string;
+    message: string;
+    module?: AlertModule;
+    isRead: boolean;
+    isResolved: boolean;
+    relatedId?: string;
+    relatedType?: string;
+    actionUrl?: string;
+    metadata?: Record<string, unknown>;
+    createdAt: string;
+    resolvedAt?: string;
+}
+
+export interface AlertsSummary {
+    total: number;
+    unread: number;
+    critical: number;
+    high: number;
+    recentAlerts: Alert[];
+}
+
+export interface UnreadCount {
+    total: number;
+    byPriority: Record<string, number>;
+    byModule: Record<string, number>;
+}
+
 export const alertsAPI = {
+    // Get all alerts with optional filtering
     getAll: async (params?: {
         type?: string;
-        priority?: string;
+        module?: AlertModule;
+        priority?: AlertPriority;
         isRead?: boolean;
         isResolved?: boolean;
-    }) => {
+        limit?: number;
+    }): Promise<Alert[]> => {
         const response = await api.get('/alerts', { params });
         return response.data;
     },
 
+    // Get unread count with breakdown by priority and module
+    getUnreadCount: async (module?: AlertModule): Promise<UnreadCount> => {
+        const response = await api.get('/alerts/unread-count', { params: { module } });
+        return response.data;
+    },
+
+    // Get summary for dashboard
+    getSummary: async (): Promise<AlertsSummary> => {
+        const response = await api.get('/alerts/summary');
+        return response.data;
+    },
+
+    // Mark single alert as read
     markAsRead: async (id: string) => {
         const response = await api.patch(`/alerts/${id}/read`);
         return response.data;
     },
 
+    // Mark all alerts as read (optionally by module)
+    markAllAsRead: async (module?: AlertModule) => {
+        const response = await api.patch('/alerts/read-all', { module });
+        return response.data;
+    },
+
+    // Resolve alert
     markAsResolved: async (id: string) => {
         const response = await api.patch(`/alerts/${id}/resolve`);
         return response.data;
     },
 
+    // Delete alert
     delete: async (id: string) => {
         const response = await api.delete(`/alerts/${id}`);
         return response.data;
     },
 
-    markAllAsRead: async () => {
-        const response = await api.patch('/alerts/read-all');
+    // Clear all resolved alerts
+    clearResolved: async () => {
+        const response = await api.delete('/alerts/clear/resolved');
         return response.data;
     },
 
+    // Generate all alerts
     generate: async () => {
         const response = await api.post('/alerts/generate');
         return response.data;
     },
+
+    // Generate alerts for specific module
+    generateForModule: async (module: AlertModule) => {
+        const response = await api.post(`/alerts/generate/${module}`);
+        return response.data;
+    },
+
+    // Create custom alert
+    create: async (data: {
+        type: string;
+        priority?: AlertPriority;
+        title: string;
+        message: string;
+        module?: AlertModule;
+        relatedId?: string;
+        relatedType?: string;
+        actionUrl?: string;
+        metadata?: Record<string, unknown>;
+    }): Promise<Alert> => {
+        const response = await api.post('/alerts', data);
+        return response.data;
+    },
 };
+
 
 // ============================================================================
 // Customer Orders API

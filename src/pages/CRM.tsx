@@ -12,19 +12,17 @@ import {
     HiOutlineHome,
     HiOutlineRefresh,
     HiOutlinePlus,
-    HiOutlineCalculator
 } from 'react-icons/hi';
 import SalesFunnel from '../components/crm/SalesFunnel';
 import CampaignManager from '../components/crm/CampaignManager';
 import CRMDashboard from '../components/crm/CRMDashboard';
 import { Card, Button } from '../components/ui';
-import ModuleFiscalView from '../components/shared/ModuleFiscalView';
 import { cn } from '../utils/helpers';
 import { useCRMStore } from '../stores/useCRMStore';
 import { useCampaigns } from '../hooks/useData';
 import { formatCurrency } from '../utils/helpers';
 
-type CRMTab = 'dashboard' | 'funnel' | 'campaigns' | 'customers' | 'settings' | 'fiscal';
+type CRMTab = 'dashboard' | 'funnel' | 'campaigns' | 'customers' | 'settings';
 
 export default function CRM() {
     const [activeTab, setActiveTab] = useState<CRMTab>('dashboard');
@@ -42,7 +40,6 @@ export default function CRM() {
         { id: 'funnel' as const, label: 'Funil de Vendas', icon: <HiOutlineChartBar className="w-5 h-5" /> },
         { id: 'campaigns' as const, label: 'Campanhas', icon: <HiOutlineTag className="w-5 h-5" /> },
         { id: 'customers' as const, label: 'Segmentação', icon: <HiOutlineUserGroup className="w-5 h-5" /> },
-        { id: 'fiscal' as const, label: 'Fiscal', icon: <HiOutlineCalculator className="w-5 h-5" /> },
         { id: 'settings' as const, label: 'Configuração', icon: <HiOutlineCog className="w-5 h-5" /> },
     ];
 
@@ -65,20 +62,21 @@ export default function CRM() {
 
                 {/* Responsive Tabs Navigation */}
                 <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
-                    <div className="flex overflow-x-auto no-scrollbar -mb-px">
+                    <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as CRMTab)}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                                 )}
                             >
-                                {tab.icon}
-                                {tab.label}
+                                <span className="shrink-0">{tab.icon}</span>
+                                <span className="hidden sm:inline-block">{tab.label}</span>
+                                <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
                             </button>
                         ))}
                     </div>
@@ -150,7 +148,6 @@ export default function CRM() {
                 {activeTab === 'dashboard' && <CRMDashboard />}
                 {activeTab === 'funnel' && <SalesFunnel />}
                 {activeTab === 'campaigns' && <CampaignManager />}
-                {activeTab === 'fiscal' && <ModuleFiscalView module="crm" title="Vendas & CRM" />}
                 {activeTab === 'customers' && (
                     <Card padding="lg" className="text-center">
                         <HiOutlineUserGroup className="w-16 h-16 text-gray-300 mx-auto mb-4" />

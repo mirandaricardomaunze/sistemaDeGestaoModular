@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { prisma } from '../lib/prisma';
+import { OPTIONAL_MODULES } from '../constants/modules.constants';
 
 const router = Router();
 
@@ -7,31 +7,16 @@ const router = Router();
  * @swagger
  * /api/modules:
  *   get:
- *     summary: List all available business modules
+ *     summary: List all optional business modules available for selection
  *     tags: [Modules]
  *     responses:
  *       200:
- *         description: List of available modules
+ *         description: List of optional modules (core modules are always included)
  */
 router.get('/', async (_req, res) => {
-    try {
-        const modules = await prisma.module.findMany({
-            where: { isActive: true },
-            select: {
-                id: true,
-                code: true,
-                name: true,
-                description: true
-            },
-            orderBy: { name: 'asc' }
-        });
-
-        console.log(`[Modules] Found ${modules.length} active modules`);
-        res.json(modules);
-    } catch (error) {
-        console.error('List modules error:', error);
-        res.status(500).json({ error: 'Erro ao listar módulos' });
-    }
+    // Return static modules - no database query needed
+    console.log(`[Modules] Returning ${OPTIONAL_MODULES.length} optional modules`);
+    res.json(OPTIONAL_MODULES);
 });
 
 export default router;

@@ -27,8 +27,11 @@ export { employeesAPI } from './employees.api';
 
 // Operations
 export { warehousesAPI, dashboardAPI } from './warehouses.api';
-export { settingsAPI, campaignsAPI, alertsAPI, ordersAPI } from './settings.api';
+export { settingsAPI, campaignsAPI, alertsAPI, ordersAPI, type Alert, type AlertModule, type AlertPriority, type AlertsSummary, type UnreadCount } from './settings.api';
 
 // Specialized Modules
 export { auditAPI, crmAPI, fiscalAPI } from './crm.api';
 export { hospitalityAPI, pharmacyAPI, backupsAPI, gdriveAPI } from './hospitality.api';
+
+// Payments
+export { paymentsAPI, type PaymentModule, type MpesaStatus, type MpesaTransaction } from './payments.api';

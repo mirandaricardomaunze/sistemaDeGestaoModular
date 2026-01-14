@@ -80,13 +80,13 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             applyToAllProducts
         } = req.body;
 
-        // Check if code already exists
+        // Check if code already exists in this company
         if (code) {
-            const existing = await prisma.campaign.findUnique({
-                where: { code }
+            const existing = await prisma.campaign.findFirst({
+                where: { code: code.toUpperCase(), companyId: req.companyId }
             });
             if (existing) {
-                return res.status(400).json({ error: 'Código de campanha já existe' });
+                return res.status(400).json({ error: 'Código de campanha já existe para esta empresa' });
             }
         }
 
@@ -131,10 +131,16 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
             return res.status(404).json({ error: 'Campanha não encontrada' });
         }
 
-        const campaign = await prisma.campaign.update({
-            where: { id: req.params.id },
+        const result = await prisma.campaign.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: updateData
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Campanha não encontrada' });
+        }
+
+        const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
 
         res.json(campaign);
     } catch (error) {
@@ -154,10 +160,16 @@ router.post('/:id/activate', authenticate, async (req: AuthRequest, res) => {
             return res.status(404).json({ error: 'Campanha não encontrada' });
         }
 
-        const campaign = await prisma.campaign.update({
-            where: { id: req.params.id },
+        const result = await prisma.campaign.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: { status: 'active' }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Campanha não encontrada' });
+        }
+
+        const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
 
         res.json(campaign);
     } catch (error) {
@@ -177,10 +189,16 @@ router.post('/:id/pause', authenticate, async (req: AuthRequest, res) => {
             return res.status(404).json({ error: 'Campanha não encontrada' });
         }
 
-        const campaign = await prisma.campaign.update({
-            where: { id: req.params.id },
+        const result = await prisma.campaign.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: { status: 'paused' }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Campanha não encontrada' });
+        }
+
+        const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
 
         res.json(campaign);
     } catch (error) {
@@ -200,10 +218,16 @@ router.post('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
             return res.status(404).json({ error: 'Campanha não encontrada' });
         }
 
-        const campaign = await prisma.campaign.update({
-            where: { id: req.params.id },
+        const result = await prisma.campaign.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: { status: 'cancelled' }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Campanha não encontrada' });
+        }
+
+        const campaign = await prisma.campaign.findUnique({ where: { id: req.params.id } });
 
         res.json(campaign);
     } catch (error) {
@@ -307,11 +331,15 @@ router.post('/:id/use', authenticate, async (req: AuthRequest, res) => {
             }
         });
 
-        // Increment usage count
-        await prisma.campaign.update({
-            where: { id: req.params.id },
+        // Verify ownership and increment usage count
+        const result = await prisma.campaign.updateMany({
+            where: { id: req.params.id, companyId: req.companyId },
             data: { currentUses: { increment: 1 } }
         });
+
+        if (result.count === 0) {
+            return res.status(404).json({ error: 'Campanha não encontrada' });
+        }
 
         res.status(201).json(usage);
     } catch (error) {

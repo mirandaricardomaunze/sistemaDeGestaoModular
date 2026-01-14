@@ -149,29 +149,19 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
     // For company admins, we still want to restrict modules.
     // Assuming 'admin' in this context is the Company Admin.
 
-    const pathModuleMap: Record<string, string> = {
-        '/pharmacy': 'PHARMACY',
-        '/hospitality': 'HOTEL',
-        '/bottle-store': 'BOTTLE_STORE',
-        '/logistics': 'LOGISTICS',
-        '/inventory': 'COMMERCIAL',
-        '/pos': 'COMMERCIAL',
-        '/customers': 'COMMERCIAL',
-        '/crm': 'COMMERCIAL',
-        '/suppliers': 'COMMERCIAL',
-        '/employees': 'COMMERCIAL',
-        '/financial': 'COMMERCIAL',
-        '/fiscal': 'COMMERCIAL',
-        '/invoices': 'COMMERCIAL',
-        '/orders': 'COMMERCIAL',
-        '/categories': 'COMMERCIAL',
-    };
+    // Module isolation rules - using prefix matching for sub-routes
+    const moduleRestrictions: Array<{ prefix: string, module: string }> = [
+        { prefix: '/pharmacy', module: 'pharmacy' },
+        { prefix: '/hotel', module: 'hospitality' },
+        { prefix: '/hospitality', module: 'hospitality' },
+        { prefix: '/bottle-store', module: 'bottle_store' },
+        { prefix: '/logistics', module: 'logistics' },
+    ];
 
-    const requiredModule = pathModuleMap[path];
-    if (requiredModule && user.activeModules) {
-        if (!user.activeModules.includes(requiredModule)) {
-            return false;
-        }
+    const restriction = moduleRestrictions.find(r => path.startsWith(r.prefix));
+    if (restriction && user.activeModules) {
+        const hasModule = user.activeModules.some(m => m.toLowerCase() === restriction.module.toLowerCase());
+        if (!hasModule) return false;
     }
 
     // Special restriction for Super Admin page - ONLY super_admin role

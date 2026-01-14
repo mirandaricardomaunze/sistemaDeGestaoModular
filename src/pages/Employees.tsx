@@ -47,7 +47,7 @@ export default function Employees() {
 
                 {/* Responsive Tabs */}
                 <div className="border-b border-gray-200 dark:border-dark-700">
-                    <div className="flex overflow-x-auto no-scrollbar -mb-px">
+                    <div className="flex flex-wrap -mb-px">
                         {[
                             { id: 'dashboard', label: 'Visão Geral', icon: <HiOutlineChartBar className="w-5 h-5" /> },
                             { id: 'list', label: 'Colaboradores', icon: <HiOutlineUsers className="w-5 h-5" /> },
@@ -60,14 +60,15 @@ export default function Employees() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as Tab)}
                                 className={cn(
-                                    "flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all whitespace-nowrap",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-medium border-b-2 transition-all whitespace-nowrap",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                                 )}
                             >
                                 {tab.icon}
-                                {tab.label}
+                                <span className="hidden sm:inline-block">{tab.label}</span>
+                                <span className="sm:hidden text-[10px]">{tab.label.split(' ')[0]}</span>
                             </button>
                         ))}
                     </div>

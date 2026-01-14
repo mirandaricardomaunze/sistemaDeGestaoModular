@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { HospitalityService } from '../services/hospitality.service';
+import { createRoomSchema, updateRoomSchema, checkInSchema, formatZodError } from '../utils/validation';
+import { ZodError } from 'zod';
 
 const router = Router();
 const hospitalityService = new HospitalityService(prisma);
@@ -37,9 +39,19 @@ router.post('/rooms', authenticate, async (req: AuthRequest, res) => {
         const companyId = req.companyId;
         if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        const room = await hospitalityService.createRoom(companyId, req.body);
+        // Validate request body
+        const validatedData = createRoomSchema.parse(req.body);
+
+        const room = await hospitalityService.createRoom(companyId, validatedData);
         res.status(201).json(room);
     } catch (error: any) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                message: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
+        console.error('POST /rooms error:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -50,9 +62,19 @@ router.put('/rooms/:id', authenticate, async (req: AuthRequest, res) => {
         const companyId = req.companyId;
         if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        const room = await hospitalityService.updateRoom(companyId, req.params.id, req.body);
+        // Validate request body
+        const validatedData = updateRoomSchema.parse(req.body);
+
+        const room = await hospitalityService.updateRoom(companyId, req.params.id, validatedData);
         res.json(room);
     } catch (error: any) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                message: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
+        console.error('PUT /rooms error:', error);
         res.status(500).json({ message: error.message });
     }
 });
@@ -98,9 +120,18 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
         const companyId = req.companyId;
         if (!companyId) return res.status(400).json({ message: 'Empresa não identificada' });
 
-        const result = await hospitalityService.checkIn(companyId, req.body);
+        // Validate request body
+        const validatedData = checkInSchema.parse(req.body);
+
+        const result = await hospitalityService.checkIn(companyId, validatedData);
         res.status(201).json(result);
     } catch (error: any) {
+        if (error instanceof ZodError) {
+            return res.status(400).json({
+                message: 'Dados inválidos',
+                details: formatZodError(error)
+            });
+        }
         res.status(400).json({ message: error.message });
     }
 });
@@ -116,8 +147,8 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
         const { productId, quantity } = req.body;
         const bookingId = req.params.id;
 
-        const booking = await prisma.booking.findUnique({
-            where: { id: bookingId },
+        const booking = await prisma.booking.findFirst({
+            where: { id: bookingId, companyId },
             include: { room: true }
         });
 
@@ -125,7 +156,9 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
             return res.status(400).json({ message: 'Booking not active or not found' });
         }
 
-        const product = await prisma.product.findUnique({ where: { id: productId } });
+        const product = await prisma.product.findFirst({
+            where: { id: productId, companyId }
+        });
         if (!product) return res.status(404).json({ message: 'Product not found' });
 
         if (product.currentStock < quantity) {
@@ -146,9 +179,29 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
             });
 
             // 2. Reduce stock
+            const balanceBefore = product.currentStock;
+            const balanceAfter = balanceBefore - quantity;
+
             await tx.product.update({
                 where: { id: productId },
                 data: { currentStock: { decrement: quantity } }
+            });
+
+            // 2.5 Log Movement (Audit)
+            await tx.stockMovement.create({
+                data: {
+                    productId,
+                    movementType: 'sale',
+                    quantity: -quantity,
+                    balanceBefore,
+                    balanceAfter,
+                    reason: `Consumo: Quarto ${booking.room.number}`,
+                    performedBy: (req as any).userName || 'Sistema',
+                    companyId,
+                    originModule: 'hospitality',
+                    reference: bookingId,
+                    referenceType: 'booking'
+                }
             });
 
             // 3. Create financial transaction (revenue from consumption)
@@ -180,8 +233,9 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
 // PUT /api/hospitality/bookings/:id/checkout
 router.put('/bookings/:id/checkout', authenticate, async (req: any, res) => {
     try {
-        const booking = await prisma.booking.findUnique({
-            where: { id: req.params.id },
+        const companyId = (req as any).companyId;
+        const booking = await prisma.booking.findFirst({
+            where: { id: req.params.id, companyId },
             include: {
                 room: true,
                 consumptions: {
@@ -218,7 +272,10 @@ router.put('/bookings/:id/checkout', authenticate, async (req: any, res) => {
 
             // 3. Create a Sale for this stay + consumptions
             let accommodationProduct = await tx.product.findFirst({
-                where: { name: { contains: 'Alojamento', mode: 'insensitive' } }
+                where: {
+                    name: { contains: 'Alojamento', mode: 'insensitive' },
+                    companyId: booking.room.companyId
+                }
             });
 
             if (!accommodationProduct) {
@@ -230,7 +287,8 @@ router.put('/bookings/:id/checkout', authenticate, async (req: any, res) => {
                         price: booking.totalPrice,
                         currentStock: 9999,
                         unit: 'un',
-                        status: 'in_stock'
+                        status: 'in_stock',
+                        companyId: booking.room.companyId
                     }
                 });
             }
@@ -243,7 +301,7 @@ router.put('/bookings/:id/checkout', authenticate, async (req: any, res) => {
             // Generate Receipt Number
             const docSeriesResult = await tx.$queryRaw<any[]>`
                 SELECT * FROM document_series 
-                WHERE prefix = 'FR' AND "isActive" = true 
+                WHERE prefix = 'FR' AND "isActive" = true AND "companyId" = ${booking.room.companyId}
                 ORDER BY "createdAt" DESC 
                 LIMIT 1 
                 FOR UPDATE
@@ -258,11 +316,11 @@ router.put('/bookings/:id/checkout', authenticate, async (req: any, res) => {
                         prefix: 'FR',
                         series: 'A',
                         lastNumber: 0,
-                        isActive: true
+                        isActive: true,
+                        companyId: booking.room.companyId
                     }
                 });
             }
-
             const series = docSeries.series;
             const fiscalNumber = docSeries.lastNumber + 1;
             const receiptNumber = `FR ${series}/${String(fiscalNumber).padStart(4, '0')}`;
@@ -310,6 +368,7 @@ router.put('/bookings/:id/checkout', authenticate, async (req: any, res) => {
                     series,
                     fiscalNumber,
                     hashCode,
+                    companyId: booking.room.companyId,
                     items: {
                         create: saleItems
                     }
@@ -393,8 +452,8 @@ router.get('/bookings/today-checkouts', authenticate, async (req: AuthRequest, r
 router.put('/bookings/:id/extend', authenticate, async (req, res) => {
     try {
         const { newCheckoutDate, adjustPrice } = req.body;
-        const booking = await prisma.booking.findUnique({
-            where: { id: req.params.id },
+        const booking = await prisma.booking.findFirst({
+            where: { id: req.params.id, companyId: (req as any).companyId },
             include: { room: true }
         });
 
@@ -431,8 +490,9 @@ router.put('/bookings/:id/extend', authenticate, async (req, res) => {
 // GET /api/hospitality/bookings/:id/details
 router.get('/bookings/:id/details', authenticate, async (req, res) => {
     try {
-        const booking = await prisma.booking.findUnique({
-            where: { id: req.params.id },
+        const companyId = (req as any).companyId;
+        const booking = await prisma.booking.findFirst({
+            where: { id: req.params.id, companyId },
             include: {
                 room: true,
                 consumptions: {
@@ -542,12 +602,12 @@ router.put('/housekeeping/:id', authenticate, async (req: AuthRequest, res) => {
             updateData.completedAt = new Date();
 
             // Mark room as available when housekeeping completes
-            const task = await prisma.housekeepingTask.findUnique({
-                where: { id: req.params.id }
+            const task = await prisma.housekeepingTask.findFirst({
+                where: { id: req.params.id, companyId }
             });
             if (task) {
-                await prisma.room.update({
-                    where: { id: task.roomId },
+                await prisma.room.updateMany({
+                    where: { id: task.roomId, companyId },
                     data: { status: 'available' }
                 });
             }
@@ -678,6 +738,7 @@ router.post('/reservations', authenticate, async (req: AuthRequest, res) => {
         const conflictingBooking = await prisma.booking.findFirst({
             where: {
                 roomId,
+                companyId,
                 status: { in: ['pending', 'confirmed', 'checked_in'] },
                 OR: [
                     {
@@ -692,7 +753,7 @@ router.post('/reservations', authenticate, async (req: AuthRequest, res) => {
             return res.status(400).json({ message: 'Quarto já reservado para essas datas' });
         }
 
-        const room = await prisma.room.findUnique({ where: { id: roomId } });
+        const room = await prisma.room.findFirst({ where: { id: roomId, companyId } });
         if (!room) return res.status(404).json({ message: 'Quarto não encontrado' });
 
         // Calculate price based on meal plan
@@ -724,7 +785,8 @@ router.post('/reservations', authenticate, async (req: AuthRequest, res) => {
                 totalPrice,
                 mealPlan: mealPlan || 'none',
                 status: 'confirmed', // Future reservation starts as confirmed
-                notes
+                notes,
+                companyId
             },
             include: { room: true }
         });

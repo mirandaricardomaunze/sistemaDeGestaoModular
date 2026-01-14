@@ -27,6 +27,9 @@ export const checkExpiringBatches = async () => {
                 currentStock: {
                     gt: 0
                 }
+            },
+            include: {
+                company: true
             }
         });
 
@@ -37,14 +40,17 @@ export const checkExpiringBatches = async () => {
 
         console.log(`⚠️ Encontrados ${expiringProducts.length} produtos para alertar.`);
 
-        // Get admin users or users with 'manager' role to notify
-        const usersToNotify = await prisma.user.findMany({
-            where: {
-                role: { in: ['admin', 'manager'] }
-            }
-        });
-
+        // For each product, notify admins of its company
         for (const product of expiringProducts) {
+            if (!product.companyId) continue;
+
+            const usersToNotify = await prisma.user.findMany({
+                where: {
+                    companyId: product.companyId,
+                    role: { in: ['admin', 'manager'] }
+                }
+            });
+
             for (const user of usersToNotify) {
                 if (user.email) {
                     await emailQueue.add('expiration-alert', {

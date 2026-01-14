@@ -51,7 +51,15 @@ export function useProducts(params?: UseProductsParams) {
                     });
                 }
 
-                setProducts(productsData);
+                const finalProducts = productsData.map(p => ({
+                    ...p,
+                    stocks: p.warehouseStocks?.reduce((acc: any, ws: any) => ({
+                        ...acc,
+                        [ws.warehouseId]: ws.quantity
+                    }), {})
+                }));
+
+                setProducts(finalProducts);
 
                 // Offline caching - only cache when on first page or no pagination to avoid clearing all for a partial load
                 if (!params?.page || params.page === 1) {
@@ -66,7 +74,14 @@ export function useProducts(params?: UseProductsParams) {
                 }
             } else {
                 const cached = await db.products.toArray();
-                setProducts(cached);
+                const normalizedCached = cached.map(p => ({
+                    ...p,
+                    stocks: p.warehouseStocks?.reduce((acc: any, ws: any) => ({
+                        ...acc,
+                        [ws.warehouseId]: ws.quantity
+                    }), {})
+                }));
+                setProducts(normalizedCached);
                 setPagination({
                     page: 1,
                     limit: cached.length,
@@ -140,7 +155,17 @@ export function useProducts(params?: UseProductsParams) {
     ) => {
         try {
             const updated = await productsAPI.updateStock(id, { quantity, operation, warehouseId });
-            setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updated } : p)));
+
+            // Normalize backend warehouseStocks to frontend stocks record
+            const normalizedUpdated = {
+                ...updated,
+                stocks: updated.warehouseStocks?.reduce((acc: any, ws: any) => ({
+                    ...acc,
+                    [ws.warehouseId]: ws.quantity
+                }), {})
+            };
+
+            setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...normalizedUpdated } : p)));
             toast.success('Stock actualizado com sucesso!');
             return updated;
         } catch (err) {

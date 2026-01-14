@@ -83,13 +83,32 @@ export const productsAPI = {
         return response.data;
     },
 
-    getLowStock: async () => {
-        const response = await api.get('/products/alerts/low-stock');
+    getMovements: async (id: string, params?: { page?: number; limit?: number }) => {
+        const response = await api.get(`/products/${id}/movements`, { params });
         return response.data;
     },
 
-    getExpiring: async (days?: number) => {
-        const response = await api.get('/products/alerts/expiring', { params: { days } });
+    getStockMovements: async (params?: {
+        page?: number;
+        limit?: number;
+        type?: string;
+        warehouseId?: string;
+        productId?: string;
+        search?: string;
+        startDate?: string;
+        endDate?: string;
+    }) => {
+        const response = await api.get('/products/stock-movements', { params });
+        return response.data;
+    },
+
+    getLowStock: async (params?: { page?: number; limit?: number }) => {
+        const response = await api.get('/products/alerts/low-stock', { params });
+        return response.data;
+    },
+
+    getExpiring: async (days?: number, params?: { page?: number; limit?: number }) => {
+        const response = await api.get('/products/alerts/expiring', { params: { ...params, days } });
         return response.data;
     },
 };
