@@ -40,6 +40,8 @@ const moduleIcons: Record<string, React.ComponentType<{ className?: string }>> =
     inventory: HiOutlineCube,
     hospitality: HiOutlineHomeModern,
     logistics: HiOutlineTruck,
+    bottle_store: HiOutlineBuildingStorefront,
+    commercial: HiOutlineBuildingStorefront,
 };
 
 // Integrated Pillars configuration (shown for all modules)

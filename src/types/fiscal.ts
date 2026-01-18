@@ -309,6 +309,14 @@ export const STANDARD_DEADLINES: Omit<FiscalDeadline, 'id' | 'createdAt' | 'upda
 // Dashboard Types
 // ============================================================================
 
+export interface LogisticsMetrics {
+    income: number;
+    expenses: number;
+    profit: number;
+    maintenanceCosts: number;
+    count: number;
+}
+
 export interface FiscalDashboardMetrics {
     currentMonth: {
         ivaCollected: number;
@@ -329,6 +337,7 @@ export interface FiscalDashboardMetrics {
     pendingDeadlines: FiscalDeadline[];
     recentRetentions: TaxRetention[];
     complianceStatus: 'compliant' | 'warning' | 'non_compliant';
+    logisticsMetrics?: LogisticsMetrics;
 }
 
 // ============================================================================

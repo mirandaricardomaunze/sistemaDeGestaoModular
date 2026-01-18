@@ -21,6 +21,7 @@ interface UseProductsParams {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    origin_module?: string;
 }
 
 export function useProducts(params?: UseProductsParams) {
@@ -105,7 +106,8 @@ export function useProducts(params?: UseProductsParams) {
         params?.limit,
         params?.sortBy,
         params?.sortOrder,
-        params?.warehouseId
+        params?.warehouseId,
+        params?.origin_module
     ]);
 
     useEffect(() => {

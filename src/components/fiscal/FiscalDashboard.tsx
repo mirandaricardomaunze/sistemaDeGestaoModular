@@ -9,7 +9,6 @@ import {
     HiOutlineCalendar,
     HiOutlineTrendingUp,
     HiOutlineTruck,
-    HiOutlineArrowTrendingUp,
 } from 'react-icons/hi';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { Card, Badge } from '../ui';
@@ -19,7 +18,7 @@ import { formatPeriod, getCurrentFiscalPeriod } from '../../utils/fiscalCalculat
 export default function FiscalDashboard() {
     const { getDashboardMetrics, retentions, fiscalReports, deadlines, logisticsMetrics } = useFiscalStore();
 
-    const metrics = useMemo(() => getDashboardMetrics(), [retentions, fiscalReports, deadlines]);
+    const metrics = useMemo(() => getDashboardMetrics(), [retentions, fiscalReports, deadlines, logisticsMetrics]);
     const currentPeriod = getCurrentFiscalPeriod();
 
     const getComplianceColor = (status: string) => {
@@ -269,7 +268,7 @@ export default function FiscalDashboard() {
             </div>
 
             {/* Logistics Performance - Deep Integration Section */}
-            {logisticsMetrics && (
+            {metrics.logisticsMetrics && (
                 <div className="space-y-4">
                     <div className="flex items-center gap-2">
                         <HiOutlineTruck className="w-6 h-6 text-primary-600 dark:text-primary-400" />
@@ -282,23 +281,28 @@ export default function FiscalDashboard() {
                         <Card padding="md" className="bg-green-50/50 dark:bg-green-900/5 border-green-100 dark:border-green-900/20">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium text-green-700 dark:text-green-400">Receita Logística</span>
-                                <HiOutlineArrowTrendingUp className="w-5 h-5 text-green-500" />
+                                <HiOutlineTrendingUp className="w-5 h-5 text-green-500" />
                             </div>
                             <p className="text-xl font-bold text-gray-900 dark:text-white">
-                                {formatCurrency(logisticsMetrics.income)}
+                                {formatCurrency(metrics.logisticsMetrics.income)}
                             </p>
                             <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                {logisticsMetrics.count} transações registadas
+                                {metrics.logisticsMetrics.count} transações registadas
                             </p>
                         </Card>
 
                         <Card padding="md" className="bg-red-50/50 dark:bg-red-900/5 border-red-100 dark:border-red-900/20">
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-sm font-medium text-red-700 dark:text-red-400">Custos de Manutenção</span>
-                                <HiOutlineExclamation className="w-5 h-5 text-red-500" />
+                                <div className="group relative">
+                                    <HiOutlineExclamation className="w-5 h-5 text-red-500 cursor-help" />
+                                    <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                        Custos sincronizados automaticamente do módulo de logística
+                                    </div>
+                                </div>
                             </div>
                             <p className="text-xl font-bold text-gray-900 dark:text-white">
-                                {formatCurrency(logisticsMetrics.maintenanceCosts)}
+                                {formatCurrency(metrics.logisticsMetrics.maintenanceCosts)}
                             </p>
                             <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                                 Dedução automática de manutenção
@@ -311,7 +315,7 @@ export default function FiscalDashboard() {
                                 <HiOutlineTrendingUp className="w-5 h-5 text-blue-500" />
                             </div>
                             <p className="text-xl font-bold text-gray-900 dark:text-white">
-                                {formatCurrency(logisticsMetrics.profit)}
+                                {formatCurrency(metrics.logisticsMetrics.profit)}
                             </p>
                             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                                 Margem antes de impostos

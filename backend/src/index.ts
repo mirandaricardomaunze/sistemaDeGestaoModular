@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { prisma } from './lib/prisma';
+import { PrismaClient } from '@prisma/client';
 
 // Import Routes
 import authRoutes from './routes/auth';
@@ -26,12 +26,11 @@ import ordersRoutes from './routes/orders';
 import pharmacyRoutes from './routes/pharmacy';
 import adminRoutes from './routes/admin';
 import backupsRoutes from './routes/backups';
-import gdriveRoutes from './routes/gdrive';
-import paymentsRoutes from './routes/payments';
-import modulesRoutes from './routes/modules';
 import logisticsRoutes from './routes/logistics';
+import modulesRoutes from './routes/modules';
 
-// Initialize Prisma is now handled in lib/prisma.ts
+// Initialize Prisma
+export const prisma = new PrismaClient();
 
 // Initialize Express
 const app = express();
@@ -75,10 +74,8 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/pharmacy', pharmacyRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/backups', backupsRoutes);
-app.use('/api/gdrive', gdriveRoutes);
-app.use('/api/payments', paymentsRoutes);
-app.use('/api/modules', modulesRoutes);
 app.use('/api/logistics', logisticsRoutes);
+app.use('/api/modules', modulesRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -114,8 +111,8 @@ const start = async () => {
         await prisma.$connect();
         console.log('✅ Conectado ao PostgreSQL');
 
-        app.listen(Number(PORT), '0.0.0.0', () => {
-            console.log(`🚀 Servidor rodando em http://0.0.0.0:${PORT}`);
+        app.listen(PORT, () => {
+            console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
             console.log(`📖 API Health: http://localhost:${PORT}/api/health`);
         });
     } catch (error) {

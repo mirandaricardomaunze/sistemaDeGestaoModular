@@ -6,7 +6,8 @@ export class PharmacyService {
 
         const where: any = {
             product: {
-                companyId
+                companyId,
+                origin_module: 'pharmacy'
             }
         };
 
@@ -105,7 +106,7 @@ export class PharmacyService {
             throw new Error('Este produto já está cadastrado como medicamento');
         }
 
-        return await prisma.medication.create({
+        const medication = await prisma.medication.create({
             data: {
                 productId,
                 ...rest,
@@ -115,6 +116,14 @@ export class PharmacyService {
             },
             include: { product: true }
         });
+
+        // Tag product as pharmacy
+        await prisma.product.update({
+            where: { id: productId },
+            data: { origin_module: 'pharmacy' }
+        });
+
+        return medication;
     }
 
     static async updateMedication(id: string, companyId: string, data: any) {
@@ -287,7 +296,7 @@ export class PharmacyService {
     }
 
     static async createSale(companyId: string, data: any, performedBy: string) {
-        const { items, customerId, customerName, prescriptionId, discount, paymentMethod, paymentDetails, notes } = data;
+        const { items, customerId, customerName, partnerId, prescriptionId, discount, paymentMethod, paymentDetails, notes } = data;
 
         if (!items || items.length === 0) throw new Error('A venda deve ter pelo menos um item');
 
@@ -362,7 +371,7 @@ export class PharmacyService {
 
         const sale = await prisma.pharmacySale.create({
             data: {
-                saleNumber, companyId, customerId,
+                saleNumber, companyId, customerId, partnerId,
                 customerName: customerName || 'Cliente Balcão',
                 prescriptionId, subtotal, discount: discount || 0,
                 total, paymentMethod: paymentMethod || 'cash',
@@ -371,6 +380,7 @@ export class PharmacyService {
             },
             include: {
                 customer: true,
+                partner: true,
                 items: { include: { batch: { include: { medication: { include: { product: true } } } } } }
             }
         });
@@ -387,5 +397,181 @@ export class PharmacyService {
         }
 
         return sale;
+
+    }
+
+    static async getPrescriptions(companyId: string, query: any) {
+        const { page = 1, limit = 20, status, search } = query;
+
+        const where: any = { companyId };
+        if (status) where.status = status;
+        if (search) {
+            where.OR = [
+                { patientName: { contains: search as string, mode: 'insensitive' } },
+                { prescriberName: { contains: search as string, mode: 'insensitive' } },
+                { prescriptionNo: { contains: search as string, mode: 'insensitive' } }
+            ];
+        }
+
+        const [prescriptions, total] = await Promise.all([
+            prisma.prescription.findMany({
+                where,
+                include: {
+                    items: true,
+                    sales: { select: { saleNumber: true, createdAt: true } }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip: (Number(page) - 1) * Number(limit),
+                take: Number(limit)
+            }),
+            prisma.prescription.count({ where })
+        ]);
+
+        return {
+            data: prescriptions,
+            pagination: {
+                page: Number(page),
+                limit: Number(limit),
+                total,
+                totalPages: Math.ceil(total / Number(limit))
+            }
+        };
+    }
+
+    static async createPrescription(companyId: string, data: any) {
+        const { items, ...rest } = data;
+
+        // Generate prescription number
+        const lastPrescription = await prisma.prescription.findFirst({
+            where: { companyId },
+            orderBy: { createdAt: 'desc' },
+            select: { prescriptionNo: true }
+        });
+        const nextNumber = lastPrescription ? parseInt(lastPrescription.prescriptionNo.replace('PRE-', '')) + 1 : 1;
+        const prescriptionNo = `PRE-${String(nextNumber).padStart(6, '0')}`;
+
+        const prescription = await prisma.prescription.create({
+            data: {
+                ...rest,
+                prescriptionNo,
+                companyId,
+                prescriptionDate: new Date(rest.prescriptionDate),
+                patientBirthDate: rest.patientBirthDate ? new Date(rest.patientBirthDate) : undefined,
+                validUntil: rest.validUntil ? new Date(rest.validUntil) : undefined,
+                items: items ? {
+                    create: items.map((item: any) => ({
+                        medicationName: item.medicationName,
+                        medicationId: item.medicationId,
+                        dosage: item.dosage,
+                        quantity: item.quantity,
+                        posology: item.posology,
+                        duration: item.duration,
+                        notes: item.notes
+                    }))
+                } : undefined
+            },
+            include: { items: true }
+        });
+
+        return prescription;
+    }
+
+    static async getStockMovements(companyId: string, query: any) {
+        const { page = 1, limit = 20, batchId, movementType, startDate, endDate } = query;
+
+        const where: any = { companyId };
+
+        if (batchId) where.batchId = batchId;
+        if (movementType) where.movementType = movementType;
+
+        if (startDate || endDate) {
+            where.createdAt = {};
+            if (startDate) where.createdAt.gte = new Date(startDate as string);
+            if (endDate) {
+                const end = new Date(endDate as string);
+                end.setHours(23, 59, 59, 999);
+                where.createdAt.lte = end;
+            }
+        }
+
+        const [movements, total] = await Promise.all([
+            prisma.stockMovement.findMany({
+                where,
+                include: {
+                    product: true,
+                    batch: true
+                },
+                orderBy: { createdAt: 'desc' },
+                skip: (Number(page) - 1) * Number(limit),
+                take: Number(limit)
+            }),
+            prisma.stockMovement.count({ where })
+        ]);
+
+        return {
+            data: movements,
+            pagination: {
+                page: Number(page),
+                limit: Number(limit),
+                total,
+                totalPages: Math.ceil(total / Number(limit))
+            }
+        };
+    }
+
+    // PARTNERS
+    static async getPartners(companyId: string, query: any) {
+        const { search, isActive } = query;
+
+        const where: any = { companyId };
+        if (isActive === 'true') where.isActive = true;
+        if (isActive === 'false') where.isActive = false;
+
+        if (search) {
+            where.OR = [
+                { name: { contains: search as string, mode: 'insensitive' } },
+                { email: { contains: search as string, mode: 'insensitive' } },
+                { nuit: { contains: search as string, mode: 'insensitive' } }
+            ];
+        }
+
+        return await prisma.pharmacyPartner.findMany({
+            where,
+            orderBy: { name: 'asc' }
+        });
+    }
+
+    static async createPartner(companyId: string, data: any) {
+        return await prisma.pharmacyPartner.create({
+            data: {
+                ...data,
+                companyId
+            }
+        });
+    }
+
+    static async updatePartner(id: string, companyId: string, data: any) {
+        return await prisma.pharmacyPartner.update({
+            where: { id, companyId },
+            data
+        });
+    }
+
+    static async deletePartner(id: string, companyId: string) {
+        // Soft delete or hard delete? Let's check for sales first
+        const salesCount = await prisma.pharmacySale.count({
+            where: { partnerId: id }
+        });
+
+        if (salesCount > 0) {
+            return await prisma.pharmacyPartner.update({
+                where: { id, companyId },
+                data: { isActive: false }
+            });
+        }
+
+        return await prisma.pharmacyPartner.delete({
+            where: { id, companyId }
+        });
     }
 }

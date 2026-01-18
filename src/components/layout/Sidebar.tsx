@@ -5,6 +5,7 @@ import { useStore } from '../../stores/useStore';
 import { useAuthStore, roleLabels } from '../../stores/useAuthStore';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useTenant } from '../../contexts/TenantContext';
+
 import {
     HiOutlineHomeModern,
 } from 'react-icons/hi2';
@@ -31,6 +32,7 @@ import {
     HiOutlineCalendar,
     HiOutlineClipboardList,
     HiOutlineViewGrid,
+    HiOutlineQuestionMarkCircle,
 } from 'react-icons/hi';
 import { cn } from '../../utils/helpers';
 
@@ -41,6 +43,7 @@ interface MenuItem {
     labelKey: string;
     icon: any;
     path: string;
+    state?: any;
     module?: string;
     role?: string;
     submenu?: MenuItem[];
@@ -48,42 +51,44 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
     // ============================================================================
-    // CORE DASHBOARD - Always at the top
-    // ============================================================================
-    { id: 'dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/logistics' },
-
-    // ============================================================================
     // PHARMACY Module - Specific pages (only for pharmacy businesses)
     // ============================================================================
     { id: 'pharmacy_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/pharmacy/dashboard', module: 'pharmacy' },
+    { id: 'pharmacy_manage', labelKey: 'Gestão de Farmácia', icon: HiOutlineBeaker, path: '/pharmacy/manage', module: 'pharmacy' },
     { id: 'pharmacy_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/pharmacy/pos', module: 'pharmacy' },
-    { id: 'pharmacy_mgmt', labelKey: 'Gestão Farmácia', icon: HiOutlineBeaker, path: '/pharmacy', module: 'pharmacy' },
     { id: 'pharmacy_employees', labelKey: 'Funcionários', icon: HiOutlineUsers, path: '/pharmacy/employees', module: 'pharmacy' },
     { id: 'pharmacy_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/pharmacy/categories', module: 'pharmacy' },
     { id: 'pharmacy_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/pharmacy/suppliers', module: 'pharmacy' },
+    { id: 'pharmacy_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/pharmacy/reports', module: 'pharmacy' },
+
 
     // ============================================================================
     // HOSPITALITY Module - Specific pages (only for hotel businesses)
     // ============================================================================
-    { id: 'hotel_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/hotel', module: 'hospitality' },
-    { id: 'hotel_finance', labelKey: 'Finanças', icon: HiOutlineCurrencyDollar, path: '/hotel/finance', module: 'hospitality' },
-    { id: 'hotel_rooms', labelKey: 'Quartos', icon: HiOutlineHomeModern, path: '/hotel/rooms', module: 'hospitality' },
-    { id: 'hotel_reservations', labelKey: 'Reservas', icon: HiOutlineCalendar, path: '/hotel/reservations', module: 'hospitality' },
-    { id: 'hotel_customers', labelKey: 'Hóspedes', icon: HiOutlineUserGroup, path: '/hotel/customers', module: 'hospitality' },
-    { id: 'hotel_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/hotel/suppliers', module: 'hospitality' },
-    { id: 'hotel_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/hotel/categories', module: 'hospitality' },
-    { id: 'hotel_employees', labelKey: 'Funcionários', icon: HiOutlineUsers, path: '/hotel/employees', module: 'hospitality' },
+    { id: 'hotel_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/hospitality/dashboard', module: 'hospitality' },
+    { id: 'hospitality_ops', labelKey: 'Gestão de Quartos', icon: HiOutlineHomeModern, path: '/hospitality/ops', module: 'hospitality' },
+    { id: 'hotel_finance', labelKey: 'Finanças', icon: HiOutlineCurrencyDollar, path: '/hospitality/finance', module: 'hospitality' },
+    { id: 'hotel_rooms', labelKey: 'Quartos', icon: HiOutlineHomeModern, path: '/hospitality/rooms', module: 'hospitality' },
+    { id: 'hotel_reservations', labelKey: 'Reservas', icon: HiOutlineCalendar, path: '/hospitality/reservations', module: 'hospitality' },
+    { id: 'hotel_employees', labelKey: 'Funcionários', icon: HiOutlineUsers, path: '/hospitality/employees', module: 'hospitality' },
+    { id: 'hotel_customers', labelKey: 'Clientes / Hóspedes', icon: HiOutlineUsers, path: '/hospitality/customers', module: 'hospitality' },
+    { id: 'hotel_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/hospitality/suppliers', module: 'hospitality' },
+    { id: 'hotel_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/hospitality/categories', module: 'hospitality' },
+    { id: 'hotel_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/hospitality/reports', module: 'hospitality' },
 
     // ============================================================================
-    // INVENTORY & ORDERS - Product Management
+    // COMMERCIAL Module - Complete commerce management
     // ============================================================================
-    { id: 'inventory', labelKey: 'nav.inventory', icon: HiOutlineCube, path: '/inventory', module: 'inventory' },
-    { id: 'orders', labelKey: 'nav.orders', icon: HiOutlineClipboardList, path: '/orders', module: 'inventory' },
+    { id: 'commercial_dashboard', labelKey: 'Dashboard', icon: HiOutlineViewGrid, path: '/commercial/dashboard', module: 'commercial' },
+    { id: 'inventory', labelKey: 'nav.inventory', icon: HiOutlineCube, path: '/inventory', module: 'commercial' },
+    { id: 'orders', labelKey: 'nav.orders', icon: HiOutlineClipboardList, path: '/orders', module: 'commercial' },
+    { id: 'commercial_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/commercial/categories', module: 'commercial' },
+    { id: 'commercial_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/commercial/suppliers', module: 'commercial' },
 
     // ============================================================================
     // LOGISTICS Module - Specific pages (only for logistics businesses)
     // ============================================================================
-    { id: 'logistics_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/logistics', module: 'logistics' },
+    { id: 'logistics_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/logistics/dashboard', module: 'logistics' },
     { id: 'logistics_vehicles', labelKey: 'Veículos', icon: HiOutlineTruck, path: '/logistics/vehicles', module: 'logistics' },
     { id: 'logistics_drivers', labelKey: 'Motoristas', icon: HiOutlineUsers, path: '/logistics/drivers', module: 'logistics' },
     { id: 'logistics_routes', labelKey: 'Rotas', icon: HiOutlineChartBar, path: '/logistics/routes', module: 'logistics' },
@@ -91,15 +96,14 @@ const menuItems: MenuItem[] = [
     { id: 'logistics_parcels', labelKey: 'Encomendas', icon: HiOutlineCube, path: '/logistics/parcels', module: 'logistics' },
     { id: 'logistics_maintenance', labelKey: 'Manutenção', icon: HiOutlineCog, path: '/logistics/maintenance', module: 'logistics' },
     { id: 'logistics_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/logistics/reports', module: 'logistics' },
-    { id: 'logistics_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/suppliers', module: 'logistics' },
-    { id: 'logistics_employees', labelKey: 'Funcionários', icon: HiOutlineUsers, path: '/employees', module: 'logistics' },
-    { id: 'logistics_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/categories', module: 'logistics' },
-    { id: 'logistics_fiscal', labelKey: 'nav.fiscal', icon: HiOutlineCalculator, path: '/fiscal', module: 'logistics' },
 
     // ============================================================================
     // BOTTLE_STORE Module - Specific page
     // ============================================================================
-    { id: 'bottle_store', labelKey: 'Garrafeira', icon: HiOutlineCube, path: '/bottle-store', module: 'bottle_store' },
+    { id: 'bottle_store_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/bottle-store/dashboard', module: 'bottle_store' },
+    { id: 'bottle_store_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/bottle-store/pos', module: 'bottle_store' },
+    { id: 'bottle_store_stock', labelKey: 'Garrafeira - Stock', icon: HiOutlineCube, path: '/bottle-store/inventory', module: 'bottle_store' },
+    { id: 'bottle_store_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/bottle-store/reports', module: 'bottle_store' },
 
 
     // ============================================================================
@@ -112,8 +116,6 @@ const menuItems: MenuItem[] = [
     { id: 'employees', labelKey: 'nav.employees', icon: HiOutlineUsers, path: '/employees', module: 'hr' },
     { id: 'financial', labelKey: 'nav.financial', icon: HiOutlineCurrencyDollar, path: '/financial', module: 'financial' },
     { id: 'invoices', labelKey: 'nav.invoices', icon: HiOutlineDocumentText, path: '/invoices', module: 'invoices' },
-    { id: 'categories', labelKey: 'nav.categories', icon: HiOutlineTag, path: '/categories', module: 'inventory' },
-    { id: 'suppliers', labelKey: 'nav.suppliers', icon: HiOutlineTruck, path: '/suppliers', module: 'inventory' },
 
     // ============================================================================
     // Common items - System features (always visible)
@@ -123,6 +125,7 @@ const menuItems: MenuItem[] = [
     { id: 'reports', labelKey: 'nav.reports', icon: HiOutlineDocumentText, path: '/reports' },
     { id: 'audit', labelKey: 'nav.audit', icon: HiOutlineShieldCheck, path: '/audit' },
     { id: 'backups', labelKey: 'nav.backups', icon: HiOutlineDatabase, path: '/backups' },
+    { id: 'help', labelKey: 'Ajuda', icon: HiOutlineQuestionMarkCircle, path: '/help' },
     { id: 'settings', labelKey: 'nav.settings', icon: HiOutlineCog, path: '/settings' },
 
     // Super Admin Section
@@ -168,8 +171,13 @@ export default function Sidebar() {
         if (!canViewPage(item.path)) return false;
 
         // 2. Check active modules for this tenant
-        if ((item as any).module && !hasModule((item as any).module)) {
+        // Core modules are always available: pos, crm, hr, fiscal, invoices, financial
+        const coreModules = ['pos', 'crm', 'hr', 'fiscal', 'invoices', 'financial'];
+        const itemModule = (item as any).module;
+
+        if (itemModule && !coreModules.includes(itemModule) && !hasModule(itemModule)) {
             // Special protection for cross-company data isolation
+            // Only check specialized modules (pharmacy, inventory, hospitality, logistics, etc.)
             return false;
         }
 
@@ -178,26 +186,22 @@ export default function Sidebar() {
         const isHospitalityActive = hasModule('hospitality');
         const isAnySpecializedActive = isLogisticsActive || isPharmacyActive || isHospitalityActive;
 
-        // 3. Special Case: Core Dashboard - Hide if any specialized dashboard is active
-        if (item.id === 'dashboard' && isAnySpecializedActive) {
+        // 3. Special Case: POS - Hide generic POS if specialized POS is active
+        if (item.id === 'pos' && (isPharmacyActive || isHospitalityActive)) {
             return false;
         }
 
-        // 4. Special Case: Generic Reports/Fiscal - Hide if specialized module has its own or we want to prioritize specialized view
-        if ((item.id === 'reports' || item.id === 'fiscal') && isAnySpecializedActive) {
+        // 4. Special Case: Inventory/Commercial - Hide if specialized module is active
+        // Pharmacy and Hospitality usually have their own inventory/management
+        if (item.module === 'commercial' && (isPharmacyActive || isHospitalityActive)) {
             return false;
         }
 
-        // 5. specialized Module Overlap Handling
-        if (isLogisticsActive) {
-            // Logistics companies use specialized inventory/categories/suppliers
-            const excludedInLogistics = ['inventory', 'orders', 'categories', 'suppliers'];
-            if (excludedInLogistics.includes(item.id)) return false;
+        // 5. Special Case: Generic Reports - Hide if specialized module has its own reports
+        if (item.id === 'reports' && isAnySpecializedActive) {
+            return false;
         }
 
-        if (isPharmacyActive) {
-            // Pharmacy might have specific overlaps to hide in the future
-        }
 
         return true;
     });
@@ -259,7 +263,7 @@ export default function Sidebar() {
                                     {companySettings.tradeName || companySettings.companyName || 'Sistema'}
                                 </h1>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                    Gestão Empresarial
+                                    {t(`businessType.${companySettings.businessType}`)}
                                 </p>
                             </div>
                         )}
@@ -328,6 +332,7 @@ export default function Sidebar() {
                                 ) : (
                                     <NavLink
                                         to={item.path}
+                                        state={item.state}
                                         className={cn(
                                             'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group',
                                             isActive

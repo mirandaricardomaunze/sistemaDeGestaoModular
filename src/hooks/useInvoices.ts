@@ -29,7 +29,17 @@ export function useInvoices(params?: UseInvoicesParams) {
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [availableSources, setAvailableSources] = useState<any[]>([]);
     const { calculateInvoiceIVA } = useInvoiceTaxes();
+
+    const fetchAvailableSources = useCallback(async () => {
+        try {
+            const sources = await invoicesAPI.getAvailableSources();
+            setAvailableSources(sources);
+        } catch (err) {
+            console.error('Error fetching available sources:', err);
+        }
+    }, []);
 
     const fetchInvoices = useCallback(async () => {
         setIsLoading(true);
@@ -144,7 +154,9 @@ export function useInvoices(params?: UseInvoicesParams) {
         pagination,
         isLoading,
         error,
+        availableSources,
         refetch: fetchInvoices,
+        fetchAvailableSources,
         createInvoice,
         updateInvoice,
         addPayment,

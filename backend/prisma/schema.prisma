@@ -82,6 +82,7 @@ model Company {
   pharmacyDashboardCaches PharmacyDashboardCache[]
   medications             Medication[]
   medicationBatches       MedicationBatch[]
+  pharmacyPartners        PharmacyPartner[]
   payrollRecords          PayrollRecord[]
   attendanceRecords       AttendanceRecord[]
   vacationRequests        VacationRequest[]
@@ -207,6 +208,7 @@ model Product {
   status              StockStatus          @default(in_stock)
   imageUrl            String?
   isActive            Boolean              @default(true)
+  origin_module       String               @default("inventory")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   supplierId          String?
@@ -229,6 +231,7 @@ model Product {
 
   @@unique([companyId, code])
   @@unique([companyId, barcode])
+  @@index([origin_module])
   @@map("products")
 }
 
@@ -1269,6 +1272,7 @@ model MedicationBatch {
   company           Company?           @relation(fields: [companyId], references: [id])
   medication        Medication         @relation(fields: [medicationId], references: [id])
   saleItems         PharmacySaleItem[]
+  stockMovements    StockMovement[]
 
   @@index([companyId])
   @@map("medication_batches")
@@ -1291,9 +1295,11 @@ model PharmacySale {
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   companyId      String?
+  partnerId      String?
   company        Company?           @relation(fields: [companyId], references: [id])
   items          PharmacySaleItem[]
   customer       Customer?          @relation(fields: [customerId], references: [id])
+  partner        PharmacyPartner?   @relation(fields: [partnerId], references: [id])
   prescription   Prescription?      @relation(fields: [prescriptionId], references: [id])
 
   @@unique([companyId, saleNumber])
@@ -1344,6 +1350,25 @@ model Prescription {
   @@map("prescriptions")
 }
 
+model PharmacyPartner {
+  id                 String         @id @default(uuid())
+  name               String
+  category           String         @default("Private Insurance")
+  email              String?
+  phone              String?
+  address            String?
+  nuit               String?
+  coveragePercentage Float          @default(0)
+  isActive           Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  companyId          String?
+  company            Company?       @relation(fields: [companyId], references: [id])
+  sales              PharmacySale[]
+
+  @@map("pharmacy_partners")
+}
+
 model PrescriptionItem {
   id                String       @id @default(uuid())
   prescriptionId    String
@@ -1378,6 +1403,7 @@ model StockMovement {
   warehouseId   String?
   product       Product?     @relation(fields: [productId], references: [id])
   warehouse     Warehouse?   @relation(fields: [warehouseId], references: [id])
+  batch         MedicationBatch? @relation(fields: [batchId], references: [id])
 
   @@index([companyId])
   @@index([originModule])

@@ -203,7 +203,7 @@ router.post('/register', async (req, res) => {
         }
 
         // Validate module against static definitions (no database lookup needed)
-        const selectedModule = getModuleByCode(moduleCode.toLowerCase());
+        const selectedModule = getModuleByCode(moduleCode.toUpperCase());
 
         if (!selectedModule) {
             logger.warn('[Register Debug] Module not found in static definitions: %s', moduleCode);

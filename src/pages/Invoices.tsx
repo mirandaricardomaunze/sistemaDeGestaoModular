@@ -16,6 +16,7 @@ import {
     HiOutlineMail,
     HiOutlinePrinter,
     HiOutlineRefresh,
+    HiOutlineTag,
 } from 'react-icons/hi';
 import {
     PieChart,
@@ -53,7 +54,8 @@ const invoiceItemSchema = z.object({
 });
 
 const invoiceSchema = z.object({
-    orderNumber: z.string().min(1, 'Número da encomenda obrigatório'),
+    orderId: z.string().optional(),
+    orderNumber: z.string().optional(),
     customerName: z.string().min(2, 'Nome obrigatório'),
     customerEmail: z.string().email('Email inválido').optional().or(z.literal('')),
     customerPhone: z.string().optional(),
@@ -92,67 +94,9 @@ const statusConfig: Record<InvoiceStatus, { label: string; color: string; bgColo
 
 const CHART_COLORS = ['#6b7280', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#9ca3af'];
 
-// Sample orders for selection (in production, this would come from the store)
-interface SampleOrder {
-    id: string;
-    orderNumber: string;
-    customerName: string;
-    customerPhone: string;
-    customerEmail?: string;
-    customerAddress?: string;
-    total: number;
-    status: string;
-}
+// Sample orders are removed in favor of real data from the API
 
-const sampleOrders: SampleOrder[] = [
-    {
-        id: '1',
-        orderNumber: 'ENC-001',
-        customerName: 'Maria Silva',
-        customerPhone: '(11) 98765-4321',
-        customerEmail: 'maria@email.com',
-        total: 450.00,
-        status: 'completed',
-    },
-    {
-        id: '2',
-        orderNumber: 'ENC-002',
-        customerName: 'João Santos',
-        customerPhone: '(11) 91234-5678',
-        customerEmail: 'joao@empresa.com',
-        total: 890.50,
-        status: 'completed',
-    },
-    {
-        id: '3',
-        orderNumber: 'ENC-003',
-        customerName: 'Ana Oliveira',
-        customerPhone: '(11) 99887-6655',
-        customerEmail: 'ana@gmail.com',
-        total: 1250.00,
-        status: 'separated',
-    },
-    {
-        id: '4',
-        orderNumber: 'ENC-004',
-        customerName: 'Pedro Costa',
-        customerPhone: '(11) 94567-8901',
-        total: 320.00,
-        status: 'completed',
-    },
-    {
-        id: '5',
-        orderNumber: 'ENC-005',
-        customerName: 'Lucia Ferreira',
-        customerPhone: '(11) 93456-7890',
-        customerEmail: 'lucia@email.com',
-        customerAddress: 'Rua das Flores, 123',
-        total: 780.00,
-        status: 'printed',
-    },
-];
-
-import { useInvoices } from '../hooks/useData';
+import { useInvoices, useProducts } from '../hooks/useData';
 
 export default function Invoices() {
     const [searchParams] = useSearchParams();
@@ -167,6 +111,12 @@ export default function Invoices() {
 
         const statusParam = searchParams.get('status');
         if (statusParam !== null) setStatusFilter(statusParam);
+
+        // Auto-open modal if redirected from a specific sale/order
+        const openParam = searchParams.get('open');
+        if (openParam === 'true') {
+            setShowFormModal(true);
+        }
     }, [searchParams]);
 
     // Use API hook for real data with pagination
@@ -175,7 +125,9 @@ export default function Invoices() {
         pagination,
         isLoading,
         error,
+        availableSources,
         refetch,
+        fetchAvailableSources,
         createInvoice,
         updateInvoice,
         addPayment: registerInvoicePayment,
@@ -187,6 +139,12 @@ export default function Invoices() {
     });
 
     const [showFormModal, setShowFormModal] = useState(false);
+
+    useEffect(() => {
+        if (showFormModal) {
+            fetchAvailableSources();
+        }
+    }, [showFormModal, fetchAvailableSources]);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -197,6 +155,30 @@ export default function Invoices() {
     const [activeTab, setActiveTab] = useState<'invoices' | 'credit_notes'>('invoices');
     const [showMpesaModal, setShowMpesaModal] = useState(false);
     const [mpesaAmount, setMpesaAmount] = useState(0);
+
+    // Product Search State
+    const [productSearch, setProductSearch] = useState('');
+    const [showProductResults, setShowProductResults] = useState(false);
+    const { products: allProducts } = useProducts();
+
+    const filteredProducts = useMemo(() => {
+        if (!productSearch) return [];
+        const query = productSearch.toLowerCase();
+        return allProducts.filter(p =>
+            p.name.toLowerCase().includes(query) ||
+            p.code.toLowerCase().includes(query) ||
+            p.barcode?.toLowerCase().includes(query)
+        ).slice(0, 8); // Limit results for UI
+    }, [allProducts, productSearch]);
+
+    // Close product results when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => setShowProductResults(false);
+        if (showProductResults) {
+            document.addEventListener('click', handleClickOutside);
+        }
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [showProductResults]);
 
     // Get date range based on period
     const periodStartDate = useMemo(() => {
@@ -320,40 +302,41 @@ export default function Invoices() {
 
 
 
-    // Handle order selection and auto-fill
-    const handleOrderSelect = (orderNumber: string) => {
-        setSelectedOrderNumber(orderNumber);
-        setValue('orderNumber', orderNumber);
+    // Handle order/sale selection and auto-fill
+    const handleOrderSelect = (sourceId: string) => {
+        if (!sourceId) {
+            setSelectedOrderNumber('');
+            setValue('orderId', '');
+            setValue('orderNumber', '');
+            return;
+        }
 
-        const order = sampleOrders.find(o => o.orderNumber === orderNumber);
-        if (order) {
-            setValue('customerName', order.customerName);
-            setValue('customerPhone', order.customerPhone || '');
-            setValue('customerEmail', order.customerEmail || '');
-            setValue('customerAddress', order.customerAddress || '');
+        const source = availableSources.find(s => s.id === sourceId);
+        if (source) {
+            setSelectedOrderNumber(source.number);
+            setValue('orderId', source.id);
+            setValue('orderNumber', source.number);
+            setValue('customerName', source.customerName);
+            setValue('customerPhone', source.customerPhone || '');
+            setValue('customerEmail', source.customerEmail || '');
+            setValue('customerAddress', source.customerAddress || '');
 
-            // Add order items (in production, these would come from the actual order)
-            const orderItems = [{
+            // Add source items
+            const sourceItems = source.items.map((item: any) => ({
                 id: generateId(),
-                description: `Produtos da ${order.orderNumber}`,
-                quantity: 1,
-                unitPrice: order.total,
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
                 discount: 0,
-                total: order.total,
-            }];
-            setValue('items', orderItems);
+                total: item.total,
+            }));
+            setValue('items', sourceItems);
 
-            toast.success(`Dados da encomenda ${order.orderNumber} carregados!`);
+            toast.success(`${source.type === 'pharmacy' ? 'Venda de Farmácia' : 'Encomenda'} ${source.number} carregada!`);
         }
     };
 
-    // Get available orders (not yet invoiced)
-    const availableOrders = useMemo(() => {
-        const invoicedOrderNumbers = invoices
-            .filter(inv => inv.orderNumber)
-            .map(inv => inv.orderNumber);
-        return sampleOrders.filter(order => !invoicedOrderNumbers.includes(order.orderNumber));
-    }, [invoices]);
+    // availableSources comes from the hook now
 
     // Update item totals
     const updateItemTotal = (index: number) => {
@@ -364,6 +347,30 @@ export default function Invoices() {
         }
     };
 
+    const handleAddProduct = (product: any) => {
+        append({
+            id: generateId(),
+            description: product.name,
+            quantity: 1,
+            unitPrice: product.price,
+            discount: 0,
+            total: product.price,
+        });
+        setProductSearch('');
+        setShowProductResults(false);
+        toast.success(`${product.name} adicionado!`);
+    };
+
+    // Auto-fill when availableSources matches the search param (for the "Gerar Fatura" flow)
+    useEffect(() => {
+        if (showFormModal && search && availableSources.length > 0 && !selectedOrderNumber) {
+            const match = availableSources.find(s => s.number === search);
+            if (match) {
+                handleOrderSelect(match.id);
+            }
+        }
+    }, [showFormModal, search, availableSources, selectedOrderNumber, handleOrderSelect]);
+
     // Submit invoice
     const onSubmit = async (data: InvoiceFormData) => {
         try {
@@ -373,6 +380,7 @@ export default function Invoices() {
                 });
             } else {
                 await createInvoice({
+                    orderId: data.orderId,
                     orderNumber: data.orderNumber,
                     customerName: data.customerName,
                     customerEmail: data.customerEmail || undefined,
@@ -704,34 +712,33 @@ export default function Invoices() {
             {/* Invoice Form Modal */}
             <Modal isOpen={showFormModal} onClose={closeFormModal} title={editingInvoice ? 'Editar Fatura' : 'Nova Fatura'} size="xl">
                 <form onSubmit={handleSubmit(onSubmit as never)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-                    {/* Order Selection */}
+                    {/* Source Selection */}
                     {!editingInvoice && (
                         <Card padding="md" className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800">
-                            <h4 className="font-semibold text-primary-700 dark:text-primary-300 mb-3">Selecionar Encomenda</h4>
+                            <h4 className="font-semibold text-primary-700 dark:text-primary-300 mb-3">Vincular Venda ou Encomenda</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Select
-                                    label="Número da Encomenda *"
+                                    label="Selecionar Fonte"
                                     options={[
-                                        { value: '', label: 'Selecione uma encomenda...' },
-                                        ...availableOrders.map(order => ({
-                                            value: order.orderNumber,
-                                            label: `${order.orderNumber} - ${order.customerName} (${formatCurrency(order.total)})`,
+                                        { value: '', label: 'Criação Manual (Sem vínculo)' },
+                                        ...availableSources.map(source => ({
+                                            value: source.id,
+                                            label: `${source.type === 'pharmacy' ? '💊 Farmácia' : '📦 Comercial'} - ${source.number} - ${source.customerName} (${formatCurrency(source.total)})`,
                                         })),
                                     ]}
-                                    value={selectedOrderNumber}
+                                    value={availableSources.find(s => s.number === selectedOrderNumber)?.id || ''}
                                     onChange={(e) => handleOrderSelect(e.target.value)}
-                                    error={errors.orderNumber?.message}
                                 />
                                 <div className="flex items-end">
                                     {selectedOrderNumber && (
                                         <div className="text-sm text-primary-600 dark:text-primary-400">
-                                            <p className="font-medium">Fatura será: FAT-{selectedOrderNumber.replace('ENC-', '')}</p>
+                                            <p className="font-medium font-mono text-xs">Fatura vinculada a: {selectedOrderNumber}</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            {availableOrders.length === 0 && (
-                                <p className="text-sm text-amber-600 mt-2">Não há encomendas disponíveis para faturar.</p>
+                            {availableSources.length === 0 && (
+                                <p className="text-xs text-amber-600 mt-2 italic">Nenhuma venda ou encomenda pendente de faturação encontrada.</p>
                             )}
                         </Card>
                     )}
@@ -754,11 +761,65 @@ export default function Invoices() {
 
                     {/* Items */}
                     <div className="border rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-dark-800">
-                        <div className="flex justify-between items-center">
-                            <h4 className="font-medium text-gray-900 dark:text-white">Itens</h4>
+                        <div className="flex justify-between items-center px-1">
+                            <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
+                                    <HiOutlineTag className="w-5 h-5" />
+                                </span>
+                                Itens da Fatura
+                            </h4>
                             <Button type="button" variant="outline" size="sm" onClick={() => append({ id: generateId(), description: '', quantity: 1, unitPrice: 0, discount: 0, total: 0 })}>
-                                <HiOutlinePlus className="w-4 h-4 mr-1" />Item
+                                <HiOutlinePlus className="w-4 h-4 mr-1" />Item Manual
                             </Button>
+                        </div>
+
+                        {/* Search Product Input */}
+                        <div className="relative">
+                            <Input
+                                placeholder="🔍 Pesquisar produto no inventário por nome ou código..."
+                                value={productSearch}
+                                onChange={(e) => {
+                                    setProductSearch(e.target.value);
+                                    setShowProductResults(true);
+                                }}
+                                onFocus={() => setShowProductResults(true)}
+                                className="bg-white dark:bg-dark-900"
+                            />
+                            {showProductResults && filteredProducts.length > 0 && (
+                                <div className="absolute z-[100] w-full mt-1 bg-white dark:bg-dark-800 rounded-xl shadow-2xl border border-gray-200 dark:border-dark-700 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <div className="p-2 space-y-1">
+                                        {filteredProducts.map((p) => (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                onClick={() => handleAddProduct(p)}
+                                                className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-left transition-colors group"
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-gray-900 dark:text-white group-hover:text-primary-600">{p.name}</span>
+                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                        <span className="text-xs font-mono text-gray-500 bg-gray-100 dark:bg-dark-700 px-1.5 py-0.5 rounded uppercase tracking-wider">{p.code}</span>
+                                                        <span className="text-xs text-gray-400">Stock: {p.currentStock} {p.unit}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="font-bold text-primary-600 dark:text-primary-400">{formatCurrency(p.price)}</span>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {showProductResults && productSearch && filteredProducts.length === 0 && (
+                                <div className="absolute z-[100] w-full mt-1 bg-white dark:bg-dark-800 rounded-xl shadow-xl border border-gray-200 dark:border-dark-700 p-8 text-center animate-in fade-in duration-200">
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-dark-700 flex items-center justify-center text-gray-400">
+                                            <HiOutlineSearch className="w-6 h-6" />
+                                        </div>
+                                        <p className="text-sm text-gray-500 font-medium">Nenhum produto encontrado "{productSearch}"</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         {fields.map((field, index) => (
                             <div key={field.id} className="grid grid-cols-12 gap-2 items-end">

@@ -60,7 +60,8 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
         page,
         limit: pageSize,
         sortBy: sorting[0]?.id || 'name',
-        sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
+        sortOrder: sorting[0]?.desc ? 'desc' : 'asc',
+        origin_module: 'inventory'
     });
     const { warehouses } = useWarehouses();
 

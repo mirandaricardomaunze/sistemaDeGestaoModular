@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, Button, Badge, Input, Select, LoadingSpinner } from '../../components/ui';
+import { usePharmacyPartners } from '../../hooks/usePharmacyPartners';
 import { pharmacyAPI } from '../../services/api';
 import { useCustomers } from '../../hooks/useData';
 import toast from 'react-hot-toast';
@@ -60,10 +61,13 @@ interface CartItem {
     total: number;
     maxQuantity: number;
     posologyLabel?: string;
+    expiryDate?: string;
+    requiresPrescription?: boolean;
 }
 
 export default function PharmacyPOS() {
     const { companySettings } = useStore();
+    const { partners } = usePharmacyPartners();
     const [isLoading, setIsLoading] = useState(true);
 
     // Medications state
@@ -77,16 +81,21 @@ export default function PharmacyPOS() {
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [lastSale, setLastSale] = useState<any>(null);
     const [discount, setDiscount] = useState(0);
+    const [insuranceEntity, setInsuranceEntity] = useState<string | null>(null);
+    const [insuranceCoverage, setInsuranceCoverage] = useState(0); // Percentage
+    const [prescriptionNumber, setPrescriptionNumber] = useState('');
 
     const { customers } = useCustomers();
 
     // Filtered medications for POS
     const filteredMedications = useMemo(() => {
+        if (!Array.isArray(medications)) return [];
         if (!posSearch) return medications.filter(m => m.totalStock > 0);
         return medications.filter(m =>
             m.totalStock > 0 &&
             (m.product.name.toLowerCase().includes(posSearch.toLowerCase()) ||
-                m.product.code.toLowerCase().includes(posSearch.toLowerCase()))
+                m.product.code.toLowerCase().includes(posSearch.toLowerCase()) ||
+                (m.dci && m.dci.toLowerCase().includes(posSearch.toLowerCase())))
         );
     }, [medications, posSearch]);
 
@@ -98,14 +107,38 @@ export default function PharmacyPOS() {
         try {
             setIsLoading(true);
             const data = await pharmacyAPI.getMedications({});
-            setMedications(data);
+            setMedications(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error fetching medications:', error);
             toast.error('Erro ao carregar medicamentos');
+            setMedications([]); // Set empty array on error
         } finally {
             setIsLoading(false);
         }
     };
+
+    // Barcode Scanner Support
+    useEffect(() => {
+        let buffer = '';
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Enter') {
+                if (buffer.length >= 3) {
+                    const found = medications.find(m => m.product.code === buffer);
+                    if (found) {
+                        addToCart(found);
+                        toast.success(`Adicionado: ${found.product.name}`);
+                    }
+                }
+                buffer = '';
+            } else if (e.key.length === 1) {
+                buffer += e.key;
+            }
+            // Auto-clear buffer after 100ms
+            setTimeout(() => buffer = '', 100);
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [medications, cart]);
 
     useEffect(() => {
         fetchMedications();
@@ -140,7 +173,9 @@ export default function PharmacyPOS() {
                 unitPrice: Number(batch.sellingPrice),
                 discount: 0,
                 total: Number(batch.sellingPrice),
-                maxQuantity: batch.quantityAvailable
+                maxQuantity: batch.quantityAvailable,
+                expiryDate: batch.expiryDate,
+                requiresPrescription: medication.requiresPrescription
             }]);
         }
     };
@@ -163,8 +198,18 @@ export default function PharmacyPOS() {
 
     const cartTotal = useMemo(() => {
         const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
-        return subtotal - discount;
-    }, [cart, discount]);
+        const insuranceReduction = subtotal * (insuranceCoverage / 100);
+        return subtotal - discount - insuranceReduction;
+    }, [cart, discount, insuranceCoverage]);
+
+    const insuranceAmount = useMemo(() => {
+        const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+        return subtotal * (insuranceCoverage / 100);
+    }, [cart, insuranceCoverage]);
+
+    const cartHasControlledItems = useMemo(() => {
+        return cart.some(item => (item as any).requiresPrescription);
+    }, [cart]);
 
     const handleCheckout = async () => {
         if (cart.length === 0) {
@@ -178,12 +223,15 @@ export default function PharmacyPOS() {
                 customerId: selectedCustomer,
                 customerName: selectedCustomer ? (customer?.name || 'Cliente Balcão') : (manualCustomerName || 'Cliente Balcão'),
                 items: cart.map(item => ({
-                    batchId: item.batchId,
+                    batchId: (item as any).batchId,
                     quantity: item.quantity,
                     discount: item.discount,
                     posologyLabel: item.posologyLabel
                 })),
                 discount,
+                partnerId: insuranceEntity,
+                insuranceAmount,
+                prescriptionNumber,
                 paymentMethod
             });
 
@@ -219,6 +267,9 @@ export default function PharmacyPOS() {
 
             setCart([]);
             setDiscount(0);
+            setInsuranceEntity(null);
+            setInsuranceCoverage(0);
+            setPrescriptionNumber('');
             setSelectedCustomer(null);
             setManualCustomerName('');
             fetchMedications();
@@ -349,13 +400,47 @@ export default function PharmacyPOS() {
                         />
                     )}
 
+                    <Select
+                        label="Convénio / Seguro"
+                        options={[
+                            { value: '', label: 'Nenhum' },
+                            ...partners.filter(p => p.isActive).map(p => ({
+                                value: p.id,
+                                label: `${p.name} (${p.coveragePercentage}%)`
+                            }))
+                        ]}
+                        value={insuranceEntity || ''}
+                        onChange={(e) => {
+                            const partnerId = e.target.value;
+                            setInsuranceEntity(partnerId || null);
+                            const selected = partners.find(p => p.id === partnerId);
+                            setInsuranceCoverage(selected ? selected.coveragePercentage : 0);
+                        }}
+                        className="mb-4"
+                    />
+
+                    {cartHasControlledItems && (
+                        <Input
+                            label="Nº da Receita Médica *"
+                            placeholder="Obrigatório para este carrinho..."
+                            value={prescriptionNumber}
+                            onChange={(e) => setPrescriptionNumber(e.target.value)}
+                            className="mb-4 border-amber-300 bg-amber-50"
+                        />
+                    )}
+
                     {/* Cart Items */}
                     <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
                         {cart.map(item => (
                             <div key={item.batchId} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                                <div className="flex-1">
+                                <div className="flex-1 overflow-hidden">
                                     <p className="text-sm font-medium truncate">{item.productName}</p>
-                                    <p className="text-xs text-gray-500">{item.unitPrice.toLocaleString()} MT × {item.quantity}</p>
+                                    <div className="flex gap-2">
+                                        <p className="text-[10px] text-gray-500">{item.unitPrice.toLocaleString()} MT × {item.quantity}</p>
+                                        {(item as any).expiryDate && (
+                                            <p className="text-[10px] text-red-500 font-bold">Val: {new Date((item as any).expiryDate).toLocaleDateString()}</p>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
@@ -429,10 +514,26 @@ export default function PharmacyPOS() {
                         className="mt-4"
                     />
 
-                    {/* Total */}
-                    <div className="mt-4 pt-4 border-t dark:border-dark-600">
-                        <div className="flex justify-between text-lg font-bold">
-                            <span>Total:</span>
+                    {/* Totals Breakdown */}
+                    <div className="mt-4 pt-4 border-t dark:border-dark-600 space-y-2">
+                        <div className="flex justify-between text-sm text-gray-500">
+                            <span>Subtotal:</span>
+                            <span>{cart.reduce((sum, item) => sum + item.total, 0).toLocaleString()} MT</span>
+                        </div>
+                        {insuranceEntity && (
+                            <div className="flex justify-between text-sm text-blue-600 font-medium">
+                                <span>Cobertura {insuranceEntity}:</span>
+                                <span>- {insuranceAmount.toLocaleString()} MT</span>
+                            </div>
+                        )}
+                        {discount > 0 && (
+                            <div className="flex justify-between text-sm text-amber-600 font-medium">
+                                <span>Desconto:</span>
+                                <span>- {discount.toLocaleString()} MT</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between text-lg font-bold border-t dark:border-dark-600 pt-2">
+                            <span>Total a Pagar:</span>
                             <span className="text-primary-600">{cartTotal.toLocaleString()} MT</span>
                         </div>
                     </div>

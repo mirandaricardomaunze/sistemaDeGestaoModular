@@ -26,7 +26,8 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
             page = '1',
             limit = '20',
             sortBy = 'name',
-            sortOrder = 'asc'
+            sortOrder = 'asc',
+            origin_module = 'inventory'
         } = req.query;
 
         const pageNum = parseInt(page as string);
@@ -35,7 +36,8 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 
         const where: any = {
             isActive: true,
-            companyId: req.companyId
+            companyId: req.companyId,
+            origin_module: origin_module as string
         };
 
         if (search) {
@@ -248,8 +250,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         const {
             code, name, description, category, price, costPrice,
             currentStock, minStock, maxStock, unit, barcode,
-            expiryDate, batchNumber, location, supplierId, taxRate,
-            isActive, isService, requiresPrescription, dosageForm, strength, manufacturer
+            isActive, isService, requiresPrescription, dosageForm, strength, manufacturer,
+            origin_module, expiryDate, batchNumber, location, supplierId
         } = validatedData;
 
         // Use provided code or generate one
@@ -293,7 +295,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 supplierId,
                 companyId: req.companyId, // Multi-tenancy isolation
                 status,
-                isActive: isActive ?? true
+                isActive: isActive ?? true,
+                origin_module: origin_module || 'inventory'
             },
             include: { supplier: true }
         });

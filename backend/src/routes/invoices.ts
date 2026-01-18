@@ -74,6 +74,167 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
     }
 });
 
+// Get available sources for invoicing (Pharmacy Sales and Commercial Orders)
+router.get('/available-sources', authenticate, async (req: AuthRequest, res) => {
+    try {
+        const companyId = req.companyId;
+
+        // Get invoiced order IDs to exclude them
+        const invoicedInvoices = await prisma.invoice.findMany({
+            where: { companyId },
+            select: { orderId: true }
+        });
+
+        const invoicedOrderIds = invoicedInvoices
+            .map(i => i.orderId)
+            .filter((id): id is string => !!id);
+
+        // Fetch un-invoiced PharmacySales
+        const availableSales = await prisma.pharmacySale.findMany({
+            where: {
+                companyId,
+                status: 'completed',
+                id: { notIn: invoicedOrderIds }
+            },
+            include: {
+                customer: true,
+                items: {
+                    include: {
+                        batch: {
+                            include: {
+                                medication: {
+                                    include: { product: true }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+
+        // Fetch un-invoiced CustomerOrders
+        const availableOrders = await prisma.customerOrder.findMany({
+            where: {
+                companyId,
+                status: 'completed',
+                id: { notIn: invoicedOrderIds }
+            },
+            include: {
+                items: true
+            },
+            orderBy: { createdAt: 'desc' },
+            take: 50
+        });
+
+        // Format and merge
+        const sources = [
+            ...availableSales.map(s => {
+                console.log('Processing sale:', s.saleNumber);
+                return {
+                    id: s.id,
+                    number: s.saleNumber,
+                    type: 'pharmacy',
+                    customerId: s.customerId,
+                    customerName: s.customerName || s.customer?.name || 'Cliente Balcão',
+                    customerEmail: s.customer?.email,
+                    customerPhone: s.customer?.phone,
+                    items: s.items.map(i => {
+                        console.log('Processing sale item:', i.productName, 'batchId:', i.batchId);
+                        return {
+                            productId: i.batch?.medication?.productId,
+                            description: i.productName,
+                            quantity: i.quantity,
+                            unitPrice: Number(i.unitPrice),
+                            total: Number(i.total)
+                        };
+                    }),
+                    total: Number(s.total)
+                };
+            }),
+            ...availableOrders.map(o => {
+                console.log('Processing order:', o.orderNumber);
+                return {
+                    id: o.id,
+                    number: o.orderNumber,
+                    type: 'commercial',
+                    customerName: o.customerName,
+                    customerEmail: o.customerEmail,
+                    customerPhone: o.customerPhone,
+                    customerAddress: o.customerAddress,
+                    items: o.items.map(i => ({
+                        productId: i.productId,
+                        description: i.productName,
+                        quantity: i.quantity,
+                        unitPrice: Number(i.price),
+                        total: Number(i.total)
+                    })),
+                    total: Number(o.total)
+                };
+            })
+        ];
+
+        console.log('Returning sources:', sources.length);
+        res.json(sources);
+    } catch (error) {
+        console.error('Get available sources detailed error:', error);
+        res.status(500).json({ error: 'Erro ao buscar fontes para faturamento', details: error instanceof Error ? error.message : String(error) });
+    }
+});
+
+// Get credit notes with pagination - MUST BE BEFORE /:id route
+router.get('/credit-notes', authenticate, async (req: AuthRequest, res) => {
+    try {
+        const {
+            invoiceId,
+            page = '1',
+            limit = '20'
+        } = req.query;
+
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
+
+        const where: any = {
+            companyId: req.companyId // Multi-tenancy isolation
+        };
+
+        if (invoiceId) {
+            where.originalInvoiceId = invoiceId;
+        }
+
+        // Get total count and paginated items in parallel
+        const [total, creditNotes] = await Promise.all([
+            prisma.creditNote.count({ where }),
+            prisma.creditNote.findMany({
+                where,
+                include: {
+                    originalInvoice: true,
+                    items: true
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limitNum
+            })
+        ]);
+
+        res.json({
+            data: creditNotes,
+            pagination: {
+                page: pageNum,
+                limit: limitNum,
+                total,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + creditNotes.length < total
+            }
+        });
+    } catch (error) {
+        console.error('Get credit notes error:', error);
+        res.status(500).json({ error: 'Erro ao buscar notas de crédito' });
+    }
+});
+
 // Get invoice by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
@@ -415,58 +576,6 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
         }
         console.error('Create credit note error:', error);
         res.status(500).json({ error: 'Erro ao criar nota de crédito' });
-    }
-});
-
-// Get credit notes with pagination
-router.get('/credit-notes', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const {
-            invoiceId,
-            page = '1',
-            limit = '20'
-        } = req.query;
-
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
-
-        const where: any = {
-            companyId: req.companyId // Multi-tenancy isolation
-        };
-
-        if (invoiceId) {
-            where.originalInvoiceId = invoiceId;
-        }
-
-        // Get total count and paginated items in parallel
-        const [total, creditNotes] = await Promise.all([
-            prisma.creditNote.count({ where }),
-            prisma.creditNote.findMany({
-                where,
-                include: {
-                    originalInvoice: true,
-                    items: true
-                },
-                orderBy: { createdAt: 'desc' },
-                skip,
-                take: limitNum
-            })
-        ]);
-
-        res.json({
-            data: creditNotes,
-            pagination: {
-                page: pageNum,
-                limit: limitNum,
-                total,
-                totalPages: Math.ceil(total / limitNum),
-                hasMore: skip + creditNotes.length < total
-            }
-        });
-    } catch (error) {
-        console.error('Get credit notes error:', error);
-        res.status(500).json({ error: 'Erro ao buscar notas de crédito' });
     }
 });
 

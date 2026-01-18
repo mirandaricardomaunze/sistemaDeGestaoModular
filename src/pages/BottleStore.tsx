@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import { Card, Button, Input, Badge, LoadingSpinner, EmptyState, Modal, ConfirmationModal } from '../components/ui';
 import ThermalReceiptPreview from '../components/pos/ThermalReceiptPreview';
@@ -47,7 +48,22 @@ import { formatCurrency } from '../utils/helpers';
 type TimeRange = '1M' | '2M' | '3M' | '6M' | '1Y';
 
 export default function BottleStore() {
-    const [view, setView] = useState<'pos' | 'dashboard' | 'inventory' | 'reports'>('pos');
+    const { pathname } = useLocation();
+
+    // Determine view from path
+    const getInitialView = () => {
+        if (pathname.includes('/pos')) return 'pos';
+        if (pathname.includes('/inventory')) return 'inventory';
+        if (pathname.includes('/reports')) return 'reports';
+        return 'dashboard'; // Default to dashboard as requested by user
+    };
+
+    const [view, setView] = useState<'pos' | 'dashboard' | 'inventory' | 'reports'>(getInitialView());
+
+    // Update view when path changes (e.g. from sidebar)
+    useEffect(() => {
+        setView(getInitialView());
+    }, [pathname]);
 
     // Pagination State
     const [prodPage, setProdPage] = useState(1);

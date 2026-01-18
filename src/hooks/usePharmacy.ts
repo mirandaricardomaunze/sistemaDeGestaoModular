@@ -22,6 +22,7 @@ interface UsePharmacyParams {
 
 export function usePharmacy(params?: UsePharmacyParams) {
     const [medications, setMedications] = useState<any[]>([]);
+    const [batches, setBatches] = useState<any[]>([]);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -43,10 +44,7 @@ export function usePharmacy(params?: UsePharmacyParams) {
                 data = response.data;
                 setPagination(response.pagination);
 
-                // If the API returns pagination, we might still need the total metrics
-                // For now, if we are on page 1 and no search/filter, we update metrics
                 if (params?.page === 1 || !params?.page) {
-                    // The backend result.length before slicing is the total count for the current filters
                     setMetrics(prev => ({
                         ...prev,
                         totalMedications: response.pagination.total
@@ -87,9 +85,19 @@ export function usePharmacy(params?: UsePharmacyParams) {
         params?.limit
     ]);
 
+    const fetchBatches = useCallback(async () => {
+        try {
+            const data = await pharmacyAPI.getBatches();
+            setBatches(Array.isArray(data) ? data : (data.data || []));
+        } catch (err) {
+            console.error('Error fetching batches:', err);
+        }
+    }, []);
+
     useEffect(() => {
         fetchMedications();
-    }, [fetchMedications]);
+        fetchBatches();
+    }, [fetchMedications, fetchBatches]);
 
     const addMedication = async (data: any) => {
         try {
@@ -120,6 +128,7 @@ export function usePharmacy(params?: UsePharmacyParams) {
             await pharmacyAPI.deleteMedication(id);
             toast.success('Medicamento removido com sucesso!');
             fetchMedications();
+            return true;
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Erro ao remover medicamento');
             throw err;
@@ -131,6 +140,7 @@ export function usePharmacy(params?: UsePharmacyParams) {
             const newBatch = await pharmacyAPI.createBatch(data);
             toast.success('Lote registrado com sucesso!');
             fetchMedications();
+            fetchBatches();
             return newBatch;
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Erro ao registrar lote');
@@ -140,11 +150,12 @@ export function usePharmacy(params?: UsePharmacyParams) {
 
     return {
         medications,
+        batches,
         pagination,
         metrics,
         isLoading,
         error,
-        refetch: fetchMedications,
+        refetch: () => { fetchMedications(); fetchBatches(); },
         addMedication,
         updateMedication,
         deleteMedication,

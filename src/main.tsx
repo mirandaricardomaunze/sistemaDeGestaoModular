@@ -1,6 +1,6 @@
 import { StrictMode, lazy, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './i18n'; // Initialize i18n
 import './index.css';
 
@@ -34,13 +34,20 @@ const Fiscal = lazy(() => import('./pages/Fiscal'));
 const Audit = lazy(() => import('./pages/Audit'));
 const CRM = lazy(() => import('./pages/CRM'));
 const BackupManagement = lazy(() => import('./pages/BackupManagement'));
+const Help = lazy(() => import('./pages/Help'));
 const Pharmacy = lazy(() => import('./pages/Pharmacy'));
 const PharmacyDashboard = lazy(() => import('./pages/pharmacy/PharmacyDashboard'));
 const PharmacyPOS = lazy(() => import('./pages/pharmacy/PharmacyPOS'));
 const PharmacyEmployees = lazy(() => import('./pages/pharmacy/PharmacyEmployees'));
 const PharmacyCategories = lazy(() => import('./pages/pharmacy/PharmacyCategories'));
 const PharmacySuppliers = lazy(() => import('./pages/pharmacy/PharmacySuppliers'));
+const PharmacyReports = lazy(() => import('./pages/pharmacy/PharmacyReports'));
 const LogisticsDashboard = lazy(() => import('./pages/logistics/LogisticsDashboard'));
+// Commercial Module Pages (Lazy)
+const CommercialDashboard = lazy(() => import('./pages/commercial/CommercialDashboard'));
+const CommercialCategories = lazy(() => import('./pages/commercial/CommercialCategories'));
+const CommercialSuppliers = lazy(() => import('./pages/commercial/CommercialSuppliers'));
+
 const Hospitality = lazy(() => import('./pages/Hospitality'));
 const BottleStore = lazy(() => import('./pages/BottleStore'));
 const SuperAdminDashboard = lazy(() => import('./pages/SuperAdmin/SuperAdminDashboard'));
@@ -82,7 +89,7 @@ createRoot(document.getElementById('root')!).render(
                 <Layout />
               </ProtectedRoute>
             }>
-              <Route index element={<LogisticsDashboard />} />
+              <Route index element={<Home />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="inventory" element={<Inventory />} />
               <Route path="pos" element={<POS />} />
@@ -99,13 +106,19 @@ createRoot(document.getElementById('root')!).render(
               <Route path="audit" element={<Audit />} />
               <Route path="crm" element={<CRM />} />
               <Route path="backups" element={<BackupManagement />} />
-              <Route path="pharmacy" element={<Pharmacy />} />
+              {/* Pharmacy Module */}
+              <Route path="pharmacy" element={<Navigate to="/pharmacy/dashboard" replace />} />
               <Route path="pharmacy/dashboard" element={<PharmacyDashboard />} />
+              <Route path="pharmacy/manage" element={<Pharmacy />} />
               <Route path="pharmacy/pos" element={<PharmacyPOS />} />
               <Route path="pharmacy/employees" element={<PharmacyEmployees />} />
               <Route path="pharmacy/categories" element={<PharmacyCategories />} />
               <Route path="pharmacy/suppliers" element={<PharmacySuppliers />} />
-              <Route path="logistics" element={<LogisticsDashboard />} />
+              <Route path="pharmacy/reports" element={<PharmacyReports />} />
+
+              {/* Logistics Module */}
+              <Route path="logistics" element={<Navigate to="/logistics/dashboard" replace />} />
+              <Route path="logistics/dashboard" element={<LogisticsDashboard />} />
               <Route path="logistics/vehicles" element={<VehiclesPage />} />
               <Route path="logistics/drivers" element={<DriversPage />} />
               <Route path="logistics/routes" element={<RoutesPage />} />
@@ -113,21 +126,35 @@ createRoot(document.getElementById('root')!).render(
               <Route path="logistics/parcels" element={<ParcelsPage />} />
               <Route path="logistics/maintenance" element={<MaintenancePage />} />
               <Route path="logistics/reports" element={<LogisticsReportsPage />} />
-              <Route path="hospitality" element={<Hospitality />} />
-              <Route path="bottle-store" element={<BottleStore />} />
 
-              {/* Hotel Module Routes */}
-              <Route path="hotel" element={<HotelDashboard />} />
-              <Route path="hotel/finance" element={<HotelFinance />} />
-              <Route path="hotel/rooms" element={<HotelRooms />} />
-              <Route path="hotel/reservations" element={<HotelReservations />} />
-              <Route path="hotel/employees" element={<HotelEmployees />} />
-              <Route path="hotel/customers" element={<HotelCustomers />} />
-              <Route path="hotel/suppliers" element={<HotelSuppliers />} />
-              <Route path="hotel/categories" element={<HotelCategories />} />
-              <Route path="hotel/reports" element={<HotelReports />} />
+              {/* Commercial Module Routes */}
+              <Route path="commercial" element={<Navigate to="/commercial/dashboard" replace />} />
+              <Route path="commercial/dashboard" element={<CommercialDashboard />} />
+              <Route path="commercial/categories" element={<CommercialCategories />} />
+              <Route path="commercial/suppliers" element={<CommercialSuppliers />} />
+
+              {/* Hospitality Module */}
+              <Route path="hospitality" element={<Navigate to="/hospitality/dashboard" replace />} />
+              <Route path="hospitality/dashboard" element={<HotelDashboard />} />
+              <Route path="hospitality/ops" element={<Hospitality />} />
+              <Route path="hospitality/finance" element={<HotelFinance />} />
+              <Route path="hospitality/rooms" element={<HotelRooms />} />
+              <Route path="hospitality/reservations" element={<HotelReservations />} />
+              <Route path="hospitality/customers" element={<HotelCustomers />} />
+              <Route path="hospitality/suppliers" element={<HotelSuppliers />} />
+              <Route path="hospitality/categories" element={<HotelCategories />} />
+              <Route path="hospitality/reports" element={<HotelReports />} />
+              <Route path="hospitality/employees" element={<HotelEmployees />} />
+
+              {/* Bottle Store Module */}
+              <Route path="bottle-store" element={<Navigate to="/bottle-store/dashboard" replace />} />
+              <Route path="bottle-store/dashboard" element={<BottleStore />} />
+              <Route path="bottle-store/pos" element={<BottleStore />} />
+              <Route path="bottle-store/inventory" element={<BottleStore />} />
+              <Route path="bottle-store/reports" element={<BottleStore />} />
 
               <Route path="super-admin" element={<SuperAdminDashboard />} />
+              <Route path="help" element={<Help />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>

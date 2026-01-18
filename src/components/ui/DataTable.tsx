@@ -33,7 +33,7 @@ export function TableContainer({
     emptyIcon,
     onEmptyAction,
     emptyActionLabel,
-    minHeight = '400px',
+    minHeight = '600px',
     className,
 }: TableContainerProps) {
     return (
@@ -100,6 +100,7 @@ export function DataTable<TData>({
                                 <th
                                     key={header.id}
                                     className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-dark-800 cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+                                    style={{ minHeight: '48px' }}
                                     onClick={header.column.getToggleSortingHandler()}
                                 >
                                     <div className="flex items-center gap-2">

@@ -1,5 +1,5 @@
-// Module Constants - Static definition of all available modules
-// These are defined in code so they persist even if database is reset
+// Module Constants - Frontend
+// These match the backend module definitions
 
 export interface ModuleDefinition {
     code: string;
@@ -7,10 +7,10 @@ export interface ModuleDefinition {
     description: string;
     icon: string;
     color: string;
-    isCore: boolean; // Core modules are always available
+    isCore: boolean;
 }
 
-// Core modules - Always available with every company registration
+// Core modules - Always available
 export const CORE_MODULES: ModuleDefinition[] = [
     {
         code: 'POS',
@@ -62,7 +62,7 @@ export const CORE_MODULES: ModuleDefinition[] = [
     }
 ];
 
-// Optional modules - User can select during registration
+// Optional modules - User selects during registration
 export const OPTIONAL_MODULES: ModuleDefinition[] = [
     {
         code: 'PHARMACY',
@@ -114,25 +114,22 @@ export const OPTIONAL_MODULES: ModuleDefinition[] = [
     }
 ];
 
-// All modules combined
+// All modules
 export const ALL_MODULES = [...CORE_MODULES, ...OPTIONAL_MODULES];
 
-// Helper function to get module by code (case-insensitive)
+// Helper functions
 export function getModuleByCode(code: string): ModuleDefinition | undefined {
-    return ALL_MODULES.find(m => m.code.toUpperCase() === code.toUpperCase());
+    return ALL_MODULES.find(m => m.code === code);
 }
 
-// Helper function to get all module codes
 export function getAllModuleCodes(): string[] {
     return ALL_MODULES.map(m => m.code);
 }
 
-// Helper function to get core module codes
 export function getCoreModuleCodes(): string[] {
     return CORE_MODULES.map(m => m.code);
 }
 
-// Helper function to get optional module codes
 export function getOptionalModuleCodes(): string[] {
     return OPTIONAL_MODULES.map(m => m.code);
 }

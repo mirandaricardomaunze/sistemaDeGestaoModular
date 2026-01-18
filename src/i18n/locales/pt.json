@@ -361,5 +361,13 @@
         "stats": "Estatísticas de Auditoria",
         "clearConfirm": "Tem certeza que deseja eliminar todos os registos?",
         "refresh": "Actualizar Logs"
+    },
+    "businessType": {
+        "retail": "Retalho / Comercial",
+        "pharmacy": "Farmácia / Clínico",
+        "hotel": "Hotelaria / Turismo",
+        "bottlestore": "Garrafeira / Distribuição",
+        "logistics": "Logística / Transportes",
+        "supermarket": "Supermercado"
     }
 }

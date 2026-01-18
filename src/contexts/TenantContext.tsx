@@ -1,13 +1,8 @@
 import React, { createContext, useContext, useMemo, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useStore, MODULE_TO_BUSINESS_TYPE } from '../stores/useStore';
+import type { Company } from '../types';
 
-interface Company {
-    id: string;
-    name: string;
-    status: string;
-    settings?: any;
-}
 
 interface TenantContextType {
     company: Company | null;

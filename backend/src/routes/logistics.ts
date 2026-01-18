@@ -6,7 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
-import { authenticate } from '../middleware/auth';
+import { authenticate, AuthRequest } from '../middleware/auth';
 import { cacheService } from '../services/cache.service';
 import { logger } from '../utils/logger';
 
@@ -19,7 +19,7 @@ router.use(authenticate);
 
 router.get('/dashboard', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
 
         // Check cache first
         const cacheKey = `logistics:dashboard:${companyId}`;
@@ -155,7 +155,7 @@ const vehicleSchema = z.object({
 
 router.get('/vehicles', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { status, type, search, page = '1', limit = '20' } = req.query;
 
         const pageNum = parseInt(page as string);
@@ -210,7 +210,7 @@ router.get('/vehicles', async (req: Request, res: Response) => {
 
 router.get('/vehicles/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
 
         const vehicle = await prisma.vehicle.findFirst({
@@ -239,7 +239,7 @@ router.get('/vehicles/:id', async (req: Request, res: Response) => {
 
 router.post('/vehicles', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const data = vehicleSchema.parse(req.body);
 
         // Check if plate already exists
@@ -261,7 +261,7 @@ router.post('/vehicles', async (req: Request, res: Response) => {
         res.status(201).json(vehicle);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error creating vehicle:', error);
         res.status(500).json({ error: 'Erro ao criar veículo' });
@@ -270,7 +270,7 @@ router.post('/vehicles', async (req: Request, res: Response) => {
 
 router.put('/vehicles/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
         const data = vehicleSchema.partial().parse(req.body);
 
@@ -290,7 +290,7 @@ router.put('/vehicles/:id', async (req: Request, res: Response) => {
         res.json(updated);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error updating vehicle:', error);
         res.status(500).json({ error: 'Erro ao actualizar veículo' });
@@ -299,7 +299,7 @@ router.put('/vehicles/:id', async (req: Request, res: Response) => {
 
 router.delete('/vehicles/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
 
         const result = await prisma.vehicle.deleteMany({
@@ -338,7 +338,7 @@ const driverSchema = z.object({
 
 router.get('/drivers', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { status, search, page = '1', limit = '20' } = req.query;
 
         const pageNum = parseInt(page as string);
@@ -388,7 +388,7 @@ router.get('/drivers', async (req: Request, res: Response) => {
 
 router.get('/drivers/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
 
         const driver = await prisma.driver.findFirst({
@@ -415,7 +415,7 @@ router.get('/drivers/:id', async (req: Request, res: Response) => {
 
 router.post('/drivers', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const data = driverSchema.parse(req.body);
 
         // Check if code already exists
@@ -438,7 +438,7 @@ router.post('/drivers', async (req: Request, res: Response) => {
         res.status(201).json(driver);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error creating driver:', error);
         res.status(500).json({ error: 'Erro ao criar motorista' });
@@ -447,7 +447,7 @@ router.post('/drivers', async (req: Request, res: Response) => {
 
 router.put('/drivers/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
         const data = driverSchema.partial().parse(req.body);
 
@@ -468,7 +468,7 @@ router.put('/drivers/:id', async (req: Request, res: Response) => {
         res.json(updated);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error updating driver:', error);
         res.status(500).json({ error: 'Erro ao actualizar motorista' });
@@ -477,7 +477,7 @@ router.put('/drivers/:id', async (req: Request, res: Response) => {
 
 router.delete('/drivers/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
 
         const result = await prisma.driver.deleteMany({
@@ -514,7 +514,7 @@ const routeSchema = z.object({
 
 router.get('/routes', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { active, search, page = '1', limit = '20' } = req.query;
 
         const pageNum = parseInt(page as string);
@@ -565,7 +565,7 @@ router.get('/routes', async (req: Request, res: Response) => {
 
 router.get('/routes/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
 
         const route = await prisma.deliveryRoute.findFirst({
@@ -591,7 +591,7 @@ router.get('/routes/:id', async (req: Request, res: Response) => {
 
 router.post('/routes', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const data = routeSchema.parse(req.body);
 
         // Check if code already exists
@@ -612,7 +612,7 @@ router.post('/routes', async (req: Request, res: Response) => {
         res.status(201).json(route);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error creating route:', error);
         res.status(500).json({ error: 'Erro ao criar rota' });
@@ -621,7 +621,7 @@ router.post('/routes', async (req: Request, res: Response) => {
 
 router.put('/routes/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
         const data = routeSchema.partial().parse(req.body);
 
@@ -638,7 +638,7 @@ router.put('/routes/:id', async (req: Request, res: Response) => {
         res.json(updated);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error updating route:', error);
         res.status(500).json({ error: 'Erro ao actualizar rota' });
@@ -647,7 +647,7 @@ router.put('/routes/:id', async (req: Request, res: Response) => {
 
 router.delete('/routes/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
 
         const result = await prisma.deliveryRoute.deleteMany({
@@ -712,7 +712,7 @@ async function generateDeliveryNumber(companyId: string): Promise<string> {
 
 router.get('/deliveries', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { status, priority, driverId, vehicleId, search, startDate, endDate, page = '1', limit = '20' } = req.query;
 
         const where: any = { companyId };
@@ -768,7 +768,7 @@ router.get('/deliveries', async (req: Request, res: Response) => {
 
 router.get('/deliveries/:id', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         const { id } = req.params;
 
         const delivery = await prisma.delivery.findFirst({
@@ -796,7 +796,7 @@ router.get('/deliveries/:id', async (req: Request, res: Response) => {
 
 router.post('/deliveries', async (req: Request, res: Response) => {
     try {
-        const companyId = req.user?.companyId;
+        const companyId = (req as AuthRequest).companyId;
         if (!companyId) {
             return res.status(403).json({ error: 'Company ID não encontrado' });
         }
@@ -861,7 +861,7 @@ router.post('/deliveries', async (req: Request, res: Response) => {
         res.status(201).json(delivery);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error creating delivery:', error);
         res.status(500).json({ error: 'Erro ao criar entrega' });
@@ -900,7 +900,7 @@ router.put('/deliveries/:id', async (req: Request, res: Response) => {
         res.json(delivery);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error updating delivery:', error);
         res.status(500).json({ error: 'Erro ao actualizar entrega' });
@@ -1229,7 +1229,7 @@ router.post('/parcels', async (req: Request, res: Response) => {
         res.status(201).json(parcel);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error creating parcel:', error);
         res.status(500).json({ error: 'Erro ao criar encomenda' });
@@ -1264,7 +1264,7 @@ router.put('/parcels/:id', async (req: Request, res: Response) => {
         res.json(parcel);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error updating parcel:', error);
         res.status(500).json({ error: 'Erro ao actualizar encomenda' });
@@ -1547,7 +1547,7 @@ router.post('/maintenances', async (req: Request, res: Response) => {
         res.status(201).json(maintenance);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error creating maintenance:', error);
         res.status(500).json({ error: 'Erro ao criar manutenção' });
@@ -1574,7 +1574,7 @@ router.put('/maintenances/:id', async (req: Request, res: Response) => {
         res.json(maintenance);
     } catch (error) {
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ error: error.errors[0].message });
+            return res.status(400).json({ error: error.issues[0].message });
         }
         console.error('Error updating maintenance:', error);
         res.status(500).json({ error: 'Erro ao actualizar manutenção' });

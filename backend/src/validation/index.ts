@@ -26,6 +26,7 @@ export * from './crm';
 export * from './hospitality';
 export * from './campaigns';
 export * from './fiscal';
+export * from './pharmacy';
 
 // Legacy compatibility - re-export sales schemas from old location
 // TODO: Migrate sales schemas to validation/sales.ts

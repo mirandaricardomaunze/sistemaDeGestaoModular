@@ -11,6 +11,7 @@ import type {
     FiscalDeadline,
     FiscalDashboardMetrics,
     TaxType,
+    LogisticsMetrics,
 } from '../types/fiscal';
 
 // ============================================================================
@@ -138,7 +139,7 @@ interface FiscalState {
 
     // Dashboard Metrics
     getDashboardMetrics: () => FiscalDashboardMetrics;
-    logisticsMetrics: any;
+    logisticsMetrics: LogisticsMetrics | null;
     fetchLogisticsMetrics: () => Promise<void>;
 
     // Reset State
@@ -527,14 +528,15 @@ export const useFiscalStore = create<FiscalState>()(
                     pendingDeadlines: pendingDeadlines.slice(0, 5),
                     recentRetentions: state.retentions.slice(0, 10),
                     complianceStatus,
+                    logisticsMetrics: state.logisticsMetrics || undefined,
                 };
             },
 
             fetchLogisticsMetrics: async () => {
                 try {
-                    const response = await fetch(`${process.env.VITE_API_URL || 'http://localhost:3001/api'}/fiscal/metrics/logistics`, {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/fiscal/metrics/logistics`, {
                         headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                         }
                     });
                     if (response.ok) {

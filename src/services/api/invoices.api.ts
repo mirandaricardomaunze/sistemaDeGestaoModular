@@ -15,6 +15,11 @@ export const invoicesAPI = {
         return response.data;
     },
 
+    getAvailableSources: async () => {
+        const response = await api.get('/invoices/available-sources');
+        return response.data;
+    },
+
     getById: async (id: string) => {
         const response = await api.get(`/invoices/${id}`);
         return response.data;
@@ -94,6 +99,6 @@ export const invoicesAPI = {
 
     getCreditNotes: async (params?: { invoiceId?: string }) => {
         const response = await api.get('/invoices/credit-notes', { params });
-        return response.data;
+        return response.data.data || response.data; // Handle both paginated and direct array responses
     },
 };

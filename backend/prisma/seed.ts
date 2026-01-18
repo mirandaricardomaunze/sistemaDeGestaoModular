@@ -5,27 +5,8 @@ const prisma = new PrismaClient();
 
 async function main() {
     console.log('🌱 Starting database seed...');
+    console.log('ℹ️  Business modules are now static constants (see src/constants/modules.constants.ts)');
 
-    // ==========================================================================
-    // SEED BUSINESS MODULES
-    // ==========================================================================
-    const modules = [
-        { code: 'PHARMACY', name: 'Farmácia', description: 'Gestão completa com CRM, RH, Estoque e Fiscal integrados para farmácias e drogarias.', icon: 'HiOutlineBeaker', color: '#10B981' },
-        { code: 'COMMERCIAL', name: 'Comércio', description: 'Solução comercial robusta com CRM, RH, Estoque e Fiscal para retalho e atacado.', icon: 'HiOutlineShoppingCart', color: '#3B82F6' },
-        { code: 'BOTTLE_STORE', name: 'Garrafeira', description: 'Gestão especializada de bebidas com CRM, RH, Estoque e Fiscal integrados.', icon: 'HiOutlineBuildingStorefront', color: '#8B5CF6' },
-        { code: 'HOTEL', name: 'Hotelaria', description: 'Gestão hoteleira com CRM, RH, Estoque e Fiscal para total controlo administrativo.', icon: 'HiOutlineHomeModern', color: '#F59E0B' },
-        { code: 'RESTAURANT', name: 'Restaurante', description: 'Gestão de mesas e pedidos com CRM, RH, Estoque e Fiscal integrados.', icon: 'HiOutlineCake', color: '#EF4444' },
-        { code: 'LOGISTICS', name: 'Logística', description: 'Gestão de frotas e entregas com CRM, RH, Estoque e Fiscal especializados.', icon: 'HiOutlineTruck', color: '#6366F1' },
-    ];
-
-    for (const mod of modules) {
-        await prisma.module.upsert({
-            where: { code: mod.code },
-            update: { name: mod.name, description: mod.description, icon: mod.icon, color: mod.color },
-            create: mod
-        });
-    }
-    console.log('✅ Business modules created:', modules.length);
 
     // ==========================================================================
     // SEED RBAC ROLES

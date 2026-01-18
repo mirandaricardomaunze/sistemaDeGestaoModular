@@ -37,9 +37,13 @@ export interface Product {
     status: StockStatus;
     imageUrl?: string;
     isActive?: boolean;
-    isReturnable?: boolean;
-    returnPrice?: number;
-    packSize?: number;
+    isService?: boolean;
+    requiresPrescription?: boolean;
+    dosageForm?: string;
+    strength?: string;
+    manufacturer?: string;
+    origin_module?: string;
+    taxRate?: number;
     createdAt: string;
     updatedAt: string;
     // Multi-warehouse stock mapping: WarehouseID -> Quantity
@@ -720,6 +724,13 @@ export interface Category {
 
 export type UserRole = 'super_admin' | 'admin' | 'manager' | 'operator' | 'cashier' | 'stock_keeper';
 
+export interface Company {
+    id: string;
+    name: string;
+    status?: 'active' | 'inactive' | 'suspended';
+    settings?: any;
+}
+
 export interface User {
     id: string;
     name: string;
@@ -734,11 +745,7 @@ export interface User {
     permissions?: string[];
     activeModules?: string[];
     activeLayers?: string[];
-    company?: {
-        id: string;
-        name: string;
-        status?: 'active' | 'inactive' | 'suspended';
-    } | null;
+    company?: Company | null;
 }
 
 export interface AuthState {

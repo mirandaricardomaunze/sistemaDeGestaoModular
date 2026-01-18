@@ -193,12 +193,12 @@ export default function HotelDashboard() {
                             </button>
                         ))}
                     </div>
-                    <Link to="/hotel/reports">
+                    <Link to="/hospitality/reports">
                         <Button variant="outline">
                             Relatórios
                         </Button>
                     </Link>
-                    <Link to="/hotel/rooms">
+                    <Link to="/hospitality/rooms">
                         <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
                             Novo Check-in
                         </Button>
@@ -313,7 +313,7 @@ export default function HotelDashboard() {
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                             Receita por Período
                         </h2>
-                        <Link to="/hotel/reports">
+                        <Link to="/hospitality/reports">
                             <Button variant="ghost" size="sm">
                                 Ver Mais
                                 <HiOutlineArrowRight className="w-4 h-4 ml-2" />
@@ -458,7 +458,7 @@ export default function HotelDashboard() {
                         )}
                     </div>
                     <Link
-                        to="/hotel"
+                        to="/hospitality/ops"
                         className="block mt-4 text-center text-sm text-primary-600 dark:text-primary-400 hover:underline"
                     >
                         Ver Todos os Quartos
@@ -520,7 +520,7 @@ export default function HotelDashboard() {
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                         Reservas Recentes
                     </h2>
-                    <Link to="/hotel/reservations">
+                    <Link to="/hospitality/reservations">
                         <Button variant="ghost" size="sm">
                             Ver Todas
                             <HiOutlineArrowRight className="w-4 h-4 ml-2" />
@@ -593,7 +593,7 @@ export default function HotelDashboard() {
                     Acções Rápidas
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Link to="/hotel/rooms">
+                    <Link to="/hospitality/rooms">
                         <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
                             <HiOutlinePlus className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
@@ -601,7 +601,7 @@ export default function HotelDashboard() {
                             </p>
                         </button>
                     </Link>
-                    <Link to="/hotel/reservations">
+                    <Link to="/hospitality/reservations">
                         <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
                             <HiOutlineCalendar className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
@@ -609,7 +609,7 @@ export default function HotelDashboard() {
                             </p>
                         </button>
                     </Link>
-                    <Link to="/hotel/customers">
+                    <Link to="/hospitality/customers">
                         <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
                             <HiOutlineUsers className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
@@ -617,7 +617,7 @@ export default function HotelDashboard() {
                             </p>
                         </button>
                     </Link>
-                    <Link to="/hotel/reports">
+                    <Link to="/hospitality/reports">
                         <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
                             <HiOutlineChartBar className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">

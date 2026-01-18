@@ -33,7 +33,7 @@ export default function Login() {
         setLoginError(null);
         const success = await login(data.email, data.password);
         if (success) {
-            navigate('/logistics');
+            navigate('/');
         } else {
             setLoginError('Email ou senha incorretos. Verifique as suas credenciais e tente novamente.');
             // Trigger shake animation

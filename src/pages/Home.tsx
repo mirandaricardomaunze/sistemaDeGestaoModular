@@ -20,20 +20,27 @@ export default function Home() {
         return <Navigate to="/super-admin" replace />;
     }
 
-    // Prioritize Pharmacy Dashboard as requested
+    // Standardized Redirects by Module
     if (hasModule('PHARMACY')) {
         return <Navigate to="/pharmacy/dashboard" replace />;
     }
 
-    // Secondary options
-    if (hasModule('HOTEL')) {
-        return <Navigate to="/hospitality" replace />;
+    if (hasModule('HOTEL') || hasModule('HOSPITALITY')) {
+        return <Navigate to="/hotel/dashboard" replace />;
     }
 
     if (hasModule('LOGISTICS')) {
-        return <Navigate to="/logistics" replace />;
+        return <Navigate to="/logistics/dashboard" replace />;
     }
 
-    // Fallback to Commercial Dashboard (available via /dashboard path)
+    if (hasModule('BOTTLE_STORE')) {
+        return <Navigate to="/bottle-store/dashboard" replace />;
+    }
+
+    if (hasModule('COMMERCIAL')) {
+        return <Navigate to="/commercial/dashboard" replace />;
+    }
+
+    // Fallback to POS or Generic Dashboard
     return <Navigate to="/dashboard" replace />;
 }

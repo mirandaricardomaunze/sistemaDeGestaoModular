@@ -39,7 +39,7 @@ import { useTenant } from '../../contexts/TenantContext';
 export default function Header() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { theme, toggleTheme, toggleSidebar } = useStore();
+    const { theme, toggleTheme, toggleSidebar, companySettings } = useStore();
     const { user, logout } = useAuthStore();
     const { isOnline, isSyncing, pendingCount, syncSales } = useOfflineSync();
     const [showUserMenu, setShowUserMenu] = useState(false);

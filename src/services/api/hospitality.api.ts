@@ -179,7 +179,7 @@ export const hospitalityAPI = {
 
 export const pharmacyAPI = {
     // Medications
-    getMedications: async (params?: { search?: string; requiresPrescription?: boolean; isControlled?: boolean; lowStock?: boolean; expiringDays?: number }) => {
+    getMedications: async (params?: { search?: string; requiresPrescription?: boolean; isControlled?: boolean; lowStock?: boolean; expiringDays?: number; page?: number; limit?: number }) => {
         const response = await api.get('/pharmacy/medications', { params });
         return response.data;
     },
@@ -199,7 +199,7 @@ export const pharmacyAPI = {
     },
 
     // Batches
-    getBatches: async (params?: { status?: string; expiringDays?: number; medicationId?: string }) => {
+    getBatches: async (params?: { status?: string; expiringDays?: number; medicationId?: string; page?: number; limit?: number }) => {
         const response = await api.get('/pharmacy/batches', { params });
         return response.data;
     },
@@ -263,8 +263,29 @@ export const pharmacyAPI = {
         return response.data;
     },
 
-    getStockMovements: async (params?: { batchId?: string; movementType?: string; startDate?: string; endDate?: string }) => {
+    getStockMovements: async (params?: { batchId?: string; movementType?: string; startDate?: string; endDate?: string; page?: number; limit?: number }) => {
         const response = await api.get('/pharmacy/stock-movements', { params });
+        return response.data;
+    },
+
+    // Partners
+    getPartners: async (params?: { search?: string; isActive?: boolean }) => {
+        const response = await api.get('/pharmacy/partners', { params });
+        return response.data;
+    },
+
+    createPartner: async (data: any) => {
+        const response = await api.post('/pharmacy/partners', data);
+        return response.data;
+    },
+
+    updatePartner: async (id: string, data: any) => {
+        const response = await api.put(`/pharmacy/partners/${id}`, data);
+        return response.data;
+    },
+
+    deletePartner: async (id: string) => {
+        const response = await api.delete(`/pharmacy/partners/${id}`);
         return response.data;
     }
 };
