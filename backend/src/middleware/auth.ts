@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
+import { tenantContext } from '../lib/context';
 import type { User } from '@prisma/client';
 
 export interface AuthRequest extends Request {
@@ -24,7 +25,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 
         const token = authHeader.substring(7);
 
-        // 🔒 CRITICAL FIX: JWT_SECRET não pode ter default
+        // ðŸ”’ CRITICAL FIX: JWT_SECRET não pode ter default
         const secret = process.env.JWT_SECRET;
         if (!secret) {
             throw new Error('CRITICAL: JWT_SECRET não está definido nas variáveis de ambiente!');
@@ -43,7 +44,10 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
         });
         req.userName = user?.name || 'Sistema';
 
-        next();
+        // ðŸ”— Wrap everything that follows in the tenant context
+        tenantContext.run({ companyId: req.companyId!, userId: req.userId }, () => {
+            next();
+        });
     } catch (error) {
         if (error instanceof jwt.TokenExpiredError) {
             return res.status(401).json({ error: 'Token expirado' });

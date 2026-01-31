@@ -162,7 +162,7 @@ export default function POSInterface() {
             },
             description: 'Cancelar/Limpar',
         },
-    ], [cart, lastSale, checkoutModalOpen, receiptModalOpen, scaleModalOpen, cashDrawerModalOpen, cashDrawerOpen, clearCart]);
+    ], [cart, lastSale, checkoutModalOpen, receiptModalOpen, scaleModalOpen, cashDrawerModalOpen, cashDrawerOpen, clearCart, companySettings?.printerType]);
 
     useKeyboardShortcuts(shortcuts);
 
@@ -523,12 +523,13 @@ export default function POSInterface() {
                 duration: 3000
             });
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Sale confirmation error:', error);
 
-            // 🔒 MELHORIA 2: Tratamento de erros aprimorado com mensagens específicas
-            const errorResponse = error.response?.data;
-            const errorMessage = errorResponse?.error || error.message;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const err = error as any;
+            const errorResponse = err.response?.data;
+            const errorMessage = errorResponse?.error || err.message;
 
             // Stock insufficient error
             if (errorMessage?.includes('Stock insuficiente') || errorMessage?.includes('insuficiente')) {
@@ -570,7 +571,7 @@ export default function POSInterface() {
             }
 
             // Network/timeout errors
-            if (error.code === 'ECONNABORTED' || error.code === 'ERR_NETWORK' || errorMessage?.includes('timeout')) {
+            if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK' || errorMessage?.includes('timeout')) {
                 toast.error(
                     `🌐 Erro de conexão\n\nVerifique sua internet e tente novamente.`,
                     { duration: 5000 }
@@ -581,6 +582,7 @@ export default function POSInterface() {
             // Validation errors with details
             if (errorResponse?.details && Array.isArray(errorResponse.details)) {
                 const validationErrors = errorResponse.details
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     .map((detail: any) => `• ${detail.field}: ${detail.message}`)
                     .join('\n');
 

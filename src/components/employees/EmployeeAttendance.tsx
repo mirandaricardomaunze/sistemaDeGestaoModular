@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo, useCallback } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -24,8 +24,24 @@ export default function EmployeeAttendance() {
     const attendance = Array.isArray(attendanceData) ? attendanceData : [];
     const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
     const [listFilter, setListFilter] = useState<'all' | 'present' | 'absent' | 'vacation'>('all');
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState(() => new Date());
+    const [currentMonth, setCurrentMonth] = useState(() => new Date());
+
+    // Get attendance for a specific employee on selected date
+    const getEmployeeAttendance = useCallback((employeeId: string, date: Date): AttendanceRecord | undefined => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        return attendance.find(
+            (a) => a.employeeId === employeeId && a.date === dateStr
+        );
+    }, [attendance]);
+
+    // Check if employee is present
+    const getStatus = useCallback((employeeId: string, date: Date): 'present' | 'absent' | 'vacation' => {
+        const record = getEmployeeAttendance(employeeId, date);
+        if (record?.status === 'present') return 'present';
+        if (record?.status === 'vacation') return 'vacation';
+        return 'absent';
+    }, [getEmployeeAttendance]);
 
     // Get active employees only
     const activeEmployees = useMemo(() => {
@@ -39,7 +55,7 @@ export default function EmployeeAttendance() {
             const status = getStatus(emp.id, selectedDate);
             return status === listFilter;
         });
-    }, [activeEmployees, listFilter, selectedDate, attendance]);
+    }, [activeEmployees, listFilter, selectedDate, getStatus]);
 
     // Pagination for employee list
     const {
@@ -50,22 +66,6 @@ export default function EmployeeAttendance() {
         paginatedItems: paginatedEmployees,
         totalItems,
     } = usePagination(filteredEmployees, 10);
-
-    // Get attendance for a specific employee on selected date
-    const getEmployeeAttendance = (employeeId: string, date: Date): AttendanceRecord | undefined => {
-        const dateStr = format(date, 'yyyy-MM-dd');
-        return attendance.find(
-            (a) => a.employeeId === employeeId && a.date === dateStr
-        );
-    };
-
-    // Check if employee is present
-    const getStatus = (employeeId: string, date: Date): 'present' | 'absent' | 'vacation' => {
-        const record = getEmployeeAttendance(employeeId, date);
-        if (record?.status === 'present') return 'present';
-        if (record?.status === 'vacation') return 'vacation';
-        return 'absent';
-    };
 
     // Toggle attendance for employee
     const toggleAttendance = (employeeId: string, type: 'present' | 'vacation' = 'present') => {
@@ -132,7 +132,7 @@ export default function EmployeeAttendance() {
     const goToNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
     // Calculate summary for a specific date
-    const getSummary = (date: Date) => {
+    const getSummary = useCallback((date: Date) => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const dayRecords = attendance.filter((a) => a.date === dateStr);
         const presentCount = dayRecords.filter((a) => a.status === 'present').length;
@@ -144,9 +144,9 @@ export default function EmployeeAttendance() {
             vacation: vacationCount,
             absent: activeEmployees.length - presentCount - vacationCount,
         };
-    };
+    }, [attendance, activeEmployees.length]);
 
-    const currentSummary = useMemo(() => getSummary(selectedDate), [attendance, selectedDate, activeEmployees]);
+    const currentSummary = useMemo(() => getSummary(selectedDate), [selectedDate, getSummary]);
 
     // Export attendance
     const handleExport = () => {
@@ -184,7 +184,7 @@ export default function EmployeeAttendance() {
         return [...paddingDays, ...days];
     }, [currentMonth]);
 
-    const isToday = isSameDay(selectedDate, new Date());
+    const isToday = useMemo(() => isSameDay(selectedDate, new Date()), [selectedDate]);
 
     return (
         <div className="space-y-6">
@@ -375,7 +375,7 @@ export default function EmployeeAttendance() {
                                     Nenhum funcionário encontrado
                                 </div>
                             ) : (
-                                paginatedEmployees.map((employee) => {
+                                paginatedEmployees.map((employee: any) => {
                                     const status = getStatus(employee.id, selectedDate);
                                     const record = getEmployeeAttendance(employee.id, selectedDate);
 
@@ -387,7 +387,7 @@ export default function EmployeeAttendance() {
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                                                     <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                                                        {employee.name.split(' ').map((n) => n[0]).slice(0, 2).join('')}
+                                                        {employee.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('')}
                                                     </span>
                                                 </div>
                                                 <div>

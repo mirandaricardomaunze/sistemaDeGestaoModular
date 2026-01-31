@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+﻿import { useRef } from 'react';
 import {
     HiOutlinePrinter,
     HiOutlineCheck,
@@ -325,7 +325,7 @@ export default function OrderPrintPreview({
                     {/* Notes */}
                     {order.notes && (
                         <div className="notes bg-yellow-50 p-4 border border-yellow-300 rounded">
-                            <h3 className="font-bold text-sm mb-2">📝 Observações:</h3>
+                            <h3 className="font-bold text-sm mb-2">📍 Observações:</h3>
                             <p className="text-sm">{order.notes}</p>
                         </div>
                     )}

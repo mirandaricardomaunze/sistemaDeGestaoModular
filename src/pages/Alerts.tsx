@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AlertsPage - Full page view for managing all alerts
  * 
  * Uses the new modular notification system with filtering,

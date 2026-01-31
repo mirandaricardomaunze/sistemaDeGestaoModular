@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Hotel Rooms (Quartos)
  * 
  * Main rooms management page - reuses existing Hospitality component

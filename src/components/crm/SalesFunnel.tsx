@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Sales Funnel Component
  * Visualização do funil de vendas com drag and drop
  */
@@ -542,7 +542,7 @@ export default function SalesFunnel() {
                                     {selectedOpportunity.stageHistory.map((entry) => (
                                         <div key={entry.id} className="flex items-center gap-2 text-sm">
                                             <span className="text-gray-500">{entry.fromStageName}</span>
-                                            <span>→</span>
+                                            <span>â†’</span>
                                             <span className="font-medium">{entry.toStageName}</span>
                                             <span className="text-gray-400 text-xs">
                                                 ({entry.timeInPreviousStage} dias)

@@ -1,4 +1,4 @@
-import winston from 'winston';
+﻿import winston from 'winston';
 
 const logLevel = process.env.LOG_LEVEL || 'info';
 

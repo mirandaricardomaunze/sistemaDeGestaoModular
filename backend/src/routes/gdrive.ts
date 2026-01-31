@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { googleDriveService } from '../services/googleDrive.service';
 import { backupService } from '../services/backup.service';
 import { authenticate } from '../middleware/auth';
@@ -28,7 +28,7 @@ router.get('/auth-url', authenticate, tenantMiddleware, (req, res) => {
             success: true,
             authUrl,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({
             success: false,
             error: error.message,
@@ -96,7 +96,7 @@ router.get('/callback', async (req, res) => {
                     </div>
 
                     <div class="instructions">
-                        <h3>📝 Próximos Passos:</h3>
+                        <h3>ðŸ“ Próximos Passos:</h3>
                         <ol>
                             <li>Abra o arquivo <code>backend/.env</code></li>
                             <li>Adicione ou atualize a linha:<br>
@@ -109,7 +109,7 @@ router.get('/callback', async (req, res) => {
 
                     <p style="margin-top: 30px;">
                         <a href="/backups" style="color: #6366f1; text-decoration: none;">
-                            ← Voltar para Backups
+                            â† Voltar para Backups
                         </a>
                     </p>
                 </body>
@@ -137,19 +137,19 @@ router.get('/callback', async (req, res) => {
                     </style>
                 </head>
                 <body>
-                    <div class="error">❌</div>
+                    <div class="error">âŒ</div>
                     <h1>Erro na Autorização</h1>
                     <p>${result.error}</p>
                     <p style="margin-top: 30px;">
                         <a href="/api/gdrive/auth-url" style="color: #6366f1; text-decoration: none;">
-                            ← Tentar Novamente
+                            â† Tentar Novamente
                         </a>
                     </p>
                 </body>
                 </html>
             `);
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).send(`Erro: ${error.message}`);
     }
 });
@@ -174,7 +174,7 @@ router.get('/backups', authenticate, tenantMiddleware, async (req, res) => {
                 error: result.error,
             });
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({
             success: false,
             error: error.message,
@@ -207,7 +207,7 @@ router.post('/upload/:filename', authenticate, tenantMiddleware, async (req, res
                 error: result.error,
             });
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({
             success: false,
             error: error.message,
@@ -236,7 +236,7 @@ router.delete('/:fileId', authenticate, tenantMiddleware, async (req, res) => {
                 error: result.error,
             });
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({
             success: false,
             error: error.message,

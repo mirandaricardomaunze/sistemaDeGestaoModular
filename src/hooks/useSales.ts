@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { salesAPI } from '../services/api';
 import { useInvoiceTaxes, getCurrentFiscalPeriod } from '../utils/fiscalIntegration';
@@ -106,7 +106,7 @@ export function useSales(params?: UseSalesParams) {
                 );
 
                 setSales((prev) => [mockSale, ...prev]);
-                toast('Venda guardada e IVA registado (Offline)', { icon: '📴' });
+                toast('Venda guardada e IVA registado (Offline)', { icon: '💾' });
                 return mockSale;
             }
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DocumentPreviewModal - Reusable document preview wrapper
  * Provides consistent A4 paper preview with print functionality
  */
@@ -192,7 +192,7 @@ export default function DocumentPreviewModal({
                     {/* Document Footer */}
                     <div className="mt-8 pt-4 border-t border-gray-200 text-center">
                         <p className="text-[7pt] text-gray-400">
-                            {footerText || 'Documento gerado pelo Sistema de Gestão Empresarial'}
+                            {footerText || 'Documento gerado pelo Multicore'}
                         </p>
                         <p className="text-[6pt] text-gray-300 mt-1 font-mono">
                             Emitido em {format(new Date(), 'dd/MM/yyyy')} às {format(new Date(), 'HH:mm:ss')}

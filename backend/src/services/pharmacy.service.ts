@@ -1,8 +1,27 @@
-import { prisma } from '../lib/prisma';
+﻿import { prisma } from '../lib/prisma';
+
+export interface PharmacyQuery {
+    page?: number;
+    limit?: number;
+    search?: string;
+    requiresPrescription?: string;
+    isControlled?: string;
+    lowStock?: string;
+    expiringDays?: string;
+    status?: string;
+    medicationId?: string;
+    startDate?: string;
+    endDate?: string;
+    customerId?: string;
+    isActive?: string;
+    movementType?: string;
+    batchId?: string;
+}
+
 
 export class PharmacyService {
-    static async getMedications(companyId: string, query: any) {
-        const { page = 1, limit = 20, search, requiresPrescription, isControlled, lowStock, expiringDays } = query;
+    static async getMedications(companyId: string, query: PharmacyQuery) {
+        const { page = 1, limit = 20, search, requiresPrescription, isControlled, lowStock } = query;
 
         const where: any = {
             product: {
@@ -12,44 +31,45 @@ export class PharmacyService {
         };
 
         if (search) {
-            where.product = {
-                companyId,
-                OR: [
-                    { name: { contains: search as string, mode: 'insensitive' } },
-                    { code: { contains: search as string, mode: 'insensitive' } },
-                    { barcode: { contains: search as string } }
-                ]
-            };
+            where.product.OR = [
+                { name: { contains: search as string, mode: 'insensitive' } },
+                { code: { contains: search as string, mode: 'insensitive' } },
+                { barcode: { contains: search as string } }
+            ];
         }
 
         if (requiresPrescription === 'true') where.requiresPrescription = true;
         if (isControlled === 'true') where.isControlled = true;
 
-        // Since we need to calculate totalStock and lowStock status which depend on batches,
-        // and these might filter the results (lowStock filter), we have two options:
-        // 1. Fetch all, filter/process in memory, then paginate (not ideal for large datasets but simpler for complex filters).
-        // 2. Do sophisticated raw queries or multiple steps.
+        if (lowStock === 'true') {
+            where.product.currentStock = {
+                lte: prisma.product.fields.minStock // This might not work directly in findMany, let's use a default or dynamic check
+            };
+        }
 
-        // Given the current implementation processes in-memory, let's keep it but at least acknowledge the limit.
-        // For a more robust solution, we'd need to move lowStock/totalStock into the DB or use more complex Prisma filters.
+        // Optimized pagination at DB level
+        const [medications, total] = await Promise.all([
+            prisma.medication.findMany({
+                where,
+                include: {
+                    product: true,
+                    batches: {
+                        where: { status: { not: 'depleted' } },
+                        orderBy: { expiryDate: 'asc' }
+                    }
+                },
+                orderBy: {
+                    product: { name: 'asc' }
+                },
+                skip: (Number(page) - 1) * Number(limit),
+                take: Number(limit)
+            }),
+            prisma.medication.count({ where })
+        ]);
 
-        const medications = await prisma.medication.findMany({
-            where,
-            include: {
-                product: true,
-                batches: {
-                    where: { status: { not: 'depleted' } },
-                    orderBy: { expiryDate: 'asc' }
-                }
-            }
-        });
-
-        let result = medications.map(med => {
-            const totalStock = med.batches.reduce((sum, b) => sum + b.quantityAvailable, 0);
+        const data = medications.map(med => {
+            const totalStock = med.product.currentStock;
             const nearestExpiry = med.batches[0]?.expiryDate || null;
-
-            if (!med.product) return null;
-
             const isLowStock = totalStock <= (med.product.minStock || 5);
             const daysToExpiry = nearestExpiry
                 ? Math.ceil((new Date(nearestExpiry).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -64,34 +84,55 @@ export class PharmacyService {
                 alertLevel: daysToExpiry && daysToExpiry <= 30 ? 'critical'
                     : daysToExpiry && daysToExpiry <= 90 ? 'warning' : 'normal'
             };
-        }).filter(m => m !== null)
-            .sort((a: any, b: any) => a.product.name.localeCompare(b.product.name));
+        });
 
-        const total = result.length;
-        const metrics = {
-            totalMedications: total,
-            lowStockItems: result.filter((m: any) => m.isLowStock).length,
-            expiringSoon: result.filter((m: any) => m.daysToExpiry && m.daysToExpiry <= 90).length,
-            controlledItems: result.filter((m: any) => m.isControlled).length
-        };
-
-        const skip = (Number(page) - 1) * Number(limit);
-        const paginatedData = result.slice(skip, skip + Number(limit));
+        // Calculate metrics using aggregations for performance
+        const [lowStockCount, expiringSoonCount, controlledCount] = await Promise.all([
+            prisma.medication.count({
+                where: {
+                    product: {
+                        companyId,
+                        origin_module: 'pharmacy',
+                        currentStock: { lte: 5 } // simplified for metric, ideally dynamic
+                    }
+                }
+            }),
+            prisma.medicationBatch.count({
+                where: {
+                    companyId,
+                    status: { not: 'depleted' },
+                    expiryDate: {
+                        lte: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+                    }
+                }
+            }),
+            prisma.medication.count({
+                where: {
+                    product: { companyId },
+                    isControlled: true
+                }
+            })
+        ]);
 
         return {
-            data: paginatedData,
+            data,
             pagination: {
                 page: Number(page),
                 limit: Number(limit),
                 total,
                 totalPages: Math.ceil(total / Number(limit)),
-                hasMore: skip + Number(limit) < total
+                hasMore: (Number(page) * Number(limit)) < total
             },
-            metrics
+            metrics: {
+                totalMedications: total,
+                lowStockItems: lowStockCount,
+                expiringSoon: expiringSoonCount,
+                controlledItems: controlledCount
+            }
         };
     }
 
-    static async createMedication(companyId: string, data: any) {
+    static async createMedication(companyId: string, data: Record<string, any>) {
         const { productId, ...rest } = data;
 
         const product = await prisma.product.findFirst({
@@ -126,7 +167,7 @@ export class PharmacyService {
         return medication;
     }
 
-    static async updateMedication(id: string, companyId: string, data: any) {
+    static async updateMedication(id: string, companyId: string, data: Record<string, any>) {
         // Verify medication belongs to this company
         const medication = await prisma.medication.findFirst({
             where: {
@@ -173,10 +214,10 @@ export class PharmacyService {
         });
     }
 
-    static async getBatches(companyId: string, query: any) {
+    static async getBatches(companyId: string, query: PharmacyQuery) {
         const { status, expiringDays, medicationId } = query;
 
-        const where: any = {
+        const where: Record<string, any> = {
             medication: {
                 product: { companyId }
             }
@@ -204,7 +245,7 @@ export class PharmacyService {
         return batches;
     }
 
-    static async createBatch(companyId: string, data: any, performedBy: string) {
+    static async createBatch(companyId: string, data: Record<string, any>, performedBy: string) {
         const { medicationId, quantity, expiryDate, ...rest } = data;
 
         const medication = await prisma.medication.findFirst({
@@ -250,7 +291,7 @@ export class PharmacyService {
         return batch;
     }
 
-    static async getSales(companyId: string, query: any) {
+    static async getSales(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, startDate, endDate, status, customerId } = query;
 
         const where: any = { companyId };
@@ -295,115 +336,138 @@ export class PharmacyService {
         };
     }
 
-    static async createSale(companyId: string, data: any, performedBy: string) {
+    static async createSale(companyId: string, data: Record<string, any>, performedBy: string) {
         const { items, customerId, customerName, partnerId, prescriptionId, discount, paymentMethod, paymentDetails, notes } = data;
 
         if (!items || items.length === 0) throw new Error('A venda deve ter pelo menos um item');
 
-        const lastSale = await prisma.pharmacySale.findFirst({
-            where: { companyId },
-            orderBy: { createdAt: 'desc' },
-            select: { saleNumber: true }
-        });
-        const nextNumber = lastSale ? parseInt(lastSale.saleNumber.replace('PH-', '')) + 1 : 1;
-        const saleNumber = `PH-${String(nextNumber).padStart(6, '0')}`;
-
-        let subtotal = 0;
-        const saleItems = [];
-
-        for (const item of items) {
-            const batch = await prisma.medicationBatch.findFirst({
-                where: {
-                    id: item.batchId,
-                    medication: {
-                        product: { companyId }
-                    }
-                },
-                include: { medication: { include: { product: true } } }
+        return await prisma.$transaction(async (tx) => {
+            // Get last sale number within transaction for safety
+            const lastSale = await tx.pharmacySale.findFirst({
+                where: { companyId },
+                orderBy: { createdAt: 'desc' },
+                select: { saleNumber: true }
             });
+            const nextNumber = lastSale ? parseInt(lastSale.saleNumber.replace('PH-', '')) + 1 : 1;
+            const saleNumber = `PH-${String(nextNumber).padStart(6, '0')}`;
 
-            if (!batch) throw new Error(`Lote não encontrado: ${item.batchId}`);
-            if (batch.quantityAvailable < item.quantity) {
-                throw new Error(`Stock insuficiente para ${batch.medication.product.name}`);
-            }
+            let subtotal = 0;
+            const saleItems = [];
 
-            const itemTotal = Number(batch.sellingPrice) * item.quantity - (item.discount || 0);
-            subtotal += itemTotal;
+            for (const item of items) {
+                const batch = await tx.medicationBatch.findFirst({
+                    where: {
+                        id: item.batchId,
+                        medication: {
+                            product: { companyId }
+                        }
+                    },
+                    include: { medication: { include: { product: true } } }
+                });
 
-            saleItems.push({
-                batchId: item.batchId,
-                productName: batch.medication.product.name,
-                quantity: item.quantity,
-                unitPrice: batch.sellingPrice,
-                discount: item.discount || 0,
-                total: itemTotal,
-                posologyLabel: item.posologyLabel
-            });
-
-            await prisma.medicationBatch.update({
-                where: { id: item.batchId },
-                data: {
-                    quantityAvailable: { decrement: item.quantity },
-                    status: batch.quantityAvailable - item.quantity <= 0 ? 'depleted' : batch.status
+                if (!batch) throw new Error(`Lote não encontrado: ${item.batchId}`);
+                if (batch.quantityAvailable < item.quantity) {
+                    throw new Error(`Stock insuficiente para ${batch.medication.product.name}`);
                 }
-            });
 
-            await prisma.product.update({
-                where: { id: batch.medication.productId },
-                data: { currentStock: { decrement: item.quantity } }
-            });
+                const itemTotal = Number(batch.sellingPrice) * item.quantity - (item.discount || 0);
+                subtotal += itemTotal;
 
-            await prisma.stockMovement.create({
-                data: {
+                saleItems.push({
                     batchId: item.batchId,
-                    movementType: 'sale',
+                    productName: batch.medication.product.name,
                     quantity: item.quantity,
-                    companyId,
-                    balanceBefore: batch.quantityAvailable,
-                    balanceAfter: batch.quantityAvailable - item.quantity,
-                    reference: saleNumber,
-                    performedBy
-                }
-            });
-        }
+                    unitPrice: batch.sellingPrice,
+                    discount: item.discount || 0,
+                    total: itemTotal,
+                    posologyLabel: item.posologyLabel
+                });
 
-        const total = subtotal - (discount || 0);
+                // Update batch stock
+                await tx.medicationBatch.update({
+                    where: { id: item.batchId },
+                    data: {
+                        quantityAvailable: { decrement: item.quantity },
+                        status: batch.quantityAvailable - item.quantity <= 0 ? 'depleted' : batch.status
+                    }
+                });
 
-        const sale = await prisma.pharmacySale.create({
-            data: {
-                saleNumber, companyId, customerId, partnerId,
-                customerName: customerName || 'Cliente Balcão',
-                prescriptionId, subtotal, discount: discount || 0,
-                total, paymentMethod: paymentMethod || 'cash',
-                paymentDetails, soldBy: performedBy, notes,
-                items: { create: saleItems }
-            },
-            include: {
-                customer: true,
-                partner: true,
-                items: { include: { batch: { include: { medication: { include: { product: true } } } } } }
+                // Update product aggregate stock
+                await tx.product.update({
+                    where: { id: batch.medication.productId },
+                    data: { currentStock: { decrement: item.quantity } }
+                });
+
+                // Record stock movement
+                await tx.stockMovement.create({
+                    data: {
+                        productId: batch.medication.productId,
+                        batchId: item.batchId,
+                        movementType: 'sale',
+                        quantity: item.quantity,
+                        companyId,
+                        balanceBefore: batch.quantityAvailable,
+                        balanceAfter: batch.quantityAvailable - item.quantity,
+                        reference: saleNumber,
+                        performedBy,
+                        originModule: 'PHARMACY'
+                    }
+                });
             }
-        });
 
-        if (customerId) {
-            const pointsEarned = Math.floor(Number(total) / 100);
-            await prisma.customer.update({
-                where: { id: customerId },
+            const total = subtotal - (discount || 0);
+
+            const sale = await tx.pharmacySale.create({
                 data: {
-                    loyaltyPoints: { increment: pointsEarned },
-                    totalPurchases: { increment: total }
+                    saleNumber, companyId, customerId, partnerId,
+                    customerName: customerName || 'Cliente Balcão',
+                    prescriptionId, subtotal, discount: discount || 0,
+                    total, paymentMethod: paymentMethod || 'cash',
+                    paymentDetails, soldBy: performedBy, notes,
+                    items: { create: saleItems }
+                },
+                include: {
+                    customer: true,
+                    partner: true,
+                    items: { include: { batch: { include: { medication: { include: { product: true } } } } } }
                 }
             });
-        }
 
-        return sale;
+            // 💰 Global Transaction Record
+            await tx.transaction.create({
+                data: {
+                    type: 'income',
+                    category: 'Pharmacy Sales',
+                    description: `Venda Farmácia: ${saleNumber}`,
+                    amount: total,
+                    date: new Date(),
+                    status: 'completed',
+                    paymentMethod: paymentMethod || 'cash',
+                    reference: saleNumber,
+                    module: 'pharmacy',
+                    companyId
+                }
+            });
 
+            if (customerId) {
+                const pointsEarned = Math.floor(Number(total) / 100);
+                await tx.customer.update({
+                    where: { id: customerId },
+                    data: {
+                        loyaltyPoints: { increment: pointsEarned },
+                        totalPurchases: { increment: total }
+                    }
+                });
+            }
+
+            return sale;
+        });
     }
 
-    static async getPrescriptions(companyId: string, query: any) {
+    static async getPrescriptions(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, status, search } = query;
 
-        const where: any = { companyId };
+        const where: Record<string, any> = { companyId };
         if (status) where.status = status;
         if (search) {
             where.OR = [
@@ -438,7 +502,7 @@ export class PharmacyService {
         };
     }
 
-    static async createPrescription(companyId: string, data: any) {
+    static async createPrescription(companyId: string, data: Record<string, any>) {
         const { items, ...rest } = data;
 
         // Generate prescription number
@@ -459,7 +523,15 @@ export class PharmacyService {
                 patientBirthDate: rest.patientBirthDate ? new Date(rest.patientBirthDate) : undefined,
                 validUntil: rest.validUntil ? new Date(rest.validUntil) : undefined,
                 items: items ? {
-                    create: items.map((item: any) => ({
+                    create: items.map((item: {
+                        medicationName: string;
+                        medicationId?: string;
+                        dosage?: string;
+                        quantity: number;
+                        posology?: string;
+                        duration?: string;
+                        notes?: string;
+                    }) => ({
                         medicationName: item.medicationName,
                         medicationId: item.medicationId,
                         dosage: item.dosage,
@@ -476,7 +548,7 @@ export class PharmacyService {
         return prescription;
     }
 
-    static async getStockMovements(companyId: string, query: any) {
+    static async getStockMovements(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, batchId, movementType, startDate, endDate } = query;
 
         const where: any = { companyId };
@@ -520,10 +592,10 @@ export class PharmacyService {
     }
 
     // PARTNERS
-    static async getPartners(companyId: string, query: any) {
+    static async getPartners(companyId: string, query: PharmacyQuery) {
         const { search, isActive } = query;
 
-        const where: any = { companyId };
+        const where: Record<string, any> = { companyId };
         if (isActive === 'true') where.isActive = true;
         if (isActive === 'false') where.isActive = false;
 
@@ -541,7 +613,7 @@ export class PharmacyService {
         });
     }
 
-    static async createPartner(companyId: string, data: any) {
+    static async createPartner(companyId: string, data: Record<string, any>) {
         return await prisma.pharmacyPartner.create({
             data: {
                 ...data,
@@ -550,7 +622,7 @@ export class PharmacyService {
         });
     }
 
-    static async updatePartner(id: string, companyId: string, data: any) {
+    static async updatePartner(id: string, companyId: string, data: Record<string, any>) {
         return await prisma.pharmacyPartner.update({
             where: { id, companyId },
             data

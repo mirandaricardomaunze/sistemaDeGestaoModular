@@ -1,4 +1,4 @@
-// Re-export all hooks for backwards compatibility
+﻿// Re-export all hooks for backwards compatibility
 // Individual hooks can also be imported directly from their files
 
 export { useProducts } from './useProducts';

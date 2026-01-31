@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+﻿import { useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { HiOutlinePrinter, HiOutlineX, HiOutlineUser, HiOutlineDocumentText, HiOutlineOfficeBuilding, HiOutlineMail, HiOutlinePhone } from 'react-icons/hi';
 import { Modal, Button, Card } from '../ui';
@@ -180,7 +180,7 @@ export default function CreditNotePrint({ isOpen, onClose, creditNote }: CreditN
                     </div>
 
                     <div className="text-center text-xs text-gray-400 mt-auto pt-8 border-t border-gray-100">
-                        <p>Documento processado por computador © {new Date().getFullYear()} {company.tradeName}</p>
+                        <p>Documento processado por computador Â© {new Date().getFullYear()} {company.tradeName}</p>
                     </div>
                 </div>
             </Card>

@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+﻿import { useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { HiOutlinePrinter, HiOutlineX, HiOutlineOfficeBuilding, HiOutlineTruck } from 'react-icons/hi';
 import { Modal, Button, Card } from '../ui';
@@ -211,7 +211,7 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                     </div>
 
                     <div className="text-center text-[9px] text-gray-400 pt-4 border-t border-gray-100">
-                        <p>Gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')} • Sistema de Gestão</p>
+                        <p>Gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')} • Multicore</p>
                     </div>
                 </div>
             </Card>

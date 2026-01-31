@@ -1,4 +1,4 @@
-import 'dotenv/config';
+﻿import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { PrismaClient } from '@prisma/client';
@@ -26,8 +26,11 @@ import ordersRoutes from './routes/orders';
 import pharmacyRoutes from './routes/pharmacy';
 import adminRoutes from './routes/admin';
 import backupsRoutes from './routes/backups';
+import aiRoutes from './routes/ai';
+import chatRoutes from './routes/chat';
 import logisticsRoutes from './routes/logistics';
-import modulesRoutes from './routes/modules';
+import bottleStoreRoutes from './routes/bottle-store';
+import publicRoutes from './routes/public';
 
 // Initialize Prisma
 export const prisma = new PrismaClient();
@@ -74,8 +77,11 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/pharmacy', pharmacyRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/backups', backupsRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/logistics', logisticsRoutes);
-app.use('/api/modules', modulesRoutes);
+app.use('/api/bottle-store', bottleStoreRoutes);
+app.use('/api/public', publicRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

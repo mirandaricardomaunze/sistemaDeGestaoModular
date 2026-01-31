@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -37,6 +37,9 @@ import {
 import { format } from 'date-fns';
 import { Card, Button, Badge, Input, Select, Pagination } from '../ui';
 import { useEmployees, useAttendance } from '../../hooks/useData';
+import { useSmartInsights } from '../../hooks/useSmartInsights';
+import { SmartInsightCard } from '../common/SmartInsightCard';
+import { HiOutlineLightBulb } from 'react-icons/hi';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { Employee, EmployeeRole, EducationLevel } from '../../types';
 
@@ -91,6 +94,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
     // Use data hooks instead of store
     const { employees: employeesData } = useEmployees();
     const { attendance: attendanceData } = useAttendance();
+    const { insights } = useSmartInsights();
 
     // Ensure arrays are never undefined
     const employees = Array.isArray(employeesData) ? employeesData : [];
@@ -451,7 +455,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
         { value: 'none', label: 'Sem Formação' },
         { value: 'has_any', label: 'Com Qualificação' },
         { value: 'higher_ed', label: 'Ensino Superior+' },
-        { value: '', label: '─────────────' },
+        { value: '', label: 'â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€' },
         ...educationLevelOrder.map(level => ({
             value: level,
             label: educationLevelLabels[level],
@@ -494,6 +498,26 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                     </Button>
                 </div>
             </div>
+
+            {/* Smart Insights / Intelligent Advisor */}
+            {insights.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <HiOutlineLightBulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Padrões de assiduidade e performance da equipa</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
+                        {insights.map((insight) => (
+                            <SmartInsightCard key={insight.id} insight={insight} className="min-w-[320px] max-w-[400px] flex-shrink-0" />
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Metric Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
@@ -772,7 +796,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                                 {flexRender(header.column.columnDef.header, header.getContext())}
                                                 {header.column.getIsSorted() && (
                                                     <span className="text-primary-500">
-                                                        {header.column.getIsSorted() === 'asc' ? '↑' : '↓'}
+                                                        {header.column.getIsSorted() === 'asc' ? 'â†‘' : 'â†“'}
                                                     </span>
                                                 )}
                                             </div>

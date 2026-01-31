@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../../stores/useStore';
@@ -39,9 +39,9 @@ import { useTenant } from '../../contexts/TenantContext';
 export default function Header() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { theme, toggleTheme, toggleSidebar, companySettings } = useStore();
+    const { theme, toggleTheme, toggleSidebar } = useStore();
     const { user, logout } = useAuthStore();
-    const { isOnline, isSyncing, pendingCount, syncSales } = useOfflineSync();
+    const { isOnline, isSyncing, pendingCount, syncAll } = useOfflineSync();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [showSearchResults, setShowSearchResults] = useState(false);
@@ -634,35 +634,37 @@ export default function Header() {
                     {/* Language Selector */}
                     <LanguageSelector />
 
-                    {/* Offline Sync Status */}
                     <div className="flex items-center">
                         {pendingCount > 0 ? (
                             <button
-                                onClick={() => syncSales()}
+                                onClick={() => syncAll()}
                                 disabled={!isOnline || isSyncing}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${isOnline
-                                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400'
-                                    : 'bg-gray-100 text-gray-500 cursor-not-allowed dark:bg-dark-700'
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm ${isOnline
+                                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 hover:scale-105 active:scale-95 dark:bg-amber-900/40 dark:text-amber-300'
+                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-dark-700'
                                     }`}
-                                title={isOnline ? 'Sincronizar dados pendentes' : 'A aguardar ligação para sincronizar'}
+                                title={isOnline ? 'Sincronizar dados pendentes' : 'Aguardando internet para sincronizar'}
                             >
                                 <HiRefresh className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                                 <span className="hidden sm:inline">{pendingCount} Pendentes</span>
                             </button>
                         ) : (
                             <div
-                                className={`p-2 rounded-xl transition-colors ${isOnline
-                                    ? 'text-emerald-500'
+                                className={`p-2 rounded-xl transition-all ${isOnline
+                                    ? 'text-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10'
                                     : 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
                                     }`}
-                                title={isOnline ? 'Sistema Online' : 'Sistema Offline - Vendas serão guardadas localmente'}
+                                title={isOnline ? 'Sistema Online' : 'Sistema Offline - Dados salvos localmente'}
                             >
                                 {isOnline ? (
-                                    <HiCloud className="w-5 h-5" />
+                                    <div className="flex items-center gap-2">
+                                        <HiCloud className="w-5 h-5 animate-pulse-slow" />
+                                        <span className="text-[10px] font-bold uppercase hidden lg:inline tracking-wider">Online</span>
+                                    </div>
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <MdCloudOff className="w-5 h-5" />
-                                        <span className="text-[10px] font-bold uppercase hidden sm:inline">Offline</span>
+                                        <span className="text-[10px] font-bold uppercase hidden lg:inline tracking-wider">Offline</span>
                                     </div>
                                 )}
                             </div>

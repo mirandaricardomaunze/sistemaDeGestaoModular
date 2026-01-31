@@ -1,4 +1,4 @@
-/**
+﻿/**
  * M-Pesa Payment Routes
  * API endpoints for M-Pesa payment integration
  */
@@ -107,7 +107,7 @@ router.post('/mpesa/initiate', authenticate, async (req: AuthRequest, res) => {
                 message: result.message,
             });
         }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('M-Pesa initiate error:', error.message || error);
         if (error.errors) {
             console.error('Validation errors:', JSON.stringify(error.errors, null, 2));

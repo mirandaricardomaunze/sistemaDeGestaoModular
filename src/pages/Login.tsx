@@ -1,9 +1,9 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { HiOutlineMail, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeOff, HiOutlineShieldCheck, HiOutlineExclamationCircle, HiOutlineUser } from 'react-icons/hi';
+import { HiOutlineMail, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeOff, HiOutlineShieldCheck, HiOutlineExclamationCircle } from 'react-icons/hi';
 import { useAuthStore } from '../stores/useAuthStore';
 
 // Validation Schema
@@ -43,182 +43,160 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                {/* Logo & Header */}
-                <div className="text-center">
-                    <div className="mx-auto h-20 w-20 rounded-xl bg-primary-600 flex items-center justify-center shadow-lg mb-4">
-                        <HiOutlineUser className="w-10 h-10 text-white" />
-                    </div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-                        Sistema de Gestão
-                    </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                        Entre na sua conta para continuar
-                    </p>
-                </div>
+        <div className="min-h-screen relative flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50 dark:bg-dark-950 overflow-hidden font-sans">
+            {/* Animated Background Elements */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary-500/10 dark:bg-primary-500/5 rounded-full blur-3xl animate-blob"></div>
+                <div className="absolute top-1/2 -right-24 w-80 h-80 bg-accent-500/10 dark:bg-accent-500/5 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+                <div className="absolute -bottom-24 left-1/4 w-72 h-72 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+
+                {/* Grid Overlay */}
+                <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02] dark:opacity-[0.05]"></div>
             </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className={`bg-white dark:bg-gray-800 py-8 px-4 shadow-xl sm:rounded-lg sm:px-10 border border-gray-100 dark:border-gray-700 transition-all duration-300 ${shakeForm ? 'animate-shake' : ''}`}>
+            <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md px-4">
+                {/* Logo & Header */}
+                <div className="text-center group">
+                    <div className="relative mx-auto h-24 w-24 mb-8">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-primary-600 to-accent-600 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition duration-1000 animate-pulse-slow"></div>
+                        <div className="relative h-full w-full rounded-3xl bg-gradient-to-tr from-primary-600 to-primary-500 flex items-center justify-center shadow-2xl border border-white/20">
+                            <HiOutlineShieldCheck className="w-12 h-12 text-white animate-float" />
+                        </div>
+                    </div>
 
-                    {/* Error Alert */}
-                    {loginError && (
-                        <div className="mb-6 rounded-md bg-red-50 dark:bg-red-900/30 p-4 border border-red-100 dark:border-red-900/50">
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <HiOutlineExclamationCircle className="h-5 w-5 text-red-500" aria-hidden="true" />
+                    <h2 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white mb-2">
+                        MULTICORE<span className="text-primary-500">.</span>
+                    </h2>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+                        Modular Management ERP
+                    </p>
+                </div>
+
+                <div className="mt-10 animate-slide-up">
+                    <div className={`bg-white/70 dark:bg-dark-900/40 backdrop-blur-xl py-10 px-8 shadow-2xl sm:rounded-3xl border border-white/20 dark:border-dark-800/50 transition-all duration-500 ${shakeForm ? 'animate-shake' : ''}`}>
+
+                        {/* Welcome Text */}
+                        <div className="mb-8">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Bem-vindo de volta</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Entre com as suas credenciais para gerir o seu negócio.</p>
+                        </div>
+
+                        {/* Error Alert */}
+                        {loginError && (
+                            <div className="mb-6 rounded-2xl bg-red-50/50 dark:bg-red-950/20 p-4 border border-red-100 dark:border-red-900/30 animate-fade-in">
+                                <div className="flex items-center gap-3">
+                                    <HiOutlineExclamationCircle className="h-5 w-5 text-red-500 shrink-0" />
+                                    <p className="text-sm font-medium text-red-800 dark:text-red-300">{loginError}</p>
+                                    <button
+                                        onClick={() => setLoginError(null)}
+                                        className="ml-auto p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                    >
+                                        <svg className="h-4 w-4 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                    </button>
                                 </div>
-                                <div className="ml-3">
-                                    <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Falha na Autenticação</h3>
-                                    <div className="mt-2 text-sm text-red-700 dark:text-red-300">
-                                        <p>{loginError}</p>
+                            </div>
+                        )}
+
+                        <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+                            <div className="space-y-1.5">
+                                <label htmlFor="email" className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
+                                    Endereço de Email
+                                </label>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                        <HiOutlineMail className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        className={`block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-dark-800/50 border ${errors.email ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
+                                        placeholder="seu@email.com"
+                                        {...register('email')}
+                                    />
+                                </div>
+                                {errors.email && <p className="text-xs font-medium text-red-500 mt-1 ml-1">{errors.email.message}</p>}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between px-1">
+                                    <label htmlFor="password" className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+                                        Palavra-passe
+                                    </label>
+                                    <Link to="/forgot-password" virtual-link className="text-xs font-bold text-primary-600 hover:text-primary-500 dark:text-primary-400">
+                                        Esqueceu-se?
+                                    </Link>
+                                </div>
+                                <div className="relative group">
+                                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                        <HiOutlineLockClosed className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
+                                    </div>
+                                    <input
+                                        id="password"
+                                        type={showPassword ? 'text' : 'password'}
+                                        className={`block w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-dark-800/50 border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
+                                        placeholder="••••••••"
+                                        {...register('password')}
+                                    />
+                                    <div
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-primary-500 transition-colors"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? <HiOutlineEyeOff className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
                                     </div>
                                 </div>
-                                <div className="ml-auto pl-3">
-                                    <div className="-mx-1.5 -my-1.5">
-                                        <button
-                                            onClick={() => setLoginError(null)}
-                                            type="button"
-                                            className="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none"
-                                        >
-                                            <span className="sr-only">Dismiss</span>
-                                            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
+                                {errors.password && <p className="text-xs font-medium text-red-500 mt-1 ml-1">{errors.password.message}</p>}
                             </div>
-                        </div>
-                    )}
 
-                    <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-                        <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Email
-                            </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <HiOutlineMail className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                                </div>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    autoComplete="email"
-                                    className={`appearance-none block w-full pl-10 pr-3 py-2 border ${errors.email ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white dark:placeholder-gray-500`}
-                                    placeholder="seu@email.com"
-                                    {...register('email')}
-                                    onChange={() => loginError && setLoginError(null)}
-                                />
-                            </div>
-                            {errors.email && (
-                                <p className="mt-2 text-sm text-red-600" id="email-error">
-                                    {errors.email.message}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Senha
-                            </label>
-                            <div className="mt-1 relative rounded-md shadow-sm">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <HiOutlineLockClosed className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                                </div>
-                                <input
-                                    id="password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    autoComplete="current-password"
-                                    className={`appearance-none block w-full pl-10 pr-10 py-2 border ${errors.password ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'} rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm dark:bg-gray-700 dark:text-white dark:placeholder-gray-500`}
-                                    placeholder="••••••••"
-                                    {...register('password')}
-                                    onChange={() => loginError && setLoginError(null)}
-                                />
-                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer" onClick={() => setShowPassword(!showPassword)}>
-                                    {showPassword ? (
-                                        <HiOutlineEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />
-                                    ) : (
-                                        <HiOutlineEye className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />
-                                    )}
-                                </div>
-                            </div>
-                            {errors.password && (
-                                <p className="mt-2 text-sm text-red-600" id="password-error">
-                                    {errors.password.message}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                                <input
-                                    id="remember-me"
-                                    name="remember-me"
-                                    type="checkbox"
-                                    className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                                />
-                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-                                    Lembrar-me
+                            <div className="flex items-center px-1">
+                                <label className="flex items-center group cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded-lg bg-slate-100 dark:bg-dark-800 border-slate-200 dark:border-dark-700 text-primary-500 focus:ring-primary-500 transition-all"
+                                    />
+                                    <span className="ml-2.5 text-sm font-medium text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                                        Manter sessão iniciada
+                                    </span>
                                 </label>
                             </div>
 
-                            <div className="text-sm">
-                                <Link to="/forgot-password" className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400">
-                                    Esqueci a senha
-                                </Link>
-                            </div>
-                        </div>
-
-                        <div>
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className={`w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors ${isLoading ? 'opacity-75 cursor-wait' : ''}`}
+                                className="relative w-full overflow-hidden group py-3.5 px-6 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
                             >
-                                {isLoading ? (
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                ) : (
-                                    <HiOutlineShieldCheck className="w-5 h-5 mr-2" />
-                                )}
-                                {isLoading ? 'A entrar...' : 'Entrar na Conta'}
+                                <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                                <div className="flex items-center justify-center gap-2">
+                                    {isLoading ? (
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <>
+                                            <HiOutlineShieldCheck className="w-5 h-5" />
+                                            <span>AUTENTICAR</span>
+                                        </>
+                                    )}
+                                </div>
                             </button>
-                        </div>
-                    </form>
+                        </form>
 
-                    <div className="mt-6">
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300 dark:border-gray-600" />
-                            </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">
-                                    Novo por aqui?
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="mt-6">
-                            <Link
-                                to="/register"
-                                className="w-full flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-                            >
-                                Criar uma nova conta
-                            </Link>
+                        <div className="mt-8 pt-8 border-t border-slate-100 dark:border-dark-800/50">
+                            <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                                Não possui uma conta?{' '}
+                                <Link to="/register" className="font-bold text-primary-600 hover:text-primary-500 dark:text-primary-400 transition-colors">
+                                    Crie uma gratuitamente
+                                </Link>
+                            </p>
                         </div>
                     </div>
 
-
+                    {/* Footer */}
+                    <div className="mt-12 text-center">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 dark:text-dark-600">
+                            &copy; {new Date().getFullYear()} MULTICORE • Intelligent Management Solutions
+                        </p>
+                    </div>
                 </div>
-
-                {/* Footer */}
-                <p className="mt-8 text-center text-xs text-gray-500">
-                    &copy; {new Date().getFullYear()} Sistema de Gestão Comercial. Todos os direitos reservados.
-                </p>
             </div>
         </div>
     );

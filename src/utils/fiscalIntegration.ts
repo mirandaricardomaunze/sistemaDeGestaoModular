@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Fiscal Integration Hook
  * 
  * Este hook fornece funções para integrar automaticamente os cálculos fiscais

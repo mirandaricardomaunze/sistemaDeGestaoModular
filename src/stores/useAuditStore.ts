@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Audit Store
  * Gerencia o estado e operações de auditoria
  */
@@ -107,7 +107,7 @@ export const useAuditStore = create<AuditState>()(
                 };
 
                 set((state) => ({
-                    logs: [log, ...state.logs].slice(0, 10000), // Keep max 10k logs
+                    logs: [log, ...state.logs].slice(0, 100), // Keep max 100 logs (historic in DB)
                 }));
 
                 // Sync to database if enabled
@@ -143,7 +143,7 @@ export const useAuditStore = create<AuditState>()(
                 }));
 
                 set((state) => ({
-                    logs: [...newLogs, ...state.logs].slice(0, 10000),
+                    logs: [...newLogs, ...state.logs].slice(0, 100),
                 }));
             },
 
@@ -430,7 +430,7 @@ export const useAuditStore = create<AuditState>()(
                         set((state) => ({
                             logs: [...state.logs, ...newLogs].sort((a, b) =>
                                 new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-                            ).slice(0, 10000),
+                            ).slice(0, 100),
                         }));
                     }
                 } catch (error) {
@@ -441,7 +441,7 @@ export const useAuditStore = create<AuditState>()(
         {
             name: 'audit-storage',
             partialize: (state) => ({
-                logs: state.logs.slice(0, 5000), // Only persist last 5000 logs
+                logs: state.logs.slice(0, 100), // Only persist last 100 logs
                 config: state.config,
                 syncEnabled: state.syncEnabled,
                 pendingSync: state.pendingSync, // Persist pending sync queue

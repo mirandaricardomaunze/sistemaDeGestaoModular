@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -288,7 +288,7 @@ export default function Register() {
                                                 id="companyTradeName"
                                                 type="text"
                                                 className="block w-full pl-12 pr-4 py-4 border-2 border-gray-50 dark:border-gray-700/50 bg-gray-50 dark:bg-gray-900/50 rounded-2xl focus:border-primary-500 focus:bg-white outline-none transition-all font-medium text-gray-900 dark:text-white sm:text-sm"
-                                                placeholder="Nome que os clientes vêem"
+                                                placeholder="Nome que os clientes veem"
                                                 {...register('companyTradeName')}
                                             />
                                         </div>
@@ -486,7 +486,7 @@ export default function Register() {
                         {currentStep === 3 && (
                             <div className="animate-in fade-in slide-in-from-right-8 duration-500 space-y-8">
                                 <div className="space-y-1">
-                                    <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Mestre do Sistema</h3>
+                                    <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Especialista Multicore</h3>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Configure as credenciais de acesso do administrador principal.</p>
                                 </div>
 
@@ -647,9 +647,8 @@ export default function Register() {
                     </div>
                 </div>
 
-                {/* Footer */}
                 <p className="mt-12 text-center text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400/50">
-                    &copy; {new Date().getFullYear()} Sistema Altamente Evoluído
+                    &copy; {new Date().getFullYear()} MULTICORE • Intelligent Management Solutions
                 </p>
             </div>
         </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CRM Types
  * Tipos para o sistema de CRM, funil de vendas e campanhas
  */

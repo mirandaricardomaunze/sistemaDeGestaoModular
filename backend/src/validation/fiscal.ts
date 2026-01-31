@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Validation Schemas - Fiscal & Pharmacy
  * 
  * Schemas for fiscal documents and pharmacy operations.

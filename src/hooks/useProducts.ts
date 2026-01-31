@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { productsAPI } from '../services/api';
 import { db } from '../db/offlineDB';
@@ -116,6 +116,19 @@ export function useProducts(params?: UseProductsParams) {
 
     const addProduct = async (data: Parameters<typeof productsAPI.create>[0]) => {
         try {
+            if (!navigator.onLine) {
+                await db.pendingOperations.add({
+                    module: 'inventory',
+                    endpoint: '/products',
+                    method: 'POST',
+                    data,
+                    timestamp: Date.now(),
+                    synced: false as any
+                });
+                toast('Produto guardado localmente (Offline)', { icon: '💾' });
+                return { ...data, id: `offline-${Date.now()}` } as any;
+            }
+
             const newProduct = await productsAPI.create(data);
             setProducts((prev) => [newProduct, ...prev]);
             toast.success('Produto criado com sucesso!');
@@ -128,6 +141,19 @@ export function useProducts(params?: UseProductsParams) {
 
     const updateProduct = async (id: string, data: Parameters<typeof productsAPI.update>[1]) => {
         try {
+            if (!navigator.onLine) {
+                await db.pendingOperations.add({
+                    module: 'inventory',
+                    endpoint: `/products/${id}`,
+                    method: 'PUT',
+                    data,
+                    timestamp: Date.now(),
+                    synced: false as any
+                });
+                toast('Actualização guardada localmente (Offline)', { icon: '💾' });
+                return { ...data, id } as any;
+            }
+
             const updated = await productsAPI.update(id, data);
             setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
             toast.success('Produto actualizado com sucesso!');
@@ -156,6 +182,19 @@ export function useProducts(params?: UseProductsParams) {
         warehouseId?: string
     ) => {
         try {
+            if (!navigator.onLine) {
+                await db.pendingOperations.add({
+                    module: 'inventory',
+                    endpoint: `/products/${id}/stock`,
+                    method: 'PUT',
+                    data: { quantity, operation, warehouseId },
+                    timestamp: Date.now(),
+                    synced: false as any
+                });
+                toast('Ajuste de stock guardado (Offline)', { icon: '💾' });
+                return;
+            }
+
             const updated = await productsAPI.updateStock(id, { quantity, operation, warehouseId });
 
             // Normalize backend warehouseStocks to frontend stocks record

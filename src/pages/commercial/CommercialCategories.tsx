@@ -1,4 +1,4 @@
-import Categories from '../Categories';
+﻿import Categories from '../Categories';
 
 export default function CommercialCategories() {
     return <Categories />;

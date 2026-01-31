@@ -1,4 +1,4 @@
-import { useAuthStore } from '../stores/useAuthStore';
+﻿import { useAuthStore } from '../stores/useAuthStore';
 import type { Permission } from '../utils/permissions';
 import { hasPermission, canViewPage } from '../utils/permissions';
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * A4 Invoice Preview Component
  * Professional A4 Invoice template for Mozambican AT compliance
  */
@@ -21,6 +21,9 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
     // Load company settings on mount
     const { companySettings: company, loadCompanySettings } = useStore();
     const printRef = useRef<HTMLDivElement>(null);
+    const simulatedHash = useMemo(() => {
+        return `${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    }, []);
 
     useEffect(() => {
         if (isOpen) {
@@ -329,7 +332,7 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                                     <p>Regime Geral de IVA.</p>
                                     <p className="text-gray-900 font-medium italic mt-2">Processado por Computador</p>
                                     <div className="font-mono mt-1">
-                                        Hash: {sale.hashCode || `${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`} (Simulado)
+                                        Hash: {sale.hashCode || simulatedHash} (Simulado)
                                     </div>
                                 </div>
                                 <div className="text-right">

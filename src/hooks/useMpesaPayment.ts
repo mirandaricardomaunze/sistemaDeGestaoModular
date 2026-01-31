@@ -1,4 +1,4 @@
-/**
+﻿/**
  * useMpesaPayment Hook
  * Reusable hook for M-Pesa payment integration across modules
  */
@@ -93,7 +93,7 @@ export function useMpesaPayment(options: UseMpesaPaymentOptions): UseMpesaPaymen
                 // Continue polling
                 pollTimeoutRef.current = setTimeout(checkStatus, pollInterval);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Error checking M-Pesa status:', err);
             // Don't stop polling on transient errors
             pollTimeoutRef.current = setTimeout(checkStatus, pollInterval);
@@ -145,7 +145,7 @@ export function useMpesaPayment(options: UseMpesaPaymentOptions): UseMpesaPaymen
                 onError?.(result.message);
                 return false;
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             const errorMsg = err.response?.data?.message || err.message || 'Erro ao iniciar pagamento';
             setError(errorMsg);
             setStatus('failed');
@@ -169,7 +169,7 @@ export function useMpesaPayment(options: UseMpesaPaymentOptions): UseMpesaPaymen
             await paymentsAPI.cancelTransaction(transactionId);
             setStatus('cancelled');
             setIsProcessing(false);
-            toast('Pagamento cancelado', { icon: '❌' });
+            toast('Pagamento cancelado', { icon: 'âŒ' });
         } catch (err) {
             console.error('Error cancelling payment:', err);
         }

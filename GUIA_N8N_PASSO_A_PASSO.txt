@@ -1,0 +1,80 @@
+==============================================================
+       GUIA DE CONFIGURAÇÃO DO WORKFLOW n8n (PASSO A PASSO)
+==============================================================
+
+O erro 422 significa que o n8n recebeu sua requisição, mas o fluxo
+interno não está completo. Siga estes passos:
+
+--------------------------------------------------------------
+PASSO 1: ABRA SEU WORKFLOW NO n8n
+--------------------------------------------------------------
+1. Acesse: https://mirandamaunze.app.n8n.cloud
+2. Abra o workflow que contém o webhook "chat-ai"
+
+--------------------------------------------------------------
+PASSO 2: CONFIGURE O NÓ WEBHOOK (Primeiro nó)
+--------------------------------------------------------------
+1. Clique no nó "Webhook"
+2. Verifique as configurações:
+   - HTTP Method: POST
+   - Path: chat-ai
+   - Respond: Using "Respond to Webhook" Node  <-- IMPORTANTE!
+
+--------------------------------------------------------------
+PASSO 3: ADICIONE O NÓ DO GOOGLE GEMINI
+--------------------------------------------------------------
+1. Clique no "+" para adicionar um novo nó
+2. Pesquise por "Google Gemini Chat Model" ou "Gemini"
+3. Configure:
+   - Operation: Message a Model
+   - Model: gemini-1.5-flash
+   - User Message: {{ $json.message }}
+4. IMPORTANTE: Adicione as credenciais da API Gemini:
+   - Clique em "Credential" → "Create new"
+   - Cole sua API Key: AIzaSyDpUF6HwM3GG6hMnxLw8n7FZAGsgGB7Uio
+
+--------------------------------------------------------------
+PASSO 4: ADICIONE O NÓ "RESPOND TO WEBHOOK"
+--------------------------------------------------------------
+1. Clique no "+" após o nó Gemini
+2. Pesquise por "Respond to Webhook"
+3. Configure:
+   - Respond With: JSON
+   - Response Body:
+     {
+       "response": "{{ $json.text }}"
+     }
+
+--------------------------------------------------------------
+PASSO 5: CONECTE OS NÓS
+--------------------------------------------------------------
+Seu fluxo deve ficar assim:
+
+   [Webhook] --> [Gemini] --> [Respond to Webhook]
+
+Arraste as conexões entre os nós para ligá-los.
+
+--------------------------------------------------------------
+PASSO 6: ATIVE O WORKFLOW
+--------------------------------------------------------------
+1. Clique em "Save" (Ctrl+S)
+2. Clique no botão "Active" no canto superior direito
+3. O botão deve ficar VERDE
+
+--------------------------------------------------------------
+PASSO 7: TESTE
+--------------------------------------------------------------
+1. Volte ao sistema Multicore
+2. Abra o Chat
+3. Envie: "Olá, quanto vendi hoje?"
+4. Se tudo estiver certo, receberá uma resposta!
+
+==============================================================
+                    DICA DE DEBUG
+==============================================================
+Se ainda não funcionar:
+1. No n8n, clique em "Executions" (menu lateral)
+2. Veja a última execução com erro
+3. Clique nela para ver detalhes do problema
+
+==============================================================

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Countries List for International Guest Support
  * Optimized for Mozambique hotel industry with common visitor countries first
  */

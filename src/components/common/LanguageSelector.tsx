@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineGlobeAlt, HiCheck } from 'react-icons/hi';
 import { languages, type LanguageCode } from '../../i18n';

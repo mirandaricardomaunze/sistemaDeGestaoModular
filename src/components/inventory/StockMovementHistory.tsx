@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { Card, Input, Select, Badge, LoadingSpinner, Button, Modal } from '../ui';
 import Pagination from '../ui/Pagination';
 import { productsAPI } from '../../services/api';
@@ -43,7 +43,7 @@ export default function StockMovementHistory() {
     const [pagination, setPagination] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [page, setPage] = useState(1);
-    const [pageSize] = useState(15);
+    const [pageSize, setPageSize] = useState(15);
     const [selectedMovement, setSelectedMovement] = useState<any>(null);
     const [filters, setFilters] = useState<MovementFilters>({
         search: '',
@@ -241,7 +241,7 @@ export default function StockMovementHistory() {
                                             <td className="px-4 py-3 whitespace-nowrap text-center">
                                                 <div className="flex items-center justify-center gap-1 text-sm">
                                                     <span className="text-gray-400">{mov.balanceBefore}</span>
-                                                    <span className="text-gray-400">→</span>
+                                                    <span className="text-gray-400">â†’</span>
                                                     <span className="font-semibold text-gray-900 dark:text-white">{mov.balanceAfter}</span>
                                                 </div>
                                             </td>
@@ -292,6 +292,11 @@ export default function StockMovementHistory() {
                             totalItems={pagination.total}
                             itemsPerPage={pageSize}
                             onPageChange={setPage}
+                            onItemsPerPageChange={(size) => {
+                                setPageSize(size);
+                                setPage(1);
+                            }}
+                            itemsPerPageOptions={[5, 10, 15, 25, 50]}
                         />
                     </div>
                 )}
@@ -349,7 +354,7 @@ export default function StockMovementHistory() {
                             <div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Saldo</p>
                                 <p className="font-medium text-gray-900 dark:text-white">
-                                    {selectedMovement.balanceBefore} → {selectedMovement.balanceAfter}
+                                    {selectedMovement.balanceBefore} â†’ {selectedMovement.balanceAfter}
                                 </p>
                             </div>
                         </div>

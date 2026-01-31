@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ProfessionalReceipt - A4 Professional Receipt/Invoice for POS Sales
  * Uses DocumentPreviewModal for consistent preview experience
  */

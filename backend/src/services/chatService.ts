@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma';
+﻿import { prisma } from '../lib/prisma';
 import { aiService } from './aiService';
 import { pdfService } from './pdfService';
 import { logger } from '../utils/logger';
@@ -18,10 +18,16 @@ export class ChatService {
             const intent = await this.detectIntent(message);
 
             // 2. Buscar dados relevantes
-            const data = await this.fetchRelevantData(intent, companyId);
+            const [data, company] = await Promise.all([
+                this.fetchRelevantData(intent, companyId),
+                prisma.company.findUnique({ where: { id: companyId }, select: { name: true, businessType: true } })
+            ]);
 
-            // 3. Gerar resposta com IA
-            const aiResponse = await aiService.generateResponse(message, data);
+            // 3. Gerar resposta com IA (Passando dados da empresa no contexto)
+            const aiResponse = await aiService.generateResponse(message, companyId, {
+                ...data,
+                companyInfo: company
+            });
 
             // 4. Se for pedido de PDF, gerar
             let pdfUrl;
@@ -41,7 +47,7 @@ export class ChatService {
                 pdfUrl,
                 suggestions
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error('Chat processing error:', error);
             throw error;
         }
@@ -72,6 +78,15 @@ export class ChatService {
         }
         if (message.includes('cliente')) {
             return 'customers';
+        }
+        if (message.includes('hospitalidade') || message.includes('quarto') || message.includes('hóspede') || message.includes('quartos') || message.includes('reserva')) {
+            return 'hospitality';
+        }
+        if (message.includes('logística') || message.includes('entrega') || message.includes('armazém') || message.includes('transferência') || message.includes('logistica')) {
+            return 'logistics';
+        }
+        if (message.includes('farmácia') || message.includes('receita') || message.includes('medicamento') || message.includes('farmacia')) {
+            return 'pharmacy';
         }
         if (message.includes('financeiro') || message.includes('lucro') || message.includes('despesa')) {
             return 'financial';
@@ -149,6 +164,12 @@ export class ChatService {
                     return await this.getCustomersData(companyId);
                 case 'financial':
                     return await this.getFinancialData(companyId, timeframe);
+                case 'hospitality':
+                    return await this.getHospitalityData(companyId);
+                case 'logistics':
+                    return await this.getLogisticsData(companyId);
+                case 'pharmacy':
+                    return await this.getPharmacyData(companyId);
                 default:
                     return {};
             }
@@ -303,6 +324,59 @@ export class ChatService {
         };
     }
 
+    private async getHospitalityData(companyId: string) {
+        try {
+            const rooms = await prisma.hospitalityRoom.findMany({
+                where: { companyId },
+                include: { bookings: { where: { status: 'active' } } }
+            });
+            const occupiedCount = rooms.filter(r => r.status === 'occupied').length;
+            return {
+                totalRooms: rooms.length,
+                occupied: occupiedCount,
+                available: rooms.filter(r => r.status === 'available').length,
+                occupancyRate: rooms.length > 0 ? (occupiedCount / rooms.length) * 100 : 0
+            };
+        } catch (error) {
+            logger.error('Error fetching hospitality data for chat:', error);
+            return { error: 'Dados de hotelaria indisponíveis' };
+        }
+    }
+
+    private async getLogisticsData(companyId: string) {
+        try {
+            const transfers = await prisma.warehouseTransfer.findMany({
+                where: { companyId },
+                take: 5,
+                orderBy: { createdAt: 'desc' },
+                include: { sourceWarehouse: true, targetWarehouse: true }
+            });
+            return {
+                totalWarehouses: await prisma.warehouse.count({ where: { companyId } }),
+                recentTransfers: transfers.map(t => ({ number: t.number, status: t.status }))
+            };
+        } catch (error) {
+            logger.error('Error fetching logistics data for chat:', error);
+            return { error: 'Dados de logística indisponíveis' };
+        }
+    }
+
+    private async getPharmacyData(companyId: string) {
+        try {
+            const products = await prisma.product.findMany({
+                where: { companyId, category: 'Pharmacy' },
+                select: { name: true, currentStock: true, minStock: true }
+            });
+            return {
+                totalMedicines: products.length,
+                criticalStockCount: products.filter(p => p.currentStock <= p.minStock).length
+            };
+        } catch (error) {
+            logger.error('Error fetching pharmacy data for chat:', error);
+            return { error: 'Dados de farmácia indisponíveis' };
+        }
+    }
+
     /**
      * Gera sugestões de perguntas
      */
@@ -331,6 +405,24 @@ export class ChatService {
                 'Qual foi a receita de hoje?',
                 'Métodos de pagamento mais usados',
                 'Gerar relatório financeiro em PDF'
+            ],
+            hospitality: [
+                'Taxa de ocupação hoje',
+                'Quantos quartos estão disponíveis?',
+                'Check-ins previstos',
+                'Reservas ativas agora'
+            ],
+            logistics: [
+                'Status do armazém',
+                'Transferências recentes',
+                'Produtos em trânsito',
+                'Stock por armazém'
+            ],
+            pharmacy: [
+                'Medicamentos com stock baixo',
+                'Medicamentos próximos do vencimento',
+                'Total de vendas da farmácia',
+                'Receitas médicas hoje'
             ],
             general: [
                 'Quanto vendi hoje?',

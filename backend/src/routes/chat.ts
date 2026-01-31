@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { chatService } from '../services/chatService';
 import { aiService } from '../services/aiService';
@@ -29,7 +29,7 @@ router.post('/message', authenticate, async (req: AuthRequest, res) => {
         const response = await chatService.processMessage(message, userId, companyId);
 
         res.json(response);
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Chat message error:', error);
         res.status(500).json({
             error: 'Erro ao processar mensagem',
@@ -59,7 +59,7 @@ router.get('/health', authenticate, async (req: AuthRequest, res) => {
                 dataQuery: true
             }
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Chat health check error:', error);
         res.status(500).json({ error: 'Erro ao verificar status' });
     }
@@ -101,7 +101,7 @@ router.get('/suggestions', authenticate, async (req: AuthRequest, res) => {
             },
             {
                 category: 'Financeiro',
-                icon: '💵',
+                icon: '🛒µ',
                 questions: [
                     'Resumo financeiro do mês',
                     'Qual foi a receita de hoje?',
@@ -111,7 +111,7 @@ router.get('/suggestions', authenticate, async (req: AuthRequest, res) => {
         ];
 
         res.json({ suggestions });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Chat suggestions error:', error);
         res.status(500).json({ error: 'Erro ao buscar sugestões' });
     }

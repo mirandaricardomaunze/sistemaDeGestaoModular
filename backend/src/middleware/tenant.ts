@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+﻿import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth';
 import { prisma } from '../lib/prisma';
 import { logger } from '../utils/logger';
@@ -15,7 +15,7 @@ export const tenantMiddleware = async (req: AuthRequest, res: Response, next: Ne
                 select: { companyId: true }
             });
             companyId = user?.companyId || undefined;
-            (req as any).companyId = companyId; // Injetar para uso posterior
+            req.companyId = companyId; // Injetar para uso posterior
         }
 
         if (!companyId) {
@@ -26,7 +26,7 @@ export const tenantMiddleware = async (req: AuthRequest, res: Response, next: Ne
 
             if (defaultCompany) {
                 companyId = defaultCompany.id;
-                (req as any).companyId = companyId;
+                req.companyId = companyId;
             } else {
                 return res.status(403).json({ error: 'Contexto de empresa não encontrado e nenhuma empresa padrão disponível' });
             }
@@ -52,7 +52,7 @@ export const tenantMiddleware = async (req: AuthRequest, res: Response, next: Ne
 
         // Injetar status e lista de módulos ativos no request para uso posterior
         req.companyStatus = company.status;
-        (req as any).activeModules = company.modules.map(cm => cm.moduleCode);
+        req.activeModules = company.modules.map(cm => cm.moduleCode);
 
         next();
     } catch (error) {
@@ -66,7 +66,7 @@ export const tenantMiddleware = async (req: AuthRequest, res: Response, next: Ne
  */
 export const requireModule = (moduleCode: string) => {
     return (req: AuthRequest, res: Response, next: NextFunction) => {
-        const activeModules = (req as any).activeModules as string[];
+        const activeModules = req.activeModules;
 
         if (!activeModules || !activeModules.includes(moduleCode)) {
             return res.status(403).json({

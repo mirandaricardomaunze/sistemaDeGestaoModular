@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+﻿import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { HiOutlineExclamationCircle } from 'react-icons/hi';
 
 interface Props {

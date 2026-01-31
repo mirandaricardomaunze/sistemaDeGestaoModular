@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+﻿import { PrismaClient } from '@prisma/client';
 
 export class CRMService {
     constructor(private prisma: PrismaClient) { }

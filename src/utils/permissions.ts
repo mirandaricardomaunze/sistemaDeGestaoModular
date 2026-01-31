@@ -1,4 +1,4 @@
-import type { User, UserRole } from '../types';
+﻿import type { User, UserRole } from '../types';
 
 export type Permission =
     | 'view_dashboard'
@@ -160,6 +160,9 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
 
     const restriction = moduleRestrictions.find(r => path.startsWith(r.prefix));
     if (restriction && user.activeModules) {
+        // Super Admin bypasses module restrictions
+        if (user.role === 'super_admin') return true;
+
         const hasModule = user.activeModules.some(m => m.toLowerCase() === restriction.module.toLowerCase());
         if (!hasModule) return false;
     }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
@@ -28,11 +28,14 @@ import {
     HiOutlineArrowRight,
     HiOutlinePlus,
     HiOutlineRefresh,
+    HiOutlineLightBulb,
 } from 'react-icons/hi';
-import { Card, Button, Badge, Skeleton, SkeletonCard, SkeletonTable, SkeletonText } from '../components/ui';
+import { Card, Button, Badge, Skeleton } from '../components/ui';
 import { formatCurrency, formatRelativeTime, cn } from '../utils/helpers';
 import { categoryLabels } from '../utils/constants';
 import { useDashboard, useProducts, useAlerts, useEmployees, useCategories } from '../hooks/useData';
+import { useSmartInsights } from '../hooks/useSmartInsights';
+import { SmartInsightCard } from '../components/common/SmartInsightCard';
 
 
 // Chart colors
@@ -62,8 +65,9 @@ export default function Dashboard() {
     const { alerts, isLoading: isLoadingAlerts } = useAlerts();
     const { employees, isLoading: isLoadingEmployees } = useEmployees();
     const { categories, isLoading: isLoadingCategories } = useCategories();
+    const { insights, isLoading: isLoadingInsights } = useSmartInsights();
 
-    const isLoading = isLoadingDashboard || isLoadingProducts || isLoadingAlerts || isLoadingEmployees || isLoadingCategories;
+    const isLoading = isLoadingDashboard || isLoadingProducts || isLoadingAlerts || isLoadingEmployees || isLoadingCategories || isLoadingInsights;
 
 
     // Transform sales chart data for the graph
@@ -298,18 +302,18 @@ export default function Dashboard() {
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Total Sales */}
-                <Card padding="md" className="relative overflow-hidden">
+                <Card padding="md" className="relative overflow-hidden bg-gradient-to-br from-primary-600 to-indigo-700 text-white shadow-lg">
                     <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-primary-500/10" />
+                        <div className="w-full h-full rounded-full bg-white/10" />
                     </div>
                     <div className="relative">
                         <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                <HiOutlineCurrencyDollar className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                                <HiOutlineCurrencyDollar className="w-6 h-6 text-white" />
                             </div>
                             <div className={cn(
                                 'flex items-center gap-1 text-sm font-medium',
-                                metrics.salesGrowth >= 0 ? 'text-green-600' : 'text-red-600'
+                                metrics.salesGrowth >= 0 ? 'text-green-300' : 'text-red-300'
                             )}>
                                 {metrics.salesGrowth >= 0 ? (
                                     <HiOutlineTrendingUp className="w-4 h-4" />
@@ -319,48 +323,71 @@ export default function Dashboard() {
                                 {Math.abs(metrics.salesGrowth)}%
                             </div>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {formatCurrency(metrics.totalSales)}
+                        <p className="text-3xl font-bold">
+                            {formatCurrency(stats?.totalRevenue || 0)}
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {t('dashboard.monthlySales')}
+                        <p className="text-sm text-white/80 font-medium">
+                            Faturação Consolidada
                         </p>
                     </div>
                 </Card>
 
-                {/* Orders Today */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-secondary-500/10" />
+                {/* Module Breakdown */}
+                <Card padding="md" className="border-t-4 border-t-primary-500 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Desempenho por Módulo</h3>
+                        <Badge variant="outline" size="sm" className="text-[10px]">Mensal</Badge>
                     </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-secondary-100 dark:bg-secondary-900/30 flex items-center justify-center">
-                                <HiOutlineShoppingCart className="w-6 h-6 text-secondary-600 dark:text-secondary-400" />
+                    <div className="space-y-3">
+                        {stats?.commercialRevenue ? (
+                            <div className="group">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                    <span className="text-gray-600 dark:text-gray-400">🛍️ Comercial</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(stats.commercialRevenue)}</span>
+                                </div>
+                                <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
+                                    <div className="bg-primary-500 h-full transition-all duration-1000" style={{ width: `${(stats.commercialRevenue / stats.totalRevenue) * 100}%` }} />
+                                </div>
                             </div>
-                            <div className={cn(
-                                'flex items-center gap-1 text-sm font-medium',
-                                metrics.ordersGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-                            )}>
-                                {metrics.ordersGrowth >= 0 ? (
-                                    <HiOutlineTrendingUp className="w-4 h-4" />
-                                ) : (
-                                    <HiOutlineTrendingDown className="w-4 h-4" />
-                                )}
-                                {Math.abs(metrics.ordersGrowth)}%
+                        ) : null}
+                        {stats?.hospitalityRevenue ? (
+                            <div className="group">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                    <span className="text-gray-600 dark:text-gray-400">🏨 Hotelaria</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(stats.hospitalityRevenue)}</span>
+                                </div>
+                                <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
+                                    <div className="bg-green-500 h-full transition-all duration-1000" style={{ width: `${(stats.hospitalityRevenue / stats.totalRevenue) * 100}%` }} />
+                                </div>
                             </div>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {metrics.ordersToday}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {t('dashboard.ordersToday')}
-                        </p>
+                        ) : null}
+                        {stats?.pharmacyRevenue ? (
+                            <div className="group">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                    <span className="text-gray-600 dark:text-gray-400">💊 Farmácia</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(stats.pharmacyRevenue)}</span>
+                                </div>
+                                <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
+                                    <div className="bg-amber-500 h-full transition-all duration-1000" style={{ width: `${(stats.pharmacyRevenue / stats.totalRevenue) * 100}%` }} />
+                                </div>
+                            </div>
+                        ) : null}
+                        {stats?.bottleStoreRevenue ? (
+                            <div className="group">
+                                <div className="flex items-center justify-between text-sm mb-1">
+                                    <span className="text-gray-600 dark:text-gray-400">🍾 Bottle Store</span>
+                                    <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(stats.bottleStoreRevenue)}</span>
+                                </div>
+                                <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
+                                    <div className="bg-purple-500 h-full transition-all duration-1000" style={{ width: `${(stats.bottleStoreRevenue / stats.totalRevenue) * 100}%` }} />
+                                </div>
+                            </div>
+                        ) : null}
                     </div>
                 </Card>
 
                 {/* Low Stock */}
-                <Card padding="md" className="relative overflow-hidden">
+                <Card padding="md" className="relative overflow-hidden shadow-sm">
                     <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
                         <div className="w-full h-full rounded-full bg-yellow-500/10" />
                     </div>
@@ -383,7 +410,7 @@ export default function Dashboard() {
                 </Card>
 
                 {/* Active Employees */}
-                <Card padding="md" className="relative overflow-hidden">
+                <Card padding="md" className="relative overflow-hidden shadow-sm">
                     <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
                         <div className="w-full h-full rounded-full bg-accent-500/10" />
                     </div>
@@ -406,25 +433,25 @@ export default function Dashboard() {
             {/* Profit Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Gross Profit */}
-                <Card padding="md" className="border-l-4 border-l-green-500">
+                <Card padding="md" className="border-l-4 border-l-green-500 bg-green-50/30 dark:bg-green-900/10 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                             <HiOutlineTrendingUp className="w-6 h-6 text-green-600" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.grossProfit')}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Lucro Bruto Consolidado</p>
                             <p className="text-2xl font-bold text-green-600">
                                 {formatCurrency(metrics.grossProfit)}
                             </p>
                             <p className="text-xs text-gray-400">
-                                {t('dashboard.profitMargin')}: {metrics.profitMargin.toFixed(1)}%
+                                Margem Global: {metrics.profitMargin.toFixed(1)}%
                             </p>
                         </div>
                     </div>
                 </Card>
 
                 {/* Stock Cost Value */}
-                <Card padding="md" className="border-l-4 border-l-blue-500">
+                <Card padding="md" className="border-l-4 border-l-blue-500 bg-blue-50/30 dark:bg-blue-900/10">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                             <HiOutlineCube className="w-6 h-6 text-blue-600" />
@@ -435,14 +462,14 @@ export default function Dashboard() {
                                 {formatCurrency(metrics.stockCostValue)}
                             </p>
                             <p className="text-xs text-gray-400">
-                                {t('dashboard.purchaseValue')}
+                                Total em Inventário
                             </p>
                         </div>
                     </div>
                 </Card>
 
                 {/* Potential Profit */}
-                <Card padding="md" className="border-l-4 border-l-purple-500">
+                <Card padding="md" className="border-l-4 border-l-purple-500 bg-purple-50/30 dark:bg-purple-900/10">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                             <HiOutlineCurrencyDollar className="w-6 h-6 text-purple-600" />
@@ -453,12 +480,34 @@ export default function Dashboard() {
                                 {formatCurrency(metrics.potentialProfit)}
                             </p>
                             <p className="text-xs text-gray-400">
-                                {t('dashboard.sellAllStock')}
+                                Lucro em Stock Comercial
                             </p>
                         </div>
                     </div>
                 </Card>
             </div>
+            {/* Smart Insights / Intelligent Advisor */}
+            {insights.length > 0 && (
+                <div className="space-y-4 mb-6">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                <HiOutlineLightBulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Sugestões e tendências detetadas pela IA</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
+                        {insights.map((insight) => (
+                            <SmartInsightCard key={insight.id} insight={insight} className="min-w-[320px] max-w-[400px] flex-shrink-0" />
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Sales Chart */}
                 <Card padding="md" className="lg:col-span-2">

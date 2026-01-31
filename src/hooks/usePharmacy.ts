@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { pharmacyAPI } from '../services/api';
+import { db } from '../db/offlineDB';
 
 interface PaginationMeta {
     page: number;
@@ -37,39 +38,63 @@ export function usePharmacy(params?: UsePharmacyParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await pharmacyAPI.getMedications(params);
+            if (navigator.onLine) {
+                const response = await pharmacyAPI.getMedications(params);
 
-            let data: any[] = [];
-            if (response.data && response.pagination) {
-                data = response.data;
-                setPagination(response.pagination);
+                let data: any[] = [];
+                if (response.data && response.pagination) {
+                    data = response.data;
+                    setPagination(response.pagination);
 
-                if (params?.page === 1 || !params?.page) {
-                    setMetrics(prev => ({
-                        ...prev,
-                        totalMedications: response.pagination.total
-                    }));
+                    if (params?.page === 1 || !params?.page) {
+                        setMetrics(prev => ({
+                            ...prev,
+                            totalMedications: response.pagination.total
+                        }));
+
+                        // Offline caching for medications
+                        try {
+                            await db.medications.clear();
+                            if (data.length > 0) {
+                                await db.medications.bulkPut(data);
+                            }
+                        } catch (err) {
+                            console.error('Dexie error caching medications:', err);
+                        }
+                    }
+                } else {
+                    data = Array.isArray(response) ? response : (response.data || []);
+                    setPagination({
+                        page: params?.page || 1,
+                        limit: params?.limit || data.length,
+                        total: data.length,
+                        totalPages: 1,
+                        hasMore: false
+                    });
+
+                    setMetrics({
+                        totalMedications: data.length,
+                        lowStockItems: data.filter((m: any) => m.isLowStock).length,
+                        expiringSoon: data.filter((m: any) => m.daysToExpiry && m.daysToExpiry <= 90).length,
+                        controlledItems: data.filter((m: any) => m.isControlled).length
+                    });
                 }
+
+                setMedications(data);
             } else {
-                data = Array.isArray(response) ? response : (response.data || []);
+                // FALLBACK TO OFFLINE CACHE
+                const cached = await db.medications.toArray();
+                setMedications(cached);
                 setPagination({
-                    page: params?.page || 1,
-                    limit: params?.limit || data.length,
-                    total: data.length,
+                    page: 1,
+                    limit: cached.length,
+                    total: cached.length,
                     totalPages: 1,
                     hasMore: false
                 });
-
-                setMetrics({
-                    totalMedications: data.length,
-                    lowStockItems: data.filter((m: any) => m.isLowStock).length,
-                    expiringSoon: data.filter((m: any) => m.daysToExpiry && m.daysToExpiry <= 90).length,
-                    controlledItems: data.filter((m: any) => m.isControlled).length
-                });
+                toast('Catálogo de farmácia offline', { icon: '💊' });
             }
-
-            setMedications(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err.message || 'Erro ao carregar medicamentos');
             console.error('Error fetching medications:', err);
         } finally {
@@ -101,11 +126,24 @@ export function usePharmacy(params?: UsePharmacyParams) {
 
     const addMedication = async (data: any) => {
         try {
+            if (!navigator.onLine) {
+                await db.pendingOperations.add({
+                    module: 'pharmacy',
+                    endpoint: '/pharmacy/medications',
+                    method: 'POST',
+                    data,
+                    timestamp: Date.now(),
+                    synced: false as any
+                });
+                toast('Medicamento guardado localmente (Offline)', { icon: '💾' });
+                return { ...data, id: `offline-${Date.now()}` };
+            }
+
             const newMed = await pharmacyAPI.createMedication(data);
             toast.success('Medicamento adicionado com sucesso!');
             fetchMedications();
             return newMed;
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao adicionar medicamento');
             throw err;
         }
@@ -113,11 +151,24 @@ export function usePharmacy(params?: UsePharmacyParams) {
 
     const updateMedication = async (id: string, data: any) => {
         try {
+            if (!navigator.onLine) {
+                await db.pendingOperations.add({
+                    module: 'pharmacy',
+                    endpoint: `/pharmacy/medications/${id}`,
+                    method: 'PUT',
+                    data,
+                    timestamp: Date.now(),
+                    synced: false as any
+                });
+                toast('Actualização guardada localmente (Offline)', { icon: '💾' });
+                return { ...data, id };
+            }
+
             const updated = await pharmacyAPI.updateMedication(id, data);
             toast.success('Medicamento actualizado com sucesso!');
             fetchMedications();
             return updated;
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao actualizar medicamento');
             throw err;
         }
@@ -125,11 +176,24 @@ export function usePharmacy(params?: UsePharmacyParams) {
 
     const deleteMedication = async (id: string) => {
         try {
+            if (!navigator.onLine) {
+                await db.pendingOperations.add({
+                    module: 'pharmacy',
+                    endpoint: `/pharmacy/medications/${id}`,
+                    method: 'DELETE',
+                    data: null,
+                    timestamp: Date.now(),
+                    synced: false as any
+                });
+                toast('Remoção guardada localmente (Offline)', { icon: '💾' });
+                return true;
+            }
+
             await pharmacyAPI.deleteMedication(id);
             toast.success('Medicamento removido com sucesso!');
             fetchMedications();
             return true;
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao remover medicamento');
             throw err;
         }
@@ -142,7 +206,7 @@ export function usePharmacy(params?: UsePharmacyParams) {
             fetchMedications();
             fetchBatches();
             return newBatch;
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao registrar lote');
             throw err;
         }

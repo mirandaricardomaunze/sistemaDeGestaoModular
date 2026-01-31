@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Drivers Management Page
  * List, create, edit, and delete drivers
  */
@@ -39,11 +39,12 @@ export default function DriversPage() {
     const [statusFilter, setStatusFilter] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
+    const [pageSize, setPageSize] = useState(12);
     const { data, isLoading, refetch } = useDrivers({
         search: search || undefined,
         status: statusFilter || undefined,
         page,
-        limit: 12
+        limit: pageSize
     });
 
     const createMutation = useCreateDriver();
@@ -113,15 +114,15 @@ export default function DriversPage() {
             code: formData.code,
             name: formData.name,
             phone: formData.phone,
-            email: formData.email || null,
+            email: formData.email || undefined,
             licenseNumber: formData.licenseNumber,
-            licenseType: formData.licenseType || null,
-            licenseExpiry: formData.licenseExpiry || null,
+            licenseType: formData.licenseType || undefined,
+            licenseExpiry: formData.licenseExpiry || undefined,
             status: formData.status as Driver['status'],
-            hireDate: formData.hireDate || null,
-            address: formData.address || null,
-            emergencyContact: formData.emergencyContact || null,
-            notes: formData.notes || null
+            hireDate: formData.hireDate || undefined,
+            address: formData.address || undefined,
+            emergencyContact: formData.emergencyContact || undefined,
+            notes: formData.notes || undefined
         };
 
         if (editingDriver) {
@@ -239,14 +240,21 @@ export default function DriversPage() {
                 ))}
             </div>
 
-            {data && data.pagination.totalPages > 1 && (
-                <Pagination
-                    currentPage={page}
-                    totalItems={data.pagination.total}
-                    itemsPerPage={data.pagination.limit}
-                    onPageChange={setPage}
-                    showInfo={true}
-                />
+            {data && data.pagination.total > 0 && (
+                <div className="mt-6">
+                    <Pagination
+                        currentPage={page}
+                        totalItems={data.pagination.total}
+                        itemsPerPage={pageSize}
+                        onPageChange={setPage}
+                        onItemsPerPageChange={(size) => {
+                            setPageSize(size);
+                            setPage(1);
+                        }}
+                        itemsPerPageOptions={[12, 24, 48, 96]}
+                        showInfo={true}
+                    />
+                </div>
             )}
 
             {data?.data.length === 0 && (

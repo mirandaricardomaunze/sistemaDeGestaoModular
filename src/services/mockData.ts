@@ -1,4 +1,4 @@
-import type { Product, Employee, Alert, Supplier, Customer } from '../types';
+﻿import type { Product, Employee, Alert, Supplier, Customer } from '../types';
 
 /**
  * Mock Data - CLEANED UP

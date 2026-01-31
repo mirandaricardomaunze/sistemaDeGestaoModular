@@ -1,4 +1,4 @@
-import {
+﻿import {
     HiOutlineShare,
     HiOutlineMail,
     HiOutlineDocumentDownload,
@@ -29,7 +29,7 @@ export default function ShareButton({
     fileName = 'documento',
     onGeneratePDF,
     onGenerateExcel,
-    companyName = 'Sistema de Gestão',
+    companyName = 'Multicore',
     variant = 'button',
     size = 'md',
 }: ShareButtonProps) {
@@ -79,7 +79,7 @@ export default function ShareButton({
     const handleShareWhatsApp = () => {
         const encodedMessage = encodeURIComponent(shareMessage.replace(/\*/g, ''));
         window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
-        toast.success('💬 Abrindo WhatsApp... Anexe o ficheiro baixado!');
+        toast.success('🛒¬ Abrindo WhatsApp... Anexe o ficheiro baixado!');
     };
 
     // Share via Email
@@ -192,7 +192,7 @@ export default function ShareButton({
                                 onClick={() => setStep('share')}
                                 className="w-full text-sm text-primary-600 hover:underline"
                             >
-                                Já tenho o ficheiro → Ir para partilha
+                                Já tenho o ficheiro â†’ Ir para partilha
                             </button>
                         </>
                     )}
@@ -238,7 +238,7 @@ export default function ShareButton({
                             {/* Copy Message */}
                             <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
                                 <p className="text-sm text-amber-800 dark:text-amber-300 mb-2">
-                                    💡 <strong>Dica:</strong> Copie a mensagem e anexe o ficheiro manualmente
+                                    🛒¡ <strong>Dica:</strong> Copie a mensagem e anexe o ficheiro manualmente
                                 </p>
                                 <button
                                     onClick={handleCopyMessage}
@@ -262,7 +262,7 @@ export default function ShareButton({
                                 onClick={() => setStep('download')}
                                 className="w-full text-sm text-gray-500 hover:text-gray-700"
                             >
-                                ← Voltar para baixar ficheiro
+                                â† Voltar para baixar ficheiro
                             </button>
                         </>
                     )}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
     HiOutlineDocumentReport,
     HiOutlineDownload,
@@ -135,7 +135,7 @@ export default function FiscalReportGenerator() {
         }
 
         if (validation.warnings.length > 0) {
-            toast(validation.warnings.map(w => w.message).join('\n'), { icon: '⚠️' });
+            toast(validation.warnings.map(w => w.message).join('\n'), { icon: 'âš ï¸' });
         }
 
         addFiscalReport(report);
@@ -208,7 +208,7 @@ export default function FiscalReportGenerator() {
                 const exportOptions: ExportOptions = {
                     filename: `Relatorio_Fiscal_${report.type}_${report.period}`,
                     title: report.name,
-                    subtitle: companySettings?.companyName || 'Sistema de Gestão',
+                    subtitle: companySettings?.companyName || 'Multicore',
                     companyName: companySettings?.companyName,
                     columns: [
                         { key: 'documentType', header: 'Tipo Doc', width: 15 },

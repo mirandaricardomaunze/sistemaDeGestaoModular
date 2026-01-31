@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+﻿import nodemailer from 'nodemailer';
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -6,13 +6,35 @@ const transporter = nodemailer.createTransport({
     secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
     auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD,
     },
 });
 
+if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
+    console.log('✅ Configuração de e-mail (SMTP) detectada.');
+} else {
+    console.warn('⚠️ Aviso: SMTP não configurado. O sistema usará o terminal para exibir códigos de recuperação.');
+}
+
 export const sendOTP = async (email: string, otp: string) => {
+    // Development Log - Always log OTP to console in dev mode for easy testing
+    if (process.env.NODE_ENV !== 'production') {
+        console.log('\n-----------------------------------------');
+        console.log(`[DEV] OTP para ${email}: ${otp}`);
+        console.log('-----------------------------------------\n');
+    }
+
+    // Check if SMTP is configured. If not, don't try to send but don't crash in dev.
+    if (!process.env.SMTP_USER || (!process.env.SMTP_PASS && !process.env.SMTP_PASSWORD)) {
+        if (process.env.NODE_ENV !== 'production') {
+            console.warn('⚠️ SMTP não configurado. Ignorando envio de e-mail real.');
+            return { messageId: 'mock-id' };
+        }
+        throw new Error('Configuração de e-mail (SMTP) em falta');
+    }
+
     const mailOptions = {
-        from: `"${process.env.SMTP_FROM_NAME || 'Sistema de Gestão'}" <${process.env.SMTP_USER}>`,
+        from: `"${process.env.SMTP_FROM_NAME || 'Multicore'}" <${process.env.SMTP_USER}>`,
         to: email,
         subject: 'Código de Recuperação de Senha',
         html: `
@@ -44,7 +66,7 @@ export const sendExpirationAlert = async (data: {
     userName: string;
 }) => {
     const mailOptions = {
-        from: `"${process.env.SMTP_FROM_NAME || 'Sistema de Gestão'}" <${process.env.SMTP_USER}>`,
+        from: `"${process.env.SMTP_FROM_NAME || 'Multicore'}" <${process.env.SMTP_USER}>`,
         to: data.email,
         subject: `⚠️ ALERTA DE VALIDADE: ${data.productName}`,
         html: `

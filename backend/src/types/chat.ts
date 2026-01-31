@@ -1,4 +1,4 @@
-export interface ChatMessage {
+﻿export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant' | 'system';
     content: string;
@@ -33,7 +33,7 @@ export interface AIPrompt {
 }
 
 export interface Intent {
-    type: 'sales' | 'inventory' | 'customers' | 'financial' | 'general';
+    type: 'sales' | 'inventory' | 'customers' | 'financial' | 'hospitality' | 'logistics' | 'pharmacy' | 'general';
     generatePDF: boolean;
     reportType: 'daily' | 'weekly' | 'monthly' | 'yearly';
     timeframe: {

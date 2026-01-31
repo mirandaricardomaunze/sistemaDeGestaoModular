@@ -1,4 +1,4 @@
-import api from './client';
+﻿import api from './client';
 
 // ============================================================================
 // Hospitality API
@@ -253,13 +253,16 @@ export const pharmacyAPI = {
     },
 
     // Reports
-    getExpiringReport: async (days?: number) => {
-        const response = await api.get('/pharmacy/reports/expiring', { params: { days } });
+    getSalesReport: async (params?: { startDate?: string; endDate?: string; groupBy?: string; page?: number; limit?: number }) => {
+        const response = await api.get('/pharmacy/reports/sales', { params });
+        return response.data;
+    }, getExpiringReport: async (params?: { days?: number; page?: number; limit?: number }) => {
+        const response = await api.get('/pharmacy/reports/expiring', { params });
         return response.data;
     },
 
-    getStockReport: async () => {
-        const response = await api.get('/pharmacy/reports/stock');
+    getStockReport: async (params?: { lowStock?: boolean; expiring?: boolean; expiringDays?: number; page?: number; limit?: number }) => {
+        const response = await api.get('/pharmacy/reports/stock', { params });
         return response.data;
     },
 

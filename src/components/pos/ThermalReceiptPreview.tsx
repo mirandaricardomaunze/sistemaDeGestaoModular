@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Thermal Receipt Print Preview
  * Preview moderno no ecrã + formato térmico optimizado para impressão
  */

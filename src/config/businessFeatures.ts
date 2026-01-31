@@ -1,4 +1,4 @@
-import type{ BusinessType } from '../types';
+﻿import type{ BusinessType } from '../types';
 
 export interface BusinessConfig {
     name: string;

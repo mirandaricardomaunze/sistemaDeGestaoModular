@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Mobile Payment Modal Component
  * Supports M-Pesa and e-Mola payments with real API integration
  */

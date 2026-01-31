@@ -1,23 +1,47 @@
-import { jsPDF } from 'jspdf';
+﻿import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 
 // Professional Header Helper
-const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: any, period?: string) => {
+// Professional Header Helper
+export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: any, period?: string) => {
     const pageWidth = doc.internal.pageSize.width;
+    let y = 20;
 
-    // Company Information (Left Aligned)
-    doc.setTextColor(0, 0, 0);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(20);
-    doc.text(companyInfo?.companyName || 'Minha Empresa', 15, 20);
+    // Logo Support
+    if (companyInfo?.logo) {
+        try {
+            doc.addImage(companyInfo.logo, 'PNG', 15, 12, 25, 25);
+            // If logo exists, move company text to the right of logo
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(18);
+            doc.text(companyInfo?.companyName || 'Multicore', 45, y);
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(100, 100, 100);
-    doc.text(companyInfo?.address || 'Endereço não configurado', 15, 26);
-    doc.text(`NUIT: ${companyInfo?.taxId || 'N/A'}`, 15, 31);
-    doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 15, 36);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text(companyInfo?.address || 'Endereço não configurado', 45, y + 6);
+            doc.text(`NUIT: ${companyInfo?.taxId || 'N/A'}`, 45, y + 11);
+            doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 45, y + 16);
+        } catch (e) {
+            console.warn('Failed to add logo to PDF', e);
+            // Fallback to no logo layout below
+        }
+    } else {
+        // Company Information (Left Aligned - No Logo)
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.text(companyInfo?.companyName || 'Multicore', 15, y);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(100, 100, 100);
+        doc.text(companyInfo?.address || 'Endereço não configurado', 15, y + 6);
+        doc.text(`NUIT: ${companyInfo?.taxId || 'N/A'}`, 15, y + 11);
+        doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 15, y + 16);
+    }
 
     // Document Titles (Right Aligned)
     doc.setTextColor(0, 0, 0);
@@ -39,6 +63,50 @@ const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: any, peri
     doc.line(15, 42, pageWidth - 15, 42);
 };
 
+// Professional Footer Helper - Enhanced with Multicore branding
+export const addProfessionalFooter = (doc: jsPDF, companyInfo: any) => {
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    const pageCount = (doc as any).internal.getNumberOfPages();
+
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+
+        // Footer separator line
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.line(15, pageHeight - 28, pageWidth - 15, pageHeight - 28);
+
+        // Company info line (left aligned)
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(120, 120, 120);
+        const companyName = companyInfo?.companyName || 'Multicore';
+        const companyPhone = companyInfo?.phone ? ` | Tel: ${companyInfo.phone}` : '';
+        const companyEmail = companyInfo?.email ? ` | ${companyInfo.email}` : '';
+        doc.text(`${companyName}${companyPhone}${companyEmail}`, 15, pageHeight - 23);
+
+        // Multicore branding watermark (center)
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(59, 130, 246); // Primary blue
+        doc.text('Processado por Multicore', pageWidth / 2, pageHeight - 15, { align: 'center' });
+
+        // Timestamp and legal text (center)
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Documento gerado automaticamente em ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+        // Page number (right aligned)
+        doc.setFontSize(7);
+        doc.text(`Página ${i} de ${pageCount}`, pageWidth - 15, pageHeight - 15, { align: 'right' });
+
+        // Year (right aligned)
+        doc.text(`© ${new Date().getFullYear()}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
+    }
+};
+
 export const generateGuiaRemessa = (transfer: any, companyInfo?: any) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -50,7 +118,7 @@ export const generateGuiaRemessa = (transfer: any, companyInfo?: any) => {
     doc.setFont('helvetica', 'normal');
     doc.text(`Guia Nº: ${transfer.number}`, 15, 52);
     doc.text(`Data da Operação: ${new Date(transfer.createdAt).toLocaleDateString()}`, 15, 57);
-    doc.text(`Emitido por: ${transfer.responsible || 'Sistema'}`, 15, 62);
+    doc.text(`Emitido por: ${transfer.responsible || 'Multicore'}`, 15, 62);
 
     // Warehouses Info Box
     doc.setDrawColor(220, 220, 220);
@@ -99,6 +167,7 @@ export const generateGuiaRemessa = (transfer: any, companyInfo?: any) => {
     doc.line(pageWidth - 80, finalY, pageWidth - 15, finalY);
     doc.text('CONFIRMAÇÃO DE RECEPÇÃO (DESTINO)', pageWidth - 80, finalY + 5);
 
+    addProfessionalFooter(doc, companyInfo);
     doc.save(`Guia_${transfer.number}.pdf`);
 };
 
@@ -106,31 +175,7 @@ export const generateBookingReceipt = (booking: any, companyInfo: any) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    // Company Header
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text(companyInfo?.companyName || 'Empresa', 15, 20);
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(75, 85, 99);
-    doc.text(companyInfo?.address || '', 15, 26);
-    doc.text(`NUIT: ${companyInfo?.taxId || ''} | Tel: ${companyInfo?.phone || ''}`, 15, 31);
-
-    // Receipt Info (Right aligned)
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('RECIBO DE ESTADIA', pageWidth - 15, 20, { align: 'right' });
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Recibo Nº: ${booking.id?.slice(-8).toUpperCase()}`, pageWidth - 15, 27, { align: 'right' });
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-MZ')}`, pageWidth - 15, 32, { align: 'right' });
-
-    doc.setDrawColor(229, 231, 235);
-    doc.line(15, 40, pageWidth - 15, 40);
+    addProfessionalHeader(doc, 'RECIBO DE ESTADIA', companyInfo);
 
     // Guest Info Section
     doc.setFontSize(11);
@@ -170,6 +215,7 @@ export const generateBookingReceipt = (booking: any, companyInfo: any) => {
     doc.text('Obrigado pela sua preferência!', pageWidth / 2, finalY + 20, { align: 'center' });
     doc.text('Documento processado por computador', pageWidth / 2, finalY + 25, { align: 'center' });
 
+    addProfessionalFooter(doc, companyInfo);
     doc.save(`Recibo_Booking_${booking.id?.slice(-8)}.pdf`);
 };
 
@@ -208,6 +254,7 @@ export const generatePharmacyExpirationReport = (products: any[], companyInfo?: 
     doc.setTextColor(150, 150, 150);
     doc.text('Este documento é um alerta gerado automaticamente pelo sistema de inventário.', 15, finalY);
 
+    addProfessionalFooter(doc, companyInfo);
     doc.save(`Relatorio_Validades_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -215,31 +262,7 @@ export const generateHospitalityReport = (data: any, companyInfo: any) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    // Company Header
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text(companyInfo?.companyName || 'Empresa', 15, 20);
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(75, 85, 99);
-    doc.text(companyInfo?.address || '', 15, 26);
-    doc.text(`NUIT: ${companyInfo?.taxId || ''} | Tel: ${companyInfo?.phone || ''}`, 15, 31);
-
-    // Title
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('RELATÓRIO DE HOTELARIA', pageWidth - 15, 20, { align: 'right' });
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Período: ${data.period}`, pageWidth - 15, 27, { align: 'right' });
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-MZ')}`, pageWidth - 15, 32, { align: 'right' });
-
-    doc.setDrawColor(229, 231, 235);
-    doc.line(15, 40, pageWidth - 15, 40);
+    addProfessionalHeader(doc, 'RELATÓRIO DE HOTELARIA', companyInfo, data.period);
 
     // Summary Box
     doc.setFontSize(11);
@@ -308,6 +331,7 @@ export const generateHospitalityReport = (data: any, companyInfo: any) => {
         columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } }
     });
 
+    addProfessionalFooter(doc, companyInfo);
     doc.save(`Relatorio_Hotelaria_${data.period.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -357,7 +381,7 @@ export const generatePharmacyStockReport = (data: { items: any[]; summary: any }
         item.productName.substring(0, 30),
         item.dci || '-',
         item.totalStock.toString(),
-        item.isLowStock ? '⚠️' : '✓',
+        item.isLowStock ? 'âš ï¸' : '✓',
         `${Number(item.totalValue).toLocaleString()} MT`
     ]);
 
@@ -385,9 +409,10 @@ export const generatePharmacyStockReport = (data: { items: any[]; summary: any }
     doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Gerado automaticamente pelo Sistema de Gestão de Farmácia • ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, footerY, { align: 'center' });
+    doc.text(`Gerado automaticamente pelo Multicore • ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, footerY, { align: 'center' });
     doc.text(`Página 1 de 1`, pageWidth - 15, footerY, { align: 'right' });
 
+    addProfessionalFooter(doc, companyInfo);
     doc.save(`Farmacia_Stock_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -454,8 +479,9 @@ export const generatePharmacySalesReport = (sales: any[], period: string, compan
     doc.line(15, footerY - 5, pageWidth - 15, footerY - 5);
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Relatório gerado em ${new Date().toLocaleString('pt-MZ')} • Sistema de Gestão de Farmácia`, pageWidth / 2, footerY, { align: 'center' });
+    doc.text(`Relatório gerado em ${new Date().toLocaleString('pt-MZ')} • Multicore`, pageWidth / 2, footerY, { align: 'center' });
 
+    addProfessionalFooter(doc, companyInfo);
     doc.save(`Farmacia_Vendas_${period.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -531,6 +557,7 @@ export const generatePharmacyExpiringReport = (data: { items: any[]; summary: an
     doc.setTextColor(150, 150, 150);
     doc.text(`Documento gerado automaticamente • ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, footerY, { align: 'center' });
 
+    addProfessionalFooter(doc, companyInfo);
     doc.save(`Farmacia_Validades_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -672,33 +699,7 @@ export const generateHotelFinanceReport = (data: {
     const pageWidth = doc.internal.pageSize.width;
     const { companyInfo } = data;
 
-    // Header - Professional & Simple
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text(companyInfo?.companyName || 'Empresa', 15, 20);
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(75, 85, 99);
-    doc.text(companyInfo?.address || '', 15, 26);
-    doc.text(`NUIT: ${companyInfo?.taxId || ''} | Tel: ${companyInfo?.phone || ''}`, 15, 31);
-    doc.text(companyInfo?.email || '', 15, 36);
-
-    // Right-aligned report title
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('RELATÓRIO FINANCEIRO', pageWidth - 15, 20, { align: 'right' });
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Período: ${data.period}`, pageWidth - 15, 27, { align: 'right' });
-    doc.text(`Data de Emissão: ${new Date().toLocaleDateString('pt-MZ')}`, pageWidth - 15, 32, { align: 'right' });
-
-    doc.setDrawColor(229, 231, 235);
-    doc.line(15, 42, pageWidth - 15, 42);
+    addProfessionalHeader(doc, 'RELATÓRIO FINANCEIRO', companyInfo, data.period);
 
     // Summary Section
     doc.setFontSize(12);
@@ -798,20 +799,413 @@ export const generateHotelFinanceReport = (data: {
         margin: { left: pageWidth / 2 + 5 }
     });
 
-    // Footer
-    const pageCount = (doc as any).internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(
-            `Documento gerado pelo Sistema de Gestão Comercial - Página ${i} de ${pageCount}`,
-            pageWidth / 2,
-            doc.internal.pageSize.height - 10,
-            { align: 'center' }
-        );
-    }
-
+    addProfessionalFooter(doc, companyInfo);
     doc.save(`Financeiro_Hotel_${data.period.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
+// =============================================================================
+// BOTTLE STORE PDF REPORTS
+// =============================================================================
+
+export const generateBottleStoreReport = (data: {
+    title: string;
+    period: string;
+    summary: { label: string; value: string; color?: string }[];
+    tables: {
+        title: string;
+        head: string[][];
+        body: any[][];
+        columnStyles?: any;
+    }[];
+}, companyInfo: any) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+
+    addProfessionalHeader(doc, data.title, companyInfo, data.period);
+
+    let currentY = 55;
+
+    // Summary Boxes (Small cards)
+    doc.setFontSize(10);
+    const boxWidth = (pageWidth - 30) / data.summary.length;
+    data.summary.forEach((item, index) => {
+        const x = 15 + (index * boxWidth);
+        doc.setDrawColor(230, 230, 230);
+        doc.setFillColor(248, 250, 252);
+        doc.roundedRect(x, currentY, boxWidth - 5, 20, 2, 2, 'FD');
+
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100, 100, 100);
+        doc.text(item.label, x + 5, currentY + 7);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 0, 0);
+        doc.text(item.value, x + 5, currentY + 15);
+    });
+
+    currentY += 30;
+
+    // Tables
+    data.tables.forEach((table) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.setTextColor(51, 65, 85);
+        doc.text(table.title.toUpperCase(), 15, currentY);
+
+        autoTable(doc, {
+            startY: currentY + 5,
+            head: table.head,
+            body: table.body,
+            theme: 'striped',
+            headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255] },
+            styles: { fontSize: 9 },
+            columnStyles: table.columnStyles,
+            margin: { left: 15, right: 15 }
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 15;
+
+        // Check for new page
+        if (currentY > 250) {
+            doc.addPage();
+            currentY = 20;
+        }
+    });
+
+    addProfessionalFooter(doc, companyInfo);
+    doc.save(`${data.title.replace(/\s/g, '_')}_${data.period.replace(/\s/g, '_')}.pdf`);
+};
+
+// =============================================================================
+// HR PAYROLL PDF REPORTS
+// =============================================================================
+
+interface PayrollReportEmployee {
+    name: string;
+    role: string;
+    department?: string;
+    baseSalary: number;
+    inssDeduction: number;
+    irtDeduction: number;
+    bonus: number;
+    allowances: number;
+    totalEarnings: number;
+    totalDeductions: number;
+    netSalary: number;
+    status: 'draft' | 'processed' | 'paid';
+}
+
+interface PayrollReportData {
+    period: string;
+    month: number;
+    year: number;
+    employees: PayrollReportEmployee[];
+    totals: {
+        totalNet: number;
+        totalINSS: number;
+        totalIRPS: number;
+        totalGross: number;
+    };
+    inssRate: number;
+}
+
+/**
+ * Generates a professional monthly payroll summary report PDF
+ * Shows all employees with their salary breakdown and totals
+ */
+export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyInfo: any) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+
+    addProfessionalHeader(doc, 'RELATÓRIO MENSAL DE SALÁRIOS', companyInfo, data.period);
+
+    // Summary Section
+    doc.setDrawColor(230, 230, 230);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(15, 50, pageWidth - 30, 35, 3, 3, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text('RESUMO DO MÊS', 20, 60);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    const col1 = 20, col2 = 75, col3 = 130;
+    doc.text(`Total Funcionários: ${data.employees.length}`, col1, 70);
+    doc.text(`Taxa INSS: ${data.inssRate}%`, col2, 70);
+
+    // Totals
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total Bruto: ${data.totals.totalGross.toLocaleString()} MT`, col1, 78);
+    doc.text(`INSS Retido: ${data.totals.totalINSS.toLocaleString()} MT`, col2, 78);
+    doc.text(`IRPS Retido: ${data.totals.totalIRPS.toLocaleString()} MT`, col3, 78);
+
+    doc.setTextColor(16, 185, 129);
+    doc.setFontSize(11);
+    doc.text(`Total Líquido: ${data.totals.totalNet.toLocaleString()} MT`, col3, 70);
+
+    // Status summary
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(8);
+    const processedCount = data.employees.filter(e => e.status === 'processed').length;
+    const paidCount = data.employees.filter(e => e.status === 'paid').length;
+    const draftCount = data.employees.filter(e => e.status === 'draft').length;
+    doc.text(`Rascunho: ${draftCount} | Processado: ${processedCount} | Pago: ${paidCount}`, 20, 82);
+
+    // Employees Table
+    const tableData = data.employees.map((emp) => [
+        emp.name.substring(0, 22),
+        emp.department || emp.role.substring(0, 15),
+        `${emp.baseSalary.toLocaleString()}`,
+        `${emp.bonus.toLocaleString()}`,
+        `${emp.inssDeduction.toLocaleString()}`,
+        `${emp.irtDeduction.toLocaleString()}`,
+        `${emp.netSalary.toLocaleString()}`,
+        emp.status === 'paid' ? '✓ Pago' : emp.status === 'processed' ? '⏳ Proc.' : '📝 Rasc.'
+    ]);
+
+    autoTable(doc, {
+        startY: 95,
+        head: [['Funcionário', 'Dept/Cargo', 'Base', 'Bónus', 'INSS', 'IRPS', 'Líquido', 'Estado']],
+        body: tableData,
+        headStyles: {
+            fillColor: [51, 65, 85] as [number, number, number],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 7
+        },
+        bodyStyles: { fontSize: 7 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+            0: { cellWidth: 35 },
+            1: { cellWidth: 25 },
+            2: { halign: 'right', cellWidth: 22 },
+            3: { halign: 'right', cellWidth: 18 },
+            4: { halign: 'right', cellWidth: 20 },
+            5: { halign: 'right', cellWidth: 20 },
+            6: { halign: 'right', cellWidth: 25, fontStyle: 'bold' },
+            7: { halign: 'center', cellWidth: 18 }
+        },
+        margin: { left: 15, right: 15 },
+        didParseCell: (hookData: any) => {
+            if (hookData.column.index === 7) {
+                const text = hookData.cell.raw as string;
+                if (text.includes('Pago')) {
+                    hookData.cell.styles.textColor = [22, 163, 74];
+                } else if (text.includes('Proc')) {
+                    hookData.cell.styles.textColor = [234, 179, 8];
+                }
+            }
+        }
+    });
+
+    // Totals Row
+    const finalY = (doc as any).lastAutoTable.finalY + 5;
+    doc.setDrawColor(51, 65, 85);
+    doc.setLineWidth(0.5);
+    doc.line(15, finalY, pageWidth - 15, finalY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text('TOTAIS:', 17, finalY + 7);
+    doc.text(`${data.totals.totalINSS.toLocaleString()} MT`, 125, finalY + 7);
+    doc.text(`${data.totals.totalIRPS.toLocaleString()} MT`, 145, finalY + 7);
+    doc.setTextColor(16, 185, 129);
+    doc.text(`${data.totals.totalNet.toLocaleString()} MT`, 168, finalY + 7);
+
+    // Signature area
+    const signY = finalY + 25;
+    doc.setTextColor(0, 0, 0);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, signY, 80, signY);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Responsável RH', 15, signY + 5);
+
+    doc.line(pageWidth - 80, signY, pageWidth - 15, signY);
+    doc.text('Director Financeiro', pageWidth - 80, signY + 5);
+
+    addProfessionalFooter(doc, companyInfo);
+    doc.save(`Folha_Salarial_${data.period.replace(/\s/g, '_')}.pdf`);
+};
+
+interface PaymentConfirmationData {
+    employee: {
+        name: string;
+        code: string;
+        role: string;
+        department?: string;
+        nuit?: string;
+        socialSecurityNumber?: string;
+    };
+    payroll: {
+        month: number;
+        year: number;
+        baseSalary: number;
+        bonus: number;
+        allowances: number;
+        otAmount: number;
+        inssDeduction: number;
+        irtDeduction: number;
+        advances: number;
+        totalEarnings: number;
+        totalDeductions: number;
+        netSalary: number;
+    };
+    payment: {
+        method: 'bank_transfer' | 'cash' | 'check';
+        date: Date;
+        reference?: string;
+        paidBy: string;
+        notes?: string;
+    };
+}
+
+/**
+ * Generates a payment confirmation receipt for a paid salary
+ * Includes payment method, date, and confirmation reference
+ */
+export const generatePaymentConfirmation = (data: PaymentConfirmationData, companyInfo: any) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+    const period = `${months[data.payroll.month - 1]} ${data.payroll.year}`;
+
+    addProfessionalHeader(doc, 'CONFIRMAÇÃO DE PAGAMENTO', companyInfo, period);
+
+    // Confirmation Reference Box
+    doc.setDrawColor(22, 163, 74);
+    doc.setFillColor(240, 253, 244);
+    doc.roundedRect(15, 50, pageWidth - 30, 25, 3, 3, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(22, 163, 74);
+    doc.text('✓ PAGAMENTO CONFIRMADO', 20, 60);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Referência: ${data.payment.reference || `PAY-${Date.now().toString().slice(-8)}`}`, 20, 68);
+    doc.text(`Data: ${data.payment.date.toLocaleDateString('pt-MZ')}`, 120, 68);
+
+    // Employee Details
+    let y = 85;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('DADOS DO FUNCIONÁRIO', 15, y);
+    y += 8;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(`Nome: ${data.employee.name}`, 15, y);
+    doc.text(`Código: ${data.employee.code}`, 120, y);
+    y += 6;
+    doc.text(`Cargo: ${data.employee.role}`, 15, y);
+    if (data.employee.department) {
+        doc.text(`Departamento: ${data.employee.department}`, 120, y);
+    }
+    y += 6;
+    if (data.employee.nuit) doc.text(`NUIT: ${data.employee.nuit}`, 15, y);
+    if (data.employee.socialSecurityNumber) doc.text(`INSS: ${data.employee.socialSecurityNumber}`, 120, y);
+
+    // Salary Breakdown Table
+    y += 15;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('COMPOSIÇÃO SALARIAL', 15, y);
+
+    const salaryData = [
+        ['Salário Base', `${data.payroll.baseSalary.toLocaleString()} MT`, ''],
+        ['Subsídios', `${data.payroll.allowances.toLocaleString()} MT`, ''],
+        ['Bónus', `${data.payroll.bonus.toLocaleString()} MT`, ''],
+        ['Horas Extras', `${data.payroll.otAmount.toLocaleString()} MT`, ''],
+        ['INSS (3%)', '', `${data.payroll.inssDeduction.toLocaleString()} MT`],
+        ['IRPS', '', `${data.payroll.irtDeduction.toLocaleString()} MT`],
+        ['Adiantamentos', '', `${data.payroll.advances.toLocaleString()} MT`],
+    ];
+
+    autoTable(doc, {
+        startY: y + 5,
+        head: [['Descrição', 'Ganhos', 'Descontos']],
+        body: salaryData,
+        headStyles: {
+            fillColor: [51, 65, 85] as [number, number, number],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold'
+        },
+        styles: { fontSize: 9 },
+        columnStyles: {
+            0: { cellWidth: 80 },
+            1: { halign: 'right', cellWidth: 45 },
+            2: { halign: 'right', cellWidth: 45 }
+        },
+        margin: { left: 15, right: 15 }
+    });
+
+    // Totals
+    const tableY = (doc as any).lastAutoTable.finalY;
+
+    doc.setFillColor(248, 250, 252);
+    doc.rect(15, tableY, pageWidth - 30, 20, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Total Ganhos:', 20, tableY + 8);
+    doc.text(`${data.payroll.totalEarnings.toLocaleString()} MT`, 95, tableY + 8, { align: 'right' });
+    doc.text('Total Descontos:', 110, tableY + 8);
+    doc.text(`${data.payroll.totalDeductions.toLocaleString()} MT`, pageWidth - 20, tableY + 8, { align: 'right' });
+
+    doc.setFillColor(22, 163, 74);
+    doc.setTextColor(255, 255, 255);
+    doc.rect(15, tableY + 12, pageWidth - 30, 10, 'F');
+    doc.setFontSize(12);
+    doc.text('VALOR LÍQUIDO PAGO:', 20, tableY + 19);
+    doc.text(`${data.payroll.netSalary.toLocaleString()} MT`, pageWidth - 20, tableY + 19, { align: 'right' });
+
+    // Payment Details
+    doc.setTextColor(0, 0, 0);
+    const paymentY = tableY + 35;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('DETALHES DO PAGAMENTO', 15, paymentY);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+
+    const paymentMethods: Record<string, string> = {
+        'bank_transfer': 'Transferência Bancária',
+        'cash': 'Dinheiro',
+        'check': 'Cheque'
+    };
+
+    doc.text(`Método: ${paymentMethods[data.payment.method] || data.payment.method}`, 15, paymentY + 8);
+    doc.text(`Data de Pagamento: ${data.payment.date.toLocaleDateString('pt-MZ')}`, 15, paymentY + 14);
+    doc.text(`Processado por: ${data.payment.paidBy}`, 15, paymentY + 20);
+
+    if (data.payment.notes) {
+        doc.text(`Observações: ${data.payment.notes.substring(0, 60)}`, 15, paymentY + 26);
+    }
+
+    // Signatures
+    const signY = paymentY + 45;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, signY, 80, signY);
+    doc.setFontSize(8);
+    doc.text('Assinatura do Funcionário', 15, signY + 5);
+    doc.text('Data: ____/____/____', 15, signY + 10);
+
+    doc.line(pageWidth - 80, signY, pageWidth - 15, signY);
+    doc.text('Carimbo e Assinatura da Empresa', pageWidth - 80, signY + 5);
+
+    addProfessionalFooter(doc, companyInfo);
+
+    const filename = `Confirmacao_Pagamento_${data.employee.name.replace(/\s/g, '_')}_${period.replace(/\s/g, '_')}.pdf`;
+    doc.save(filename);
+
+    return filename;
+};

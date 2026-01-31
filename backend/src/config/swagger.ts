@@ -1,10 +1,10 @@
-import swaggerJsdoc from 'swagger-jsdoc';
+﻿import swaggerJsdoc from 'swagger-jsdoc';
 
 const swaggerOptions: swaggerJsdoc.Options = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'Sistema de Gestão Comercial API',
+            title: 'Multicore API',
             version: '1.0.0',
             description: 'API completa para gestão de vendas, estoque, finanças e operações comerciais',
             contact: {

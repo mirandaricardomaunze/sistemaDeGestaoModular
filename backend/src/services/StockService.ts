@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+﻿import { Prisma, PrismaClient } from '@prisma/client';
 import { prisma as defaultPrisma } from '../lib/prisma';
 
 export type OriginModule = 'PHARMACY' | 'COMMERCIAL' | 'BOTTLE_STORE' | 'HOTEL' | 'RESTAURANT' | 'LOGISTICS';
@@ -16,7 +16,7 @@ export interface StockMovementParams {
     referenceContent?: string; // ID or Receipt Number
     reason?: string;
     performedBy: string;
-    companyId?: string;
+    companyId: string; // ✅ Now mandatory
 }
 
 export class StockService {
@@ -42,13 +42,17 @@ export class StockService {
             companyId
         } = params;
 
-        // 1. Get current stock state for audit (balanceBefore)
-        const currentProduct = await tx.product.findUnique({
-            where: { id: productId },
-            select: { currentStock: true }
+        // 1. Get current stock state and verify ownership (balanceBefore)
+        const currentProduct = await tx.product.findFirst({
+            where: { id: productId, companyId }, // ✅ Verify companyId
+            select: { id: true, currentStock: true }
         });
 
-        const balanceBefore = currentProduct?.currentStock || 0;
+        if (!currentProduct) {
+            throw new Error('Produto não encontrado ou não pertence a esta empresa');
+        }
+
+        const balanceBefore = currentProduct.currentStock || 0;
         const balanceAfter = balanceBefore + quantity;
 
         // 2. Update Product Global Stock

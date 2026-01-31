@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Vehicles Management Page
  * List, create, edit, and delete vehicles
  */
@@ -17,6 +17,7 @@ import {
 } from 'react-icons/hi2';
 import { useVehicles, useCreateVehicle, useUpdateVehicle, useDeleteVehicle } from '../../hooks/useLogistics';
 import type { Vehicle } from '../../services/api/logistics.api';
+import { ExportVehiclesButton } from '../../components/common/ExportButton';
 
 const vehicleTypes = [
     { value: 'truck', label: 'Camião' },
@@ -51,13 +52,13 @@ export default function VehiclesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-
+    const [pageSize, setPageSize] = useState(12);
     const { data, isLoading, refetch } = useVehicles({
         search: search || undefined,
         status: statusFilter || undefined,
         type: typeFilter || undefined,
         page,
-        limit: 12
+        limit: pageSize
     });
 
     const createMutation = useCreateVehicle();
@@ -169,6 +170,7 @@ export default function VehiclesPage() {
                     <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()}>
                         Actualizar
                     </Button>
+                    <ExportVehiclesButton data={data?.data || []} />
                     <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => openModal()}>
                         Novo Veículo
                     </Button>
@@ -266,14 +268,21 @@ export default function VehiclesPage() {
                 ))}
             </div>
 
-            {data && data.pagination.totalPages > 1 && (
-                <Pagination
-                    currentPage={page}
-                    totalItems={data.pagination.total}
-                    itemsPerPage={data.pagination.limit}
-                    onPageChange={setPage}
-                    showInfo={true}
-                />
+            {data && data.pagination.total > 0 && (
+                <div className="mt-6">
+                    <Pagination
+                        currentPage={page}
+                        totalItems={data.pagination.total}
+                        itemsPerPage={pageSize}
+                        onPageChange={setPage}
+                        onItemsPerPageChange={(size) => {
+                            setPageSize(size);
+                            setPage(1);
+                        }}
+                        itemsPerPageOptions={[12, 24, 48, 96]}
+                        showInfo={true}
+                    />
+                </div>
             )}
 
             {data?.data.length === 0 && (
@@ -349,7 +358,7 @@ export default function VehiclesPage() {
                             options={[
                                 { value: 'kg', label: 'Quilogramas (kg)' },
                                 { value: 'ton', label: 'Toneladas (ton)' },
-                                { value: 'm3', label: 'Metros Cúbicos (m³)' }
+                                { value: 'm3', label: 'Metros Cúbicos (mÂ³)' }
                             ]}
                             value={formData.capacityUnit}
                             onChange={(e) => setFormData({ ...formData, capacityUnit: e.target.value })}

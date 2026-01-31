@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,11 +13,10 @@ import {
     HiOutlineMail,
     HiOutlineCurrencyDollar,
     HiOutlineUserCircle,
-    HiOutlineRefresh,
     HiOutlineCheck,
     HiOutlineX
 } from 'react-icons/hi';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, TableContainer } from '../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer } from '../components/ui';
 import { formatCurrency, cn } from '../utils/helpers';
 import type { Supplier } from '../types';
 import { useSuppliers } from '../hooks/useData';

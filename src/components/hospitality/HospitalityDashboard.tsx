@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HospitalityDashboard Component
  * Main dashboard for hotel analytics with KPIs, interactive charts, and period filtering
  */
@@ -107,7 +107,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
 
         return {
             avgDailyRevenue: Math.round(avgDailyRevenue),
-            bestDay: bestDay?.date || '—',
+            bestDay: bestDay?.date || 'â€”',
             bestDayRevenue: bestDay?.total || 0,
             consumptionPercent: metrics.totalRevenue > 0
                 ? Math.round((metrics.consumptionRevenue / metrics.totalRevenue) * 100)

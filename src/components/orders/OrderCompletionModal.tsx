@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
     HiOutlineCheck,
     HiOutlineExclamation,
@@ -290,7 +290,7 @@ export default function OrderCompletionModal({
                                         <span className="text-sm text-gray-500">
                                             {item.product.currentStock}
                                         </span>
-                                        <span className="text-red-500">→</span>
+                                        <span className="text-red-500">â†’</span>
                                         <span className="text-sm font-medium text-red-600">
                                             {item.product.currentStock - item.quantity}
                                         </span>

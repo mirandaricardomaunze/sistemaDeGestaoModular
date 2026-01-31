@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { productsAPI } from '../services/api';
 import type { StockMovement } from '../types';
 

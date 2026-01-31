@@ -1,4 +1,4 @@
-// Module Constants - Frontend
+﻿// Module Constants - Frontend
 // These match the backend module definitions
 
 export interface ModuleDefinition {

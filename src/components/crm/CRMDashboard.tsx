@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CRM Dashboard Component
  * Painel de métricas e indicadores do CRM com gráficos de performance
  */
@@ -15,11 +15,13 @@ import {
     HiOutlineLightningBolt,
     HiOutlineCalendar,
     HiOutlineChevronRight,
+    HiOutlineDownload,
 } from 'react-icons/hi';
-import { Card, Badge, Pagination, usePagination } from '../ui';
+import { Card, Badge, Pagination, usePagination, Button } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { getFunnelDashboardData, getFollowUpAlerts, type FollowUpAlert } from '../../utils/crmIntegration';
 import { useCampaigns } from '../../hooks/useData';
+import { exportData, type ExportOptions } from '../../utils/exportUtils';
 
 export default function CRMDashboard() {
     // Get campaigns from API
@@ -39,6 +41,23 @@ export default function CRMDashboard() {
             metrics: c.metrics || { ordersGenerated: 0 },
         }));
     }, [campaignsData]);
+
+    const handleExport = (format: 'pdf' | 'excel') => {
+        const options: ExportOptions = {
+            filename: `Oportunidades_CRM_${new Date().toISOString().split('T')[0]}`,
+            title: 'Relatório de Oportunidades CRM',
+            subtitle: 'Pipeline de Vendas',
+            columns: [
+                { key: 'title', header: 'Oportunidade', width: 30 },
+                { key: 'customerName', header: 'Cliente', width: 25 },
+                { key: 'stageName', header: 'Etapa', width: 15 },
+                { key: 'value', header: 'Valor', format: 'currency', width: 15, align: 'right' },
+                { key: 'probability', header: 'Prob.', width: 10, align: 'right' },
+            ],
+            data: dashboardData.topOpportunities,
+        };
+        exportData(options, format);
+    };
 
     // Pagination for Top Opportunities
     const {
@@ -156,9 +175,29 @@ export default function CRMDashboard() {
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                                 Funil de Vendas
                             </h3>
-                            <Badge variant="gray">
-                                Últimos 30 dias
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleExport('pdf')}
+                                    leftIcon={<HiOutlineDownload className="w-4 h-4" />}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                    PDF
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleExport('excel')}
+                                    leftIcon={<HiOutlineDownload className="w-4 h-4" />}
+                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                >
+                                    Excel
+                                </Button>
+                                <Badge variant="gray">
+                                    Últimos 30 dias
+                                </Badge>
+                            </div>
                         </div>
 
                         {/* Funnel Stages */}

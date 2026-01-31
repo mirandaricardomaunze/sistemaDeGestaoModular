@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { cacheService, CacheKeys } from '../services/cache.service';
@@ -231,7 +231,7 @@ router.get('/charts/top-products', authenticate, async (req: AuthRequest, res) =
             take: parseInt(String(limit))
         });
 
-        // 🚀 OPTIMIZE: Fetch all products in one query instead of N queries
+        // ðŸš€ OPTIMIZE: Fetch all products in one query instead of N queries
         const productIds = topProducts.map(item => item.productId);
         const products = await prisma.product.findMany({
             where: { id: { in: productIds } },

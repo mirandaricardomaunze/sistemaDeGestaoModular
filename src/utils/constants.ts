@@ -1,4 +1,4 @@
-/**
+﻿/**
  * System Constants and Labels
  * Centralized display names for various system types and statuses.
  */
@@ -37,7 +37,7 @@ export const alertTypeLabels: Record<string, string> = {
     expired_product: 'Produto Vencido',
     payment_due: 'Pagamento',
     order_delayed: 'Pedido Atrasado',
-    system: 'Sistema',
+    system: 'Multicore',
     employee: 'Funcionário',
     sales: 'Vendas',
 };

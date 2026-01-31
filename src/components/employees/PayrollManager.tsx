@@ -1,29 +1,42 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo, useCallback } from 'react';
 import {
     HiOutlineSave,
     HiOutlineRefresh,
     HiOutlineCash,
     HiOutlineLibrary,
     HiOutlineDocumentText,
+    HiOutlineCheck,
+    HiOutlineBadgeCheck,
+    HiOutlineDownload,
 } from 'react-icons/hi';
 import { useEmployees, usePayroll } from '../../hooks/useData';
 import { useFiscalStore } from '../../stores/useFiscalStore';
-import { Button, Card, Pagination, usePagination } from '../ui';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { useStore } from '../../stores/useStore';
+import { Button, Card, Pagination, usePagination, Badge } from '../ui';
 import { formatCurrency, generateId } from '../../utils/helpers';
 import { usePayrollTaxes, getFiscalPeriodFromDate } from '../../utils/fiscalIntegration';
+import { generateHRPayrollSummaryReport } from '../../utils/documentGenerator';
 import type { PayrollRecord, Employee } from '../../types';
 import toast from 'react-hot-toast';
 import PayslipGenerator from './PayslipGenerator.tsx';
+import PaymentConfirmModal from './PaymentConfirmModal';
 
 export default function PayrollManager() {
+    const { user } = useAuthStore();
+    const { companySettings } = useStore();
     const { employees: employeesData } = useEmployees();
-    const { payroll: payrollData, createPayroll: addPayroll, updatePayroll } = usePayroll();
+    const { payroll: payrollData, createPayroll: addPayroll, updatePayroll, markAsPaid } = usePayroll();
     const employees = Array.isArray(employeesData) ? employeesData : [];
     const payroll = Array.isArray(payrollData) ? payrollData : [];
     const { calculateIRPS, taxConfigs } = useFiscalStore();
     const { calculatePayrollTaxes } = usePayrollTaxes();
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
+    const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+
+    // Payment confirmation modal state
+    const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+    const [selectedRecordForPayment, setSelectedRecordForPayment] = useState<(PayrollRecord & { employee: Employee }) | null>(null);
 
     // Active employees
     const activeEmployees = useMemo(() => employees.filter(e => e.isActive), [employees]);
@@ -36,7 +49,7 @@ export default function PayrollManager() {
     }, [taxConfigs]);
 
     // Helper for calculations - now uses dynamic rates
-    const calculatePayroll = (base: number, bonus: number, ot: number, allowances: number, irps: number, adv: number) => {
+    const calculatePayroll = useCallback((base: number, bonus: number, ot: number, allowances: number, irps: number, adv: number) => {
         const inss = base * (inssEmployeeRate / 100); // Dynamic INSS rate
         const gross = base + ot + bonus + allowances;
         const deductions = inss + irps + adv;
@@ -46,13 +59,13 @@ export default function PayrollManager() {
             totalDeductions: deductions,
             netSalary: gross - deductions
         };
-    };
+    }, [inssEmployeeRate]);
 
     // Calculate IRPS dynamically using fiscal store brackets
-    const calculateDynamicIRPS = (grossSalary: number) => {
+    const calculateDynamicIRPS = useCallback((grossSalary: number) => {
         const result = calculateIRPS(grossSalary);
         return result.irps;
-    };
+    }, [calculateIRPS]);
 
     // Get or Create Draft Records for current view
     const currentPayrollData = useMemo(() => {
@@ -152,10 +165,10 @@ export default function PayrollManager() {
                     // Or just rely on visual update? 
                     // Since `currentPayrollData` handles visual, we need to save to store to persist the "recalculate"
                     const newId = generateId();
-                    const { employee, id, ...cleanRecord } = updatedRecord;
+                    const { employee: _employee, id: _id, ...cleanRecord } = updatedRecord;
                     addPayroll({ ...cleanRecord, id: newId, status: 'draft' } as PayrollRecord);
                 } else {
-                    updatePayroll(record.id, updatedRecord);
+                    updatePayroll(record.id, updatedRecord as Partial<PayrollRecord>);
                 }
                 updatedCount++;
             }
@@ -164,7 +177,7 @@ export default function PayrollManager() {
         if (updatedCount > 0) {
             toast.success(`Valores recalculados! IRPS e INSS actualizados (INSS: ${inssEmployeeRate}%)`);
         } else {
-            toast('Nenhum rascunho para atualizar', { icon: 'ℹ️' });
+            toast('Nenhum rascunho para atualizar', { icon: 'â„¹ï¸' });
         }
     };
 
@@ -192,7 +205,7 @@ export default function PayrollManager() {
             // Since we map from store, directly updating store is best.
             const newId = generateId();
             // Removing 'employee' prop before saving
-            const { employee, id, ...cleanRecord } = updatedRecord;
+            const { employee: _employee, id: _id, ...cleanRecord } = updatedRecord;
             addPayroll({ ...cleanRecord, id: newId, status: 'draft' } as PayrollRecord);
         }
     };
@@ -212,13 +225,59 @@ export default function PayrollManager() {
 
             if (record.id.startsWith('draft-')) {
                 const newId = generateId();
-                const { employee, id, ...cleanRecord } = record;
+                const { employee: _employee, id: _id, ...cleanRecord } = record;
                 addPayroll({ ...cleanRecord, id: newId, status: 'processed' } as PayrollRecord);
             } else {
-                updatePayroll(record.id, { status: 'processed' });
+                updatePayroll(record.id, { status: 'processed' } as Partial<PayrollRecord>);
             }
         });
         toast.success('Folha processada e impostos registados na Gestão Fiscal!');
+    };
+
+    // Export monthly report to PDF
+    const handleExportReport = () => {
+        const period = `${months[selectedMonth]} ${selectedYear}`;
+        const totalGross = currentPayrollData.reduce((sum, r) => sum + r.totalEarnings, 0);
+
+        generateHRPayrollSummaryReport({
+            period,
+            month: selectedMonth + 1,
+            year: selectedYear,
+            employees: currentPayrollData.map(r => ({
+                name: r.employee.name,
+                role: r.employee.role,
+                department: r.employee.department,
+                baseSalary: r.baseSalary,
+                inssDeduction: r.inssDeduction,
+                irtDeduction: r.irtDeduction,
+                bonus: r.bonus,
+                allowances: r.allowances,
+                totalEarnings: r.totalEarnings,
+                totalDeductions: r.totalDeductions,
+                netSalary: r.netSalary,
+                status: r.status as 'draft' | 'processed' | 'paid'
+            })),
+            totals: {
+                totalNet: totals.totalNet,
+                totalINSS: totals.totalINSS,
+                totalIRPS: totals.totalIRPS,
+                totalGross
+            },
+            inssRate: inssEmployeeRate
+        }, companySettings);
+
+        toast.success('Relatório mensal exportado!');
+    };
+
+    // Handle payment confirmation via modal
+    const handleOpenPaymentModal = (record: PayrollRecord & { employee: Employee }) => {
+        setSelectedRecordForPayment(record);
+        setPaymentModalOpen(true);
+    };
+
+    const handleConfirmPayment = async (paymentData: { method: string; notes?: string }) => {
+        if (!selectedRecordForPayment) return;
+        await markAsPaid(selectedRecordForPayment.id, user?.id || 'unknown', paymentData.notes);
     };
 
     const months = [
@@ -270,7 +329,11 @@ export default function PayrollManager() {
                         </select>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                        <Button variant="outline" onClick={handleExportReport}>
+                            <HiOutlineDownload className="w-4 h-4 mr-2" />
+                            Exportar Relatório
+                        </Button>
                         <Button variant="outline" onClick={handleRecalculate}>
                             <HiOutlineRefresh className="w-4 h-4 mr-2" />
                             Recalcular Valores
@@ -349,6 +412,7 @@ export default function PayrollManager() {
                                 <th className="px-4 py-3 text-right">Bônus / Outros</th>
                                 <th className="px-4 py-3 text-right">IRPS</th>
                                 <th className="px-4 py-3 text-right">Valor Líquido</th>
+                                <th className="px-4 py-3 text-center">Estado</th>
                                 <th className="px-4 py-3 text-center">Ações</th>
                             </tr>
                         </thead>
@@ -386,7 +450,32 @@ export default function PayrollManager() {
                                         {formatCurrency(record.netSalary)}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <PayslipGenerator record={record} />
+                                        {record.status === 'paid' && (
+                                            <Badge variant="success" size="sm">
+                                                <HiOutlineBadgeCheck className="w-3 h-3 mr-1" /> Pago
+                                            </Badge>
+                                        )}
+                                        {record.status === 'processed' && (
+                                            <Badge variant="warning" size="sm">Processado</Badge>
+                                        )}
+                                        {record.status === 'draft' && (
+                                            <Badge variant="gray" size="sm">Rascunho</Badge>
+                                        )}
+                                    </td>
+                                    <td className="px-4 py-3 text-center">
+                                        <div className="flex items-center justify-center gap-1">
+                                            <PayslipGenerator record={record} />
+                                            {record.status === 'processed' && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    title="Confirmar Pagamento"
+                                                    onClick={() => handleOpenPaymentModal(record)}
+                                                >
+                                                    <HiOutlineCheck className="w-4 h-4 text-green-600" />
+                                                </Button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -404,6 +493,19 @@ export default function PayrollManager() {
                     />
                 </div>
             </Card>
+
+            {/* Payment Confirmation Modal */}
+            {selectedRecordForPayment && (
+                <PaymentConfirmModal
+                    isOpen={paymentModalOpen}
+                    onClose={() => {
+                        setPaymentModalOpen(false);
+                        setSelectedRecordForPayment(null);
+                    }}
+                    record={selectedRecordForPayment}
+                    onConfirm={handleConfirmPayment}
+                />
+            )}
         </div >
     );
 }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Pharmacy Dashboard
  * 
  * Professional dashboard for pharmacy module with:
@@ -45,6 +45,9 @@ import {
 import { Card, Button, Badge, LoadingSpinner } from '../../components/ui';
 import { formatCurrency, formatRelativeTime, cn } from '../../utils/helpers';
 import { pharmacyAPI } from '../../services/api';
+import { useSmartInsights } from '../../hooks/useSmartInsights';
+import { SmartInsightCard } from '../../components/common/SmartInsightCard';
+import { HiOutlineLightBulb } from 'react-icons/hi';
 
 // Chart colors
 const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
@@ -83,6 +86,7 @@ export default function PharmacyDashboard() {
     const [weeklyChart, setWeeklyChart] = useState<any[]>([]);
     const [topProducts, setTopProducts] = useState<any[]>([]);
     const [recentSales, setRecentSales] = useState<any[]>([]);
+    const { insights } = useSmartInsights();
 
     const fetchDashboard = async () => {
         try {
@@ -226,6 +230,26 @@ export default function PharmacyDashboard() {
                     </Link>
                 </div>
             </div>
+
+            {/* Smart Insights / Intelligent Advisor */}
+            {insights.length > 0 && (
+                <div className="space-y-4 mb-6">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <HiOutlineLightBulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Alertas de validade e reposição farmacêutica</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
+                        {insights.map((insight) => (
+                            <SmartInsightCard key={insight.id} insight={insight} className="min-w-[320px] max-w-[400px] flex-shrink-0" />
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

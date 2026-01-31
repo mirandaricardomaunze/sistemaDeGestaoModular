@@ -1,8 +1,8 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
-import { cacheService, CacheKeys } from '../services/cache.service';
+
 import * as crypto from 'crypto';
 
 const router = Router();
@@ -43,7 +43,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
         const limitNum = parseInt(limit);
         const skip = (pageNum - 1) * limitNum;
 
-        const where: any = {
+        const where: Record<string, any> = {
             companyId: req.companyId
         };
 
@@ -86,7 +86,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
                 hasMore: skip + sales.length < total
             }
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Get sales error:', {
             message: error.message,
             stack: error.stack,
@@ -132,7 +132,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
         }
 
         res.json(sale);
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Get sale error:', {
             message: error.message,
             saleId: req.params.id,
@@ -204,7 +204,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 // Handle Redemption
                 if (redeemPoints && redeemPoints > 0) {
                     // Cast to any to avoid type errors if Prisma Client is not regenerated yet
-                    const customerPoints = (customerData as any).loyaltyPoints || 0;
+                    const customerPoints = (customerData as Record<string, any>).loyaltyPoints || 0;
 
                     if (customerPoints < redeemPoints) {
                         throw new Error(`Pontos insuficientes. Disponível: ${customerPoints}`);
@@ -475,6 +475,22 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                 }
             }
 
+            // Step 8.5: Create Global Transaction Record
+            await tx.transaction.create({
+                data: {
+                    type: 'income',
+                    category: 'Sales',
+                    description: `Venda Retalho: ${receiptNumber}`,
+                    amount: total,
+                    date: today,
+                    status: 'completed',
+                    paymentMethod: paymentMethod || 'cash',
+                    reference: receiptNumber,
+                    module: 'retail',
+                    companyId: req.companyId
+                }
+            });
+
             return createdSale;
         }, {
             isolationLevel: 'Serializable',
@@ -482,7 +498,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         });
 
         res.status(201).json(sale);
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Create sale error:', {
             message: error.message,
             stack: error.stack,
@@ -577,7 +593,7 @@ router.get('/stats/summary', authenticate, async (req: AuthRequest, res) => {
             byPaymentMethod,
             topProducts: topProductsWithDetails
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Get sales stats error:', {
             message: error.message,
             stack: error.stack,
@@ -676,7 +692,7 @@ router.post('/:id/cancel', authenticate, authorize('admin', 'manager'), async (r
         });
 
         res.json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Cancel sale error:', error);
         res.status(500).json({
             error: error.message || 'Erro ao anular venda',
@@ -731,7 +747,7 @@ router.get('/today/summary', authenticate, async (req: AuthRequest, res) => {
                 tax: totals._sum?.tax || 0
             }
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Get today sales error:', {
             message: error.message,
             stack: error.stack,

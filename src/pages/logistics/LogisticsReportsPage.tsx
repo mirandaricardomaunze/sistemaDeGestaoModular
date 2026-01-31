@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Logistics Reports Page
  * Analytics dashboard for deliveries, drivers, routes, and revenue
  */
@@ -18,6 +18,7 @@ import {
     HiOutlineChartBar
 } from 'react-icons/hi2';
 import { useDeliveries, useDrivers, useDeliveryRoutes, useLogisticsDashboard } from '../../hooks/useLogistics';
+import { exportAPI } from '../../services/api';
 import {
     BarChart,
     Bar,
@@ -31,7 +32,6 @@ import {
     Cell
 } from 'recharts';
 import { format, subDays, startOfMonth, parseISO } from 'date-fns';
-import { pt } from 'date-fns/locale';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -200,107 +200,40 @@ export default function LogisticsReportsPage() {
             .sort((a, b) => b.count - a.count);
     }, [dashboard]);
 
-    // Export to CSV
-    const exportToCSV = () => {
+    // Unified Export Handler
+    const handleExport = async (type: 'pdf' | 'excel') => {
         if (!deliveriesData?.deliveries) return;
 
-        const headers = ['Número', 'Destinatário', 'Endereço', 'Motorista', 'Status', 'Data', 'Valor'];
-        const rows = deliveriesData.deliveries.map(d => [
-            d.number,
-            d.recipientName || '-',
-            d.deliveryAddress,
-            d.driver?.name || '-',
-            d.status,
-            format(parseISO(d.createdAt), 'dd/MM/yyyy'),
-            d.shippingCost || 0
-        ]);
+        const periodLabel = period === 'month' ? 'Este Mês' : `Últimos ${period} dias`;
 
-        const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = `relatorio_entregas_${dateRange.startDate}_${dateRange.endDate}.csv`;
-        link.click();
-    };
+        const columns = [
+            { header: 'Número', key: 'number', width: 100 },
+            { header: 'Destinatário', key: 'recipient', width: 150 },
+            { header: 'Endereço', key: 'address', width: 200 },
+            { header: 'Motorista', key: 'driver', width: 120 },
+            { header: 'Status', key: 'status', width: 100 },
+            { header: 'Data', key: 'date', width: 100 },
+            { header: 'Valor', key: 'value', width: 80 }
+        ];
 
-    // Export summary to PDF (simplified - creates a printable page)
-    const exportToPDF = () => {
-        const printWindow = window.open('', '_blank');
-        if (!printWindow) return;
+        const data = deliveriesData.deliveries.map(d => ({
+            number: d.number,
+            recipient: d.recipientName || '-',
+            address: d.deliveryAddress,
+            driver: d.driver?.name || '-',
+            status: d.status,
+            date: format(parseISO(d.createdAt), 'dd/MM/yyyy'),
+            value: formatCurrency(Number(d.shippingCost || 0))
+        }));
 
-        printWindow.document.write(`
-            <html>
-            <head>
-                <title>Relatório de Logística</title>
-                <style>
-                    body { font-family: Arial, sans-serif; padding: 20px; }
-                    h1 { color: #333; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
-                    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 20px 0; }
-                    .stat { background: #f3f4f6; padding: 15px; border-radius: 8px; }
-                    .stat-value { font-size: 24px; font-weight: bold; color: #3b82f6; }
-                    .stat-label { color: #666; font-size: 12px; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                    th { background: #f3f4f6; }
-                    @media print { body { -webkit-print-color-adjust: exact; } }
-                </style>
-            </head>
-            <body>
-                <h1>Relatório de Logística</h1>
-                <p>Período: ${format(parseISO(dateRange.startDate), 'dd/MM/yyyy', { locale: pt })} a ${format(parseISO(dateRange.endDate), 'dd/MM/yyyy', { locale: pt })}</p>
-                
-                <div class="stats">
-                    <div class="stat">
-                        <div class="stat-value">${deliveryStats?.total || 0}</div>
-                        <div class="stat-label">Total de Entregas</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">${deliveryStats?.successRate.toFixed(1) || 0}%</div>
-                        <div class="stat-label">Taxa de Sucesso</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">${formatCurrency(deliveryStats?.totalRevenue || 0)}</div>
-                        <div class="stat-label">Receita Total</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value">${deliveryStats?.avgDeliveryHours.toFixed(1) || 0}h</div>
-                        <div class="stat-label">Tempo Médio de Entrega</div>
-                    </div>
-                </div>
-                
-                <h2>Desempenho por Motorista</h2>
-                <table>
-                    <tr><th>Motorista</th><th>Entregas</th><th>Sucesso</th><th>Taxa</th></tr>
-                    ${driverPerformance.map(d => `
-                        <tr>
-                            <td>${d.name}</td>
-                            <td>${d.total}</td>
-                            <td>${d.delivered}</td>
-                            <td>${d.successRate.toFixed(1)}%</td>
-                        </tr>
-                    `).join('')}
-                </table>
-                
-                <h2>Rotas Mais Utilizadas</h2>
-                <table>
-                    <tr><th>Rota</th><th>Entregas</th><th>Receita</th></tr>
-                    ${routeUsage.map(r => `
-                        <tr>
-                            <td>${r.name}</td>
-                            <td>${r.count}</td>
-                            <td>${formatCurrency(r.revenue)}</td>
-                        </tr>
-                    `).join('')}
-                </table>
-                
-                <p style="margin-top: 30px; color: #666; font-size: 12px;">
-                    Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: pt })}
-                </p>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.print();
+        await exportAPI.export({
+            type,
+            title: 'LOGÍSTICA: Relatório de Entregas',
+            subtitle: `Período: ${periodLabel} | Suceso: ${deliveryStats?.successRate.toFixed(1)}%`,
+            columns,
+            data,
+            filename: `Relatorio_Logistica_${new Date().getTime()}`
+        });
     };
 
     if (isLoading) {
@@ -330,11 +263,11 @@ export default function LogisticsReportsPage() {
                     <Button variant="outline" className="h-[42px]" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetchDashboard()}>
                         Actualizar
                     </Button>
-                    <Button variant="outline" className="h-[42px]" leftIcon={<HiOutlineArrowDownTray className="w-5 h-5" />} onClick={exportToCSV}>
-                        CSV
+                    <Button variant="outline" className="h-[42px]" leftIcon={<HiOutlineArrowDownTray className="w-5 h-5" />} onClick={() => handleExport('excel')}>
+                        Gerar XLSX
                     </Button>
-                    <Button className="h-[42px]" leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />} onClick={exportToPDF}>
-                        PDF
+                    <Button className="h-[42px]" leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />} onClick={() => handleExport('pdf')}>
+                        Exportar PDF Profissional
                     </Button>
                 </div>
             </div>

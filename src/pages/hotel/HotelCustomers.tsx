@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Hotel Customers (Hóspedes)
  * 
  * Reuses the existing Customers component but scoped to hotel module

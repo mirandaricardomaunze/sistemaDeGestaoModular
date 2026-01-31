@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GuestProfileModal Component
  * Shows detailed guest and booking information with consumption history
  */
@@ -101,7 +101,7 @@ export default function GuestProfileModal({
         try {
             const data = await hospitalityAPI.getBookingDetails(bookingId);
             setBooking(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err.message || 'Erro ao carregar detalhes');
         } finally {
             setIsLoading(false);

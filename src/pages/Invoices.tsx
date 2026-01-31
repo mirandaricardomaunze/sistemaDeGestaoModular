@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+﻿import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -420,7 +420,6 @@ export default function Invoices() {
                 reference: data.reference,
                 notes: data.notes,
             });
-            setShowPaymentModal(false);
             resetPayment();
         } catch (err) {
             console.error('Error registering payment:', err);

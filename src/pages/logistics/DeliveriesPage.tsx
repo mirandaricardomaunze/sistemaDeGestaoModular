@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Deliveries Management Page
  * List, create, track, and manage deliveries
  */
@@ -18,6 +18,7 @@ import {
 } from 'react-icons/hi2';
 import { useDeliveries, useCreateDelivery, useUpdateDeliveryStatus, useDrivers, useVehicles, useDeliveryRoutes, usePayDelivery } from '../../hooks/useLogistics';
 import type { Delivery, Vehicle, Driver, DeliveryRoute } from '../../services/api/logistics.api';
+import { ExportDeliveriesButton } from '../../components/common/ExportButton';
 
 const deliveryStatuses = [
     { value: 'pending', label: 'Pendente', color: 'warning', icon: HiOutlineClock },
@@ -211,6 +212,7 @@ export default function DeliveriesPage() {
                     <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()}>
                         Actualizar
                     </Button>
+                    <ExportDeliveriesButton data={data?.deliveries || []} />
                     <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => setIsModalOpen(true)}>
                         Nova Entrega
                     </Button>
@@ -329,7 +331,7 @@ export default function DeliveriesPage() {
                 )}
 
                 {/* Pagination */}
-                {data && data.pagination.totalPages > 1 && (
+                {data && data.pagination.total > 0 && (
                     <div className="p-4 border-t dark:border-dark-700">
                         <Pagination
                             currentPage={page}
@@ -340,7 +342,7 @@ export default function DeliveriesPage() {
                                 setPageSize(size);
                                 setPage(1);
                             }}
-                            itemsPerPageOptions={[10, 20, 50]}
+                            itemsPerPageOptions={[10, 20, 50, 100]}
                         />
                     </div>
                 )}
@@ -413,7 +415,7 @@ export default function DeliveriesPage() {
                     <div className="grid grid-cols-3 gap-4">
                         <Select
                             label="Rota"
-                            options={[{ value: '', label: 'Seleccionar rota' }, ...(routesData?.data.map((r: DeliveryRoute) => ({ value: r.id, label: `${r.name} (${r.origin} → ${r.destination})` })) || [])]}
+                            options={[{ value: '', label: 'Seleccionar rota' }, ...(routesData?.data.map((r: DeliveryRoute) => ({ value: r.id, label: `${r.name} (${r.origin} â†’ ${r.destination})` })) || [])]}
                             value={formData.routeId}
                             onChange={(e) => setFormData({ ...formData, routeId: e.target.value })}
                         />

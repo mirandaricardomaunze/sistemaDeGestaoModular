@@ -1,4 +1,4 @@
-import { Redis } from 'ioredis';
+﻿import { Redis } from 'ioredis';
 
 const redisConfig: any = {
     host: process.env.REDIS_HOST || 'localhost',
@@ -19,7 +19,7 @@ export const connection = new Redis(redisConfig);
 connection.on('error', (err) => {
     // Only log once to avoid flooding
     if ((connection as any)._loggedError) return;
-    console.warn('⚠️ Redis Connection Error:', err.message);
+    console.warn('âš ï¸ Redis Connection Error:', err.message);
     (connection as any)._loggedError = true;
 });
 

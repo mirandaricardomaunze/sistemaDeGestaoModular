@@ -1,4 +1,4 @@
-import type {
+﻿import type {
     TaxRetention,
     FiscalReport,
     SAFTFile,
@@ -198,7 +198,7 @@ export function generateSAFTHeader(
         dateCreated: new Date().toISOString().split('T')[0],
         taxEntity: 'Global',
         productCompanyTaxID: companyInfo.taxId,
-        productID: 'ERP Sistema',
+        productID: 'ERP Multicore',
         productVersion: '1.0',
     };
 }

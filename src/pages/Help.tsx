@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Help Page - Professional Multi-Module Documentation
  * 
  * Comprehensive help system with:
@@ -663,7 +663,7 @@ export default function Help() {
                                 </h3>
                                 <div className="space-y-2">
                                     <a
-                                        href="mailto:suporte@sistema.co.mz"
+                                        href="mailto:suporte@multicore.co.mz"
                                         className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary-600 transition-colors"
                                     >
                                         <HiOutlineSupport className="w-4 h-4" />

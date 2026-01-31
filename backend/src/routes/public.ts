@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Public API Routes for Online Reservations
  * NO AUTHENTICATION REQUIRED - For website integration
  * 
@@ -180,7 +180,7 @@ router.get('/rooms/available', queryLimiter, async (req, res) => {
             rooms: filteredRooms
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching available rooms:', error);
         res.status(500).json({ message: 'Erro ao verificar disponibilidade' });
     }
@@ -214,7 +214,7 @@ router.get('/rooms/:id', queryLimiter, async (req, res) => {
         }
 
         res.json(room);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching room:', error);
         res.status(500).json({ message: 'Erro ao buscar quarto' });
     }
@@ -280,7 +280,7 @@ router.get('/room-types', queryLimiter, async (req, res) => {
         }));
 
         res.json(roomTypes);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching room types:', error);
         res.status(500).json({ message: 'Erro ao buscar tipos de quarto' });
     }
@@ -438,7 +438,7 @@ router.post('/reservations', reservationLimiter, async (req, res) => {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error creating reservation:', error);
         res.status(500).json({ message: 'Erro ao criar reserva. Tente novamente.' });
     }
@@ -506,7 +506,7 @@ router.get('/reservations/:id', queryLimiter, async (req, res) => {
             notes: reservation.notes
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching reservation:', error);
         res.status(500).json({ message: 'Erro ao buscar reserva' });
     }
@@ -566,7 +566,7 @@ router.get('/reservations/code/:code', queryLimiter, async (req, res) => {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error checking reservation:', error);
         res.status(500).json({ message: 'Erro ao verificar reserva' });
     }
@@ -620,7 +620,7 @@ router.delete('/reservations/:code', reservationLimiter, async (req, res) => {
             confirmationCode: code
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error cancelling reservation:', error);
         res.status(500).json({ message: 'Erro ao cancelar reserva' });
     }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useEffect, type ReactNode } from 'react';
+﻿import React, { createContext, useContext, useMemo, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useStore, MODULE_TO_BUSINESS_TYPE } from '../stores/useStore';
 import type { Company } from '../types';
@@ -25,6 +25,9 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const hasModule = (moduleCode: string) => {
         if (!user) return false;
+        // Super Admin has access to all modules
+        if (user.role === 'super_admin') return true;
+
         // Case-insensitive comparison to handle both lowercase and uppercase module codes
         const normalizedCode = moduleCode.toLowerCase();
         return activeModules.some(m => m.toLowerCase() === normalizedCode);

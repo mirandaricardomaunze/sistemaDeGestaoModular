@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { format, getYear, differenceInDays } from 'date-fns';
 import {
     HiOutlineCalendar,
@@ -19,7 +19,7 @@ export default function VacationManager() {
     const employees = Array.isArray(employeesData) ? employeesData : [];
     const vacations = Array.isArray(vacationsData) ? vacationsData : [];
     const [showRequestModal, setShowRequestModal] = useState(false);
-    const [selectedYear] = useState(new Date().getFullYear());
+    const [selectedYear] = useState(() => new Date().getFullYear());
     const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
     const [vacationToCancel, setVacationToCancel] = useState<{ id: string, employeeId: string, days: number } | null>(null);
 
@@ -45,8 +45,30 @@ export default function VacationManager() {
     }, [activeEmployees]);
 
     const activeVacations = useMemo(() => {
-        return vacations.filter(v => getYear(new Date(v.startDate)) === selectedYear);
+        const year = selectedYear;
+        return vacations.filter(v => getYear(new Date(v.startDate)) === year);
     }, [vacations, selectedYear]);
+
+    const vacationsTodayCount = useMemo(() => {
+        const today = new Date();
+        return vacations.filter(v => {
+            return new Date(v.startDate) <= today && new Date(v.endDate) >= today;
+        }).length;
+    }, [vacations]);
+
+    const employeeNextVacations = useMemo(() => {
+        const today = new Date();
+        const nextVacationsMap: Record<string, any> = {};
+
+        activeEmployees.forEach(emp => {
+            const next = vacations
+                .filter(v => v.employeeId === emp.id && new Date(v.startDate) > today)
+                .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
+            if (next) nextVacationsMap[emp.id] = next;
+        });
+
+        return nextVacationsMap;
+    }, [activeEmployees, vacations]);
 
     // Pagination for employee stats table
     const {
@@ -162,10 +184,7 @@ export default function VacationManager() {
                         <div>
                             <p className="text-sm text-green-600 dark:text-green-400 font-medium">Colaboradores em Férias Hoje</p>
                             <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                                {vacations.filter(v => {
-                                    const today = new Date();
-                                    return new Date(v.startDate) <= today && new Date(v.endDate) >= today;
-                                }).length}
+                                {vacationsTodayCount}
                             </p>
                         </div>
                         <div className="p-3 bg-white/50 dark:bg-black/20 rounded-xl backdrop-blur-sm">
@@ -214,9 +233,7 @@ export default function VacationManager() {
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
                             {paginatedEmployeeStats.map((emp) => {
-                                const nextVacation = vacations
-                                    .filter(v => v.employeeId === emp.id && new Date(v.startDate) > new Date())
-                                    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0];
+                                const nextVacation = employeeNextVacations[emp.id];
 
                                 return (
                                     <tr key={emp.id} className="bg-white dark:bg-dark-800 hover:bg-gray-50 dark:hover:bg-dark-700">

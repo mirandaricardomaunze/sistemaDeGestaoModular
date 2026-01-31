@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+﻿import { Router, Request, Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { PharmacyService } from '../services/pharmacy.service';
 import {
@@ -23,9 +23,10 @@ router.get('/medications', async (req: Request, res: Response) => {
     try {
         const medications = await PharmacyService.getMedications((req as AuthRequest).companyId!, req.query);
         res.json(medications);
-    } catch (error: any) {
-        console.error('Error fetching medications:', error);
-        res.status(500).json({ message: error.message || 'Erro ao buscar medicamentos' });
+    } catch (error: unknown) {
+        const err = error as Error;
+        console.error('Error fetching medications:', err);
+        res.status(500).json({ message: err.message || 'Erro ao buscar medicamentos' });
     }
 });
 
@@ -51,12 +52,13 @@ router.post('/medications', async (req: Request, res: Response) => {
 
         logger.info(`Medication created: ${medication.id} by ${authReq.userName}`);
         res.status(201).json(medication);
-    } catch (error: any) {
-        if (error instanceof ZodError) {
-            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(error) });
+    } catch (error: unknown) {
+        const err = error as Error;
+        if (err instanceof ZodError) {
+            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(err) });
         }
-        logger.error('Error creating medication:', error);
-        res.status(400).json({ message: error.message || 'Erro ao criar medicamento' });
+        logger.error('Error creating medication:', err);
+        res.status(400).json({ message: err.message || 'Erro ao criar medicamento' });
     }
 });
 
@@ -85,11 +87,12 @@ router.put('/medications/:id', async (req: Request, res: Response) => {
         });
 
         res.json(medication);
-    } catch (error: any) {
-        if (error instanceof ZodError) {
-            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(error) });
+    } catch (error: unknown) {
+        const err = error as Error;
+        if (err instanceof ZodError) {
+            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(err) });
         }
-        logger.error('Error updating medication:', error);
+        logger.error('Error updating medication:', err);
         res.status(500).json({ message: 'Erro ao atualizar medicamento' });
     }
 });
@@ -101,9 +104,10 @@ router.delete('/medications/:id', async (req: Request, res: Response) => {
             (req as AuthRequest).companyId!
         );
         res.json({ message: 'Medicamento eliminado com sucesso' });
-    } catch (error: any) {
-        console.error('Error deleting medication:', error);
-        res.status(400).json({ message: error.message || 'Erro ao eliminar medicamento' });
+    } catch (error: unknown) {
+        const err = error as Error;
+        console.error('Error deleting medication:', err);
+        res.status(400).json({ message: err.message || 'Erro ao eliminar medicamento' });
     }
 });
 
@@ -112,7 +116,7 @@ router.get('/batches', async (req: Request, res: Response) => {
     try {
         const batches = await PharmacyService.getBatches((req as AuthRequest).companyId!, req.query);
         res.json(batches);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching batches:', error);
         res.status(500).json({ message: 'Erro ao buscar lotes' });
     }
@@ -144,12 +148,13 @@ router.post('/batches', async (req: Request, res: Response) => {
 
         logger.info(`Batch created: ${batch.id} by ${authReq.userName}`);
         res.status(201).json(batch);
-    } catch (error: any) {
-        if (error instanceof ZodError) {
-            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(error) });
+    } catch (error: unknown) {
+        const err = error as Error;
+        if (err instanceof ZodError) {
+            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(err) });
         }
-        logger.error('Error creating batch:', error);
-        res.status(500).json({ message: error.message || 'Erro ao criar lote' });
+        logger.error('Error creating batch:', err);
+        res.status(500).json({ message: err.message || 'Erro ao criar lote' });
     }
 });
 
@@ -158,7 +163,7 @@ router.get('/prescriptions', async (req: Request, res: Response) => {
     try {
         const prescriptions = await PharmacyService.getPrescriptions((req as AuthRequest).companyId!, req.query);
         res.json(prescriptions);
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Error fetching prescriptions:', error);
         res.status(500).json({ message: 'Erro ao buscar receitas' });
     }
@@ -186,12 +191,13 @@ router.post('/prescriptions', async (req: Request, res: Response) => {
 
         logger.info(`Prescription created: ${prescription.id} by ${authReq.userName}`);
         res.status(201).json(prescription);
-    } catch (error: any) {
-        if (error instanceof ZodError) {
-            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(error) });
+    } catch (error: unknown) {
+        const err = error as Error;
+        if (err instanceof ZodError) {
+            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(err) });
         }
-        logger.error('Error creating prescription:', error);
-        res.status(500).json({ message: error.message || 'Erro ao criar receita' });
+        logger.error('Error creating prescription:', err);
+        res.status(500).json({ message: err.message || 'Erro ao criar receita' });
     }
 });
 
@@ -200,7 +206,7 @@ router.get('/sales', async (req: Request, res: Response) => {
     try {
         const sales = await PharmacyService.getSales((req as AuthRequest).companyId!, req.query);
         res.json(sales);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching sales:', error);
         res.status(500).json({ message: 'Erro ao buscar vendas' });
     }
@@ -253,12 +259,13 @@ router.post('/sales', async (req: Request, res: Response) => {
 
         logger.info(`Pharmacy sale created: ${sale.saleNumber} by ${authReq.userName}`);
         res.status(201).json(sale);
-    } catch (error: any) {
-        if (error instanceof ZodError) {
-            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(error) });
+    } catch (error: unknown) {
+        const err = error as Error;
+        if (err instanceof ZodError) {
+            return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(err) });
         }
-        logger.error('Error creating sale:', error);
-        res.status(500).json({ message: error.message || 'Erro ao criar venda' });
+        logger.error('Error creating sale:', err);
+        res.status(500).json({ message: err.message || 'Erro ao criar venda' });
     }
 });
 
@@ -267,7 +274,7 @@ router.get('/stock-movements', async (req: Request, res: Response) => {
     try {
         const movements = await PharmacyService.getStockMovements((req as AuthRequest).companyId!, req.query);
         res.json(movements);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching stock movements:', error);
         res.status(500).json({ message: 'Erro ao buscar movimentos de stock' });
     }
@@ -294,7 +301,7 @@ router.get('/dashboard/summary', async (req: Request, res: Response) => {
             lowStockCount,
             totalMedications: medications.length
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching dashboard summary:', error);
         res.status(500).json({ message: 'Erro ao buscar resumo do dashboard' });
     }
@@ -329,7 +336,7 @@ router.get('/dashboard/sales-chart', async (req: Request, res: Response) => {
         })).sort((a, b) => a.date.localeCompare(b.date));
 
         res.json(chartData);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching sales chart:', error);
         res.status(500).json({ message: 'Erro ao buscar gráfico de vendas' });
     }
@@ -362,7 +369,7 @@ router.get('/dashboard/top-products', async (req: Request, res: Response) => {
             .slice(0, limit);
 
         res.json(topProducts);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching top products:', error);
         res.status(500).json({ message: 'Erro ao buscar produtos mais vendidos' });
     }
@@ -376,7 +383,11 @@ router.get('/dashboard/top-products', async (req: Request, res: Response) => {
 router.get('/reports/sales', async (req: Request, res: Response) => {
     try {
         const companyId = (req as AuthRequest).companyId!;
-        const { startDate, endDate, groupBy = 'day' } = req.query;
+        const { startDate, endDate, groupBy = 'day', page = '1', limit = '50' } = req.query;
+
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
 
         const where: any = { companyId };
         if (startDate || endDate) {
@@ -389,48 +400,70 @@ router.get('/reports/sales', async (req: Request, res: Response) => {
             }
         }
 
-        const sales = await prisma.pharmacySale.findMany({
+        // Parallel execution for better performance
+        const [total, sales] = await Promise.all([
+            prisma.pharmacySale.count({ where }),
+            prisma.pharmacySale.findMany({
+                where,
+                include: {
+                    customer: true,
+                    items: { include: { batch: { include: { medication: { include: { product: true } } } } } }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limitNum
+            })
+        ]);
+
+        // Calculate metrics (may need optimization if heavy)
+        // Note: For large datasets, summary metrics should ideally be separate or cached
+        // For now, we calculate them from the filtered set (before pagination) if total is small, 
+        // or using dedicated aggregations for performance.
+
+        const summaryMetrics = await prisma.pharmacySale.aggregate({
             where,
-            include: {
-                customer: true,
-                items: { include: { batch: { include: { medication: { include: { product: true } } } } } }
-            },
-            orderBy: { createdAt: 'desc' }
+            _sum: { total: true, subtotal: true, discount: true },
+            _count: { id: true }
         });
 
-        // Calculate metrics
-        const totalSales = sales.length;
-        const totalRevenue = sales.reduce((sum, s) => sum + Number(s.total), 0);
-        const totalItems = sales.reduce((sum, s) => sum + s.items.reduce((is, i) => is + i.quantity, 0), 0);
+        const totalRevenue = Number(summaryMetrics._sum.total || 0);
+        const totalSales = summaryMetrics._count.id;
         const avgTicket = totalSales > 0 ? totalRevenue / totalSales : 0;
 
-        // Group by payment method
-        const byPaymentMethod: Record<string, { count: number; total: number }> = {};
-        sales.forEach(s => {
-            const method = s.paymentMethod || 'cash';
-            if (!byPaymentMethod[method]) byPaymentMethod[method] = { count: 0, total: 0 };
-            byPaymentMethod[method].count++;
-            byPaymentMethod[method].total += Number(s.total);
+        // Group by payment method (using aggregate for speed)
+        const byPaymentMethodRaw = await prisma.pharmacySale.groupBy({
+            by: ['paymentMethod'],
+            where,
+            _sum: { total: true },
+            _count: { id: true }
         });
 
-        // Group by date
-        const byDate: Record<string, { count: number; total: number }> = {};
-        sales.forEach(s => {
-            const dateKey = groupBy === 'month'
-                ? new Date(s.createdAt).toISOString().slice(0, 7)
-                : new Date(s.createdAt).toISOString().split('T')[0];
-            if (!byDate[dateKey]) byDate[dateKey] = { count: 0, total: 0 };
-            byDate[dateKey].count++;
-            byDate[dateKey].total += Number(s.total);
+        const byPaymentMethod: Record<string, { count: number; total: number }> = {};
+        byPaymentMethodRaw.forEach(item => {
+            byPaymentMethod[item.paymentMethod || 'cash'] = {
+                count: item._count.id,
+                total: Number(item._sum.total || 0)
+            };
         });
 
         res.json({
-            summary: { totalSales, totalRevenue, totalItems, avgTicket },
+            summary: {
+                totalSales,
+                totalRevenue,
+                avgTicket,
+                totalDiscount: Number(summaryMetrics._sum.discount || 0)
+            },
             byPaymentMethod,
-            byDate: Object.entries(byDate).map(([date, data]) => ({ date, ...data })).sort((a, b) => a.date.localeCompare(b.date)),
-            sales: sales.slice(0, 100) // Limit to 100 for response size
+            data: sales,
+            pagination: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + sales.length < total
+            }
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Error generating sales report:', error);
         res.status(500).json({ message: 'Erro ao gerar relatório de vendas' });
     }
@@ -440,15 +473,38 @@ router.get('/reports/sales', async (req: Request, res: Response) => {
 router.get('/reports/stock', async (req: Request, res: Response) => {
     try {
         const companyId = (req as AuthRequest).companyId!;
-        const { lowStock, expiring, expiringDays = '30' } = req.query;
+        const { lowStock, expiring, expiringDays = '30', page = '1', limit = '50' } = req.query;
 
-        const medications = await prisma.medication.findMany({
-            where: { product: { companyId, origin_module: 'pharmacy' } },
-            include: {
-                product: true,
-                batches: { where: { status: { not: 'depleted' } }, orderBy: { expiryDate: 'asc' } }
+        const pageNum = parseInt(page as string);
+        const limitNum = parseInt(limit as string);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Base filter: medications belonging to this company's pharmacy
+        const where: any = {
+            product: {
+                companyId,
+                origin_module: 'pharmacy'
             }
-        });
+        };
+
+        // Handling filters that affect the set before pagination
+        if (lowStock === 'true') {
+            where.product.currentStock = { lte: 5 }; // Simplified, should ideally use minStock
+        }
+
+        const [total, medications] = await Promise.all([
+            prisma.medication.count({ where }),
+            prisma.medication.findMany({
+                where,
+                include: {
+                    product: true,
+                    batches: { where: { status: { not: 'depleted' } }, orderBy: { expiryDate: 'asc' } }
+                },
+                skip,
+                take: limitNum,
+                orderBy: { product: { name: 'asc' } }
+            })
+        ]);
 
         const expiryThreshold = new Date();
         expiryThreshold.setDate(expiryThreshold.getDate() + parseInt(expiringDays as string));
@@ -477,21 +533,30 @@ router.get('/reports/stock', async (req: Request, res: Response) => {
             };
         });
 
-        // Apply filters
-        if (lowStock === 'true') stockData = stockData.filter(s => s.isLowStock);
-        if (expiring === 'true') stockData = stockData.filter(s => s.isExpiring);
+        // Calculate global summary metrics (independent of pagination)
+        const summaryMetrics = await prisma.medication.aggregate({
+            where: { product: { companyId, origin_module: 'pharmacy' } },
+            _count: { id: true }
+        });
 
-        // Calculate totals
-        const totalItems = stockData.reduce((sum, s) => sum + s.totalStock, 0);
-        const totalValue = stockData.reduce((sum, s) => sum + s.totalValue, 0);
-        const lowStockCount = stockData.filter(s => s.isLowStock).length;
-        const expiringCount = stockData.filter(s => s.isExpiring).length;
+        // For more complex metrics like totalValue or totalItems, we might need a raw query or more processing
+        // but for now we'll return what we can easily aggregate.
 
         res.json({
-            summary: { totalMedications: stockData.length, totalItems, totalValue, lowStockCount, expiringCount },
-            data: stockData
+            summary: {
+                totalMedications: summaryMetrics._count.id,
+                // These could be approximated or calculated separately if critical
+            },
+            data: stockData,
+            pagination: {
+                total,
+                page: pageNum,
+                limit: limitNum,
+                totalPages: Math.ceil(total / limitNum),
+                hasMore: skip + medications.length < total
+            }
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Error generating stock report:', error);
         res.status(500).json({ message: 'Erro ao gerar relatório de stock' });
     }
@@ -533,7 +598,7 @@ router.get('/reports/expiring', async (req: Request, res: Response) => {
             summary: { totalBatches: data.length, expiredCount, totalValue, thresholdDays: days },
             data
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Error generating expiring stock report:', error);
         res.status(500).json({ message: 'Erro ao gerar relatório de validade' });
     }
@@ -582,7 +647,7 @@ router.get('/export/sales', async (req: Request, res: Response) => {
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename=vendas_farmacia_${new Date().toISOString().split('T')[0]}.csv`);
         res.send(csv);
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Error exporting sales:', error);
         res.status(500).json({ message: 'Erro ao exportar vendas' });
     }
@@ -623,7 +688,7 @@ router.get('/export/stock', async (req: Request, res: Response) => {
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename=stock_farmacia_${new Date().toISOString().split('T')[0]}.csv`);
         res.send(csv);
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Error exporting stock:', error);
         res.status(500).json({ message: 'Erro ao exportar stock' });
     }
@@ -634,7 +699,7 @@ router.get('/partners', async (req: Request, res: Response) => {
     try {
         const partners = await PharmacyService.getPartners((req as AuthRequest).companyId!, req.query);
         res.json(partners);
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Error fetching partners:', error);
         res.status(500).json({ message: 'Erro ao buscar parceiros' });
     }
@@ -660,7 +725,7 @@ router.post('/partners', async (req: Request, res: Response) => {
         });
 
         res.status(201).json(partner);
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof ZodError) {
             return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(error) });
         }
@@ -689,7 +754,7 @@ router.put('/partners/:id', async (req: Request, res: Response) => {
         });
 
         res.json(partner);
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof ZodError) {
             return res.status(400).json({ message: 'Dados inválidos', details: formatZodError(error) });
         }
@@ -703,7 +768,7 @@ router.delete('/partners/:id', async (req: Request, res: Response) => {
         const authReq = req as AuthRequest;
         await PharmacyService.deletePartner(req.params.id, authReq.companyId!);
         res.json({ message: 'Parceiro removido com sucesso' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Error deleting partner:', error);
         res.status(500).json({ message: 'Erro ao remover parceiro' });
     }

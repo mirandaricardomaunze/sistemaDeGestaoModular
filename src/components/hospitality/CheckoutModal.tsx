@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CheckoutModal Component
  * Handles guest checkout with payment method selection (Cash, Card, M-Pesa, etc.)
  */

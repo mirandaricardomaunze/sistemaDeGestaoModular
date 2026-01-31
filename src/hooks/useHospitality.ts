@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { hospitalityAPI } from '../services/api';
 
@@ -52,7 +52,7 @@ export function useHospitality(params?: UseHospitalityParams) {
             }
 
             setRooms(roomsData);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err.message || 'Erro ao carregar quartos');
         } finally {
             setIsLoading(false);
@@ -92,7 +92,7 @@ export function useHospitality(params?: UseHospitalityParams) {
             await hospitalityAPI.seedRooms();
             await fetchRooms();
             toast.success('Quartos inicializados com sucesso!');
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao inicializar quartos');
         }
     };
@@ -102,7 +102,7 @@ export function useHospitality(params?: UseHospitalityParams) {
             await hospitalityAPI.createBooking(data);
             await fetchRooms();
             toast.success('Check-in realizado com sucesso!');
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao realizar check-in');
             throw err;
         }
@@ -113,7 +113,7 @@ export function useHospitality(params?: UseHospitalityParams) {
             await hospitalityAPI.checkout(bookingId);
             await fetchRooms();
             toast.success('Check-out realizado com sucesso!');
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao realizar check-out');
             throw err;
         }
@@ -124,7 +124,7 @@ export function useHospitality(params?: UseHospitalityParams) {
             await hospitalityAPI.createRoom(data);
             await fetchRooms();
             toast.success('Quarto adicionado com sucesso!');
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao adicionar quarto');
             throw err;
         }
@@ -135,7 +135,7 @@ export function useHospitality(params?: UseHospitalityParams) {
             await hospitalityAPI.updateRoom(id, data);
             await fetchRooms();
             toast.success('Quarto actualizado com sucesso!');
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao actualizar quarto');
             throw err;
         }
@@ -146,7 +146,7 @@ export function useHospitality(params?: UseHospitalityParams) {
             await hospitalityAPI.deleteRoom(id);
             await fetchRooms();
             toast.success('Quarto removido com sucesso!');
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao remover quarto');
             throw err;
         }
@@ -157,7 +157,7 @@ export function useHospitality(params?: UseHospitalityParams) {
             await hospitalityAPI.addConsumption(bookingId, data);
             await fetchRooms();
             toast.success('Consumo registrado com sucesso!');
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.response?.data?.message || 'Erro ao registrar consumo');
             throw err;
         }

@@ -1,4 +1,4 @@
-import { useTranslation } from 'react-i18next';
+﻿import { useTranslation } from 'react-i18next';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import { HiOutlineGlobeAlt } from 'react-icons/hi';
@@ -42,7 +42,7 @@ export default function Footer() {
                     </div>
                     <span className="hidden sm:inline text-gray-300 dark:text-dark-600">|</span>
                     <p>
-                        © {currentYear} {t('footer.allRightsReserved', 'Todos os direitos reservados.')}
+                        Â© {currentYear} {t('footer.allRightsReserved', 'Todos os direitos reservados.')}
                     </p>
                 </div>
             </div>

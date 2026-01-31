@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,11 +6,11 @@
 
 @layer base {
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 dark:bg-dark-900 dark:text-gray-100 transition-colors duration-200;
+    @apply bg-slate-50 text-slate-900 dark:bg-dark-900 dark:text-gray-100 transition-colors duration-300 antialiased;
   }
 
   * {

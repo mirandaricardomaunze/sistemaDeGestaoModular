@@ -94,6 +94,11 @@ model Company {
   deliveries              Delivery[]
   parcels                 Parcel[]
 
+  // Bottle Store Module
+  bottleReturns           BottleReturn[]
+  cashSessions            CashSession[]
+  creditPayments          CreditPayment[]
+
   @@map("companies")
 }
 
@@ -228,6 +233,7 @@ model Product {
   transferItems       StockTransferItem[]
   warehouseStocks     WarehouseStock[]
   deliveryItems       DeliveryItem[]
+  bottleReturns       BottleReturn[]
 
   @@unique([companyId, code])
   @@unique([companyId, barcode])
@@ -351,6 +357,8 @@ model Customer {
   opportunities       Opportunity[]
   pharmacySales       PharmacySale[]
   sales               Sale[]
+  bottleReturns       BottleReturn[]
+  creditPayments      CreditPayment[]
   companyId           String?
   company             Company?             @relation(fields: [companyId], references: [id])
 
@@ -521,12 +529,18 @@ model Sale {
   paymentMethod PaymentMethod @default(cash)
   amountPaid    Decimal       @db.Decimal(15, 2)
   change        Decimal       @default(0) @db.Decimal(15, 2)
+  isCredit      Boolean       @default(false)
+  paidAmount    Decimal       @default(0) @db.Decimal(15, 2)
+  dueDate       DateTime?
+  paymentRef    String?       // Referência M-Pesa/E-Mola
   notes         String?
   createdAt     DateTime      @default(now())
   fiscalNumber  Int?
   hashCode      String?
   series        String?       @default("A")
   items         SaleItem[]
+  bottleReturns BottleReturn[]
+  creditPayments CreditPayment[]
   customer      Customer?     @relation(fields: [customerId], references: [id])
   user          User          @relation(fields: [userId], references: [id])
   companyId     String?
@@ -534,6 +548,7 @@ model Sale {
 
   @@unique([companyId, receiptNumber])
   @@index([companyId])
+  @@index([isCredit])
   @@map("sales")
 }
 
@@ -1986,6 +2001,95 @@ model ParcelNotification {
 
   @@index([parcelId])
   @@map("parcel_notifications")
+}
+
+// ============================================================================
+// BOTTLE STORE MODULE
+// ============================================================================
+
+model BottleReturn {
+  id          String              @id @default(uuid())
+  customerId  String?
+  productId   String
+  quantity    Int
+  depositPaid Decimal             @default(0) @db.Decimal(15, 2)
+  depositRefunded Decimal         @default(0) @db.Decimal(15, 2)
+  type        BottleReturnType    @default(return)
+  saleId      String?
+  notes       String?
+  performedBy String
+  createdAt   DateTime            @default(now())
+  companyId   String?
+  company     Company?            @relation(fields: [companyId], references: [id])
+  customer    Customer?           @relation(fields: [customerId], references: [id])
+  product     Product             @relation(fields: [productId], references: [id])
+  sale        Sale?               @relation(fields: [saleId], references: [id])
+
+  @@index([companyId])
+  @@index([customerId])
+  @@map("bottle_returns")
+}
+
+model CashSession {
+  id              String           @id @default(uuid())
+  openedBy        String
+  closedBy        String?
+  openedAt        DateTime         @default(now())
+  closedAt        DateTime?
+  openingBalance  Decimal          @db.Decimal(15, 2)
+  closingBalance  Decimal?         @db.Decimal(15, 2)
+  expectedBalance Decimal?         @db.Decimal(15, 2)
+  difference      Decimal?         @db.Decimal(15, 2)
+  cashSales       Decimal          @default(0) @db.Decimal(15, 2)
+  mpesaSales      Decimal          @default(0) @db.Decimal(15, 2)
+  emolaSales      Decimal          @default(0) @db.Decimal(15, 2)
+  cardSales       Decimal          @default(0) @db.Decimal(15, 2)
+  creditSales     Decimal          @default(0) @db.Decimal(15, 2)
+  totalSales      Decimal          @default(0) @db.Decimal(15, 2)
+  withdrawals     Decimal          @default(0) @db.Decimal(15, 2)
+  deposits        Decimal          @default(0) @db.Decimal(15, 2)
+  notes           String?
+  status          CashSessionStatus @default(open)
+  companyId       String?
+  company         Company?         @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([status])
+  @@map("cash_sessions")
+}
+
+model CreditPayment {
+  id          String        @id @default(uuid())
+  saleId      String
+  customerId  String
+  amount      Decimal       @db.Decimal(15, 2)
+  paymentMethod PaymentMethod @default(cash)
+  reference   String?
+  notes       String?
+  receivedBy  String
+  paidAt      DateTime      @default(now())
+  companyId   String?
+  company     Company?      @relation(fields: [companyId], references: [id])
+  customer    Customer      @relation(fields: [customerId], references: [id])
+  sale        Sale          @relation(fields: [saleId], references: [id])
+
+  @@index([companyId])
+  @@index([saleId])
+  @@index([customerId])
+  @@map("credit_payments")
+}
+
+enum BottleReturnType {
+  deposit    // Cliente pagou caução
+  return     // Cliente devolveu vasilhame
+  refund     // Devolução do depósito
+  adjustment // Ajuste manual
+}
+
+enum CashSessionStatus {
+  open
+  closed
+  suspended
 }
 
 // ============================================================================

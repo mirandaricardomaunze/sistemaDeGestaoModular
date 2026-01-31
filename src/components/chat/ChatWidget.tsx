@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import {
     HiOutlineX,
     HiOutlinePaperAirplane,
@@ -28,22 +28,22 @@ export default function ChatWidget() {
 
     // Carregar sugestões ao abrir
     useEffect(() => {
-        if (isOpen && messages.length === 0) {
-            loadSuggestions();
-        }
-    }, [isOpen]);
-
-    const loadSuggestions = async () => {
-        try {
-            const data = await chatAPI.getSuggestions();
-            if (data.suggestions && data.suggestions.length > 0) {
-                const allQuestions = data.suggestions.flatMap((s: any) => s.questions);
-                setSuggestions(allQuestions.slice(0, 6));
+        const fetchSuggestions = async () => {
+            if (isOpen && messages.length === 0) {
+                try {
+                    const data = await chatAPI.getSuggestions();
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        const allQuestions = data.suggestions.flatMap((s: { questions: string[] }) => s.questions);
+                        setSuggestions(allQuestions.slice(0, 6));
+                    }
+                } catch (error) {
+                    console.error('Error loading suggestions:', error);
+                }
             }
-        } catch (error) {
-            console.error('Error loading suggestions:', error);
-        }
-    };
+        };
+        fetchSuggestions();
+    }, [isOpen, messages.length]);
+
 
     const handleClose = () => {
         console.log('Closing chat widget');
@@ -87,7 +87,7 @@ export default function ChatWidget() {
             if (response.pdfUrl) {
                 toast.success('📄 Relatório PDF gerado!');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Chat error:', error);
 
             const errorMessage: Message = {

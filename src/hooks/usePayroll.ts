@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { employeesAPI } from '../services/api';
 import type { PayrollRecord } from '../types';
@@ -70,6 +70,37 @@ export function usePayroll(params?: UsePayrollParams) {
         }
     };
 
+    const markAsPaid = async (id: string, paidBy: string, notes?: string) => {
+        try {
+            const updated = await employeesAPI.markPayrollAsPaid(id, { paidBy, notes });
+            setPayroll((prev) => prev.map((p) => (p.id === id ? updated : p)));
+            toast.success('Salário marcado como pago!');
+            return updated;
+        } catch (err) {
+            console.error('Error marking payroll as paid:', err);
+            toast.error('Erro ao marcar como pago');
+            throw err;
+        }
+    };
+
+    const addAuditLog = async (id: string, action: string, userId: string, userName: string, details?: string) => {
+        try {
+            await employeesAPI.addPayrollAudit(id, { action, userId, userName, details });
+        } catch (err) {
+            console.error('Error adding audit log:', err);
+        }
+    };
+
+    const getEmployeeHistory = async (employeeId: string): Promise<PayrollRecord[]> => {
+        try {
+            const history = await employeesAPI.getPayrollHistory(employeeId);
+            return Array.isArray(history) ? history : (history.records || []);
+        } catch (err) {
+            console.error('Error fetching payroll history:', err);
+            return [];
+        }
+    };
+
     return {
         payroll,
         isLoading,
@@ -78,5 +109,8 @@ export function usePayroll(params?: UsePayrollParams) {
         createPayroll,
         updatePayroll,
         processPayroll,
+        markAsPaid,
+        addAuditLog,
+        getEmployeeHistory,
     };
 }

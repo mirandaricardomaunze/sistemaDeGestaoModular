@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
@@ -7,7 +7,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
 import { User, BusinessType } from '@prisma/client';
 import rateLimit from 'express-rate-limit';
-import { OPTIONAL_MODULES, getModuleByCode } from '../constants/modules.constants';
+import { getModuleByCode } from '../constants/modules.constants';
 import {
     loginSchema,
     registerSchema,
@@ -30,6 +30,15 @@ const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // 5 attempts per window
     message: 'Muitas tentativas de login. Tente novamente em 15 minutos.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Rate limiter for forgot password (prevent email spamming)
+const passwordResetLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 3, // 3 attempts per hour per IP
+    message: 'Muitas solicitações de recuperação. Tente novamente em uma hora.',
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -81,7 +90,7 @@ router.post('/login', loginLimiter, async (req, res) => {
             data: { lastLogin: new Date() }
         });
 
-        // 🔒 CRITICAL: JWT_SECRET must be defined
+        // ðŸ”’ CRITICAL: JWT_SECRET must be defined
         const secret = process.env.JWT_SECRET;
         if (!secret) {
             logger.error('CRITICAL: JWT_SECRET not defined in environment');
@@ -115,7 +124,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         // These are always active but we can filter based on permissions eventually
         const activeLayers = ['INVENTORY', 'CRM', 'FISCAL', 'HR'];
 
-        const { password: _p, company, userRoles: _r, ...userWithoutPassword } = user;
+        const { password: _, userRoles: __, company: ___, ...userWithoutPassword } = user;
 
         // Log successful login
         import('../middleware/audit').then(({ logAudit }) => {
@@ -132,7 +141,7 @@ router.post('/login', loginLimiter, async (req, res) => {
         res.json({
             user: {
                 ...userWithoutPassword,
-                company: company ? { id: company.id, name: company.name } : null
+                company: user.company ? { id: user.company.id, name: user.company.name } : null
             },
             token,
             activeModules,
@@ -364,10 +373,10 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
 
         const activeLayers = ['INVENTORY', 'CRM', 'FISCAL', 'HR'];
 
-        const { password: _p, company, userRoles: _r, ...userWithoutPassword } = user;
+        const { password: _, userRoles: __, company: ___, ...userWithoutPassword } = user;
         res.json({
             ...userWithoutPassword,
-            company: company ? { id: company.id, name: company.name } : null,
+            company: user.company ? { id: user.company.id, name: user.company.name } : null,
             activeModules,
             activeLayers,
             permissions
@@ -584,7 +593,7 @@ router.delete('/users/:id', authenticate, async (req: AuthRequest, res) => {
 });
 
 // Forgot Password - Request OTP
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', passwordResetLimiter, async (req, res) => {
     try {
         const validatedData = forgotPasswordSchema.parse(req.body);
         const { email } = validatedData;
@@ -615,8 +624,18 @@ router.post('/forgot-password', async (req, res) => {
         });
 
         // Add to Email Queue
-        const { addEmailToQueue } = await import('../queues/emailQueue');
-        await addEmailToQueue(user.email, otp);
+        try {
+            const { addEmailToQueue } = await import('../queues/emailQueue');
+            await addEmailToQueue(user.email, otp);
+        } catch (queueError) {
+            logger.error('Erro ao adicionar e-mail Í fila (Redis):', queueError);
+            // In development, we might want to send it directly or just log it
+            if (process.env.NODE_ENV !== 'production') {
+                console.log('\n-----------------------------------------');
+                console.log(`[FALLBACK DEV] OTP para ${user.email}: ${otp}`);
+                console.log('-----------------------------------------\n');
+            }
+        }
 
         res.json({ message: 'Código de recuperação enviado para o seu e-mail.' });
     } catch (error) {

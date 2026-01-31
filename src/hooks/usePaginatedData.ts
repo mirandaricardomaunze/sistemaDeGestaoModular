@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api/client';
 
 interface PaginationParams {
@@ -125,7 +125,7 @@ export function usePaginatedData<T = any>({
             if (onSuccess) {
                 onSuccess(responseData.data || responseData);
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
                 // Request was cancelled, ignore
                 return;

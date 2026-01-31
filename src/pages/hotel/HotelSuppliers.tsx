@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Hotel Suppliers (Fornecedores)
  * 
  * Reuses the existing Suppliers component but scoped to hotel module

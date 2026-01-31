@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
     HiOutlineDownload,
     HiOutlineRefresh,
@@ -394,8 +394,8 @@ export default function BackupManagement() {
                                                         onClick={() => handleGDriveUpload(backup.filename)}
                                                         disabled={isUploadingToDrive === backup.filename}
                                                         className={`p-2 rounded-lg transition-colors ${isUploadingToDrive === backup.filename
-                                                                ? 'text-gray-400 cursor-not-allowed'
-                                                                : 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600'
+                                                            ? 'text-gray-400 cursor-not-allowed'
+                                                            : 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600'
                                                             }`}
                                                         title="Enviar para nuvem"
                                                     >

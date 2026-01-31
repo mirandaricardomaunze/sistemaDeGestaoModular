@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, Badge, LoadingSpinner, Input, Modal, Select, Pagination } from '../components/ui';
 import { productsAPI } from '../services/api';
@@ -38,7 +38,7 @@ export default function PharmacyControl() {
         try {
             const data = await productsAPI.getExpiring(90, { page, limit: pageSize }); // Look ahead 90 days
             setExpiringSoonData(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Erro ao carregar produtos a expirar');
         }
     };
@@ -190,7 +190,7 @@ export default function PharmacyControl() {
                         <div className="space-y-3">
                             <div className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-dark-700 rounded-lg cursor-pointer">
                                 <div className="w-2 h-2 rounded-full bg-amber-500" />
-                                <span className="text-sm">Verificar Geladeira (2°C - 8°C)</span>
+                                <span className="text-sm">Verificar Geladeira (2Â°C - 8Â°C)</span>
                             </div>
                             <div className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-dark-700 rounded-lg cursor-pointer">
                                 <div className="w-2 h-2 rounded-full bg-green-500" />

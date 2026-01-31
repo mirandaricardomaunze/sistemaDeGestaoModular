@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { HospitalityService } from '../services/hospitality.service';
@@ -27,7 +27,7 @@ router.get('/rooms', authenticate, async (req: AuthRequest, res) => {
         });
 
         res.json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('GET /rooms error:', error);
         res.status(500).json({ message: error.message });
     }
@@ -44,7 +44,7 @@ router.post('/rooms', authenticate, async (req: AuthRequest, res) => {
 
         const room = await hospitalityService.createRoom(companyId, validatedData);
         res.status(201).json(room);
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof ZodError) {
             return res.status(400).json({
                 message: 'Dados inválidos',
@@ -67,7 +67,7 @@ router.put('/rooms/:id', authenticate, async (req: AuthRequest, res) => {
 
         const room = await hospitalityService.updateRoom(companyId, req.params.id, validatedData);
         res.json(room);
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof ZodError) {
             return res.status(400).json({
                 message: 'Dados inválidos',
@@ -87,7 +87,7 @@ router.delete('/rooms/:id', authenticate, async (req: AuthRequest, res) => {
 
         await hospitalityService.deleteRoom(companyId, req.params.id);
         res.json({ message: 'Room deleted' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -109,7 +109,7 @@ router.get('/bookings', authenticate, async (req: AuthRequest, res) => {
         });
 
         res.json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -125,7 +125,7 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
 
         const result = await hospitalityService.checkIn(companyId, validatedData);
         res.status(201).json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
         if (error instanceof ZodError) {
             return res.status(400).json({
                 message: 'Dados inválidos',
@@ -225,7 +225,7 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
         });
 
         res.status(201).json(consumption);
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -397,7 +397,7 @@ router.put('/bookings/:id/checkout', authenticate, async (req: any, res) => {
         });
 
         res.json(result);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Checkout error:', error);
         res.status(500).json({ message: error.message });
     }
@@ -439,7 +439,7 @@ router.get('/bookings/today-checkouts', authenticate, async (req: AuthRequest, r
         });
 
         res.json(checkouts);
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -478,7 +478,7 @@ router.put('/bookings/:id/extend', authenticate, async (req, res) => {
         });
 
         res.json(updatedBooking);
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -522,7 +522,7 @@ router.get('/bookings/:id/details', authenticate, async (req, res) => {
             consumptionTotal,
             grandTotal: Number(booking.totalPrice) + consumptionTotal
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -543,7 +543,7 @@ router.get('/housekeeping', authenticate, async (req: AuthRequest, res) => {
         });
 
         res.json(tasks);
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -573,7 +573,7 @@ router.post('/housekeeping', authenticate, async (req: AuthRequest, res) => {
         });
 
         res.status(201).json(task);
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -620,7 +620,7 @@ router.put('/housekeeping/:id', authenticate, async (req: AuthRequest, res) => {
         });
 
         res.json(updatedTask);
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -635,7 +635,7 @@ router.delete('/housekeeping/:id', authenticate, async (req: AuthRequest, res) =
 
         await prisma.housekeepingTask.delete({ where: { id: req.params.id, companyId } });
         res.json({ message: 'Task deleted' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -703,7 +703,7 @@ router.get('/calendar', authenticate, async (req: AuthRequest, res) => {
             bookings,
             dateRange: { start, end }
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -792,7 +792,7 @@ router.post('/reservations', authenticate, async (req: AuthRequest, res) => {
         });
 
         res.status(201).json(reservation);
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });
@@ -814,7 +814,7 @@ router.post('/rooms/seed', authenticate, async (req, res) => {
 
         await prisma.room.createMany({ data: roomsData as any });
         res.json({ message: 'Rooms seeded successfully' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         res.status(500).json({ message: error.message });
     }
 });

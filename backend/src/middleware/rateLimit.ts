@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+﻿import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import Redis from 'ioredis';
 
@@ -17,7 +17,7 @@ if (process.env.REDIS_URL || process.env.REDIS_HOST) {
         });
 
         redisClient.on('error', (err) => {
-            console.warn('⚠️ Redis error:', err.message);
+            console.warn('âš ï¸ Redis error:', err.message);
             useRedis = false;
         });
 
@@ -29,12 +29,12 @@ if (process.env.REDIS_URL || process.env.REDIS_HOST) {
         // Mark as potentially usable, the 'error' event will flip it back if it fails
         useRedis = true;
     } catch (error) {
-        console.warn('⚠️ Erro ao configurar Redis, usando rate limiting em memória');
+        console.warn('âš ï¸ Erro ao configurar Redis, usando rate limiting em memória');
         redisClient = null;
         useRedis = false;
     }
 } else {
-    console.warn('⚠️ Configuração Redis ausente, usando rate limiting em memória');
+    console.warn('âš ï¸ Configuração Redis ausente, usando rate limiting em memória');
 }
 
 /**

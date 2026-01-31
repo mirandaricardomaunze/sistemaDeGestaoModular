@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Card, Button, EmptyState, ConfirmationModal } from '../ui';
 import { HiOutlineHome, HiOutlinePlus, HiOutlineTrash, HiOutlinePencil, HiOutlineCog } from 'react-icons/hi';
 import { formatCurrency } from '../../utils/helpers';
@@ -82,7 +82,7 @@ export default function HospitalityManagement() {
             setIsRoomModalOpen(false);
             setEditingRoom(null);
             refetch();
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.message || 'Erro ao guardar quarto');
         }
     };
@@ -100,7 +100,7 @@ export default function HospitalityManagement() {
             setDeleteConfirmOpen(false);
             setRoomToDelete(null);
             refetch();
-        } catch (err: any) {
+        } catch (err: unknown) {
             toast.error(err.message || 'Erro ao eliminar quarto');
         }
     };

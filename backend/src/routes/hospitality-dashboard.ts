@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Hospitality Dashboard API Routes
  * Provides analytics, metrics, and chart data for the hotel/hospitality module
  */
@@ -354,8 +354,8 @@ router.get('/recent-bookings', authenticate, async (req: AuthRequest, res) => {
         const formattedBookings = recentBookings.map(booking => ({
             id: booking.id,
             customerName: booking.customerName,
-            roomNumber: booking.room?.number || '—',
-            roomType: booking.room?.type || '—',
+            roomNumber: booking.room?.number || 'â€”',
+            roomType: booking.room?.type || 'â€”',
             checkIn: booking.checkIn,
             checkOut: booking.checkOut,
             status: booking.status,
@@ -794,8 +794,8 @@ router.get('/reports', authenticate, async (req: AuthRequest, res) => {
                 id: booking.id,
                 checkIn: booking.checkIn,
                 checkOut: booking.checkOut,
-                roomNumber: booking.room?.number || '—',
-                roomType: booking.room?.type || '—',
+                roomNumber: booking.room?.number || 'â€”',
+                roomType: booking.room?.type || 'â€”',
                 customerName: booking.customerName,
                 guestCount: booking.guestCount,
                 status: booking.status,

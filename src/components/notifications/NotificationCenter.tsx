@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NotificationCenter Component
  * 
  * Central notification hub with module filtering, priority indicators,

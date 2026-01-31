@@ -1,4 +1,4 @@
-/**
+﻿/**
  * NotificationBadge Component
  * 
  * Header badge showing unread notification count with

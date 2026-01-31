@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
@@ -330,7 +330,7 @@ router.post('/transfers', authenticate, async (req: AuthRequest, res) => {
         });
 
         res.status(201).json(transferResult);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Create transfer error:', error);
         res.status(400).json({ error: error.message || 'Erro ao criar transferência' });
     }

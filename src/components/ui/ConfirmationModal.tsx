@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+﻿import React, { useEffect } from 'react';
 import { cn } from '../../utils/helpers';
 import { HiOutlineExclamation, HiOutlineInformationCircle, HiOutlineTrash, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
 import { Button } from './Button';

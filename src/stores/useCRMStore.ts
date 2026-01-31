@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CRM Store
  * Gerencia funil de vendas, oportunidades e campanhas
  */

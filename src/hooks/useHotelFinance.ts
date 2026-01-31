@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+﻿import { useState, useEffect, useMemo, useCallback } from 'react';
 import { hospitalityAPI } from '../services/api';
 import { toast } from 'react-hot-toast';
 import { usePagination } from '../components/ui';
@@ -198,7 +198,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             toast.success('Despesa eliminada com sucesso!');
             fetchExpenses();
             fetchDashboard();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error deleting expense:', error);
             toast.error(error.response?.data?.message || 'Erro ao eliminar despesa');
         }
@@ -210,7 +210,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             toast.success('Despesa marcada como paga!');
             fetchExpenses();
             fetchDashboard();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error updating expense:', error);
             toast.error(error.response?.data?.message || 'Erro ao atualizar despesa');
         }

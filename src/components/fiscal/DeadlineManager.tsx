@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
     HiOutlineCalendar,
     HiOutlinePlus,
@@ -16,6 +16,7 @@ import toast from 'react-hot-toast';
 
 export default function DeadlineManager() {
     const { deadlines, addDeadline, deleteDeadline, completeDeadline } = useFiscalStore();
+    const [nowTimestamp] = useState(() => Date.now());
 
     const [showModal, setShowModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
@@ -194,6 +195,13 @@ export default function DeadlineManager() {
         return colors[type] || 'bg-gray-500';
     };
 
+    // Upcoming urgent deadlines
+    const urgentDeadlines = useMemo(() => sortedDeadlines.filter(d => {
+        if (d.status !== 'pending') return false;
+        const daysUntilDue = Math.ceil((new Date(d.dueDate).getTime() - nowTimestamp) / (1000 * 60 * 60 * 24));
+        return daysUntilDue <= 7;
+    }), [sortedDeadlines, nowTimestamp]);
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -219,27 +227,23 @@ export default function DeadlineManager() {
             </div>
 
             {/* Upcoming Urgent Deadlines Alert */}
-            {sortedDeadlines.filter(d => {
-                if (d.status !== 'pending') return false;
-                const daysUntilDue = Math.ceil((new Date(d.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                return daysUntilDue <= 7;
-            }).length > 0 && (
-                    <Card padding="md" className="bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                                <HiOutlineExclamation className="w-6 h-6 text-red-600 dark:text-red-400" />
-                            </div>
-                            <div>
-                                <p className="font-semibold text-red-800 dark:text-red-300">
-                                    Atenção: Prazos Próximos
-                                </p>
-                                <p className="text-sm text-red-700 dark:text-red-400">
-                                    Existem obrigações fiscais a vencer nos próximos 7 dias. Verifique a lista abaixo.
-                                </p>
-                            </div>
+            {urgentDeadlines.length > 0 && (
+                <Card padding="md" className="bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                            <HiOutlineExclamation className="w-6 h-6 text-red-600 dark:text-red-400" />
                         </div>
-                    </Card>
-                )}
+                        <div>
+                            <p className="font-semibold text-red-800 dark:text-red-300">
+                                Atenção: Prazos Próximos
+                            </p>
+                            <p className="text-sm text-red-700 dark:text-red-400">
+                                Existem obrigações fiscais a vencer nos próximos 7 dias. Verifique a lista abaixo.
+                            </p>
+                        </div>
+                    </div>
+                </Card>
+            )}
 
             {/* Deadlines List */}
             <Card padding="none">
@@ -399,7 +403,7 @@ export default function DeadlineManager() {
                             <select
                                 className="p-2 rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-sm"
                                 value={formData.recurringPattern}
-                                onChange={(e) => setFormData({ ...formData, recurringPattern: e.target.value as any })}
+                                onChange={(e) => setFormData({ ...formData, recurringPattern: e.target.value as 'monthly' | 'quarterly' | 'annual' })}
                             >
                                 <option value="monthly">Mensal</option>
                                 <option value="quarterly">Trimestral</option>
@@ -440,6 +444,6 @@ export default function DeadlineManager() {
                     </div>
                 </div>
             </Modal>
-        </div>
+        </div >
     );
 }

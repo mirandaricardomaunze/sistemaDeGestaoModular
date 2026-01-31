@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HousekeepingPanel Component
  * Professional housekeeping workflow management with kanban-style columns
  */
@@ -79,7 +79,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
             if (newStatus === 'completed') {
                 onRoomCleaned?.();
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message || 'Erro ao actualizar tarefa');
         }
     };
@@ -97,7 +97,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
             setDeleteConfirmOpen(false);
             setTaskToDelete(null);
             fetchTasks();
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message || 'Erro ao eliminar tarefa');
         }
     };
@@ -138,7 +138,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
     };
 
     const formatTime = (dateStr: string | null) => {
-        if (!dateStr) return '—';
+        if (!dateStr) return 'â€”';
         return new Date(dateStr).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
     };
 

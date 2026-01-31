@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReportPreviewModal - Standardized report preview with print functionality
  * Used for Sales Reports, Inventory Reports, Financial Reports, etc.
  */
@@ -245,7 +245,7 @@ export default function ReportPreviewModal({
                     {/* Report Footer */}
                     <div className="mt-8 pt-4 border-t border-gray-200 text-center">
                         <p className="text-[7pt] text-gray-400">
-                            Relatório gerado pelo Sistema de Gestão Empresarial | {companySettings?.tradeName || companySettings?.companyName}
+                            Relatório gerado pelo Multicore | {companySettings?.tradeName || companySettings?.companyName}
                         </p>
                         <p className="text-[6pt] text-gray-300 mt-1 font-mono">
                             Documento emitido em {format(new Date(), 'dd/MM/yyyy')} às {format(new Date(), 'HH:mm:ss')}

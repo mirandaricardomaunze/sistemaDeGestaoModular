@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Validation Schemas - Base Utilities
  * 
  * Common validation utilities, types, and reusable schema components.

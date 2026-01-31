@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { settingsAPI } from '../services/api';
 import type {
@@ -64,8 +64,8 @@ export interface CompanySettings {
 
 // Default company settings
 const defaultCompanySettings: CompanySettings = {
-    companyName: 'Minha Empresa Lda',
-    tradeName: 'Minha Empresa',
+    companyName: 'Multicore',
+    tradeName: 'Multicore',
     businessType: 'retail',
     taxId: '400123456',  // NUIT format
     phone: '+258 84 123 4567',

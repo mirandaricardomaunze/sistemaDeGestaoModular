@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Audit Log Viewer Component
  * Visualizador de logs de auditoria com filtros e exportação
  */

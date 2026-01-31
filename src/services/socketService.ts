@@ -1,4 +1,4 @@
-import { io, Socket } from 'socket.io-client';
+﻿import { io, Socket } from 'socket.io-client';
 
 // Socket.io client for real-time alerts
 let socket: Socket | null = null;

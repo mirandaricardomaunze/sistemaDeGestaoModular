@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HospitalityReports Component
  * Reports section with summary, insights, data tables, and export functionality (PDF/Excel)
  */
@@ -7,7 +7,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, Button, Badge, Input, Select, SkeletonTable, SkeletonCard } from '../ui';
 import Pagination, { usePagination } from '../ui/Pagination';
 import { useStore } from '../../stores/useStore';
-import * as XLSX from 'xlsx';
+import { exportAPI } from '../../services/api';
 import {
     HiOutlineDocumentReport,
     HiOutlineDownload,
@@ -22,7 +22,6 @@ import {
 } from 'react-icons/hi';
 import type { DashboardPeriod, ReportBooking } from '../../hooks/useHospitalityDashboard';
 import useHospitalityDashboard from '../../hooks/useHospitalityDashboard';
-import { generateHospitalityReport } from '../../utils/documentGenerator';
 
 // ============================================================================
 // Props Interface
@@ -78,7 +77,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
 
     // Format date
     const formatDate = (dateStr: string | null) => {
-        if (!dateStr) return '—';
+        if (!dateStr) return 'â€”';
         return new Date(dateStr).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
@@ -88,11 +87,44 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
         setIsLoaded(true);
     };
 
-    // Export to PDF (Professional)
-    const handleExportPDF = () => {
+    // Unified Export Handler (Backend-driven)
+    const handleExport = async (type: 'pdf' | 'excel') => {
         if (!reportData) return;
-        generateHospitalityReport(reportData, companySettings);
+
+        const periodLabel = periodOptions.find(o => o.value === period)?.label || period;
+
+        const columns = [
+            { header: 'Data', key: 'date', width: 100 },
+            { header: 'Quarto', key: 'room', width: 80 },
+            { header: 'Cliente', key: 'customer', width: 150 },
+            { header: 'Hospedagem', key: 'roomRev', width: 100 },
+            { header: 'Consumos', key: 'consRev', width: 100 },
+            { header: 'Total', key: 'total', width: 100 },
+            { header: 'Status', key: 'status', width: 100 }
+        ];
+
+        const data = filteredBookings.map(b => ({
+            date: formatDate(b.checkIn),
+            room: `Q-${b.roomNumber}`,
+            customer: b.customerName,
+            roomRev: formatCurrency(b.roomRevenue),
+            consRev: formatCurrency(b.consumptionTotal),
+            total: formatCurrency(b.totalRevenue),
+            status: b.status.replace('_', ' ').toUpperCase()
+        }));
+
+        await exportAPI.export({
+            type,
+            title: 'HOSPITALIDADE: Relatório de Reservas',
+            subtitle: `Período: ${periodLabel} | Receita Total: ${formatCurrency(reportData.summary.totalRevenue)}`,
+            columns,
+            data,
+            filename: `Relatorio_Hotel_${periodLabel}_${new Date().getTime()}`
+        });
     };
+
+    const handleExportPDF = () => handleExport('pdf');
+    const handleExportExcel = () => handleExport('excel');
 
     // Professional Printing (like Inventory)
     const handlePrint = () => {
@@ -103,7 +135,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
 
         const generatedAt = new Date().toLocaleString('pt-PT');
         const company = {
-            name: companySettings?.companyName || 'Minha Empresa',
+            name: companySettings?.companyName || 'Multicore',
             address: [companySettings?.address, companySettings?.city].filter(Boolean).join(', ') || 'Endereço não configurado',
             phone: companySettings?.phone || '',
             email: companySettings?.email || '',
@@ -223,28 +255,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
         }, 800);
     };
 
-    // Export to Excel (Professional using xlsx)
-    const handleExportExcel = () => {
-        if (!reportData) return;
-
-        const worksheetData = filteredBookings.map((b: ReportBooking) => ({
-            'Data Check-in': formatDate(b.checkIn),
-            'Check-out': formatDate(b.checkOut),
-            'Quarto': b.roomNumber,
-            'Tipo': b.roomType,
-            'Cliente': b.customerName,
-            'Hóspedes': b.guestCount,
-            'Valor Hospedagem': b.roomRevenue,
-            'Valor Consumos': b.consumptionTotal,
-            'Total': b.totalRevenue,
-            'Status': b.status.toUpperCase()
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(worksheetData);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Reservas");
-        XLSX.writeFile(wb, `Relatorio_Hotelaria_${period}_${new Date().toISOString().split('T')[0]}.xlsx`);
-    };
+    // Removed local handleExportExcel and handlePrint legacy code
 
 
     // Status badge component
@@ -393,7 +404,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
 
                         {/* Room Status Summary */}
                         <Card className="p-6">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">🛏️ Status dos Quartos (Actual)</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">🛠️ Status dos Quartos (Actual)</h3>
                             <div className="flex flex-wrap gap-3">
                                 <Badge variant="success" className="text-base px-3 py-1">{reportData.roomStats.available} Disponíveis</Badge>
                                 <Badge variant="info" className="text-base px-3 py-1">{reportData.roomStats.occupied} Ocupados</Badge>

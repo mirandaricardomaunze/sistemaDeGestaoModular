@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '../types';
 import toast from 'react-hot-toast';
@@ -115,6 +115,10 @@ export const useAuthStore = create<AuthStore>()(
                     });
 
                     toast.success(`Bem-vindo, ${user.name}!`);
+
+                    // Trigger fiscal data sync after successful login
+                    useFiscalStore.getState().loadFiscalDataFromDatabase();
+
                     return true;
                 } catch (error: unknown) {
                     set({ isLoading: false });
@@ -216,6 +220,9 @@ export const useAuthStore = create<AuthStore>()(
                         isAuthenticated: true,
                         isLoading: false,
                     });
+
+                    // Trigger fiscal data sync after successful auth check (reload)
+                    useFiscalStore.getState().loadFiscalDataFromDatabase();
                 } catch (error) {
                     // Token is invalid or expired
                     localStorage.removeItem('auth_token');

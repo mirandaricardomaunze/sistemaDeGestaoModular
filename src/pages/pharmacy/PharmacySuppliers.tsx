@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,12 +13,14 @@ import {
     HiOutlineCurrencyDollar,
     HiOutlineUserCircle,
     HiOutlineRefresh,
+    HiOutlineDownload,
 } from 'react-icons/hi';
 import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, LoadingSpinner } from '../../components/ui';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { Supplier } from '../../types';
 import { useSuppliers } from '../../hooks/useData';
 import { SupplierOrderManager } from '../../components/suppliers';
+import { exportData, type ExportOptions } from '../../utils/exportUtils';
 
 /**
  * PharmacySuppliers Component
@@ -149,6 +151,25 @@ export default function PharmacySuppliers() {
         totalItems,
     } = usePagination(filteredSuppliers, 10);
 
+    const handleExport = (format: 'pdf' | 'excel') => {
+        const options: ExportOptions = {
+            filename: `Fornecedores_Farmacia_${new Date().toISOString().split('T')[0]}`,
+            title: 'Relatório de Fornecedores - Farmácia',
+            subtitle: 'Diretório Completo',
+            columns: [
+                { key: 'code', header: 'Código', width: 12 },
+                { key: 'name', header: 'Fornecedor', width: 30 },
+                { key: 'nuit', header: 'NUIT', width: 15 },
+                { key: 'phone', header: 'Telemóvel', width: 15 },
+                { key: 'email', header: 'Email', width: 25 },
+                { key: 'totalPurchases', header: 'Total Compras', format: 'currency', width: 20, align: 'right' },
+                { key: 'currentBalance', header: 'Saldo', format: 'currency', width: 20, align: 'right' },
+            ],
+            data: filteredSuppliers,
+        };
+        exportData(options, format);
+    };
+
     const onSubmit = async (data: SupplierFormData) => {
         setIsSubmitting(true);
         try {
@@ -262,10 +283,28 @@ export default function PharmacySuppliers() {
                     <p className="text-gray-500 dark:text-gray-400">Gestão de fornecedores farmacêuticos</p>
                 </div>
                 {activeTab === 'directory' && (
-                    <Button onClick={() => setShowFormModal(true)}>
-                        <HiOutlinePlus className="w-5 h-5 mr-2" />
-                        Novo Fornecedor
-                    </Button>
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            onClick={() => handleExport('pdf')}
+                            leftIcon={<HiOutlineDownload className="w-5 h-5" />}
+                            className="text-red-600 border-red-200 hover:bg-red-50"
+                        >
+                            PDF
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => handleExport('excel')}
+                            leftIcon={<HiOutlineDownload className="w-5 h-5" />}
+                            className="text-green-600 border-green-200 hover:bg-green-50"
+                        >
+                            Excel
+                        </Button>
+                        <Button onClick={() => setShowFormModal(true)}>
+                            <HiOutlinePlus className="w-5 h-5 mr-2" />
+                            Novo Fornecedor
+                        </Button>
+                    </div>
                 )}
             </div>
 

@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { generateId } from '../utils/helpers';
 import { fiscalAPI } from '../services/api';
@@ -165,6 +165,9 @@ export const useFiscalStore = create<FiscalState>()(
 
             // Database Actions
             loadFiscalDataFromDatabase: async () => {
+                const token = localStorage.getItem('auth_token');
+                if (!token) return;
+
                 set({ isSyncing: true });
                 try {
                     // Load Tax Configs
@@ -570,13 +573,9 @@ export const useFiscalStore = create<FiscalState>()(
                 deadlines: state.deadlines,
                 // Don't persist audit logs to avoid storage bloat
             }),
-            onRehydrateStorage: () => (state) => {
-                if (state) {
-                    // Load data from database after rehydration
-                    setTimeout(() => {
-                        state.loadFiscalDataFromDatabase();
-                    }, 1000);
-                }
+            onRehydrateStorage: () => () => {
+                // We no longer sync automatically on rehydration
+                // Sync is now triggered by useAuthStore after successful authentication
             },
         }
     )

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * M-Pesa Payment Service
  * Centralized service for M-Pesa integration (Mozambique)
  * 
@@ -55,7 +55,7 @@ class MpesaService {
         );
 
         if (!this.isConfigured) {
-            console.warn('⚠️ M-Pesa: Modo SIMULAÇÃO activo (pagamentos serão simulados)');
+            console.warn('âš ï¸ M-Pesa: Modo SIMULAÇÃO activo (pagamentos serão simulados)');
         } else {
             console.log('✅ M-Pesa: Serviço configurado para API real');
         }
@@ -256,7 +256,7 @@ class MpesaService {
                     message: data.output_ResponseDesc || 'Erro no pagamento M-Pesa',
                 };
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Update transaction with error
             await prisma.mpesaTransaction.update({
                 where: { id: transaction.id },

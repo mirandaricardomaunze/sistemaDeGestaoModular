@@ -1,4 +1,4 @@
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+﻿import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useStore } from '../../stores/useStore';
@@ -33,6 +33,7 @@ import {
     HiOutlineClipboardList,
     HiOutlineViewGrid,
     HiOutlineQuestionMarkCircle,
+    HiOutlineRefresh,
 } from 'react-icons/hi';
 import { cn } from '../../utils/helpers';
 
@@ -102,7 +103,8 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     { id: 'bottle_store_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/bottle-store/dashboard', module: 'bottle_store' },
     { id: 'bottle_store_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/bottle-store/pos', module: 'bottle_store' },
-    { id: 'bottle_store_stock', labelKey: 'Garrafeira - Stock', icon: HiOutlineCube, path: '/bottle-store/inventory', module: 'bottle_store' },
+    { id: 'bottle_store_inventory', labelKey: 'Inventário', icon: HiOutlineCube, path: '/bottle-store/inventory', module: 'bottle_store' },
+    { id: 'bottle_store_stock', labelKey: 'Movimentos de Stock', icon: HiOutlineRefresh, path: '/bottle-store/stock', module: 'bottle_store' },
     { id: 'bottle_store_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/bottle-store/reports', module: 'bottle_store' },
 
 
@@ -167,41 +169,37 @@ export default function Sidebar() {
     }, [location.pathname]);
 
     const filteredMenuItems = menuItems.filter(item => {
-        // 1. Check permissions
+        // 1. Check permissions (RBAC)
         if (!canViewPage(item.path)) return false;
 
         // 2. Check active modules for this tenant
-        // Core modules are always available: pos, crm, hr, fiscal, invoices, financial
-        const coreModules = ['pos', 'crm', 'hr', 'fiscal', 'invoices', 'financial'];
+        const coreModules = ['pos', 'crm', 'hr', 'fiscal', 'invoices', 'financial', 'audit', 'alerts', 'settings', 'reports', 'backups', 'help'];
         const itemModule = (item as any).module;
 
-        if (itemModule && !coreModules.includes(itemModule) && !hasModule(itemModule)) {
-            // Special protection for cross-company data isolation
-            // Only check specialized modules (pharmacy, inventory, hospitality, logistics, etc.)
-            return false;
+        if (itemModule && !coreModules.includes(itemModule)) {
+            const moduleActive = hasModule(itemModule);
+            if (!moduleActive) return false;
         }
 
         const isLogisticsActive = hasModule('logistics');
         const isPharmacyActive = hasModule('pharmacy');
         const isHospitalityActive = hasModule('hospitality');
-        const isAnySpecializedActive = isLogisticsActive || isPharmacyActive || isHospitalityActive;
+        const isBottleStoreActive = hasModule('bottle_store');
 
-        // 3. Special Case: POS - Hide generic POS if specialized POS is active
-        if (item.id === 'pos' && (isPharmacyActive || isHospitalityActive)) {
+        // 3. Special Case: POS - Hide generic POS if specialized POS is active (unless super_admin)
+        if (user?.role !== 'super_admin' && item.id === 'pos' && (isPharmacyActive || isHospitalityActive || isBottleStoreActive)) {
             return false;
         }
 
-        // 4. Special Case: Inventory/Commercial - Hide if specialized module is active
-        // Pharmacy and Hospitality usually have their own inventory/management
-        if (item.module === 'commercial' && (isPharmacyActive || isHospitalityActive)) {
+        // 4. Special Case: Inventory/Commercial - Hide if specialized module is active (unless super_admin)
+        if (user?.role !== 'super_admin' && item.module === 'commercial' && (isPharmacyActive || isHospitalityActive)) {
             return false;
         }
 
-        // 5. Special Case: Generic Reports - Hide if specialized module has its own reports
-        if (item.id === 'reports' && isAnySpecializedActive) {
+        // 5. Special Case: Super Admin - ONLY super_admin role
+        if (item.id === 'super_admin' && user?.role !== 'super_admin') {
             return false;
         }
-
 
         return true;
     });
@@ -241,30 +239,36 @@ export default function Sidebar() {
                 )}
             >
                 {/* Logo / Brand */}
-                <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-dark-700 flex-shrink-0">
+                <div className="flex items-center justify-between h-18 px-4 border-b border-gray-100 dark:border-dark-700/50 flex-shrink-0 bg-white/50 dark:bg-dark-800/50 backdrop-blur-md">
                     <div className="flex items-center gap-3 overflow-hidden">
                         {companySettings.logo ? (
-                            <img
-                                src={companySettings.logo}
-                                alt="Logo"
-                                className="w-10 h-10 rounded-xl object-contain bg-white shrink-0"
-                            />
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-gradient-to-r from-primary-600 to-accent-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                                <img
+                                    src={companySettings.logo}
+                                    alt="Logo"
+                                    className="relative w-10 h-10 rounded-xl object-contain bg-white shadow-sm shrink-0"
+                                />
+                            </div>
                         ) : (
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-accent-600 flex items-center justify-center shadow-lg shrink-0">
-                                <span className="text-white font-bold text-lg">
+                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-600 via-primary-500 to-accent-500 flex items-center justify-center shadow-lg shadow-primary-500/20 shrink-0 transform transition-transform hover:scale-105">
+                                <span className="text-white font-black text-xl tracking-tighter">
                                     {(companySettings.tradeName || companySettings.companyName || 'S').charAt(0).toUpperCase()}
                                 </span>
                             </div>
                         )}
 
                         {sidebarOpen && (
-                            <div className="animate-fade-in min-w-0">
-                                <h1 className="font-bold text-lg text-gray-900 dark:text-white truncate">
-                                    {companySettings.tradeName || companySettings.companyName || 'Sistema'}
+                            <div className="animate-fade-in min-w-0 ml-1">
+                                <h1 className="font-extrabold text-base tracking-tight text-gray-900 dark:text-white truncate leading-none mb-1">
+                                    {companySettings.tradeName || companySettings.companyName || 'MULTICORE'}
                                 </h1>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                    {t(`businessType.${companySettings.businessType}`)}
-                                </p>
+                                <div className="flex items-center gap-1.5">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 truncate">
+                                        {companySettings.businessType ? t(`businessType.${companySettings.businessType}`) : 'Modular ERP'}
+                                    </p>
+                                </div>
                             </div>
                         )}
                     </div>

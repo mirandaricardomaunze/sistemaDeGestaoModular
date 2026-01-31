@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Validation Schemas - CRM
  * 
  * Schemas for CRM contacts, opportunities, and pipeline operations.

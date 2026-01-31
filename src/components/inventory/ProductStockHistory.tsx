@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Modal, Badge, LoadingSpinner } from '../ui';
+﻿import { useState } from 'react';
+import { Modal, Badge, LoadingSpinner, Pagination } from '../ui';
 import { useStockMovements } from '../../hooks/useStockMovements';
 import { format } from 'date-fns';
-import { HiOutlineClock, HiOutlineCube, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineRefresh, HiOutlineExclamation, HiOutlineTruck, HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi';
+import { HiOutlineClock, HiOutlineCube, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineRefresh, HiOutlineExclamation, HiOutlineTruck } from 'react-icons/hi';
 import type { Product, MovementType, StockMovement } from '../../types';
 
 interface ProductStockHistoryProps {
@@ -24,9 +24,10 @@ const movementTypeConfig: Record<MovementType, { label: string; color: 'success'
 
 export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHistoryProps) {
     const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(8);
     const { movements, pagination, isLoading } = useStockMovements(product.id, {
         page,
-        limit: 8
+        limit: pageSize
     });
 
     const getMovementConfig = (type: MovementType) => {
@@ -112,7 +113,7 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
                                                 <td className="px-4 py-3 whitespace-nowrap text-center">
                                                     <div className="flex items-center justify-center gap-1 text-sm">
                                                         <span className="text-gray-400">{mov.balanceBefore}</span>
-                                                        <span className="text-gray-400">→</span>
+                                                        <span className="text-gray-400">â†’</span>
                                                         <span className="font-semibold text-gray-900 dark:text-white">{mov.balanceAfter}</span>
                                                     </div>
                                                 </td>
@@ -137,29 +138,17 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
                         </div>
 
                         {/* Pagination */}
-                        {pagination && pagination.totalPages > 1 && (
-                            <div className="flex items-center justify-between px-2">
-                                <p className="text-sm text-gray-500">
-                                    Página {page} de {pagination.totalPages} ({pagination.total} registos)
-                                </p>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                                        disabled={page === 1}
-                                        className="p-2 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <HiOutlineChevronLeft className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
-                                        disabled={page === pagination.totalPages}
-                                        className="p-2 rounded-lg border border-gray-200 dark:border-dark-600 hover:bg-gray-100 dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <HiOutlineChevronRight className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
+                        <Pagination
+                            currentPage={page}
+                            totalItems={pagination?.total || 0}
+                            itemsPerPage={pageSize}
+                            onPageChange={setPage}
+                            onItemsPerPageChange={(size) => {
+                                setPageSize(size);
+                                setPage(1);
+                            }}
+                            itemsPerPageOptions={[5, 8, 15, 25]}
+                        />
                     </div>
                 ) : (
                     <div className="py-12 flex flex-col items-center justify-center text-center">

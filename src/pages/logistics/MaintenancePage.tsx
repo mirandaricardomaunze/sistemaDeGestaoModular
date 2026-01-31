@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Vehicle Maintenance Management Page
  * List, create, edit, and manage vehicle maintenance records
  */
@@ -133,11 +133,11 @@ export default function MaintenancePage() {
             description: formData.description,
             cost: parseFloat(formData.cost) || 0,
             date: formData.date,
-            nextDate: formData.nextDate || null,
-            mileageAt: formData.mileageAt ? parseInt(formData.mileageAt) : null,
+            nextDate: formData.nextDate || undefined,
+            mileageAt: formData.mileageAt ? parseInt(formData.mileageAt) : undefined,
             status: formData.status as VehicleMaintenance['status'],
-            provider: formData.provider || null,
-            notes: formData.notes || null
+            provider: formData.provider || undefined,
+            notes: formData.notes || undefined
         };
 
         if (editingMaintenance) {
@@ -378,7 +378,7 @@ export default function MaintenancePage() {
                 )}
 
                 {/* Pagination */}
-                {maintenancesData?.pagination && maintenancesData.pagination.totalPages > 1 && (
+                {maintenancesData && maintenancesData.pagination.total > 0 && (
                     <div className="p-4 border-t dark:border-dark-700">
                         <Pagination
                             currentPage={page}
@@ -389,7 +389,7 @@ export default function MaintenancePage() {
                                 setPageSize(size);
                                 setPage(1);
                             }}
-                            itemsPerPageOptions={[10, 20, 50]}
+                            itemsPerPageOptions={[10, 20, 50, 100]}
                         />
                     </div>
                 )}

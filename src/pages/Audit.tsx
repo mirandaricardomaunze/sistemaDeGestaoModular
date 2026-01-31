@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Audit Page
  * Página principal de auditoria do sistema
  */

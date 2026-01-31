@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { pharmacyAPI } from '../services/api';
 
 interface PaginationMeta {
@@ -44,7 +44,7 @@ export function usePharmacySales(params?: UsePharmacySalesParams) {
                     hasMore: false
                 });
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err.message || 'Erro ao carregar vendas');
             console.error('Error fetching pharmacy sales:', err);
         } finally {

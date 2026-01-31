@@ -1,0 +1,39 @@
+[ COPIAR PARA O n8n - VERSÃO CORRIGIDA E SEGURA ]
+
+--------------------------------------------------
+COMO RESOLVER O ERRO "Invalid character in header content":
+--------------------------------------------------
+Este erro acontece quando há um espaço ou quebra de linha (Enter) invisível no n8n.
+
+1. No n8n, apague qualquer campo de "Headers" chamado "Authorization".
+2. Não use Credenciais de "Header Auth" para este nó.
+3. Use APENAS o campo "Body Parameters" (JSON) abaixo.
+--------------------------------------------------
+
+--------------------------------------------------
+CAMPO: URL
+--------------------------------------------------
+https://untufted-coetaneously-susanne.ngrok-free.dev/api/ai/actions
+
+--------------------------------------------------
+CAMPO: HEADERS (Obrigatório se usar Ngrok)
+--------------------------------------------------
+Name:  ngrok-skip-browser-warning
+Value: true
+--------------------------------------------------
+
+--------------------------------------------------
+CAMPO: BODY (JSON) - 100% SEGURO
+--------------------------------------------------
+{
+  "action": "{{ $if($("Webhook").isExecuted, $json.action, "get_sales_summary") }}",
+  "companyId": "{{ $if($("Webhook").isExecuted, $("Webhook").item.json.companyId, "1414e667-0c7f-4422-b9cf-28a1ea222f6c") }}",
+  "secret": "{{ $if($("Webhook").isExecuted, $("Webhook").item.json.aiToken, "multicore_ai_secret_2026") }}"
+}
+
+--------------------------------------------------
+⚠️ DICA: 
+Se você copiou o link do ngrok com algum espaço antes ou depois, 
+o erro de "Header" acontecerá. Certifique-se de que a URL 
+começa exatamente com 'https://' e não tem espaços.
+--------------------------------------------------

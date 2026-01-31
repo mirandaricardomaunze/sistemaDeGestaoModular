@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 
@@ -62,7 +62,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
     try {
         const { type, module, priority, isRead, isResolved, limit = 50 } = req.query;
 
-        const where: any = {
+        const where: Record<string, unknown> = {
             companyId: req.companyId
         };
 
@@ -118,7 +118,7 @@ router.get('/unread-count', authenticate, async (req: AuthRequest, res) => {
 
         res.json({
             total,
-            byPriority: byPriority.reduce((acc: Record<string, number>, item) => {
+            byPriority: byPriority.reduce((acc: Record<string, number>, item: { priority: string | null; _count: number }) => {
                 acc[item.priority || 'medium'] = item._count;
                 return acc;
             }, {}),
@@ -311,7 +311,7 @@ router.delete('/clear/resolved', authenticate, async (req: AuthRequest, res) => 
 // Generate all alerts
 router.post('/generate', authenticate, async (req: AuthRequest, res) => {
     try {
-        const alerts: any[] = [];
+        const alerts: unknown[] = [];
 
         // Generate inventory alerts
         const inventoryAlerts = await generateInventoryAlerts(req.companyId!);
@@ -344,7 +344,7 @@ router.post('/generate', authenticate, async (req: AuthRequest, res) => {
 router.post('/generate/:module', authenticate, async (req: AuthRequest, res) => {
     try {
         const { module } = req.params;
-        let alerts: any[] = [];
+        let alerts: unknown[] = [];
 
         switch (module) {
             case 'inventory':
@@ -381,8 +381,8 @@ router.post('/generate/:module', authenticate, async (req: AuthRequest, res) => 
 // ALERT GENERATOR FUNCTIONS
 // ============================================================================
 
-async function generateInventoryAlerts(companyId: string): Promise<any[]> {
-    const alerts: any[] = [];
+async function generateInventoryAlerts(companyId: string): Promise<unknown[]> {
+    const alerts: unknown[] = [];
 
     // Get products with low or zero stock
     const products = await prisma.product.findMany({
@@ -487,8 +487,8 @@ async function generateInventoryAlerts(companyId: string): Promise<any[]> {
     return alerts;
 }
 
-async function generateInvoiceAlerts(companyId: string): Promise<any[]> {
-    const alerts: any[] = [];
+async function generateInvoiceAlerts(companyId: string): Promise<unknown[]> {
+    const alerts: unknown[] = [];
     const now = new Date();
 
     // Check overdue invoices
@@ -583,8 +583,8 @@ async function generateInvoiceAlerts(companyId: string): Promise<any[]> {
     return alerts;
 }
 
-async function generateHospitalityAlerts(companyId: string): Promise<any[]> {
-    const alerts: any[] = [];
+async function generateHospitalityAlerts(companyId: string): Promise<unknown[]> {
+    const alerts: unknown[] = [];
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrow = new Date(today);
@@ -748,8 +748,8 @@ async function generateHospitalityAlerts(companyId: string): Promise<any[]> {
     return alerts;
 }
 
-async function generatePharmacyAlerts(companyId: string): Promise<any[]> {
-    const alerts: any[] = [];
+async function generatePharmacyAlerts(companyId: string): Promise<unknown[]> {
+    const alerts: unknown[] = [];
 
     // Check controlled medications with low stock
     const controlledMeds = await prisma.medication.findMany({

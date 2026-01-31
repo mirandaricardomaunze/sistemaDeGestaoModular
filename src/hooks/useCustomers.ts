@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { customersAPI } from '../services/api';
 import { db } from '../db/offlineDB';
@@ -95,6 +95,19 @@ export function useCustomers(params?: UseCustomersParams) {
 
     const addCustomer = async (data: Parameters<typeof customersAPI.create>[0]) => {
         try {
+            if (!navigator.onLine) {
+                await db.pendingOperations.add({
+                    module: 'customers',
+                    endpoint: '/customers',
+                    method: 'POST',
+                    data,
+                    timestamp: Date.now(),
+                    synced: false as any
+                });
+                toast('Cliente guardado localmente (Offline)', { icon: '💾' });
+                return { ...data, id: `offline-${Date.now()}` } as any;
+            }
+
             const newCustomer = await customersAPI.create(data);
             setCustomers((prev) => [newCustomer, ...prev]);
             toast.success('Cliente criado com sucesso!');
@@ -107,6 +120,19 @@ export function useCustomers(params?: UseCustomersParams) {
 
     const updateCustomer = async (id: string, data: Parameters<typeof customersAPI.update>[1]) => {
         try {
+            if (!navigator.onLine) {
+                await db.pendingOperations.add({
+                    module: 'customers',
+                    endpoint: `/customers/${id}`,
+                    method: 'PUT',
+                    data,
+                    timestamp: Date.now(),
+                    synced: false as any
+                });
+                toast('Actualização guardada localmente (Offline)', { icon: '💾' });
+                return { ...data, id } as any;
+            }
+
             const updated = await customersAPI.update(id, data);
             setCustomers((prev) => prev.map((c) => (c.id === id ? updated : c)));
             toast.success('Cliente actualizado com sucesso!');
@@ -119,6 +145,19 @@ export function useCustomers(params?: UseCustomersParams) {
 
     const deleteCustomer = async (id: string) => {
         try {
+            if (!navigator.onLine) {
+                await db.pendingOperations.add({
+                    module: 'customers',
+                    endpoint: `/customers/${id}`,
+                    method: 'DELETE',
+                    data: null,
+                    timestamp: Date.now(),
+                    synced: false as any
+                });
+                toast('Remoção guardada localmente (Offline)', { icon: '💾' });
+                return;
+            }
+
             await customersAPI.delete(id);
             setCustomers((prev) => prev.filter((c) => c.id !== id));
             toast.success('Cliente removido com sucesso!');

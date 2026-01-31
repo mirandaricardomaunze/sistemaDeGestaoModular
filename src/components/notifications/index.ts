@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notifications Components Barrel Export
  */
 

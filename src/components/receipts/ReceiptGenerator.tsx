@@ -1,8 +1,7 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { jsPDF } from 'jspdf';
 import {
     HiOutlinePlus,
     HiOutlineMinus,
@@ -12,6 +11,7 @@ import {
 import { useStore } from '../../stores/useStore';
 import { Button, Card, Input, Modal } from '../ui';
 import { formatCurrency, formatDate, generateReceiptNumber } from '../../utils/helpers';
+import { generatePOSReceipt } from '../../utils/documentGenerator';
 import type { Product, CartItem, CompanyInfo, ReceiptData, ReceiptCustomer } from '../../types';
 import toast from 'react-hot-toast';
 
@@ -159,128 +159,7 @@ export default function ReceiptGenerator() {
         }
 
         const receipt = getReceiptData();
-        const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: [80, 200], // Thermal receipt size
-        });
-
-        let y = 10;
-        const lineHeight = 5;
-        const centerX = 40;
-
-        // Company Logo in PDF
-        if (companyInfo.logo) {
-            try {
-                // Add logo centered
-                doc.addImage(companyInfo.logo, 'PNG', centerX - 10, y, 20, 20);
-                y += 25;
-            } catch (e) {
-                console.warn('Failed to add logo to PDF', e);
-            }
-        }
-
-        // Company Header
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text(companyInfo.name, centerX, y, { align: 'center' });
-        y += lineHeight;
-
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'normal');
-        doc.text(companyInfo.address, centerX, y, { align: 'center' });
-        y += lineHeight;
-        doc.text(`Tel: ${companyInfo.phone}`, centerX, y, { align: 'center' });
-        y += lineHeight;
-        doc.text(`NUIT: ${companyInfo.taxId}`, centerX, y, { align: 'center' });
-        y += lineHeight * 2;
-
-        // Separator
-        doc.line(5, y, 75, y);
-        y += lineHeight;
-
-        // Receipt info
-        doc.setFont('helvetica', 'bold');
-        doc.text(`RECIBO #${receipt.receiptNumber}`, centerX, y, { align: 'center' });
-        y += lineHeight;
-        doc.setFont('helvetica', 'normal');
-        doc.text(formatDate(receipt.date, "dd/MM/yyyy 'às' HH:mm"), centerX, y, { align: 'center' });
-        y += lineHeight;
-
-        // Customer info
-        if (receipt.customer) {
-            y += lineHeight;
-            doc.text(`Cliente: ${receipt.customer.name}`, 5, y);
-            y += lineHeight;
-            if (receipt.customer.document) {
-                doc.text(`Doc: ${receipt.customer.document}`, 5, y);
-                y += lineHeight;
-            }
-        }
-
-        // Separator
-        doc.line(5, y, 75, y);
-        y += lineHeight;
-
-        // Items header
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(6);
-        doc.text('ITEM', 5, y);
-        doc.text('QTD', 40, y, { align: 'center' });
-        doc.text('UNIT', 55, y, { align: 'center' });
-        doc.text('TOTAL', 75, y, { align: 'right' });
-        y += lineHeight;
-
-        // Items
-        doc.setFont('helvetica', 'normal');
-        receipt.items.forEach((item) => {
-            // Item name (may wrap)
-            const name = item.product.name.substring(0, 25);
-            doc.text(name, 5, y);
-            y += lineHeight - 1;
-            doc.text(item.quantity.toString(), 40, y, { align: 'center' });
-            doc.text(formatCurrency(item.unitPrice).replace('MTn', '').replace('MZN', ''), 55, y, { align: 'center' });
-            doc.text(formatCurrency(item.total).replace('MTn', '').replace('MZN', ''), 75, y, { align: 'right' });
-            y += lineHeight;
-        });
-
-        // Separator
-        doc.line(5, y, 75, y);
-        y += lineHeight;
-
-        // Totals
-        doc.setFontSize(7);
-        doc.text('Subtotal:', 5, y);
-        doc.text(formatCurrency(receipt.subtotal), 75, y, { align: 'right' });
-        y += lineHeight;
-
-        if (receipt.discount > 0) {
-            doc.text('Desconto:', 5, y);
-            doc.text(`-${formatCurrency(receipt.discount)}`, 75, y, { align: 'right' });
-            y += lineHeight;
-        }
-
-        if (receipt.tax > 0) {
-            doc.text('IVA (16%):', 5, y);
-            doc.text(formatCurrency(receipt.tax), 75, y, { align: 'right' });
-            y += lineHeight;
-        }
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9);
-        doc.text('TOTAL (c/ IVA):', 5, y);
-        doc.text(formatCurrency(receipt.total), 75, y, { align: 'right' });
-        y += lineHeight * 2;
-
-        // Footer
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6);
-        doc.text('Obrigado pela preferência!', centerX, y, { align: 'center' });
-        y += lineHeight;
-        doc.text('Volte sempre!', centerX, y, { align: 'center' });
-
-        // Save PDF
-        doc.save(`recibo-${receipt.receiptNumber}.pdf`);
+        generatePOSReceipt(receipt, companySettings);
         toast.success('PDF gerado com sucesso!');
     };
 

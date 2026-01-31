@@ -1,9 +1,9 @@
-/**
+﻿/**
  * Pharmacy Management System
  * Professional pharmacy module with POS, medications, stock, prescriptions, and reports
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, Button, Badge, LoadingSpinner, Modal, ConfirmationModal, Input, Select, TableContainer } from '../components/ui';
 import { pharmacyAPI } from '../services/api';
@@ -89,7 +89,6 @@ interface Medication {
 
 import { usePharmacy } from '../hooks/usePharmacy';
 import { usePrescriptions } from '../hooks/usePrescriptions';
-import { useMemo } from 'react';
 
 export default function Pharmacy() {
     const navigate = useNavigate();
@@ -445,7 +444,7 @@ export default function Pharmacy() {
 
             setIsNewMedicationModalOpen(false);
             resetMedicationForm();
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message || 'Erro ao processar medicamento');
         }
     };
@@ -516,7 +515,7 @@ export default function Pharmacy() {
             setIsDeleteModalOpen(false);
             setSelectedMedication(null);
             fetchMedications();
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message || 'Erro ao eliminar medicamento');
         }
     };
@@ -1181,7 +1180,7 @@ export default function Pharmacy() {
                                                                 onClick={() => {
                                                                     // Logical jump to POS with this prescription
                                                                     toast('Navegando para o PDV com a receita selecionada...', {
-                                                                        icon: 'ℹ️',
+                                                                        icon: 'â„¹ï¸',
                                                                     });
                                                                 }}
                                                             >
@@ -1342,7 +1341,7 @@ export default function Pharmacy() {
                         setBatchForm({ medicationId: '', batchNumber: '', quantity: '', expiryDate: '', costPrice: '', sellingPrice: '', supplier: '', invoiceNumber: '' });
                         fetchMedications();
                         fetchMovements(); // Refetch movements after adding a batch
-                    } catch (error: any) {
+                    } catch (error: unknown) {
                         toast.error(error.message || 'Erro ao adicionar lote');
                     }
                 }}>
@@ -1476,7 +1475,7 @@ export default function Pharmacy() {
                             items: []
                         });
                         fetchPrescriptions();
-                    } catch (error: any) {
+                    } catch (error: unknown) {
                         // Error handled by hook
                     }
                 }}>
@@ -1847,9 +1846,9 @@ export default function Pharmacy() {
                                     value={medicationForm.storageTemp}
                                     onChange={(e) => setMedicationForm({ ...medicationForm, storageTemp: e.target.value })}
                                     options={[
-                                        { value: 'Ambiente', label: 'Ambiente (15-30°C)' },
-                                        { value: 'Frio', label: 'Frio (2-8°C)' },
-                                        { value: 'Congelado', label: 'Congelado (-20°C)' }
+                                        { value: 'Ambiente', label: 'Ambiente (15-30Â°C)' },
+                                        { value: 'Frio', label: 'Frio (2-8Â°C)' },
+                                        { value: 'Congelado', label: 'Congelado (-20Â°C)' }
                                     ]}
                                 />
                                 <Input

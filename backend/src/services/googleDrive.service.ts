@@ -1,4 +1,4 @@
-import { google } from 'googleapis';
+﻿import { google } from 'googleapis';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -49,8 +49,8 @@ class GoogleDriveService {
 
             this.drive = google.drive({ version: 'v3', auth: oauth2Client });
             console.log('✅ Google Drive integrado com sucesso');
-        } catch (error: any) {
-            console.error('❌ Erro ao inicializar Google Drive:', error.message);
+        } catch (error: unknown) {
+            console.error('âŒ Erro ao inicializar Google Drive:', error.message);
         }
     }
 
@@ -102,7 +102,7 @@ class GoogleDriveService {
                 body: fs.createReadStream(filepath),
             };
 
-            console.log(`☁️  Fazendo upload para Google Drive: ${fileMetadata.name}`);
+            console.log(`â˜ï¸  Fazendo upload para Google Drive: ${fileMetadata.name}`);
 
             const response = await this.drive.files.create({
                 requestBody: fileMetadata,
@@ -115,14 +115,14 @@ class GoogleDriveService {
             const fileSizeMB = (fileSize / (1024 * 1024)).toFixed(2);
 
             console.log(`✅ Upload concluído: ${fileMetadata.name} (${fileSizeMB} MB)`);
-            console.log(`📁 File ID: ${fileId}`);
+            console.log(`ðŸ“ File ID: ${fileId}`);
 
             return {
                 success: true,
                 fileId,
             };
-        } catch (error: any) {
-            console.error('❌ Erro ao fazer upload:', error.message);
+        } catch (error: unknown) {
+            console.error('âŒ Erro ao fazer upload:', error.message);
             return {
                 success: false,
                 error: error.message,
@@ -165,10 +165,10 @@ class GoogleDriveService {
                 fields: 'id',
             });
 
-            console.log(`📁 Pasta criada no Google Drive para empresa ${companyId}: ${folder.data.id}`);
+            console.log(`ðŸ“ Pasta criada no Google Drive para empresa ${companyId}: ${folder.data.id}`);
             return folder.data.id;
-        } catch (error: any) {
-            console.error('❌ Erro ao buscar/criar pasta da empresa no Drive:', error.message);
+        } catch (error: unknown) {
+            console.error('âŒ Erro ao buscar/criar pasta da empresa no Drive:', error.message);
             return this.config.folderId; // Fallback para a pasta raiz se der erro
         }
     }
@@ -216,8 +216,8 @@ class GoogleDriveService {
                 success: true,
                 files,
             };
-        } catch (error: any) {
-            console.error('❌ Erro ao listar backups:', error.message);
+        } catch (error: unknown) {
+            console.error('âŒ Erro ao listar backups:', error.message);
             return {
                 success: false,
                 error: error.message,
@@ -254,13 +254,13 @@ class GoogleDriveService {
                         resolve({ success: true });
                     })
                     .on('error', (err: any) => {
-                        console.error('❌ Erro no download:', err.message);
+                        console.error('âŒ Erro no download:', err.message);
                         reject({ success: false, error: err.message });
                     })
                     .pipe(dest);
             });
-        } catch (error: any) {
-            console.error('❌ Erro ao fazer download:', error.message);
+        } catch (error: unknown) {
+            console.error('âŒ Erro ao fazer download:', error.message);
             return {
                 success: false,
                 error: error.message,
@@ -281,11 +281,11 @@ class GoogleDriveService {
 
         try {
             await this.drive.files.delete({ fileId });
-            console.log(`🗑️  Arquivo deletado do Google Drive: ${fileId}`);
+            console.log(`ðŸ—‘ï¸  Arquivo deletado do Google Drive: ${fileId}`);
 
             return { success: true };
-        } catch (error: any) {
-            console.error('❌ Erro ao deletar arquivo:', error.message);
+        } catch (error: unknown) {
+            console.error('âŒ Erro ao deletar arquivo:', error.message);
             return {
                 success: false,
                 error: error.message,
@@ -340,8 +340,8 @@ class GoogleDriveService {
                 success: true,
                 refreshToken: tokens.refresh_token,
             };
-        } catch (error: any) {
-            console.error('❌ Erro ao obter token:', error.message);
+        } catch (error: unknown) {
+            console.error('âŒ Erro ao obter token:', error.message);
             return {
                 success: false,
                 error: error.message,
@@ -386,21 +386,21 @@ class GoogleDriveService {
                     const deleteResult = await this.deleteFile(file.id);
                     if (deleteResult.success) {
                         deletedCount++;
-                        console.log(`🗑️  Backup antigo removido do Drive: ${file.name}`);
+                        console.log(`ðŸ—‘ï¸  Backup antigo removido do Drive: ${file.name}`);
                     }
                 }
             }
 
             if (deletedCount > 0) {
-                console.log(`🧹 ${deletedCount} backup(s) antigo(s) removido(s) do Google Drive`);
+                console.log(`ðŸ§¹ ${deletedCount} backup(s) antigo(s) removido(s) do Google Drive`);
             }
 
             return {
                 success: true,
                 deletedCount,
             };
-        } catch (error: any) {
-            console.error('❌ Erro ao limpar backups antigos:', error.message);
+        } catch (error: unknown) {
+            console.error('âŒ Erro ao limpar backups antigos:', error.message);
             return {
                 success: false,
                 error: error.message,

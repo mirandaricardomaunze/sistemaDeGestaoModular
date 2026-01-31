@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -26,7 +26,7 @@ import {
     CheckoutModal,
     CheckoutNotifications
 } from '../components/hospitality';
-import { ExportBookingsButton } from '../components/common/ExportButton';
+import { ExportBookingsButton, ExportRoomsButton } from '../components/common/ExportButton';
 import { cn } from '../utils/helpers';
 import {
     HiOutlineCheck,
@@ -45,6 +45,9 @@ import {
     HiOutlineUserAdd,
 } from 'react-icons/hi';
 import { useHospitality } from '../hooks/useData';
+import { useSmartInsights } from '../hooks/useSmartInsights';
+import { SmartInsightCard } from '../components/common/SmartInsightCard';
+import { HiOutlineLightBulb } from 'react-icons/hi';
 import { useDebounce } from '../hooks/useDebounce';
 
 
@@ -98,6 +101,7 @@ export default function Hospitality() {
     const [isGuestProfileModalOpen, setIsGuestProfileModalOpen] = useState(false);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [deleteRoomConfirmOpen, setDeleteRoomConfirmOpen] = useState(false);
+    const { insights } = useSmartInsights();
     const [selectedBookingForCheckout, setSelectedBookingForCheckout] = useState<string | null>(null);
     const [selectedRoomForDelete, setSelectedRoomForDelete] = useState<string | null>(null);
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -401,6 +405,7 @@ export default function Hospitality() {
                     <div className="flex flex-wrap gap-3">
                         <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />} onClick={() => refetch()}>Actualizar</Button>
                         {activeMainTab === 'history' && <ExportBookingsButton data={bookingHistory} />}
+                        {activeMainTab === 'rooms' && <ExportRoomsButton data={rooms} />}
                         {activeMainTab === 'rooms' && (
                             <Button size="sm" leftIcon={<HiOutlineUserAdd className="w-5 h-5" />} onClick={() => { setSelectedRoom(null); setIsCheckInModalOpen(true); }}>Novo Check-in</Button>
                         )}
@@ -495,7 +500,30 @@ export default function Hospitality() {
                 ) : (
                     <>
                         {/* Tab Content: Dashboard */}
-                        {activeMainTab === 'dashboard' && <HospitalityDashboard />}
+                        {activeMainTab === 'dashboard' && (
+                            <div className="space-y-6">
+                                {/* Smart Insights / Intelligent Advisor */}
+                                {insights.length > 0 && (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                                <HiOutlineLightBulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Previsões de demanda e ocupação hoteleira</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
+                                            {insights.map((insight) => (
+                                                <SmartInsightCard key={insight.id} insight={insight} className="min-w-[320px] max-w-[400px] flex-shrink-0" />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                <HospitalityDashboard />
+                            </div>
+                        )}
 
                         {/* Tab Content: Housekeeping */}
                         {activeMainTab === 'housekeeping' && <HousekeepingPanel onRoomCleaned={() => refetch()} />}

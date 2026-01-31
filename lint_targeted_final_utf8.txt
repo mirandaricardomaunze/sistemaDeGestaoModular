@@ -1,0 +1,43 @@
+﻿node.exe : 
+(node:2844) 
+ESLintIgnoreWarning: 
+The ".eslintignore" 
+file is no longer 
+supported. Switch to 
+using the "ignores" 
+property in 
+"eslint.config.js": ht
+tps://eslint.org/docs/
+latest/use/configure/m
+igration-guide#ignorin
+g-files
+No C:\Program Files\no
+dejs\npx.ps1:29 
+caractere:3
++   & $NODE_EXE 
+$NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: ((node:2844   
+ ) ESL...#ignoring    
+-files:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+(Use `node 
+--trace-warnings ...` 
+to show where the 
+warning was created)
+
+C:\Users\miran\Desktop\Sistema\src\components\fiscal\FiscalDashboard.tsx
+  19:34  error  'retentions' is assigned a value but never used. Allowed unused vars must match /^_/u        @typescript-eslint/no-unused-vars
+  19:46  error  'fiscalReports' is assigned a value but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+  19:61  error  'deadlines' is assigned a value but never used. Allowed unused vars must match /^_/u         @typescript-eslint/no-unused-vars
+  19:72  error  'logisticsMetrics' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+Ô£û 4 problems (4 errors, 0 warnings)
+

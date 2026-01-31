@@ -1,4 +1,4 @@
-import NodeCache from 'node-cache';
+﻿import NodeCache from 'node-cache';
 
 /**
  * Cache Service for frequently accessed data

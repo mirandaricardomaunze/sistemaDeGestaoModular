@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -13,8 +13,8 @@ import {
     HiOutlineUser,
     HiOutlineLockClosed,
     HiOutlineUsers,
-    HiOutlinePencilAlt,
     HiOutlineTrash,
+    HiOutlinePencilAlt,
     HiOutlineCheckCircle,
     HiOutlineXCircle,
 } from 'react-icons/hi';
@@ -226,7 +226,7 @@ export default function Settings() {
     };
 
     const businessTypeOptions = [
-        { value: 'retail', label: 'Comércio / Retalho', icon: '🏪', description: 'Loja de artigos diversos, vestuário, eletrónicos' },
+        { value: 'retail', label: 'Comércio / Retalho', icon: '🛍️', description: 'Loja de artigos diversos, vestuário, eletrónicos' },
         { value: 'pharmacy', label: 'Farmácia', icon: '💊', description: 'Medicamentos, controle de lotes e validades' },
         { value: 'supermarket', label: 'Supermercado', icon: '🛒', description: 'Mercearia, balança e alto volume de vendas' },
         { value: 'bottlestore', label: 'Bottle Store', icon: '🍺', description: 'Garrafeira, bebidas e gestão de vasilhame' },
@@ -325,7 +325,7 @@ export default function Settings() {
             await authAPI.changePassword(data.currentPassword, data.newPassword);
             toast.success('Senha alterada com sucesso!');
             resetPassword();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Password update error:', error);
             const msg = error.response?.data?.error || 'Erro ao alterar senha.';
             toast.error(msg);
@@ -371,7 +371,7 @@ export default function Settings() {
             }
             setIsUserModalOpen(false);
             fetchUsers();
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.error || 'Erro ao salvar utilizador.');
         }
     };
@@ -393,7 +393,7 @@ export default function Settings() {
             toast.success('Utilizador removido com sucesso!');
             setIsDeleteModalOpen(false);
             fetchUsers();
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.response?.data?.error || 'Erro ao remover utilizador.');
         }
     };
@@ -593,6 +593,79 @@ export default function Settings() {
                         Dados da Empresa
                     </h2>
                     <form onSubmit={handleSubmitCompany(onSubmitCompany as never)} className="space-y-6">
+                        {/* Logo Upload Section */}
+                        <div className="border border-dashed border-gray-300 dark:border-dark-600 rounded-xl p-6 bg-gray-50 dark:bg-dark-800">
+                            <div className="flex flex-col md:flex-row items-center gap-6">
+                                {/* Logo Preview */}
+                                <div className="relative">
+                                    {companySettings.logo ? (
+                                        <div className="relative group">
+                                            <img
+                                                src={companySettings.logo}
+                                                alt="Logo da Empresa"
+                                                className="w-28 h-28 rounded-2xl object-contain bg-white dark:bg-dark-700 border-2 border-gray-200 dark:border-dark-600 shadow-lg"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    updateCompanySettings({ logo: undefined });
+                                                    toast.success('Logo removido!');
+                                                }}
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100"
+                                                title="Remover logo"
+                                            >
+                                                <HiOutlineTrash className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-dashed border-primary-300 dark:border-primary-700 flex items-center justify-center">
+                                            <HiOutlineOfficeBuilding className="w-10 h-10 text-primary-400 dark:text-primary-500" />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Upload Controls */}
+                                <div className="flex-1 text-center md:text-left">
+                                    <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                                        Logo da Empresa
+                                    </h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                        A imagem será exibida na barra lateral e em documentos gerados (PDF)
+                                    </p>
+                                    <label className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg cursor-pointer transition-colors shadow-sm">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="font-medium">Selecionar Imagem</span>
+                                        <input
+                                            type="file"
+                                            accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    if (file.size > 500 * 1024) {
+                                                        toast.error('Imagem muito grande. Máximo: 500KB');
+                                                        return;
+                                                    }
+                                                    const reader = new FileReader();
+                                                    reader.onload = (event) => {
+                                                        const base64 = event.target?.result as string;
+                                                        updateCompanySettings({ logo: base64 });
+                                                        toast.success('Logo actualizado com sucesso!');
+                                                    };
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                                        PNG, JPG ou SVG • Máximo 500KB • Fundo transparente recomendado
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
                                 label="Razão Social *"
@@ -688,7 +761,7 @@ export default function Settings() {
 
                         <div className="border-t border-gray-200 dark:border-dark-700 pt-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-md font-semibold text-gray-900 dark:text-white">
+                                <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
                                     Dados Bancários (Para Documentos)
                                 </h3>
                                 <Button
@@ -1180,7 +1253,7 @@ export default function Settings() {
                                                 {adminStats.companies.total}
                                             </p>
                                             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                                                {adminStats.companies.active} activas
+                                                {adminStats.companies.active} ativas
                                             </p>
                                         </div>
                                         <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center">
@@ -1193,11 +1266,11 @@ export default function Settings() {
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-sm font-medium text-green-600 dark:text-green-400">Utilizadores</p>
-                                            <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-1">
+                                            <p className="text-3xl font-bold text-green-900 dark:text-blue-100 mt-1">
                                                 {adminStats.users.total}
                                             </p>
                                             <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                                {adminStats.users.active} activos
+                                                {adminStats.users.active} ativos
                                             </p>
                                         </div>
                                         <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center">

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * POS-CRM Integration Utilities
  * Funções para integrar campanhas e descontos automáticos no POS
  */

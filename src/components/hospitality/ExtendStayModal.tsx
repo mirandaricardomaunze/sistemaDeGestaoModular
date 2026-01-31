@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ExtendStayModal Component
  * Allows extending a guest's stay by updating the checkout date
  */
@@ -77,7 +77,7 @@ export default function ExtendStayModal({
             toast.success(`Estadia estendida por ${additionalNights} noite${additionalNights > 1 ? 's' : ''}`);
             onSuccess?.();
             onClose();
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message || 'Erro ao estender estadia');
         } finally {
             setIsSubmitting(false);

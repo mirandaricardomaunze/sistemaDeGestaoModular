@@ -1,0 +1,44 @@
+﻿node.exe : 
+(node:3936) 
+ESLintIgnoreWarning: 
+The ".eslintignore" 
+file is no longer 
+supported. Switch to 
+using the "ignores" 
+property in 
+"eslint.config.js": ht
+tps://eslint.org/docs/
+latest/use/configure/m
+igration-guide#ignorin
+g-files
+No C:\Program Files\no
+dejs\npx.ps1:29 
+caractere:3
++   & $NODE_EXE 
+$NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: ((node:3936   
+ ) ESL...#ignoring    
+-files:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+(Use `node 
+--trace-warnings ...` 
+to show where the 
+warning was created)
+
+C:\Users\miran\Desktop\Sistema\src\components\fiscal\FiscalDashboard.tsx
+  22:58  warning  React Hook useMemo has unnecessary dependencies: 'deadlines', 'fiscalReports', 'logisticsMetrics', and 'retentions'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\miran\Desktop\Sistema\src\components\pos\POSInterface.tsx
+  165:8   warning  React Hook useMemo has a missing dependency: 'companySettings?.printerType'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  585:35  error    Unexpected any. Specify a different type                                                                                       @typescript-eslint/no-explicit-any
+
+Ô£û 3 problems (1 error, 2 warnings)
+

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * useHospitalityDashboard Hook
  * Custom hook for fetching hotel dashboard data with period filtering
  */
@@ -134,7 +134,7 @@ export function useHospitalityDashboard(initialPeriod: DashboardPeriod = '1m') {
             setOccupancyChart(occupancyRes.data);
             setRoomTypesChart(roomTypesRes.data);
             setConsumptionChart(consumptionRes.data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Dashboard fetch error:', err);
             setError(err.response?.data?.error || 'Erro ao carregar dashboard');
         } finally {
@@ -149,7 +149,7 @@ export function useHospitalityDashboard(initialPeriod: DashboardPeriod = '1m') {
             const res = await api.get(`/hospitality/dashboard/reports?period=${period}`);
             setReportData(res.data);
             return res.data;
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Report fetch error:', err);
             throw err;
         } finally {

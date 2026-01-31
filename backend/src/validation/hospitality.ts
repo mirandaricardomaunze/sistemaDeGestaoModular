@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Validation Schemas - Hospitality
  * 
  * Schemas for hotel rooms, reservations, guests, and related operations.

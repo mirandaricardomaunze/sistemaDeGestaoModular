@@ -1,4 +1,4 @@
-# Sistema de Gestão - Melhorias Completas
+# Multicore - Melhorias Completas
 
 ## Fase 9: Integração Completa com Banco de Dados ✅ (100% dos módulos críticos)
 
@@ -62,6 +62,10 @@
 
 ## Fase 2: POS Profissional ✅
 - [x] Todos os recursos implementados e integrados ao BD
+
+## Fase Intermediária: Redesign de UI (Solicitado pelo Usuário)
+- [ ] Redesign Bottle Store Dashboard (Layout Comercial)
+
 
 ## Fase 1: Refatoração + Redux ✅
 - [x] Redux Store configurado

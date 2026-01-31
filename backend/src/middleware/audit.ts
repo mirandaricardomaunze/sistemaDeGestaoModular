@@ -1,4 +1,4 @@
-import { Response, NextFunction } from 'express';
+﻿import { Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from './auth';
 
@@ -71,7 +71,7 @@ export const auditMiddleware = (req: AuthRequest, res: Response, next: NextFunct
                 if (entity === 'auth' && (req.path === '/login' || req.path === '/register')) return;
 
                 // Prepare data
-                const entityId = req.params.id || (res as any).entityId; // Some routes might set entityId on res
+                const entityId = req.params.id || (res as Record<string, unknown>).entityId as string;
 
                 // Filter out sensitive data from req.body if it's an update/create
                 const body = { ...req.body };

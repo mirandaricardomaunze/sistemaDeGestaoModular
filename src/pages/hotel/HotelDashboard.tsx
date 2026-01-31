@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Hotel Dashboard
  * 
  * Professional dashboard for hotel module with:
@@ -565,7 +565,7 @@ export default function HotelDashboard() {
                                             {formatDate(booking.checkIn)}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                            {booking.checkOut ? formatDate(booking.checkOut) : '—'}
+                                            {booking.checkOut ? formatDate(booking.checkOut) : 'â€”'}
                                         </td>
                                         <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
                                             {formatCurrency(booking.totalPrice)}

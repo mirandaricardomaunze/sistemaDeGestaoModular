@@ -1,27 +1,25 @@
-
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { Card, Button, Badge, LoadingSpinner, Modal, Select, Input } from '../../components/ui';
 import { useWarehouses, useProducts } from '../../hooks/useData';
 import { warehousesAPI } from '../../services/api';
 import {
     HiOutlineTruck,
     HiOutlineMapPin,
-    HiOutlineSignal,
-    HiOutlineArrowPath,
     HiOutlinePlus,
     HiOutlineTrash,
     HiOutlinePrinter,
-    HiOutlineArrowDownTray,
     HiOutlineCube,
     HiOutlineArrowRight,
     HiOutlineChartBar,
     HiOutlineSquares2X2,
-    HiOutlineDocumentText,
     HiOutlineFunnel,
     HiOutlineBanknotes,
-    HiOutlineFlag
+    HiOutlineFlag,
+    HiOutlineLightBulb
 } from 'react-icons/hi2';
 import { useLogisticsDashboard } from '../../hooks/useLogistics';
+import { useSmartInsights } from '../../hooks/useSmartInsights';
+import { SmartInsightCard } from '../../components/common/SmartInsightCard';
 import toast from 'react-hot-toast';
 import { generateGuiaRemessa } from '../../utils/documentGenerator';
 import { useStore } from '../../stores/useStore';
@@ -42,6 +40,7 @@ import {
     Legend
 } from 'recharts';
 import { subMonths, isAfter, startOfDay } from 'date-fns';
+import { cn } from '../../utils/helpers';
 
 type TimePeriod = 'today' | 'month' | '2months' | '3months' | 'year' | 'all';
 
@@ -50,6 +49,7 @@ export default function LogisticsDashboard() {
     const { warehouses, isLoading: isLoadingWarehouses } = useWarehouses();
     const { products } = useProducts();
     const { data: dashboard, isLoading: isLoadingDashboard } = useLogisticsDashboard();
+    const { insights } = useSmartInsights();
     const [transfers, setTransfers] = useState<any[]>([]);
     const [isLoadingTransfers, setIsLoadingTransfers] = useState(true);
     const [period, setPeriod] = useState<TimePeriod>('all');
@@ -165,16 +165,13 @@ export default function LogisticsDashboard() {
 
     const exportToPDF = () => {
         const doc = new jsPDF();
-
-        // Header
         doc.setFontSize(20);
         doc.setTextColor(40);
         doc.text(companySettings?.companyName || 'RELATÓRIO LOGÍSTICO', 14, 22);
-
         doc.setFontSize(11);
         doc.setTextColor(100);
-        doc.text(`Período: ${period === 'all' ? 'Todo Histórico' : period} `, 14, 30);
-        doc.text(`Data de Emissão: ${new Date().toLocaleDateString()} `, 14, 35);
+        doc.text(`Período: ${period === 'all' ? 'Todo Histórico' : period}`, 14, 30);
+        doc.text(`Data de Emissão: ${new Date().toLocaleDateString()}`, 14, 35);
 
         const tableData = filteredTransfers.map(tr => [
             tr.number,
@@ -191,17 +188,15 @@ export default function LogisticsDashboard() {
             head: [['Guia #', 'Origem', 'Destino', 'Estado', 'Responsável', 'Data', 'Itens']],
             body: tableData,
             theme: 'striped',
-            headStyles: { fillStyle: 'fill', fillColor: [59, 130, 246] },
+            headStyles: { fillColor: [59, 130, 246] },
         });
 
         doc.save(`Logistica_Relatorio_${period}_${new Date().toISOString().split('T')[0]}.pdf`);
         toast.success('Relatório PDF gerado!');
     };
 
-    const totalStock = warehouses.reduce((acc, w) => acc + (w as any).totalItems || 0, 0);
-    const pendingTransfers = filteredTransfers.filter(t => t.status === 'pending').length;
+    const totalStock = warehouses.reduce((acc, w) => acc + ((w as any).totalItems || 0), 0);
 
-    // --- Mock Data for Charts ---
     const transferStats = [
         { name: 'Seg', valor: 4 },
         { name: 'Ter', valor: 7 },
@@ -222,13 +217,13 @@ export default function LogisticsDashboard() {
     if (isLoadingWarehouses || isLoadingDashboard) return (
         <div className="flex flex-col items-center justify-center h-96 space-y-4">
             <LoadingSpinner size="xl" />
-            <p className="text-gray-500 animate-pulse">Sincronizando Cadeia de Suprimentos e Dados Financeiros...</p>
+            <p className="text-gray-500 animate-pulse">Sincronizando Cadeia de Suprimentos...</p>
         </div>
     );
 
     return (
         <div className="space-y-8 animate-fade-in pb-12">
-            {/* --- Refined & Professional Header Section --- */}
+            {/* Header Section */}
             <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-dark-800 p-8 shadow-sm border border-gray-200 dark:border-dark-700">
                 <div className="absolute top-0 right-0 -m-8 opacity-[0.03] dark:opacity-[0.05]">
                     <HiOutlineTruck className="w-64 h-64 text-primary-900 rotate-12" />
@@ -267,68 +262,71 @@ export default function LogisticsDashboard() {
 
                         <Button
                             variant="outline"
-                            className="bg-white dark:bg-dark-700 border-gray-200 dark:border-dark-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-600 shadow-sm"
-                            leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-gray-400" />}
-                            onClick={fetchTransfers}
+                            className="bg-white/50 backdrop-blur-sm border-gray-200 dark:border-dark-700 rounded-2xl"
+                            leftIcon={<HiOutlinePrinter className="w-5 h-5" />}
+                            onClick={exportToPDF}
                         >
-                            Actualizar
+                            PDF
                         </Button>
-                        <div className="flex gap-2">
-                            <Button
-                                variant="outline"
-                                className="bg-white dark:bg-dark-700 border-gray-200 dark:border-dark-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-600 shadow-sm px-3"
-                                onClick={exportToExcel}
-                                title="Exportar Excel"
-                            >
-                                <HiOutlineArrowDownTray className="w-5 h-5" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                className="bg-white dark:bg-dark-700 border-gray-200 dark:border-dark-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-dark-600 shadow-sm px-3"
-                                onClick={exportToPDF}
-                                title="Exportar PDF"
-                            >
-                                <HiOutlineDocumentText className="w-5 h-5" />
-                            </Button>
-                        </div>
                         <Button
-                            className="bg-primary-600 hover:bg-primary-700 text-white shadow-lg shadow-primary-900/20 px-6"
+                            variant="primary"
+                            className="rounded-2xl shadow-lg shadow-primary-500/25"
                             leftIcon={<HiOutlinePlus className="w-5 h-5" />}
                             onClick={() => setIsTransferModalOpen(true)}
                         >
-                            Nova Guia
+                            Nova Transferência
                         </Button>
                     </div>
                 </div>
             </div>
 
-            {/* --- KPI Grid --- */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            {/* Smart Insights / Intelligent Advisor */}
+            {insights.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <HiOutlineLightBulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Otimização de rotas e logística detetada pela IA</p>
+                        </div>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
+                        {insights.map((insight) => (
+                            <SmartInsightCard key={insight.id} insight={insight} className="min-w-[320px] max-w-[400px] flex-shrink-0" />
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* KPI Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
                     { label: 'Stock Total', value: totalStock.toLocaleString(), icon: HiOutlineCube, color: 'blue', detail: 'Itens em rede' },
-                    { label: 'Receita Pickups', value: `${(dashboard?.stats.pickupRevenue || 0).toLocaleString()} MZN`, icon: HiOutlineBanknotes, color: 'emerald', detail: 'Total pickups' },
-                    { label: 'Receita Entregas', value: `${(dashboard?.stats.deliveryRevenue || 0).toLocaleString()} MZN`, icon: HiOutlineTruck, color: 'indigo', detail: 'Total envios' },
-                    { label: 'Regiões', value: dashboard?.stats.deliveriesByProvince.length || 0, icon: HiOutlineFlag, color: 'amber', detail: 'Provincias' }
+                    { label: 'Receita Pickups', value: `${(dashboard?.stats?.pickupRevenue || 0).toLocaleString()} MZN`, icon: HiOutlineBanknotes, color: 'emerald', detail: 'Total pickups' },
+                    { label: 'Receita Entregas', value: `${(dashboard?.stats?.deliveryRevenue || 0).toLocaleString()} MZN`, icon: HiOutlineTruck, color: 'indigo', detail: 'Total envios' },
+                    { label: 'Regiões', value: dashboard?.stats?.deliveriesByProvince?.length || 0, icon: HiOutlineFlag, color: 'amber', detail: 'Provincias' }
                 ].map((kpi, i) => (
-                    <Card key={i} variant="glass" className="relative group overflow-hidden border-none shadow-sm hover:shadow-md transition-all">
-                        <div className={`absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 -mr-4 sm:-mr-8 -mt-4 sm:-mt-8 rounded-full bg-${kpi.color}-500/5 group-hover:bg-${kpi.color}-500/10 transition-colors`}></div>
+                    <Card key={i} className="relative group overflow-hidden border-none shadow-sm hover:shadow-md transition-all">
+                        <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full bg-primary-500/5 group-hover:bg-primary-500/10 transition-colors`}></div>
                         <div className="flex items-start justify-between">
                             <div className="min-w-0 flex-1">
-                                <p className="text-xs sm:text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">{kpi.label}</p>
-                                <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white truncate">{kpi.value}</h3>
-                                <p className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mt-1 sm:mt-2 truncate">{kpi.detail}</p>
+                                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">{kpi.label}</p>
+                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white truncate">{kpi.value}</h3>
+                                <p className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mt-2 truncate">{kpi.detail}</p>
                             </div>
-                            <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-${kpi.color}-50 dark:bg-${kpi.color}-900/20 text-${kpi.color}-600 dark:text-${kpi.color}-400 flex-shrink-0`}>
-                                <kpi.icon className="w-4 h-4 sm:w-6 sm:h-6" />
+                            <div className={`p-3 rounded-2xl bg-gray-50 dark:bg-dark-900/20 text-primary-600 dark:text-primary-400 flex-shrink-0`}>
+                                <kpi.icon className="w-6 h-6" />
                             </div>
                         </div>
                     </Card>
                 ))}
             </div>
 
-            {/* --- Data Visualization Section --- */}
+            {/* Data Visualization Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card variant="glass" className="p-6 h-[400px] flex flex-col">
+                <Card className="p-6 h-[400px] flex flex-col">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
                             <HiOutlineChartBar className="text-primary-600 w-5 h-5" />
@@ -357,7 +355,7 @@ export default function LogisticsDashboard() {
                     </div>
                 </Card>
 
-                <Card variant="glass" className="p-6 h-[400px] flex flex-col">
+                <Card className="p-6 h-[400px] flex flex-col">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
                             <HiOutlineSquares2X2 className="text-indigo-600 w-5 h-5" />
@@ -377,7 +375,7 @@ export default function LogisticsDashboard() {
                                     dataKey="value"
                                 >
                                     {pieData.map((_entry, index) => (
-                                        <Cell key={`cell - ${index} `} fill={COLORS[index % COLORS.length]} />
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
                                 <Tooltip />
@@ -389,22 +387,21 @@ export default function LogisticsDashboard() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* --- Warehouse Monitor --- */}
+                {/* Warehouse Monitor */}
                 <div className="lg:col-span-2 space-y-6">
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
                             <HiOutlineMapPin className="text-primary-600 w-6 h-6" />
                             Rede de Armazéns
                         </h2>
-                        <Button variant="ghost" size="sm" className="text-primary-600 font-bold">Gerir Locais</Button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {warehouses.map((w, index) => (
-                            <Card key={w.id} variant="glass" className="group hover:border-primary-500/30 transition-all cursor-pointer">
+                            <Card key={w.id} className="group hover:border-primary-500/30 transition-all cursor-pointer">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-gray-100 to-white dark:from-dark-700 dark:to-dark-800 flex items-center justify-center shadow-inner group-hover:from-primary-500 group-hover:to-primary-600 group-hover:text-white transition-all">
+                                        <div className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-dark-900/50 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
                                             <HiOutlineMapPin className="w-6 h-6" />
                                         </div>
                                         <div>
@@ -424,15 +421,15 @@ export default function LogisticsDashboard() {
                                     </div>
                                     <div className="w-full h-2 bg-gray-100 dark:bg-dark-700 rounded-full overflow-hidden">
                                         <div
-                                            className={`h - full bg - gradient - to - r from - primary - 500 to - indigo - 500 rounded - full transition - all duration - 1000`}
-                                            style={{ width: `${Math.min(95, 20 + index * 15)}% ` }}
+                                            className="h-full bg-primary-500 rounded-full transition-all duration-1000"
+                                            style={{ width: `${Math.min(95, 20 + index * 15)}%` }}
                                         ></div>
                                     </div>
 
                                     <div className="flex items-center justify-between pt-2 border-t dark:border-dark-700">
                                         <div className="text-center">
                                             <p className="text-[10px] text-gray-500 font-bold mb-1">CÓDIGO</p>
-                                            <span className="text-sm font-mono font-bold bg-gray-50 dark:bg-dark-900 px-2 py-1 rounded">{w.code}</span>
+                                            <span className="text-sm font-mono font-bold">{w.code}</span>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[10px] text-gray-500 font-bold mb-1">TOTAL ITENS</p>
@@ -445,7 +442,7 @@ export default function LogisticsDashboard() {
                     </div>
                 </div>
 
-                {/* --- Side Activity Feed --- */}
+                {/* Side Activity Feed */}
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
@@ -454,20 +451,20 @@ export default function LogisticsDashboard() {
                         </h2>
                     </div>
 
-                    <Card variant="glass" className="p-0 overflow-hidden border-none shadow-xl">
+                    <Card className="p-0 overflow-hidden border-none shadow-xl">
                         <div className="p-4 bg-gray-50 dark:bg-dark-900/50 border-b dark:border-dark-700 flex items-center justify-between">
                             <span className="text-xs font-bold text-gray-500 tracking-widest">TRANSFERÊNCIAS LIVE</span>
                             <Badge variant="primary" size="sm">{filteredTransfers.length}</Badge>
                         </div>
                         <div className="max-h-[500px] overflow-y-auto scrollbar-hidden">
                             {isLoadingTransfers ? (
-                                <div className="p-8"><LoadingSpinner /></div>
+                                <div className="p-8 text-center"><LoadingSpinner /></div>
                             ) : filteredTransfers.length > 0 ? (
                                 <div className="divide-y dark:divide-dark-700">
                                     {filteredTransfers.slice(0, 8).map((tr) => (
                                         <div key={tr.id} className="p-4 hover:bg-white dark:hover:bg-dark-700/50 transition-all group">
                                             <div className="flex items-start gap-3">
-                                                <div className={`mt - 1 w - 2 h - 2 rounded - full shrink - 0 ${tr.status === 'completed' ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-amber-400 shadow-lg shadow-amber-500/50'} `}></div>
+                                                <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${tr.status === 'completed' ? 'bg-green-500' : 'bg-amber-400'}`}></div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between mb-1">
                                                         <span className="text-sm font-bold text-primary-600 font-mono">{tr.number}</span>
@@ -485,7 +482,7 @@ export default function LogisticsDashboard() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="h-8 w-8 p-0 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                                                            className="h-8 w-8 p-0"
                                                             onClick={() => generateGuiaRemessa(tr, companySettings)}
                                                         >
                                                             <HiOutlinePrinter className="w-4 h-4 text-primary-500" />
@@ -504,11 +501,11 @@ export default function LogisticsDashboard() {
                 </div>
             </div>
 
-            {/* --- Modal de Nova Guias de Remessa --- */}
+            {/* Modal de Nova Guias de Remessa */}
             <Modal
                 isOpen={isTransferModalOpen}
                 onClose={() => setIsTransferModalOpen(false)}
-                title="Sincronização de Cadeia de Suprimentos"
+                title="Nova Transferência de Stock"
                 size="lg"
             >
                 <form onSubmit={handleCreateTransfer} className="space-y-6">
@@ -530,7 +527,7 @@ export default function LogisticsDashboard() {
                     </div>
 
                     <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-2xl space-y-4 border dark:border-dark-700 shadow-inner">
-                        <label className="block text-xs font-extrabold text-gray-500 uppercase tracking-widest">Controle de Inventário em Trânsito</label>
+                        <label className="block text-xs font-extrabold text-gray-500 uppercase tracking-widest">Itens da Transferência</label>
                         {transferData.items.map((item, index) => (
                             <div key={index} className="flex gap-2 items-center bg-white dark:bg-dark-800 p-2 rounded-xl shadow-sm">
                                 <div className="flex-1">
@@ -543,10 +540,9 @@ export default function LogisticsDashboard() {
                                             setTransferData({ ...transferData, items: newItems });
                                         }}
                                         required
-                                        className="border-none shadow-none focus:ring-0"
                                     />
                                 </div>
-                                <div className="w-20">
+                                <div className="w-24">
                                     <Input
                                         type="number"
                                         min="1"
@@ -557,12 +553,11 @@ export default function LogisticsDashboard() {
                                             setTransferData({ ...transferData, items: newItems });
                                         }}
                                         required
-                                        className="text-center font-bold border-none shadow-none focus:ring-0"
                                     />
                                 </div>
                                 <Button
                                     variant="ghost"
-                                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    className="p-2 text-red-500"
                                     onClick={() => removeItem(index)}
                                     disabled={transferData.items.length === 1}
                                 >
@@ -573,24 +568,24 @@ export default function LogisticsDashboard() {
                         <Button
                             variant="outline"
                             size="sm"
-                            className="w-full border-dashed border-2 hover:bg-primary-50 text-primary-600 font-bold py-3"
-                            leftIcon={<HiOutlinePlus />}
+                            className="w-full border-dashed"
+                            leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                             onClick={addItem}
                         >
-                            Adicionar Mais Produtos
+                            Adicionar Produto
                         </Button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
-                            label="Responsável pelo Movimento"
-                            placeholder="Nome do operador"
+                            label="Responsável"
+                            placeholder="Nome do responsável"
                             value={transferData.responsible}
                             onChange={(e) => setTransferData({ ...transferData, responsible: e.target.value })}
                             required
                         />
                         <Input
-                            label="Motivo / Referência"
+                            label="Motivo"
                             placeholder="Ex: Reposição de Stock"
                             value={transferData.reason}
                             onChange={(e) => setTransferData({ ...transferData, reason: e.target.value })}
@@ -599,9 +594,9 @@ export default function LogisticsDashboard() {
                     </div>
 
                     <div className="flex gap-3 pt-4 border-t dark:border-dark-700 mt-6">
-                        <Button variant="outline" className="flex-1 h-12 font-bold" onClick={() => setIsTransferModalOpen(false)}>Cancelar</Button>
-                        <Button type="submit" className="flex-[2] h-12 bg-primary-600 hover:bg-primary-700 text-white font-bold shadow-xl">
-                            Emitir Guia e Iniciar Transferência
+                        <Button variant="outline" className="flex-1" onClick={() => setIsTransferModalOpen(false)}>Cancelar</Button>
+                        <Button type="submit" className="flex-2 bg-primary-600 hover:bg-primary-700 text-white font-bold">
+                            Registar Transferência
                         </Button>
                     </div>
                 </form>
@@ -609,4 +604,3 @@ export default function LogisticsDashboard() {
         </div>
     );
 }
-

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Delivery Routes Management Page
  * List, create, edit, and delete delivery routes
  */
@@ -97,12 +97,12 @@ export default function RoutesPage() {
             name: formData.name,
             origin: formData.origin,
             destination: formData.destination,
-            distance: formData.distance ? parseFloat(formData.distance) : null,
-            estimatedTime: formData.estimatedTime ? parseInt(formData.estimatedTime) : null,
-            tollCost: formData.tollCost ? parseFloat(formData.tollCost) : null,
-            fuelEstimate: formData.fuelEstimate ? parseFloat(formData.fuelEstimate) : null,
+            distance: formData.distance ? parseFloat(formData.distance) : undefined,
+            estimatedTime: formData.estimatedTime ? parseInt(formData.estimatedTime) : undefined,
+            tollCost: formData.tollCost ? parseFloat(formData.tollCost) : undefined,
+            fuelEstimate: formData.fuelEstimate ? parseFloat(formData.fuelEstimate) : undefined,
             isActive: formData.isActive,
-            notes: formData.notes || null
+            notes: formData.notes || undefined
         };
 
         if (editingRoute) {
@@ -261,7 +261,7 @@ export default function RoutesPage() {
                 )}
 
                 {/* Pagination Controls */}
-                {data?.pagination && data.pagination.totalPages > 1 && (
+                {data && data.pagination.total > 0 && (
                     <div className="p-4 border-t dark:border-dark-700">
                         <Pagination
                             currentPage={page}
@@ -272,7 +272,7 @@ export default function RoutesPage() {
                                 setPageSize(size);
                                 setPage(1);
                             }}
-                            itemsPerPageOptions={[10, 20, 50]}
+                            itemsPerPageOptions={[10, 20, 50, 100]}
                         />
                     </div>
                 )}
@@ -379,7 +379,7 @@ export default function RoutesPage() {
                         <Button variant="outline" className="flex-1" onClick={() => { setIsModalOpen(false); resetForm(); }}>
                             Cancelar
                         </Button>
-                        <Button type="submit" className="flex-1" isLoading={createMutation.isPending || updateMutation.isPending}>
+                        <Button type="submit" className="flex-1" isLoading={createMutation.isLoading || updateMutation.isLoading}>
                             {editingRoute ? 'Actualizar' : 'Criar Rota'}
                         </Button>
                     </div>
@@ -402,7 +402,7 @@ export default function RoutesPage() {
                         <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>
                             Cancelar
                         </Button>
-                        <Button variant="danger" className="flex-1" onClick={() => handleDelete(deleteConfirm!)} isLoading={deleteMutation.isPending}>
+                        <Button variant="danger" className="flex-1" onClick={() => handleDelete(deleteConfirm!)} isLoading={deleteMutation.isLoading}>
                             Eliminar
                         </Button>
                     </div>

@@ -1,4 +1,4 @@
-import api from './client';
+﻿import api from './client';
 
 // ============================================================================
 // Products API
@@ -13,6 +13,8 @@ export const productsAPI = {
         maxPrice?: number;
         supplierId?: string;
         origin_module?: string;
+        page?: number;
+        limit?: number;
     }) => {
         const response = await api.get('/products', { params });
         return response.data;

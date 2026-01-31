@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react';
+﻿import { useMemo, useRef, useEffect } from 'react';
 import { useStore } from '../../stores/useStore';
 import { useProducts } from '../../hooks/useData';
 import { formatCurrency } from '../../utils/helpers';
@@ -10,11 +10,12 @@ import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
 interface InventoryPrintReportProps {
     isOpen: boolean;
     onClose: () => void;
+    category?: string;
 }
 
-export default function InventoryPrintReport({ isOpen, onClose }: InventoryPrintReportProps) {
+export default function InventoryPrintReport({ isOpen, onClose, category }: InventoryPrintReportProps) {
     const { companySettings, loadCompanySettings } = useStore();
-    const { products } = useProducts();
+    const { products } = useProducts({ category });
     const printRef = useRef<HTMLDivElement>(null);
 
     // Refresh company settings when modal opens
@@ -311,7 +312,7 @@ export default function InventoryPrintReport({ isOpen, onClose }: InventoryPrint
 
                     {/* Footer */}
                     <div className="footer mt-8 text-center text-xs text-gray-400">
-                        <p>Sistema de Gestão Empresarial - Relatório gerado automaticamente</p>
+                        <p>Multicore - Relatório gerado automaticamente</p>
                     </div>
                 </div>
             </div>

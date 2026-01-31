@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // Product Types
 // ============================================================================
 
@@ -196,6 +196,14 @@ export interface Employee {
     contractExpiry?: string;
 }
 
+export interface PayrollAuditEntry {
+    action: 'created' | 'updated' | 'printed' | 'paid' | 'received';
+    userId: string;
+    userName: string;
+    timestamp: string;
+    details?: string;
+}
+
 export interface PayrollRecord {
     id: string;
     employeeId: string;
@@ -215,7 +223,11 @@ export interface PayrollRecord {
     status: 'draft' | 'processed' | 'paid';
     processedAt?: string;
     paidAt?: string;
+    paidBy?: string; // User ID who marked as paid
+    receivedBy?: string; // Employee signature/confirmation
+    receivedAt?: string;
     notes?: string;
+    logs?: PayrollAuditEntry[];
 }
 
 export interface AttendanceRecord {

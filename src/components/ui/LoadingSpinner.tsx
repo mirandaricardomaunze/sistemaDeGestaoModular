@@ -1,4 +1,4 @@
-import { type HTMLAttributes } from 'react';
+﻿import { type HTMLAttributes } from 'react';
 
 interface LoadingSpinnerProps extends HTMLAttributes<HTMLDivElement> {
     size?: 'sm' | 'md' | 'lg' | 'xl';

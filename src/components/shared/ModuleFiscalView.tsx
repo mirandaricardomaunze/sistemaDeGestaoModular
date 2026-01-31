@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Card, Badge, LoadingSpinner, EmptyState, Button } from '../ui';
 import { HiOutlineChartBar, HiOutlineDocumentReport, HiOutlineFilter, HiOutlineExternalLink } from 'react-icons/hi';
 import { fiscalAPI } from '../../services/api';
@@ -36,7 +36,7 @@ export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProp
 
                 const retentionRes = await fiscalAPI.getRetentions();
                 setRetentions(retentionRes.filter((r: any) => r.module === module));
-            } catch (err: any) {
+            } catch (err: unknown) {
                 toast.error('Erro ao buscar dados fiscais');
                 setLoading(false);
             }

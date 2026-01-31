@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+﻿import { useRef } from 'react';
 import { format } from 'date-fns';
 import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
 import { Modal, Button, Card } from '../ui';
@@ -182,7 +182,7 @@ export default function Modelo10Print({ isOpen, onClose, retentions, moduleTitle
                                     <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=M10-FISCAL-${companySettings?.taxId}-${new Date().getFullYear()}`} alt="QR" className="w-full h-full opacity-60" />
                                 </div>
                                 <div className="flex-1 text-[6pt] text-gray-500 space-y-1">
-                                    <p>Este relatório é gerado automaticamente pelo sistema de gestão modular.</p>
+                                    <p>Este relatório é gerado automaticamente pelo Multicore.</p>
                                     <p>Os dados aqui apresentados foram extraídos dos eventos fiscais registados nas transacções.</p>
                                     <p>Emitido em: {format(new Date(), 'dd-MM-yyyy HH:mm:ss')}</p>
                                 </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Campaign Manager Component
  * Gestão de campanhas promocionais e segmentação de clientes
  */
@@ -39,8 +39,10 @@ export default function CampaignManager() {
         updateCampaign,
         deleteCampaign: removeCampaign,
     } = useCampaigns();
+    const [nowTimestamp] = useState(() => Date.now());
 
     // Transform campaign data to match expected structure
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const campaigns = (campaignsData || []).map((c: any) => ({
         ...c,
         status: c.status || 'active',
@@ -57,15 +59,14 @@ export default function CampaignManager() {
     const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null);
 
     // Form state
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         code: '',
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        startDate: new Date(nowTimestamp).toISOString().split('T')[0],
+        endDate: new Date(nowTimestamp + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         discountType: 'percentage' as DiscountType,
         discountValue: 10,
         minPurchaseAmount: 0,
@@ -137,8 +138,8 @@ export default function CampaignManager() {
             name: '',
             description: '',
             code: '',
-            startDate: new Date().toISOString().split('T')[0],
-            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            startDate: new Date(nowTimestamp).toISOString().split('T')[0],
+            endDate: new Date(nowTimestamp + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             discountType: 'percentage',
             discountValue: 10,
             minPurchaseAmount: 0,
@@ -185,10 +186,10 @@ export default function CampaignManager() {
         };
 
         if (isEditing && selectedCampaign) {
-            updateCampaign(selectedCampaign.id, campaignData as any);
+            updateCampaign(selectedCampaign.id, campaignData as Partial<Campaign>);
             toast.success('Campanha atualizada!');
         } else {
-            createCampaign(campaignData as any);
+            createCampaign(campaignData as Parameters<typeof createCampaign>[0]);
             toast.success('Campanha criada!');
         }
 
@@ -211,15 +212,15 @@ export default function CampaignManager() {
 
     // API-based status change handlers
     const activateCampaign = (id: string) => {
-        updateCampaign(id, { status: 'active' } as any);
+        updateCampaign(id, { status: 'active' } as Partial<Campaign>);
     };
 
     const pauseCampaign = (id: string) => {
-        updateCampaign(id, { status: 'paused' } as any);
+        updateCampaign(id, { status: 'paused' } as Partial<Campaign>);
     };
 
     const endCampaign = (id: string) => {
-        updateCampaign(id, { status: 'ended' } as any);
+        updateCampaign(id, { status: 'ended' } as Partial<Campaign>);
     };
 
     const handleViewDetails = (campaign: Campaign) => {
@@ -469,7 +470,7 @@ export default function CampaignManager() {
                                                     </button>
                                                 )}
                                                 <button
-                                                    onClick={() => handleDelete(campaign.id)}
+                                                    onClick={() => handleDelete(campaign)}
                                                     className="p-2 text-gray-400 hover:text-red-500"
                                                     title="Eliminar"
                                                 >
@@ -624,8 +625,8 @@ export default function CampaignManager() {
                                                 type="button"
                                                 onClick={() => toggleCategory(value)}
                                                 className={`px - 3 py - 1.5 rounded - lg text - sm font - medium transition - colors ${formData.customerCategories.includes(value)
-                                                        ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
-                                                        : 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-400'
+                                                    ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
+                                                    : 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-400'
                                                     } `}
                                             >
                                                 {label}
@@ -775,6 +776,23 @@ export default function CampaignManager() {
                         </div>
                     </div>
                 )}
+            </Modal>
+            {/* Delete Modal */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                title="Eliminar Campanha"
+                size="sm"
+            >
+                <div className="space-y-4">
+                    <p className="text-gray-600 dark:text-gray-400">
+                        Tem certeza que deseja eliminar esta campanha? Esta ação não pode ser desfeita.
+                    </p>
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-dark-700">
+                        <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
+                        <Button variant="danger" onClick={performDelete}>Eliminar</Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

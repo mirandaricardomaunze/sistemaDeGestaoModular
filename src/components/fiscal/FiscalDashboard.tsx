@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo, useState } from 'react';
 import {
     HiOutlineDocumentText,
     HiOutlineCash,
@@ -16,9 +16,10 @@ import { formatCurrency } from '../../utils/helpers';
 import { formatPeriod, getCurrentFiscalPeriod } from '../../utils/fiscalCalculations';
 
 export default function FiscalDashboard() {
-    const { getDashboardMetrics, retentions, fiscalReports, deadlines, logisticsMetrics } = useFiscalStore();
+    const { getDashboardMetrics } = useFiscalStore();
 
-    const metrics = useMemo(() => getDashboardMetrics(), [retentions, fiscalReports, deadlines, logisticsMetrics]);
+    const [now] = useState(() => Date.now());
+    const metrics = useMemo(() => getDashboardMetrics(), [getDashboardMetrics]);
     const currentPeriod = getCurrentFiscalPeriod();
 
     const getComplianceColor = (status: string) => {
@@ -224,7 +225,7 @@ export default function FiscalDashboard() {
                         <div className="space-y-3">
                             {metrics.pendingDeadlines.map((deadline) => {
                                 const dueDate = new Date(deadline.dueDate);
-                                const daysUntilDue = Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                                const daysUntilDue = Math.ceil((dueDate.getTime() - now) / (1000 * 60 * 60 * 24));
                                 const isUrgent = daysUntilDue <= 3;
 
                                 return (

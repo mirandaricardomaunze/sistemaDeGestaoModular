@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Logistics Module Hooks 
  * Re-implemented without dependency on @tanstack/react-query to match project architecture.
  */
@@ -31,7 +31,7 @@ function useQueryManual<T>(queryFn: () => Promise<T>, queryKey: string[], deps: 
         try {
             const result = await queryFn();
             setData(result);
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err);
             console.error('Query error:', err);
         } finally {
@@ -77,7 +77,7 @@ function useMutationManual<T, V>(
             }
             options?.onSuccess?.(result);
             return result;
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(err);
             options?.onError?.(err);
             throw err;

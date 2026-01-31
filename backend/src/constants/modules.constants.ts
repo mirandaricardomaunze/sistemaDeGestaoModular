@@ -1,4 +1,4 @@
-// Module Constants - Static definition of all available modules
+﻿// Module Constants - Static definition of all available modules
 // These are defined in code so they persist even if database is reset
 
 export interface ModuleDefinition {

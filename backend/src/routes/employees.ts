@@ -1,4 +1,4 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import {
@@ -121,7 +121,7 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 
         const where: any = {};
 
-        // 🔒 CRITICAL: Filter by company for multi-tenant isolation
+        // ðŸ”’ CRITICAL: Filter by company for multi-tenant isolation
         if (req.companyId) {
             where.companyId = req.companyId;
         }
@@ -200,7 +200,7 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
             return res.status(404).json({ error: 'Funcionário não encontrado' });
         }
 
-        // 🔒 CRITICAL: Verify employee belongs to user's company
+        // ðŸ”’ CRITICAL: Verify employee belongs to user's company
         if (req.companyId && employee.companyId !== req.companyId) {
             return res.status(403).json({ error: 'Acesso negado: funcionário pertence a outra empresa' });
         }
@@ -248,7 +248,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
         const validatedData = updateEmployeeSchema.parse(req.body);
 
-        // 🔒 CRITICAL: Verify employee belongs to user's company before update
+        // ðŸ”’ CRITICAL: Verify employee belongs to user's company before update
         const existing = await prisma.employee.findUnique({
             where: { id: req.params.id },
             select: { id: true, companyId: true }
@@ -286,7 +286,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 // Delete employee (soft delete)
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     try {
-        // 🔒 CRITICAL: Verify employee belongs to user's company before delete
+        // ðŸ”’ CRITICAL: Verify employee belongs to user's company before delete
         const existing = await prisma.employee.findUnique({
             where: { id: req.params.id },
             select: { id: true, companyId: true }
@@ -323,7 +323,7 @@ router.post('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
         const attendanceDate = new Date(date);
         attendanceDate.setHours(0, 0, 0, 0);
 
-        // 🔒 Verify employee ownership
+        // ðŸ”’ Verify employee ownership
         const employee = await prisma.employee.findFirst({
             where: { id: req.params.id, companyId: req.companyId }
         });
@@ -872,7 +872,7 @@ router.patch('/roster/add', authenticate, async (req: AuthRequest, res) => {
         const { employeeIds, department } = req.body;
         await AttendanceService.addToRoster(req.companyId!, employeeIds, department);
         res.json({ message: 'Funcionários adicionados à área de ponto' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Add to roster error:', error);
         res.status(400).json({ error: error.message || 'Erro ao adicionar à área de ponto' });
     }
@@ -908,7 +908,7 @@ router.post('/roster/record/:id', authenticate, async (req: AuthRequest, res) =>
         );
 
         res.json(record);
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Record time error:', error);
         res.status(400).json({ error: error.message || 'Erro ao registrar tempo' });
     }

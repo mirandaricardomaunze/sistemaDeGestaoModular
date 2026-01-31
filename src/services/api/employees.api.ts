@@ -1,4 +1,4 @@
-import api from './client';
+﻿import api from './client';
 
 // ============================================================================
 // Employees API
@@ -136,6 +136,21 @@ export const employeesAPI = {
 
     processPayroll: async (id: string) => {
         const response = await api.post(`/employees/payroll/${id}/process`);
+        return response.data;
+    },
+
+    markPayrollAsPaid: async (id: string, data: { paidBy: string; notes?: string }) => {
+        const response = await api.post(`/employees/payroll/${id}/mark-paid`, data);
+        return response.data;
+    },
+
+    addPayrollAudit: async (id: string, data: { action: string; userId: string; userName: string; details?: string }) => {
+        const response = await api.post(`/employees/payroll/${id}/audit`, data);
+        return response.data;
+    },
+
+    getPayrollHistory: async (employeeId: string) => {
+        const response = await api.get(`/employees/${employeeId}/payroll-history`);
         return response.data;
     },
 

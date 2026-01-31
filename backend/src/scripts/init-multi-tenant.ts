@@ -1,20 +1,20 @@
-import { PrismaClient } from '@prisma/client';
+﻿import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function migrate() {
-    console.log('🚀 Iniciando script de migração Multi-Tenant...');
-    console.log(`📡 DATABASE_URL: ${process.env.DATABASE_URL ? 'Definida' : 'NÃO DEFINIDA'}`);
+    console.log('ðŸš€ Iniciando script de migração Multi-Tenant...');
+    console.log(`ðŸ“¡ DATABASE_URL: ${process.env.DATABASE_URL ? 'Definida' : 'NÃO DEFINIDA'}`);
 
     try {
-        console.log('🔍 Buscando empresa padrão...');
+        console.log('ðŸ” Buscando empresa padrão...');
         // 1. Criar Empresa Padrão
         let defaultCompany = await prisma.company.findFirst({
             where: { name: 'Sistema Principal' }
         });
 
         if (!defaultCompany) {
-            console.log('🏗️ Criando empresa padrão...');
+            console.log('ðŸ—ï¸ Criando empresa padrão...');
             defaultCompany = await prisma.company.create({
                 data: {
                     name: 'Sistema Principal',
@@ -25,7 +25,7 @@ async function migrate() {
             });
             console.log(`✅ Empresa padrão criada: ${defaultCompany.id}`);
         } else {
-            console.log(`ℹ️ Empresa padrão já existe: ${defaultCompany.id}`);
+            console.log(`â„¹ï¸ Empresa padrão já existe: ${defaultCompany.id}`);
         }
 
         // 2. Criar Módulos
@@ -82,7 +82,7 @@ async function migrate() {
         console.log(`✅ ${productUpdate.count} produtos vinculados à empresa padrão.`);
 
     } catch (e) {
-        console.error('❌ Erro na migração:', e);
+        console.error('âŒ Erro na migração:', e);
     } finally {
         await prisma.$disconnect();
     }

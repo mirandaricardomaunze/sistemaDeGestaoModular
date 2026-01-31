@@ -1,6 +1,6 @@
 # Sistema Backend
 
-## Backend API para Sistema de Gestão Comercial
+## Backend API para Multicore
 
 ### 🚀 Tecnologias
 

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReservationCalendar Component
  * Visual calendar showing room occupancy and future reservations
  * Supports international guests with country, dial codes, and email
@@ -203,7 +203,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
             setIsReservationModalOpen(false);
             fetchCalendarData();
             onRefresh?.();
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message || 'Erro ao criar reserva');
         } finally {
             setIsSubmitting(false);

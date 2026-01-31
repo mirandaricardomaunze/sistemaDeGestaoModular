@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+﻿import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Sistema de Gestão Comercial',
-        short_name: 'Sistema',
-        description: 'Vendas e Estoque Offline First',
+        name: 'Multicore',
+        short_name: 'Multicore',
+        description: 'Multicore - Sistema de Gestão Empresarial',
         theme_color: '#2563eb',
         icons: [
           {

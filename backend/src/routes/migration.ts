@@ -1,10 +1,10 @@
-import { Router } from 'express';
+﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 
 const router = Router();
 
 /**
- * ENDPOINT TEMPORÁRIO DE MIGRAÇÃO
+ * ENDPOINT TEMPORÃRIO DE MIGRAÇÃO
  * Este endpoint atualiza todos os usuários sem empresa para a empresa padrão
  */
 router.post('/migrate-users-to-default-company', async (req, res) => {

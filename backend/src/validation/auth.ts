@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Validation Schemas - Authentication
  * 
  * Schemas for authentication and authorization operations.

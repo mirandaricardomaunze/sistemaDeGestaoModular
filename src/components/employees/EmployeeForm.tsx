@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -143,7 +143,7 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
             });
         } else {
             reset({
-                code: `EMP-${Date.now().toString().slice(-6)}`,
+                code: `EMP-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`,
                 name: '',
                 email: '',
                 phone: '',
@@ -160,7 +160,6 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                 contractExpiry: '',
             });
         }
-        setActiveSection('info');
     }, [employee, reset]);
 
     const addQualification = () => {
@@ -204,7 +203,7 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                 birthDate: data.birthDate || undefined,
                 contractType: data.contractType || 'indefinite',
                 contractExpiry: data.contractType === 'fixed_term' ? data.contractExpiry : undefined,
-            } as any);
+            } as Partial<Employee>);
             toast.success('Funcionário atualizado com sucesso!');
         } else {
             const newEmployee: Employee = {
@@ -234,7 +233,7 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                     nib: data.nib || '',
                 },
                 birthDate: data.birthDate || undefined,
-                contractType: (data.contractType as any) || 'indefinite',
+                contractType: (data.contractType || 'indefinite') as any,
                 contractExpiry: data.contractType === 'fixed_term' ? data.contractExpiry : undefined,
             };
             addEmployee(newEmployee);

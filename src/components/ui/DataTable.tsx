@@ -1,4 +1,4 @@
-import React, { type ReactNode } from 'react';
+﻿import React, { type ReactNode } from 'react';
 import { flexRender, type Table as TanStackTable } from '@tanstack/react-table';
 import { LoadingSpinner, Button } from './index';
 import { EmptyState } from './EmptyState';
@@ -107,7 +107,7 @@ export function DataTable<TData>({
                                         {flexRender(header.column.columnDef.header, header.getContext())}
                                         {header.column.getIsSorted() && (
                                             <span className="text-primary-500">
-                                                {header.column.getIsSorted() === 'asc' ? '↑' : '↓'}
+                                                {header.column.getIsSorted() === 'asc' ? 'â†‘' : 'â†“'}
                                             </span>
                                         )}
                                     </div>

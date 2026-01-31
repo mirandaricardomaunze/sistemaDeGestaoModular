@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Hotel Reports (Relatórios)
  * 
  * Reuses the existing HospitalityReports component

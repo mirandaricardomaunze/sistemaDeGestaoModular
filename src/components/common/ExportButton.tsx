@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ExportButton Component
  * 
  * Reusable button with dropdown menu for exporting data to Excel or PDF
@@ -321,4 +321,71 @@ export function ExportSuppliersButton({ data, companyName, className }: QuickExp
     );
 }
 
+export function ExportVehiclesButton({ data, companyName, className }: QuickExportProps) {
+    return (
+        <ExportButton
+            filename="veiculos"
+            title="Frota de Veículos"
+            className={className}
+            options={{
+                companyName,
+                columns: [
+                    { key: 'plate', header: 'Matrícula', width: 15 },
+                    { key: 'brand', header: 'Marca', width: 15 },
+                    { key: 'model', header: 'Modelo', width: 15 },
+                    { key: 'type', header: 'Tipo', width: 12 },
+                    { key: 'capacity', header: 'Capacidade', width: 12 },
+                    { key: 'mileage', header: 'Kms', format: 'number', width: 12 },
+                    { key: 'status', header: 'Estado', width: 12 },
+                ],
+                data
+            }}
+        />
+    );
+}
 
+export function ExportDeliveriesButton({ data, companyName, className }: QuickExportProps) {
+    return (
+        <ExportButton
+            filename="entregas"
+            title="Relatório de Entregas"
+            className={className}
+            options={{
+                companyName,
+                orientation: 'landscape',
+                columns: [
+                    { key: 'number', header: 'Nº Entrega', width: 15 },
+                    { key: 'recipientName', header: 'Destinatário', width: 20 },
+                    { key: 'deliveryAddress', header: 'Endereço', width: 30 },
+                    { key: 'driver.name', header: 'Motorista', width: 15 },
+                    { key: 'vehicle.plate', header: 'Veículo', width: 12 },
+                    { key: 'shippingCost', header: 'Custo', format: 'currency', width: 15 },
+                    { key: 'status', header: 'Estado', width: 12 },
+                    { key: 'priority', header: 'Prioridade', width: 12 },
+                ],
+                data
+            }}
+        />
+    );
+}
+
+export function ExportRoomsButton({ data, companyName, className }: QuickExportProps) {
+    return (
+        <ExportButton
+            filename="quartos"
+            title="Estado dos Quartos"
+            className={className}
+            options={{
+                companyName,
+                columns: [
+                    { key: 'number', header: 'Nº Quarto', width: 15 },
+                    { key: 'type', header: 'Tipo', width: 15 },
+                    { key: 'price', header: 'Preço/Noite', format: 'currency', width: 15 },
+                    { key: 'status', header: 'Estado', width: 15 },
+                    { key: 'notes', header: 'Notas', width: 30 },
+                ],
+                data
+            }}
+        />
+    );
+}

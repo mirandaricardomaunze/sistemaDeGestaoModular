@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit';
+﻿import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger';
@@ -35,7 +35,7 @@ export class PDFService {
                 if (companyInfo) {
                     doc.fontSize(20)
                         .fillColor('#1e40af')
-                        .text(companyInfo.name || 'Sistema de Gestão ERP', { align: 'left' });
+                        .text(companyInfo.name || 'Multicore', { align: 'left' });
 
                     doc.fontSize(10)
                         .fillColor('#666666')
@@ -45,7 +45,7 @@ export class PDFService {
                 } else {
                     doc.fontSize(24)
                         .fillColor('#1e40af')
-                        .text('Sistema de Gestão ERP', { align: 'center' });
+                        .text('Multicore', { align: 'center' });
                 }
 
                 doc.moveDown(1);
@@ -197,7 +197,7 @@ export class PDFService {
         doc.moveDown(2);
 
         if (data.lowStockProducts && data.lowStockProducts.length > 0) {
-            doc.fontSize(14).fillColor('#dc2626').text('⚠️ Produtos com Stock Crítico:', { underline: true });
+            doc.fontSize(14).fillColor('#dc2626').text('âš ï¸ Produtos com Stock Crítico:', { underline: true });
             doc.moveDown(0.5);
             doc.fontSize(10).fillColor('#000000');
 

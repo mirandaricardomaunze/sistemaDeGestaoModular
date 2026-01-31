@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     HiOutlineOfficeBuilding,
@@ -66,7 +66,7 @@ const SuperAdminDashboard: React.FC = () => {
             setStats(statsData);
             setCompanies(companiesData.slice(0, 5)); // Top 5 most recent
             setActivities(activitiesData.slice(0, 10)); // Last 10 activities
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error loading admin data:', error);
 
             // Check if it's a permission error (403)

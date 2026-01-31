@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Audit Log Types
  * Sistema de auditoria para rastrear todas as ações dos utilizadores
  */

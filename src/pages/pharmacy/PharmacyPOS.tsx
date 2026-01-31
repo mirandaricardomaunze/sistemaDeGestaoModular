@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Pharmacy POS (Point of Sale)
  * 
  * Professional point of sale system for pharmacy with:
@@ -273,7 +273,7 @@ export default function PharmacyPOS() {
             setSelectedCustomer(null);
             setManualCustomerName('');
             fetchMedications();
-        } catch (error: any) {
+        } catch (error: unknown) {
             toast.error(error.message || 'Erro ao realizar venda');
         }
     };

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Parcels Management Page
  * List, receive, and manage parcels for pickup
  */
@@ -45,12 +45,13 @@ export default function ParcelsPage() {
     const [isPickupModalOpen, setIsPickupModalOpen] = useState(false);
     const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
 
+    const [pageSize, setPageSize] = useState(20);
     const { data, isLoading, refetch } = useParcels({
         search: search || undefined,
         status: statusFilter || undefined,
         warehouseId: warehouseFilter || undefined,
         page,
-        limit: 20
+        limit: pageSize
     });
 
     const { warehouses } = useWarehouses();
@@ -338,14 +339,21 @@ export default function ParcelsPage() {
             )}
 
             {/* Pagination */}
-            {data && data.pagination.totalPages > 1 && (
-                <Pagination
-                    currentPage={page}
-                    totalItems={data.pagination.total}
-                    itemsPerPage={data.pagination.limit}
-                    onPageChange={setPage}
-                    showInfo={true}
-                />
+            {data && data.pagination.total > 0 && (
+                <div className="flex justify-center mt-6">
+                    <Pagination
+                        currentPage={page}
+                        totalItems={data.pagination.total}
+                        itemsPerPage={pageSize}
+                        onPageChange={setPage}
+                        onItemsPerPageChange={(size) => {
+                            setPageSize(size);
+                            setPage(1);
+                        }}
+                        itemsPerPageOptions={[10, 20, 50, 100]}
+                        showInfo={true}
+                    />
+                </div>
             )}
 
             {/* Create Modal */}

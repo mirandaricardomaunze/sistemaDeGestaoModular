@@ -1,5 +1,4 @@
-import { useState, useMemo } from 'react';
-import { jsPDF } from 'jspdf';
+﻿import { useState, useMemo } from 'react';
 import {
     HiOutlineDocumentDownload,
     HiOutlineCalendar,
@@ -32,6 +31,7 @@ import ShareButton from '../components/share/ShareButton';
 import { useTenant } from '../contexts/TenantContext';
 import { HospitalityReports } from '../components/hospitality';
 import { ExportSalesButton } from '../components/common/ExportButton';
+import { exportAPI } from '../services/api';
 import type { Sale } from '../types';
 
 // Time period options
@@ -228,132 +228,38 @@ export default function Reports() {
             .slice(0, 10);
     }, [filteredSales]);
 
-    // Generate PDF Report
-    const generatePDF = () => {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        let y = 20;
-
-        // Company Logo
-        if (companySettings?.logo) {
-            try {
-                const logoWidth = 30; // mm
-                const logoHeight = 30; // mm
-                const x = (pageWidth - logoWidth) / 2;
-                doc.addImage(companySettings.logo, 'PNG', x, y, logoWidth, logoHeight);
-                y += logoHeight + 5;
-            } catch (e) {
-                console.warn('Error adding logo to PDF:', e);
-            }
-        }
-
-        // Header
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text(companySettings?.companyName ?? 'Empresa', pageWidth / 2, y, { align: 'center' });
-        y += 8;
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`NUIT: ${companySettings?.taxId ?? ''}`, pageWidth / 2, y, { align: 'center' });
-        y += 15;
-
-        // Report Title
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('RELATÓRIO DE VENDAS', pageWidth / 2, y, { align: 'center' });
-        y += 8;
-
+    // Unified Export Handler
+    const handleExport = async (type: 'pdf' | 'excel') => {
         const periodLabel = periodOptions.find((p) => p.value === period)?.label || period;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Período: ${periodLabel}`, pageWidth / 2, y, { align: 'center' });
-        doc.text(`Data de Emissão: ${formatDate(new Date(), 'dd/MM/yyyy HH:mm')}`, pageWidth / 2, y + 5, { align: 'center' });
-        y += 20;
 
-        // Separator
-        doc.setLineWidth(0.5);
-        doc.line(20, y, pageWidth - 20, y);
-        y += 10;
-
-        // Metrics Summary
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('RESUMO', 20, y);
-        y += 10;
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-
-        const metricsData = [
-            ['Total de Vendas:', formatCurrency(metrics.totalSales)],
-            ['IVA Total (16%):', formatCurrency(metrics.totalTax)],
-            ['Número de Transações:', metrics.transactionCount.toString()],
-            ['Ticket Médio:', formatCurrency(metrics.avgTicket)],
+        const columns = [
+            { header: 'Data', key: 'date', width: 120 },
+            { header: 'Recibo', key: 'receipt', width: 120 },
+            { header: 'Cliente', key: 'customer', width: 150 },
+            { header: 'Método', key: 'method', width: 100 },
+            { header: 'Total', key: 'total', width: 100 }
         ];
 
-        metricsData.forEach(([label, value]) => {
-            doc.text(label, 25, y);
-            doc.text(value, 100, y);
-            y += 7;
+        const data = filteredSales.map(sale => ({
+            date: formatDate(sale.createdAt, 'dd/MM/yyyy HH:mm'),
+            receipt: sale.receiptNumber,
+            customer: sale.customer?.name || 'Cliente Balcão',
+            method: sale.paymentMethod,
+            total: formatCurrency(sale.total)
+        }));
+
+        await exportAPI.export({
+            type,
+            title: 'Relatório de Vendas',
+            subtitle: `Período: ${periodLabel} | Total: ${formatCurrency(metrics.totalSales)}`,
+            columns,
+            data,
+            filename: `Relatorio_Vendas_${periodLabel}`
         });
-
-        y += 10;
-
-        // Payment Methods
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('VENDAS POR MÉTODO DE PAGAMENTO', 20, y);
-        y += 10;
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-
-        paymentMethodData.forEach((method) => {
-            doc.text(method.name, 25, y);
-            doc.text(formatCurrency(method.value), 100, y);
-            y += 7;
-        });
-
-        y += 10;
-
-        // Daily Sales Table
-        if (dailySalesData.length > 0) {
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('VENDAS POR DIA', 20, y);
-            y += 10;
-
-            // Table header
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Data', 25, y);
-            doc.text('Vendas', 80, y);
-            doc.text('Total', 130, y);
-            y += 7;
-
-            doc.setFont('helvetica', 'normal');
-            dailySalesData.slice(-10).forEach((day) => {
-                doc.text(day.date, 25, y);
-                doc.text(day.count.toString(), 80, y);
-                doc.text(formatCurrency(day.total), 130, y);
-                y += 6;
-
-                if (y > 270) {
-                    doc.addPage();
-                    y = 20;
-                }
-            });
-        }
-
-        // Footer
-        y = doc.internal.pageSize.getHeight() - 20;
-        doc.setFontSize(8);
-        doc.text('Documento gerado automaticamente pelo Sistema de Gestão', pageWidth / 2, y, { align: 'center' });
-
-        // Save PDF
-        doc.save(`relatorio-vendas-${formatDate(new Date(), 'yyyy-MM-dd')}.pdf`);
     };
+
+    // Legacy PDF Generator (now using backend version)
+    const generatePDF = () => handleExport('pdf');
 
     // Pagination for Top Products
     const {
@@ -375,32 +281,7 @@ export default function Reports() {
         totalItems: totalTransactions,
     } = usePagination(filteredSales, 10);
 
-    // Generate CSV Report
-    const generateCSV = () => {
-        const headers = ['Data', 'Recibo', 'Metodo', 'Subtotal', 'IVA', 'Desconto', 'Total'];
-        const csvContent = [
-            headers.join(','),
-            ...filteredSales.map(sale => [
-                formatDate(sale.createdAt, 'yyyy-MM-dd HH:mm'),
-                sale.receiptNumber,
-                sale.paymentMethod,
-                sale.subtotal,
-                sale.tax,
-                sale.discount,
-                sale.total
-            ].join(','))
-        ].join('\n');
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `relatorio-vendas-${formatDate(new Date(), 'yyyy-MM-dd')}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
 
     return (
         <div className="space-y-6">
@@ -423,13 +304,13 @@ export default function Reports() {
                         onGeneratePDF={generatePDF}
                     />
                     <ExportSalesButton data={filteredSales} />
-                    <Button variant="outline" onClick={generateCSV}>
+                    <Button variant="outline" onClick={() => handleExport('excel')}>
                         <HiOutlineDownload className="w-5 h-5 mr-2" />
-                        Exportar CSV
+                        Gerar XLSX
                     </Button>
-                    <Button onClick={generatePDF}>
+                    <Button onClick={() => handleExport('pdf')}>
                         <HiOutlineDocumentDownload className="w-5 h-5 mr-2" />
-                        Exportar PDF
+                        Exportar PDF Profissional
                     </Button>
                 </div>
             </div>
@@ -742,7 +623,11 @@ export default function Reports() {
                     totalItems={totalTransactions}
                     itemsPerPage={transactionsPerPage}
                     onPageChange={setTransactionsPage}
-                    onItemsPerPageChange={setTransactionsPerPage}
+                    onItemsPerPageChange={(size) => {
+                        setTransactionsPerPage(size);
+                        setTransactionsPage(1);
+                    }}
+                    itemsPerPageOptions={[5, 10, 20, 50, 100]}
                 />
             </Card>
         </div>

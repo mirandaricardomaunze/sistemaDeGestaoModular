@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+﻿import { PrismaClient } from '@prisma/client';
 
 export class HospitalityService {
     constructor(private prisma: PrismaClient) { }
@@ -196,11 +196,30 @@ export class HospitalityService {
                 }
             });
 
-            // Standard Sale Creation Logic (simplified for brevity)
-            // In a real senior implementation, this would call a SalesService.createModuleSale
-            // but let's keep the logic here for now to ensure atomic transaction and correct migration
+            // 💰 Global Transaction Record
+            const roomBill = Number(booking.totalPrice);
+            const consumptionBill = booking.consumptions.reduce((acc, c) => acc + Number(c.total), 0);
+            const totalBill = roomBill + consumptionBill;
 
-            return { updatedBooking };
+            await tx.transaction.create({
+                data: {
+                    type: 'income',
+                    category: 'Hospitality',
+                    description: `Check-out Hotel: Quarto ${booking.room.number} - ${booking.customerName}`,
+                    amount: totalBill,
+                    date: new Date(),
+                    status: 'completed',
+                    paymentMethod: 'cash',
+                    reference: booking.id,
+                    module: 'hospitality',
+                    companyId,
+                    bookingId,
+                    roomId: booking.roomId
+                }
+            });
+
+            return { updatedBooking, totalBill };
+
         });
     }
 

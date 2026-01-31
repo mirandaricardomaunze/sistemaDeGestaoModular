@@ -1,9 +1,12 @@
-
+﻿
 import { jsPDF } from 'jspdf';
-import { HiOutlinePrinter } from 'react-icons/hi';
+import { HiOutlinePrinter, HiOutlineDownload } from 'react-icons/hi';
 import { Button } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { useStore } from '../../stores/useStore';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { usePayroll } from '../../hooks/useData';
+import { addProfessionalHeader, addProfessionalFooter } from '../../utils/documentGenerator';
 import type { PayrollRecord, Employee } from '../../types';
 import toast from 'react-hot-toast';
 
@@ -13,44 +16,19 @@ interface PayslipGeneratorProps {
 
 export default function PayslipGenerator({ record }: PayslipGeneratorProps) {
     const { companySettings } = useStore();
+    const { user } = useAuthStore();
+    const { addAuditLog } = usePayroll();
 
-    const generatePDF = () => {
+    /**
+     * Generates a professional salary slip PDF.
+     * @param action - 'download' saves the file, 'print' opens it in a new tab for printing.
+     */
+    const generatePDF = async (action: 'download' | 'print') => {
         const doc = new jsPDF();
 
-        // Header Background
-        doc.setFillColor(28, 100, 242);
-        doc.rect(0, 0, 210, 40, 'F');
-        doc.setTextColor(255, 255, 255);
+        addProfessionalHeader(doc, 'Recibo de Vencimento', companySettings, `${record.month}/${record.year}`);
 
-        // Add Logo if available
-        if (companySettings?.logo) {
-            try {
-                // Determine file extension or assume PNG/JPEG. jsPDF auto-detects from base64 usually.
-                // We'll trust the browser to handle the image format or jsPDF's tolerance.
-                const logoHeight = 25;
-                const logoWidth = 25;
-                const x = 15;
-                const y = 7.5;
-                doc.addImage(companySettings.logo, 'PNG', x, y, logoWidth, logoHeight);
-
-                // Adjust text position if logo is present
-                doc.setFontSize(24);
-                doc.text('Recibo de Vencimento', 50, 25);
-            } catch (e) {
-                // Fallback if logo fails
-                doc.setFontSize(24);
-                doc.text('Recibo de Vencimento', 15, 25);
-            }
-        } else {
-            doc.setFontSize(24);
-            doc.text('Recibo de Vencimento', 15, 25);
-        }
-
-        doc.setFontSize(10);
-        doc.text(`Período: ${record.month}/${record.year}`, 200, 25, { align: 'right' });
-        doc.text(companySettings?.companyName || 'Empresa', 200, 32, { align: 'right' });
-
-        // Info Section
+        // Employee Info Section
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(12);
         let y = 55;
@@ -128,21 +106,39 @@ export default function PayslipGenerator({ record }: PayslipGeneratorProps) {
         doc.setFont('helvetica', 'bold');
         doc.text(formatCurrency(record.netSalary), 157.5, y + 18, { align: 'center' });
 
-        // Footer
-        y += 40;
-        doc.setTextColor(100, 100, 100);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Documento processado por computador.', 105, 280, { align: 'center' });
-        doc.text(companySettings?.companyName || 'Empresa', 105, 284, { align: 'center' });
+        addProfessionalFooter(doc, companySettings);
 
-        doc.save(`Payslip_${record.employee.name}_${record.month}_${record.year}.pdf`);
-        toast.success('Recibo baixado!');
+        // Audit Log - Record who generated/printed the slip
+        if (!record.id.startsWith('draft-')) {
+            addAuditLog(
+                record.id,
+                'printed',
+                user?.id || 'system',
+                user?.name || 'Sistema',
+                `Recibo ${action === 'print' ? 'impresso' : 'descarregado'}`
+            );
+        }
+
+        if (action === 'download') {
+            doc.save(`Recibo_${record.employee.name}_${record.month}_${record.year}.pdf`);
+            toast.success('Recibo descarregado!');
+        } else {
+            // Open in new tab for printing
+            const pdfBlob = doc.output('blob');
+            const blobUrl = URL.createObjectURL(pdfBlob);
+            window.open(blobUrl, '_blank');
+            toast.success('PDF aberto para impressão!');
+        }
     };
 
     return (
-        <Button size="sm" variant="ghost" onClick={generatePDF} title="Baixar Recibo">
-            <HiOutlinePrinter className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-0.5">
+            <Button size="sm" variant="ghost" onClick={() => generatePDF('download')} title="Descarregar Recibo">
+                <HiOutlineDownload className="w-4 h-4" />
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => generatePDF('print')} title="Imprimir Recibo">
+                <HiOutlinePrinter className="w-4 h-4" />
+            </Button>
+        </div>
     );
 }

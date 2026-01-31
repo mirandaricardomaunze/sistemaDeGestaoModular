@@ -1,4 +1,4 @@
-import { prisma } from '../lib/prisma';
+﻿import { prisma } from '../lib/prisma';
 import { emailWorker } from '../workers/emailWorker';
 import { Queue } from 'bullmq';
 import { connection } from '../config/redis';
@@ -6,7 +6,7 @@ import { connection } from '../config/redis';
 const emailQueue = new Queue('email-queue', { connection });
 
 export const checkExpiringBatches = async () => {
-    console.log('🔍 Iniciando verificação de lotes prestes a expirar...');
+    console.log('ðŸ” Iniciando verificação de lotes prestes a expirar...');
 
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
@@ -38,7 +38,7 @@ export const checkExpiringBatches = async () => {
             return;
         }
 
-        console.log(`⚠️ Encontrados ${expiringProducts.length} produtos para alertar.`);
+        console.log(`âš ï¸ Encontrados ${expiringProducts.length} produtos para alertar.`);
 
         // For each product, notify admins of its company
         for (const product of expiringProducts) {
@@ -65,6 +65,6 @@ export const checkExpiringBatches = async () => {
             }
         }
     } catch (error) {
-        console.error('❌ Erro ao verificar lotes expirando:', error);
+        console.error('âŒ Erro ao verificar lotes expirando:', error);
     }
 };

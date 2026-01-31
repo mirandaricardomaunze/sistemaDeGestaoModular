@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { HiOutlineX, HiOutlineCheck } from 'react-icons/hi';
 import { Input, Select, Textarea, Button } from '../../../components/ui';
 import { hospitalityAPI } from '../../../services/api';
@@ -115,7 +115,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
 
             onSave();
             onClose();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error saving expense:', error);
             toast.error(error.response?.data?.message || 'Erro ao salvar despesa');
         } finally {

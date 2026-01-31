@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // API Services - Barrel Export
 // ============================================================================
 // 
@@ -32,6 +32,8 @@ export { settingsAPI, campaignsAPI, alertsAPI, ordersAPI, type Alert, type Alert
 // Specialized Modules
 export { auditAPI, crmAPI, fiscalAPI } from './crm.api';
 export { hospitalityAPI, pharmacyAPI, backupsAPI, gdriveAPI } from './hospitality.api';
+export { bottleStoreAPI } from './bottle-store.api';
+export { exportAPI } from './export.api';
 
 // Payments
 export { paymentsAPI, type PaymentModule, type MpesaStatus, type MpesaTransaction } from './payments.api';
