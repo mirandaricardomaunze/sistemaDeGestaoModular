@@ -25,6 +25,7 @@ export const MODULE_TO_BUSINESS_TYPE: Record<string, BusinessType> = {
     'SUPERMARKET': 'supermarket',
     'BOTTLE_STORE': 'bottlestore',
     'HOTEL': 'hotel',
+    'HOSPITALITY': 'hotel',
     'RESTAURANT': 'retail',
     'LOGISTICS': 'logistics',
 };

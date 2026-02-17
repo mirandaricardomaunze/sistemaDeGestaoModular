@@ -28,20 +28,21 @@ import {
     HiOutlineTruck,
     HiOutlineUsers,
     HiOutlineBriefcase,
-    HiOutlineCube,
-    HiOutlineDocumentCheck
+    HiOutlineDocumentCheck,
+    HiOutlineCake
 } from 'react-icons/hi2';
 import { useAuthStore } from '../stores/useAuthStore';
-import { modulesAPI, type BusinessModule } from '../services/api';
+import { modulesAPI } from '../services/api';
+import { OPTIONAL_MODULES, type BusinessModule } from '../constants/modules.constants';
 
-// Module icons mapping
+// Module icons mapping - matches BusinessModule.code
 const moduleIcons: Record<string, React.ComponentType<{ className?: string }>> = {
-    pharmacy: HiOutlineBeaker,
-    inventory: HiOutlineCube,
-    hospitality: HiOutlineHomeModern,
-    logistics: HiOutlineTruck,
-    bottle_store: HiOutlineBuildingStorefront,
-    commercial: HiOutlineBuildingStorefront,
+    PHARMACY: HiOutlineBeaker,
+    COMMERCIAL: HiOutlineShoppingCart,
+    BOTTLE_STORE: HiOutlineBuildingStorefront,
+    HOSPITALITY: HiOutlineHomeModern,
+    RESTAURANT: HiOutlineCake,
+    LOGISTICS: HiOutlineTruck,
 };
 
 // Integrated Pillars configuration (shown for all modules)
@@ -103,15 +104,19 @@ export default function Register() {
     const loadModules = async () => {
         setLoadingModules(true);
         setRegisterError(null);
+
+        // Professional approach: Load from local constants first for instant UI
+        setModules(OPTIONAL_MODULES);
+
         try {
+            // Sync with backend to ensure latest descriptions/metadata if available
             const data = await modulesAPI.getAll();
-            setModules(data);
-            if (data.length === 0) {
-                setRegisterError('Nenhum módulo de negócio encontrado no sistema. Entre em contacto com o suporte.');
+            if (data && data.length > 0) {
+                setModules(data);
             }
         } catch (error) {
-            console.error('Error loading modules:', error);
-            setRegisterError('Erro ao carregar módulos de negócio. Verifique sua conexão.');
+            console.warn('Backend modules fetch failed, continuing with static constants:', error);
+            // No error toast or message needed as we have the constants
         } finally {
             setLoadingModules(false);
         }

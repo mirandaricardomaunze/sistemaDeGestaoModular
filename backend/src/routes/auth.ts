@@ -5,7 +5,8 @@ import { prisma } from '../lib/prisma';
 import { logger } from '../utils/logger';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import crypto from 'crypto';
-import { User, BusinessType } from '@prisma/client';
+import { User, BusinessType, Prisma } from '@prisma/client';
+import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { getModuleByCode } from '../constants/modules.constants';
 import {
@@ -162,7 +163,7 @@ const MODULE_TO_BUSINESS_TYPE: Record<string, BusinessType> = {
     'PHARMACY': 'pharmacy',
     'COMMERCIAL': 'retail',
     'BOTTLE_STORE': 'bottlestore',
-    'HOTEL': 'hotel',
+    'HOSPITALITY': 'hotel',
     'LOGISTICS': 'logistics',
     'RESTAURANT': 'retail'
 };
@@ -318,11 +319,26 @@ router.post('/register', async (req, res) => {
             activeModules: [result.moduleCode]
         });
     } catch (error) {
-        if (error instanceof ZodError) {
-            return res.status(400).json({ error: 'Dados inválidos', details: formatZodError(error) });
+        logger.error('[Register Debug] Registration failed: %o', {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            body: req.body
+        });
+
+        if (error instanceof z.ZodError || (error && (error.name === 'ZodError' || error instanceof Error && error.constructor.name === 'ZodError'))) {
+            return res.status(400).json({ 
+                error: 'Erro de validação', 
+                details: typeof formatZodError === 'function' ? formatZodError(error as any) : error 
+            });
         }
-        logger.error('Register error', { error: error instanceof Error ? error.message : 'Unknown' });
-        res.status(500).json({ error: 'Erro ao criar utilizador' });
+
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            if (error.code === 'P2002') {
+                return res.status(400).json({ error: 'Já existe um registo com estes dados únicos (Email ou NUIT).' });
+            }
+        }
+
+        res.status(500).json({ error: 'Erro ao criar conta.' });
     }
 });
 

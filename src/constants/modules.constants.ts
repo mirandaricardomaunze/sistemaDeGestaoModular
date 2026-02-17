@@ -1,7 +1,11 @@
-﻿// Module Constants - Frontend
-// These match the backend module definitions
+﻿/**
+ * Modules Constants
+ * Static definition of all available business modules.
+ * This ensures the application remains functional even if the database is reset
+ * or connection issues occur during initial setup.
+ */
 
-export interface ModuleDefinition {
+export interface BusinessModule {
     code: string;
     name: string;
     description: string;
@@ -10,8 +14,10 @@ export interface ModuleDefinition {
     isCore: boolean;
 }
 
-// Core modules - Always available
-export const CORE_MODULES: ModuleDefinition[] = [
+/**
+ * Core modules - Always available to every business
+ */
+export const CORE_MODULES: BusinessModule[] = [
     {
         code: 'POS',
         name: 'Ponto de Venda',
@@ -62,8 +68,10 @@ export const CORE_MODULES: ModuleDefinition[] = [
     }
 ];
 
-// Optional modules - User selects during registration
-export const OPTIONAL_MODULES: ModuleDefinition[] = [
+/**
+ * Optional modules - Business owners can select these during registration
+ */
+export const OPTIONAL_MODULES: BusinessModule[] = [
     {
         code: 'PHARMACY',
         name: 'Farmácia',
@@ -114,22 +122,7 @@ export const OPTIONAL_MODULES: ModuleDefinition[] = [
     }
 ];
 
-// All modules
+/**
+ * Helper to get all modules for display
+ */
 export const ALL_MODULES = [...CORE_MODULES, ...OPTIONAL_MODULES];
-
-// Helper functions
-export function getModuleByCode(code: string): ModuleDefinition | undefined {
-    return ALL_MODULES.find(m => m.code === code);
-}
-
-export function getAllModuleCodes(): string[] {
-    return ALL_MODULES.map(m => m.code);
-}
-
-export function getCoreModuleCodes(): string[] {
-    return CORE_MODULES.map(m => m.code);
-}
-
-export function getOptionalModuleCodes(): string[] {
-    return OPTIONAL_MODULES.map(m => m.code);
-}

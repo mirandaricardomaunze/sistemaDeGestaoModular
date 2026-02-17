@@ -31,6 +31,7 @@ import chatRoutes from './routes/chat';
 import logisticsRoutes from './routes/logistics';
 import bottleStoreRoutes from './routes/bottle-store';
 import publicRoutes from './routes/public';
+import modulesRoutes from './routes/modules';
 
 // Initialize Prisma
 export const prisma = new PrismaClient();
@@ -38,9 +39,19 @@ export const prisma = new PrismaClient();
 // Initialize Express
 const app = express();
 
-// Middleware
+// Middleware (CORS)
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : [process.env.FRONTEND_URL || 'http://localhost:5173'];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('CORS not allowed'));
+        }
+    },
     credentials: true,
 }));
 app.use(express.json());
@@ -82,6 +93,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/bottle-store', bottleStoreRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/modules', modulesRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

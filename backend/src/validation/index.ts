@@ -25,7 +25,12 @@ export * from './warehouses';
 export * from './crm';
 export * from './hospitality';
 export * from './campaigns';
-export * from './fiscal';
+export {
+    createFiscalDocumentSchema,
+    dispenseMedicationSchema,
+    CreateFiscalDocumentInput,
+    DispenseMedicationInput
+} from './fiscal';
 export * from './pharmacy';
 
 // Legacy compatibility - re-export sales schemas from old location

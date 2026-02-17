@@ -156,6 +156,7 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
         { prefix: '/hospitality', module: 'hospitality' },
         { prefix: '/bottle-store', module: 'bottle_store' },
         { prefix: '/logistics', module: 'logistics' },
+        { prefix: '/restaurant', module: 'restaurant' },
     ];
 
     const restriction = moduleRestrictions.find(r => path.startsWith(r.prefix));
@@ -194,6 +195,7 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
         '/hospitality': 'view_dashboard',
         '/bottle-store': 'view_inventory',
         '/logistics': 'view_dashboard',
+        '/restaurant': 'view_dashboard',
     };
 
     const permission = pathPermissionMap[path];

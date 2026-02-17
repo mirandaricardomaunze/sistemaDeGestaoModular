@@ -4,13 +4,7 @@
 // Modules API
 // ============================================================================
 
-export interface BusinessModule {
-    code: string;
-    name: string;
-    description: string;
-    icon?: string;
-    color?: string;
-}
+import { type BusinessModule } from '../../constants/modules.constants';
 
 export const modulesAPI = {
     getAll: async (): Promise<BusinessModule[]> => {

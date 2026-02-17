@@ -8,6 +8,7 @@ import { useTenant } from '../../contexts/TenantContext';
 
 import {
     HiOutlineHomeModern,
+    HiOutlineCake
 } from 'react-icons/hi2';
 import {
     HiOutlineCube,
@@ -107,6 +108,14 @@ const menuItems: MenuItem[] = [
     { id: 'bottle_store_stock', labelKey: 'Movimentos de Stock', icon: HiOutlineRefresh, path: '/bottle-store/stock', module: 'bottle_store' },
     { id: 'bottle_store_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/bottle-store/reports', module: 'bottle_store' },
 
+    // ============================================================================
+    // RESTAURANT Module - Specific pages
+    // ============================================================================
+    { id: 'restaurant_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineCake, path: '/restaurant/dashboard', module: 'restaurant' },
+    { id: 'restaurant_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/restaurant/pos', module: 'restaurant' },
+    { id: 'restaurant_tables', labelKey: 'Mesas', icon: HiOutlineCake, path: '/restaurant/tables', module: 'restaurant' },
+    { id: 'restaurant_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/restaurant/reports', module: 'restaurant' },
+
 
     // ============================================================================
     // CORE MODULES - Always available for all businesses (POS, CRM, HR, Invoices, Fiscal)
@@ -181,7 +190,6 @@ export default function Sidebar() {
             if (!moduleActive) return false;
         }
 
-        const isLogisticsActive = hasModule('logistics');
         const isPharmacyActive = hasModule('pharmacy');
         const isHospitalityActive = hasModule('hospitality');
         const isBottleStoreActive = hasModule('bottle_store');
