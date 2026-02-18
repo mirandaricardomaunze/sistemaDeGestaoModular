@@ -1,11 +1,13 @@
 ﻿import { prisma } from '../lib/prisma';
 import { PaymentMethod } from '@prisma/client';
+import { ApiError } from '../middleware/error.middleware';
+import { buildPaginationMeta } from '../utils/pagination';
 
 export class CreditSalesService {
     /**
      * Get all credit sales (pending and partially paid)
      */
-    static async getCreditSales(companyId: string, query: any) {
+    async getCreditSales(companyId: string, query: any) {
         const { page = 1, limit = 20, customerId, status } = query;
         const skip = (Number(page) - 1) * Number(limit);
 
@@ -51,16 +53,14 @@ export class CreditSalesService {
 
         return {
             data: salesWithBalance,
-            total,
-            page: Number(page),
-            pages: Math.ceil(total / Number(limit))
+            pagination: buildPaginationMeta(Number(page), Number(limit), total)
         };
     }
 
     /**
      * Register a payment against a credit sale
      */
-    static async registerPayment(companyId: string, receivedBy: string, data: {
+    async registerPayment(companyId: string, receivedBy: string, data: {
         saleId: string;
         amount: number;
         paymentMethod: string;
@@ -72,12 +72,12 @@ export class CreditSalesService {
         });
 
         if (!sale) {
-            throw new Error('Venda a crédito não encontrada');
+            throw ApiError.notFound('Venda a crédito não encontrada');
         }
 
         const remaining = Number(sale.total) - Number(sale.paidAmount);
         if (data.amount > remaining) {
-            throw new Error(`Valor excede o saldo devedor (${remaining.toFixed(2)} MT)`);
+            throw ApiError.badRequest(`Valor excede o saldo devedor (${remaining.toFixed(2)} MT)`);
         }
 
         // Create payment and update sale in transaction
@@ -108,7 +108,7 @@ export class CreditSalesService {
     /**
      * Get payment history for a sale
      */
-    static async getPaymentHistory(companyId: string, saleId: string) {
+    async getPaymentHistory(companyId: string, saleId: string) {
         const sale = await prisma.sale.findFirst({
             where: { id: saleId, companyId },
             include: {
@@ -119,7 +119,7 @@ export class CreditSalesService {
         });
 
         if (!sale) {
-            throw new Error('Venda não encontrada');
+            throw ApiError.notFound('Venda não encontrada');
         }
 
         return {
@@ -134,7 +134,7 @@ export class CreditSalesService {
     /**
      * Get customer credit summary
      */
-    static async getCustomerSummary(companyId: string, customerId: string) {
+    async getCustomerSummary(companyId: string, customerId: string) {
         const customer = await prisma.customer.findFirst({
             where: { id: customerId, companyId },
             include: {
@@ -146,7 +146,7 @@ export class CreditSalesService {
         });
 
         if (!customer) {
-            throw new Error('Cliente não encontrado');
+            throw ApiError.notFound('Cliente não encontrado');
         }
 
         const totalCredit = customer.sales.reduce((sum, s) => sum + Number(s.total), 0);
@@ -173,7 +173,7 @@ export class CreditSalesService {
     /**
      * Get debtors report
      */
-    static async getDebtorsReport(companyId: string) {
+    async getDebtorsReport(companyId: string) {
         const customers = await prisma.customer.findMany({
             where: {
                 companyId,
@@ -222,3 +222,5 @@ export class CreditSalesService {
         };
     }
 }
+
+export const creditSalesService = new CreditSalesService();

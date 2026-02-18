@@ -1,10 +1,11 @@
 ﻿import { prisma } from '../lib/prisma';
+import { ApiError } from '../middleware/error.middleware';
 
 export class AttendanceService {
     /**
      * Get all employees currently in the attendance roster for a specific company
      */
-    static async getRoster(companyId: string) {
+    async getRoster(companyId: string) {
         return prisma.employee.findMany({
             where: {
                 companyId,
@@ -25,7 +26,7 @@ export class AttendanceService {
     /**
      * Add employees to the attendance roster
      */
-    static async addToRoster(companyId: string, employeeIds?: string[], department?: string) {
+    async addToRoster(companyId: string, employeeIds?: string[], department?: string) {
         const where: any = { companyId };
 
         if (employeeIds && employeeIds.length > 0) {
@@ -33,7 +34,7 @@ export class AttendanceService {
         } else if (department) {
             where.department = department;
         } else {
-            throw new Error('É necessário fornecer IDs de funcionários ou um departamento.');
+            throw ApiError.badRequest('É necessário fornecer IDs de funcionários ou um departamento.');
         }
 
         return prisma.employee.updateMany({
@@ -45,7 +46,7 @@ export class AttendanceService {
     /**
      * Remove an employee from the attendance roster
      */
-    static async removeFromRoster(companyId: string, employeeId: string) {
+    async removeFromRoster(companyId: string, employeeId: string) {
         return prisma.employee.update({
             where: {
                 id: employeeId,
@@ -58,7 +59,7 @@ export class AttendanceService {
     /**
      * Record time (check-in/check-out)
      */
-    static async recordTime(companyId: string, employeeId: string, type: 'checkIn' | 'checkOut', date: Date) {
+    async recordTime(companyId: string, employeeId: string, type: 'checkIn' | 'checkOut', date: Date) {
         const today = new Date(date);
         today.setHours(0, 0, 0, 0);
 
@@ -93,7 +94,7 @@ export class AttendanceService {
         } else {
             // Check-out
             if (!existing) {
-                throw new Error('Nenhum registro de entrada encontrado para hoje.');
+                throw ApiError.badRequest('Nenhum registro de entrada encontrado para hoje.');
             }
 
             // Calculate hours worked if checkIn exists
@@ -112,3 +113,5 @@ export class AttendanceService {
         }
     }
 }
+
+export const attendanceService = new AttendanceService();

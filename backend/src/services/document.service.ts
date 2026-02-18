@@ -2,6 +2,7 @@
 import ExcelJS from 'exceljs';
 import { Response } from 'express';
 import { prisma } from '../lib/prisma';
+import { ApiError } from '../middleware/error.middleware';
 
 export interface ExportOptions {
     title: string;
@@ -16,7 +17,7 @@ export class DocumentService {
     /**
      * Generates a professional PDF with letterhead
      */
-    static async generatePDF(res: Response, options: ExportOptions) {
+    async generatePDF(res: Response, options: ExportOptions) {
         const company = await prisma.companySettings.findUnique({
             where: { companyId: options.companyId }
         });
@@ -94,7 +95,7 @@ export class DocumentService {
     /**
      * Generates a professional Excel file
      */
-    static async generateExcel(res: Response, options: ExportOptions, filename: string) {
+    async generateExcel(res: Response, options: ExportOptions, filename: string) {
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet(options.title);
 
@@ -124,3 +125,5 @@ export class DocumentService {
         res.end();
     }
 }
+
+export const documentService = new DocumentService();

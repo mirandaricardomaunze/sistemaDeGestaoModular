@@ -1,5 +1,6 @@
 ﻿import { Prisma, PrismaClient } from '@prisma/client';
 import { prisma as defaultPrisma } from '../lib/prisma';
+import { ApiError } from '../middleware/error.middleware';
 
 export type OriginModule = 'PHARMACY' | 'COMMERCIAL' | 'BOTTLE_STORE' | 'HOTEL' | 'RESTAURANT' | 'LOGISTICS';
 export type MovementReferenceType = 'SALE' | 'PURCHASE' | 'TRANSFER' | 'ADJUSTMENT' | 'RETURN' | 'EXPIRY';
@@ -24,7 +25,7 @@ export class StockService {
      * Records a stock movement and updates the current stock in the product and warehouse.
      * Uses the provided transaction client if available.
      */
-    static async recordMovement(
+    async recordMovement(
         params: StockMovementParams,
         tx: Prisma.TransactionClient = defaultPrisma
     ) {
@@ -49,7 +50,7 @@ export class StockService {
         });
 
         if (!currentProduct) {
-            throw new Error('Produto não encontrado ou não pertence a esta empresa');
+            throw ApiError.notFound('Produto não encontrado ou não pertence a esta empresa');
         }
 
         const balanceBefore = currentProduct.currentStock || 0;
@@ -111,7 +112,7 @@ export class StockService {
     /**
      * Updates product status based on current stock levels
      */
-    private static async updateProductStatus(productId: string, tx: Prisma.TransactionClient) {
+    private async updateProductStatus(productId: string, tx: Prisma.TransactionClient) {
         const product = await tx.product.findUnique({
             where: { id: productId },
             select: { id: true, name: true, currentStock: true, minStock: true, status: true, companyId: true }
@@ -149,3 +150,5 @@ export class StockService {
         }
     }
 }
+
+export const stockService = new StockService();

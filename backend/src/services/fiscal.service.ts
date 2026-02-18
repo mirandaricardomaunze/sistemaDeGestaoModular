@@ -1,4 +1,5 @@
 ﻿import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
 
 export class FiscalService {
     constructor(private prisma: PrismaClient) { }
@@ -51,3 +52,5 @@ export class FiscalService {
         });
     }
 }
+
+export const fiscalService = new FiscalService(prisma);

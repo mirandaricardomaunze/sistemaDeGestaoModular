@@ -8,6 +8,8 @@ import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { mpesaService } from '../services/mpesa.service';
 import { z } from 'zod';
+import { ApiError } from '../middleware/error.middleware';
+import { buildPaginationMeta } from '../utils/pagination';
 
 const router = Router();
 
@@ -30,19 +32,14 @@ const initiatePaymentSchema = z.object({
  * POST /api/payments/mpesa/callback
  */
 router.post('/mpesa/callback', async (req, res) => {
-    try {
-        console.log('M-Pesa Callback received:', JSON.stringify(req.body, null, 2));
+    console.log('M-Pesa Callback received:', JSON.stringify(req.body, null, 2));
 
-        const success = await mpesaService.processCallback(req.body);
+    const success = await mpesaService.processCallback(req.body);
 
-        if (success) {
-            res.json({ ResultCode: 0, ResultDesc: 'Success' });
-        } else {
-            res.status(400).json({ ResultCode: 1, ResultDesc: 'Failed to process' });
-        }
-    } catch (error) {
-        console.error('M-Pesa Callback Error:', error);
-        res.status(500).json({ ResultCode: 1, ResultDesc: 'Internal error' });
+    if (success) {
+        res.json({ ResultCode: 0, ResultDesc: 'Success' });
+    } else {
+        throw ApiError.badRequest('Failed to process M-Pesa callback');
     }
 });
 
@@ -55,21 +52,16 @@ router.post('/mpesa/callback', async (req, res) => {
  * GET /api/payments/mpesa/status
  */
 router.get('/mpesa/status', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const isAvailable = mpesaService.isAvailable();
+    const isAvailable = mpesaService.isAvailable();
 
-        res.json({
-            available: true, // Always available (simulation mode fallback)
-            configured: isAvailable,
-            mode: isAvailable ? 'production' : 'sandbox',
-            message: isAvailable
-                ? 'M-Pesa configurado e pronto'
-                : 'M-Pesa em modo simulação (credenciais não configuradas)'
-        });
-    } catch (error) {
-        console.error('M-Pesa status error:', error);
-        res.status(500).json({ error: 'Erro ao verificar status M-Pesa' });
-    }
+    res.json({
+        available: true, // Always available (simulation mode fallback)
+        configured: isAvailable,
+        mode: isAvailable ? 'production' : 'sandbox',
+        message: isAvailable
+            ? 'M-Pesa configurado e pronto'
+            : 'M-Pesa em modo simulação (credenciais não configuradas)'
+    });
 });
 
 /**
@@ -77,48 +69,30 @@ router.get('/mpesa/status', authenticate, async (req: AuthRequest, res) => {
  * POST /api/payments/mpesa/initiate
  */
 router.post('/mpesa/initiate', authenticate, async (req: AuthRequest, res) => {
-    try {
-        console.log('M-Pesa initiate request body:', JSON.stringify(req.body, null, 2));
-        const validatedData = initiatePaymentSchema.parse(req.body);
-        const { phone, amount, reference, module, moduleReferenceId } = validatedData;
+    console.log('M-Pesa initiate request body:', JSON.stringify(req.body, null, 2));
+    const validatedData = initiatePaymentSchema.parse(req.body);
+    const { phone, amount, reference, module, moduleReferenceId } = validatedData;
 
-        const result = await mpesaService.initiatePayment({
-            phone,
-            amount,
-            reference,
-            module,
-            moduleReferenceId,
-            companyId: req.companyId,
+    const result = await mpesaService.initiatePayment({
+        phone,
+        amount,
+        reference,
+        module,
+        moduleReferenceId,
+        companyId: req.companyId,
+    });
+
+    if (result.success) {
+        res.json({
+            success: true,
+            transactionId: result.transactionId,
+            mpesaTransactionId: result.mpesaTransactionId,
+            conversationId: result.conversationId,
+            message: result.message,
+            simulated: result.simulated,
         });
-
-        if (result.success) {
-            res.json({
-                success: true,
-                transactionId: result.transactionId,
-                mpesaTransactionId: result.mpesaTransactionId,
-                conversationId: result.conversationId,
-                message: result.message,
-                simulated: result.simulated,
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                transactionId: result.transactionId,
-                message: result.message,
-            });
-        }
-    } catch (error: unknown) {
-        console.error('M-Pesa initiate error:', error.message || error);
-        if (error.errors) {
-            console.error('Validation errors:', JSON.stringify(error.errors, null, 2));
-        }
-        if (error.name === 'ZodError') {
-            return res.status(400).json({
-                error: 'Dados inválidos',
-                details: error.errors,
-            });
-        }
-        res.status(500).json({ error: 'Erro ao iniciar pagamento M-Pesa', details: error.message });
+    } else {
+        throw ApiError.badRequest(result.message || 'Erro ao iniciar pagamento M-Pesa');
     }
 });
 
@@ -127,23 +101,18 @@ router.post('/mpesa/initiate', authenticate, async (req: AuthRequest, res) => {
  * GET /api/payments/mpesa/transaction/:id
  */
 router.get('/mpesa/transaction/:id', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const result = await mpesaService.getTransactionStatus(req.params.id);
+    const result = await mpesaService.getTransactionStatus(req.params.id);
 
-        if (!result) {
-            return res.status(404).json({ error: 'Transação não encontrada' });
-        }
-
-        // Verify company access
-        if (result.transaction.companyId && result.transaction.companyId !== req.companyId) {
-            return res.status(403).json({ error: 'Acesso negado' });
-        }
-
-        res.json(result);
-    } catch (error) {
-        console.error('M-Pesa transaction status error:', error);
-        res.status(500).json({ error: 'Erro ao verificar transação' });
+    if (!result) {
+        throw ApiError.notFound('Transação não encontrada');
     }
+
+    // Verify company access
+    if (result.transaction.companyId && result.transaction.companyId !== req.companyId) {
+        throw ApiError.forbidden('Acesso negado');
+    }
+
+    res.json(result);
 });
 
 /**
@@ -151,28 +120,23 @@ router.get('/mpesa/transaction/:id', authenticate, async (req: AuthRequest, res)
  * GET /api/payments/mpesa/module/:module/:referenceId
  */
 router.get('/mpesa/module/:module/:referenceId', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const { module, referenceId } = req.params;
+    const { module, referenceId } = req.params;
 
-        if (!['pos', 'invoice', 'hospitality', 'pharmacy'].includes(module)) {
-            return res.status(400).json({ error: 'Módulo inválido' });
-        }
-
-        const transactions = await mpesaService.getTransactionsByReference(
-            module as any,
-            referenceId
-        );
-
-        // Filter by company
-        const filtered = transactions.filter(
-            (t) => !t.companyId || t.companyId === req.companyId
-        );
-
-        res.json(filtered);
-    } catch (error) {
-        console.error('M-Pesa module transactions error:', error);
-        res.status(500).json({ error: 'Erro ao buscar transações' });
+    if (!['pos', 'invoice', 'hospitality', 'pharmacy'].includes(module)) {
+        throw ApiError.badRequest('Módulo inválido');
     }
+
+    const transactions = await mpesaService.getTransactionsByReference(
+        module as any,
+        referenceId
+    );
+
+    // Filter by company
+    const filtered = transactions.filter(
+        (t) => !t.companyId || t.companyId === req.companyId
+    );
+
+    res.json(filtered);
 });
 
 /**
@@ -180,33 +144,25 @@ router.get('/mpesa/module/:module/:referenceId', authenticate, async (req: AuthR
  * POST /api/payments/mpesa/transaction/:id/cancel
  */
 router.post('/mpesa/transaction/:id/cancel', authenticate, async (req: AuthRequest, res) => {
-    try {
-        // First check ownership
-        const transaction = await prisma.mpesaTransaction.findUnique({
-            where: { id: req.params.id },
-        });
+    // First check ownership
+    const transaction = await prisma.mpesaTransaction.findUnique({
+        where: { id: req.params.id },
+    });
 
-        if (!transaction) {
-            return res.status(404).json({ error: 'Transação não encontrada' });
-        }
+    if (!transaction) {
+        throw ApiError.notFound('Transação não encontrada');
+    }
 
-        if (transaction.companyId && transaction.companyId !== req.companyId) {
-            return res.status(403).json({ error: 'Acesso negado' });
-        }
+    if (transaction.companyId && transaction.companyId !== req.companyId) {
+        throw ApiError.forbidden('Acesso negado');
+    }
 
-        const success = await mpesaService.cancelTransaction(req.params.id);
+    const success = await mpesaService.cancelTransaction(req.params.id);
 
-        if (success) {
-            res.json({ success: true, message: 'Transação cancelada' });
-        } else {
-            res.status(400).json({
-                success: false,
-                message: 'Não é possível cancelar esta transação',
-            });
-        }
-    } catch (error) {
-        console.error('M-Pesa cancel error:', error);
-        res.status(500).json({ error: 'Erro ao cancelar transação' });
+    if (success) {
+        res.json({ success: true, message: 'Transação cancelada' });
+    } else {
+        throw ApiError.badRequest('Não é possível cancelar esta transação');
     }
 });
 
@@ -215,57 +171,46 @@ router.post('/mpesa/transaction/:id/cancel', authenticate, async (req: AuthReque
  * GET /api/payments/mpesa/history
  */
 router.get('/mpesa/history', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const {
-            page = '1',
-            limit = '20',
-            status,
-            module,
-            startDate,
-            endDate,
-        } = req.query;
+    const {
+        page = '1',
+        limit = '20',
+        status,
+        module,
+        startDate,
+        endDate,
+    } = req.query;
 
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
 
-        const where: any = {
-            companyId: req.companyId,
-        };
+    const where: any = {
+        companyId: req.companyId,
+    };
 
-        if (status) where.status = status;
-        if (module) where.module = module;
+    if (status) where.status = status;
+    if (module) where.module = module;
 
-        if (startDate || endDate) {
-            where.createdAt = {};
-            if (startDate) where.createdAt.gte = new Date(startDate as string);
-            if (endDate) where.createdAt.lte = new Date(endDate as string);
-        }
-
-        const [total, transactions] = await Promise.all([
-            prisma.mpesaTransaction.count({ where }),
-            prisma.mpesaTransaction.findMany({
-                where,
-                orderBy: { createdAt: 'desc' },
-                skip,
-                take: limitNum,
-            }),
-        ]);
-
-        res.json({
-            data: transactions,
-            pagination: {
-                page: pageNum,
-                limit: limitNum,
-                total,
-                totalPages: Math.ceil(total / limitNum),
-                hasMore: skip + transactions.length < total,
-            },
-        });
-    } catch (error) {
-        console.error('M-Pesa history error:', error);
-        res.status(500).json({ error: 'Erro ao buscar histórico' });
+    if (startDate || endDate) {
+        where.createdAt = {};
+        if (startDate) where.createdAt.gte = new Date(startDate as string);
+        if (endDate) where.createdAt.lte = new Date(endDate as string);
     }
+
+    const [total, transactions] = await Promise.all([
+        prisma.mpesaTransaction.count({ where }),
+        prisma.mpesaTransaction.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limitNum,
+        }),
+    ]);
+
+    res.json({
+        data: transactions,
+        pagination: buildPaginationMeta(pageNum, limitNum, total),
+    });
 });
 
 export default router;

@@ -1,4 +1,5 @@
 ﻿import { PrismaClient } from '@prisma/client';
+import { ApiError } from '../middleware/error.middleware';
 
 export class CRMService {
     constructor(private prisma: PrismaClient) { }
@@ -26,3 +27,5 @@ export class CRMService {
         });
     }
 }
+
+export const crmService = new CRMService(new PrismaClient());

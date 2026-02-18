@@ -1,97 +1,65 @@
 ﻿import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
-import { FiscalService } from '../services/fiscal.service';
+import { fiscalService } from '../services/fiscal.service';
+import { ApiError } from '../middleware/error.middleware';
 
 const router = Router();
-const fiscalService = new FiscalService(prisma);
 
 // ============================================================================
 // Tax Configs
 // ============================================================================
 
 router.get('/tax-configs', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const configs = await fiscalService.getTaxConfigs(req.companyId!);
-        res.json(configs);
-    } catch (error) {
-        console.error('Get tax configs error:', error);
-        res.status(500).json({ error: 'Erro ao buscar configurações fiscais' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const configs = await fiscalService.getTaxConfigs(req.companyId);
+    res.json(configs);
 });
 
 router.post('/tax-configs', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    try {
-        const config = await prisma.taxConfig.create({
-            data: {
-                ...req.body,
-                companyId: req.companyId
-            }
-        });
-        res.status(201).json(config);
-    } catch (error) {
-        console.error('Create tax config error:', error);
-        res.status(500).json({ error: 'Erro ao criar configuração fiscal' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const config = await prisma.taxConfig.create({
+        data: { ...req.body, companyId: req.companyId }
+    });
+    res.status(201).json(config);
 });
 
 router.put('/tax-configs/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    try {
-        const result = await prisma.taxConfig.updateMany({
-            where: { id: req.params.id, companyId: req.companyId },
-            data: req.body
-        });
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await prisma.taxConfig.updateMany({
+        where: { id: req.params.id, companyId: req.companyId },
+        data: req.body
+    });
 
-        if (result.count === 0) {
-            return res.status(404).json({ error: 'Configuração não encontrada' });
-        }
+    if (result.count === 0) throw ApiError.notFound('Configuração não encontrada');
 
-        const config = await prisma.taxConfig.findUnique({ where: { id: req.params.id } });
-        res.json(config);
-    } catch (error) {
-        console.error('Update tax config error:', error);
-        res.status(500).json({ error: 'Erro ao atualizar configuração fiscal' });
-    }
+    const config = await prisma.taxConfig.findUnique({ where: { id: req.params.id } });
+    res.json(config);
 });
 
 // ============================================================================
 // IRPS Brackets
 // ============================================================================
 router.get('/irps-brackets', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const { year } = req.query;
-        const currentYear = year ? Number(year) : new Date().getFullYear();
-        const brackets = await prisma.iRPSBracket.findMany({
-            where: {
-                year: currentYear,
-                isActive: true,
-                OR: [
-                    { companyId: req.companyId },
-                    { companyId: null }
-                ]
-            },
-            orderBy: { minIncome: 'asc' }
-        });
-        res.json(brackets);
-    } catch (error) {
-        console.error('Get IRPS brackets error:', error);
-        res.status(500).json({ error: 'Erro ao buscar escalões IRPS' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const { year } = req.query;
+    const currentYear = year ? Number(year) : new Date().getFullYear();
+    const brackets = await prisma.iRPSBracket.findMany({
+        where: {
+            year: currentYear, isActive: true,
+            OR: [{ companyId: req.companyId }, { companyId: null }]
+        },
+        orderBy: { minIncome: 'asc' }
+    });
+    res.json(brackets);
 });
 
 router.post('/irps-brackets', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    try {
-        const bracket = await prisma.iRPSBracket.create({
-            data: {
-                ...req.body,
-                companyId: req.companyId
-            }
-        });
-        res.status(201).json(bracket);
-    } catch (error) {
-        console.error('Create IRPS bracket error:', error);
-        res.status(500).json({ error: 'Erro ao criar escalão IRPS' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const bracket = await prisma.iRPSBracket.create({
+        data: { ...req.body, companyId: req.companyId }
+    });
+    res.status(201).json(bracket);
 });
 
 // ============================================================================
@@ -99,48 +67,29 @@ router.post('/irps-brackets', authenticate, authorize('admin'), async (req: Auth
 // ============================================================================
 
 router.get('/retentions', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const { period, type } = req.query;
-        const retentions = await fiscalService.getRetentions(req.companyId!, period as string, type as string);
-        res.json(retentions);
-    } catch (error) {
-        console.error('Get retentions error:', error);
-        res.status(500).json({ error: 'Erro ao buscar retenções' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const { period, type } = req.query;
+    const retentions = await fiscalService.getRetentions(req.companyId, period as string, type as string);
+    res.json(retentions);
 });
 
 router.post('/retentions', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const retention = await prisma.taxRetention.create({
-            data: {
-                ...req.body,
-                companyId: req.companyId
-            }
-        });
-        res.status(201).json(retention);
-    } catch (error) {
-        console.error('Create retention error:', error);
-        res.status(500).json({ error: 'Erro ao criar retenção' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const retention = await prisma.taxRetention.create({
+        data: { ...req.body, companyId: req.companyId }
+    });
+    res.status(201).json(retention);
 });
 
 router.put('/retentions/:id', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const result = await prisma.taxRetention.updateMany({
-            where: { id: req.params.id, companyId: req.companyId },
-            data: req.body
-        });
-
-        if (result.count === 0) {
-            return res.status(404).json({ error: 'Retenção não encontrada' });
-        }
-
-        const retention = await prisma.taxRetention.findUnique({ where: { id: req.params.id } });
-        res.json(retention);
-    } catch (error) {
-        console.error('Update retention error:', error);
-        res.status(500).json({ error: 'Erro ao atualizar retenção' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await prisma.taxRetention.updateMany({
+        where: { id: req.params.id, companyId: req.companyId },
+        data: req.body
+    });
+    if (result.count === 0) throw ApiError.notFound('Retenção não encontrada');
+    const retention = await prisma.taxRetention.findUnique({ where: { id: req.params.id } });
+    res.json(retention);
 });
 
 // ============================================================================
@@ -148,51 +97,31 @@ router.put('/retentions/:id', authenticate, async (req: AuthRequest, res) => {
 // ============================================================================
 
 router.get('/reports', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const reports = await prisma.fiscalReport.findMany({
-            where: { companyId: req.companyId },
-            orderBy: { createdAt: 'desc' }
-        });
-        res.json(reports);
-    } catch (error) {
-        console.error('Get reports error:', error);
-        res.status(500).json({ error: 'Erro ao buscar relatórios fiscais' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const reports = await prisma.fiscalReport.findMany({
+        where: { companyId: req.companyId },
+        orderBy: { createdAt: 'desc' }
+    });
+    res.json(reports);
 });
 
 router.post('/reports', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
-    try {
-        const report = await prisma.fiscalReport.create({
-            data: {
-                ...req.body,
-                submittedBy: req.userId,
-                companyId: req.companyId
-            }
-        });
-        res.status(201).json(report);
-    } catch (error) {
-        console.error('Create report error:', error);
-        res.status(500).json({ error: 'Erro ao criar relatório fiscal' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const report = await prisma.fiscalReport.create({
+        data: { ...req.body, submittedBy: req.userId, companyId: req.companyId }
+    });
+    res.status(201).json(report);
 });
 
 router.put('/reports/:id', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
-    try {
-        const result = await prisma.fiscalReport.updateMany({
-            where: { id: req.params.id, companyId: req.companyId },
-            data: req.body
-        });
-
-        if (result.count === 0) {
-            return res.status(404).json({ error: 'Relatório não encontrado' });
-        }
-
-        const report = await prisma.fiscalReport.findUnique({ where: { id: req.params.id } });
-        res.json(report);
-    } catch (error) {
-        console.error('Update report error:', error);
-        res.status(500).json({ error: 'Erro ao atualizar relatório fiscal' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await prisma.fiscalReport.updateMany({
+        where: { id: req.params.id, companyId: req.companyId },
+        data: req.body
+    });
+    if (result.count === 0) throw ApiError.notFound('Relatório não encontrado');
+    const report = await prisma.fiscalReport.findUnique({ where: { id: req.params.id } });
+    res.json(report);
 });
 
 // ============================================================================
@@ -200,73 +129,42 @@ router.put('/reports/:id', authenticate, authorize('admin', 'manager'), async (r
 // ============================================================================
 
 router.get('/deadlines', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const deadlines = await prisma.fiscalDeadline.findMany({
-            where: { companyId: req.companyId },
-            orderBy: { dueDate: 'asc' }
-        });
-        res.json(deadlines);
-    } catch (error) {
-        console.error('Get deadlines error:', error);
-        res.status(500).json({ error: 'Erro ao buscar prazos fiscais' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const deadlines = await prisma.fiscalDeadline.findMany({
+        where: { companyId: req.companyId },
+        orderBy: { dueDate: 'asc' }
+    });
+    res.json(deadlines);
 });
 
 router.post('/deadlines', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    try {
-        const deadline = await prisma.fiscalDeadline.create({
-            data: {
-                ...req.body,
-                companyId: req.companyId
-            }
-        });
-        res.status(201).json(deadline);
-    } catch (error) {
-        console.error('Create deadline error:', error);
-        res.status(500).json({ error: 'Erro ao criar prazo fiscal' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const deadline = await prisma.fiscalDeadline.create({
+        data: { ...req.body, companyId: req.companyId }
+    });
+    res.status(201).json(deadline);
 });
 
 router.put('/deadlines/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    try {
-        const result = await prisma.fiscalDeadline.updateMany({
-            where: { id: req.params.id, companyId: req.companyId },
-            data: req.body
-        });
-
-        if (result.count === 0) {
-            return res.status(404).json({ error: 'Prazo não encontrado' });
-        }
-
-        const deadline = await prisma.fiscalDeadline.findUnique({ where: { id: req.params.id } });
-        res.json(deadline);
-    } catch (error) {
-        console.error('Update deadline error:', error);
-        res.status(500).json({ error: 'Erro ao atualizar prazo fiscal' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await prisma.fiscalDeadline.updateMany({
+        where: { id: req.params.id, companyId: req.companyId },
+        data: req.body
+    });
+    if (result.count === 0) throw ApiError.notFound('Prazo não encontrado');
+    const deadline = await prisma.fiscalDeadline.findUnique({ where: { id: req.params.id } });
+    res.json(deadline);
 });
 
 router.post('/deadlines/:id/complete', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
-    try {
-        const result = await prisma.fiscalDeadline.updateMany({
-            where: { id: req.params.id, companyId: req.companyId },
-            data: {
-                status: 'completed',
-                completedAt: new Date(),
-                completedBy: req.userId
-            }
-        });
-
-        if (result.count === 0) {
-            return res.status(404).json({ error: 'Prazo não encontrado' });
-        }
-
-        const deadline = await prisma.fiscalDeadline.findUnique({ where: { id: req.params.id } });
-        res.json(deadline);
-    } catch (error) {
-        console.error('Complete deadline error:', error);
-        res.status(500).json({ error: 'Erro ao completar prazo fiscal' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await prisma.fiscalDeadline.updateMany({
+        where: { id: req.params.id, companyId: req.companyId },
+        data: { status: 'completed', completedAt: new Date(), completedBy: req.userId }
+    });
+    if (result.count === 0) throw ApiError.notFound('Prazo não encontrado');
+    const deadline = await prisma.fiscalDeadline.findUnique({ where: { id: req.params.id } });
+    res.json(deadline);
 });
 
 // ============================================================================
@@ -274,13 +172,9 @@ router.post('/deadlines/:id/complete', authenticate, authorize('admin', 'manager
 // ============================================================================
 
 router.get('/metrics/:module', authenticate, async (req: AuthRequest, res) => {
-    try {
-        const metrics = await fiscalService.getModuleFiscalMetrics(req.companyId!, req.params.module);
-        res.json(metrics);
-    } catch (error) {
-        console.error('Get module metrics error:', error);
-        res.status(500).json({ error: 'Erro ao buscar métricas do módulo' });
-    }
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const metrics = await fiscalService.getModuleFiscalMetrics(req.companyId, req.params.module);
+    res.json(metrics);
 });
 
 export default router;

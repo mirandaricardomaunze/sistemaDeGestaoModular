@@ -36,7 +36,7 @@ export const createProductSchema = z.object({
     dosageForm: z.string().max(100, 'Forma de dosagem muito longa').optional().nullable(),
     strength: z.string().max(100, 'Dosagem muito longa').optional().nullable(),
     manufacturer: z.string().max(200, 'Fabricante muito longo').optional().nullable(),
-    origin_module: z.string().max(50).optional().default('inventory')
+    originModule: z.string().max(50).optional().default('inventory')
 });
 
 export const updateProductSchema = createProductSchema.partial();

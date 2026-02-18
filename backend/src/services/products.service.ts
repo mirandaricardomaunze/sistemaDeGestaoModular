@@ -2,6 +2,8 @@ import { prisma } from '../lib/prisma';
 import { cacheService, CacheKeys } from './cache.service';
 import { logger } from '../utils/logger';
 import { Prisma } from '@prisma/client';
+import { buildPaginationMeta } from '../utils/pagination';
+import { ApiError } from '../middleware/error.middleware';
 
 export class ProductsService {
     /**
@@ -19,7 +21,7 @@ export class ProductsService {
             limit = '20',
             sortBy = 'name',
             sortOrder = 'asc',
-            origin_module = 'inventory',
+            originModule = 'inventory',
             warehouseId
         } = params;
 
@@ -30,7 +32,7 @@ export class ProductsService {
         const where: Prisma.ProductWhereInput = {
             isActive: true,
             companyId: companyId,
-            origin_module: origin_module as string
+            originModule: originModule as string
         };
 
         if (search) {
@@ -102,13 +104,7 @@ export class ProductsService {
 
         const response = {
             data: products,
-            pagination: {
-                page: pageNum,
-                limit: limitNum,
-                total,
-                totalPages: Math.ceil(total / limitNum),
-                hasMore: skip + products.length < total
-            }
+            pagination: buildPaginationMeta(pageNum, limitNum, total)
         };
 
         // Set Cache (2 mins)
@@ -134,7 +130,7 @@ export class ProductsService {
             }
         });
 
-        if (!product) throw new Error('Produto não encontrado');
+        if (!product) throw ApiError.notFound('Produto não encontrado');
         return product;
     }
 
@@ -146,7 +142,7 @@ export class ProductsService {
             code, name, description, category, price, costPrice,
             currentStock, minStock, maxStock, unit, barcode,
             isActive, isService, requiresPrescription, dosageForm, strength, manufacturer,
-            origin_module, expiryDate, batchNumber, location, supplierId
+            originModule, expiryDate, batchNumber, location, supplierId
         } = data;
 
         // Use provided code or generate one
@@ -160,7 +156,7 @@ export class ProductsService {
             }
         });
 
-        if (existing) throw new Error('Código de produto já existe');
+        if (existing) throw ApiError.badRequest('Código de produto já existe');
 
         // Determine stock status
         const stock = currentStock || 0;
@@ -189,7 +185,7 @@ export class ProductsService {
                 companyId,
                 status,
                 isActive: isActive ?? true,
-                origin_module: origin_module || 'inventory'
+                originModule: originModule || 'inventory'
             },
             include: { supplier: true }
         });
@@ -233,14 +229,14 @@ export class ProductsService {
             data: updateData
         });
 
-        if (result.count === 0) throw new Error('Produto não encontrado ou acesso negado');
+        if (result.count === 0) throw ApiError.notFound('Produto não encontrado ou acesso negado');
 
         const product = await prisma.product.findFirst({
             where: { id, companyId },
             include: { supplier: true }
         });
 
-        if (!product) throw new Error('Produto não encontrado');
+        if (!product) throw ApiError.notFound('Produto não encontrado');
 
         // Manage Alerts
         if (product.status !== 'in_stock') {
@@ -261,7 +257,7 @@ export class ProductsService {
             data: { isActive: false }
         });
 
-        if (result.count === 0) throw new Error('Produto não encontrado ou acesso negado');
+        if (result.count === 0) throw ApiError.notFound('Produto não encontrado ou acesso negado');
         return true;
     }
 
@@ -276,7 +272,7 @@ export class ProductsService {
                 where: { id, companyId }
             });
 
-            if (!product) throw new Error('Produto não encontrado');
+            if (!product) throw ApiError.notFound('Produto não encontrado');
 
             const balanceBefore = product.currentStock;
             let newStock = balanceBefore;
@@ -538,13 +534,7 @@ export class ProductsService {
 
         return {
             data: movements,
-            pagination: {
-                page: pageNum,
-                limit: limitNum,
-                total,
-                totalPages: Math.ceil(total / limitNum),
-                hasMore: skip + movements.length < total
-            }
+            pagination: buildPaginationMeta(pageNum, limitNum, total)
         };
     }
 

@@ -1,4 +1,6 @@
 ﻿import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma';
+import { ApiError } from '../middleware/error.middleware';
 
 export class HospitalityService {
     constructor(private prisma: PrismaClient) { }
@@ -132,7 +134,7 @@ export class HospitalityService {
         return this.prisma.$transaction(async (tx) => {
             const room = await tx.room.findUnique({ where: { id: data.roomId, companyId } });
             if (!room || room.status !== 'available') {
-                throw new Error('Quarto não disponível para ocupação');
+                throw ApiError.badRequest('Quarto não disponível para ocupação');
             }
 
             let finalPrice = data.totalPrice || room.price;
@@ -173,7 +175,7 @@ export class HospitalityService {
                 where: { id: bookingId },
                 include: { room: true, consumptions: true }
             });
-            if (!booking || booking.room.companyId !== companyId) throw new Error('Reserva não encontrada');
+            if (!booking || booking.room.companyId !== companyId) throw ApiError.notFound('Reserva não encontrada');
 
             const updatedBooking = await tx.booking.update({
                 where: { id: bookingId },

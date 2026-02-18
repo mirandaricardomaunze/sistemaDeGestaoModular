@@ -1,4 +1,6 @@
 ﻿import { prisma } from '../lib/prisma';
+import { buildPaginationMeta } from '../utils/pagination';
+import { ApiError } from '../middleware/error.middleware';
 
 export interface PharmacyQuery {
     page?: number;
@@ -20,13 +22,13 @@ export interface PharmacyQuery {
 
 
 export class PharmacyService {
-    static async getMedications(companyId: string, query: PharmacyQuery) {
+    async getMedications(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, search, requiresPrescription, isControlled, lowStock } = query;
 
         const where: any = {
             product: {
                 companyId,
-                origin_module: 'pharmacy'
+                originModule: 'pharmacy'
             }
         };
 
@@ -67,6 +69,8 @@ export class PharmacyService {
             prisma.medication.count({ where })
         ]);
 
+        const pagination = buildPaginationMeta(Number(page), Number(limit), total);
+
         const data = medications.map(med => {
             const totalStock = med.product.currentStock;
             const nearestExpiry = med.batches[0]?.expiryDate || null;
@@ -86,13 +90,18 @@ export class PharmacyService {
             };
         });
 
+        return {
+            data,
+            pagination
+        };
+
         // Calculate metrics using aggregations for performance
         const [lowStockCount, expiringSoonCount, controlledCount] = await Promise.all([
             prisma.medication.count({
                 where: {
                     product: {
                         companyId,
-                        origin_module: 'pharmacy',
+                        originModule: 'pharmacy',
                         currentStock: { lte: 5 } // simplified for metric, ideally dynamic
                     }
                 }
@@ -132,19 +141,19 @@ export class PharmacyService {
         };
     }
 
-    static async createMedication(companyId: string, data: Record<string, any>) {
+    async createMedication(companyId: string, data: Record<string, any>) {
         const { productId, ...rest } = data;
 
         const product = await prisma.product.findFirst({
             where: { id: productId, companyId }
         });
         if (!product) {
-            throw new Error('Produto não encontrado ou não pertence a esta empresa');
+            throw ApiError.notFound('Produto não encontrado ou não pertence a esta empresa');
         }
 
         const existing = await prisma.medication.findUnique({ where: { productId } });
         if (existing) {
-            throw new Error('Este produto já está cadastrado como medicamento');
+            throw ApiError.badRequest('Este produto já está cadastrado como medicamento');
         }
 
         const medication = await prisma.medication.create({
@@ -161,13 +170,13 @@ export class PharmacyService {
         // Tag product as pharmacy
         await prisma.product.update({
             where: { id: productId },
-            data: { origin_module: 'pharmacy' }
+            data: { originModule: 'pharmacy' }
         });
 
         return medication;
     }
 
-    static async updateMedication(id: string, companyId: string, data: Record<string, any>) {
+    async updateMedication(id: string, companyId: string, data: Record<string, any>) {
         // Verify medication belongs to this company
         const medication = await prisma.medication.findFirst({
             where: {
@@ -177,7 +186,7 @@ export class PharmacyService {
         });
 
         if (!medication) {
-            throw new Error('Medicamento não encontrado ou não pertence a esta empresa');
+            throw ApiError.notFound('Medicamento não encontrado ou não pertence a esta empresa');
         }
 
         return await prisma.medication.update({
@@ -187,7 +196,7 @@ export class PharmacyService {
         });
     }
 
-    static async deleteMedication(id: string, companyId: string) {
+    async deleteMedication(id: string, companyId: string) {
         const med = await prisma.medication.findFirst({
             where: {
                 id,
@@ -200,9 +209,9 @@ export class PharmacyService {
             }
         });
 
-        if (!med) throw new Error('Medicamento não encontrado ou não pertence a esta empresa');
+        if (!med) throw ApiError.notFound('Medicamento não encontrado ou não pertence a esta empresa');
         if (med.batches.length > 0) {
-            throw new Error('Não é possível eliminar um medicamento com stock disponível');
+            throw ApiError.badRequest('Não é possível eliminar um medicamento com stock disponível');
         }
 
         await prisma.medicationBatch.deleteMany({
@@ -214,7 +223,7 @@ export class PharmacyService {
         });
     }
 
-    static async getBatches(companyId: string, query: PharmacyQuery) {
+    async getBatches(companyId: string, query: PharmacyQuery) {
         const { status, expiringDays, medicationId } = query;
 
         const where: Record<string, any> = {
@@ -245,7 +254,7 @@ export class PharmacyService {
         return batches;
     }
 
-    static async createBatch(companyId: string, data: Record<string, any>, performedBy: string) {
+    async createBatch(companyId: string, data: Record<string, any>, performedBy: string) {
         const { medicationId, quantity, expiryDate, ...rest } = data;
 
         const medication = await prisma.medication.findFirst({
@@ -255,7 +264,7 @@ export class PharmacyService {
             },
             include: { product: true }
         });
-        if (!medication) throw new Error('Medicamento não encontrado');
+        if (!medication) throw ApiError.notFound('Medicamento não encontrado');
 
         const batch = await prisma.medicationBatch.create({
             data: {
@@ -291,7 +300,7 @@ export class PharmacyService {
         return batch;
     }
 
-    static async getSales(companyId: string, query: PharmacyQuery) {
+    async getSales(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, startDate, endDate, status, customerId } = query;
 
         const where: any = { companyId };
@@ -336,10 +345,10 @@ export class PharmacyService {
         };
     }
 
-    static async createSale(companyId: string, data: Record<string, any>, performedBy: string) {
+    async createSale(companyId: string, data: Record<string, any>, performedBy: string) {
         const { items, customerId, customerName, partnerId, prescriptionId, discount, paymentMethod, paymentDetails, notes } = data;
 
-        if (!items || items.length === 0) throw new Error('A venda deve ter pelo menos um item');
+        if (!items || items.length === 0) throw ApiError.badRequest('A venda deve ter pelo menos um item');
 
         return await prisma.$transaction(async (tx) => {
             // Get last sale number within transaction for safety
@@ -365,9 +374,9 @@ export class PharmacyService {
                     include: { medication: { include: { product: true } } }
                 });
 
-                if (!batch) throw new Error(`Lote não encontrado: ${item.batchId}`);
+                if (!batch) throw ApiError.notFound(`Lote não encontrado: ${item.batchId}`);
                 if (batch.quantityAvailable < item.quantity) {
-                    throw new Error(`Stock insuficiente para ${batch.medication.product.name}`);
+                    throw ApiError.badRequest(`Stock insuficiente para ${batch.medication.product.name}`);
                 }
 
                 const itemTotal = Number(batch.sellingPrice) * item.quantity - (item.discount || 0);
@@ -464,7 +473,7 @@ export class PharmacyService {
         });
     }
 
-    static async getPrescriptions(companyId: string, query: PharmacyQuery) {
+    async getPrescriptions(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, status, search } = query;
 
         const where: Record<string, any> = { companyId };
@@ -502,7 +511,7 @@ export class PharmacyService {
         };
     }
 
-    static async createPrescription(companyId: string, data: Record<string, any>) {
+    async createPrescription(companyId: string, data: Record<string, any>) {
         const { items, ...rest } = data;
 
         // Generate prescription number
@@ -548,7 +557,7 @@ export class PharmacyService {
         return prescription;
     }
 
-    static async getStockMovements(companyId: string, query: PharmacyQuery) {
+    async getStockMovements(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, batchId, movementType, startDate, endDate } = query;
 
         const where: any = { companyId };
@@ -592,7 +601,7 @@ export class PharmacyService {
     }
 
     // PARTNERS
-    static async getPartners(companyId: string, query: PharmacyQuery) {
+    async getPartners(companyId: string, query: PharmacyQuery) {
         const { search, isActive } = query;
 
         const where: Record<string, any> = { companyId };
@@ -613,7 +622,7 @@ export class PharmacyService {
         });
     }
 
-    static async createPartner(companyId: string, data: Record<string, any>) {
+    async createPartner(companyId: string, data: Record<string, any>) {
         return await prisma.pharmacyPartner.create({
             data: {
                 ...data,
@@ -622,14 +631,14 @@ export class PharmacyService {
         });
     }
 
-    static async updatePartner(id: string, companyId: string, data: Record<string, any>) {
+    async updatePartner(id: string, companyId: string, data: Record<string, any>) {
         return await prisma.pharmacyPartner.update({
             where: { id, companyId },
             data
         });
     }
 
-    static async deletePartner(id: string, companyId: string) {
+    async deletePartner(id: string, companyId: string) {
         // Soft delete or hard delete? Let's check for sales first
         const salesCount = await prisma.pharmacySale.count({
             where: { partnerId: id }
@@ -647,3 +656,5 @@ export class PharmacyService {
         });
     }
 }
+
+export const pharmacyService = new PharmacyService();

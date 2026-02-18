@@ -213,7 +213,7 @@ model Product {
   status              StockStatus          @default(in_stock)
   imageUrl            String?
   isActive            Boolean              @default(true)
-  origin_module       String               @default("inventory")
+  originModule        String               @default("inventory") @map("origin_module")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   supplierId          String?
@@ -237,7 +237,7 @@ model Product {
 
   @@unique([companyId, code])
   @@unique([companyId, barcode])
-  @@index([origin_module])
+  @@index([originModule])
   @@map("products")
 }
 

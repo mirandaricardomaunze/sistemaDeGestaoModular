@@ -3,6 +3,8 @@ import { logger } from '../utils/logger';
 import { Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 import { CreateSaleInput } from '../utils/validation';
+import { ApiError } from '../middleware/error.middleware';
+import { buildPaginationMeta } from '../utils/pagination';
 
 export class SalesService {
     /**
@@ -58,13 +60,7 @@ export class SalesService {
 
         return {
             data: sales,
-            pagination: {
-                page: pageNum,
-                limit: limitNum,
-                total,
-                totalPages: Math.ceil(total / limitNum),
-                hasMore: skip + sales.length < total
-            }
+            pagination: buildPaginationMeta(pageNum, limitNum, total)
         };
     }
 
@@ -86,7 +82,7 @@ export class SalesService {
             }
         });
 
-        if (!sale) throw new Error('Venda não encontrada');
+        if (!sale) throw ApiError.notFound('Venda não encontrada');
         return sale;
     }
 
@@ -127,12 +123,12 @@ export class SalesService {
                 customerData = await tx.customer.findFirst({
                     where: { id: customerId, companyId }
                 });
-                if (!customerData) throw new Error('Cliente não encontrado ou acesso negado');
+                if (!customerData) throw ApiError.notFound('Cliente não encontrado ou acesso negado');
 
                 if (redeemPoints && redeemPoints > 0) {
                     const customerPoints = (customerData as any).loyaltyPoints || 0;
                     if (customerPoints < redeemPoints) {
-                        throw new Error(`Pontos insuficientes. Disponível: ${customerPoints}`);
+                        throw ApiError.badRequest(`Pontos insuficientes. Disponível: ${customerPoints}`);
                     }
                     pointsToRedeem = redeemPoints;
                     loyaltyDiscount = pointsToRedeem * POINT_VALUE;
@@ -195,9 +191,9 @@ export class SalesService {
 
             for (const item of items) {
                 const product = productMap.get(item.productId);
-                if (!product) throw new Error(`Produto ${item.productId} não encontrado`);
+                if (!product) throw ApiError.notFound(`Produto ${item.productId} não encontrado`);
                 if (product.currentStock < item.quantity) {
-                    throw new Error(`Stock insuficiente para ${product.name}. Disponível: ${product.currentStock}`);
+                    throw ApiError.badRequest(`Stock insuficiente para ${product.name}. Disponível: ${product.currentStock}`);
                 }
             }
 
@@ -390,7 +386,7 @@ export class SalesService {
                 include: { items: true }
             });
 
-            if (!sale) throw new Error('Venda não encontrada');
+            if (!sale) throw ApiError.notFound('Venda não encontrada');
 
             // Restore Stock
             const productIds = sale.items.map((i: any) => i.productId);
