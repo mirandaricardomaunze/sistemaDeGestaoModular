@@ -112,7 +112,8 @@ export class PDFService {
             daily: 'Diário',
             weekly: 'Semanal',
             monthly: 'Mensal',
-            yearly: 'Anual'
+            yearly: 'Anual',
+            order_cancellation: 'Documento de Cancelamento de Encomenda'
         };
         return names[type] || type;
     }
@@ -130,6 +131,9 @@ export class PDFService {
                 break;
             case 'customers':
                 this.addCustomersContent(doc, data);
+                break;
+            case 'order_cancellation':
+                this.addOrderCancellationContent(doc, data);
                 break;
             default:
                 this.addGenericContent(doc, data);
@@ -261,6 +265,54 @@ export class PDFService {
                 doc.text(`${index + 1}. ${customer.name} - ${customer.email || customer.phone || 'Sem contacto'}`);
             });
         }
+    }
+
+    private addOrderCancellationContent(doc: PDFKit.PDFDocument, data: any) {
+        doc.fontSize(16)
+            .fillColor('#dc2626')
+            .text('🚫 Comprovativo de Cancelamento', { underline: true });
+        doc.moveDown();
+
+        doc.fontSize(12).fillColor('#000000');
+
+        const details = [
+            { label: 'Encomenda Nº', value: data.orderNumber || 'N/A' },
+            { label: 'Cliente', value: data.customerName || 'N/A' },
+            { label: 'Data de Cancelamento', value: new Date().toLocaleString('pt-MZ') },
+            { label: 'Responsável', value: data.responsibleName || 'Sistema' }
+        ];
+
+        details.forEach(detail => {
+            doc.fontSize(11).fillColor('#666666').text(detail.label, { continued: true });
+            doc.fontSize(12).fillColor('#000000').text(`: ${detail.value}`);
+        });
+
+        doc.moveDown(1);
+        if (data.notes) {
+            doc.fontSize(11).fillColor('#666666').text('Motivo:', { continued: true });
+            doc.fontSize(12).fillColor('#dc2626').text(` ${data.notes}`);
+        }
+
+        doc.moveDown(2);
+
+        if (data.items && data.items.length > 0) {
+            doc.fontSize(14).fillColor('#1e40af').text('Itens Cancelados (Stock Restituído):', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(10).fillColor('#000000');
+
+            data.items.forEach((item: any, index: number) => {
+                doc.text(
+                    `• ${item.quantity}x ${item.productName} - ` +
+                    `Total: ${this.formatCurrency(item.total)}`
+                );
+            });
+
+            doc.moveDown();
+            doc.fontSize(12).fillColor('#000000').text(`Valor Total Cancelado: ${this.formatCurrency(data.total)}`, { align: 'right' });
+        }
+
+        doc.moveDown(2);
+        doc.fontSize(10).fillColor('#999999').text('Este comprovativo atesta que a encomenda descrita foi cancelada e o respetivo stock reservado foi devidamente libertado.', { align: 'center' });
     }
 
     private addGenericContent(doc: PDFKit.PDFDocument, data: any) {

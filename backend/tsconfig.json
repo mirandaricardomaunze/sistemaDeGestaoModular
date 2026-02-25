@@ -24,7 +24,20 @@
         "types": [
             "node",
             "express",
-            "jest"
+            "jest",
+            "cookie-parser",
+            "cors",
+            "compression",
+            "multer",
+            "bcryptjs",
+            "jsonwebtoken",
+            "pdfkit",
+            "exceljs",
+            "swagger-ui-express",
+            "swagger-jsdoc",
+            "uuid",
+            "supertest",
+            "nodemailer"
         ]
     },
     "include": [

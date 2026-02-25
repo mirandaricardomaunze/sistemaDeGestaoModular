@@ -69,7 +69,6 @@ export default function Inventory() {
         { id: 'products' as const, label: 'Produtos', icon: <HiOutlineCube className="w-5 h-5" /> },
         { id: 'warehouses' as const, label: 'Armazéns', icon: <HiOutlineOfficeBuilding className="w-5 h-5" /> },
         { id: 'transfers' as const, label: 'Transferências', icon: <HiOutlineTruck className="w-5 h-5" /> },
-        { id: 'history' as const, label: 'Histórico', icon: <HiOutlineClock className="w-5 h-5" /> },
     ];
 
     return (
@@ -149,8 +148,6 @@ export default function Inventory() {
             {activeTab === 'warehouses' && <WarehouseManager />}
 
             {activeTab === 'transfers' && <StockTransferManager />}
-
-            {activeTab === 'history' && <StockMovementHistory />}
 
             {/* Product Form Modal */}
             <ProductForm

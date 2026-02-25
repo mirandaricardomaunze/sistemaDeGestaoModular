@@ -14,7 +14,8 @@ export {
     Pagination,
     usePagination,
     DataTable,
-    TableContainer
+    TableContainer,
+    ResponsiveValue
 } from './index.tsx';
 
 // Loading Components

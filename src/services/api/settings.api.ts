@@ -198,7 +198,8 @@ export const alertsAPI = {
         isRead?: boolean;
         isResolved?: boolean;
         limit?: number;
-    }): Promise<Alert[]> => {
+        page?: number;
+    }): Promise<any> => {
         const response = await api.get('/alerts', { params });
         return response.data;
     },

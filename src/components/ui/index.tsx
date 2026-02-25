@@ -6,6 +6,7 @@ import { cn } from '../../utils/helpers';
 // ============================================================================
 
 export { Button } from './Button';
+export { ResponsiveValue } from './ResponsiveValue';
 
 // ============================================================================
 // ConfirmationModal Component - Re-exported from separate file
@@ -42,7 +43,7 @@ export function Card({ children, className, variant = 'default', padding = 'md' 
             className={cn(
                 variantClasses[variant],
                 paddingClasses[padding],
-                'transition-all duration-200',
+                'transition-all duration-200 overflow-hidden relative',
                 className
             )}
         >

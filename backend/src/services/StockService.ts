@@ -1,5 +1,5 @@
-﻿import { Prisma, PrismaClient } from '@prisma/client';
-import { prisma as defaultPrisma } from '../lib/prisma';
+﻿import { Prisma } from '@prisma/client';
+import { prisma as defaultPrisma, ExtendedPrismaClient } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 
 export type OriginModule = 'PHARMACY' | 'COMMERCIAL' | 'BOTTLE_STORE' | 'HOTEL' | 'RESTAURANT' | 'LOGISTICS';
@@ -20,6 +20,10 @@ export interface StockMovementParams {
     companyId: string; // ✅ Now mandatory
 }
 
+// Define a type that covers both the extended client and its transaction version
+// Transaction client is like the extended client but without connection methods
+type TransactionClient = Omit<ExtendedPrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
 export class StockService {
     /**
      * Records a stock movement and updates the current stock in the product and warehouse.
@@ -27,7 +31,7 @@ export class StockService {
      */
     async recordMovement(
         params: StockMovementParams,
-        tx: Prisma.TransactionClient = defaultPrisma
+        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma
     ) {
         const {
             productId,
@@ -112,7 +116,7 @@ export class StockService {
     /**
      * Updates product status based on current stock levels
      */
-    private async updateProductStatus(productId: string, tx: Prisma.TransactionClient) {
+    private async updateProductStatus(productId: string, tx: TransactionClient | ExtendedPrismaClient) {
         const product = await tx.product.findUnique({
             where: { id: productId },
             select: { id: true, name: true, currentStock: true, minStock: true, status: true, companyId: true }

@@ -110,7 +110,7 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
                 productId, movementType: 'sale', quantity: -quantity,
                 balanceBefore: product.currentStock, balanceAfter: product.currentStock - quantity,
                 reason: `Consumo: Quarto ${booking.room.number}`,
-                performedBy: (req as any).userName || 'Sistema',
+                performedBy: req.userName || 'Sistema',
                 companyId: req.companyId!, originModule: 'hospitality',
                 reference: bookingId, referenceType: 'booking'
             }

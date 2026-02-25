@@ -1,22 +1,17 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
-import { buildPaginationMeta } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export class CustomersService {
     async list(params: any, companyId: string) {
+        const { page, limit, skip } = getPaginationParams(params);
         const {
             search,
             type,
             isActive,
-            page = '1',
-            limit = '20',
             sortBy = 'name',
             sortOrder = 'asc'
         } = params;
-
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
 
         const where: any = { companyId };
 
@@ -38,14 +33,11 @@ export class CustomersService {
                 where,
                 orderBy: { [sortBy as string]: sortOrder },
                 skip,
-                take: limitNum
+                take: limit
             })
         ]);
 
-        return {
-            data: customers,
-            pagination: buildPaginationMeta(pageNum, limitNum, total)
-        };
+        return createPaginatedResponse(customers, page, limit, total);
     }
 
     async getById(id: string, companyId: string) {
@@ -104,10 +96,8 @@ export class CustomersService {
     }
 
     async getPurchases(id: string, params: any, companyId: string) {
-        const { startDate, endDate, page = '1', limit = '10' } = params;
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
+        const { page, limit, skip } = getPaginationParams(params);
+        const { startDate, endDate } = params;
 
         const where: any = {
             customerId: id,
@@ -127,14 +117,11 @@ export class CustomersService {
                 include: { items: { include: { product: true } } },
                 orderBy: { createdAt: 'desc' },
                 skip,
-                take: limitNum
+                take: limit
             })
         ]);
 
-        return {
-            data: sales,
-            pagination: buildPaginationMeta(pageNum, limitNum, total)
-        };
+        return createPaginatedResponse(sales, page, limit, total);
     }
 
     async updateBalance(id: string, data: { amount: number, operation: string }, companyId: string) {

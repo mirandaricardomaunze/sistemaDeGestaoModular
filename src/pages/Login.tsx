@@ -124,7 +124,7 @@ export default function Login() {
                                     <label htmlFor="password" className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                                         Palavra-passe
                                     </label>
-                                    <Link to="/forgot-password" virtual-link className="text-xs font-bold text-primary-600 hover:text-primary-500 dark:text-primary-400">
+                                    <Link to="/forgot-password" className="text-xs font-bold text-primary-600 hover:text-primary-500 dark:text-primary-400">
                                         Esqueceu-se?
                                     </Link>
                                 </div>

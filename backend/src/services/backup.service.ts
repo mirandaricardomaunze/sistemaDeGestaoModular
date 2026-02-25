@@ -72,7 +72,7 @@ class BackupService {
                 await fs.access(companyPath);
             } catch {
                 await fs.mkdir(companyPath, { recursive: true });
-                console.log(`ðŸ“ Diretório de backup criado para empresa ${companyId}: ${companyPath}`);
+                console.log(`📂 Diretório de backup criado para empresa ${companyId}: ${companyPath}`);
             }
             return companyPath;
         }
@@ -85,7 +85,7 @@ class BackupService {
      */
     private scheduleBackup(): void {
         cron.schedule(this.config.schedule, async () => {
-            console.log('â° Iniciando backups agendados para todas as empresas...');
+            console.log('⏰ Iniciando backups agendados para todas as empresas...');
             try {
                 const companies = await prisma.company.findMany({
                     where: { status: 'active' },
@@ -93,11 +93,12 @@ class BackupService {
                 });
 
                 for (const company of companies) {
-                    console.log(`â° Backup agendado para empresa: ${company.id}`);
+                    console.log(`⏰ Backup agendado para empresa: ${company.id}`);
                     await this.createBackup(company.id);
                 }
             } catch (error: unknown) {
-                console.error('âŒ Erro no backup agendado:', error.message);
+                const message = error instanceof Error ? error.message : 'Erro desconhecido';
+                console.error('❌ Erro no backup agendado:', message);
             }
         });
     }
@@ -131,8 +132,23 @@ class BackupService {
             const sanitizedUrl = databaseUrl.split('?')[0];
 
             // Executar pg_dump
-            const command = `pg_dump "${sanitizedUrl}" > "${filepath}"`;
-            await execAsync(command);
+            // Tentamos usar o caminho absoluto caso não esteja no PATH
+            const pgDumpPath = 'C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe';
+            const command = `"${pgDumpPath}" "${sanitizedUrl}" > "${filepath}"`;
+            try {
+                await execAsync(command);
+            } catch (execError: any) {
+                // Fallback para comando simples caso o caminho acima falhe por algum motivo (ex: versão diferente)
+                if (execError.message.includes('não é reconhecido') || execError.message.includes('not found')) {
+                    try {
+                        await execAsync(`pg_dump "${sanitizedUrl}" > "${filepath}"`);
+                    } catch (finalError: any) {
+                        throw new Error('PostgreSQL client (pg_dump) não encontrado no sistema. Por favor, instale o PostgreSQL client tools ou verifique o caminho.');
+                    }
+                } else {
+                    throw execError;
+                }
+            }
 
             // Verificar se o arquivo foi criado
             const stats = await fs.stat(filepath);
@@ -142,14 +158,14 @@ class BackupService {
 
             // Upload para Google Drive (se configurado)
             if (googleDriveService.isConfigured()) {
-                console.log(`â˜ï¸  Fazendo upload para Google Drive (Empresa: ${companyId})...`);
+                console.log(`☁️  Fazendo upload para Google Drive (Empresa: ${companyId})...`);
                 // Passamos o companyId para o Google Drive Service criar a estrutura de pastas
                 const uploadResult = await googleDriveService.uploadFile(filepath, filename, companyId);
 
                 if (uploadResult.success) {
                     console.log(`✅ Backup enviado para Google Drive com sucesso!`);
                 } else {
-                    console.error(`âš ï¸  Falha ao enviar para Google Drive: ${uploadResult.error}`);
+                    console.error(`⚠️  Falha ao enviar para Google Drive: ${uploadResult.error}`);
                 }
             }
 
@@ -163,8 +179,9 @@ class BackupService {
 
             return { success: true, filename, size: `${sizeInMB} MB` };
         } catch (error: unknown) {
-            console.error('âŒ Erro ao criar backup:', error.message);
-            return { success: false, error: error.message };
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            console.error('❌ Erro ao criar backup:', message);
+            return { success: false, error: message };
         } finally {
             this.isRunning = false;
         }
@@ -187,22 +204,23 @@ class BackupService {
                     continue;
                 }
 
-                const filepath = path.join(this.config.backupPath, file);
+                const filepath = path.join(companyPath, file);
                 const stats = await fs.stat(filepath);
                 const fileAge = now - stats.mtimeMs;
 
                 if (fileAge > retentionMs) {
                     await fs.unlink(filepath);
                     deletedCount++;
-                    console.log(`ðŸ—‘ï¸  Backup antigo removido: ${file}`);
+                    console.log(`🗑️  Backup antigo removido: ${file}`);
                 }
             }
 
             if (deletedCount > 0) {
-                console.log(`ðŸ§¹ ${deletedCount} backup(s) antigo(s) removido(s)`);
+                console.log(`🧹 ${deletedCount} backup(s) antigo(s) removido(s)`);
             }
         } catch (error: unknown) {
-            console.error('âš ï¸  Erro ao limpar backups antigos:', error.message);
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            console.error('⚠️ Erro ao limpar backups antigos:', message);
         }
     }
 
@@ -237,7 +255,8 @@ class BackupService {
 
             return backups;
         } catch (error: unknown) {
-            console.error('âŒ Erro ao listar backups:', error.message);
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            console.error('❌ Erro ao listar backups:', message);
             return [];
         }
     }
@@ -262,15 +281,29 @@ class BackupService {
             const sanitizedUrl = databaseUrl.split('?')[0];
 
             // ATENÇÃO: Isso vai SUBSTITUIR todos os dados atuais!
-            const command = `psql "${sanitizedUrl}" < "${filepath}"`;
-            await execAsync(command);
+            const psqlPath = 'C:\\Program Files\\PostgreSQL\\18\\bin\\psql.exe';
+            const command = `"${psqlPath}" "${sanitizedUrl}" < "${filepath}"`;
+            try {
+                await execAsync(command);
+            } catch (execError: any) {
+                if (execError.message.includes('não é reconhecido') || execError.message.includes('not found')) {
+                    try {
+                        await execAsync(`psql "${sanitizedUrl}" < "${filepath}"`);
+                    } catch (finalError: any) {
+                        throw new Error('PostgreSQL client (psql) não encontrado no sistema. Por favor, instale o PostgreSQL client tools ou verifique o caminho.');
+                    }
+                } else {
+                    throw execError;
+                }
+            }
 
             console.log(`✅ Backup restaurado com sucesso: ${filename}`);
 
             return { success: true };
         } catch (error: unknown) {
-            console.error('âŒ Erro ao restaurar backup:', error.message);
-            return { success: false, error: error.message };
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            console.error('❌ Erro ao restaurar backup:', message);
+            return { success: false, error: message };
         }
     }
 
@@ -282,12 +315,13 @@ class BackupService {
             const filepath = path.join(this.getCompanyBackupPath(companyId), filename);
             await fs.unlink(filepath);
 
-            console.log(`ðŸ—‘ï¸  Backup deletado: ${filename}`);
+            console.log(`🗑️  Backup deletado: ${filename}`);
 
             return { success: true };
         } catch (error: unknown) {
-            console.error('âŒ Erro ao deletar backup:', error.message);
-            return { success: false, error: error.message };
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            console.error('❌ Erro ao deletar backup:', message);
+            return { success: false, error: message };
         }
     }
 
@@ -330,7 +364,8 @@ class BackupService {
                 newestBackup: backups[0]?.date,
             };
         } catch (error: unknown) {
-            console.error('âŒ Erro ao obter estatísticas:', error.message);
+            const message = error instanceof Error ? error.message : 'Erro desconhecido';
+            console.error('❌ Erro ao obter estatísticas:', message);
             return {
                 totalBackups: 0,
                 totalSize: '0 MB',

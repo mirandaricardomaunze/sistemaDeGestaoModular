@@ -94,6 +94,70 @@ export class DashboardService {
             }));
         }, 300);
     }
+
+    async getRecentActivity(companyId: string, limit: number = 10) {
+        // Fetch recent sales as activity
+        const recentSales = await prisma.sale.findMany({
+            where: { companyId },
+            take: limit,
+            orderBy: { createdAt: 'desc' },
+            include: { customer: { select: { name: true } }, user: { select: { name: true } } }
+        });
+
+        return recentSales.map(sale => ({
+            id: sale.id,
+            type: 'sale',
+            title: `Venda ${sale.receiptNumber}`,
+            description: `Venda para ${sale.customer?.name || 'Consumidor Final'}`,
+            amount: Number(sale.total),
+            user: sale.user.name,
+            timestamp: sale.createdAt
+        }));
+    }
+
+    async getCategoryStats(companyId: string, periodDays: number = 30) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - periodDays);
+
+        const stats = await prisma.saleItem.groupBy({
+            by: ['productId'],
+            where: { sale: { companyId, createdAt: { gte: startDate } } },
+            _sum: { total: true }
+        });
+
+        const products = await prisma.product.findMany({
+            where: { id: { in: stats.map(s => s.productId) } },
+            select: { id: true, category: true }
+        });
+
+        const categoryMap: Record<string, number> = {};
+        const productCategoryMap = new Map(products.map(p => [p.id, p.category]));
+
+        stats.forEach(stat => {
+            const category = productCategoryMap.get(stat.productId) || 'other';
+            categoryMap[category] = (categoryMap[category] || 0) + Number(stat._sum?.total || 0);
+        });
+
+        return Object.entries(categoryMap).map(([category, value]) => ({ category, value }));
+    }
+
+    async getPaymentMethodsBreakdown(companyId: string, periodDays: number = 30) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - periodDays);
+
+        const stats = await prisma.sale.groupBy({
+            by: ['paymentMethod'],
+            where: { companyId, createdAt: { gte: startDate } },
+            _sum: { total: true },
+            _count: { id: true }
+        });
+
+        return stats.map(stat => ({
+            method: stat.paymentMethod,
+            value: Number(stat._sum?.total || 0),
+            count: stat._count.id
+        }));
+    }
 }
 
 export const dashboardService = new DashboardService();

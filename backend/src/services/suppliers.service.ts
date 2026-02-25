@@ -1,13 +1,11 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
-import { buildPaginationMeta } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export class SuppliersService {
     async list(params: any, companyId: string) {
-        const { search, isActive, page = '1', limit = '20', sortBy = 'name', sortOrder = 'asc' } = params;
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
+        const { page, limit, skip } = getPaginationParams(params);
+        const { search, isActive, sortBy = 'name', sortOrder = 'asc' } = params;
 
         const where: any = { companyId };
         if (search) {
@@ -27,11 +25,11 @@ export class SuppliersService {
                 include: { _count: { select: { products: true, purchaseOrders: true } } },
                 orderBy: { [sortBy as string]: sortOrder },
                 skip,
-                take: limitNum
+                take: limit
             })
         ]);
 
-        return { data: suppliers, pagination: buildPaginationMeta(pageNum, limitNum, total) };
+        return createPaginatedResponse(suppliers, page, limit, total);
     }
 
     async getById(id: string, companyId: string) {
@@ -99,10 +97,7 @@ export class SuppliersService {
     }
 
     async listOrders(supplierId: string, params: any, companyId: string) {
-        const { page = '1', limit = '10' } = params;
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
+        const { page, limit, skip } = getPaginationParams(params);
 
         const where = { supplierId, supplier: { companyId } };
 
@@ -110,11 +105,11 @@ export class SuppliersService {
             prisma.purchaseOrder.count({ where }),
             prisma.purchaseOrder.findMany({
                 where, include: { items: { include: { product: true } } },
-                orderBy: { createdAt: 'desc' }, skip, take: limitNum
+                orderBy: { createdAt: 'desc' }, skip, take: limit
             })
         ]);
 
-        return { data: orders, pagination: buildPaginationMeta(pageNum, limitNum, total) };
+        return createPaginatedResponse(orders, page, limit, total);
     }
 
     async receiveOrder(orderId: string, items: any[], companyId: string) {

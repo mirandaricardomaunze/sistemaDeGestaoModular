@@ -2,6 +2,8 @@
 import { Card, Button, Input, Badge, LoadingSpinner, EmptyState, Modal, ConfirmationModal } from '../../components/ui';
 import ThermalReceiptPreview from '../../components/pos/ThermalReceiptPreview';
 import { useProducts, useSales, useCustomers } from '../../hooks/useData';
+import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
+import { playScanSound } from '../../utils/audio';
 import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 import {
@@ -13,9 +15,12 @@ import {
     HiOutlinePlus,
     HiOutlineMinus,
     HiOutlineUserCircle,
+    HiOutlineScale,
     HiOutlineX
 } from 'react-icons/hi';
 import { salesAPI } from '../../services/api';
+import { useScale } from '../../hooks/useScale';
+import { PrinterService } from '../../services/printer.service';
 import { searchCustomersForPOS } from '../../utils/crmIntegration';
 import { formatCurrency } from '../../utils/helpers';
 
@@ -39,6 +44,9 @@ export default function BottleStorePOS() {
 
     const { sales, refetch: refetchSales } = useSales({ limit: 100 });
     const { customers } = useCustomers();
+
+    // Hardware Hooks
+    const { connect: connectScale, weight: scaleWeight, isConnected: isScaleConnected } = useScale();
 
     // POS State
     const [cart, setCart] = useState<any[]>([]);
@@ -119,6 +127,21 @@ export default function BottleStorePOS() {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [cart.length, isCheckoutModalOpen]);
 
+    // Universal Barcode Scanner Integration
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            const found = products.find(p => p.code === barcode || p.barcode === barcode);
+            if (found) {
+                addToCart(found, 'unit', false);
+                playScanSound();
+                toast.success(`Adicionado: ${found.name}`);
+            } else {
+                toast.error('Bebida não encontrada');
+            }
+        },
+        enabled: !isCheckoutModalOpen && !clearCartModalOpen && !thermalPreviewOpen
+    });
+
     // Cart Logic
     const clearCart = () => {
         setCart([]);
@@ -192,6 +215,9 @@ export default function BottleStorePOS() {
                 notes: selectedCustomer ? `Cliente: ${selectedCustomer.name} (Garrafeira)` : 'Venda Garrafeira'
             });
 
+            // Trigger Cash Drawer
+            PrinterService.openDrawer().catch(err => console.error('Auto-drawer failed:', err));
+
             toast.success('Venda realizada!');
             setLastSale(savedSale);
             clearCart();
@@ -220,7 +246,23 @@ export default function BottleStorePOS() {
                         <p className="text-xs text-gray-500">Venda directa ao cliente</p>
                     </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-4">
+                    {/* Hardware Controls */}
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-dark-600">
+                        <HiOutlineScale className={`w-5 h-5 ${isScaleConnected ? 'text-green-500' : 'text-gray-400'}`} />
+                        <span className="text-sm font-bold dark:text-white">
+                            {isScaleConnected ? `${scaleWeight.toFixed(3)} kg` : 'Balança OFF'}
+                        </span>
+                        <Button
+                            size="sm"
+                            variant={isScaleConnected ? 'ghost' : 'primary'}
+                            onClick={connectScale}
+                            className="h-7 text-[10px]"
+                        >
+                            {isScaleConnected ? 'Reconectar' : 'Ligar Balança'}
+                        </Button>
+                    </div>
+
                     <div className="flex gap-2 text-xs text-gray-500 dark:text-gray-400">
                         <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">F2</kbd> Busca</span>
                         <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">F4</kbd> Pagar</span>

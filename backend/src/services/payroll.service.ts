@@ -4,16 +4,19 @@ import { buildPaginationMeta } from '../utils/pagination';
 
 export class PayrollService {
     async list(params: any, companyId: string) {
-        const { year, month, page = '1', limit = '20' } = params;
+        const { year, month, employeeId, status, page = '1', limit = '20' } = params;
         const pageNum = parseInt(page as string);
         const limitNum = parseInt(limit as string);
         const skip = (pageNum - 1) * limitNum;
 
         const where: any = {
-            year: parseInt(year),
-            month: parseInt(month),
             employee: { companyId }
         };
+
+        if (year) where.year = parseInt(year);
+        if (month) where.month = parseInt(month);
+        if (employeeId) where.employeeId = employeeId;
+        if (status) where.status = status;
 
         const [total, records] = await Promise.all([
             prisma.payrollRecord.count({ where }),
@@ -140,11 +143,32 @@ export class PayrollService {
             where: { id: payrollId, employee: { companyId } }
         });
 
+        if (existing) {
+            return prisma.payrollRecord.update({
+                where: { id: payrollId },
+                data: { status: 'paid', paidAt: new Date() }
+            });
+        }
+        throw ApiError.notFound('Folha de pagamento não encontrada');
+    }
+
+    async update(payrollId: string, data: any, companyId: string) {
+        const existing = await prisma.payrollRecord.findFirst({
+            where: { id: payrollId, employee: { companyId } }
+        });
         if (!existing) throw ApiError.notFound('Folha de pagamento não encontrada');
 
         return prisma.payrollRecord.update({
             where: { id: payrollId },
-            data: { status: 'paid', paidAt: new Date() }
+            data: {
+                status: data.status,
+                otHours: data.otHours !== undefined ? Number(data.otHours) : undefined,
+                otAmount: data.otAmount !== undefined ? Number(data.otAmount) : undefined,
+                bonus: data.bonus !== undefined ? Number(data.bonus) : undefined,
+                allowances: data.allowances !== undefined ? Number(data.allowances) : undefined,
+                advances: data.advances !== undefined ? Number(data.advances) : undefined,
+                notes: data.notes
+            }
         });
     }
 

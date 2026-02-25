@@ -1,5 +1,5 @@
-﻿import { useState, useEffect, useCallback } from 'react';
-import toast from 'react-hot-toast';
+﻿import toast from 'react-hot-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productsAPI } from '../services/api';
 import { db } from '../db/offlineDB';
 import type { Product } from '../types';
@@ -25,33 +25,39 @@ interface UseProductsParams {
 }
 
 export function useProducts(params?: UseProductsParams) {
-    const [products, setProducts] = useState<Product[]>([]);
-    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
 
-    const fetchProducts = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
+    // Query for fetching products
+    const {
+        data,
+        isLoading,
+        error,
+        refetch,
+        isPlaceholderData
+    } = useQuery({
+        queryKey: ['products', params],
+        queryFn: async () => {
             if (navigator.onLine) {
                 const response = await productsAPI.getAll(params);
 
                 let productsData: Product[] = [];
+                let pagination: PaginationMeta;
+
                 if (response.data && response.pagination) {
                     productsData = response.data;
-                    setPagination(response.pagination);
+                    pagination = response.pagination;
                 } else {
                     productsData = Array.isArray(response) ? response : (response.data || []);
-                    setPagination({
+                    pagination = {
                         page: params?.page || 1,
                         limit: params?.limit || productsData.length,
                         total: productsData.length,
                         totalPages: 1,
                         hasMore: false
-                    });
+                    };
                 }
 
+                // Normalization
                 const finalProducts = productsData.map(p => ({
                     ...p,
                     stocks: p.warehouseStocks?.reduce((acc: any, ws: any) => ({
@@ -60,9 +66,7 @@ export function useProducts(params?: UseProductsParams) {
                     }), {})
                 }));
 
-                setProducts(finalProducts);
-
-                // Offline caching - only cache when on first page or no pagination to avoid clearing all for a partial load
+                // Offline caching - only cache when on first page or no pagination
                 if (!params?.page || params.page === 1) {
                     try {
                         await db.products.clear();
@@ -73,7 +77,10 @@ export function useProducts(params?: UseProductsParams) {
                         console.error('Dexie error in useProducts:', dexieError);
                     }
                 }
+
+                return { products: finalProducts, pagination };
             } else {
+                // Offline fallback
                 const cached = await db.products.toArray();
                 const normalizedCached = cached.map(p => ({
                     ...p,
@@ -82,65 +89,53 @@ export function useProducts(params?: UseProductsParams) {
                         [ws.warehouseId]: ws.quantity
                     }), {})
                 }));
-                setProducts(normalizedCached);
-                setPagination({
-                    page: 1,
-                    limit: cached.length,
-                    total: cached.length,
-                    totalPages: 1,
-                    hasMore: false
-                });
+
                 toast('A usar catálogo de produtos offline', { icon: '📦' });
+
+                return {
+                    products: normalizedCached,
+                    pagination: {
+                        page: 1,
+                        limit: cached.length,
+                        total: cached.length,
+                        totalPages: 1,
+                        hasMore: false
+                    }
+                };
             }
-        } catch (err) {
-            setError('Erro ao carregar produtos');
-            console.error('Error fetching products:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [
-        params?.search,
-        params?.category,
-        params?.status,
-        params?.page,
-        params?.limit,
-        params?.sortBy,
-        params?.sortOrder,
-        params?.warehouseId,
-        params?.origin_module
-    ]);
+        },
+        placeholderData: (previousData) => previousData, // Maintain UI during pagination
+    });
 
-    useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
-
-    const addProduct = async (data: Parameters<typeof productsAPI.create>[0]) => {
-        try {
+    // Mutations
+    const addMutation = useMutation({
+        mutationFn: async (newData: Parameters<typeof productsAPI.create>[0]) => {
             if (!navigator.onLine) {
                 await db.pendingOperations.add({
                     module: 'inventory',
                     endpoint: '/products',
                     method: 'POST',
-                    data,
+                    data: newData,
                     timestamp: Date.now(),
                     synced: false as any
                 });
                 toast('Produto guardado localmente (Offline)', { icon: '💾' });
-                return { ...data, id: `offline-${Date.now()}` } as any;
+                return { ...newData, id: `offline-${Date.now()}` } as any;
             }
-
-            const newProduct = await productsAPI.create(data);
-            setProducts((prev) => [newProduct, ...prev]);
+            return productsAPI.create(newData);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
             toast.success('Produto criado com sucesso!');
-            return newProduct;
-        } catch (err) {
+        },
+        onError: (err) => {
             console.error('Error creating product:', err);
-            throw err;
+            toast.error('Erro ao criar produto');
         }
-    };
+    });
 
-    const updateProduct = async (id: string, data: Parameters<typeof productsAPI.update>[1]) => {
-        try {
+    const updateMutation = useMutation({
+        mutationFn: async ({ id, data }: { id: string, data: Parameters<typeof productsAPI.update>[1] }) => {
             if (!navigator.onLine) {
                 await db.pendingOperations.add({
                     module: 'inventory',
@@ -153,35 +148,37 @@ export function useProducts(params?: UseProductsParams) {
                 toast('Actualização guardada localmente (Offline)', { icon: '💾' });
                 return { ...data, id } as any;
             }
-
-            const updated = await productsAPI.update(id, data);
-            setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
+            return productsAPI.update(id, data);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
             toast.success('Produto actualizado com sucesso!');
-            return updated;
-        } catch (err) {
+        },
+        onError: (err) => {
             console.error('Error updating product:', err);
-            throw err;
+            toast.error('Erro ao actualizar produto');
         }
-    };
+    });
 
-    const deleteProduct = async (id: string) => {
-        try {
-            await productsAPI.delete(id);
-            setProducts((prev) => prev.filter((p) => p.id !== id));
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => productsAPI.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
             toast.success('Produto removido com sucesso!');
-        } catch (err) {
+        },
+        onError: (err) => {
             console.error('Error deleting product:', err);
-            throw err;
+            toast.error('Erro ao remover produto');
         }
-    };
+    });
 
-    const updateStock = async (
-        id: string,
-        quantity: number,
-        operation: 'add' | 'subtract' | 'set',
-        warehouseId?: string
-    ) => {
-        try {
+    const updateStockMutation = useMutation({
+        mutationFn: async ({ id, quantity, operation, warehouseId }: {
+            id: string,
+            quantity: number,
+            operation: 'add' | 'subtract' | 'set',
+            warehouseId?: string
+        }) => {
             if (!navigator.onLine) {
                 await db.pendingOperations.add({
                     module: 'inventory',
@@ -194,36 +191,30 @@ export function useProducts(params?: UseProductsParams) {
                 toast('Ajuste de stock guardado (Offline)', { icon: '💾' });
                 return;
             }
-
-            const updated = await productsAPI.updateStock(id, { quantity, operation, warehouseId });
-
-            // Normalize backend warehouseStocks to frontend stocks record
-            const normalizedUpdated = {
-                ...updated,
-                stocks: updated.warehouseStocks?.reduce((acc: any, ws: any) => ({
-                    ...acc,
-                    [ws.warehouseId]: ws.quantity
-                }), {})
-            };
-
-            setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...normalizedUpdated } : p)));
+            return productsAPI.updateStock(id, { quantity, operation, warehouseId });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['products'] });
             toast.success('Stock actualizado com sucesso!');
-            return updated;
-        } catch (err) {
+        },
+        onError: (err) => {
             console.error('Error updating stock:', err);
-            throw err;
+            toast.error('Erro ao actualizar stock');
         }
-    };
+    });
 
     return {
-        products,
-        pagination,
+        products: data?.products || [],
+        pagination: data?.pagination || null,
         isLoading,
-        error,
-        refetch: fetchProducts,
-        addProduct,
-        updateProduct,
-        deleteProduct,
-        updateStock,
+        error: error ? 'Erro ao carregar produtos' : null,
+        refetch,
+        isPlaceholderData,
+        addProduct: addMutation.mutateAsync,
+        updateProduct: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
+        deleteProduct: deleteMutation.mutateAsync,
+        updateStock: (id: string, quantity: number, operation: any, warehouseId?: string) =>
+            updateStockMutation.mutateAsync({ id, quantity, operation, warehouseId }),
+        getProductByBarcode: (barcode: string) => productsAPI.getByBarcode(barcode),
     };
 }

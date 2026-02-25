@@ -12,6 +12,7 @@ import {
 } from 'react-icons/hi';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
 import { formatCurrency, formatDateTime } from '../../utils/helpers';
+import { PrinterService } from '../../services/printer.service';
 import toast from 'react-hot-toast';
 
 export default function CashRegister() {
@@ -181,6 +182,10 @@ export default function CashRegister() {
                         </Button>
                     ) : (
                         <>
+                            <Button variant="outline" onClick={() => PrinterService.openDrawer()}>
+                                <HiOutlineLockOpen className="w-4 h-4 mr-2" />
+                                Abrir Gaveta
+                            </Button>
                             <Button variant="outline" onClick={() => setWithdrawModalOpen(true)}>
                                 <HiOutlineMinus className="w-4 h-4 mr-2" />
                                 Levantamento

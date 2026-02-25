@@ -11,6 +11,7 @@ import {
     Badge,
     useStepper,
     ConfirmationModal,
+    ResponsiveValue,
 } from '../components/ui';
 import Pagination from '../components/ui/Pagination';
 import {
@@ -362,14 +363,17 @@ export default function Hospitality() {
                                 </div>
                                 <div className="p-2 bg-gray-50 dark:bg-dark-800 rounded-lg">
                                     <p>Total</p>
-                                    <p className="text-primary-600 text-xs">{new Intl.NumberFormat('pt-MZ').format(Number(activeBooking.grandTotal) || 0)} MT</p>
+                                    <ResponsiveValue value={Number(activeBooking.grandTotal) || 0} size="sm" className="text-primary-600" />
                                 </div>
                             </div>
                         </div>
                     ) : (
                         <div className="flex-1 flex flex-col justify-center items-center py-4 opacity-40">
                             <HiOutlineHome className="w-12 h-12 text-gray-300 mb-2" />
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{new Intl.NumberFormat('pt-MZ').format(Number(room.price) || 0)} MT / Noite</p>
+                            <div className="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                <ResponsiveValue value={Number(room.price) || 0} size="sm" />
+                                <span>/ Noite</span>
+                            </div>
                         </div>
                     )}
                 </div>

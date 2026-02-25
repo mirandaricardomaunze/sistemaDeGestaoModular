@@ -17,6 +17,9 @@ import { categoryLabels, statusLabels } from '../../utils/constants';
 import type { Product, ProductCategory, StockStatus } from '../../types';
 
 import { useProducts, useWarehouses } from '../../hooks/useData';
+import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
+import { playScanSound } from '../../utils/audio';
+import toast from 'react-hot-toast';
 
 const columnHelper = createColumnHelper<Product>();
 
@@ -64,6 +67,16 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
         origin_module: 'inventory'
     });
     const { warehouses } = useWarehouses();
+
+    // Barcode Scanner Integration for Inventory Management
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            setGlobalFilter(barcode);
+            playScanSound();
+            toast.success(`Código detectado: ${barcode}`, { duration: 2000 });
+        },
+        enabled: !deleteModalOpen && !detailModalOpen && !adjustmentModalOpen && !historyModalOpen
+    });
 
     // Status badge colors
     const getStatusBadge = (status: StockStatus) => {

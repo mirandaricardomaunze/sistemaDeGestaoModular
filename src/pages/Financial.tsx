@@ -14,7 +14,7 @@ import {
     HiOutlineCog,
 } from 'react-icons/hi';
 import { subDays, parseISO } from 'date-fns';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination } from '../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, ResponsiveValue } from '../components/ui';
 import { formatCurrency, formatDate, generateId, cn } from '../utils/helpers';
 import type { Transaction, TransactionType, TransactionStatus } from '../types';
 import toast from 'react-hot-toast';
@@ -311,7 +311,7 @@ export default function Financial() {
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Receitas</p>
-                                        <p className="text-xl font-bold text-green-600">{formatCurrency(summary.income)}</p>
+                                        <ResponsiveValue value={summary.income} size="md" className="text-green-600" />
                                     </div>
                                 </div>
                             </Card>
@@ -323,7 +323,7 @@ export default function Financial() {
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Despesas</p>
-                                        <p className="text-xl font-bold text-red-600">{formatCurrency(summary.expenses)}</p>
+                                        <ResponsiveValue value={summary.expenses} size="md" className="text-red-600" />
                                     </div>
                                 </div>
                             </Card>
@@ -335,12 +335,11 @@ export default function Financial() {
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Saldo</p>
-                                        <p className={cn(
-                                            'text-xl font-bold',
-                                            summary.balance >= 0 ? 'text-green-600' : 'text-red-600'
-                                        )}>
-                                            {formatCurrency(summary.balance)}
-                                        </p>
+                                        <ResponsiveValue
+                                            value={summary.balance}
+                                            size="md"
+                                            className={summary.balance >= 0 ? 'text-green-600' : 'text-red-600'}
+                                        />
                                     </div>
                                 </div>
                             </Card>
@@ -352,7 +351,7 @@ export default function Financial() {
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Pendentes</p>
-                                        <p className="text-xl font-bold text-yellow-600">{formatCurrency(summary.pending)}</p>
+                                        <ResponsiveValue value={summary.pending} size="md" className="text-yellow-600" />
                                     </div>
                                 </div>
                             </Card>
@@ -443,10 +442,15 @@ export default function Financial() {
                                                         {formatDate(t.date)}
                                                     </td>
                                                     <td className={cn(
-                                                        'px-6 py-4 font-semibold',
+                                                        'px-6 py-4',
                                                         t.type === 'income' ? 'text-green-600' : 'text-red-600'
                                                     )}>
-                                                        {t.type === 'income' ? '+' : '-'}{formatCurrency(t.amount)}
+                                                        <ResponsiveValue
+                                                            value={t.amount}
+                                                            size="sm"
+                                                            className="font-semibold"
+                                                            title={t.type === 'income' ? `+${formatCurrency(t.amount)}` : `-${formatCurrency(t.amount)}`}
+                                                        />
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <Badge variant={t.status === 'completed' ? 'success' : 'warning'}>

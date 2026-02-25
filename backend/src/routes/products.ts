@@ -34,6 +34,13 @@ router.get('/:id', authenticate, async (req: AuthRequest, res) => {
     res.json(product);
 });
 
+// Get product by Barcode
+router.get('/barcode/:barcode', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const product = await productsService.getByBarcode(req.params.barcode, req.companyId);
+    res.json(product);
+});
+
 // Get low stock products
 router.get('/alerts/low-stock', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');

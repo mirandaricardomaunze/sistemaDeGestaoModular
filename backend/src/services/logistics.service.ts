@@ -45,9 +45,9 @@ export class LogisticsService {
             stats: {
                 pendingDeliveries, inTransitDeliveries, deliveredToday, availableVehicles, availableDrivers,
                 pendingParcels: await prisma.parcel.count({ where: { companyId, status: { in: ['received', 'awaiting_pickup'] } } }),
-                pickupRevenue: Number(pickupRevenue._sum.amount || 0),
-                deliveryRevenue: Number(deliveryRevenue._sum.amount || 0),
-                deliveriesByProvince: deliveriesByProvince.map(p => ({ province: p.province, count: p._count.id }))
+                pickupRevenue: Number(pickupRevenue._sum?.amount || 0),
+                deliveryRevenue: Number(deliveryRevenue._sum?.amount || 0),
+                deliveriesByProvince: deliveriesByProvince.map(p => ({ province: p.province, count: (p as any)._count.id }))
             },
             recentDeliveries
         };

@@ -53,40 +53,47 @@
 
   /* Responsive card content helpers */
   .card-title {
-    @apply text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white break-words;
+    @apply font-bold text-gray-900 dark:text-white break-words;
+    font-size: clamp(1.125rem, 4vw, 1.5rem); /* 18px -> 24px */
   }
 
   .card-subtitle {
-    @apply text-sm sm:text-base text-gray-500 dark:text-gray-400 break-words;
+    @apply text-gray-500 dark:text-gray-400 break-words line-clamp-2;
+    font-size: clamp(0.875rem, 2vw, 1rem); /* 14px -> 16px */
   }
 
   .card-value {
-    @apply text-xl sm:text-2xl lg:text-3xl font-bold break-words;
+    @apply font-bold text-gray-900 dark:text-white truncate;
+    font-size: clamp(1.25rem, 5vw, 2.25rem); /* 20px -> 36px */
+    letter-spacing: -0.02em;
   }
 
   .card-label {
-    @apply text-xs sm:text-sm text-gray-500 dark:text-gray-400;
+    @apply text-gray-500 dark:text-gray-400 uppercase tracking-tight font-semibold;
+    font-size: clamp(0.7rem, 1.5vw, 0.875rem); /* 11px -> 14px */
   }
 
   /* Responsive stat cards */
   .stat-card {
-    @apply flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3;
+    @apply flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 overflow-hidden;
   }
 
   .stat-icon {
-    @apply w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0;
+    @apply w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform duration-300 group-hover:scale-110;
   }
 
   .stat-content {
-    @apply min-w-0 w-full;
+    @apply min-w-0 flex-1 w-full;
   }
 
   .stat-value {
-    @apply text-lg sm:text-xl lg:text-2xl font-bold truncate;
+    @apply font-bold text-gray-900 dark:text-white truncate;
+    font-size: clamp(1.125rem, 4vw, 1.875rem); /* 18px -> 30px */
   }
 
   .stat-label {
-    @apply text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate;
+    @apply text-gray-500 dark:text-gray-400 truncate font-medium;
+    font-size: clamp(0.75rem, 2vw, 0.875rem); /* 12px -> 14px */
   }
 
   .input {

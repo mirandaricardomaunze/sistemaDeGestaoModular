@@ -1,5 +1,5 @@
 ﻿import { Router } from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import {
     createEmployeeSchema,
     updateEmployeeSchema,
@@ -76,44 +76,76 @@ router.get('/attendance', authenticate, async (req: AuthRequest, res) => {
 });
 
 // ============================================================================
-// Employees (CRUD)
+// Payroll
 // ============================================================================
 
-router.get('/', authenticate, async (req: AuthRequest, res) => {
+// ... (Attendance routes remain same)
+
+// ============================================================================
+// Payroll
+// ============================================================================
+
+router.get('/payroll', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await payrollService.list({ ...req.query }, req.companyId);
+    res.json(result);
+});
+
+router.post('/payroll', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const { employeeId, ...rest } = req.body;
+    if (!employeeId) throw ApiError.badRequest('employeeId is required');
+    const result = await payrollService.upsert(employeeId, rest, req.companyId);
+    res.json(result);
+});
+
+router.put('/payroll/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await payrollService.update(req.params.id, req.body, req.companyId);
+    res.json(result);
+});
+
+// ... (Vacations mutations should also be admin)
+
+router.get('/vacations', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await vacationService.list(req.query, req.companyId);
+    res.json(result);
+});
+
+// ... (CRUD operations)
+
+router.get('/', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const result = await employeesService.list(req.query, req.companyId);
     res.json(result);
 });
 
-router.get('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const employee = await employeesService.getById(req.params.id, req.companyId);
-    res.json(employee);
-});
-
-router.post('/', authenticate, async (req: AuthRequest, res) => {
+router.post('/', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const validatedData = createEmployeeSchema.parse(req.body);
     const employee = await employeesService.create(validatedData, req.companyId);
     res.status(201).json(employee);
 });
 
-router.put('/:id', authenticate, async (req: AuthRequest, res) => {
+router.get('/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const employee = await employeesService.getById(req.params.id, req.companyId);
+    res.json(employee);
+});
+
+router.put('/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const validatedData = updateEmployeeSchema.parse(req.body);
     const employee = await employeesService.update(req.params.id, validatedData, req.companyId);
     res.json(employee);
 });
 
-router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
+router.delete('/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     await employeesService.delete(req.params.id, req.companyId);
     res.json({ message: 'Funcionário removido com sucesso' });
 });
-
-// ============================================================================
-// Attendance (Per Employee)
-// ============================================================================
 
 router.post('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
@@ -195,93 +227,10 @@ router.get('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
     });
 });
 
-// ============================================================================
-// Payroll
-// ============================================================================
-
-router.post('/:id/payroll', authenticate, async (req: AuthRequest, res) => {
+router.get('/:id/payroll-history', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const validatedData = generatePayrollSchema.parse(req.body);
-    const result = await payrollService.upsert(req.params.id, validatedData, req.companyId);
-    res.json(result);
-});
-
-router.post('/payroll/:payrollId/process', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    await payrollService.process(req.params.payrollId, req.companyId);
-    res.json({ message: 'Folha processada com sucesso' });
-});
-
-router.post('/payroll/:payrollId/pay', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const result = await payrollService.pay(req.params.payrollId, req.companyId);
-    res.json(result);
-});
-
-router.get('/payroll/month/:year/:month', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const result = await payrollService.list({ ...req.params, ...req.query }, req.companyId);
-    res.json(result);
-});
-
-// ============================================================================
-// Vacations
-// ============================================================================
-
-router.post('/:id/vacations', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const validatedData = requestVacationSchema.parse(req.body);
-    const result = await vacationService.request(req.params.id, validatedData, req.companyId);
-    res.status(201).json(result);
-});
-
-router.patch('/vacations/:vacationId', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const validatedData = approveVacationSchema.parse(req.body);
-    const result = await vacationService.updateStatus(req.params.vacationId, validatedData, req.companyId);
-    res.json(result);
-});
-
-router.get('/vacations/all', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const result = await vacationService.list(req.query, req.companyId);
-    res.json(result);
-});
-
-// ============================================================================
-// Attendance Roster
-// ============================================================================
-
-router.get('/roster', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const roster = await attendanceService.getRoster(req.companyId);
-    res.json(roster);
-});
-
-router.patch('/roster/add', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const { employeeIds, department } = req.body;
-    await attendanceService.addToRoster(req.companyId, employeeIds, department);
-    res.json({ message: 'Funcionários adicionados à área de ponto' });
-});
-
-router.delete('/roster/remove/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    if (req.user?.role !== 'admin' && req.user?.role !== 'super_admin') {
-        throw ApiError.forbidden('Somente administradores podem remover da lista de ponto');
-    }
-    await attendanceService.removeFromRoster(req.companyId, req.params.id);
-    res.json({ message: 'Funcionário removido da área de ponto' });
-});
-
-router.post('/roster/record/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const { type, timestamp } = req.body;
-    const date = timestamp ? new Date(timestamp) : new Date();
-    const record = await attendanceService.recordTime(
-        req.companyId, req.params.id, type as 'checkIn' | 'checkOut', date
-    );
-    res.json(record);
+    const result = await payrollService.list({ employeeId: req.params.id }, req.companyId);
+    res.json(result.data);
 });
 
 export default router;

@@ -68,6 +68,8 @@
         "apply": "Aplicar"
     },
     "nav": {
+        "history": "Histórico",
+        "stock_movements": "Movimentos de Stock",
         "dashboard": "Painel",
         "inventory": "Inventário",
         "pos": "POS",
@@ -85,7 +87,9 @@
         "crm": "CRM",
         "fiscal": "Fiscal",
         "audit": "Auditoria",
-        "backups": "Backups"
+        "backups": "Backups",
+        "products": "Produtos",
+        "pharmacy_manage": "Gestão de Farmácia"
     },
     "auth": {
         "login": "Entrar",
@@ -307,10 +311,6 @@
         "selectBusinessType": "Selecione o tipo de negócio para personalizar o sistema",
         "alertSettings": "Configurações de Alertas",
         "backupRestore": "Backup e Restauração",
-        "company": "Empresa",
-        "companyName": "Razão Social",
-        "tradingName": "Nome Comercial",
-        "taxId": "NUIT",
         "contactEmail": "Email de Contacto",
         "website": "Website",
         "exportBackup": "Exportar Backup",

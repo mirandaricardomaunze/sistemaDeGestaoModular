@@ -1,28 +1,53 @@
 ﻿import { Router } from 'express';
-import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { ApiError } from '../middleware/error.middleware';
+import { alertsService } from '../services/alert.service';
 
 const router = Router();
 
 router.get('/', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const alerts = await prisma.alert.findMany({
-        where: { companyId: req.companyId },
-        orderBy: [{ isResolved: 'asc' }, { priority: 'asc' }, { createdAt: 'desc' }],
-        take: 50
-    });
+    const alerts = await alertsService.list(req.query, req.companyId);
     res.json(alerts);
+});
+
+router.get('/unread-count', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const counts = await alertsService.getUnreadCount(req.companyId, req.query.module as string);
+    res.json(counts);
+});
+
+router.get('/summary', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const summary = await alertsService.getSummary(req.companyId);
+    res.json(summary);
+});
+
+router.patch('/:id/read', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await alertsService.markAsRead(req.params.id, req.companyId);
+    if (result.count === 0) throw ApiError.notFound('Alerta não encontrado');
+    res.json({ message: 'Alerta marcado como lido' });
+});
+
+router.patch('/read-all', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    await alertsService.markAllAsRead(req.companyId, req.body.module);
+    res.json({ message: 'Todos os alertas marcados como lidos' });
 });
 
 router.patch('/:id/resolve', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const result = await prisma.alert.updateMany({
-        where: { id: req.params.id, companyId: req.companyId },
-        data: { isResolved: true, resolvedAt: new Date() }
-    });
+    const result = await alertsService.resolve(req.params.id, req.companyId);
     if (result.count === 0) throw ApiError.notFound('Alerta não encontrado');
     res.json({ message: 'Alerta resolvido' });
+});
+
+router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await alertsService.delete(req.params.id, req.companyId);
+    if (result.count === 0) throw ApiError.notFound('Alerta não encontrado');
+    res.json({ message: 'Alerta removido' });
 });
 
 export default router;

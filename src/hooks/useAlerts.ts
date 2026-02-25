@@ -6,6 +6,14 @@ import { alertsAPI, type Alert, type AlertModule, type AlertsSummary, type Unrea
 // useAlerts Hook - Module-aware alerts management
 // ============================================================================
 
+interface PaginationMeta {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+}
+
 interface UseAlertsParams {
     module?: AlertModule;
     type?: string;
@@ -28,6 +36,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
     } = params;
 
     const [alerts, setAlerts] = useState<Alert[]>([]);
+    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +47,22 @@ export function useAlerts(params: UseAlertsParams = {}) {
         if (!isSilent) setIsLoading(true);
         setError(null);
         try {
-            const result = await alertsAPI.getAll(paramsRef.current);
-            setAlerts(result);
+            const response = await alertsAPI.getAll(paramsRef.current);
+
+            if (response && response.data && response.pagination) {
+                setAlerts(response.data);
+                setPagination(response.pagination);
+            } else {
+                const alertsData = Array.isArray(response) ? response : (response?.data || []);
+                setAlerts(alertsData);
+                setPagination({
+                    page: 1,
+                    limit: alertsData.length,
+                    total: alertsData.length,
+                    totalPages: 1,
+                    hasMore: false
+                });
+            }
         } catch (err) {
             setError('Erro ao carregar alertas');
             console.error('Error fetching alerts:', err);
@@ -136,11 +159,11 @@ export function useAlerts(params: UseAlertsParams = {}) {
     };
 
     // Computed values
-    const unreadCount = alerts.filter((a) => !a.isRead && !a.isResolved).length;
-    const criticalCount = alerts.filter((a) => a.priority === 'critical' && !a.isResolved).length;
-    const highCount = alerts.filter((a) => a.priority === 'high' && !a.isResolved).length;
+    const unreadCount = (alerts || []).filter((a) => !a.isRead && !a.isResolved).length;
+    const criticalCount = (alerts || []).filter((a) => a.priority === 'critical' && !a.isResolved).length;
+    const highCount = (alerts || []).filter((a) => a.priority === 'high' && !a.isResolved).length;
 
-    const alertsByModule = alerts.reduce((acc, alert) => {
+    const alertsByModule = (alerts || []).reduce((acc, alert) => {
         const mod = alert.module || 'general';
         if (!acc[mod]) acc[mod] = [];
         acc[mod].push(alert);
@@ -162,6 +185,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
         criticalCount,
         highCount,
         alertsByModule,
+        pagination,
     };
 }
 

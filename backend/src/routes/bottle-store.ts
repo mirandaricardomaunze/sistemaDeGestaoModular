@@ -37,7 +37,7 @@ router.get('/movements', authenticate, async (req: AuthRequest, res) => {
 
 router.post('/movements', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const userName = req.user?.name || 'Sistema';
+    const userName = req.userName || 'Sistema';
     const movement = await bottleStoreService.recordStockMovement(req.companyId, userName, req.body);
     res.status(201).json(movement);
 });
@@ -60,14 +60,14 @@ router.get('/bottle-returns/customer/:customerId', authenticate, async (req: Aut
 
 router.post('/bottle-returns/deposit', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const userName = req.user?.name || 'Sistema';
+    const userName = req.userName || 'Sistema';
     const data = await bottleReturnsService.recordDeposit(req.companyId, userName, req.body);
     res.status(201).json(data);
 });
 
 router.post('/bottle-returns/return', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const userName = req.user?.name || 'Sistema';
+    const userName = req.userName || 'Sistema';
     const data = await bottleReturnsService.recordReturn(req.companyId, userName, req.body);
     res.status(201).json(data);
 });
@@ -90,14 +90,14 @@ router.get('/cash-session/summary', authenticate, async (req: AuthRequest, res) 
 
 router.post('/cash-session/open', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const userName = req.user?.name || 'Sistema';
+    const userName = req.userName || 'Sistema';
     const session = await cashSessionService.openSession(req.companyId, userName, req.body.openingBalance);
     res.status(201).json(session);
 });
 
 router.post('/cash-session/close', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const userName = req.user?.name || 'Sistema';
+    const userName = req.userName || 'Sistema';
     const session = await cashSessionService.closeSession(req.companyId, userName, req.body);
     res.json(session);
 });
@@ -114,7 +114,7 @@ router.get('/credit-sales', authenticate, async (req: AuthRequest, res) => {
 
 router.post('/credit-sales/pay', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const userName = req.user?.name || 'Sistema';
+    const userName = req.userName || 'Sistema';
     const payment = await creditSalesService.registerPayment(req.companyId, userName, req.body);
     res.status(201).json(payment);
 });

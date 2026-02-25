@@ -35,6 +35,7 @@ import {
     HiOutlineViewGrid,
     HiOutlineQuestionMarkCircle,
     HiOutlineRefresh,
+    HiOutlineClock,
 } from 'react-icons/hi';
 import { cn } from '../../utils/helpers';
 
@@ -52,12 +53,14 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
+    { id: 'dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/dashboard' },
+
     // ============================================================================
     // PHARMACY Module - Specific pages (only for pharmacy businesses)
     // ============================================================================
     { id: 'pharmacy_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/pharmacy/dashboard', module: 'pharmacy' },
-    { id: 'pharmacy_manage', labelKey: 'Gestão de Farmácia', icon: HiOutlineBeaker, path: '/pharmacy/manage', module: 'pharmacy' },
-    { id: 'pharmacy_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/pharmacy/pos', module: 'pharmacy' },
+    { id: 'pharmacy_manage', labelKey: 'nav.pharmacy_manage', icon: HiOutlineBeaker, path: '/pharmacy/manage', module: 'pharmacy' },
+    { id: 'pharmacy_pos', labelKey: 'nav.pos', icon: HiOutlineShoppingCart, path: '/pharmacy/pos', module: 'pharmacy' },
     { id: 'pharmacy_employees', labelKey: 'Funcionários', icon: HiOutlineUsers, path: '/pharmacy/employees', module: 'pharmacy' },
     { id: 'pharmacy_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/pharmacy/categories', module: 'pharmacy' },
     { id: 'pharmacy_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/pharmacy/suppliers', module: 'pharmacy' },
@@ -81,11 +84,11 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     // COMMERCIAL Module - Complete commerce management
     // ============================================================================
-    { id: 'commercial_dashboard', labelKey: 'Dashboard', icon: HiOutlineViewGrid, path: '/commercial/dashboard', module: 'commercial' },
-    { id: 'inventory', labelKey: 'nav.inventory', icon: HiOutlineCube, path: '/inventory', module: 'commercial' },
-    { id: 'orders', labelKey: 'nav.orders', icon: HiOutlineClipboardList, path: '/orders', module: 'commercial' },
-    { id: 'commercial_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/commercial/categories', module: 'commercial' },
-    { id: 'commercial_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/commercial/suppliers', module: 'commercial' },
+    { id: 'inventory', labelKey: 'nav.products', icon: HiOutlineCube, path: '/inventory', module: 'inventory' },
+    { id: 'stock_history', labelKey: 'nav.stock_movements', icon: HiOutlineClock, path: '/stock-movements', module: 'inventory' },
+    { id: 'orders', labelKey: 'nav.orders', icon: HiOutlineClipboardList, path: '/orders', module: 'inventory' },
+    { id: 'commercial_categories', labelKey: 'nav.categories', icon: HiOutlineTag, path: '/commercial/categories', module: 'inventory' },
+    { id: 'commercial_suppliers', labelKey: 'nav.suppliers', icon: HiOutlineTruck, path: '/commercial/suppliers', module: 'inventory' },
 
     // ============================================================================
     // LOGISTICS Module - Specific pages (only for logistics businesses)
@@ -104,8 +107,8 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     { id: 'bottle_store_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/bottle-store/dashboard', module: 'bottle_store' },
     { id: 'bottle_store_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/bottle-store/pos', module: 'bottle_store' },
-    { id: 'bottle_store_inventory', labelKey: 'Inventário', icon: HiOutlineCube, path: '/bottle-store/inventory', module: 'bottle_store' },
-    { id: 'bottle_store_stock', labelKey: 'Movimentos de Stock', icon: HiOutlineRefresh, path: '/bottle-store/stock', module: 'bottle_store' },
+    { id: 'bottle_store_inventory', labelKey: 'nav.inventory', icon: HiOutlineCube, path: '/bottle-store/inventory', module: 'bottle_store' },
+    { id: 'bottle_store_stock', labelKey: 'nav.stock_movements', icon: HiOutlineRefresh, path: '/bottle-store/stock', module: 'bottle_store' },
     { id: 'bottle_store_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/bottle-store/reports', module: 'bottle_store' },
 
     // ============================================================================
@@ -182,7 +185,7 @@ export default function Sidebar() {
         if (!canViewPage(item.path)) return false;
 
         // 2. Check active modules for this tenant
-        const coreModules = ['pos', 'crm', 'hr', 'fiscal', 'invoices', 'financial', 'audit', 'alerts', 'settings', 'reports', 'backups', 'help'];
+        const coreModules = ['pos', 'crm', 'hr', 'fiscal', 'invoices', 'financial', 'audit', 'alerts', 'settings', 'reports', 'backups', 'help', 'inventory'];
         const itemModule = (item as any).module;
 
         if (itemModule && !coreModules.includes(itemModule)) {
@@ -199,12 +202,7 @@ export default function Sidebar() {
             return false;
         }
 
-        // 4. Special Case: Inventory/Commercial - Hide if specialized module is active (unless super_admin)
-        if (user?.role !== 'super_admin' && item.module === 'commercial' && (isPharmacyActive || isHospitalityActive)) {
-            return false;
-        }
-
-        // 5. Special Case: Super Admin - ONLY super_admin role
+        // 4. Special Case: Super Admin - ONLY super_admin role
         if (item.id === 'super_admin' && user?.role !== 'super_admin') {
             return false;
         }

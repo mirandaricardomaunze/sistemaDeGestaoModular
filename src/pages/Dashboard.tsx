@@ -1,47 +1,52 @@
 ﻿import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import {
-    Line,
-    AreaChart,
-    Area,
-    BarChart,
-    Bar,
-    PieChart,
-    Pie,
-    Cell,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Legend,
-} from 'recharts';
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
 import {
-    HiOutlineCurrencyDollar,
-    HiOutlineShoppingCart,
-    HiOutlineCube,
-    HiOutlineUsers,
-    HiOutlineExclamationCircle,
-    HiOutlineTrendingUp,
-    HiOutlineTrendingDown,
-    HiOutlineArrowRight,
-    HiOutlinePlus,
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+
+import {
     HiOutlineRefresh,
-    HiOutlineLightBulb,
+    HiOutlinePlus,
+    HiOutlineLightBulb
 } from 'react-icons/hi';
-import { Card, Button, Badge, Skeleton } from '../components/ui';
-import { formatCurrency, formatRelativeTime, cn } from '../utils/helpers';
-import { categoryLabels } from '../utils/constants';
-import { useDashboard, useProducts, useAlerts, useEmployees, useCategories } from '../hooks/useData';
+import { Link } from 'react-router-dom';
+
+import { Button, Skeleton } from '../components/ui';
+import { cn, formatRelativeTime } from '../utils/helpers';
+import {
+    useDashboard,
+    useProducts,
+    useAlerts,
+    useEmployees,
+    useCategories
+} from '../hooks/useData';
 import { useSmartInsights } from '../hooks/useSmartInsights';
 import { SmartInsightCard } from '../components/common/SmartInsightCard';
 
+// New Widget Components
+import {
+    StatsWidget,
+    RevenueChartWidget,
+    CategoryPieWidget,
+    RecentAlertsWidget,
+    RecentActivityWidget,
+    QuickActionsWidget,
+    WeeklySalesWidget
+} from '../components/dashboard/DashboardWidgets';
+import { DraggableWidget } from '../components/dashboard/DraggableWidget';
 
-// Chart colors
-const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-
-// Time period options
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
     { value: '1m', label: '1 Mês' },
@@ -50,16 +55,29 @@ const periodOptions: { value: TimePeriod; label: string }[] = [
     { value: '1y', label: '1 Ano' },
 ];
 
-// Day name mapping for weekly chart
 const dayNames: Record<string, string> = {
     '0': 'Dom', '1': 'Seg', '2': 'Ter', '3': 'Qua', '4': 'Qui', '5': 'Sex', '6': 'Sab'
 };
 
+const DEFAULT_WIDGET_ORDER = ['stats', 'insights', 'revenue', 'categories', 'alerts', 'activity', 'actions'];
+
 export default function Dashboard() {
     const { t } = useTranslation();
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
+    const [widgetOrder, setWidgetOrder] = useState<string[]>(() => {
+        const saved = localStorage.getItem('dashboard-widget-order');
+        return saved ? JSON.parse(saved) : DEFAULT_WIDGET_ORDER;
+    });
 
-    // Fetch data from API
+    // DND Sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    // Fetch data
     const { stats, salesChart, weeklyChart, recentActivity, isLoading: isLoadingDashboard, refetch: refetchDashboard } = useDashboard();
     const { products, isLoading: isLoadingProducts } = useProducts();
     const { alerts, isLoading: isLoadingAlerts } = useAlerts();
@@ -69,698 +87,183 @@ export default function Dashboard() {
 
     const isLoading = isLoadingDashboard || isLoadingProducts || isLoadingAlerts || isLoadingEmployees || isLoadingCategories || isLoadingInsights;
 
-
-    // Transform sales chart data for the graph
+    // Transform data
     const salesData = useMemo(() => {
-        return salesChart.map(item => ({
-            name: item.date.slice(-5), // Show MM-DD
+        return (salesChart || []).map(item => ({
+            name: item.date.slice(-5),
             vendas: item.value,
-            meta: 0 // Meta can be set from settings if needed
+            meta: 0
         }));
     }, [salesChart]);
 
-    // Transform weekly chart data for the bar graph
     const weeklyData = useMemo(() => {
-        return weeklyChart.map(item => {
+        return (weeklyChart || []).map(item => {
             const date = new Date(item.date);
             const dayName = dayNames[date.getDay().toString()] || item.date;
-            return {
-                name: dayName,
-                valor: item.value
-            };
+            return { name: dayName, valor: item.value };
         });
     }, [weeklyChart]);
 
-    // Calculate metrics
     const metrics = useMemo(() => {
-        const totalSales = stats?.totalRevenue || 0;
-        const lowStockCount = products.filter((p) => p.currentStock <= p.minStock).length;
+        const lowStockCount = products.filter((p) => p.currentStock <= (p.minStock || 0)).length;
         const activeEmployees = employees.filter((e) => e.isActive).length;
         const pendingAlerts = alerts.filter((a) => !a.isResolved).length;
 
-        // Calculate profit from products
         const stockSaleValue = products.reduce((sum, p) => sum + p.price * p.currentStock, 0);
-        const stockCostValue = products.reduce((sum, p) => sum + p.costPrice * p.currentStock, 0);
-        const potentialProfit = stockSaleValue - stockCostValue;
+        const stockCostValue = products.reduce((sum, p) => sum + (p.costPrice || 0) * p.currentStock, 0);
 
         return {
-            totalSales: totalSales,
             salesGrowth: stats?.monthlyGrowth || 0,
-            ordersToday: stats?.todaySales || 0,
-            ordersGrowth: 0,
             lowStock: lowStockCount,
             totalProducts: products.length,
             employees: activeEmployees,
             pendingAlerts,
             grossProfit: stats?.totalProfit || 0,
             profitMargin: stats?.totalRevenue ? (stats.totalProfit / stats.totalRevenue * 100) : 0,
-            stockCostValue: stockCostValue,
-            stockSaleValue: stockSaleValue,
-            potentialProfit: potentialProfit,
+            stockCostValue,
+            stockSaleValue,
+            potentialProfit: stockSaleValue - stockCostValue,
         };
-    }, [products, alerts, employees, selectedPeriod, stats]);
+    }, [products, alerts, employees, stats]);
 
-    // Category distribution for pie chart - using categories from API with productCount
     const categoryData = useMemo(() => {
-        if (categories.length === 0) {
-            // Fallback to products if categories not loaded
-            const counts: Record<string, number> = {};
-            products.forEach((p) => {
-                counts[p.category] = (counts[p.category] || 0) + 1;
-            });
-            return Object.entries(counts).map(([category, value]) => ({
-                name: categoryLabels[category] || category,
-                value,
-            }));
-        }
-        // Use categories with productCount from API
+        if (!categories || categories.length === 0) return [];
         return categories
             .filter(c => (c.productCount || 0) > 0)
-            .map(c => ({
-                name: c.name,
-                value: c.productCount || 0,
-            }))
+            .map(c => ({ name: c.name, value: c.productCount || 0 }))
             .sort((a, b) => b.value - a.value);
-    }, [categories, products]);
+    }, [categories]);
 
-    // Recent alerts
-    const recentAlerts = alerts.filter((a) => !a.isResolved).slice(0, 5);
-
-    // Recent activities from API
     const recentActivities = useMemo(() => {
         if (!recentActivity) return [];
-
-        const activities: Array<{ id: string; action: string; detail: string; time: string; icon: string }> = [];
-
-        // Add recent sales
+        const activities: any[] = [];
         recentActivity.recentSales?.forEach((sale: any) => {
             activities.push({
                 id: `sale-${sale.id}`,
                 action: 'Venda realizada',
-                detail: `Pedido #${sale.saleNumber || sale.id.slice(-6)} - ${formatCurrency(Number(sale.total))}`,
+                detail: `Pedido #${sale.saleNumber || sale.id.slice(-6)}`,
                 time: formatRelativeTime(sale.createdAt),
                 icon: '💰'
             });
         });
-
-        // Add recent invoices
-        recentActivity.recentInvoices?.forEach((invoice: any) => {
-            activities.push({
-                id: `invoice-${invoice.id}`,
-                action: 'Fatura emitida',
-                detail: `Fatura #${invoice.invoiceNumber} - ${invoice.customerName}`,
-                time: formatRelativeTime(invoice.createdAt),
-                icon: '📄'
-            });
-        });
-
-        // Sort by time (most recent first) and take first 5
-        return activities
-            .sort((a, b) => b.time.localeCompare(a.time))
-            .slice(0, 5);
+        return activities.slice(0, 5);
     }, [recentActivity]);
 
-    if (isLoading) {
-        return (
-            <div className="space-y-6 animate-pulse">
-                {/* Header Skeleton */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-2">
-                        <Skeleton height={32} className="w-48" />
-                        <Skeleton height={20} className="w-64" />
+    const handleDragEnd = (event: any) => {
+        const { active, over } = event;
+        if (!over) return;
+        if (active.id !== over.id) {
+            setWidgetOrder((items) => {
+                const oldIndex = items.indexOf(active.id);
+                const newIndex = items.indexOf(over.id);
+                const newOrder = arrayMove(items, oldIndex, newIndex);
+                localStorage.setItem('dashboard-widget-order', JSON.stringify(newOrder));
+                return newOrder;
+            });
+        }
+    };
+
+    if (isLoading) return <DashboardSkeleton />;
+
+    const renderWidget = (id: string) => {
+        switch (id) {
+            case 'stats': return <StatsWidget metrics={metrics} stats={stats} />;
+            case 'insights': return insights && insights.length > 0 ? (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <HiOutlineLightBulb className="w-5 h-5 text-amber-500" />
+                        <h2 className="text-lg font-bold">Conselheiro Inteligente</h2>
                     </div>
-                    <div className="flex gap-3">
-                        <Skeleton height={40} className="w-24" />
-                        <Skeleton height={40} className="w-32" />
-                        <Skeleton height={40} className="w-24" />
+                    <div className="flex gap-4 overflow-x-auto pb-4">
+                        {insights.map((insight) => (
+                            <SmartInsightCard key={insight.id} insight={insight} className="min-w-[320px]" />
+                        ))}
                     </div>
                 </div>
-
-                {/* Metrics Grid Skeleton */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                        <Card key={i} padding="md">
-                            <div className="flex items-center justify-between mb-4">
-                                <Skeleton variant="circular" width={48} height={48} />
-                                <Skeleton height={20} className="w-12" />
-                            </div>
-                            <Skeleton height={32} className="w-24 mb-2" />
-                            <Skeleton height={16} className="w-32" />
-                        </Card>
-                    ))}
-                </div>
-
-                {/* Profit Metrics Skeleton */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {[1, 2, 3].map((i) => (
-                        <Card key={i} padding="md">
-                            <div className="flex items-center gap-4">
-                                <Skeleton variant="circular" width={48} height={48} />
-                                <div className="space-y-2">
-                                    <Skeleton height={16} className="w-24" />
-                                    <Skeleton height={24} className="w-32" />
-                                </div>
-                            </div>
-                        </Card>
-                    ))}
-                </div>
-
-                {/* Charts Skeleton */}
+            ) : null;
+            case 'revenue': return (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Card className="lg:col-span-2" padding="md">
-                        <div className="flex justify-between mb-6">
-                            <Skeleton height={24} className="w-48" />
-                            <Skeleton height={24} className="w-24" />
-                        </div>
-                        <Skeleton height={288} className="w-full" />
-                    </Card>
-                    <Card padding="md">
-                        <Skeleton height={24} className="w-48 mb-6" />
-                        <Skeleton variant="circular" width={160} height={160} className="mx-auto mb-6" />
-                        <div className="grid grid-cols-2 gap-4">
-                            {[1, 2, 3, 4].map((i) => (
-                                <Skeleton key={i} height={16} className="w-full" />
-                            ))}
-                        </div>
-                    </Card>
+                    <div className="lg:col-span-2"><RevenueChartWidget salesData={salesData} /></div>
+                    <CategoryPieWidget categoryData={categoryData} />
                 </div>
-            </div>
-        );
-    }
+            );
+            case 'categories': return <WeeklySalesWidget weeklyData={weeklyData} />;
+            case 'alerts': return (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <RecentAlertsWidget alerts={alerts} metrics={metrics} />
+                    <RecentActivityWidget recentActivities={recentActivities} />
+                    <QuickActionsWidget />
+                </div>
+            );
+            case 'activity': return null; // Already in alerts for now to keep layout tight, or we can separate them
+            case 'actions': return null;
+            default: return null;
+        }
+    };
 
     return (
         <div className="space-y-6">
-            {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {t('dashboard.title')}
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        {t('dashboard.overview')}
-                    </p>
+                    <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
+                    <p className="text-gray-500">{t('dashboard.overview')}</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                    {/* Refresh Button */}
-                    <Button
-                        variant="ghost"
-                        onClick={() => refetchDashboard()}
-                        leftIcon={<HiOutlineRefresh className="w-5 h-5" />}
-                    >
+                    <Button variant="ghost" onClick={() => refetchDashboard()} leftIcon={<HiOutlineRefresh />}>
                         {t('common.refresh')}
                     </Button>
-                    {/* Period Filter */}
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
-                        {periodOptions.map((option) => (
+                    <div className="flex bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                        {periodOptions.map((opt) => (
                             <button
-                                key={option.value}
-                                onClick={() => setSelectedPeriod(option.value)}
+                                key={opt.value}
+                                onClick={() => setSelectedPeriod(opt.value)}
                                 className={cn(
-                                    'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                                    selectedPeriod === option.value
-                                        ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm'
-                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    'px-3 py-1.5 rounded-md text-sm font-medium',
+                                    selectedPeriod === opt.value ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm' : 'text-gray-500'
                                 )}
                             >
-                                {option.label}
+                                {opt.label}
                             </button>
                         ))}
                     </div>
-                    <Link to="/reports">
-                        <Button variant="outline">
-                            {t('common.report')}
-                        </Button>
-                    </Link>
-                    <Link to="/pos">
-                        <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
-                            {t('dashboard.newSale')}
-                        </Button>
-                    </Link>
+                    <Link to="/pos"><Button leftIcon={<HiOutlinePlus />}>{t('dashboard.newSale')}</Button></Link>
                 </div>
             </div>
 
-            {/* Metrics Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Total Sales */}
-                <Card padding="md" className="relative overflow-hidden bg-gradient-to-br from-primary-600 to-indigo-700 text-white shadow-lg">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-white/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                                <HiOutlineCurrencyDollar className="w-6 h-6 text-white" />
-                            </div>
-                            <div className={cn(
-                                'flex items-center gap-1 text-sm font-medium',
-                                metrics.salesGrowth >= 0 ? 'text-green-300' : 'text-red-300'
-                            )}>
-                                {metrics.salesGrowth >= 0 ? (
-                                    <HiOutlineTrendingUp className="w-4 h-4" />
-                                ) : (
-                                    <HiOutlineTrendingDown className="w-4 h-4" />
-                                )}
-                                {Math.abs(metrics.salesGrowth)}%
-                            </div>
-                        </div>
-                        <p className="text-3xl font-bold">
-                            {formatCurrency(stats?.totalRevenue || 0)}
-                        </p>
-                        <p className="text-sm text-white/80 font-medium">
-                            Faturação Consolidada
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Module Breakdown */}
-                <Card padding="md" className="border-t-4 border-t-primary-500 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Desempenho por Módulo</h3>
-                        <Badge variant="outline" size="sm" className="text-[10px]">Mensal</Badge>
-                    </div>
-                    <div className="space-y-3">
-                        {stats?.commercialRevenue ? (
-                            <div className="group">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                    <span className="text-gray-600 dark:text-gray-400">🛍️ Comercial</span>
-                                    <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(stats.commercialRevenue)}</span>
-                                </div>
-                                <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                    <div className="bg-primary-500 h-full transition-all duration-1000" style={{ width: `${(stats.commercialRevenue / stats.totalRevenue) * 100}%` }} />
-                                </div>
-                            </div>
-                        ) : null}
-                        {stats?.hospitalityRevenue ? (
-                            <div className="group">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                    <span className="text-gray-600 dark:text-gray-400">🏨 Hotelaria</span>
-                                    <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(stats.hospitalityRevenue)}</span>
-                                </div>
-                                <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                    <div className="bg-green-500 h-full transition-all duration-1000" style={{ width: `${(stats.hospitalityRevenue / stats.totalRevenue) * 100}%` }} />
-                                </div>
-                            </div>
-                        ) : null}
-                        {stats?.pharmacyRevenue ? (
-                            <div className="group">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                    <span className="text-gray-600 dark:text-gray-400">💊 Farmácia</span>
-                                    <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(stats.pharmacyRevenue)}</span>
-                                </div>
-                                <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                    <div className="bg-amber-500 h-full transition-all duration-1000" style={{ width: `${(stats.pharmacyRevenue / stats.totalRevenue) * 100}%` }} />
-                                </div>
-                            </div>
-                        ) : null}
-                        {stats?.bottleStoreRevenue ? (
-                            <div className="group">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                    <span className="text-gray-600 dark:text-gray-400">🍾 Bottle Store</span>
-                                    <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(stats.bottleStoreRevenue)}</span>
-                                </div>
-                                <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                    <div className="bg-purple-500 h-full transition-all duration-1000" style={{ width: `${(stats.bottleStoreRevenue / stats.totalRevenue) * 100}%` }} />
-                                </div>
-                            </div>
-                        ) : null}
-                    </div>
-                </Card>
-
-                {/* Low Stock */}
-                <Card padding="md" className="relative overflow-hidden shadow-sm">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-yellow-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                <HiOutlineCube className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-                            </div>
-                            <Badge variant={metrics.lowStock > 5 ? 'danger' : 'warning'}>
-                                {t('common.attention')}
-                            </Badge>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {metrics.lowStock}/{metrics.totalProducts}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {t('dashboard.productsLow')}
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Active Employees */}
-                <Card padding="md" className="relative overflow-hidden shadow-sm">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-accent-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-accent-100 dark:bg-accent-900/30 flex items-center justify-center">
-                                <HiOutlineUsers className="w-6 h-6 text-accent-600 dark:text-accent-400" />
-                            </div>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {metrics.employees}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {t('dashboard.activeEmployees')}
-                        </p>
-                    </div>
-                </Card>
-            </div>
-
-            {/* Profit Metrics Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Gross Profit */}
-                <Card padding="md" className="border-l-4 border-l-green-500 bg-green-50/30 dark:bg-green-900/10 shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <HiOutlineTrendingUp className="w-6 h-6 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Lucro Bruto Consolidado</p>
-                            <p className="text-2xl font-bold text-green-600">
-                                {formatCurrency(metrics.grossProfit)}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                Margem Global: {metrics.profitMargin.toFixed(1)}%
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Stock Cost Value */}
-                <Card padding="md" className="border-l-4 border-l-blue-500 bg-blue-50/30 dark:bg-blue-900/10">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <HiOutlineCube className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.stockCost')}</p>
-                            <p className="text-xl font-bold text-blue-600">
-                                {formatCurrency(metrics.stockCostValue)}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                Total em Inventário
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Potential Profit */}
-                <Card padding="md" className="border-l-4 border-l-purple-500 bg-purple-50/30 dark:bg-purple-900/10">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.potentialProfit')}</p>
-                            <p className="text-xl font-bold text-purple-600">
-                                {formatCurrency(metrics.potentialProfit)}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                Lucro em Stock Comercial
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-            </div>
-            {/* Smart Insights / Intelligent Advisor */}
-            {insights.length > 0 && (
-                <div className="space-y-4 mb-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                                <HiOutlineLightBulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Sugestões e tendências detetadas pela IA</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
-                        {insights.map((insight) => (
-                            <SmartInsightCard key={insight.id} insight={insight} className="min-w-[320px] max-w-[400px] flex-shrink-0" />
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+                modifiers={[restrictToVerticalAxis]}
+            >
+                <SortableContext items={widgetOrder} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-6">
+                        {widgetOrder.map(id => (
+                            <DraggableWidget key={id} id={id}>
+                                {renderWidget(id)}
+                            </DraggableWidget>
                         ))}
                     </div>
-                </div>
-            )}
+                </SortableContext>
+            </DndContext>
+        </div>
+    );
+}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Sales Chart */}
-                <Card padding="md" className="lg:col-span-2">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {t('dashboard.salesVsTarget')}
-                        </h2>
-                        <Link to="/reports">
-                            <Button variant="ghost" size="sm">
-                                {t('common.viewMore')}
-                                <HiOutlineArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
-                        </Link>
-                    </div>
-                    <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={salesData}>
-                                <defs>
-                                    <linearGradient id="colorVendas" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
-                                <XAxis dataKey="name" className="text-sm" stroke="#94a3b8" />
-                                <YAxis className="text-sm" stroke="#94a3b8" />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'var(--tooltip-bg, #fff)',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                                    }}
-                                />
-                                <Legend />
-                                <Area
-                                    type="monotone"
-                                    dataKey="vendas"
-                                    stroke="#6366f1"
-                                    strokeWidth={3}
-                                    fill="url(#colorVendas)"
-                                    name="Vendas"
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="meta"
-                                    stroke="#22c55e"
-                                    strokeWidth={2}
-                                    strokeDasharray="5 5"
-                                    dot={false}
-                                    name="Meta"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
-
-                {/* Category Distribution */}
-                <Card padding="md">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                        {t('dashboard.productsByCategory')}
-                    </h2>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={categoryData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
-                                    paddingAngle={4}
-                                    dataKey="value"
-                                >
-                                    {categoryData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mt-4">
-                        {categoryData.slice(0, 4).map((item, index) => (
-                            <div key={item.name} className="flex items-center justify-between gap-2">
-                                <div className="flex items-center gap-2 min-w-0">
-                                    <div
-                                        className="w-3 h-3 rounded-full flex-shrink-0"
-                                        style={{ backgroundColor: CHART_COLORS[index] }}
-                                    />
-                                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                                        {item.name}
-                                    </span>
-                                </div>
-                                <span className="text-xs font-medium text-gray-900 dark:text-white flex-shrink-0">
-                                    {item.value}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </Card>
+function DashboardSkeleton() {
+    return (
+        <div className="space-y-6 animate-pulse">
+            <div className="flex justify-between">
+                <div className="space-y-2"><Skeleton height={32} width={200} /><Skeleton height={20} width={300} /></div>
+                <div className="flex gap-2"><Skeleton height={40} width={100} /><Skeleton height={40} width={100} /></div>
             </div>
-
-            {/* Bottom Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Weekly Sales */}
-                <Card padding="md">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                        {t('dashboard.weeklySales')}
-                    </h2>
-                    <div className="h-48">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={weeklyData}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
-                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
-                                <YAxis stroke="#94a3b8" fontSize={12} />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#fff',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                    }}
-                                />
-                                <Bar dataKey="valor" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
-
-                {/* Pending Alerts */}
-                <Card padding="md">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            {t('dashboard.pendingAlerts')}
-                        </h2>
-                        <Link to="/alerts">
-                            <Badge variant="danger">{metrics.pendingAlerts}</Badge>
-                        </Link>
-                    </div>
-                    <div className="space-y-3">
-                        {recentAlerts.length === 0 ? (
-                            <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-                                {t('dashboard.noPendingAlerts')}
-                            </p>
-                        ) : (
-                            recentAlerts.map((alert) => (
-                                <div
-                                    key={alert.id}
-                                    className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl"
-                                >
-                                    <div className={cn(
-                                        'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                                        alert.priority === 'critical'
-                                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600'
-                                            : alert.priority === 'high'
-                                                ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600'
-                                                : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600'
-                                    )}>
-                                        <HiOutlineExclamationCircle className="w-4 h-4" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                            {alert.title}
-                                        </p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {formatRelativeTime(alert.createdAt)}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                    <Link
-                        to="/alerts"
-                        className="block mt-4 text-center text-sm text-primary-600 dark:text-primary-400 hover:underline"
-                    >
-                        {t('dashboard.viewAllAlerts')}
-                    </Link>
-                </Card>
-
-                {/* Recent Activity */}
-                <Card padding="md">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        {t('dashboard.recentActivity')}
-                    </h2>
-                    <div className="space-y-4">
-                        {recentActivities.length === 0 ? (
-                            <p className="text-center text-gray-500 dark:text-gray-400 py-4">
-                                {t('dashboard.noRecentActivity')}
-                            </p>
-                        ) : recentActivities.map((activity) => (
-                            <div key={activity.id} className="flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center flex-shrink-0">
-                                    <span className="text-sm">{activity.icon}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                        {activity.action}
-                                    </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                        {activity.detail}
-                                    </p>
-                                </div>
-                                <span className="text-xs text-gray-400 flex-shrink-0">
-                                    {activity.time}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </Card>
+            <div className="grid grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(i => <Skeleton key={i} height={120} />)}
             </div>
-
-            {/* Quick Actions */}
-            <Card padding="md">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    {t('dashboard.quickActions')}
-                </h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Link to="/pos">
-                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineShoppingCart className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                {t('sales.newSale')}
-                            </p>
-                        </button>
-                    </Link>
-                    <Link to="/inventory">
-                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineCube className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                {t('dashboard.newProduct')}
-                            </p>
-                        </button>
-                    </Link>
-                    <Link to="/employees">
-                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineUsers className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                {t('nav.employees')}
-                            </p>
-                        </button>
-                    </Link>
-                    <Link to="/reports">
-                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineCurrencyDollar className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                {t('nav.reports')}
-                            </p>
-                        </button>
-                    </Link>
-                </div>
-            </Card>
+            <div className="grid grid-cols-3 gap-6">
+                <Skeleton height={300} className="col-span-2" />
+                <Skeleton height={300} />
+            </div>
         </div>
     );
 }

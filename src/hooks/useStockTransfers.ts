@@ -18,8 +18,8 @@ export function useStockTransfers(params?: UseTransfersParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await warehousesAPI.getTransfers(params);
-            setTransfers(result);
+            const response = await warehousesAPI.getTransfers(params);
+            setTransfers(response.data || response);
         } catch (err) {
             setError('Erro ao carregar transferências');
             console.error('Error fetching transfers:', err);

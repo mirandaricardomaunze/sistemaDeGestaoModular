@@ -10,31 +10,39 @@ if (process.env.REDIS_URL || process.env.REDIS_HOST) {
     try {
         const redisUrl = process.env.REDIS_URL || `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || '6379'}`;
         redisClient = new Redis(redisUrl, {
-            maxRetriesPerRequest: 1,
-            enableReadyCheck: true,
+            // Remove maxRetriesPerRequest to allow internal handling or set to null
+            maxRetriesPerRequest: null,
+            enableReadyCheck: false, // More stable if we don't wait for ready
             lazyConnect: true,
-            connectTimeout: 5000,
+            connectTimeout: 10000,
+            retryStrategy: (times) => {
+                // Try to reconnect with exponential backoff, max 10s
+                const delay = Math.min(times * 100, 10000);
+                return delay;
+            }
         });
 
         redisClient.on('error', (err) => {
-            console.warn('âš ï¸ Redis error:', err.message);
-            useRedis = false;
+            if (useRedis) {
+                console.warn('⚠️  Conexão com Redis perdida, usando rate limiting em memória');
+                useRedis = false;
+            }
         });
 
-        redisClient.on('connect', () => {
-            console.log('✅ Redis conectado para rate limiting');
+        redisClient.on('ready', () => {
+            console.log('✅ Redis conectado e pronto para rate limiting');
             useRedis = true;
         });
 
-        // Mark as potentially usable, the 'error' event will flip it back if it fails
-        useRedis = true;
+        // Initially assume it's NOT usable until 'ready'
+        useRedis = false;
     } catch (error) {
-        console.warn('âš ï¸ Erro ao configurar Redis, usando rate limiting em memória');
+        console.warn('⚠️  Erro ao configurar Redis, usando rate limiting em memória');
         redisClient = null;
         useRedis = false;
     }
 } else {
-    console.warn('âš ï¸ Configuração Redis ausente, usando rate limiting em memória');
+    console.warn('⚠️  Configuração Redis ausente, usando rate limiting em memória');
 }
 
 /**
@@ -52,8 +60,7 @@ function createRateLimiter(windowMs: number, max: number, message: string) {
     // Use Redis if available, otherwise fall back to in-memory
     if (redisClient && useRedis) {
         config.store = new RedisStore({
-            // @ts-expect-error - RedisStore types are outdated
-            client: redisClient,
+            sendCommand: (...args: string[]) => (redisClient as any).call(...args),
             prefix: 'rl:',
         });
     }

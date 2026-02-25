@@ -26,45 +26,58 @@ export const prisma = basePrisma.$extends({
                 if (tenantModels.includes(model)) {
                     // For read operations
                     if (['findFirst', 'findMany', 'count', 'aggregate', 'groupBy'].includes(operation)) {
-                        args.where = { ...args.where, companyId };
+                        (args as any).where = { ...(args as any).where, companyId };
                     }
-                    // For mutations (ensure we don't accidentally update/delete other company's data)
+                    // For mutations
                     if (['update', 'updateMany', 'delete', 'deleteMany', 'upsert'].includes(operation)) {
-                        args.where = { ...args.where, companyId };
+                        (args as any).where = { ...(args as any).where, companyId };
                     }
-                    // For create (ensure companyId is set)
+                    // For create
                     if (operation === 'create' || operation === 'createMany') {
-                        if (Array.isArray(args.data)) {
-                            args.data = args.data.map((d: Record<string, unknown>) => ({ ...d, companyId }));
+                        if (Array.isArray((args as any).data)) {
+                            (args as any).data = (args as any).data.map((d: Record<string, unknown>) => ({ ...d, companyId }));
                         } else {
-                            args.data = { ...args.data, companyId };
+                            (args as any).data = { ...(args as any).data, companyId };
                         }
                     }
 
-                    // ðŸ“ Auto-Audit Interceptor for Mutations
+                    // Audit logic ...
                     if (['create', 'update', 'upsert', 'delete', 'updateMany', 'deleteMany'].includes(operation)) {
-                        const auditData = {
-                            userId: context?.userId,
-                            userName: 'Sistema (Automado)', // In a real app, you'd fetch this or pass it in context
-                            action: operation.toUpperCase(),
-                            entity: model,
-                            entityId: (args.where?.id as string) || (args.data?.id as string) || 'N/A',
-                            newData: operation !== 'delete' ? args.data : undefined,
-                            companyId
-                        };
+                        try {
+                            const auditId = ((args as any).where?.id as string) ||
+                                ((args as any).data?.id as string) ||
+                                'N/A';
 
-                        // Use the base client to avoid infinite loops and context issues
-                        // We do this asynchronously to not block the main query
-                        basePrisma.auditLog.create({ data: auditData }).catch(err => {
-                            console.error('Audit Log Error:', err);
-                        });
+                            const auditData = {
+                                userId: context?.userId,
+                                userName: context?.userName || 'Sistema (Autónomo)',
+                                action: operation.toUpperCase(),
+                                entity: model,
+                                entityId: auditId,
+                                newData: operation !== 'delete' ? (args as any).data : undefined,
+                                companyId
+                            };
+
+                            basePrisma.auditLog.create({ data: auditData }).catch(err => {
+                                console.error('Audit Log Sync Error:', err.message);
+                            });
+                        } catch (auditErr) {
+                            console.error('Audit Log Preparation Error:', auditErr);
+                        }
                     }
                 }
+
+                // Global Security: Always omit sensitive fields from User unless explicitly requested
+
+                // Note: We stick to manual sanitizeUser to avoid breaking complex queries (like includes).
+
 
                 return query(args);
             },
         },
     },
 });
+
+export type ExtendedPrismaClient = typeof prisma;
 
 

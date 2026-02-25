@@ -58,6 +58,8 @@
         "apply": "Apply"
     },
     "nav": {
+        "history": "History",
+        "stock_movements": "Stock Movements",
         "dashboard": "Dashboard",
         "inventory": "Inventory",
         "pos": "POS",
@@ -75,7 +77,9 @@
         "crm": "CRM",
         "fiscal": "Fiscal",
         "audit": "Audit",
-        "backups": "Backups"
+        "backups": "Backups",
+        "products": "Products",
+        "pharmacy_manage": "Pharmacy Management"
     },
     "auth": {
         "login": "Login",
@@ -296,10 +300,6 @@
         "selectBusinessType": "Select business type to customize the system",
         "alertSettings": "Alert Settings",
         "backupRestore": "Backup & Restore",
-        "company": "Company",
-        "companyName": "Company Name",
-        "tradingName": "Trading Name",
-        "taxId": "Tax ID",
         "contactEmail": "Contact Email",
         "website": "Website",
         "exportBackup": "Export Backup",

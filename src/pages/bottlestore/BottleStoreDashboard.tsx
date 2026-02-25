@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, Button, Skeleton, Badge } from '../../components/ui';
+import { Card, Button, Skeleton, Badge, ResponsiveValue } from '../../components/ui';
 import {
     AreaChart,
     Area,
@@ -197,9 +197,10 @@ export default function BottleStoreDashboard() {
                                 <span>+12%</span>
                             </div>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {formatCurrency(stats.totalSales)}
-                        </p>
+                        <ResponsiveValue
+                            value={stats.totalSales}
+                            size="lg"
+                        />
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             Vendas do Período
                         </p>
@@ -217,9 +218,11 @@ export default function BottleStoreDashboard() {
                                 <HiOutlineShoppingCart className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                             </div>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {stats.totalTx}
-                        </p>
+                        <ResponsiveValue
+                            value={stats.totalTx}
+                            type="number"
+                            size="lg"
+                        />
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             Total de Pedidos
                         </p>
@@ -240,9 +243,10 @@ export default function BottleStoreDashboard() {
                                 <Badge variant="danger">Atenção</Badge>
                             )}
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {stats.lowStockCount}/{stats.totalProducts}
-                        </p>
+                        <div className="flex items-baseline gap-1">
+                            <ResponsiveValue value={stats.lowStockCount} type="number" size="lg" className="text-red-600" />
+                            <span className="text-gray-400 text-sm">/ {stats.totalProducts}</span>
+                        </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             Produtos com Baixo Stock
                         </p>
@@ -260,9 +264,10 @@ export default function BottleStoreDashboard() {
                                 <HiOutlineChartBar className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                             </div>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {formatCurrency(stats.avgTicket)}
-                        </p>
+                        <ResponsiveValue
+                            value={stats.avgTicket}
+                            size="lg"
+                        />
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                             Ticket Médio
                         </p>
@@ -280,9 +285,11 @@ export default function BottleStoreDashboard() {
                         </div>
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Lucro Bruto</p>
-                            <p className="text-2xl font-bold text-green-600">
-                                {formatCurrency(stats.totalProfit)}
-                            </p>
+                            <ResponsiveValue
+                                value={stats.totalProfit}
+                                size="lg"
+                                className="text-green-600"
+                            />
                             <p className="text-xs text-gray-400">
                                 Margem: {stats.totalSales ? ((stats.totalProfit / stats.totalSales) * 100).toFixed(1) : 0}%
                             </p>
@@ -298,9 +305,11 @@ export default function BottleStoreDashboard() {
                         </div>
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Valor em Stock (Custo)</p>
-                            <p className="text-xl font-bold text-blue-600">
-                                {formatCurrency(stats.stockValueCost)}
-                            </p>
+                            <ResponsiveValue
+                                value={stats.stockValueCost}
+                                size="md"
+                                className="text-blue-600"
+                            />
                             <p className="text-xs text-gray-400">
                                 Valor de Aquisição
                             </p>
@@ -316,9 +325,11 @@ export default function BottleStoreDashboard() {
                         </div>
                         <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Lucro Potencial</p>
-                            <p className="text-xl font-bold text-purple-600">
-                                {formatCurrency(stats.stockValueSale - stats.stockValueCost)}
-                            </p>
+                            <ResponsiveValue
+                                value={stats.stockValueSale - stats.stockValueCost}
+                                size="md"
+                                className="text-purple-600"
+                            />
                             <p className="text-xs text-gray-400">
                                 Venda de todo o stock
                             </p>

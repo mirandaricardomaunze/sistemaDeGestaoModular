@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { stockService } from './StockService';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export class WarehousesService {
     async getWarehouses(companyId: string) {
@@ -55,6 +56,7 @@ export class WarehousesService {
     }
 
     async getAllTransfers(companyId: string, query: any) {
+        const { page, limit, skip } = getPaginationParams(query);
         const { status, startDate, endDate } = query;
         const where: any = { companyId };
         if (status) where.status = status;
@@ -64,15 +66,22 @@ export class WarehousesService {
             if (endDate) where.date.lte = new Date(String(endDate));
         }
 
-        return prisma.stockTransfer.findMany({
-            where,
-            include: {
-                sourceWarehouse: { select: { id: true, name: true, code: true } },
-                targetWarehouse: { select: { id: true, name: true, code: true } },
-                items: { include: { product: { select: { id: true, name: true, code: true, barcode: true, description: true, unit: true } } } }
-            },
-            orderBy: { createdAt: 'desc' }
-        });
+        const [total, transfers] = await Promise.all([
+            prisma.stockTransfer.count({ where }),
+            prisma.stockTransfer.findMany({
+                where,
+                include: {
+                    sourceWarehouse: { select: { id: true, name: true, code: true } },
+                    targetWarehouse: { select: { id: true, name: true, code: true } },
+                    items: { include: { product: { select: { id: true, name: true, code: true, barcode: true, description: true, unit: true } } } }
+                },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit
+            })
+        ]);
+
+        return createPaginatedResponse(transfers, page, limit, total);
     }
 
     async createTransfer(companyId: string, data: any, userName: string) {

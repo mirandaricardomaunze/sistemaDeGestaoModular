@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Card, Button, Badge, LoadingSpinner, Modal, ConfirmationModal, Input, Select, TableContainer } from '../components/ui';
+import { Card, Button, Badge, LoadingSpinner, Modal, ConfirmationModal, Input, Select, TableContainer, ResponsiveValue } from '../components/ui';
 import { pharmacyAPI } from '../services/api';
 import { useProducts, useSuppliers, useCategories } from '../hooks/useData';
 import toast from 'react-hot-toast';
@@ -655,7 +655,7 @@ export default function Pharmacy() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Medicamentos</p>
-                                        <p className="text-xl font-bold">{metrics.totalMedications}</p>
+                                        <ResponsiveValue value={metrics.totalMedications} type="number" size="md" />
                                     </div>
                                 </div>
                             </Card>
@@ -666,7 +666,7 @@ export default function Pharmacy() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Baixo Stock</p>
-                                        <p className="text-xl font-bold">{metrics.lowStockItems}</p>
+                                        <ResponsiveValue value={metrics.lowStockItems} type="number" size="md" />
                                     </div>
                                 </div>
                             </Card>
@@ -677,7 +677,7 @@ export default function Pharmacy() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">A Expirar (90D)</p>
-                                        <p className="text-xl font-bold">{metrics.expiringSoon}</p>
+                                        <ResponsiveValue value={metrics.expiringSoon} type="number" size="md" />
                                     </div>
                                 </div>
                             </Card>
@@ -688,7 +688,7 @@ export default function Pharmacy() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Controlados</p>
-                                        <p className="text-xl font-bold">{metrics.controlledItems}</p>
+                                        <ResponsiveValue value={metrics.controlledItems} type="number" size="md" />
                                     </div>
                                 </div>
                             </Card>

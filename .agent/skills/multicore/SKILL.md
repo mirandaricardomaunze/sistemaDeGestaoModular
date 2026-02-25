@@ -12,50 +12,52 @@ This skill defines the high-level architecture, professional coding standards, a
 The system is a modular multi-tenant ERP/Management platform.
 
 - **Backend**: Node.js/Express with TypeScript. 
-  - **ORM**: Prisma (PostgreSQL).
-  - **Pattern**: Modular Services. Controllers are thin; logic resides in `src/services/`.
-  - **Auth**: JWT-based with Tenant (Company) isolation. Every query MUST filter by `companyId`.
+  - **ORM**: Prisma (Postgres/MySQL). Always use transactions for critical operations.
+  - **Pattern**: Modular Services. Controllers in `src/routes/` are thin; logic resides in `src/services/`.
+  - **Auth**: JWT-based with Tenant (Company) isolation via `tenant.ts` middleware. Every query MUST filter by `companyId`.
+  - **Async Processing**: Redis + BullMQ for background tasks (queues/workers).
+  - **Integrations**: M-Pesa API, Telegram Bot, Google Drive (backups), and SMTP (emails).
 - **Frontend**: React (Vite) with TypeScript.
-  - **State**: Zustand for global state management.
-  - **Styling**: TailwindCSS for a premium, responsive UI.
-  - **Optimization**: Lazy loading of all route-level components.
+  - **State**: Zustand for global stores (`src/stores/`).
+  - **Styling**: TailwindCSS with premium aesthetics (glassmorphism, modern gradients).
+  - **I18n**: Multilingual support using `i18next`.
+  - **Persistence**: Dexie.js for local database if needed.
 
 ## 👑 Senior & Professional Rules
 
-### 1. Clean Code & SOLID
-- **Thin Controllers**: Controllers only handle request validation and response formatting.
-- **Fat Services**: All business logic, DB interactions, and calculations live in Services.
-- **Meaningful Naming**: Constants, variables, and functions must be descriptive (e.g., `calculateTotalProfit` not `calcTot`).
-- **DRY (Don't Repeat Yourself)**: Extract common logic to `utils` or shared service methods.
+### 1. Multi-Tenancy (Tenant Isolation)
+- **Primary Rule**: No data from Company A should EVER be visible to Company B.
+- **Implementation**: The `req.tenantId` (or `companyId`) set by the `tenant` middleware MUST be used in every Prisma query.
+- **Audit Trail**: Every action that modifies data must be recorded using the `audit` middleware/service.
 
-### 2. Performance First (Speed)
-- **Aggregations at DB Level**: Never fetch all records to sum or count them in JS. Use Prisma's `aggregate`, `groupBy`, and `count`.
-- **Pagination**: All list endpoints MUST implement server-side pagination (`skip`, `take`).
-- **Efficient Indexing**: Ensure foreign keys and search columns are indexed in Prisma schema.
-- **Lazy Loading**: Use `Suspense` and `lazy` for all frontend modules to keep the initial bundle small.
+### 2. Backend Design Patterns
+- **Validation**: All incoming requests MUST be validated with **Zod** schemas in `src/validation/`.
+- **Services**: All business logic goes into services (e.g., `sales.service.ts`). Services should be stateless where possible.
+- **Error Handling**: Use the central `error.middleware.ts`. Throw custom errors with appropriate HTTP status codes.
+- **Logging**: Use the implemented `winston` logger for all production logs.
 
-### 3. Atomic & Robust Operations
-- **Transactions**: Use `prisma.$transaction` for any operation involving financial records or stock movements to ensure data integrity.
-- **Validation**: Strict Zod validation for all incoming API data.
-- **Error Handling**: Use the global error handler middleware. Never leave `try-catch` blocks empty.
+### 3. Performance & Scalability
+- **Pagination**: All list endpoints MUST implement pagination via `queryParams.ts` validation and Prisma `skip`/`take`.
+- **Caching**: Use the `cache.service.ts` (Redis) for frequently accessed, slow-changing data.
+- **Database**: Use `prisma.$transaction` for any operation involving financial records or stock movements. Avoid large nested `include` blocks; prefer targeted queries.
 
-### 4. Technical Conventions
-- **Naming**: `camelCase` for variables/functions, `PascalCase` for classes/types, `UPPER_SNAKE_CASE` for constants.
-- **Directory Structure**:
-  - `backend/src/services/`: Business logic.
-  - `backend/src/routes/`: API endpoint definitions.
-  - `src/components/ui/`: Reusable primitive components.
-  - `src/pages/[module]/`: Feature-specific pages.
+### 4. Frontend Conventions
+- **Components**: Reusable UI primitives in `src/components/ui/`. Modular features in `src/pages/[Module]`.
+- **Hooks**: Business logic in components should be moved to custom hooks (`src/hooks/`).
+- **Optimization**: Use `Suspense` and `lazy` for page-level imports. Keep components small.
 
 ## 💊 Module Specific Rules
 
-- **Pharmacy**: Handle batches and expiry dates strictly. Any sale must decrement stock at the batch level.
-- **Bottle Store**: Manage returnables and specific tax rules.
-- **Fiscal**: Ensure compliance with local tax regulations (Mozambique/IVA).
-- **Logistics**: Focus on route optimization and real-time tracking (Socket.io).
+- **Pharmacy**: Handle batches and expiry dates strictly. Sales must decrement stock at the batch level.
+- **Hospitality (Hotel)**: Manage rooms, reservations, and public booking states. Integration with finance for invoicing.
+- **Bottle Store**: Handle returnables (garrafas vazias) and inventory specific to beverages.
+- **Fiscal/Financial**: Ensure compliance with local regulations (IVA, Invoicing). All calculations must be precision-safe.
+- **Logistics**: Manage routes, drivers, and delivery statuses.
 
-## 🚀 Speed Checklist
-1. Is it paginated?
-2. Are filters applied at the DB level?
-3. Is history/audit trail recorded?
-4. Is it mobile-responsive?
+## 🚀 Quality Checklist
+1. **Tenant ID**: Is the query filtered by `companyId`?
+2. **Validation**: Is there a Zod schema for this request?
+3. **Audit**: Is this action tracked in the audit trail?
+4. **Performance**: Is the query paginated and indexed?
+5. **UI**: Does it maintain the premium design system and responsiveness?
+6. **I18n**: Are all strings localized in the translation files?

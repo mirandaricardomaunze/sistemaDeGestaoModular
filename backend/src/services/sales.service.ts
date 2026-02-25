@@ -4,27 +4,22 @@ import { Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 import { CreateSaleInput } from '../utils/validation';
 import { ApiError } from '../middleware/error.middleware';
-import { buildPaginationMeta } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export class SalesService {
     /**
      * List sales with pagination and filters
      */
     async list(params: any, companyId: string) {
+        const { page, limit, skip } = getPaginationParams(params);
         const {
             startDate,
             endDate,
             customerId,
             paymentMethod,
-            page = '1',
-            limit = '20',
             sortBy = 'createdAt',
             sortOrder = 'desc'
         } = params;
-
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
 
         const where: any = {
             companyId
@@ -54,14 +49,11 @@ export class SalesService {
                 },
                 orderBy: { [sortBy as string]: sortOrder },
                 skip,
-                take: limitNum
+                take: limit
             })
         ]);
 
-        return {
-            data: sales,
-            pagination: buildPaginationMeta(pageNum, limitNum, total)
-        };
+        return createPaginatedResponse(sales, page, limit, total);
     }
 
     /**

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { HiOutlineMail, HiOutlineLockClosed, HiOutlineKey, HiOutlineArrowLeft, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { HiOutlineMail, HiOutlineLockClosed, HiOutlineKey, HiOutlineArrowLeft, HiOutlineEye, HiOutlineEyeOff, HiOutlineShieldCheck } from 'react-icons/hi';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -84,190 +84,245 @@ export default function ForgotPassword() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-            {/* Background similar to Login.tsx */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary-900 via-primary-800 to-dark-900">
-                <div className="absolute top-0 -left-40 w-96 h-96 bg-primary-600 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-                <div className="absolute top-0 -right-40 w-96 h-96 bg-primary-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
-                <div className="absolute -bottom-40 left-40 w-96 h-96 bg-primary-700 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000" />
-
-                <div className="absolute inset-0 opacity-[0.03]"
-                    style={{
-                        backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
-                        backgroundSize: '50px 50px'
-                    }}
-                />
+        <div className="min-h-screen relative flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50 dark:bg-dark-950 overflow-hidden font-sans">
+            {/* Animated Background Elements — same as Login */}
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary-500/10 dark:bg-primary-500/5 rounded-full blur-3xl animate-blob"></div>
+                <div className="absolute top-1/2 -right-24 w-80 h-80 bg-accent-500/10 dark:bg-accent-500/5 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+                <div className="absolute -bottom-24 left-1/4 w-72 h-72 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+                <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.02] dark:opacity-[0.05]"></div>
             </div>
 
-            <div className="relative z-10 w-full max-w-md px-4 sm:px-0">
-                <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 via-primary-600 to-secondary-500 rounded-3xl blur-xl opacity-40 animate-pulse-slow" />
-
-                <div className="relative backdrop-blur-2xl bg-white/[0.08] border border-white/[0.15] rounded-3xl shadow-2xl p-8 sm:p-10">
-
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <div className="flex justify-center mb-4">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-600 p-[2px]">
-                                <div className="w-full h-full rounded-2xl bg-dark-900/80 backdrop-blur-xl flex items-center justify-center">
-                                    <HiOutlineKey className="w-8 h-8 text-white" />
-                                </div>
-                            </div>
+            <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md px-4">
+                {/* Logo & Header — same as Login */}
+                <div className="text-center group">
+                    <div className="relative mx-auto h-24 w-24 mb-8">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-primary-600 to-accent-600 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition duration-1000 animate-pulse-slow"></div>
+                        <div className="relative h-full w-full rounded-3xl bg-gradient-to-tr from-primary-600 to-primary-500 flex items-center justify-center shadow-2xl border border-white/20">
+                            <HiOutlineKey className="w-12 h-12 text-white animate-float" />
                         </div>
-                        <h2 className="text-2xl font-bold text-white mb-2">Recuperar Senha</h2>
-                        <p className="text-gray-400 text-sm">
-                            {step === 1 && "Informe seu email para receber o código de recuperação."}
-                            {step === 2 && "Insira o código de 6 dígitos enviado para o seu email."}
-                            {step === 3 && "Crie uma nova senha para a sua conta."}
+                    </div>
+
+                    <h2 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white mb-2">
+                        MULTICORE<span className="text-primary-500">.</span>
+                    </h2>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
+                        Modular Management ERP
+                    </p>
+                </div>
+
+                <div className="mt-10 animate-slide-up">
+                    <div className="bg-white/70 dark:bg-dark-900/40 backdrop-blur-xl py-10 px-8 shadow-2xl sm:rounded-3xl border border-white/20 dark:border-dark-800/50 transition-all duration-500">
+
+                        {/* Welcome Text */}
+                        <div className="mb-8">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Recuperar Senha</h3>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                {step === 1 && "Informe seu email para receber o código de recuperação."}
+                                {step === 2 && "Insira o código de 6 dígitos enviado para o seu email."}
+                                {step === 3 && "Crie uma nova senha para a sua conta."}
+                            </p>
+                        </div>
+
+                        {/* Step Indicator */}
+                        <div className="flex items-center justify-center gap-2 mb-8">
+                            {[1, 2, 3].map((s) => (
+                                <div key={s} className="flex items-center gap-2">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${step >= s
+                                            ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-500/25'
+                                            : 'bg-slate-100 dark:bg-dark-800 text-slate-400 dark:text-slate-500'
+                                        }`}>
+                                        {step > s ? '✓' : s}
+                                    </div>
+                                    {s < 3 && (
+                                        <div className={`w-8 h-0.5 rounded-full transition-all duration-500 ${step > s ? 'bg-primary-500' : 'bg-slate-200 dark:bg-dark-700'
+                                            }`} />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Step 1: Email */}
+                        {step === 1 && (
+                            <form onSubmit={emailForm.handleSubmit(handleSendOTP)} className="space-y-6">
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
+                                        Endereço de Email
+                                    </label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <HiOutlineMail className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
+                                        </div>
+                                        <input
+                                            type="email"
+                                            placeholder="seu@email.com"
+                                            className={`block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-dark-800/50 border ${emailForm.formState.errors.email ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
+                                            {...emailForm.register('email')}
+                                        />
+                                    </div>
+                                    {emailForm.formState.errors.email && (
+                                        <p className="text-xs font-medium text-red-500 mt-1 ml-1">{emailForm.formState.errors.email.message}</p>
+                                    )}
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
+                                >
+                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                                    <div className="flex items-center justify-center gap-2">
+                                        {isLoading ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <HiOutlineMail className="w-5 h-5" />
+                                                <span>ENVIAR CÓDIGO</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </button>
+                            </form>
+                        )}
+
+                        {/* Step 2: OTP */}
+                        {step === 2 && (
+                            <form onSubmit={otpForm.handleSubmit(handleVerifyOTP)} className="space-y-6">
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
+                                        Código de Verificação
+                                    </label>
+                                    <div className="relative group">
+                                        <input
+                                            type="text"
+                                            placeholder="000000"
+                                            maxLength={6}
+                                            className={`block w-full text-center tracking-[0.5em] py-3 bg-slate-50 dark:bg-dark-800/50 border ${otpForm.formState.errors.otp ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200 font-mono text-lg`}
+                                            {...otpForm.register('otp')}
+                                        />
+                                    </div>
+                                    {otpForm.formState.errors.otp && (
+                                        <p className="text-xs font-medium text-red-500 mt-1 ml-1 text-center">{otpForm.formState.errors.otp.message}</p>
+                                    )}
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
+                                >
+                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                                    <div className="flex items-center justify-center gap-2">
+                                        {isLoading ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <HiOutlineShieldCheck className="w-5 h-5" />
+                                                <span>VERIFICAR CÓDIGO</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </button>
+
+                                <div className="text-center">
+                                    <button type="button" onClick={() => setStep(1)} className="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 transition-colors">
+                                        Voltar e reenviar código
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* Step 3: New Password */}
+                        {step === 3 && (
+                            <form onSubmit={passwordForm.handleSubmit(handleResetPassword)} className="space-y-6">
+                                {/* Password */}
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
+                                        Nova Senha
+                                    </label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <HiOutlineLockClosed className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
+                                        </div>
+                                        <input
+                                            type={showPassword ? 'text' : 'password'}
+                                            placeholder="••••••••"
+                                            className={`block w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-dark-800/50 border ${passwordForm.formState.errors.password ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
+                                            {...passwordForm.register('password')}
+                                        />
+                                        <div
+                                            className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-primary-500 transition-colors"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                        >
+                                            {showPassword ? <HiOutlineEyeOff className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
+                                        </div>
+                                    </div>
+                                    {passwordForm.formState.errors.password && (
+                                        <p className="text-xs font-medium text-red-500 mt-1 ml-1">{passwordForm.formState.errors.password.message}</p>
+                                    )}
+                                </div>
+
+                                {/* Confirm Password */}
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
+                                        Confirmar Senha
+                                    </label>
+                                    <div className="relative group">
+                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                            <HiOutlineLockClosed className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
+                                        </div>
+                                        <input
+                                            type={showConfirmPassword ? 'text' : 'password'}
+                                            placeholder="••••••••"
+                                            className={`block w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-dark-800/50 border ${passwordForm.formState.errors.confirmPassword ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
+                                            {...passwordForm.register('confirmPassword')}
+                                        />
+                                        <div
+                                            className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-primary-500 transition-colors"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        >
+                                            {showConfirmPassword ? <HiOutlineEyeOff className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
+                                        </div>
+                                    </div>
+                                    {passwordForm.formState.errors.confirmPassword && (
+                                        <p className="text-xs font-medium text-red-500 mt-1 ml-1">{passwordForm.formState.errors.confirmPassword.message}</p>
+                                    )}
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
+                                >
+                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                                    <div className="flex items-center justify-center gap-2">
+                                        {isLoading ? (
+                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <HiOutlineShieldCheck className="w-5 h-5" />
+                                                <span>REDEFINIR SENHA</span>
+                                            </>
+                                        )}
+                                    </div>
+                                </button>
+                            </form>
+                        )}
+
+                        <div className="mt-8 pt-8 border-t border-slate-100 dark:border-dark-800/50">
+                            <Link to="/login" className="flex items-center justify-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-500 dark:text-primary-400 transition-colors">
+                                <HiOutlineArrowLeft className="w-4 h-4" />
+                                <span>Voltar ao login</span>
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-12 text-center">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400 dark:text-dark-600">
+                            &copy; {new Date().getFullYear()} MULTICORE • Intelligent Management Solutions
                         </p>
                     </div>
-
-                    {/* Step 1: Email */}
-                    {step === 1 && (
-                        <form onSubmit={emailForm.handleSubmit(handleSendOTP)} className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-300 ml-1">Email</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <HiOutlineMail className="w-5 h-5 text-gray-500 group-focus-within:text-primary-400 transition-colors" />
-                                    </div>
-                                    <input
-                                        type="email"
-                                        placeholder="seu@email.com"
-                                        className={`w-full pl-12 pr-4 py-3.5 bg-white/[0.05] border ${emailForm.formState.errors.email ? 'border-red-500/50' : 'border-white/[0.1]'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:bg-white/[0.08] transition-all`}
-                                        {...emailForm.register('email')}
-                                    />
-                                </div>
-                                {emailForm.formState.errors.email && (
-                                    <p className="text-red-400 text-xs ml-1">{emailForm.formState.errors.email.message}</p>
-                                )}
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full relative group disabled:opacity-70"
-                            >
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl blur opacity-70 group-hover:opacity-100 transition duration-300" />
-                                <div className="relative flex items-center justify-center gap-2 px-6 py-3.5 bg-primary-600 rounded-xl text-white font-semibold">
-                                    {isLoading ? 'Enviando...' : 'Enviar Código'}
-                                </div>
-                            </button>
-                        </form>
-                    )}
-
-                    {/* Step 2: OTP */}
-                    {step === 2 && (
-                        <form onSubmit={otpForm.handleSubmit(handleVerifyOTP)} className="space-y-6">
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-300 ml-1">Código de Verificação</label>
-                                <div className="relative group">
-                                    <input
-                                        type="text"
-                                        placeholder="000000"
-                                        maxLength={6}
-                                        className={`w-full text-center tracking-[1em] py-3.5 bg-white/[0.05] border ${otpForm.formState.errors.otp ? 'border-red-500/50' : 'border-white/[0.1]'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:bg-white/[0.08] transition-all font-mono text-lg`}
-                                        {...otpForm.register('otp')}
-                                    />
-                                </div>
-                                {otpForm.formState.errors.otp && (
-                                    <p className="text-red-400 text-xs ml-1 text-center">{otpForm.formState.errors.otp.message}</p>
-                                )}
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full relative group disabled:opacity-70"
-                            >
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl blur opacity-70 group-hover:opacity-100 transition duration-300" />
-                                <div className="relative flex items-center justify-center gap-2 px-6 py-3.5 bg-primary-600 rounded-xl text-white font-semibold">
-                                    {isLoading ? 'Verificando...' : 'Verificar Código'}
-                                </div>
-                            </button>
-
-                            <div className="text-center">
-                                <button type="button" onClick={() => setStep(1)} className="text-sm text-gray-400 hover:text-white transition-colors">
-                                    Voltar e reenviar código
-                                </button>
-                            </div>
-                        </form>
-                    )}
-
-                    {/* Step 3: New Password */}
-                    {step === 3 && (
-                        <form onSubmit={passwordForm.handleSubmit(handleResetPassword)} className="space-y-6">
-                            {/* Password */}
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-300 ml-1">Nova Senha</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <HiOutlineLockClosed className="w-5 h-5 text-gray-500 group-focus-within:text-primary-400 transition-colors" />
-                                    </div>
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        placeholder="••••••••"
-                                        className={`w-full pl-12 pr-12 py-3.5 bg-white/[0.05] border ${passwordForm.formState.errors.password ? 'border-red-500/50' : 'border-white/[0.1]'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:bg-white/[0.08] transition-all`}
-                                        {...passwordForm.register('password')}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-primary-400"
-                                    >
-                                        {showPassword ? <HiOutlineEyeOff className="w-5 h-5" /> : <HiOutlineEye className="w-5 h-5" />}
-                                    </button>
-                                </div>
-                                {passwordForm.formState.errors.password && (
-                                    <p className="text-red-400 text-xs ml-1">{passwordForm.formState.errors.password.message}</p>
-                                )}
-                            </div>
-
-                            {/* Confirm Password */}
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-300 ml-1">Confirmar Senha</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                        <HiOutlineLockClosed className="w-5 h-5 text-gray-500 group-focus-within:text-primary-400 transition-colors" />
-                                    </div>
-                                    <input
-                                        type={showConfirmPassword ? 'text' : 'password'}
-                                        placeholder="••••••••"
-                                        className={`w-full pl-12 pr-12 py-3.5 bg-white/[0.05] border ${passwordForm.formState.errors.confirmPassword ? 'border-red-500/50' : 'border-white/[0.1]'} rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-transparent focus:bg-white/[0.08] transition-all`}
-                                        {...passwordForm.register('confirmPassword')}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 hover:text-primary-400"
-                                    >
-                                        {showConfirmPassword ? <HiOutlineEyeOff className="w-5 h-5" /> : <HiOutlineEye className="w-5 h-5" />}
-                                    </button>
-                                </div>
-                                {passwordForm.formState.errors.confirmPassword && (
-                                    <p className="text-red-400 text-xs ml-1">{passwordForm.formState.errors.confirmPassword.message}</p>
-                                )}
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full relative group disabled:opacity-70"
-                            >
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl blur opacity-70 group-hover:opacity-100 transition duration-300" />
-                                <div className="relative flex items-center justify-center gap-2 px-6 py-3.5 bg-primary-600 rounded-xl text-white font-semibold">
-                                    {isLoading ? 'Redefinindo...' : 'Redefinir Senha'}
-                                </div>
-                            </button>
-                        </form>
-                    )}
-
-                    <div className="mt-8 text-center border-t border-white/10 pt-6">
-                        <Link to="/login" className="flex items-center justify-center gap-2 text-gray-400 hover:text-white transition-colors">
-                            <HiOutlineArrowLeft className="w-4 h-4" />
-                            <span>Voltar ao login</span>
-                        </Link>
-                    </div>
-
                 </div>
             </div>
         </div>

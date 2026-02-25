@@ -203,6 +203,7 @@ model Product {
   price               Decimal              @db.Decimal(15, 2)
   costPrice           Decimal              @default(0) @db.Decimal(15, 2)
   currentStock        Int                  @default(0)
+  reservedStock       Int                  @default(0) // Stock reserved for orders
   minStock            Int                  @default(5)
   maxStock            Int?
   unit                String               @default("un")
@@ -480,6 +481,7 @@ model CustomerOrder {
   paymentMethod   String?
   deliveryDate    DateTime?
   notes           String?
+  cancellationDocUrl String?
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
   items           CustomerOrderItem[]

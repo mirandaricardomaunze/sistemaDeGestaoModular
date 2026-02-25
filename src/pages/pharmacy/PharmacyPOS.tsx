@@ -13,6 +13,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Card, Button, Badge, Input, Select, LoadingSpinner } from '../../components/ui';
 import { usePharmacyPartners } from '../../hooks/usePharmacyPartners';
+import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
+import { playScanSound } from '../../utils/audio';
 import { pharmacyAPI } from '../../services/api';
 import { useCustomers } from '../../hooks/useData';
 import toast from 'react-hot-toast';
@@ -117,28 +119,20 @@ export default function PharmacyPOS() {
         }
     };
 
-    // Barcode Scanner Support
-    useEffect(() => {
-        let buffer = '';
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Enter') {
-                if (buffer.length >= 3) {
-                    const found = medications.find(m => m.product.code === buffer);
-                    if (found) {
-                        addToCart(found);
-                        toast.success(`Adicionado: ${found.product.name}`);
-                    }
-                }
-                buffer = '';
-            } else if (e.key.length === 1) {
-                buffer += e.key;
+    // Universal Barcode Scanner Integration
+    useBarcodeScanner({
+        onScan: (barcode) => {
+            const found = medications.find(m => m.product.code === barcode || (m.product as any).barcode === barcode);
+            if (found) {
+                addToCart(found);
+                playScanSound();
+                toast.success(`Adicionado: ${found.product.name}`);
+            } else {
+                toast.error('Produto não encontrado');
             }
-            // Auto-clear buffer after 100ms
-            setTimeout(() => buffer = '', 100);
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [medications, cart]);
+        },
+        enabled: !isLoading
+    });
 
     useEffect(() => {
         fetchMedications();
@@ -273,7 +267,7 @@ export default function PharmacyPOS() {
             setSelectedCustomer(null);
             setManualCustomerName('');
             fetchMedications();
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message || 'Erro ao realizar venda');
         }
     };
@@ -327,26 +321,33 @@ export default function PharmacyPOS() {
                         onChange={(e) => setPosSearch(e.target.value)}
                         leftIcon={<HiOutlineSearch className="w-5 h-5 text-gray-400" />}
                     />
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[600px] overflow-y-auto">
+                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[700px] overflow-y-auto pr-2">
                         {posPagination.paginatedItems.map(med => (
                             <div
                                 key={med.id}
-                                className="p-3 cursor-pointer bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-xl hover:border-primary-500 transition-all"
+                                className="p-5 cursor-pointer bg-white dark:bg-dark-800 border-2 border-gray-200 dark:border-dark-700 rounded-2xl hover:border-primary-500 hover:shadow-xl transition-all flex flex-col min-h-[160px]"
                                 onClick={() => addToCart(med)}
                             >
-                                <p className="font-bold text-sm truncate">{med.product.name}</p>
-                                <p className="text-xs text-gray-500">{med.dosage}</p>
-                                <div className="flex items-center justify-between mt-2">
-                                    <span className="text-primary-600 font-bold text-sm">
-                                        {Number(med.batches[0]?.sellingPrice || med.product.price).toLocaleString()} MT
-                                    </span>
-                                    <Badge variant={med.isLowStock ? 'warning' : 'success'} className="text-xs">
-                                        {med.totalStock} un
-                                    </Badge>
+                                <div className="flex-1">
+                                    <p className="font-black text-lg text-gray-900 dark:text-white truncate mb-1">{med.product.name}</p>
+                                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{med.dosage} • {med.pharmaceuticalForm}</p>
+                                    {med.dci && <p className="text-[10px] text-gray-400 italic truncate mt-1">{med.dci}</p>}
                                 </div>
-                                {med.requiresPrescription && (
-                                    <Badge variant="info" className="text-xs mt-1">Receita</Badge>
-                                )}
+                                <div className="mt-4 flex items-end justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-2xl font-black text-primary-600 dark:text-primary-400">
+                                            {Number(med.batches[0]?.sellingPrice || med.product.price).toLocaleString()} <span className="text-sm font-bold">MT</span>
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <Badge variant={med.isLowStock ? 'warning' : 'success'} className="text-xs px-2 py-0.5 font-bold">
+                                            {med.totalStock} UN
+                                        </Badge>
+                                        {med.requiresPrescription && (
+                                            <Badge variant="info" className="text-[10px] px-2 py-0.5 font-bold uppercase ring-1 ring-blue-500/50">Receita</Badge>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         ))}
                         {filteredMedications.length === 0 && (

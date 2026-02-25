@@ -37,10 +37,7 @@ export default function Home() {
         return <Navigate to="/bottle-store/dashboard" replace />;
     }
 
-    if (hasModule('COMMERCIAL')) {
-        return <Navigate to="/commercial/dashboard" replace />;
-    }
-
-    // Fallback to POS or Generic Dashboard
+    // COMMERCIAL module and fallback both use the main dashboard
+    // which includes the "Desempenho por Módulo" overview
     return <Navigate to="/dashboard" replace />;
 }

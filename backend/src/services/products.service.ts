@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma';
 import { cacheService, CacheKeys } from './cache.service';
 import { logger } from '../utils/logger';
 import { Prisma } from '@prisma/client';
-import { buildPaginationMeta } from '../utils/pagination';
+import { getPaginationParams, buildPaginationMeta, createPaginatedResponse } from '../utils/pagination';
 import { ApiError } from '../middleware/error.middleware';
 
 export class ProductsService {
@@ -10,6 +10,7 @@ export class ProductsService {
      * List products with pagination, search, and filters
      */
     async list(params: any, companyId: string) {
+        const { page, limit, skip } = getPaginationParams(params);
         const {
             search,
             category,
@@ -17,17 +18,11 @@ export class ProductsService {
             minPrice,
             maxPrice,
             supplierId,
-            page = '1',
-            limit = '20',
             sortBy = 'name',
             sortOrder = 'asc',
             originModule = 'inventory',
             warehouseId
         } = params;
-
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
 
         const where: Prisma.ProductWhereInput = {
             isActive: true,
@@ -72,12 +67,12 @@ export class ProductsService {
         }
 
         // Cache Key
-        const cacheKey = CacheKeys.productList(companyId, pageNum, JSON.stringify(where));
+        const cacheKey = CacheKeys.productList(companyId, page, JSON.stringify(where));
 
         // Try cache
         const cached = cacheService.get(cacheKey);
         if (cached) {
-            logger.info(`Products cache hit: page ${pageNum}`);
+            logger.info(`Products cache hit: page ${page}`);
             return cached;
         }
 
@@ -98,14 +93,11 @@ export class ProductsService {
                 },
                 orderBy: { [sortBy as string]: sortOrder },
                 skip,
-                take: limitNum
+                take: limit
             })
         ]);
 
-        const response = {
-            data: products,
-            pagination: buildPaginationMeta(pageNum, limitNum, total)
-        };
+        const response = createPaginatedResponse(products, page, limit, total);
 
         // Set Cache (2 mins)
         cacheService.set(cacheKey, response, 120);
@@ -131,6 +123,28 @@ export class ProductsService {
         });
 
         if (!product) throw ApiError.notFound('Produto não encontrado');
+        return product;
+    }
+
+    /**
+     * Get Product by Barcode
+     */
+    async getByBarcode(barcode: string, companyId: string) {
+        const product = await prisma.product.findFirst({
+            where: {
+                barcode,
+                companyId,
+                isActive: true
+            },
+            include: {
+                supplier: true,
+                warehouseStocks: {
+                    include: { warehouse: true }
+                }
+            }
+        });
+
+        if (!product) throw ApiError.notFound('Produto com este código de barras não encontrado');
         return product;
     }
 

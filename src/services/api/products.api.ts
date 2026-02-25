@@ -25,6 +25,11 @@ export const productsAPI = {
         return response.data;
     },
 
+    getByBarcode: async (barcode: string) => {
+        const response = await api.get(`/products/barcode/${barcode}`);
+        return response.data;
+    },
+
     create: async (data: {
         code: string;
         name: string;

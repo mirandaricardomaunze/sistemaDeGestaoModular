@@ -1,23 +1,18 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
-import { buildPaginationMeta } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export class EmployeesService {
     async list(params: any, companyId: string) {
+        const { page, limit, skip } = getPaginationParams(params);
         const {
             search,
             role,
             department,
             isActive,
-            page = '1',
-            limit = '20',
             sortBy = 'name',
             sortOrder = 'asc'
         } = params;
-
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
-        const skip = (pageNum - 1) * limitNum;
 
         const where: any = { companyId };
 
@@ -49,14 +44,11 @@ export class EmployeesService {
                 },
                 orderBy: { [sortBy as string]: sortOrder },
                 skip,
-                take: limitNum
+                take: limit
             })
         ]);
 
-        return {
-            data: employees,
-            pagination: buildPaginationMeta(pageNum, limitNum, total)
-        };
+        return createPaginatedResponse(employees, page, limit, total);
     }
 
     async getById(id: string, companyId: string) {

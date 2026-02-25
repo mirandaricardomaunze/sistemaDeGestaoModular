@@ -159,7 +159,10 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
         { prefix: '/restaurant', module: 'restaurant' },
     ];
 
-    const restriction = moduleRestrictions.find(r => path.startsWith(r.prefix));
+    // Normalize path: Remove query params and trailing slash (except for just "/")
+    const normalizedPath = path.split('?')[0].replace(/\/$/, '') || '/';
+
+    const restriction = moduleRestrictions.find(r => normalizedPath.startsWith(r.prefix));
     if (restriction && user.activeModules) {
         // Super Admin bypasses module restrictions
         if (user.role === 'super_admin') return true;
@@ -169,7 +172,7 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
     }
 
     // Special restriction for Super Admin page - ONLY super_admin role
-    if (path === '/super-admin' && user.role !== 'super_admin') return false;
+    if (normalizedPath === '/super-admin' && user.role !== 'super_admin') return false;
 
     // After module check, if it's a super_admin or admin, they can see other pages (within active modules)
     if (user.role === 'super_admin' || user.role === 'admin') return true;
@@ -177,6 +180,7 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
     const pathPermissionMap: Record<string, Permission> = {
         '/': 'view_dashboard',
         '/inventory': 'view_inventory',
+        '/stock-movements': 'view_inventory',
         '/categories': 'view_inventory',
         '/pos': 'view_pos',
         '/customers': 'view_customers',
@@ -198,7 +202,7 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
         '/restaurant': 'view_dashboard',
     };
 
-    const permission = pathPermissionMap[path];
+    const permission = pathPermissionMap[normalizedPath];
     if (!permission) return true;
 
     return hasPermission(user, permission);

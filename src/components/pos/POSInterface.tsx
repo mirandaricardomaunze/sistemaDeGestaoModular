@@ -26,7 +26,9 @@ import type { Product, PaymentMethod, Sale, Customer } from '../../types';
 
 import toast from 'react-hot-toast';
 import { calculatePOSDiscounts, recordCampaignUsages, searchCustomersForPOS, applyPromoCode, type AppliedCampaign } from '../../utils/crmIntegration';
+import { playScanSound } from '../../utils/audio';
 import { useProducts, useCustomers, useSales, useAlerts } from '../../hooks/useData';
+import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type { KeyboardShortcut } from '../../hooks/useKeyboardShortcuts';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
@@ -165,6 +167,30 @@ export default function POSInterface() {
     ], [cart, lastSale, checkoutModalOpen, receiptModalOpen, scaleModalOpen, cashDrawerModalOpen, cashDrawerOpen, clearCart, companySettings?.printerType]);
 
     useKeyboardShortcuts(shortcuts);
+
+    const { getProductByBarcode } = useProducts();
+
+    // Universal Barcode Scanner Integration
+    useBarcodeScanner({
+        onScan: async (barcode) => {
+            try {
+                const product = await getProductByBarcode(barcode);
+                if (product && product.currentStock > 0) {
+                    addToCart(product, 1);
+                    playScanSound();
+                    toast.success(`${product.name} adicionado`, {
+                        icon: '📷',
+                        duration: 2000,
+                    });
+                } else if (product) {
+                    toast.error(`${product.name} está sem stock`);
+                }
+            } catch (error) {
+                console.error('Barcode scan error:', error);
+            }
+        },
+        enabled: !checkoutModalOpen && !receiptModalOpen && !scaleModalOpen && !cashDrawerModalOpen
+    });
 
     // Filter products by search
     const filteredProducts = useMemo(() => {
@@ -771,28 +797,30 @@ export default function POSInterface() {
                     {/* Products Grid */}
                     <Card padding="md" className="flex-1 overflow-hidden">
                         <div className="h-full overflow-y-auto scrollbar-thin">
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {filteredProducts.map((product) => (
                                     <button
                                         key={product.id}
                                         onClick={() => handleAddProduct(product)}
-                                        className="p-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 bg-white dark:bg-dark-800 text-left transition-all hover:shadow-lg group overflow-hidden"
+                                        className="p-4 rounded-2xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 bg-white dark:bg-dark-800 text-left transition-all hover:shadow-xl group overflow-hidden flex flex-col min-h-[180px]"
                                     >
-                                        <div className="w-full h-16 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-2 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors flex-shrink-0">
-                                            <span className="text-2xl">📦</span>
+                                        <div className="w-full h-24 rounded-xl bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-3 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors flex-shrink-0">
+                                            <span className="text-3xl">📦</span>
                                         </div>
-                                        <p className="text-xs text-primary-600 dark:text-primary-400 font-mono mb-1 truncate">
-                                            {product.code}
-                                        </p>
-                                        <p className="text-sm font-medium text-gray-900 dark:text-white mb-1 line-clamp-2 break-words min-h-[2.5rem]">
-                                            {product.name}
-                                        </p>
-                                        <div className="flex items-center justify-between gap-1">
-                                            <span className="text-sm font-bold text-primary-600 dark:text-primary-400 truncate">
+                                        <div className="flex-1">
+                                            <p className="text-[10px] text-primary-600 dark:text-primary-400 font-bold uppercase tracking-widest mb-1 truncate">
+                                                {product.code}
+                                            </p>
+                                            <p className="text-base font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 break-words leading-tight">
+                                                {product.name}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-2 mt-auto">
+                                            <span className="text-lg font-black text-primary-600 dark:text-primary-400 truncate">
                                                 {formatCurrency(product.price)}
                                             </span>
-                                            <Badge variant={product.currentStock > 10 ? 'success' : 'warning'} size="sm">
-                                                {product.currentStock}
+                                            <Badge variant={product.currentStock > 10 ? 'success' : 'warning'} size="sm" className="font-bold px-2 py-0.5">
+                                                {product.currentStock} {product.unit || 'UN'}
                                             </Badge>
                                         </div>
                                     </button>
@@ -810,9 +838,9 @@ export default function POSInterface() {
 
                 {/* Right Panel - Cart */}
                 <div className="w-96 flex flex-col min-h-0">
-                    <Card padding="none" className="flex-1 flex flex-col">
+                    <Card padding="none" className="flex-1 flex flex-col overflow-hidden">
                         {/* Cart Header */}
-                        <div className="p-4 border-b border-gray-200 dark:border-dark-700">
+                        <div className="p-4 border-b border-gray-200 dark:border-dark-700 overflow-y-auto max-h-[45%] flex-shrink-0 scrollbar-thin">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                                     Carrinho
@@ -1025,9 +1053,9 @@ export default function POSInterface() {
                         </div>
 
                         {/* Cart Items */}
-                        <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3">
+                        <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3 min-h-[180px]">
                             {cart.length === 0 ? (
-                                <div className="h-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+                                <div className="h-full min-h-[120px] flex items-center justify-center text-gray-400 dark:text-gray-500">
                                     <div className="text-center">
                                         <HiOutlineSearch className="w-12 h-12 mx-auto mb-2 opacity-50" />
                                         <p>Carrinho vazio</p>
