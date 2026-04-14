@@ -96,7 +96,7 @@ export default function OrderStatusTracker({
                                         'w-14 h-14 rounded-full flex items-center justify-center transition-all relative',
                                         isCompleted
                                             ? `${config.bgColor} ${config.color}`
-                                            : 'bg-gray-100 dark:bg-dark-700 text-gray-400',
+                                            : 'bg-white border border-gray-100 text-gray-300',
                                         isCurrent && 'ring-4 ring-offset-2 ring-offset-white dark:ring-offset-dark-800',
                                         isCurrent && config.color.replace('text-', 'ring-')
                                     )}

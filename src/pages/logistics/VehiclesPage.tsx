@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Vehicles Management Page
  * List, create, edit, and delete vehicles
  */
@@ -13,11 +13,14 @@ import {
     HiOutlineMagnifyingGlass,
     HiOutlineArrowPath,
     HiOutlineWrenchScrewdriver,
-    HiOutlineExclamationCircle
+    HiOutlineExclamationCircle,
+    HiOutlineExclamationTriangle
 } from 'react-icons/hi2';
 import { useVehicles, useCreateVehicle, useUpdateVehicle, useDeleteVehicle } from '../../hooks/useLogistics';
 import type { Vehicle } from '../../services/api/logistics.api';
 import { ExportVehiclesButton } from '../../components/common/ExportButton';
+import { PageHeader } from '../../components/ui';
+import { useTranslation } from 'react-i18next';
 
 const vehicleTypes = [
     { value: 'truck', label: 'Camião' },
@@ -28,23 +31,50 @@ const vehicleTypes = [
     { value: 'other', label: 'Outro' }
 ];
 
-const vehicleStatuses = [
-    { value: 'available', label: 'Disponível', color: 'success' },
-    { value: 'in_use', label: 'Em Uso', color: 'primary' },
-    { value: 'maintenance', label: 'Manutenção', color: 'warning' },
-    { value: 'inactive', label: 'Inativo', color: 'danger' }
-];
-
-const getStatusBadge = (status: string) => {
-    const s = vehicleStatuses.find(vs => vs.value === status);
-    return <Badge variant={s?.color as any || 'gray'}>{s?.label || status}</Badge>;
+const getStatusBadge = (status: string, t: any) => {
+    const variants: Record<string, any> = {
+        available: 'success',
+        in_use: 'primary',
+        maintenance: 'warning',
+        inactive: 'danger'
+    };
+    return <Badge variant={variants[status] || 'gray'}>{t(`logistics_module.vehicles.statuses.${status}`)}</Badge>;
 };
 
 const getTypeLabel = (type: string) => {
     return vehicleTypes.find(t => t.value === type)?.label || type;
 };
 
+/**
+ * Returns expiry badge config for a vehicle's insurance.
+ * A null return means no alert is needed.
+ */
+function getInsuranceExpiryAlert(
+    insuranceExpiry: string | undefined,
+    t: any
+): { label: string; className: string } | null {
+    if (!insuranceExpiry) return null;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const daysLeft = Math.floor(
+        (new Date(insuranceExpiry).getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (daysLeft <= 0) {
+        return { label: t('logistics_module.vehicles.insuranceExpiry'), className: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' };
+    }
+    if (daysLeft <= 30) {
+        return { 
+            label: t('logistics_module.vehicles.insuranceDays', { days: daysLeft }), 
+            className: daysLeft <= 14 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' 
+        };
+    }
+    return null;
+}
+
 export default function VehiclesPage() {
+    const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
@@ -53,6 +83,23 @@ export default function VehiclesPage() {
     const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [pageSize, setPageSize] = useState(12);
+
+    const vehicleTypes = [
+        { value: 'truck', label: t('logistics_module.vehicles.types.truck') },
+        { value: 'van', label: t('logistics_module.vehicles.types.van') },
+        { value: 'motorcycle', label: t('logistics_module.vehicles.types.motorcycle') },
+        { value: 'car', label: t('logistics_module.vehicles.types.car') },
+        { value: 'bicycle', label: t('logistics_module.vehicles.types.bicycle') },
+        { value: 'other', label: t('logistics_module.vehicles.types.other') }
+    ];
+
+    const vehicleStatuses = [
+        { value: 'available', label: t('logistics_module.vehicles.statuses.available') },
+        { value: 'in_use', label: t('logistics_module.vehicles.statuses.in_use') },
+        { value: 'maintenance', label: t('logistics_module.vehicles.statuses.maintenance') },
+        { value: 'inactive', label: t('logistics_module.vehicles.statuses.inactive') }
+    ];
+
     const { data, isLoading, refetch } = useVehicles({
         search: search || undefined,
         status: statusFilter || undefined,
@@ -160,22 +207,30 @@ export default function VehiclesPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Veículos</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Gerir frota de veículos para entregas</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()}>
-                        Actualizar
-                    </Button>
-                    <ExportVehiclesButton data={data?.data || []} />
-                    <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => openModal()}>
-                        Novo Veículo
-                    </Button>
-                </div>
-            </div>
+            <PageHeader
+                title={t('logistics_module.vehicles.title')}
+                subtitle={t('logistics_module.vehicles.subtitle')}
+                icon={<HiOutlineTruck />}
+                actions={
+                    <div className="flex gap-2 items-center">
+                        <Button
+                            variant="outline"
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                            onClick={() => refetch()}
+                        >
+                            {t('common.refresh')}
+                        </Button>
+                        <ExportVehiclesButton data={data?.data || []} key="export" />
+                        <Button
+                            variant="primary"
+                            leftIcon={<HiOutlinePlus className="w-5 h-5" />}
+                            onClick={() => openModal()}
+                        >
+                            {t('logistics_module.vehicles.add')}
+                        </Button>
+                    </div>
+                }
+            />
 
             {/* Filters */}
             <Card variant="glass" className="p-4">
@@ -183,24 +238,24 @@ export default function VehiclesPage() {
                     <div className="relative">
                         <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <Input
-                            placeholder="Pesquisar por matrícula, marca..."
+                            placeholder={t('logistics_module.vehicles.searchPlaceholder')}
                             className="pl-10"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                     <Select
-                        options={[{ value: '', label: 'Todos os Estados' }, ...vehicleStatuses.map(s => ({ value: s.value, label: s.label }))]}
+                        options={[{ value: '', label: t('common.all') }, ...vehicleStatuses.map(s => ({ value: s.value, label: s.label }))]}
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                     />
                     <Select
-                        options={[{ value: '', label: 'Todos os Tipos' }, ...vehicleTypes]}
+                        options={[{ value: '', label: t('common.all') }, ...vehicleTypes]}
                         value={typeFilter}
                         onChange={(e) => setTypeFilter(e.target.value)}
                     />
                     <div className="text-right text-sm text-gray-500 dark:text-gray-400 self-center">
-                        {data?.pagination.total || 0} veículo(s) encontrado(s)
+                        {data?.pagination.total || 0} {t('common.results_found')}
                     </div>
                 </div>
             </Card>
@@ -219,13 +274,24 @@ export default function VehiclesPage() {
                                     <p className="text-xs sm:text-sm text-gray-500 truncate">{vehicle.brand} {vehicle.model}</p>
                                 </div>
                             </div>
-                            <div className="flex-shrink-0">{getStatusBadge(vehicle.status)}</div>
+                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                {getStatusBadge(vehicle.status, t)}
+                                {(() => {
+                                    const alert = getInsuranceExpiryAlert(vehicle.insuranceExpiry, t);
+                                    return alert ? (
+                                        <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${alert.className}`}>
+                                            <HiOutlineExclamationTriangle className="w-3 h-3" aria-hidden="true" />
+                                            {alert.label}
+                                        </span>
+                                    ) : null;
+                                })()}
+                            </div>
                         </div>
 
                         <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm mb-3 sm:mb-4">
                             <div className="flex justify-between">
-                                <span className="text-gray-500">Tipo</span>
-                                <span className="font-medium truncate ml-2">{getTypeLabel(vehicle.type)}</span>
+                                <span className="text-gray-500">{t('logistics_module.vehicles.type')}</span>
+                                <span className="font-medium truncate ml-2">{t(`logistics_module.vehicles.types.${vehicle.type}`)}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-gray-500">Km</span>
@@ -233,13 +299,13 @@ export default function VehiclesPage() {
                             </div>
                             {vehicle.capacity && (
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Capacidade</span>
+                                    <span className="text-gray-500">{t('logistics_module.vehicles.capacity')}</span>
                                     <span className="font-medium">{vehicle.capacity} {vehicle.capacityUnit}</span>
                                 </div>
                             )}
                             {vehicle._count?.deliveries !== undefined && (
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Entregas</span>
+                                    <span className="text-gray-500">{t('logistics_module.deliveries.title')}</span>
                                     <span className="font-medium">{vehicle._count.deliveries}</span>
                                 </div>
                             )}
@@ -258,7 +324,7 @@ export default function VehiclesPage() {
 
                         <div className="flex gap-2 pt-4 border-t dark:border-dark-700">
                             <Button variant="outline" size="sm" className="flex-1" onClick={() => openModal(vehicle)}>
-                                <HiOutlinePencil className="w-4 h-4 mr-1" /> Editar
+                                <HiOutlinePencil className="w-4 h-4 mr-1" /> {t('common.edit')}
                             </Button>
                             <Button variant="outline" size="sm" className="text-red-500 border-red-500 hover:bg-red-50" onClick={() => setDeleteConfirm(vehicle.id)}>
                                 <HiOutlineTrash className="w-4 h-4" />
@@ -288,10 +354,10 @@ export default function VehiclesPage() {
             {data?.data.length === 0 && (
                 <Card variant="glass" className="p-12 text-center">
                     <HiOutlineTruck className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhum veículo encontrado</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">Comece adicionando o primeiro veículo da frota.</p>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('logistics_module.vehicles.noVehicles')}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">{t('logistics_module.vehicles.startAdding')}</p>
                     <Button onClick={() => openModal()}>
-                        <HiOutlinePlus className="w-5 h-5 mr-2" /> Adicionar Veículo
+                        <HiOutlinePlus className="w-5 h-5 mr-2" /> {t('logistics_module.vehicles.add')}
                     </Button>
                 </Card>
             )}
@@ -300,20 +366,20 @@ export default function VehiclesPage() {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => { setIsModalOpen(false); resetForm(); }}
-                title={editingVehicle ? 'Editar Veículo' : 'Novo Veículo'}
+                title={editingVehicle ? t('logistics_module.vehicles.edit') : t('logistics_module.vehicles.add')}
                 size="lg"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Matrícula *"
+                            label={`${t('logistics_module.vehicles.plate')} *`}
                             placeholder="AAA-000-BB"
                             value={formData.plate}
                             onChange={(e) => setFormData({ ...formData, plate: e.target.value })}
                             required
                         />
                         <Select
-                            label="Tipo de Veículo *"
+                            label={`${t('logistics_module.vehicles.type')} *`}
                             options={vehicleTypes}
                             value={formData.type}
                             onChange={(e) => setFormData({ ...formData, type: e.target.value })}
@@ -323,21 +389,21 @@ export default function VehiclesPage() {
 
                     <div className="grid grid-cols-3 gap-4">
                         <Input
-                            label="Marca *"
+                            label={`${t('logistics_module.vehicles.brand')} *`}
                             placeholder="Toyota"
                             value={formData.brand}
                             onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                             required
                         />
                         <Input
-                            label="Modelo *"
+                            label={`${t('logistics_module.vehicles.model')} *`}
                             placeholder="Hilux"
                             value={formData.model}
                             onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                             required
                         />
                         <Input
-                            label="Ano"
+                            label={t('logistics_module.vehicles.year')}
                             type="number"
                             placeholder="2024"
                             value={formData.year}
@@ -347,24 +413,24 @@ export default function VehiclesPage() {
 
                     <div className="grid grid-cols-3 gap-4">
                         <Input
-                            label="Capacidade"
+                            label={t('logistics_module.vehicles.capacity')}
                             type="number"
                             placeholder="1000"
                             value={formData.capacity}
                             onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
                         />
                         <Select
-                            label="Unidade"
+                            label={t('logistics_module.vehicles.unit')}
                             options={[
                                 { value: 'kg', label: 'Quilogramas (kg)' },
                                 { value: 'ton', label: 'Toneladas (ton)' },
-                                { value: 'm3', label: 'Metros Cúbicos (mÂ³)' }
+                                { value: 'm3', label: 'Metros Cúbicos (m³)' }
                             ]}
                             value={formData.capacityUnit}
                             onChange={(e) => setFormData({ ...formData, capacityUnit: e.target.value })}
                         />
                         <Input
-                            label="Combustível"
+                            label={t('logistics_module.vehicles.fuelType')}
                             placeholder="Diesel"
                             value={formData.fuelType}
                             onChange={(e) => setFormData({ ...formData, fuelType: e.target.value })}
@@ -373,21 +439,21 @@ export default function VehiclesPage() {
 
                     <div className="grid grid-cols-3 gap-4">
                         <Select
-                            label="Estado *"
+                            label={`${t('logistics_module.vehicles.status')} *`}
                             options={vehicleStatuses.map(s => ({ value: s.value, label: s.label }))}
                             value={formData.status}
                             onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                             required
                         />
                         <Input
-                            label="Quilometragem"
+                            label={t('logistics_module.vehicles.mileage')}
                             type="number"
                             placeholder="0"
                             value={formData.mileage}
                             onChange={(e) => setFormData({ ...formData, mileage: e.target.value })}
                         />
                         <Input
-                            label="Validade do Seguro"
+                            label={t('logistics_module.vehicles.insurance')}
                             type="date"
                             value={formData.insuranceExpiry}
                             onChange={(e) => setFormData({ ...formData, insuranceExpiry: e.target.value })}
@@ -395,7 +461,7 @@ export default function VehiclesPage() {
                     </div>
 
                     <Input
-                        label="Observações"
+                        label={t('logistics_module.vehicles.notes')}
                         placeholder="Notas adicionais sobre o veículo..."
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -403,10 +469,10 @@ export default function VehiclesPage() {
 
                     <div className="flex gap-3 pt-4">
                         <Button variant="outline" className="flex-1" onClick={() => { setIsModalOpen(false); resetForm(); }}>
-                            Cancelar
+                            {t('common.cancel')}
                         </Button>
                         <Button type="submit" className="flex-1" isLoading={createMutation.isLoading || updateMutation.isLoading}>
-                            {editingVehicle ? 'Actualizar' : 'Criar Veículo'}
+                            {editingVehicle ? t('common.save') : t('logistics_module.vehicles.add')}
                         </Button>
                     </div>
                 </form>
@@ -416,20 +482,20 @@ export default function VehiclesPage() {
             <Modal
                 isOpen={!!deleteConfirm}
                 onClose={() => setDeleteConfirm(null)}
-                title="Confirmar Eliminação"
+                title={t('common.confirmDelete')}
                 size="sm"
             >
                 <div className="text-center py-4">
                     <HiOutlineExclamationCircle className="w-16 h-16 mx-auto text-red-500 mb-4" />
                     <p className="text-gray-600 dark:text-gray-300 mb-6">
-                        Tem certeza que deseja eliminar este veículo? Esta acção não pode ser revertida.
+                        {t('messages.confirmDelete')}
                     </p>
                     <div className="flex gap-3">
                         <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>
-                            Cancelar
+                            {t('common.cancel')}
                         </Button>
                         <Button variant="danger" className="flex-1" onClick={() => handleDelete(deleteConfirm!)} isLoading={deleteMutation.isLoading}>
-                            Eliminar
+                            {t('common.delete')}
                         </Button>
                     </div>
                 </div>

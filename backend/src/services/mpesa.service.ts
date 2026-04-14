@@ -26,8 +26,8 @@ export class MpesaService {
     private isConfigured: boolean;
 
     constructor() {
-        const FORCE_SIMULATION = true;
-        this.isConfigured = !FORCE_SIMULATION && !!(MPESA_CONFIG.apiKey && MPESA_CONFIG.publicKey && MPESA_CONFIG.serviceProviderCode);
+        const forceSimulation = process.env.MPESA_FORCE_SIMULATION === 'true';
+        this.isConfigured = !forceSimulation && !!(MPESA_CONFIG.apiKey && MPESA_CONFIG.publicKey && MPESA_CONFIG.serviceProviderCode);
     }
 
     private formatPhone(phone: string): string {
@@ -63,6 +63,48 @@ export class MpesaService {
         const tx = await prisma.mpesaTransaction.findFirst({ where: { id: transactionId, companyId } });
         if (!tx) throw ApiError.notFound('Transação não encontrada');
         return tx;
+    }
+
+    isAvailable(): boolean {
+        return this.isConfigured;
+    }
+
+    async processCallback(callbackData: any) {
+        // Process M-Pesa callback
+        // This is a placeholder - real implementation would validate and update transaction
+        const { transactionId, status, amount } = callbackData;
+        
+        const transaction = await prisma.mpesaTransaction.findFirst({ where: { transactionId } });
+        if (!transaction) throw ApiError.notFound('Transação não encontrada');
+
+        return await prisma.mpesaTransaction.update({
+            where: { id: transaction.id },
+            data: { 
+                status: status === 'success' ? 'completed' : 'failed',
+                completedAt: status === 'success' ? new Date() : null,
+                responsePayload: callbackData
+            }
+        });
+    }
+
+    async getTransactionsByReference(reference: string, companyId: string) {
+        return await prisma.mpesaTransaction.findMany({
+            where: { reference, companyId },
+            orderBy: { createdAt: 'desc' }
+        });
+    }
+
+    async cancelTransaction(transactionId: string, companyId: string) {
+        const transaction = await prisma.mpesaTransaction.findFirst({ 
+            where: { id: transactionId, companyId } 
+        });
+        if (!transaction) throw ApiError.notFound('Transação não encontrada');
+        if (transaction.status !== 'pending') throw ApiError.badRequest('Transação não pode ser cancelada');
+
+        return await prisma.mpesaTransaction.update({
+            where: { id: transactionId },
+            data: { status: 'cancelled' }
+        });
     }
 }
 

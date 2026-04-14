@@ -4,7 +4,13 @@ import {
     HiOutlineLightBulb,
     HiOutlineExclamationCircle,
     HiOutlineCheckCircle,
-    HiOutlineInformationCircle
+    HiOutlineInformationCircle,
+    HiOutlineShoppingCart,
+    HiOutlineHome,
+    HiOutlinePlusCircle,
+    HiOutlineTruck,
+    HiOutlineUsers,
+    HiOutlineCurrencyDollar
 } from 'react-icons/hi';
 import { Card, Badge, Button } from '../ui';
 import { cn } from '../../utils/helpers';
@@ -30,13 +36,22 @@ export function SmartInsightCard({ insight, className }: SmartInsightCardProps) 
         opportunity: 'border-l-4 border-l-amber-500 bg-amber-50/30 dark:bg-amber-900/10',
     };
 
+    const moduleIcons = {
+        commercial: <HiOutlineShoppingCart className="w-3 h-3 text-blue-500" />,
+        hospitality: <HiOutlineHome className="w-3 h-3 text-emerald-500" />,
+        pharmacy: <HiOutlinePlusCircle className="w-3 h-3 text-red-500" />,
+        logistics: <HiOutlineTruck className="w-3 h-3 text-amber-500" />,
+        hr: <HiOutlineUsers className="w-3 h-3 text-purple-500" />,
+        financial: <HiOutlineCurrencyDollar className="w-3 h-3 text-primary-500" />,
+    };
+
     const moduleLabels = {
-        commercial: '🛍️ Comercial',
-        hospitality: '🏨 Hotelaria',
-        pharmacy: '💊 Farmácia',
-        logistics: '🚚 Logística',
-        hr: '👥 RH',
-        financial: '💰 Financeiro',
+        commercial: 'Comercial',
+        hospitality: 'Hotelaria',
+        pharmacy: 'Farmácia',
+        logistics: 'Logística',
+        hr: 'RH',
+        financial: 'Financeiro',
     };
 
     return (
@@ -47,7 +62,8 @@ export function SmartInsightCard({ insight, className }: SmartInsightCardProps) 
                 </div>
                 <div className="flex-1">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+                            {moduleIcons[insight.module]}
                             {moduleLabels[insight.module]}
                         </span>
                         {insight.priority >= 9 && (

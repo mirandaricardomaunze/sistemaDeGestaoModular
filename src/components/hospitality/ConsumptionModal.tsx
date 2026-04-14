@@ -1,17 +1,31 @@
-﻿import { Modal, Input, Select, Button } from '../ui';
+import { useState, useEffect } from 'react';
+import { Modal, Input, Select, Button } from '../ui';
 import { HiOutlinePlus, HiOutlineShoppingCart } from 'react-icons/hi';
 import { useProducts } from '../../hooks/useData';
 
 interface ConsumptionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAdd: (e: React.FormEvent) => void;
-    data: any;
-    setData: (data: any) => void;
+    onConfirm: (data: { productId: string; quantity: number }) => void;
 }
 
-export default function ConsumptionModal({ isOpen, onClose, onAdd, data, setData }: ConsumptionModalProps) {
+export default function ConsumptionModal({ isOpen, onClose, onConfirm }: ConsumptionModalProps) {
     const { products } = useProducts();
+    const [productId, setProductId] = useState('');
+    const [quantity, setQuantity] = useState(1);
+
+    useEffect(() => {
+        if (!isOpen) {
+            setProductId('');
+            setQuantity(1);
+        }
+    }, [isOpen]);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!productId) return;
+        onConfirm({ productId, quantity });
+    };
 
     return (
         <Modal
@@ -20,7 +34,7 @@ export default function ConsumptionModal({ isOpen, onClose, onAdd, data, setData
             title="Registrar Consumo / Serviço"
             size="md"
         >
-            <form onSubmit={onAdd} className="space-y-4 pt-2">
+            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
                 <div className="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl flex items-center gap-3 mb-2">
                     <HiOutlineShoppingCart className="w-6 h-6 text-primary-600" />
                     <p className="text-sm text-primary-700 dark:text-primary-400 font-medium">
@@ -31,8 +45,8 @@ export default function ConsumptionModal({ isOpen, onClose, onAdd, data, setData
                 <Select
                     label="Produto ou Serviço"
                     required
-                    value={data.productId}
-                    onChange={(e) => setData({ ...data, productId: e.target.value })}
+                    value={productId}
+                    onChange={(e) => setProductId(e.target.value)}
                     options={[
                         { value: '', label: 'Seleccione um produto...' },
                         ...(products?.map((p: any) => ({
@@ -47,8 +61,8 @@ export default function ConsumptionModal({ isOpen, onClose, onAdd, data, setData
                     required
                     type="number"
                     min="1"
-                    value={data.quantity}
-                    onChange={(e) => setData({ ...data, quantity: parseInt(e.target.value) })}
+                    value={quantity}
+                    onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
                     placeholder="1"
                 />
 

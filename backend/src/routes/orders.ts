@@ -2,9 +2,11 @@
 import { authenticate, AuthRequest } from '../middleware/auth';
 import {
     createOrderSchema,
+    updateOrderSchema,
     updateOrderStatusSchema
 } from '../validation';
 import { ordersService } from '../services/orders.service';
+import { invoicesService } from '../services/invoices.service';
 import { ApiError } from '../middleware/error.middleware';
 
 const router = Router();
@@ -41,7 +43,8 @@ router.patch('/:id/status', authenticate, async (req: AuthRequest, res) => {
 
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
-    const order = await ordersService.update(req.params.id, req.body, req.companyId);
+    const validatedData = updateOrderSchema.parse(req.body);
+    const order = await ordersService.update(req.params.id, validatedData, req.companyId);
     res.json(order);
 });
 
@@ -49,6 +52,19 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     await ordersService.delete(req.params.id, req.companyId);
     res.json({ message: 'Encomenda eliminada com sucesso' });
+});
+
+router.post('/:id/print', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const order = await ordersService.incrementPrintCount(req.params.id, req.companyId);
+    res.json(order);
+});
+
+// Convert order to invoice
+router.post('/:id/invoice', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const invoice = await invoicesService.convertOrderToInvoice(req.params.id, req.companyId, req.userName);
+    res.status(201).json(invoice);
 });
 
 export default router;

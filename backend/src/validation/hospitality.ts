@@ -122,6 +122,25 @@ export const createRoomChargeSchema = z.object({
 });
 
 // ============================================================================
+// Check-in Schema
+// ============================================================================
+
+export const checkInSchema = z.object({
+    roomId: z.string().uuid('ID do quarto inválido'),
+    guestName: z.string().min(2, 'Nome do hóspede obrigatório').max(200, 'Nome muito longo'),
+    guestEmail: z.string().email('Email inválido').optional().nullable(),
+    guestPhone: z.string().max(50, 'Telefone muito longo').optional().nullable(),
+    guestDocumentType: z.enum(['bi', 'passport', 'dire', 'other']).optional().default('bi'),
+    guestDocumentNumber: z.string().max(50, 'Número do documento muito longo').optional().nullable(),
+    checkIn: z.string().datetime('Data de check-in inválida'),
+    checkOut: z.string().datetime('Data de check-out inválida').optional().nullable(),
+    guestCount: z.number().int().positive('Número de hóspedes deve ser maior que zero').optional().default(1),
+    mealPlan: z.enum(['none', 'breakfast', 'half_board', 'full_board']).optional().default('none'),
+    totalPrice: z.number().positive('Preço total deve ser maior que zero').optional().nullable(),
+    notes: z.string().max(1000, 'Notas muito longas').optional().nullable()
+});
+
+// ============================================================================
 // Type Exports
 // ============================================================================
 

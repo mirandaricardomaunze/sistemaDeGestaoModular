@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,15 +11,15 @@ import type { Employee, EmployeeRole, AcademicQualification } from '../../types'
 
 import toast from 'react-hot-toast';
 
-// Qualification Schema
+// Esquema para Qualificações Acadêmicas
 const qualificationSchema = z.object({
-    id: z.string(),
+    id: z.string().optional(),
     level: z.string().min(1, 'Nível é obrigatório'),
-    courseName: z.string().min(1, 'Nome do curso é obrigatório'),
+    courseName: z.string().min(1, 'Curso é obrigatório'),
     institution: z.string().min(1, 'Instituição é obrigatória'),
-    startYear: z.coerce.number().min(1950, 'Ano inválido').max(new Date().getFullYear(), 'Ano inválido'),
-    endYear: z.coerce.number().optional(),
-    isCompleted: z.boolean(),
+    startYear: z.coerce.number().min(1900, 'Ano inválido'),
+    endYear: z.coerce.number().optional().or(z.literal('')),
+    isCompleted: z.boolean().default(false),
     certificateNumber: z.string().optional(),
 });
 
@@ -28,17 +28,17 @@ const employeeSchema = z.object({
     code: z.string().min(1, 'Código é obrigatório'),
     name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
     email: z.string().email('Email inválido'),
-    phone: z.string().min(10, 'Telefone inválido'),
+    phone: z.string().min(9, 'Telefone inválido'),
     role: z.string().min(1, 'Cargo é obrigatório'),
     department: z.string().min(1, 'Departamento é obrigatório'),
     hireDate: z.string().min(1, 'Data de admissão é obrigatória'),
     salary: z.coerce.number().min(0, 'Salário não pode ser negativo'),
     address: z.string().optional(),
-    documentNumber: z.string().optional(),
+    documentNumber: z.string().optional(), // BI
     emergencyContact: z.string().optional(),
     // Contract
-    socialSecurityNumber: z.string().optional(),
-    nuit: z.string().optional(),
+    socialSecurityNumber: z.string().length(9, 'INSS deve ter 9 dígitos').regex(/^\d+$/, 'Apenas números').optional().or(z.literal('')),
+    nuit: z.string().length(9, 'NUIT deve ter 9 dígitos').regex(/^\d+$/, 'Apenas números').optional().or(z.literal('')),
     subsidyTransport: z.coerce.number().optional(),
     subsidyFood: z.coerce.number().optional(),
     // Bank
@@ -96,7 +96,6 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
             address: '',
             documentNumber: '',
             emergencyContact: '',
-            // New Fields Defaults
             socialSecurityNumber: '',
             nuit: '',
             subsidyTransport: 0,
@@ -129,7 +128,6 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                 documentNumber: employee.documentNumber || '',
                 emergencyContact: employee.emergencyContact || '',
                 qualifications: employee.qualifications || [],
-                // Map new fields
                 socialSecurityNumber: employee.socialSecurityNumber || '',
                 nuit: employee.nuit || '',
                 subsidyTransport: employee.subsidyTransport || 0,
@@ -182,28 +180,34 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
             certificateNumber: q.certificateNumber || undefined,
         })) as AcademicQualification[] | undefined;
 
+        const bankInfo = {
+            bankName: data.bankName || '',
+            accountNumber: data.accountNumber || '',
+            nib: data.nib || '',
+        };
+
         if (isEditing && employee) {
             updateEmployee(employee.id, {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
-                role: data.role,
+                role: data.role as EmployeeRole,
                 department: data.department,
                 hireDate: data.hireDate,
                 address: data.address || undefined,
                 documentNumber: data.documentNumber || undefined,
-                socialSecurityNumber: data.socialSecurityNumber,
-                nuit: data.nuit,
+                socialSecurityNumber: data.socialSecurityNumber || undefined,
+                nuit: data.nuit || undefined,
                 subsidyTransport: data.subsidyTransport,
                 subsidyFood: data.subsidyFood,
                 baseSalary: data.salary,
-                bankName: data.bankName || undefined,
-                bankAccountNumber: data.accountNumber || undefined,
-                bankNib: data.nib || undefined,
+                salary: data.salary, // Maintain both for compatibility
+                bankInfo,
                 birthDate: data.birthDate || undefined,
-                contractType: data.contractType || 'indefinite',
+                contractType: data.contractType as any || 'indefinite',
                 contractExpiry: data.contractType === 'fixed_term' ? data.contractExpiry : undefined,
-            } as Partial<Employee>);
+                qualifications,
+            });
             toast.success('Funcionário atualizado com sucesso!');
         } else {
             const newEmployee: Employee = {
@@ -222,16 +226,12 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
                 qualifications,
                 isActive: true,
                 createdAt: new Date().toISOString(),
-                socialSecurityNumber: data.socialSecurityNumber,
-                nuit: data.nuit,
+                socialSecurityNumber: data.socialSecurityNumber || undefined,
+                nuit: data.nuit || undefined,
                 subsidyTransport: data.subsidyTransport,
                 subsidyFood: data.subsidyFood,
                 baseSalary: data.salary,
-                bankInfo: {
-                    bankName: data.bankName || '',
-                    accountNumber: data.accountNumber || '',
-                    nib: data.nib || '',
-                },
+                bankInfo,
                 birthDate: data.birthDate || undefined,
                 contractType: (data.contractType || 'indefinite') as any,
                 contractExpiry: data.contractType === 'fixed_term' ? data.contractExpiry : undefined,
@@ -241,6 +241,7 @@ export default function EmployeeForm({ isOpen, onClose, employee }: EmployeeForm
         }
         onClose();
     };
+
 
     const handleClose = () => {
         reset();

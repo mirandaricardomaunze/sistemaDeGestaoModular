@@ -24,9 +24,12 @@ model User {
   companyId String?
   employees Employee[]
   sales     Sale[]
-  userRoles UserModuleRole[]
-  auditLogs AuditLog[]
-  company   Company?         @relation(fields: [companyId], references: [id])
+  userRoles      UserModuleRole[]
+  auditLogs      AuditLog[]
+  openedSessions CashSession[]    @relation("OpenedSessions")
+  closedSessions CashSession[]    @relation("ClosedSessions")
+  cashMovements  CashMovement[]
+  company        Company?         @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@map("users")
@@ -95,9 +98,22 @@ model Company {
   parcels                 Parcel[]
 
   // Bottle Store Module
-  bottleReturns           BottleReturn[]
-  cashSessions            CashSession[]
-  creditPayments          CreditPayment[]
+  bottleReturns  BottleReturn[]
+  cashSessions   CashSession[]
+  creditPayments CreditPayment[]
+
+  // Restaurant Module
+  restaurantTables RestaurantTable[]
+
+  // IVA & Batches
+  ivaRates          IvaRate[]
+  productBatches    ProductBatch[]
+
+  // Pharmacy professional models
+  drugInteractions  DrugInteraction[]
+  narcoticRegister  NarcoticRegister[]
+  batchRecalls      BatchRecall[]
+  partnerInvoices   PartnerInvoice[]
 
   @@map("companies")
 }
@@ -199,17 +215,17 @@ model Product {
   code                String
   name                String
   description         String?
-  category            ProductCategory      @default(other)
+  category            String               @default("other")
+  categoryId          String?
   price               Decimal              @db.Decimal(15, 2)
   costPrice           Decimal              @default(0) @db.Decimal(15, 2)
   currentStock        Int                  @default(0)
-  reservedStock       Int                  @default(0) // Stock reserved for orders
+  reservedStock       Int                  @default(0)
   minStock            Int                  @default(5)
   maxStock            Int?
   unit                String               @default("un")
   barcode             String?
-  expiryDate          DateTime?
-  batchNumber         String?
+  sku                 String?
   location            String?
   status              StockStatus          @default(in_stock)
   imageUrl            String?
@@ -222,12 +238,16 @@ model Product {
   packSize            Int                  @default(1)
   returnPrice         Decimal              @default(0) @db.Decimal(15, 2)
   companyId           String?
+  ivaRateId           String?              @map("iva_rate_id")
+  taxRate             Decimal?             @db.Decimal(5, 2) @map("tax_rate")
   bookingConsumptions BookingConsumption[]
   creditNoteItems     CreditNoteItem[]
   invoiceItems        InvoiceItem[]
   medication          Medication?
+  categoryModel       Category?            @relation(fields: [categoryId], references: [id])
   company             Company?             @relation(fields: [companyId], references: [id])
   supplier            Supplier?            @relation(fields: [supplierId], references: [id])
+  ivaRate             IvaRate?             @relation(fields: [ivaRateId], references: [id], onDelete: SetNull)
   purchaseOrderItems  PurchaseOrderItem[]
   saleItems           SaleItem[]
   stockMovements      StockMovement[]
@@ -235,11 +255,33 @@ model Product {
   warehouseStocks     WarehouseStock[]
   deliveryItems       DeliveryItem[]
   bottleReturns       BottleReturn[]
+  batches             ProductBatch[]
+  priceTiers          PriceTier[]
 
   @@unique([companyId, code])
   @@unique([companyId, barcode])
+  @@unique([companyId, sku])
   @@index([originModule])
+  @@index([ivaRateId])
   @@map("products")
+}
+
+// ============================================================================
+// PRICE TIERS — desconto por volume (preço escalonado por quantidade)
+// ============================================================================
+model PriceTier {
+  id        String   @id @default(uuid())
+  productId String
+  companyId String
+  minQty    Int      // quantidade mínima para activar este nível
+  price     Decimal  @db.Decimal(15, 2) // preço unitário neste nível
+  label     String?  // ex: "Dúzia", "Pack 10", etc.
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([companyId])
+  @@map("price_tiers")
 }
 
 model Category {
@@ -257,6 +299,7 @@ model Category {
   company     Company?   @relation(fields: [companyId], references: [id])
   parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children    Category[] @relation("CategoryTree")
+  products    Product[]
 
   @@unique([companyId, code])
   @@map("categories")
@@ -277,6 +320,7 @@ model Warehouse {
   transfersTo    StockTransfer[]  @relation("TargetWarehouse")
   stocks         WarehouseStock[]
   parcels        Parcel[]
+  productBatches ProductBatch[]
   companyId      String?
   company        Company?         @relation(fields: [companyId], references: [id])
 
@@ -351,6 +395,12 @@ model Customer {
   updatedAt           DateTime             @updatedAt
   loyaltyPoints       Int                  @default(0)
   loyaltyTier         String?              @default("Bronze")
+  // Pharmacy patient profile fields
+  bloodType           String?
+  allergies           String[]             @default([])
+  chronicConditions   String[]             @default([])
+  emergencyContact    String?
+  patientNotes        String?
   creditNotes         CreditNote[]
   history             CustomerHistory[]
   invoices            Invoice[]
@@ -360,6 +410,7 @@ model Customer {
   sales               Sale[]
   bottleReturns       BottleReturn[]
   creditPayments      CreditPayment[]
+  orders              CustomerOrder[]
   companyId           String?
   company             Company?             @relation(fields: [companyId], references: [id])
 
@@ -404,6 +455,7 @@ model Supplier {
   company        Company?        @relation(fields: [companyId], references: [id])
   products       Product[]
   purchaseOrders PurchaseOrder[]
+  productBatches ProductBatch[]
 
   @@map("suppliers")
 }
@@ -469,28 +521,32 @@ model PurchaseOrderItem {
 }
 
 model CustomerOrder {
-  id              String                  @id @default(uuid())
-  orderNumber     String
-  customerName    String
-  customerPhone   String
-  customerEmail   String?
-  customerAddress String?
-  total           Decimal                 @db.Decimal(15, 2)
-  status          OrderStatus             @default(created)
-  priority        OrderPriority           @default(normal)
-  paymentMethod   String?
-  deliveryDate    DateTime?
-  notes           String?
+  id                 String                  @id @default(uuid())
+  orderNumber        String
+  customerName       String
+  customerPhone      String
+  customerEmail      String?
+  customerAddress    String?
+  total              Decimal                 @db.Decimal(15, 2)
+  status             OrderStatus             @default(created)
+  priority           OrderPriority           @default(normal)
+  paymentMethod      String?
+  deliveryDate       DateTime?
+  notes              String?
   cancellationDocUrl String?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-  items           CustomerOrderItem[]
-  transitions     OrderStatusTransition[]
-  companyId       String?
-  company         Company?                @relation(fields: [companyId], references: [id])
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  printCount         Int                     @default(0)
+  customerId         String?
+  customer           Customer?               @relation(fields: [customerId], references: [id])
+  items              CustomerOrderItem[]
+  transitions        OrderStatusTransition[]
+  companyId          String?
+  company            Company?                @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, orderNumber])
   @@index([companyId])
+  @@index([customerId])
   @@map("customer_orders")
 }
 
@@ -520,58 +576,91 @@ model OrderStatusTransition {
 }
 
 model Sale {
-  id            String        @id @default(uuid())
-  receiptNumber String
-  customerId    String?
-  userId        String
-  subtotal      Decimal       @db.Decimal(15, 2)
-  discount      Decimal       @default(0) @db.Decimal(15, 2)
-  tax           Decimal       @default(0) @db.Decimal(15, 2)
-  total         Decimal       @db.Decimal(15, 2)
-  paymentMethod PaymentMethod @default(cash)
-  amountPaid    Decimal       @db.Decimal(15, 2)
-  change        Decimal       @default(0) @db.Decimal(15, 2)
-  isCredit      Boolean       @default(false)
-  paidAmount    Decimal       @default(0) @db.Decimal(15, 2)
-  dueDate       DateTime?
-  paymentRef    String?       // Referência M-Pesa/E-Mola
-  notes         String?
-  createdAt     DateTime      @default(now())
-  fiscalNumber  Int?
-  hashCode      String?
-  series        String?       @default("A")
-  items         SaleItem[]
-  bottleReturns BottleReturn[]
+  id             String          @id @default(uuid())
+  receiptNumber  String
+  customerId     String?
+  userId         String
+  subtotal       Decimal         @db.Decimal(15, 2)
+  discount       Decimal         @default(0) @db.Decimal(15, 2)
+  tax            Decimal         @default(0) @db.Decimal(15, 2)
+  total          Decimal         @db.Decimal(15, 2)
+  paymentMethod  PaymentMethod   @default(cash)
+  amountPaid     Decimal         @db.Decimal(15, 2)
+  change         Decimal         @default(0) @db.Decimal(15, 2)
+  isCredit       Boolean         @default(false)
+  paidAmount     Decimal         @default(0) @db.Decimal(15, 2)
+  dueDate        DateTime?
+  paymentRef     String? // Referência M-Pesa/E-Mola
+  notes          String?
+  createdAt      DateTime        @default(now())
+  fiscalNumber   Int?
+  hashCode       String?
+  series         String?         @default("A")
+  originModule   String?         @map("origin_module")
+  tableId        String?
+  sessionId      String?         @map("session_id")
+  items          SaleItem[]
+  bottleReturns  BottleReturn[]
   creditPayments CreditPayment[]
-  customer      Customer?     @relation(fields: [customerId], references: [id])
-  user          User          @relation(fields: [userId], references: [id])
-  companyId     String?
-  company       Company?      @relation(fields: [companyId], references: [id])
+  customer       Customer?       @relation(fields: [customerId], references: [id])
+  user           User            @relation(fields: [userId], references: [id])
+  table          RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  session        CashSession?    @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  companyId      String?
+  company        Company?        @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, receiptNumber])
   @@index([companyId])
   @@index([isCredit])
+  @@index([tableId])
+  @@index([sessionId])
   @@map("sales")
 }
 
-model SaleItem {
-  id        String  @id @default(uuid())
-  saleId    String
-  productId String
-  quantity  Int
-  unitPrice Decimal @db.Decimal(15, 2)
-  discount  Decimal @default(0) @db.Decimal(15, 2)
-  total     Decimal @db.Decimal(15, 2)
-  product   Product @relation(fields: [productId], references: [id])
-  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+model RestaurantTable {
+  id        String   @id @default(uuid())
+  number    Int
+  name      String?
+  capacity  Int      @default(4)
+  status    String   @default("available") // available | occupied | reserved | maintenance
+  section   String?
+  notes     String?
+  companyId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id])
+  sales     Sale[]
 
+  @@unique([companyId, number])
+  @@index([companyId])
+  @@index([status])
+  @@map("restaurant_tables")
+}
+
+model SaleItem {
+  id          String        @id @default(uuid())
+  saleId      String
+  productId   String?
+  productName String?
+  quantity    Int
+  unitPrice   Decimal       @db.Decimal(15, 2)
+  discount    Decimal       @default(0) @db.Decimal(15, 2)
+  total       Decimal       @db.Decimal(15, 2)
+  batchId     String?       @map("batch_id")
+  ivaAmount   Decimal       @default(0) @db.Decimal(15, 2) @map("iva_amount")
+  ivaRate     Decimal       @default(0) @db.Decimal(5, 2) @map("iva_rate")
+  product     Product?      @relation(fields: [productId], references: [id])
+  sale        Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  batch       ProductBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([batchId])
   @@map("sale_items")
 }
 
 model Invoice {
   id               String           @id @default(uuid())
   invoiceNumber    String
-  orderId          String?
+  orderId          String?          @unique
   orderNumber      String?
   customerId       String?
   customerName     String
@@ -593,6 +682,7 @@ model Invoice {
   terms            String?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
+  printCount       Int              @default(0)
   creditNotes      CreditNote[]
   items            InvoiceItem[]
   payments         InvoicePayment[]
@@ -605,16 +695,20 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   invoiceId   String
   productId   String?
   description String
   quantity    Int
-  unitPrice   Decimal  @db.Decimal(15, 2)
-  discount    Decimal  @default(0) @db.Decimal(15, 2)
-  total       Decimal  @db.Decimal(15, 2)
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  product     Product? @relation(fields: [productId], references: [id])
+  unitPrice   Decimal   @db.Decimal(15, 2)
+  discount    Decimal   @default(0) @db.Decimal(15, 2)
+  total       Decimal   @db.Decimal(15, 2)
+  ivaRateId   String?   @map("iva_rate_id")
+  ivaAmount   Decimal   @default(0) @db.Decimal(15, 2) @map("iva_amount")
+  ivaRate     Decimal   @default(0) @db.Decimal(5, 2) @map("iva_rate")
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product     Product?  @relation(fields: [productId], references: [id])
+  ivaRateObj  IvaRate?  @relation(fields: [ivaRateId], references: [id], onDelete: SetNull)
 
   @@map("invoice_items")
 }
@@ -803,10 +897,10 @@ model Transaction {
   module    String? // hospitality, pharmacy, retail, etc.
 
   // Logistics integration
-  parcelId      String?
-  parcel        Parcel?  @relation(fields: [parcelId], references: [id])
-  deliveryId    String?
-  delivery      Delivery? @relation(fields: [deliveryId], references: [id])
+  parcelId   String?
+  parcel     Parcel?   @relation(fields: [parcelId], references: [id])
+  deliveryId String?
+  delivery   Delivery? @relation(fields: [deliveryId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -867,8 +961,9 @@ model CompanySettings {
   printerType       String  @default("thermal") // "thermal" | "a4"
   thermalPaperWidth String  @default("80mm") // "80mm" | "58mm"
   autoPrintReceipt  Boolean @default(true)
+  receiptHeader     String?
+  receiptFooter     String?
   bankAccounts      Json? // List of bank accounts for documents
-
 
   // Multi-tenancy
   companyId String?  @unique
@@ -1060,6 +1155,67 @@ model TaxConfig {
   @@map("tax_configs")
 }
 
+// ============================================================================
+// IVA RATES — dedicated table for VAT management
+// ============================================================================
+model IvaRate {
+  id                    String        @id @default(uuid())
+  code                  String        // e.g. "NORMAL", "REDUZIDA", "ISENTO", "ZERO"
+  name                  String        // e.g. "Taxa Normal (16%)"
+  description           String?
+  rate                  Decimal       @db.Decimal(5, 2)   // percentage
+  isDefault             Boolean       @default(false) @map("is_default")
+  applicableCategories  String[]      @default([]) @map("applicable_categories")
+  isActive              Boolean       @default(true) @map("is_active")
+  effectiveFrom         DateTime      @default(now()) @map("effective_from")
+  effectiveTo           DateTime?     @map("effective_to")
+  companyId             String
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  company               Company       @relation(fields: [companyId], references: [id])
+  products              Product[]
+  invoiceItems          InvoiceItem[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+  @@map("iva_rates")
+}
+
+// ============================================================================
+// PRODUCT BATCHES — lot/batch tracking with expiry dates (Validade)
+// ============================================================================
+model ProductBatch {
+  id              String    @id @default(uuid())
+  batchNumber     String    @map("batch_number")
+  productId       String
+  companyId       String
+  supplierId      String?
+  warehouseId     String?
+  initialQuantity Int       @default(0) @map("initial_quantity")
+  quantity        Int       @default(0)                        // remaining quantity
+  costPrice       Decimal   @default(0) @db.Decimal(15, 2) @map("cost_price")
+  manufactureDate DateTime? @map("manufacture_date")
+  receivedDate    DateTime  @default(now()) @map("received_date")
+  expiryDate      DateTime? @map("expiry_date")
+  status          String    @default("active")                 // active | expiring_soon | expired | depleted | quarantine
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  product         Product   @relation(fields: [productId], references: [id])
+  company         Company   @relation(fields: [companyId], references: [id])
+  supplier        Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  warehouse       Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  saleItems       SaleItem[]
+
+  @@unique([companyId, batchNumber])
+  @@index([productId])
+  @@index([companyId])
+  @@index([status])
+  @@index([expiryDate])
+  @@map("product_batches")
+}
+
 model IRPSBracket {
   id             String   @id @default(uuid())
   minIncome      Decimal  @db.Decimal(15, 2)
@@ -1173,6 +1329,7 @@ model Room {
 
   @@unique([number, companyId])
   @@index([companyId])
+  @@index([companyId, status])
   @@map("rooms")
 }
 
@@ -1202,6 +1359,9 @@ model Booking {
   transactions        Transaction[]
 
   @@index([companyId])
+  @@index([companyId, checkIn])
+  @@index([companyId, status, expectedCheckout])
+  @@index([companyId, checkIn, status])
   @@map("bookings")
 }
 
@@ -1218,6 +1378,7 @@ model BookingConsumption {
   product   Product  @relation(fields: [productId], references: [id])
 
   @@index([companyId])
+  @@index([bookingId])
   @@map("booking_consumptions")
 }
 
@@ -1258,12 +1419,19 @@ model Medication {
   sideEffects          String?
   activeIngredient     String?
   concentration        String?
+  interactions         String?           // known drug interactions (text)
+  therapeuticCategory  String?
+  reorderPoint         Int               @default(10)
+  reorderQuantity      Int               @default(50)
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   companyId            String?
   company              Company?          @relation(fields: [companyId], references: [id])
   batches              MedicationBatch[]
   product              Product           @relation(fields: [productId], references: [id])
+  drugInteractionsA    DrugInteraction[] @relation("DrugA")
+  drugInteractionsB    DrugInteraction[] @relation("DrugB")
+  recallItems          BatchRecall[]
 
   @@index([companyId])
   @@map("medications")
@@ -1296,28 +1464,31 @@ model MedicationBatch {
 }
 
 model PharmacySale {
-  id             String             @id @default(uuid())
-  saleNumber     String
-  customerId     String?
-  customerName   String?
-  prescriptionId String?
-  subtotal       Decimal            @db.Decimal(15, 2)
-  discount       Decimal            @default(0) @db.Decimal(15, 2)
-  total          Decimal            @db.Decimal(15, 2)
-  paymentMethod  String             @default("cash")
-  paymentDetails Json?
-  status         PharmacySaleStatus @default(completed)
-  soldBy         String
-  notes          String?
-  createdAt      DateTime           @default(now())
-  updatedAt      DateTime           @updatedAt
-  companyId      String?
-  partnerId      String?
-  company        Company?           @relation(fields: [companyId], references: [id])
-  items          PharmacySaleItem[]
-  customer       Customer?          @relation(fields: [customerId], references: [id])
-  partner        PharmacyPartner?   @relation(fields: [partnerId], references: [id])
-  prescription   Prescription?      @relation(fields: [prescriptionId], references: [id])
+  id              String             @id @default(uuid())
+  saleNumber      String
+  customerId      String?
+  customerName    String?
+  prescriptionId  String?
+  subtotal        Decimal            @db.Decimal(15, 2)
+  discount        Decimal            @default(0) @db.Decimal(15, 2)
+  insuranceAmount Decimal            @default(0) @db.Decimal(15, 2)
+  total           Decimal            @db.Decimal(15, 2)
+  paymentMethod   String             @default("cash")
+  paymentDetails  Json?
+  status          PharmacySaleStatus @default(completed)
+  soldBy          String
+  verifiedBy      String?            // pharmacist who verified the sale
+  notes           String?
+  labelPrinted    Boolean            @default(false)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  companyId       String?
+  partnerId       String?
+  company         Company?           @relation(fields: [companyId], references: [id])
+  items           PharmacySaleItem[]
+  customer        Customer?          @relation(fields: [customerId], references: [id])
+  partner         PharmacyPartner?   @relation(fields: [partnerId], references: [id])
+  prescription    Prescription?      @relation(fields: [prescriptionId], references: [id])
 
   @@unique([companyId, saleNumber])
   @@map("pharmacy_sales")
@@ -1382,6 +1553,7 @@ model PharmacyPartner {
   companyId          String?
   company            Company?       @relation(fields: [companyId], references: [id])
   sales              PharmacySale[]
+  partnerInvoices    PartnerInvoice[]
 
   @@map("pharmacy_partners")
 }
@@ -1402,8 +1574,113 @@ model PrescriptionItem {
   @@map("prescription_items")
 }
 
+// ============================================================================
+// DRUG INTERACTIONS
+// ============================================================================
+model DrugInteraction {
+  id            String     @id @default(uuid())
+  medicationAId String
+  medicationBId String
+  severity      String     // minor | moderate | major | contraindicated
+  description   String
+  mechanism     String?
+  management    String?
+  createdAt     DateTime   @default(now())
+  companyId     String?
+  company       Company?   @relation(fields: [companyId], references: [id])
+  medicationA   Medication @relation("DrugA", fields: [medicationAId], references: [id])
+  medicationB   Medication @relation("DrugB", fields: [medicationBId], references: [id])
+
+  @@unique([medicationAId, medicationBId])
+  @@index([companyId])
+  @@map("drug_interactions")
+}
+
+// ============================================================================
+// NARCOTIC REGISTER (Daily controlled substance balance)
+// ============================================================================
+model NarcoticRegister {
+  id                String     @id @default(uuid())
+  registerDate      DateTime
+  medicationId      String
+  medicationName    String
+  batchNumber       String
+  openingBalance    Int
+  received          Int        @default(0)
+  dispensed         Int        @default(0)
+  returned          Int        @default(0)
+  destroyed         Int        @default(0)
+  closingBalance    Int
+  discrepancy       Int        @default(0)
+  notes             String?
+  verifiedBy        String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  companyId         String?
+  company           Company?   @relation(fields: [companyId], references: [id])
+
+  @@index([companyId])
+  @@index([registerDate])
+  @@map("narcotic_register")
+}
+
+// ============================================================================
+// BATCH RECALLS
+// ============================================================================
+model BatchRecall {
+  id             String            @id @default(uuid())
+  recallNumber   String
+  medicationId   String
+  batchNumbers   String[]
+  reason         String
+  severity       String            // voluntary | mandatory | urgent
+  issuedBy       String            // regulatory authority
+  recallDate     DateTime
+  status         BatchRecallStatus @default(active)
+  affectedUnits  Int               @default(0)
+  recoveredUnits Int               @default(0)
+  notes          String?
+  actionTaken    String?
+  resolvedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  companyId      String?
+  company        Company?          @relation(fields: [companyId], references: [id])
+  medication     Medication        @relation(fields: [medicationId], references: [id])
+
+  @@index([companyId])
+  @@map("batch_recalls")
+}
+
+// ============================================================================
+// PARTNER INVOICES (Billing to insurance/convenio partners)
+// ============================================================================
+model PartnerInvoice {
+  id            String                @id @default(uuid())
+  invoiceNumber String
+  partnerId     String
+  periodStart   DateTime
+  periodEnd     DateTime
+  totalAmount   Decimal               @db.Decimal(15, 2)
+  paidAmount    Decimal               @default(0) @db.Decimal(15, 2)
+  status        PartnerInvoiceStatus  @default(pending)
+  dueDate       DateTime?
+  notes         String?
+  saleIds       String[]              @default([])
+  paidAt        DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  companyId     String?
+  company       Company?              @relation(fields: [companyId], references: [id])
+  partner       PharmacyPartner       @relation(fields: [partnerId], references: [id])
+
+  @@unique([companyId, invoiceNumber])
+  @@index([companyId])
+  @@map("partner_invoices")
+}
+
 model StockMovement {
-  id            String       @id @default(uuid())
+  id            String           @id @default(uuid())
   batchId       String?
   movementType  MovementType
   quantity      Int
@@ -1412,14 +1689,14 @@ model StockMovement {
   reference     String?
   reason        String?
   performedBy   String
-  createdAt     DateTime     @default(now())
+  createdAt     DateTime         @default(now())
   companyId     String?
   originModule  String?
   productId     String?
   referenceType String?
   warehouseId   String?
-  product       Product?     @relation(fields: [productId], references: [id])
-  warehouse     Warehouse?   @relation(fields: [warehouseId], references: [id])
+  product       Product?         @relation(fields: [productId], references: [id])
+  warehouse     Warehouse?       @relation(fields: [warehouseId], references: [id])
   batch         MedicationBatch? @relation(fields: [batchId], references: [id])
 
   @@index([companyId])
@@ -1445,19 +1722,6 @@ enum UserRole {
   stock_keeper
 }
 
-enum ProductCategory {
-  electronics
-  food
-  medicine
-  clothing
-  furniture
-  cosmetics
-  beverages
-  cleaning
-  office
-  other
-}
-
 enum StockStatus {
   in_stock
   low_stock
@@ -1466,6 +1730,7 @@ enum StockStatus {
 
 enum TransferStatus {
   pending
+  in_transit
   completed
   cancelled
 }
@@ -1720,6 +1985,21 @@ enum PharmacySaleStatus {
   refunded
 }
 
+enum BatchRecallStatus {
+  active
+  resolved
+  monitoring
+}
+
+enum PartnerInvoiceStatus {
+  pending
+  sent
+  partial
+  paid
+  overdue
+  cancelled
+}
+
 enum PrescriptionStatus {
   pending
   partial
@@ -1818,24 +2098,24 @@ model Vehicle {
 }
 
 model Driver {
-  id            String       @id @default(uuid())
-  code          String
-  name          String
-  phone         String
-  email         String?
-  licenseNumber String
-  licenseType   String?
-  licenseExpiry DateTime?
-  status        DriverStatus @default(available)
-  hireDate      DateTime?
-  address       String?
+  id               String       @id @default(uuid())
+  code             String
+  name             String
+  phone            String
+  email            String?
+  licenseNumber    String
+  licenseType      String?
+  licenseExpiry    DateTime?
+  status           DriverStatus @default(available)
+  hireDate         DateTime?
+  address          String?
   emergencyContact String?
-  notes         String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  companyId     String?
-  company       Company?     @relation(fields: [companyId], references: [id])
-  deliveries    Delivery[]
+  notes            String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  companyId        String?
+  company          Company?     @relation(fields: [companyId], references: [id])
+  deliveries       Delivery[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -1869,7 +2149,7 @@ model DeliveryRoute {
   origin        String
   destination   String
   distance      Decimal?   @db.Decimal(10, 2)
-  estimatedTime Int?       // em minutos
+  estimatedTime Int? // em minutos
   tollCost      Decimal?   @db.Decimal(10, 2)
   fuelEstimate  Decimal?   @db.Decimal(10, 2)
   isActive      Boolean    @default(true)
@@ -1886,40 +2166,40 @@ model DeliveryRoute {
 }
 
 model Delivery {
-  id              String         @id @default(uuid())
+  id              String           @id @default(uuid())
   number          String
   orderId         String?
   customerId      String?
   routeId         String?
   vehicleId       String?
   driverId        String?
-  status          DeliveryStatus @default(pending)
+  status          DeliveryStatus   @default(pending)
   priority        DeliveryPriority @default(normal)
   scheduledDate   DateTime?
   departureDate   DateTime?
   deliveredDate   DateTime?
   recipientName   String?
   recipientPhone  String?
-  recipientSign   String?        // Base64 da assinatura
+  recipientSign   String? // Base64 da assinatura
   deliveryAddress String
-  latitude        Decimal?       @db.Decimal(10, 8)
-  longitude       Decimal?       @db.Decimal(11, 8)
+  latitude        Decimal?         @db.Decimal(10, 8)
+  longitude       Decimal?         @db.Decimal(11, 8)
   notes           String?
-  proofOfDelivery String?        // URL da foto
+  proofOfDelivery String? // URL da foto
   failureReason   String?
-  attempts        Int            @default(0)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  attempts        Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   companyId       String?
-  company         Company?       @relation(fields: [companyId], references: [id])
-  route           DeliveryRoute? @relation(fields: [routeId], references: [id])
-  vehicle         Vehicle?       @relation(fields: [vehicleId], references: [id])
-  driver          Driver?        @relation(fields: [driverId], references: [id])
-  country         String?        @default("Moçambique")
+  company         Company?         @relation(fields: [companyId], references: [id])
+  route           DeliveryRoute?   @relation(fields: [routeId], references: [id])
+  vehicle         Vehicle?         @relation(fields: [vehicleId], references: [id])
+  driver          Driver?          @relation(fields: [driverId], references: [id])
+  country         String?          @default("Moçambique")
   province        String?
   city            String?
-  shippingCost    Decimal?       @db.Decimal(15, 2)
-  isPaid          Boolean        @default(false)
+  shippingCost    Decimal?         @db.Decimal(15, 2)
+  isPaid          Boolean          @default(false)
   transactionId   String?
   items           DeliveryItem[]
   transactions    Transaction[]
@@ -1946,42 +2226,42 @@ model DeliveryItem {
 }
 
 model Parcel {
-  id               String        @id @default(uuid())
-  trackingNumber   String
-  senderName       String
-  senderPhone      String
-  senderEmail      String?
-  senderAddress    String?
-  recipientName    String
-  recipientPhone   String
-  recipientEmail   String?
-  recipientAddress String?
-  recipientDocument String?
-  description      String?
-  weight           Decimal?      @db.Decimal(10, 2)
-  dimensions       String?       // "LxWxH cm"
-  status           ParcelStatus  @default(received)
-  receivedAt       DateTime      @default(now())
-  expectedPickup   DateTime?
-  pickedUpAt       DateTime?
-  pickedUpBy       String?       // Nome de quem levantou
-  pickedUpDocument String?       // Documento de quem levantou
-  pickupSignature  String?       // Base64 da assinatura
-  storageLocation  String?       // Prateleira/local no armazém
-  warehouseId      String?
-  fees             Decimal       @default(0) @db.Decimal(15, 2)
-  isPaid           Boolean       @default(false)
-  paymentMethod    String?
-  notes            String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  companyId        String?
-  company          Company?      @relation(fields: [companyId], references: [id])
-  warehouse        Warehouse?    @relation(fields: [warehouseId], references: [id])
-  receiverRelationship String?  // Relação com o destinatário
-  transactionId   String?       // Link para transação financeira
-  notifications    ParcelNotification[]
-  transactions     Transaction[]
+  id                   String               @id @default(uuid())
+  trackingNumber       String
+  senderName           String
+  senderPhone          String
+  senderEmail          String?
+  senderAddress        String?
+  recipientName        String
+  recipientPhone       String
+  recipientEmail       String?
+  recipientAddress     String?
+  recipientDocument    String?
+  description          String?
+  weight               Decimal?             @db.Decimal(10, 2)
+  dimensions           String? // "LxWxH cm"
+  status               ParcelStatus         @default(received)
+  receivedAt           DateTime             @default(now())
+  expectedPickup       DateTime?
+  pickedUpAt           DateTime?
+  pickedUpBy           String? // Nome de quem levantou
+  pickedUpDocument     String? // Documento de quem levantou
+  pickupSignature      String? // Base64 da assinatura
+  storageLocation      String? // Prateleira/local no armazém
+  warehouseId          String?
+  fees                 Decimal              @default(0) @db.Decimal(15, 2)
+  isPaid               Boolean              @default(false)
+  paymentMethod        String?
+  notes                String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  companyId            String?
+  company              Company?             @relation(fields: [companyId], references: [id])
+  warehouse            Warehouse?           @relation(fields: [warehouseId], references: [id])
+  receiverRelationship String? // Relação com o destinatário
+  transactionId        String? // Link para transação financeira
+  notifications        ParcelNotification[]
+  transactions         Transaction[]
 
   @@unique([companyId, trackingNumber])
   @@index([companyId])
@@ -2010,22 +2290,22 @@ model ParcelNotification {
 // ============================================================================
 
 model BottleReturn {
-  id          String              @id @default(uuid())
-  customerId  String?
-  productId   String
-  quantity    Int
-  depositPaid Decimal             @default(0) @db.Decimal(15, 2)
-  depositRefunded Decimal         @default(0) @db.Decimal(15, 2)
-  type        BottleReturnType    @default(return)
-  saleId      String?
-  notes       String?
-  performedBy String
-  createdAt   DateTime            @default(now())
-  companyId   String?
-  company     Company?            @relation(fields: [companyId], references: [id])
-  customer    Customer?           @relation(fields: [customerId], references: [id])
-  product     Product             @relation(fields: [productId], references: [id])
-  sale        Sale?               @relation(fields: [saleId], references: [id])
+  id              String           @id @default(uuid())
+  customerId      String?
+  productId       String
+  quantity        Int
+  depositPaid     Decimal          @default(0) @db.Decimal(15, 2)
+  depositRefunded Decimal          @default(0) @db.Decimal(15, 2)
+  type            BottleReturnType @default(return)
+  saleId          String?
+  notes           String?
+  performedBy     String
+  createdAt       DateTime         @default(now())
+  companyId       String?
+  company         Company?         @relation(fields: [companyId], references: [id])
+  customer        Customer?        @relation(fields: [customerId], references: [id])
+  product         Product          @relation(fields: [productId], references: [id])
+  sale            Sale?            @relation(fields: [saleId], references: [id])
 
   @@index([companyId])
   @@index([customerId])
@@ -2033,47 +2313,71 @@ model BottleReturn {
 }
 
 model CashSession {
-  id              String           @id @default(uuid())
-  openedBy        String
-  closedBy        String?
-  openedAt        DateTime         @default(now())
+  id              String            @id @default(uuid())
+  openedById      String            @map("opened_by_id")
+  closedById      String?           @map("closed_by_id")
+  openedAt        DateTime          @default(now())
   closedAt        DateTime?
-  openingBalance  Decimal          @db.Decimal(15, 2)
-  closingBalance  Decimal?         @db.Decimal(15, 2)
-  expectedBalance Decimal?         @db.Decimal(15, 2)
-  difference      Decimal?         @db.Decimal(15, 2)
-  cashSales       Decimal          @default(0) @db.Decimal(15, 2)
-  mpesaSales      Decimal          @default(0) @db.Decimal(15, 2)
-  emolaSales      Decimal          @default(0) @db.Decimal(15, 2)
-  cardSales       Decimal          @default(0) @db.Decimal(15, 2)
-  creditSales     Decimal          @default(0) @db.Decimal(15, 2)
-  totalSales      Decimal          @default(0) @db.Decimal(15, 2)
-  withdrawals     Decimal          @default(0) @db.Decimal(15, 2)
-  deposits        Decimal          @default(0) @db.Decimal(15, 2)
+  openingBalance  Decimal           @db.Decimal(15, 2)
+  closingBalance  Decimal?          @db.Decimal(15, 2)
+  expectedBalance Decimal?          @db.Decimal(15, 2)
+  difference      Decimal?          @db.Decimal(15, 2)
+  cashSales       Decimal           @default(0) @db.Decimal(15, 2)
+  mpesaSales      Decimal           @default(0) @db.Decimal(15, 2)
+  emolaSales      Decimal           @default(0) @db.Decimal(15, 2)
+  cardSales       Decimal           @default(0) @db.Decimal(15, 2)
+  creditSales     Decimal           @default(0) @db.Decimal(15, 2)
+  totalSales      Decimal           @default(0) @db.Decimal(15, 2)
+  withdrawals     Decimal           @default(0) @db.Decimal(15, 2) // Sangrias
+  deposits        Decimal           @default(0) @db.Decimal(15, 2) // Suprimentos
   notes           String?
   status          CashSessionStatus @default(open)
   companyId       String?
-  company         Company?         @relation(fields: [companyId], references: [id])
+  terminalId      String?           @map("terminal_id")
+
+  // Relations
+  company         Company?          @relation(fields: [companyId], references: [id])
+  openedBy        User              @relation("OpenedSessions", fields: [openedById], references: [id])
+  closedBy        User?             @relation("ClosedSessions", fields: [closedById], references: [id])
+  sales           Sale[]
+  movements       CashMovement[]
 
   @@index([companyId])
   @@index([status])
   @@map("cash_sessions")
 }
 
+model CashMovement {
+  id            String      @id @default(uuid())
+  sessionId     String      @map("session_id")
+  type          String      // "sangria" | "suprimento"
+  amount        Decimal     @db.Decimal(15, 2)
+  reason        String
+  performedById String      @map("performed_by_id")
+  createdAt     DateTime    @default(now())
+
+  // Relations
+  session       CashSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  performedBy   User        @relation(fields: [performedById], references: [id])
+
+  @@index([sessionId])
+  @@map("cash_movements")
+}
+
 model CreditPayment {
-  id          String        @id @default(uuid())
-  saleId      String
-  customerId  String
-  amount      Decimal       @db.Decimal(15, 2)
+  id            String        @id @default(uuid())
+  saleId        String
+  customerId    String
+  amount        Decimal       @db.Decimal(15, 2)
   paymentMethod PaymentMethod @default(cash)
-  reference   String?
-  notes       String?
-  receivedBy  String
-  paidAt      DateTime      @default(now())
-  companyId   String?
-  company     Company?      @relation(fields: [companyId], references: [id])
-  customer    Customer      @relation(fields: [customerId], references: [id])
-  sale        Sale          @relation(fields: [saleId], references: [id])
+  reference     String?
+  notes         String?
+  receivedBy    String
+  paidAt        DateTime      @default(now())
+  companyId     String?
+  company       Company?      @relation(fields: [companyId], references: [id])
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  sale          Sale          @relation(fields: [saleId], references: [id])
 
   @@index([companyId])
   @@index([saleId])
@@ -2082,9 +2386,9 @@ model CreditPayment {
 }
 
 enum BottleReturnType {
-  deposit    // Cliente pagou caução
-  return     // Cliente devolveu vasilhame
-  refund     // Devolução do depósito
+  deposit // Cliente pagou caução
+  return // Cliente devolveu vasilhame
+  refund // Devolução do depósito
   adjustment // Ajuste manual
 }
 

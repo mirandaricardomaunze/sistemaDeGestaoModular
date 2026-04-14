@@ -1,98 +1,238 @@
-﻿import { prisma } from '../lib/prisma';
+import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
+import { auditService } from './audit.service';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export class CashSessionService {
+    /**
+     * Get the currently open session for the company.
+     * In professional retail, this could be filtered by terminalId or userId.
+     */
     async getCurrentSession(companyId: string) {
         return prisma.cashSession.findFirst({
-            where: { companyId, status: 'open' }
-        });
-    }
-
-    async openSession(companyId: string, openedBy: string, openingBalance: number) {
-        const existing = await this.getCurrentSession(companyId);
-        if (existing) throw ApiError.badRequest('Já existe uma sessão de caixa aberta');
-
-        return prisma.cashSession.create({
-            data: { companyId, openedBy, openingBalance: Number(openingBalance) }
-        });
-    }
-
-    async closeSession(companyId: string, closedBy: string, data: { actualBalance: number; notes?: string }) {
-        const session = await this.getCurrentSession(companyId);
-        if (!session) throw ApiError.notFound('Não há sessão de caixa aberta');
-
-        const sales = await prisma.sale.findMany({
-            where: { companyId, createdAt: { gte: session.openedAt } },
-            select: { paymentMethod: true, total: true, isCredit: true }
-        });
-
-        const cashSales = sales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((sum, s) => sum + Number(s.total), 0);
-        const mpesaSales = sales.filter(s => s.paymentMethod === 'mpesa').reduce((sum, s) => sum + Number(s.total), 0);
-        const emolaSales = sales.filter(s => s.paymentMethod === 'emola').reduce((sum, s) => sum + Number(s.total), 0);
-        const cardSales = sales.filter(s => s.paymentMethod === 'card').reduce((sum, s) => sum + Number(s.total), 0);
-        const creditSales = sales.filter(s => s.isCredit).reduce((sum, s) => sum + Number(s.total), 0);
-        const totalSales = sales.reduce((sum, s) => sum + Number(s.total), 0);
-
-        const expectedBalance = Number(session.openingBalance) + cashSales - Number(session.withdrawals) + Number(session.deposits);
-        const difference = data.actualBalance - expectedBalance;
-
-        return prisma.cashSession.update({
-            where: { id: session.id },
-            data: {
-                closedBy, closedAt: new Date(), closingBalance: data.actualBalance, expectedBalance, difference,
-                cashSales, mpesaSales, emolaSales, cardSales, creditSales, totalSales, notes: data.notes, status: 'closed'
+            where: { companyId, status: 'open' },
+            include: {
+                openedBy: { select: { id: true, name: true } },
+                movements: {
+                    include: { performedBy: { select: { name: true } } },
+                    orderBy: { createdAt: 'desc' }
+                }
             }
         });
     }
 
-    async registerWithdrawal(companyId: string, amount: number) {
-        const session = await this.getCurrentSession(companyId);
-        if (!session) throw ApiError.notFound('Não há sessão de caixa aberta');
-        return prisma.cashSession.update({ where: { id: session.id }, data: { withdrawals: { increment: amount } } });
+    /**
+     * Open a new session with an initial balance.
+     */
+    async openSession(companyId: string, userId: string, openingBalance: number, terminalId?: string) {
+        const existing = await this.getCurrentSession(companyId);
+        if (existing) throw ApiError.badRequest('Já existe uma sessão de caixa aberta para esta empresa');
+
+        const session = await prisma.cashSession.create({
+            data: { 
+                companyId, 
+                openedById: userId, 
+                openingBalance: Number(openingBalance),
+                terminalId,
+                status: 'open'
+            },
+            include: { openedBy: { select: { name: true } } }
+        });
+
+        // Audit entry
+        await auditService.log({
+            userId,
+            action: 'OPEN_SHIFT',
+            entity: 'CashSession',
+            entityId: session.id,
+            newData: { openingBalance },
+            companyId
+        });
+
+        return session;
     }
 
-    async registerDeposit(companyId: string, amount: number) {
+    /**
+     * Register a manual cash movement (Sangria or Suprimento).
+     */
+    async registerMovement(companyId: string, userId: string, data: { type: 'sangria' | 'suprimento', amount: number, reason: string }) {
         const session = await this.getCurrentSession(companyId);
         if (!session) throw ApiError.notFound('Não há sessão de caixa aberta');
-        return prisma.cashSession.update({ where: { id: session.id }, data: { deposits: { increment: amount } } });
+
+        const movement = await prisma.cashMovement.create({
+            data: {
+                sessionId: session.id,
+                type: data.type,
+                amount: Number(data.amount),
+                reason: data.reason,
+                performedById: userId
+            }
+        });
+
+        // Update session totals
+        const updateField = data.type === 'sangria' ? 'withdrawals' : 'deposits';
+        await prisma.cashSession.update({
+            where: { id: session.id },
+            data: { [updateField]: { increment: Number(data.amount) } }
+        });
+
+        // Audit entry
+        await auditService.log({
+            userId,
+            action: data.type.toUpperCase(),
+            entity: 'CashSession',
+            entityId: session.id,
+            newData: movement,
+            companyId
+        });
+
+        return movement;
     }
 
-    async getHistory(companyId: string, query: any) {
-        const { page = 1, limit = 20, startDate, endDate } = query;
-        const skip = (Number(page) - 1) * Number(limit);
+    /**
+     * Close a session with blind counting.
+     */
+    async closeSession(companyId: string, userId: string, data: { closingBalance: number; notes?: string }) {
+        const session = await this.getCurrentSession(companyId);
+        if (!session) throw ApiError.notFound('Não há sessão de caixa aberta');
+
+        // Professional logic: Fetch sales linked DIRECTLY to this session
+        const sales = await prisma.sale.findMany({
+            where: { sessionId: session.id },
+            select: { paymentMethod: true, total: true, isCredit: true }
+        });
+
+        // If no sales are linked (old data fallback), use date range
+        let finalSales = sales;
+        if (sales.length === 0) {
+            finalSales = await prisma.sale.findMany({
+                where: { companyId, createdAt: { gte: session.openedAt } },
+                select: { paymentMethod: true, total: true, isCredit: true }
+            });
+        }
+
+        const stats = {
+            cashSales: finalSales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),
+            mpesaSales: finalSales.filter(s => s.paymentMethod === 'mpesa').reduce((sum, s) => sum + Number(s.total), 0),
+            emolaSales: finalSales.filter(s => s.paymentMethod === 'emola').reduce((sum, s) => sum + Number(s.total), 0),
+            cardSales: finalSales.filter(s => s.paymentMethod === 'card').reduce((sum, s) => sum + Number(s.total), 0),
+            creditSales: finalSales.filter(s => s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),
+            totalSales: finalSales.reduce((sum, s) => sum + Number(s.total), 0)
+        };
+
+        const expectedBalance = Number(session.openingBalance) + stats.cashSales - Number(session.withdrawals) + Number(session.deposits);
+        const difference = Number(data.closingBalance) - expectedBalance;
+
+        const closedSession = await prisma.cashSession.update({
+            where: { id: session.id },
+            data: {
+                closedById: userId, 
+                closedAt: new Date(), 
+                closingBalance: Number(data.closingBalance), 
+                expectedBalance, 
+                difference,
+                ...stats,
+                notes: data.notes, 
+                status: 'closed'
+            }
+        });
+
+        // Audit entry for the close
+        await auditService.log({
+            userId,
+            action: 'CLOSE_SHIFT',
+            entity: 'CashSession',
+            entityId: session.id,
+            newData: { closedSession },
+            companyId
+        });
+
+        // Security Alert: If significant discrepancy, log as warning
+        if (Math.abs(difference) > 10) { // Threshold for warning
+            console.warn(`[CASH_DISCREPANCY] Shift ${session.id} closed with ${difference} difference.`);
+        }
+
+        return closedSession;
+    }
+
+    /**
+     * List session history with pagination.
+     */
+    async getHistory(companyId: string, params: any) {
+        const { page, limit, skip } = getPaginationParams(params);
         const where: any = { companyId, status: 'closed' };
-        if (startDate && endDate) where.closedAt = { gte: new Date(startDate), lte: new Date(endDate) };
 
-        const [sessions, total] = await Promise.all([
-            prisma.cashSession.findMany({ where, orderBy: { closedAt: 'desc' }, skip, take: Number(limit) }),
-            prisma.cashSession.count({ where })
+        if (params.startDate && params.endDate) {
+            where.closedAt = { gte: new Date(params.startDate), lte: new Date(params.endDate) };
+        }
+
+        if (params.openedById) where.openedById = params.openedById;
+
+        const [total, sessions] = await Promise.all([
+            prisma.cashSession.count({ where }),
+            prisma.cashSession.findMany({
+                where,
+                include: {
+                    openedBy: { select: { id: true, name: true } },
+                    closedBy: { select: { id: true, name: true } },
+                    _count: { select: { sales: true } }
+                },
+                orderBy: { closedAt: 'desc' },
+                skip,
+                take: limit
+            }),
         ]);
-        return { data: sessions, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
+
+        return createPaginatedResponse(sessions, page, limit, total);
     }
 
+    /**
+     * Get a real-time summary of the current open session (vendas por método).
+     */
     async getDailySummary(companyId: string) {
         const session = await this.getCurrentSession(companyId);
         if (!session) return null;
 
         const sales = await prisma.sale.findMany({
-            where: { companyId, createdAt: { gte: session.openedAt } },
-            include: { items: { include: { product: true } }, customer: { select: { name: true } } },
-            orderBy: { createdAt: 'desc' }
+            where: { sessionId: session.id },
+            select: { paymentMethod: true, total: true, isCredit: true }
         });
 
         return {
-            session,
-            salesCount: sales.length,
+            cashSales: sales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),
+            mpesaSales: sales.filter(s => s.paymentMethod === 'mpesa').reduce((sum, s) => sum + Number(s.total), 0),
+            emolaSales: sales.filter(s => s.paymentMethod === 'emola').reduce((sum, s) => sum + Number(s.total), 0),
+            cardSales: sales.filter(s => s.paymentMethod === 'card').reduce((sum, s) => sum + Number(s.total), 0),
+            creditSales: sales.filter(s => s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),
             totalSales: sales.reduce((sum, s) => sum + Number(s.total), 0),
-            byPaymentMethod: {
-                cash: sales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),
-                mpesa: sales.filter(s => s.paymentMethod === 'mpesa').reduce((sum, s) => sum + Number(s.total), 0),
-                emola: sales.filter(s => s.paymentMethod === 'emola').reduce((sum, s) => sum + Number(s.total), 0),
-                card: sales.filter(s => s.paymentMethod === 'card').reduce((sum, s) => sum + Number(s.total), 0),
-                credit: sales.filter(s => s.isCredit).reduce((sum, s) => sum + Number(s.total), 0)
-            },
-            recentSales: sales.slice(0, 10)
+            openingBalance: Number(session.openingBalance),
+            withdrawals: Number(session.withdrawals),
+            deposits: Number(session.deposits),
+            currentExpected: Number(session.openingBalance) + 
+                sales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((sum, s) => sum + Number(s.total), 0) - 
+                Number(session.withdrawals) + Number(session.deposits)
         };
+    }
+
+    /**
+     * Get a detailed summary of a specific session (for Z-Report).
+     */
+    async getSessionDetails(sessionId: string, companyId: string) {
+        const session = await prisma.cashSession.findFirst({
+            where: { id: sessionId, companyId },
+            include: {
+                openedBy: { select: { name: true } },
+                closedBy: { select: { name: true } },
+                movements: { include: { performedBy: { select: { name: true } } } },
+                sales: {
+                    include: { customer: { select: { name: true } } },
+                    orderBy: { createdAt: 'desc' }
+                }
+            }
+        });
+
+        if (!session) throw ApiError.notFound('Sessão não encontrada');
+        return session;
     }
 }
 

@@ -1,4 +1,4 @@
-﻿import { Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuthStore } from '../stores/useAuthStore';
 import { LoadingSpinner } from '../components/ui';
@@ -33,11 +33,10 @@ export default function Home() {
         return <Navigate to="/logistics/dashboard" replace />;
     }
 
-    if (hasModule('BOTTLE_STORE')) {
-        return <Navigate to="/bottle-store/dashboard" replace />;
+    if (hasModule('COMMERCIAL')) {
+        return <Navigate to="/commercial/dashboard" replace />;
     }
 
-    // COMMERCIAL module and fallback both use the main dashboard
-    // which includes the "Desempenho por Módulo" overview
+    // Fallback to the main dashboard for users without specialized modules
     return <Navigate to="/dashboard" replace />;
 }

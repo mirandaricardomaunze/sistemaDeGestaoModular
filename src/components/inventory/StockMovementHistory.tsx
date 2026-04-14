@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { Card, Input, Select, Badge, LoadingSpinner, Button, Modal } from '../ui';
 import Pagination from '../ui/Pagination';
@@ -38,7 +39,11 @@ const movementTypeOptions = [
     { value: 'loss', label: 'Perdas' },
 ];
 
-export default function StockMovementHistory() {
+interface StockMovementHistoryProps {
+    originModule?: string;
+}
+
+export default function StockMovementHistory({ originModule }: StockMovementHistoryProps) {
     const [movements, setMovements] = useState<StockMovement[]>([]);
     const [pagination, setPagination] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -70,12 +75,13 @@ export default function StockMovementHistory() {
                 warehouseId: filters.warehouseId !== 'all' ? filters.warehouseId : undefined,
                 search: filters.search || undefined,
                 startDate: filters.startDate || undefined,
-                endDate: filters.endDate || undefined
+                endDate: filters.endDate || undefined,
+                origin_module: originModule
             });
             setMovements(response.data || []);
             setPagination(response.pagination);
         } catch (error) {
-            console.error('Error fetching movements:', error);
+            logger.error('Error fetching movements:', error);
         } finally {
             setIsLoading(false);
         }
@@ -241,7 +247,7 @@ export default function StockMovementHistory() {
                                             <td className="px-4 py-3 whitespace-nowrap text-center">
                                                 <div className="flex items-center justify-center gap-1 text-sm">
                                                     <span className="text-gray-400">{mov.balanceBefore}</span>
-                                                    <span className="text-gray-400">â†’</span>
+                                                    <span className="text-gray-400">→</span>
                                                     <span className="font-semibold text-gray-900 dark:text-white">{mov.balanceAfter}</span>
                                                 </div>
                                             </td>
@@ -255,8 +261,15 @@ export default function StockMovementHistory() {
                                                     </p>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
-                                                {mov.performedBy}
+                                            <td className="px-4 py-3 whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-[10px] font-bold text-primary-600 dark:text-primary-400">
+                                                        {(mov.performedBy || 'S').charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                        {mov.performedBy || 'Sistema'}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="flex items-center justify-center gap-1">
@@ -268,7 +281,7 @@ export default function StockMovementHistory() {
                                                         <HiOutlineEye className="w-4 h-4" />
                                                     </button>
                                                     <button
-                                                        onClick={() => console.log('Eliminar:', mov.id)}
+                                                        onClick={() => logger.info('Eliminar:', mov.id)}
                                                         className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                                         title="Eliminar"
                                                     >
@@ -354,7 +367,7 @@ export default function StockMovementHistory() {
                             <div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Saldo</p>
                                 <p className="font-medium text-gray-900 dark:text-white">
-                                    {selectedMovement.balanceBefore} â†’ {selectedMovement.balanceAfter}
+                                    {selectedMovement.balanceBefore} → {selectedMovement.balanceAfter}
                                 </p>
                             </div>
                         </div>

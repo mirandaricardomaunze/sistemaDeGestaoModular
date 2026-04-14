@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CRM Page
  * Página principal do CRM com funil de vendas e campanhas
  */
@@ -10,13 +10,16 @@ import {
     HiOutlineUserGroup,
     HiOutlineCog,
     HiOutlineHome,
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlinePlus,
-} from 'react-icons/hi';
+    HiOutlineUsers,
+    HiOutlinePresentationChartBar
+} from 'react-icons/hi2';
 import SalesFunnel from '../components/crm/SalesFunnel';
 import CampaignManager from '../components/crm/CampaignManager';
 import CRMDashboard from '../components/crm/CRMDashboard';
-import { Card, Button } from '../components/ui';
+import { Card, Button, PageHeader } from '../components/ui';
+import { MetricCard } from '../components/common/ModuleMetricCard';
 import { cn } from '../utils/helpers';
 import { useCRMStore } from '../stores/useCRMStore';
 import { useCampaigns } from '../hooks/useData';
@@ -45,30 +48,39 @@ export default function CRM() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="bg-white dark:bg-dark-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">CRM & Marketing</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Gestão de Clientes, Oportunidades e Campanhas</p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                        <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />}>Actualizar</Button>
+            <PageHeader 
+                title="CRM & Marketing"
+                subtitle="Gestão de Clientes, Oportunidades e Campanhas"
+                icon={<HiOutlinePresentationChartBar />}
+                actions={
+                    <>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                        >
+                            Actualizar
+                        </Button>
                         {activeTab === 'funnel' && (
-                            <Button size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />}>Nova Oportunidade</Button>
+                            <Button 
+                                size="sm" 
+                                className="font-black text-[10px] uppercase tracking-widest"
+                                leftIcon={<HiOutlinePlus className="w-5 h-5" />}
+                            >
+                                Nova Oportunidade
+                            </Button>
                         )}
-                    </div>
-                </div>
-
-                {/* Responsive Tabs Navigation */}
-                <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
+                    </>
+                }
+                tabs={
                     <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as CRMTab)}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
@@ -80,66 +92,35 @@ export default function CRM() {
                             </button>
                         ))}
                     </div>
-                </div>
-            </div>
+                }
+            />
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card padding="md" className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/10 border-primary-200 dark:border-primary-800">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-primary-600 dark:text-primary-400 font-medium">Pipeline</p>
-                            <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">
-                                {formatCurrency(metrics.totalValue)}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-primary-200 dark:bg-primary-800 rounded-xl">
-                            <HiOutlineChartBar className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-green-600 dark:text-green-400 font-medium">Taxa Conversão</p>
-                            <p className="text-2xl font-bold text-green-700 dark:text-green-300">
-                                {metrics.winRate}%
-                            </p>
-                        </div>
-                        <div className="p-3 bg-green-200 dark:bg-green-800 rounded-xl">
-                            <HiOutlineChartBar className="w-6 h-6 text-green-600 dark:text-green-400" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/10 border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Oportunidades</p>
-                            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                                {openOpportunities.length}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-blue-200 dark:bg-blue-800 rounded-xl">
-                            <HiOutlineUserGroup className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/10 border-orange-200 dark:border-orange-800">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">Campanhas Ativas</p>
-                            <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">
-                                {activeCampaigns.length}
-                            </p>
-                        </div>
-                        <div className="p-3 bg-orange-200 dark:bg-orange-800 rounded-xl">
-                            <HiOutlineTag className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                        </div>
-                    </div>
-                </Card>
+            {/* Quick Stats - Using Shared MetricCard */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard 
+                    label="Pipeline Total"
+                    value={formatCurrency(metrics.totalValue)}
+                    icon={<HiOutlineChartBar className="w-6 h-6" />}
+                    color="primary"
+                />
+                <MetricCard 
+                    label="Taxa de Conversão"
+                    value={`${metrics.winRate}%`}
+                    icon={<HiOutlineChartBar className="w-6 h-6" />}
+                    color="green"
+                />
+                <MetricCard 
+                    label="Oportunidades"
+                    value={openOpportunities.length}
+                    icon={<HiOutlineUserGroup className="w-6 h-6" />}
+                    color="blue"
+                />
+                <MetricCard 
+                    label="Campanhas Activas"
+                    value={activeCampaigns.length}
+                    icon={<HiOutlineTag className="w-6 h-6" />}
+                    color="orange"
+                />
             </div>
 
 

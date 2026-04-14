@@ -56,4 +56,18 @@ router.post('/transfers', authenticate, async (req: AuthRequest, res) => {
     res.status(201).json(result);
 });
 
+router.post('/transfers/:id/complete', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const userName = (req as any).userName || 'Sistema';
+    const result = await warehousesService.completeTransfer(req.companyId, req.params.id, userName);
+    res.json(result);
+});
+
+router.post('/transfers/:id/cancel', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const userName = (req as any).userName || 'Sistema';
+    const result = await warehousesService.cancelTransfer(req.companyId, req.params.id, userName);
+    res.json(result);
+});
+
 export default router;

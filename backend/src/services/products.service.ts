@@ -4,6 +4,7 @@ import { logger } from '../utils/logger';
 import { Prisma } from '@prisma/client';
 import { getPaginationParams, buildPaginationMeta, createPaginatedResponse } from '../utils/pagination';
 import { ApiError } from '../middleware/error.middleware';
+import { logAudit } from '../middleware/audit';
 
 export class ProductsService {
     /**
@@ -34,7 +35,8 @@ export class ProductsService {
             where.OR = [
                 { name: { contains: String(search), mode: 'insensitive' } },
                 { code: { contains: String(search), mode: 'insensitive' } },
-                { barcode: { contains: String(search) } }
+                { barcode: { contains: String(search) } },
+                { sku: { contains: String(search), mode: 'insensitive' } }
             ];
         }
 
@@ -84,6 +86,9 @@ export class ProductsService {
                 include: {
                     supplier: {
                         select: { id: true, name: true, code: true }
+                    },
+                    categoryModel: {
+                        select: { id: true, name: true }
                     },
                     warehouseStocks: {
                         include: {
@@ -153,10 +158,10 @@ export class ProductsService {
      */
     async create(data: any, companyId: string) {
         const {
-            code, name, description, category, price, costPrice,
-            currentStock, minStock, maxStock, unit, barcode,
+            code, name, description, category, categoryId, price, costPrice,
+            currentStock, minStock, maxStock, unit, barcode, sku,
             isActive, isService, requiresPrescription, dosageForm, strength, manufacturer,
-            originModule, expiryDate, batchNumber, location, supplierId
+            originModule, location, supplierId
         } = data;
 
         // Use provided code or generate one
@@ -172,40 +177,43 @@ export class ProductsService {
 
         if (existing) throw ApiError.badRequest('Código de produto já existe');
 
-        // Determine stock status
-        const stock = currentStock || 0;
+        // Professional Inventory: Start with zero stock. 
+        // Quantities must be added via Batches/Validities or Stock Movements.
+        const stock = 0; 
         const min = minStock || 5;
-        let status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
-        if (stock === 0) status = 'out_of_stock';
-        else if (stock <= min) status = 'low_stock';
+        let status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'out_of_stock';
+        // status is always out_of_stock when creating without batch
+
+        // Data object typed as any to prevent strict Prisma client type mismatch before generation
+        const productData: any = {
+            code: productCode,
+            name,
+            description,
+            category: category || 'other',
+            categoryId: categoryId || null,
+            price,
+            costPrice: costPrice || 0,
+            currentStock: stock,
+            minStock: min,
+            maxStock,
+            unit: unit || 'un',
+            barcode,
+            sku: sku || null,
+            location,
+            supplierId,
+            companyId,
+            status,
+            isActive: isActive ?? true,
+            originModule: originModule || 'inventory'
+        };
 
         const product = await prisma.product.create({
-            data: {
-                code: productCode,
-                name,
-                description,
-                category: (category as any) || 'other',
-                price,
-                costPrice: costPrice || 0,
-                currentStock: stock,
-                minStock: min,
-                maxStock,
-                unit: unit || 'un',
-                barcode,
-                expiryDate: expiryDate ? new Date(expiryDate) : null,
-                batchNumber,
-                location,
-                supplierId,
-                companyId,
-                status,
-                isActive: isActive ?? true,
-                originModule: originModule || 'inventory'
-            },
+            data: productData,
             include: { supplier: true }
         });
 
         // Create Alert
-        if (status !== 'in_stock') {
+        if (status === 'out_of_stock' || status === 'low_stock') {
             await this.createStockAlert(product, status, companyId);
         }
 
@@ -215,27 +223,41 @@ export class ProductsService {
     /**
      * Update Product
      */
-    async update(id: string, data: any, companyId: string) {
-        const updateData: any = { ...data };
+    async update(id: string, data: any, companyId: string, userId?: string) {
+        // Get old data for audit
+        const oldProduct = await prisma.product.findFirst({
+            where: { id, companyId }
+        });
 
-        // Recalculate status if stock changed
-        if (updateData.currentStock !== undefined || updateData.minStock !== undefined) {
-            const current = await prisma.product.findFirst({
-                where: { id, companyId }
-            });
+        if (!oldProduct) throw ApiError.notFound('Produto não encontrado');
 
-            if (current) {
-                const stock = updateData.currentStock ?? current.currentStock;
-                const min = updateData.minStock ?? current.minStock;
+        // Only include fields that exist on the Product model to avoid PrismaClientValidationError
+        const allowedFields = [
+            'code', 'name', 'description', 'category', 'categoryId',
+            'price', 'costPrice', 'currentStock', 'reservedStock',
+            'minStock', 'maxStock', 'unit', 'barcode', 'sku',
+            'location', 'status', 'imageUrl', 'isActive',
+            'originModule', 'supplierId', 'isReturnable', 'packSize', 'returnPrice'
+        ];
 
-                if (stock === 0) updateData.status = 'out_of_stock';
-                else if (stock <= min) updateData.status = 'low_stock';
-                else updateData.status = 'in_stock';
+        const updateData: any = {};
+        for (const key of allowedFields) {
+            if (data[key] !== undefined) {
+                updateData[key] = data[key];
             }
         }
 
-        if (updateData.expiryDate) {
-            updateData.expiryDate = new Date(updateData.expiryDate);
+        // Recalculate status if stock changed
+        if (updateData.currentStock !== undefined || updateData.minStock !== undefined) {
+            const stock = updateData.currentStock ?? oldProduct.currentStock;
+            const min = updateData.minStock ?? oldProduct.minStock;
+
+            if (stock === 0) updateData.status = 'out_of_stock';
+            else if (stock <= min) updateData.status = 'low_stock';
+            else updateData.status = 'in_stock';
+
+            // WARNING: Direct stock update should be discouraged in favor of movements
+            // but we keep it here for compatibility with existing adjustment logic if needed
         }
 
         const result = await prisma.product.updateMany({
@@ -247,10 +269,25 @@ export class ProductsService {
 
         const product = await prisma.product.findFirst({
             where: { id, companyId },
-            include: { supplier: true }
+            include: {
+                supplier: true,
+                categoryModel: true
+            }
         });
 
         if (!product) throw ApiError.notFound('Produto não encontrado');
+
+        // Manual Detailed Audit
+        if (userId) {
+            await logAudit({
+                userId,
+                action: 'UPDATE_PRODUCT',
+                entity: 'products',
+                entityId: product.id,
+                oldData: oldProduct as any,
+                newData: product as any
+            });
+        }
 
         // Manage Alerts
         if (product.status !== 'in_stock') {
@@ -432,7 +469,7 @@ export class ProductsService {
     }
 
     /**
-     * Get Expiring Products
+     * Get Expiring Products — delegates to ProductBatch table
      */
     async getExpiring(params: any, companyId: string) {
         const { days = '30', page = '1', limit = '20' } = params;
@@ -442,34 +479,40 @@ export class ProductsService {
 
         const expiryThreshold = new Date();
         expiryThreshold.setDate(expiryThreshold.getDate() + parseInt(days as string));
+        const now = new Date();
 
-        const where: Prisma.ProductWhereInput = {
+        const where = {
             companyId,
-            isActive: true,
-            expiryDate: {
-                not: null,
-                lte: expiryThreshold
-            }
+            quantity: { gt: 0 },
+            status: { not: 'depleted' as const },
+            expiryDate: { not: null, lte: expiryThreshold }
         };
 
-        const [total, products] = await Promise.all([
-            prisma.product.count({ where }),
-            prisma.product.findMany({
+        const [total, batches] = await Promise.all([
+            prisma.productBatch.count({ where }),
+            prisma.productBatch.findMany({
                 where,
+                include: { product: { select: { id: true, name: true, code: true, unit: true } } },
                 orderBy: { expiryDate: 'asc' },
                 skip,
                 take: limitNum
             })
         ]);
 
+        const data = batches.map(b => ({
+            ...b,
+            daysToExpiry: b.expiryDate ? Math.ceil((b.expiryDate.getTime() - now.getTime()) / 86400000) : null,
+            isExpired: b.expiryDate ? b.expiryDate < now : false,
+        }));
+
         return {
-            data: products,
+            data,
             pagination: {
                 page: pageNum,
                 limit: limitNum,
                 total,
                 totalPages: Math.ceil(total / limitNum),
-                hasMore: skip + products.length < total
+                hasMore: skip + data.length < total
             }
         };
     }
@@ -593,6 +636,162 @@ export class ProductsService {
                 resolvedAt: new Date()
             }
         });
+    }
+    /**
+     * Get Inventory Metrics for Reports (Valuation, Turnover, etc.)
+     */
+    async getInventoryMetrics(companyId: string) {
+        const products = await prisma.product.findMany({
+            where: { companyId, isActive: true },
+            select: {
+                id: true,
+                name: true,
+                price: true,
+                costPrice: true,
+                currentStock: true,
+                category: true,
+                saleItems: {
+                    where: { sale: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } }, // Last 30 days
+                    select: { quantity: true }
+                }
+            }
+        });
+
+        let totalValue = 0;
+        let totalCost = 0;
+        let lowStockCount = 0;
+        const categoryData: Record<string, { count: number; value: number }> = {};
+
+        products.forEach(p => {
+            const stock = p.currentStock || 0;
+            const price = Number(p.price) || 0;
+            const cost = Number(p.costPrice) || 0;
+
+            totalValue += stock * price;
+            totalCost += stock * cost;
+
+            if (!categoryData[p.category]) categoryData[p.category] = { count: 0, value: 0 };
+            categoryData[p.category].count++;
+            categoryData[p.category].value += stock * price;
+        });
+
+        // Calculate Turnover (simple version: sales / avg inventory)
+        // Here we just return sales in last 30 days per product for the report to process
+        const turnoverData = products.map(p => ({
+            name: p.name,
+            stock: p.currentStock,
+            salesLast30Days: p.saleItems.reduce((acc: number, item: any) => acc + item.quantity, 0)
+        })).sort((a, b) => b.salesLast30Days - a.salesLast30Days);
+
+        return {
+            totalValue,
+            totalCost,
+            potentialProfit: totalValue - totalCost,
+            totalProducts: products.length,
+            categoryDistribution: categoryData,
+            topMovingProducts: turnoverData.slice(0, 10)
+        };
+    }
+
+    // ── Price Tiers ─────────────────────────────────────────────────────────────
+
+    async getPriceTiers(productId: string, companyId: string) {
+        // Verify product belongs to company
+        const product = await prisma.product.findFirst({ where: { id: productId, companyId } });
+        if (!product) throw new ApiError(404, 'Produto não encontrado');
+
+        return prisma.priceTier.findMany({
+            where: { productId, companyId },
+            orderBy: { minQty: 'asc' }
+        });
+    }
+
+    async setPriceTiers(productId: string, tiers: { minQty: number; price: number; label?: string }[], companyId: string) {
+        const product = await prisma.product.findFirst({ where: { id: productId, companyId } });
+        if (!product) throw new ApiError(404, 'Produto não encontrado');
+
+        // Replace all tiers for this product
+        await prisma.$transaction([
+            prisma.priceTier.deleteMany({ where: { productId, companyId } }),
+            ...tiers
+                .filter(t => t.minQty > 0 && t.price > 0)
+                .map(t =>
+                    prisma.priceTier.create({
+                        data: { productId, companyId, minQty: t.minQty, price: t.price, label: t.label }
+                    })
+                )
+        ]);
+
+        return prisma.priceTier.findMany({
+            where: { productId, companyId },
+            orderBy: { minQty: 'asc' }
+        });
+    }
+
+    async getAllProductsWithTiers(companyId: string, originModule?: string) {
+        const products = await prisma.product.findMany({
+            where: { companyId, isActive: true, ...(originModule ? { originModule } : {}) },
+            include: { priceTiers: { orderBy: { minQty: 'asc' } } },
+            orderBy: { name: 'asc' }
+        });
+        return products;
+    }
+
+    /**
+     * Bulk update prices for products
+     */
+    async bulkUpdatePrices(params: any, companyId: string, userId?: string, userName?: string) {
+        const { category, adjustmentType, adjustmentValue, operation, origin_module } = params;
+
+        const where: Prisma.ProductWhereInput = {
+            companyId,
+            isActive: true,
+            ...(category ? { category } : {}),
+            ...(origin_module ? { originModule: origin_module } : {})
+        };
+
+        const products = await prisma.product.findMany({ where });
+        if (products.length === 0) throw ApiError.notFound('Nenhum produto encontrado para o filtro seleccionado');
+
+        const updates = products.map(product => {
+            const currentPrice = Number(product.price);
+            let newPrice = currentPrice;
+
+            if (adjustmentType === 'percentage') {
+                const delta = (currentPrice * adjustmentValue) / 100;
+                newPrice = operation === 'increase' ? currentPrice + delta : currentPrice - delta;
+            } else {
+                newPrice = operation === 'increase' ? currentPrice + adjustmentValue : currentPrice - adjustmentValue;
+            }
+
+            if (newPrice < 0) newPrice = 0;
+
+            return prisma.product.update({
+                where: { id: product.id },
+                data: { price: newPrice }
+            });
+        });
+
+        await prisma.$transaction(updates);
+
+        // Audit Log
+        if (userId) {
+            const { auditService } = require('./audit.service');
+            await auditService.log({
+                userId,
+                userName,
+                action: 'BULK_PRICE_UPDATE',
+                entity: 'products',
+                companyId,
+                details: {
+                    filter: { category, origin_module },
+                    adjustment: { type: adjustmentType, value: adjustmentValue, operation },
+                    productsAffected: products.length
+                }
+            });
+        }
+
+        return { count: products.length };
     }
 }
 

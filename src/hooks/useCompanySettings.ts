@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { settingsAPI } from '../services/api';
@@ -33,7 +34,7 @@ export function useCompanySettings() {
             setSettings(result);
         } catch (err) {
             setError('Erro ao carregar configurações');
-            console.error('Error fetching settings:', err);
+            logger.error('Error fetching settings:', err);
         } finally {
             setIsLoading(false);
         }
@@ -50,7 +51,7 @@ export function useCompanySettings() {
             toast.success('Configurações actualizadas com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating settings:', err);
+            logger.error('Error updating settings:', err);
             throw err;
         }
     };

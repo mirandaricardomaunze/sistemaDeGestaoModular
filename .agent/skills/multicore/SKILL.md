@@ -5,6 +5,16 @@ description: "Senior-level development standards and architectural guide for the
 
 # Multicore System Skill
 
+> 🤖 **AI INSTRUCTION (MANDATORY)**: You must analyze this skill file and the following core skill files **BEFORE** suggesting, generating, or modifying any code in this project:
+> 1. `clean-architecture` (Architecture & Core Principles)
+> 2. `security-and-auth` (Authentication, AuthZ, Data Integrity)
+> 3. `testing-standards` (Unit Testing, Mocks, Coverage)
+> 4. `performance-and-caching` (DB Efficiency, Redis, Background Jobs)
+> 5. `observability-and-logs` (Audit Trails, Structured Logging)
+> 6. `ui-ux-design` (Premium Layouts, TailwindCSS, Responsiveness)
+
+All code you produce MUST comply with the rules defined across these skills. If a user requests something that violates these rules, you must politely decline and offer the compliant alternative.
+
 This skill defines the high-level architecture, professional coding standards, and performance rules for the Multicore project. Every interaction with this codebase MUST follow these principles to ensure a professional, clean, and high-performance system.
 
 ## 🏗️ Architecture Overview
@@ -25,10 +35,17 @@ The system is a modular multi-tenant ERP/Management platform.
 
 ## 👑 Senior & Professional Rules
 
+*Note: Always apply the principles defined in the `clean-architecture` skill (Clean Code, DRY, Separation of Concerns, Layered Architecture) in conjunction with these rules.*
+
 ### 1. Multi-Tenancy (Tenant Isolation)
 - **Primary Rule**: No data from Company A should EVER be visible to Company B.
 - **Implementation**: The `req.tenantId` (or `companyId`) set by the `tenant` middleware MUST be used in every Prisma query.
+- **Data Scoping (originModule)**: For metrics and documents (Orders, Invoices, Stock), always support and pass the `originModule` parameter to ensure data is correctly scoped to the active module (e.g., 'commercial', 'pharmacy', 'hospitality').
 - **Audit Trail**: Every action that modifies data must be recorded using the `audit` middleware/service.
+
+### 2. Modular Specialization (Wrapper Pattern)
+- **Shared Components**: When using components shared across modules (e.g., Clientes, Encomendas), prefer the **Specialized Wrapper** pattern.
+- **Implementation**: Create a module-specific file (e.g., `CommercialInvoices.tsx`) that renders the shared component (e.g., `Invoices.tsx`) with pre-configured props like `originModule`. Register these specialized routes in `main.tsx`.
 
 ### 2. Backend Design Patterns
 - **Validation**: All incoming requests MUST be validated with **Zod** schemas in `src/validation/`.
@@ -46,8 +63,17 @@ The system is a modular multi-tenant ERP/Management platform.
 - **Hooks**: Business logic in components should be moved to custom hooks (`src/hooks/`).
 - **Optimization**: Use `Suspense` and `lazy` for page-level imports. Keep components small.
 
+### 5. CI/CD & Automated Enforcement
+- **Linting & Formatting**: Ensure code is completely free of ESLint errors and is formatted correctly (Prettier) before considering a task "done". No `console.log` in production code.
+- **Type Safety**: The project must build without any TypeScript (`tsc`) errors. Fix any `any` types by providing proper interfaces.
+
 ## 💊 Module Specific Rules
 
+- **Commercial (Retail/PDV)**:
+  - **POS Shift Binding**: Every POS terminal MUST be bound to a warehouse upon opening a shift to ensure accurate stock deduction.
+  - **Quote-to-Sale**: Support seamless conversion of Quotations to POS sales by passing state via `location.state`.
+  - **Pricing**: Implement bulk price adjustment tools (percentage/fixed) with category filtering.
+  - **Cash Management**: Every PDV must support cash movements (Sangria/Suprimento) tracked within the shift session.
 - **Pharmacy**: Handle batches and expiry dates strictly. Sales must decrement stock at the batch level.
 - **Hospitality (Hotel)**: Manage rooms, reservations, and public booking states. Integration with finance for invoicing.
 - **Bottle Store**: Handle returnables (garrafas vazias) and inventory specific to beverages.
@@ -61,3 +87,5 @@ The system is a modular multi-tenant ERP/Management platform.
 4. **Performance**: Is the query paginated and indexed?
 5. **UI**: Does it maintain the premium design system and responsiveness?
 6. **I18n**: Are all strings localized in the translation files?
+7. **Clean Code**: Is the code DRY, using guard clauses, and following single responsibility?
+8. **Layered Architecture**: Is business logic strictly in services and out of controllers?

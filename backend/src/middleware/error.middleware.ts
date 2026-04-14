@@ -48,6 +48,7 @@ export const errorHandler = (
     }
 
     if (err instanceof z.ZodError) {
+        logger.warn('Validation Error', { issues: err.issues });
         return res.status(400).json({
             message: 'Erro de validação',
             errors: err.issues.map(issue => ({

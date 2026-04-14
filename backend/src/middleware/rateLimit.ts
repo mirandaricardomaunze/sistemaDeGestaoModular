@@ -1,6 +1,7 @@
 ﻿import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import Redis from 'ioredis';
+import { logger } from '../utils/logger';
 
 // Create Redis client (with fallback to in-memory if Redis is not available)
 let redisClient: Redis | null = null;
@@ -22,27 +23,27 @@ if (process.env.REDIS_URL || process.env.REDIS_HOST) {
             }
         });
 
-        redisClient.on('error', (err) => {
+        redisClient.on('error', () => {
             if (useRedis) {
-                console.warn('⚠️  Conexão com Redis perdida, usando rate limiting em memória');
+                logger.warn('Redis connection lost — falling back to in-memory rate limiting');
                 useRedis = false;
             }
         });
 
         redisClient.on('ready', () => {
-            console.log('✅ Redis conectado e pronto para rate limiting');
+            logger.info('Redis connected — rate limiting active');
             useRedis = true;
         });
 
         // Initially assume it's NOT usable until 'ready'
         useRedis = false;
     } catch (error) {
-        console.warn('⚠️  Erro ao configurar Redis, usando rate limiting em memória');
+        logger.warn('Redis setup error — using in-memory rate limiting');
         redisClient = null;
         useRedis = false;
     }
 } else {
-    console.warn('⚠️  Configuração Redis ausente, usando rate limiting em memória');
+    logger.warn('Redis not configured — using in-memory rate limiting');
 }
 
 /**

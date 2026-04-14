@@ -1,9 +1,10 @@
-﻿/**
+/**
  * Logistics Reports Page
  * Analytics dashboard for deliveries, drivers, routes, and revenue
  */
 
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, Select, LoadingSpinner } from '../../components/ui';
 import {
     HiOutlineDocumentChartBar,
@@ -19,6 +20,7 @@ import {
 } from 'react-icons/hi2';
 import { useDeliveries, useDrivers, useDeliveryRoutes, useLogisticsDashboard } from '../../hooks/useLogistics';
 import { exportAPI } from '../../services/api';
+import { PageHeader } from '../../components/ui';
 import {
     BarChart,
     Bar,
@@ -42,6 +44,7 @@ const formatCurrency = (value: number) => {
 
 
 export default function LogisticsReportsPage() {
+    const { t } = useTranslation();
     const [period, setPeriod] = useState('30');
 
     // Calculate date range based on period
@@ -116,14 +119,14 @@ export default function LogisticsReportsPage() {
         });
 
         const statusLabels: Record<string, string> = {
-            pending: 'Pendente',
-            scheduled: 'Agendada',
-            in_transit: 'Em Trânsito',
-            out_for_delivery: 'Saiu para Entrega',
-            delivered: 'Entregue',
-            failed: 'Falhou',
-            returned: 'Devolvida',
-            cancelled: 'Cancelada'
+            pending: t('logistics_module.deliveries.status.pending'),
+            scheduled: t('logistics_module.deliveries.status.scheduled'),
+            in_transit: t('logistics_module.deliveries.status.in_transit'),
+            out_for_delivery: t('logistics_module.deliveries.status.out_for_delivery'),
+            delivered: t('logistics_module.deliveries.status.delivered'),
+            failed: t('logistics_module.deliveries.status.failed'),
+            returned: t('logistics_module.deliveries.status.returned'),
+            cancelled: t('logistics_module.deliveries.status.cancelled')
         };
 
         return Object.entries(counts).map(([status, count]) => ({
@@ -204,16 +207,16 @@ export default function LogisticsReportsPage() {
     const handleExport = async (type: 'pdf' | 'excel') => {
         if (!deliveriesData?.deliveries) return;
 
-        const periodLabel = period === 'month' ? 'Este Mês' : `Últimos ${period} dias`;
+        const periodLabel = period === 'month' ? t('logistics_module.dashboard.periods.month') : t('logistics_module.dashboard.periods.2months'); // Simplification or expansion needed
 
         const columns = [
-            { header: 'Número', key: 'number', width: 100 },
-            { header: 'Destinatário', key: 'recipient', width: 150 },
-            { header: 'Endereço', key: 'address', width: 200 },
-            { header: 'Motorista', key: 'driver', width: 120 },
-            { header: 'Status', key: 'status', width: 100 },
-            { header: 'Data', key: 'date', width: 100 },
-            { header: 'Valor', key: 'value', width: 80 }
+            { header: t('logistics_module.deliveries.number'), key: 'number', width: 100 },
+            { header: t('logistics_module.deliveries.recipient'), key: 'recipient', width: 150 },
+            { header: t('logistics_module.deliveries.address'), key: 'address', width: 200 },
+            { header: t('logistics_module.deliveries.driver'), key: 'driver', width: 120 },
+            { header: t('common.status'), key: 'status', width: 100 },
+            { header: t('common.date'), key: 'date', width: 100 },
+            { header: t('common.total'), key: 'value', width: 80 }
         ];
 
         const data = deliveriesData.deliveries.map(d => ({
@@ -228,8 +231,8 @@ export default function LogisticsReportsPage() {
 
         await exportAPI.export({
             type,
-            title: 'LOGÍSTICA: Relatório de Entregas',
-            subtitle: `Período: ${periodLabel} | Suceso: ${deliveryStats?.successRate.toFixed(1)}%`,
+            title: `${t('businessType.logistics').toUpperCase()}: ${t('logistics_module.dashboard.reports.logisticsReport')}`,
+            subtitle: `${t('common.report')}: ${periodLabel} | ${t('logistics_module.dashboard.kpis.conversion')}: ${deliveryStats?.successRate.toFixed(1)}%`,
             columns,
             data,
             filename: `Relatorio_Logistica_${new Date().getTime()}`
@@ -242,35 +245,48 @@ export default function LogisticsReportsPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Relatórios de Logística</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Análise de desempenho e métricas</p>
-                </div>
-                <div className="flex gap-2">
-                    <Select
-                        options={[
-                            { value: '7', label: 'Últimos 7 dias' },
-                            { value: '30', label: 'Últimos 30 dias' },
-                            { value: '90', label: 'Últimos 90 dias' },
-                            { value: 'month', label: 'Este mês' }
-                        ]}
-                        value={period}
-                        onChange={(e) => setPeriod(e.target.value)}
-                        className="w-40 h-[42px]"
-                    />
-                    <Button variant="outline" className="h-[42px]" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetchDashboard()}>
-                        Actualizar
-                    </Button>
-                    <Button variant="outline" className="h-[42px]" leftIcon={<HiOutlineArrowDownTray className="w-5 h-5" />} onClick={() => handleExport('excel')}>
-                        Gerar XLSX
-                    </Button>
-                    <Button className="h-[42px]" leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />} onClick={() => handleExport('pdf')}>
-                        Exportar PDF Profissional
-                    </Button>
-                </div>
-            </div>
+            <PageHeader
+                title={t('logistics_module.dashboard.reports.logisticsReport')}
+                subtitle={t('nav.reports')}
+                icon={<HiOutlineDocumentChartBar />}
+                actions={
+                    <div className="flex gap-2 items-center">
+                        <Select
+                            key="period-select"
+                            options={[
+                                { value: '7', label: t('logistics_module.dashboard.periods.today') }, // Should really be "Last 7 days"
+                                { value: '30', label: t('logistics_module.dashboard.periods.month') },
+                                { value: '90', label: t('logistics_module.dashboard.periods.3months') },
+                                { value: 'month', label: t('logistics_module.dashboard.periods.month') }
+                            ]}
+                            value={period}
+                            onChange={(e) => setPeriod(e.target.value)}
+                            className="w-40 min-h-[42px]"
+                        />
+                        <Button
+                            variant="outline"
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                            onClick={() => refetchDashboard()}
+                        >
+                            {t('common.update')}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            leftIcon={<HiOutlineArrowDownTray className="w-5 h-5" />}
+                            onClick={() => handleExport('excel')}
+                        >
+                            Gerar XLSX
+                        </Button>
+                        <Button
+                            variant="primary"
+                            leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />}
+                            onClick={() => handleExport('pdf')}
+                        >
+                            {t('common.export')} PDF
+                        </Button>
+                    </div>
+                }
+            />
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -281,7 +297,7 @@ export default function LogisticsReportsPage() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{deliveryStats?.total || 0}</p>
-                            <p className="text-xs text-gray-500">Total Entregas</p>
+                            <p className="text-xs text-gray-500">{t('logistics_module.dashboard.kpis.totalShipments')}</p>
                         </div>
                     </div>
                 </Card>
@@ -292,7 +308,7 @@ export default function LogisticsReportsPage() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{deliveryStats?.successRate.toFixed(1) || 0}%</p>
-                            <p className="text-xs text-gray-500">Taxa de Sucesso</p>
+                            <p className="text-xs text-gray-500">{t('logistics_module.dashboard.kpis.conversion')}</p>
                         </div>
                     </div>
                 </Card>
@@ -303,7 +319,7 @@ export default function LogisticsReportsPage() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{formatCurrency(deliveryStats?.totalRevenue || 0)}</p>
-                            <p className="text-xs text-gray-500">Receita Total</p>
+                            <p className="text-xs text-gray-500">{t('logistics_module.dashboard.kpis.deliveryRevenue')}</p>
                         </div>
                     </div>
                 </Card>
@@ -314,7 +330,7 @@ export default function LogisticsReportsPage() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{deliveryStats?.avgDeliveryHours.toFixed(1) || 0}h</p>
-                            <p className="text-xs text-gray-500">Tempo Médio</p>
+                            <p className="text-xs text-gray-500">{t('logistics_module.routes.estimatedTime')}</p>
                         </div>
                     </div>
                 </Card>
@@ -326,7 +342,7 @@ export default function LogisticsReportsPage() {
                 <Card variant="glass" className="p-6">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                         <HiOutlineChartBar className="w-5 h-5 text-primary-500" />
-                        Distribuição por Status
+                        {t('logistics_module.dashboard.charts.distribution')}
                     </h3>
                     {statusDistribution.length > 0 ? (
                         <ResponsiveContainer width="100%" height={300}>
@@ -359,7 +375,7 @@ export default function LogisticsReportsPage() {
                 <Card variant="glass" className="p-6">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                         <HiOutlineMap className="w-5 h-5 text-primary-500" />
-                        Entregas por Província
+                        {t('logistics_module.dashboard.kpis.regions')}
                     </h3>
                     {provinceData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={300}>
@@ -383,18 +399,18 @@ export default function LogisticsReportsPage() {
             <Card variant="glass" className="p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <HiOutlineUsers className="w-5 h-5 text-primary-500" />
-                    Desempenho por Motorista
+                    {t('logistics_module.drivers.title')}
                 </h3>
                 {driverPerformance.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="border-b dark:border-dark-700 text-gray-500 text-sm">
-                                    <th className="py-3 px-4">Motorista</th>
-                                    <th className="py-3 px-4 text-center">Total</th>
-                                    <th className="py-3 px-4 text-center">Entregues</th>
-                                    <th className="py-3 px-4 text-center">Falhas</th>
-                                    <th className="py-3 px-4 text-center">Taxa de Sucesso</th>
+                                    <th className="py-3 px-4">{t('logistics_module.deliveries.driver')}</th>
+                                    <th className="py-3 px-4 text-center">{t('common.total')}</th>
+                                    <th className="py-3 px-4 text-center">{t('logistics_module.deliveries.status.delivered')}</th>
+                                    <th className="py-3 px-4 text-center">{t('logistics_module.deliveries.status.failed')}</th>
+                                    <th className="py-3 px-4 text-center">{t('logistics_module.dashboard.kpis.conversion')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y dark:divide-dark-700">
@@ -416,7 +432,7 @@ export default function LogisticsReportsPage() {
                     </div>
                 ) : (
                     <div className="py-12 text-center text-gray-500">
-                        Sem dados de motoristas para exibir
+                        {t('common.noData')}
                     </div>
                 )}
             </Card>
@@ -425,16 +441,16 @@ export default function LogisticsReportsPage() {
             <Card variant="glass" className="p-6">
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <HiOutlineMap className="w-5 h-5 text-primary-500" />
-                    Rotas Mais Utilizadas
+                    {t('logistics_module.routes.title')}
                 </h3>
                 {routeUsage.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="border-b dark:border-dark-700 text-gray-500 text-sm">
-                                    <th className="py-3 px-4">Rota</th>
-                                    <th className="py-3 px-4 text-center">Entregas</th>
-                                    <th className="py-3 px-4 text-right">Receita</th>
+                                    <th className="py-3 px-4">{t('logistics_module.deliveries.route')}</th>
+                                    <th className="py-3 px-4 text-center">{t('logistics_module.deliveries.title')}</th>
+                                    <th className="py-3 px-4 text-right">{t('dashboard.revenue')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y dark:divide-dark-700">
@@ -450,7 +466,7 @@ export default function LogisticsReportsPage() {
                     </div>
                 ) : (
                     <div className="py-12 text-center text-gray-500">
-                        Sem dados de rotas para exibir
+                        {t('common.noData')}
                     </div>
                 )}
             </Card>
@@ -460,15 +476,15 @@ export default function LogisticsReportsPage() {
                 <Card variant="glass" className="p-6">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                         <HiOutlineCurrencyDollar className="w-5 h-5 text-success-500" />
-                        Resumo de Receitas
+                        {t('financial.revenue')}
                     </h3>
                     <div className="space-y-4">
                         <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <span className="text-gray-600 dark:text-gray-400">Receita de Entregas</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('logistics_module.dashboard.kpis.deliveryRevenue')}</span>
                             <span className="font-bold text-lg">{formatCurrency(dashboard?.stats.deliveryRevenue || 0)}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <span className="text-gray-600 dark:text-gray-400">Receita de Levantamentos</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('logistics_module.dashboard.kpis.pickupRevenue')}</span>
                             <span className="font-bold text-lg">{formatCurrency(dashboard?.stats.pickupRevenue || 0)}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
@@ -483,19 +499,19 @@ export default function LogisticsReportsPage() {
                 <Card variant="glass" className="p-6">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                         <HiOutlineTruck className="w-5 h-5 text-primary-500" />
-                        Resumo de Recursos
+                        {t('logistics_module.dashboard.stockOccupation')}
                     </h3>
                     <div className="space-y-4">
                         <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <span className="text-gray-600 dark:text-gray-400">Veículos Disponíveis</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('logistics_module.vehicles.statuses.available')}</span>
                             <span className="font-bold text-lg text-success-600">{dashboard?.stats.availableVehicles || 0} / {dashboard?.totals.vehicles || 0}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <span className="text-gray-600 dark:text-gray-400">Motoristas Disponíveis</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('logistics_module.drivers.statuses.available')}</span>
                             <span className="font-bold text-lg text-success-600">{dashboard?.stats.availableDrivers || 0} / {dashboard?.totals.drivers || 0}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <span className="text-gray-600 dark:text-gray-400">Encomendas Pendentes</span>
+                            <span className="text-gray-600 dark:text-gray-400">{t('logistics_module.parcels.status.awaiting_pickup')}</span>
                             <span className="font-bold text-lg text-warning-600">{dashboard?.stats.pendingParcels || 0}</span>
                         </div>
                     </div>

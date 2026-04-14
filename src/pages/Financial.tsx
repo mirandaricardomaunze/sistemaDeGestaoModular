@@ -1,20 +1,22 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlinePlus,
-    HiOutlineTrendingUp,
-    HiOutlineTrendingDown,
-    HiOutlineSearch,
+    HiOutlineArrowTrendingUp,
+    HiOutlineArrowTrendingDown,
+    HiOutlineMagnifyingGlass,
     HiOutlineTrash,
     HiOutlineCheck,
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlineCog,
-} from 'react-icons/hi';
+    HiOutlineCurrencyDollar,
+    HiOutlineDocumentText
+} from 'react-icons/hi2';
 import { subDays, parseISO } from 'date-fns';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, ResponsiveValue } from '../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, ResponsiveValue, PageHeader } from '../components/ui';
 import { formatCurrency, formatDate, generateId, cn } from '../utils/helpers';
 import type { Transaction, TransactionType, TransactionStatus } from '../types';
 import toast from 'react-hot-toast';
@@ -235,35 +237,44 @@ export default function Financial() {
     ];
 
     const tabs = [
-        { id: 'transactions' as const, label: 'Lançamentos', icon: <HiOutlineTrendingUp className="w-5 h-5" /> },
+        { id: 'transactions' as const, label: 'Lançamentos', icon: <HiOutlineArrowTrendingUp className="w-5 h-5" /> },
         { id: 'settings' as const, label: 'Configuração', icon: <HiOutlineCog className="w-5 h-5" /> },
     ];
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            {/* Header with Responsive Tabs */}
-            <div className="bg-white dark:bg-dark-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Gestão Financeira</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Controle de Fluxo de Caixa, Contas a Pagar e Receber</p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                        <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />}>Actualizar</Button>
-                        <Button size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => setShowFormModal(true)}>Novo Lançamento</Button>
-                    </div>
-                </div>
-
-                {/* Tab Navigation */}
-                <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
+            <PageHeader 
+                title="Gestão Financeira"
+                subtitle="Controle de Fluxo de Caixa, Contas a Pagar e Receber"
+                icon={<HiOutlineCurrencyDollar />}
+                actions={
+                    <>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
+                        >
+                            Actualizar
+                        </Button>
+                        <Button 
+                            size="sm" 
+                            className="font-black text-[10px] uppercase tracking-widest"
+                            leftIcon={<HiOutlinePlus className="w-4 h-4" />} 
+                            onClick={() => setShowFormModal(true)}
+                        >
+                            Novo Lançamento
+                        </Button>
+                    </>
+                }
+                tabs={
                     <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as FinancialTab)}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
@@ -275,25 +286,25 @@ export default function Financial() {
                             </button>
                         ))}
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             {/* Tab Content Area */}
             <div className="min-h-[400px]">
                 {activeTab === 'transactions' && (
                     <div className="space-y-6">
                         {/* Period Filter for Transactions */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700">
-                            <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                        <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-100/50 dark:bg-dark-800/50 p-3 rounded-2xl border-none">
+                            <div className="flex items-center gap-1 bg-white/50 dark:bg-dark-700/50 rounded-xl p-1 shadow-sm">
                                 {periodOptions.map((option) => (
                                     <button
                                         key={option.value}
                                         onClick={() => setSelectedPeriod(option.value)}
                                         className={cn(
-                                            'px-6 py-2 rounded-md text-xs font-bold transition-all uppercase tracking-widest',
+                                            'px-6 py-2 rounded-lg text-xs font-black transition-all uppercase tracking-widest',
                                             selectedPeriod === option.value
-                                                ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                                ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-md'
+                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                         )}
                                     >
                                         {option.label}
@@ -307,7 +318,7 @@ export default function Financial() {
                             <Card padding="md" className="border-l-4 border-l-green-500">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                        <HiOutlineTrendingUp className="w-6 h-6 text-green-600" />
+                                        <HiOutlineArrowTrendingUp className="w-6 h-6 text-green-600" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Receitas</p>
@@ -319,7 +330,7 @@ export default function Financial() {
                             <Card padding="md" className="border-l-4 border-l-red-500">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                        <HiOutlineTrendingDown className="w-6 h-6 text-red-600" />
+                                        <HiOutlineArrowTrendingDown className="w-6 h-6 text-red-600" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Despesas</p>
@@ -331,7 +342,7 @@ export default function Financial() {
                             <Card padding="md" className="border-l-4 border-l-primary-500">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                        <HiOutlineTrendingUp className="w-6 h-6 text-primary-600" />
+                                        <HiOutlineArrowTrendingUp className="w-6 h-6 text-primary-600" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Saldo</p>
@@ -347,7 +358,7 @@ export default function Financial() {
                             <Card padding="md" className="border-l-4 border-l-yellow-500">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                        <HiOutlineTrendingDown className="w-6 h-6 text-yellow-600" />
+                                        <HiOutlineArrowTrendingDown className="w-6 h-6 text-yellow-600" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Pendentes</p>
@@ -365,7 +376,8 @@ export default function Financial() {
                                         placeholder="Buscar transações..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                                        leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
+                                        className="bg-gray-50/50 dark:bg-dark-900 border-none shadow-sm"
                                     />
                                 </div>
                                 <div className="w-full lg:w-40">
@@ -390,28 +402,14 @@ export default function Financial() {
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
                                     <thead>
-                                        <tr className="bg-gray-50 dark:bg-dark-800">
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                                                Tipo
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                                                Descrição
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                                                Categoria
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                                                Data
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                                                Valor
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                                                Status
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">
-                                                Ações
-                                            </th>
+                                        <tr className="text-[10px] text-gray-400 border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50 uppercase tracking-[0.2em] font-black italic">
+                                            <th className="px-6 py-4 text-left">Tipo</th>
+                                            <th className="px-6 py-4 text-left">Descrição</th>
+                                            <th className="px-6 py-4 text-left">Categoria</th>
+                                            <th className="px-6 py-4 text-left">Data</th>
+                                            <th className="px-6 py-4 text-left">Valor</th>
+                                            <th className="px-6 py-4 text-left">Status</th>
+                                            <th className="px-6 py-4 text-left">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
@@ -449,7 +447,6 @@ export default function Financial() {
                                                             value={t.amount}
                                                             size="sm"
                                                             className="font-semibold"
-                                                            title={t.type === 'income' ? `+${formatCurrency(t.amount)}` : `-${formatCurrency(t.amount)}`}
                                                         />
                                                     </td>
                                                     <td className="px-6 py-4">
@@ -534,7 +531,7 @@ export default function Financial() {
                             )}
                         >
                             <input type="radio" value="income" {...register('type')} className="hidden" />
-                            <HiOutlineTrendingUp className={cn(
+                            <HiOutlineArrowTrendingUp className={cn(
                                 'w-6 h-6',
                                 selectedType === 'income' ? 'text-green-600' : 'text-gray-400'
                             )} />
@@ -554,7 +551,7 @@ export default function Financial() {
                             )}
                         >
                             <input type="radio" value="expense" {...register('type')} className="hidden" />
-                            <HiOutlineTrendingDown className={cn(
+                            <HiOutlineArrowTrendingDown className={cn(
                                 'w-6 h-6',
                                 selectedType === 'expense' ? 'text-red-600' : 'text-gray-400'
                             )} />

@@ -134,7 +134,7 @@ export default function BottleStoreInventory() {
                 </div>
                 <div className="flex gap-3">
                     <Button variant="outline" onClick={() => setShowPrintReport(true)} leftIcon={<HiOutlinePrinter className="w-5 h-5" />}>Imprimir Inventário</Button>
-                    <Button variant="outline" onClick={refetch}>
+                    <Button variant="outline" onClick={() => refetch()}>
                         <HiOutlineRefresh className="w-4 h-4 mr-2" />
                         Atualizar
                     </Button>

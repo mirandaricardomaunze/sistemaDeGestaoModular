@@ -1,5 +1,7 @@
-﻿import 'dotenv/config';
+import 'dotenv/config';
+import 'express-async-errors';
 import express from 'express';
+// ... we need to see index.ts first before replacing
 import cors from 'cors';
 import { prisma } from './lib/prisma';
 import { errorHandler } from './middleware/error.middleware';
@@ -37,12 +39,20 @@ import migrationRoutes from './routes/migration';
 import modulesRoutes from './routes/modules';
 import ordersRoutes from './routes/orders';
 import publicRoutes from './routes/public';
+import restaurantRoutes from './routes/restaurant';
+import batchesRoutes from './routes/batches';
+import validitiesRoutes from './routes/validities';
+import hospitalityChannelsRoutes from './routes/hospitality-channels';
+import commercialRoutes from './routes/commercial';
 
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { rateLimiters } from './middleware/rateLimit';
+import path from 'path';
 
-const app = express();
+import { auditMiddleware } from './middleware/audit';
+
+export const app = express();
 
 // Security Middleware
 app.use(helmet());
@@ -54,8 +64,14 @@ app.use(cors({
 app.use(express.json({ limit: '50kb' })); // Protection against large payloads
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 
+// Serve uploaded files (prescription images, etc.)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // Apply rate limiting to all requests
 app.use('/api', rateLimiters.api);
+
+// Audit mutations (POST, PUT, DELETE, PATCH)
+app.use(auditMiddleware as any);
 
 // Main API Routes
 app.use('/api/auth', authRoutes);
@@ -63,6 +79,7 @@ app.use('/api/sales', salesRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/customers', customersRoutes);
 app.use('/api/hospitality', hospitalityRoutes);
+app.use('/api/hospitality/channels', hospitalityChannelsRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/bottle-store', bottleStoreRoutes);
 app.use('/api/ai', aiRoutes);
@@ -90,6 +107,10 @@ app.use('/api/migration', migrationRoutes);
 app.use('/api/modules', modulesRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/public', publicRoutes);
+app.use('/api/restaurant', restaurantRoutes);
+app.use('/api/batches', batchesRoutes);
+app.use('/api/commercial', commercialRoutes);
+app.use('/api', validitiesRoutes);
 
 app.get('/api/health', async (req, res) => {
     try {
@@ -101,10 +122,16 @@ app.get('/api/health', async (req, res) => {
 });
 app.use(errorHandler);
 
+import { startCronJobs } from './cron/automation';
+
 const PORT = process.env.PORT || 3001;
 const start = async () => {
     try {
         await prisma.$connect();
+        
+        // Start background tasks
+        startCronJobs();
+
         app.listen(PORT, () => console.log(`🚀 MultiCore ERP running on port ${PORT}`));
     } catch (error) {
         console.error('Fatal Error:', error);
@@ -112,4 +139,6 @@ const start = async () => {
     }
 };
 
-start();
+if (process.env.NODE_ENV !== 'test') {
+    start();
+}

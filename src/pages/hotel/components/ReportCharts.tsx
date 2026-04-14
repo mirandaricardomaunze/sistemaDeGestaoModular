@@ -70,7 +70,7 @@ export function ReportCharts({ profitLossReport, roomRevenueReport, type }: Repo
                             Comparativo Geral
                         </h3>
                         <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={256}>
                                 <BarChart data={comparisonData}>
                                     <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
                                     <XAxis dataKey="name" hide />
@@ -91,7 +91,7 @@ export function ReportCharts({ profitLossReport, roomRevenueReport, type }: Repo
                             Distribuição de Receitas
                         </h3>
                         <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={256}>
                                 <PieChart>
                                     <Pie
                                         data={revenueData}
@@ -119,7 +119,7 @@ export function ReportCharts({ profitLossReport, roomRevenueReport, type }: Repo
                             Distribuição de Despesas
                         </h3>
                         <div className="h-64">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={256}>
                                 <PieChart>
                                     <Pie
                                         data={expenseData}
@@ -149,7 +149,7 @@ export function ReportCharts({ profitLossReport, roomRevenueReport, type }: Repo
         return (
             <div className="mb-6">
                 <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height={288}>
                         <BarChart data={roomData}>
                             <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
                             <XAxis dataKey="name" stroke="#94a3b8" />

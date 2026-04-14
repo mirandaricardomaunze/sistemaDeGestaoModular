@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { suppliersAPI } from '../services/api';
@@ -49,7 +50,7 @@ export function useSuppliers(params?: UseSuppliersParams) {
             setSuppliers(suppliersData);
         } catch (err) {
             setError('Erro ao carregar fornecedores');
-            console.error('Error fetching suppliers:', err);
+            logger.error('Error fetching suppliers:', err);
         } finally {
             setIsLoading(false);
         }
@@ -72,7 +73,7 @@ export function useSuppliers(params?: UseSuppliersParams) {
             toast.success('Fornecedor criado com sucesso!');
             return newSupplier;
         } catch (err) {
-            console.error('Error creating supplier:', err);
+            logger.error('Error creating supplier:', err);
             throw err;
         }
     };
@@ -84,7 +85,7 @@ export function useSuppliers(params?: UseSuppliersParams) {
             toast.success('Fornecedor actualizado com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating supplier:', err);
+            logger.error('Error updating supplier:', err);
             throw err;
         }
     };
@@ -95,7 +96,7 @@ export function useSuppliers(params?: UseSuppliersParams) {
             setSuppliers((prev) => prev.filter((s) => s.id !== id));
             toast.success('Fornecedor removido com sucesso!');
         } catch (err) {
-            console.error('Error deleting supplier:', err);
+            logger.error('Error deleting supplier:', err);
             throw err;
         }
     };

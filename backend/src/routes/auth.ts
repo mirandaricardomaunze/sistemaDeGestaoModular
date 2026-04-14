@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma';
@@ -88,47 +88,79 @@ router.post('/login', rateLimiters.auth, async (req, res) => {
 router.post('/register', rateLimiters.auth, async (req, res) => {
     const { email, password, name, companyName, companyNuit, moduleCode } = req.body;
 
+    // Input validation
+    if (!email || !password || !name || !companyName || !moduleCode) {
+        throw ApiError.badRequest('Campos obrigatórios em falta: email, password, name, companyName e moduleCode são necessários.');
+    }
+
+    if (password.length < 6) {
+        throw ApiError.badRequest('A senha deve ter pelo menos 6 caracteres.');
+    }
+
+    // Check for duplicate email
     const existingUser = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (existingUser) throw ApiError.badRequest('Utilizador já existe');
+    if (existingUser) throw ApiError.badRequest('Este email já está registado. Utilize outro email ou faça login.');
+
+    // Check for duplicate NUIT (only if provided)
+    if (companyNuit) {
+        const existingCompany = await prisma.company.findFirst({ where: { nuit: companyNuit } });
+        if (existingCompany) {
+            throw ApiError.badRequest(`O NUIT "${companyNuit}" já está registado por outra empresa. Verifique o número e tente novamente.`);
+        }
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const result = await prisma.$transaction(async (tx) => {
-        // ... (rest of registration logic remains same)
-        const company = await tx.company.create({
-            data: {
-                name: companyName,
-                tradeName: req.body.companyTradeName || companyName,
-                nuit: companyNuit,
-                phone: req.body.companyPhone,
-                email: req.body.companyEmail,
-                address: req.body.companyAddress,
-                modules: {
-                    create: { moduleCode, isActive: true }
+    try {
+        const result = await prisma.$transaction(async (tx) => {
+            const company = await tx.company.create({
+                data: {
+                    name: companyName,
+                    tradeName: req.body.companyTradeName || companyName,
+                    nuit: companyNuit || null,
+                    phone: req.body.companyPhone,
+                    email: req.body.companyEmail,
+                    address: req.body.companyAddress,
+                    modules: {
+                        create: { moduleCode, isActive: true }
+                    }
                 }
-            }
+            });
+
+            const user = await tx.user.create({
+                data: {
+                    email: email.toLowerCase(),
+                    password: hashedPassword,
+                    name,
+                    role: 'admin',
+                    companyId: company.id
+                }
+            });
+
+            return { user, company };
         });
 
-        const user = await tx.user.create({
-            data: {
-                email: email.toLowerCase(),
-                password: hashedPassword,
-                name,
-                role: 'admin',
-                companyId: company.id
+        const token = jwt.sign(
+            { userId: result.user.id, role: result.user.role, companyId: result.company.id },
+            process.env.JWT_SECRET!,
+            { expiresIn: '7d' }
+        );
+
+        res.json({ user: sanitizeUser(result.user), token });
+    } catch (error: any) {
+        // Handle Prisma unique constraint violations
+        if (error?.code === 'P2002') {
+            const target = error?.meta?.target;
+            if (target?.includes('nuit')) {
+                throw ApiError.badRequest('Este NUIT já está registado por outra empresa.');
             }
-        });
-
-        return { user, company };
-    });
-
-    const token = jwt.sign(
-        { userId: result.user.id, role: result.user.role, companyId: result.company.id },
-        process.env.JWT_SECRET!,
-        { expiresIn: '7d' }
-    );
-
-    res.json({ user: sanitizeUser(result.user), token });
+            if (target?.includes('email')) {
+                throw ApiError.badRequest('Este email já está registado.');
+            }
+            throw ApiError.badRequest('Dados duplicados detectados. Verifique o email e NUIT.');
+        }
+        throw error; // Re-throw other errors for the global error handler
+    }
 });
 
 router.get('/me', authenticate, async (req: AuthRequest, res) => {

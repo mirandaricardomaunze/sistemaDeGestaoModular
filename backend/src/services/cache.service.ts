@@ -1,4 +1,5 @@
 ﻿import NodeCache from 'node-cache';
+import { logger } from '../utils/logger';
 
 /**
  * Cache Service for frequently accessed data
@@ -16,16 +17,16 @@ class CacheService {
             useClones: false, // Better performance
         });
 
-        this.cache.on('set', (key, value) => {
-            console.log(`Cache SET: ${key}`);
+        this.cache.on('set', (key) => {
+            logger.debug(`Cache SET: ${key}`);
         });
 
-        this.cache.on('del', (key, value) => {
-            console.log(`Cache DEL: ${key}`);
+        this.cache.on('del', (key) => {
+            logger.debug(`Cache DEL: ${key}`);
         });
 
-        this.cache.on('expired', (key, value) => {
-            console.log(`Cache EXPIRED: ${key}`);
+        this.cache.on('expired', (key) => {
+            logger.debug(`Cache EXPIRED: ${key}`);
         });
     }
 

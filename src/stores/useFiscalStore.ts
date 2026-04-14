@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { generateId } from '../utils/helpers';
@@ -210,7 +211,7 @@ export const useFiscalStore = create<FiscalState>()(
                     // Load Logistics Metrics
                     await get().fetchLogisticsMetrics();
                 } catch (error) {
-                    console.error('Failed to load fiscal data from database:', error);
+                    logger.error('Failed to load fiscal data from database:', error);
                 } finally {
                     set({ isSyncing: false });
                 }
@@ -226,7 +227,7 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     await fiscalAPI.createTaxConfig(config);
                 } catch (error) {
-                    console.error('Failed to sync tax config:', error);
+                    logger.error('Failed to sync tax config:', error);
                 }
             },
 
@@ -241,7 +242,7 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     await fiscalAPI.updateTaxConfig(id, updates);
                 } catch (error) {
-                    console.error('Failed to update tax config:', error);
+                    logger.error('Failed to update tax config:', error);
                 }
             },
 
@@ -266,7 +267,7 @@ export const useFiscalStore = create<FiscalState>()(
                     const bracket = get().irpsBrackets.find(b => b.id === id);
                     if (bracket) await fiscalAPI.createIRPSBracket(bracket);
                 } catch (error) {
-                    console.error('Failed to sync IRPS bracket:', error);
+                    logger.error('Failed to sync IRPS bracket:', error);
                 }
             },
 
@@ -280,7 +281,7 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     await fiscalAPI.createRetention(retention);
                 } catch (error) {
-                    console.error('Failed to sync retention:', error);
+                    logger.error('Failed to sync retention:', error);
                 }
             },
 
@@ -295,7 +296,7 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     await fiscalAPI.updateRetention(id, updates);
                 } catch (error) {
-                    console.error('Failed to update retention:', error);
+                    logger.error('Failed to update retention:', error);
                 }
             },
 
@@ -325,7 +326,7 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     await fiscalAPI.createReport(report);
                 } catch (error) {
-                    console.error('Failed to sync report:', error);
+                    logger.error('Failed to sync report:', error);
                 }
             },
 
@@ -340,7 +341,7 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     await fiscalAPI.updateReport(id, updates);
                 } catch (error) {
-                    console.error('Failed to update report:', error);
+                    logger.error('Failed to update report:', error);
                 }
             },
 
@@ -366,7 +367,7 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     await fiscalAPI.createDeadline(deadline);
                 } catch (error) {
-                    console.error('Failed to sync deadline:', error);
+                    logger.error('Failed to sync deadline:', error);
                 }
             },
 
@@ -381,7 +382,7 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     await fiscalAPI.updateDeadline(id, updates);
                 } catch (error) {
-                    console.error('Failed to update deadline:', error);
+                    logger.error('Failed to update deadline:', error);
                 }
             },
 
@@ -411,7 +412,7 @@ export const useFiscalStore = create<FiscalState>()(
                 try {
                     await fiscalAPI.completeDeadline(id);
                 } catch (error) {
-                    console.error('Failed to complete deadline in database:', error);
+                    logger.error('Failed to complete deadline in database:', error);
                 }
             },
 
@@ -547,7 +548,7 @@ export const useFiscalStore = create<FiscalState>()(
                         set({ logisticsMetrics: data });
                     }
                 } catch (error) {
-                    console.error('Failed to fetch logistics metrics:', error);
+                    logger.error('Failed to fetch logistics metrics:', error);
                 }
             },
 

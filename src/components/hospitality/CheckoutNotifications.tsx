@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿/**
  * CheckoutNotifications Component
  * Shows alerts for today's expected checkouts with quick actions
@@ -43,7 +44,7 @@ export default function CheckoutNotifications({ onViewGuest, onCheckout }: Check
                 const data = await hospitalityAPI.getTodayCheckouts();
                 setCheckouts(data);
             } catch (error) {
-                console.error('Failed to fetch today checkouts:', error);
+                logger.error('Failed to fetch today checkouts:', error);
             } finally {
                 setIsLoading(false);
             }

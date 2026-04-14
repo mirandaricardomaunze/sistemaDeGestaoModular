@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { invoicesAPI } from '../services/api';
@@ -22,6 +23,7 @@ interface UseInvoicesParams {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    originModule?: string;
 }
 
 export function useInvoices(params?: UseInvoicesParams) {
@@ -37,7 +39,7 @@ export function useInvoices(params?: UseInvoicesParams) {
             const sources = await invoicesAPI.getAvailableSources();
             setAvailableSources(sources);
         } catch (err) {
-            console.error('Error fetching available sources:', err);
+            logger.error('Error fetching available sources:', err);
         }
     }, []);
 
@@ -65,7 +67,7 @@ export function useInvoices(params?: UseInvoicesParams) {
             setInvoices(invoicesData);
         } catch (err) {
             setError('Erro ao carregar facturas');
-            console.error('Error fetching invoices:', err);
+            logger.error('Error fetching invoices:', err);
         } finally {
             setIsLoading(false);
         }
@@ -78,7 +80,8 @@ export function useInvoices(params?: UseInvoicesParams) {
         params?.page,
         params?.limit,
         params?.sortBy,
-        params?.sortOrder
+        params?.sortOrder,
+        params?.originModule
     ]);
 
     useEffect(() => {
@@ -105,7 +108,7 @@ export function useInvoices(params?: UseInvoicesParams) {
             toast.success('Factura criada e IVA registado na Gestão Fiscal!');
             return newInvoice;
         } catch (err) {
-            console.error('Error creating invoice:', err);
+            logger.error('Error creating invoice:', err);
             throw err;
         }
     };
@@ -117,7 +120,7 @@ export function useInvoices(params?: UseInvoicesParams) {
             toast.success('Factura actualizada com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating invoice:', err);
+            logger.error('Error updating invoice:', err);
             throw err;
         }
     };
@@ -132,7 +135,7 @@ export function useInvoices(params?: UseInvoicesParams) {
             toast.success('Pagamento registado com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error adding payment:', err);
+            logger.error('Error adding payment:', err);
             throw err;
         }
     };
@@ -144,10 +147,24 @@ export function useInvoices(params?: UseInvoicesParams) {
             toast.success('Factura cancelada com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error canceling invoice:', err);
+            logger.error('Error canceling invoice:', err);
             throw err;
         }
     };
+
+    const getInvoiceById = useCallback(async (id: string) => {
+        setIsLoading(true);
+        try {
+            const invoice = await invoicesAPI.getById(id);
+            return invoice;
+        } catch (err) {
+            logger.error('Error fetching invoice details:', err);
+            toast.error('Erro ao carregar detalhes da factura');
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     return {
         invoices,
@@ -161,5 +178,6 @@ export function useInvoices(params?: UseInvoicesParams) {
         updateInvoice,
         addPayment,
         cancelInvoice,
+        getInvoiceById,
     };
 }

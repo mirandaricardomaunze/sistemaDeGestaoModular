@@ -1,10 +1,10 @@
-﻿/**
+/**
  * Delivery Routes Management Page
  * List, create, edit, and delete delivery routes
  */
 
 import { useState } from 'react';
-import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, Pagination } from '../../components/ui';
+import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, Pagination, PageHeader } from '../../components/ui';
 import {
     HiOutlineMap,
     HiOutlinePlus,
@@ -18,8 +18,11 @@ import {
 } from 'react-icons/hi2';
 import { useDeliveryRoutes, useCreateRoute, useUpdateRoute, useDeleteRoute } from '../../hooks/useLogistics';
 import type { DeliveryRoute } from '../../services/api/logistics.api';
+import LogisticsMap from '../../components/logistics/LogisticsMap';
+import { useTranslation } from 'react-i18next';
 
 export default function RoutesPage() {
+    const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [activeFilter, setActiveFilter] = useState('');
     const [page, setPage] = useState(1);
@@ -27,6 +30,7 @@ export default function RoutesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRoute, setEditingRoute] = useState<DeliveryRoute | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+    const [previewRoute, setPreviewRoute] = useState<DeliveryRoute | null>(null);
 
     const { data, isLoading, refetch } = useDeliveryRoutes({
         search: search || undefined,
@@ -130,27 +134,44 @@ export default function RoutesPage() {
         return `${mins}min`;
     };
 
+    /** Mock coordinates for visualization demo */
+    const getMockCoords = (name: string) => {
+        const hash = name.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
+        return {
+            lat: -25.9692 + (hash % 100) / 1000,
+            lng: 32.5732 + (hash % 80) / 1000
+        };
+    };
+
     if (isLoading) {
         return <LoadingSpinner size="xl" className="h-96" />;
     }
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Rotas</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Definir rotas de entrega e estimativas</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()}>
-                        Actualizar
-                    </Button>
-                    <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => openModal()}>
-                        Nova Rota
-                    </Button>
-                </div>
-            </div>
+            <PageHeader
+                title={t('logistics_module.routes.title')}
+                subtitle={t('logistics_module.routes.subtitle')}
+                icon={<HiOutlineMap />}
+                actions={
+                    <div className="flex gap-2 items-center">
+                        <Button
+                            variant="outline"
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                            onClick={() => refetch()}
+                        >
+                            {t('common.refresh')}
+                        </Button>
+                        <Button
+                            variant="primary"
+                            leftIcon={<HiOutlinePlus className="w-5 h-5" />}
+                            onClick={() => openModal()}
+                        >
+                            {t('logistics_module.routes.add')}
+                        </Button>
+                    </div>
+                }
+            />
 
             {/* Filters */}
             <Card variant="glass" className="p-4">
@@ -158,7 +179,7 @@ export default function RoutesPage() {
                     <div className="relative">
                         <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <Input
-                            placeholder="Pesquisar por nome, código, origem, destino..."
+                            placeholder={t('logistics_module.routes.searchPlaceholder')}
                             className="pl-10"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -166,15 +187,15 @@ export default function RoutesPage() {
                     </div>
                     <Select
                         options={[
-                            { value: '', label: 'Todas as Rotas' },
-                            { value: 'true', label: 'Activas' },
-                            { value: 'false', label: 'Inactivas' }
+                            { value: '', label: t('common.all') },
+                            { value: 'true', label: t('logistics_module.routes.active') },
+                            { value: 'false', label: t('logistics_module.routes.inactive') }
                         ]}
                         value={activeFilter}
                         onChange={(e) => setActiveFilter(e.target.value)}
                     />
                     <div className="text-right text-sm text-gray-500 dark:text-gray-400 self-center">
-                        {data?.pagination.total || 0} rota(s) encontrada(s)
+                        {data?.pagination.total || 0} {t('common.results_found')}
                     </div>
                 </div>
             </Card>
@@ -185,15 +206,15 @@ export default function RoutesPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-gray-50 dark:bg-dark-800 text-gray-500 dark:text-gray-400 uppercase text-xs">
-                                <th className="p-4 font-semibold">Código</th>
-                                <th className="p-4 font-semibold">Nome</th>
-                                <th className="p-4 font-semibold">Trajecto</th>
-                                <th className="p-4 font-semibold text-center">Distância</th>
-                                <th className="p-4 font-semibold text-center">Tempo Est.</th>
-                                <th className="p-4 font-semibold text-center">Custos</th>
-                                <th className="p-4 font-semibold text-center">Estado</th>
-                                <th className="p-4 font-semibold text-center">Entregas</th>
-                                <th className="p-4 font-semibold text-center">Acções</th>
+                                <th className="p-4 font-semibold">{t('logistics_module.routes.code')}</th>
+                                <th className="p-4 font-semibold">{t('logistics_module.routes.name')}</th>
+                                <th className="p-4 font-semibold">{t('logistics_module.routes.path')}</th>
+                                <th className="p-4 font-semibold text-center">{t('logistics_module.routes.distance')}</th>
+                                <th className="p-4 font-semibold text-center">{t('logistics_module.routes.estimatedTime')}</th>
+                                <th className="p-4 font-semibold text-center">{t('common.costs')}</th>
+                                <th className="p-4 font-semibold text-center">{t('common.status')}</th>
+                                <th className="p-4 font-semibold text-center">{t('logistics_module.deliveries.title')}</th>
+                                <th className="p-4 font-semibold text-center">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y dark:divide-dark-700">
@@ -227,7 +248,7 @@ export default function RoutesPage() {
                                     </td>
                                     <td className="p-4 text-center">
                                         <Badge variant={route.isActive ? 'success' : 'danger'}>
-                                            {route.isActive ? 'Activa' : 'Inactiva'}
+                                            {route.isActive ? t('logistics_module.routes.active') : t('logistics_module.routes.inactive')}
                                         </Badge>
                                     </td>
                                     <td className="p-4 text-center">
@@ -235,6 +256,9 @@ export default function RoutesPage() {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center justify-center gap-2">
+                                            <Button variant="ghost" size="sm" className="text-blue-600" onClick={() => setPreviewRoute(route)}>
+                                                <HiOutlineMap className="w-5 h-5" />
+                                            </Button>
                                             <Button variant="ghost" size="sm" onClick={() => openModal(route)}>
                                                 <HiOutlinePencil className="w-5 h-5" />
                                             </Button>
@@ -252,10 +276,10 @@ export default function RoutesPage() {
                 {data?.data.length === 0 && (
                     <div className="p-12 text-center">
                         <HiOutlineMap className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhuma rota encontrada</h3>
-                        <p className="text-gray-500 dark:text-gray-400 mb-4">Crie rotas para organizar as entregas.</p>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('logistics_module.routes.noRoutes')}</h3>
+                        <p className="text-gray-500 dark:text-gray-400 mb-4">{t('logistics_module.vehicles.startAdding')}</p>
                         <Button onClick={() => openModal()}>
-                            <HiOutlinePlus className="w-5 h-5 mr-2" /> Criar Rota
+                            <HiOutlinePlus className="w-5 h-5 mr-2" /> {t('logistics_module.routes.add')}
                         </Button>
                     </div>
                 )}
@@ -282,13 +306,13 @@ export default function RoutesPage() {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => { setIsModalOpen(false); resetForm(); }}
-                title={editingRoute ? 'Editar Rota' : 'Nova Rota'}
+                title={editingRoute ? t('logistics_module.routes.edit') : t('logistics_module.routes.add')}
                 size="lg"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Código *"
+                            label={`${t('logistics_module.routes.code')} *`}
                             placeholder="RT001"
                             value={formData.code}
                             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
@@ -296,7 +320,7 @@ export default function RoutesPage() {
                             disabled={!!editingRoute}
                         />
                         <Input
-                            label="Nome da Rota *"
+                            label={`${t('logistics_module.routes.name')} *`}
                             placeholder="Maputo Centro - Matola"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -306,14 +330,14 @@ export default function RoutesPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Origem *"
+                            label={`${t('logistics_module.routes.origin')} *`}
                             placeholder="Cidade/Local de partida"
                             value={formData.origin}
                             onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
                             required
                         />
                         <Input
-                            label="Destino *"
+                            label={`${t('logistics_module.routes.destination')} *`}
                             placeholder="Cidade/Local de chegada"
                             value={formData.destination}
                             onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
@@ -323,7 +347,7 @@ export default function RoutesPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Distância (km)"
+                            label={t('logistics_module.routes.distance')}
                             type="number"
                             step="0.1"
                             placeholder="0.0"
@@ -331,7 +355,7 @@ export default function RoutesPage() {
                             onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
                         />
                         <Input
-                            label="Tempo Estimado (minutos)"
+                            label={t('logistics_module.routes.estimatedTime')}
                             type="number"
                             placeholder="60"
                             value={formData.estimatedTime}
@@ -341,7 +365,7 @@ export default function RoutesPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Custo de Portagem (MZN)"
+                            label={t('logistics_module.routes.tollCost')}
                             type="number"
                             step="0.01"
                             placeholder="0.00"
@@ -349,7 +373,7 @@ export default function RoutesPage() {
                             onChange={(e) => setFormData({ ...formData, tollCost: e.target.value })}
                         />
                         <Input
-                            label="Estimativa de Combustível (MZN)"
+                            label={t('logistics_module.routes.fuelEstimate')}
                             type="number"
                             step="0.01"
                             placeholder="0.00"
@@ -365,7 +389,7 @@ export default function RoutesPage() {
                             onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                             className="w-4 h-4 rounded border-gray-300"
                         />
-                        <span>Rota activa</span>
+                        <span>{t('logistics_module.routes.active')}</span>
                     </label>
 
                     <Input
@@ -377,10 +401,10 @@ export default function RoutesPage() {
 
                     <div className="flex gap-3 pt-4">
                         <Button variant="outline" className="flex-1" onClick={() => { setIsModalOpen(false); resetForm(); }}>
-                            Cancelar
+                            {t('common.cancel')}
                         </Button>
                         <Button type="submit" className="flex-1" isLoading={createMutation.isLoading || updateMutation.isLoading}>
-                            {editingRoute ? 'Actualizar' : 'Criar Rota'}
+                            {editingRoute ? t('common.save') : t('logistics_module.routes.add')}
                         </Button>
                     </div>
                 </form>
@@ -390,23 +414,84 @@ export default function RoutesPage() {
             <Modal
                 isOpen={!!deleteConfirm}
                 onClose={() => setDeleteConfirm(null)}
-                title="Confirmar Eliminação"
+                title={t('common.confirmDelete')}
                 size="sm"
             >
                 <div className="text-center py-4">
                     <HiOutlineExclamationCircle className="w-16 h-16 mx-auto text-red-500 mb-4" />
                     <p className="text-gray-600 dark:text-gray-300 mb-6">
-                        Tem certeza que deseja eliminar esta rota? Esta acção não pode ser revertida.
+                        {t('messages.confirmDelete')}
                     </p>
                     <div className="flex gap-3">
                         <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>
-                            Cancelar
+                            {t('common.cancel')}
                         </Button>
                         <Button variant="danger" className="flex-1" onClick={() => handleDelete(deleteConfirm!)} isLoading={deleteMutation.isLoading}>
-                            Eliminar
+                            {t('common.delete')}
                         </Button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* Route Preview Modal */}
+            <Modal
+                isOpen={!!previewRoute}
+                onClose={() => setPreviewRoute(null)}
+                title={previewRoute ? `Visualização: ${previewRoute.name}` : ''}
+                size="lg"
+            >
+                {previewRoute && (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-3 gap-4 mb-4">
+                            <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-xl border border-gray-100 dark:border-dark-700">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase">{t('logistics_module.routes.distance')}</p>
+                                <p className="text-lg font-black text-primary-600">{previewRoute.distance || '--'} km</p>
+                            </div>
+                            <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-xl border border-gray-100 dark:border-dark-700">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase">{t('logistics_module.routes.estimatedTime')}</p>
+                                <p className="text-lg font-black text-primary-600">{formatDuration(previewRoute.estimatedTime)}</p>
+                            </div>
+                            <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-xl border border-gray-100 dark:border-dark-700">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase">Eficiência AI</p>
+                                <Badge variant="success" size="sm" className="mt-1">94% Óptimo</Badge>
+                            </div>
+                        </div>
+
+                        <LogisticsMap 
+                            className="h-[400px] w-full border-none shadow-none"
+                            showRoutes
+                            locations={[
+                                { 
+                                    ...getMockCoords(previewRoute.origin), 
+                                    label: `Origem: ${previewRoute.origin}`,
+                                    type: 'warehouse'
+                                },
+                                { 
+                                    ...getMockCoords(previewRoute.destination), 
+                                    label: `Destino: ${previewRoute.destination}`,
+                                    type: 'delivery',
+                                    status: 'scheduled'
+                                }
+                            ]}
+                        />
+
+                        <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/30 flex gap-3">
+                            <HiOutlineExclamationCircle className="w-6 h-6 text-amber-600 shrink-0" />
+                            <div>
+                                <h4 className="text-sm font-bold text-amber-800 dark:text-amber-400">Sugestão de Optimização</h4>
+                                <p className="text-xs text-amber-700 dark:text-amber-500 mt-0.5">
+                                    Baseado no tráfego actual, recomenda-se iniciar esta rota 15 minutos mais cedo para evitar o congestionamento na {previewRoute.origin}.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 pt-2">
+                            <Button variant="outline" className="flex-1" onClick={() => setPreviewRoute(null)}>
+                                {t('common.close')}
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Modal>
         </div>
     );

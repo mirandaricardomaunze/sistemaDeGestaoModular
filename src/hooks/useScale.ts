@@ -1,71 +1,168 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { parseScaleData, hasSerialSupport, type ScaleReading } from '../utils/hardware';
 
-export interface ScaleData {
-    weight: number;
-    unit: string;
-    stable: boolean;
+// ── Estado da balança ─────────────────────────────────────────────────────────
+
+type ScaleStatus = 'disconnected' | 'connecting' | 'connected' | 'reading' | 'error';
+
+export interface UseScaleReturn {
+    // Estado
+    status: ScaleStatus;
+    isConnected: boolean;
+    isSupported: boolean;
+    reading: ScaleReading | null;
+    error: string | null;
+
+    // Acções
+    connect: () => Promise<void>;
+    disconnect: () => Promise<void>;
+    captureWeight: () => ScaleReading | null; // captura o último peso estável
 }
 
-export const useScale = () => {
-    const [port, setPort] = useState<any>(null);
-    const [weight, setWeight] = useState<number>(0);
-    const [isReading, setIsReading] = useState(false);
+// Buffer para acumular bytes parciais da porta série
+let lineBuffer = '';
+
+export function useScale(): UseScaleReturn {
+    const [status, setStatus] = useState<ScaleStatus>('disconnected');
+    const [reading, setReading] = useState<ScaleReading | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const connect = useCallback(async () => {
-        try {
-            if (!('serial' in navigator)) {
-                throw new Error('Web Serial API não suportada');
-            }
+    const portRef = useRef<any>(null);
+    const readerRef = useRef<any>(null);
+    const abortRef = useRef<boolean>(false);
 
-            const p = await (navigator as any).serial.requestPort();
-            await p.open({ baudRate: 9600 });
-            setPort(p);
-            setError(null);
-        } catch (err: any) {
-            setError(err.message);
+    const isSupported = hasSerialSupport();
+
+    // ── Leitura contínua ──────────────────────────────────────────────────────
+    const startReading = useCallback(async (port: any) => {
+        abortRef.current = false;
+        setStatus('reading');
+
+        const decoder = new TextDecoder();
+
+        try {
+            while (!abortRef.current && port.readable) {
+                readerRef.current = port.readable.getReader();
+                try {
+                    while (!abortRef.current) {
+                        const { value, done } = await readerRef.current.read();
+                        if (done) break;
+
+                        lineBuffer += decoder.decode(value, { stream: true });
+
+                        // Processa linhas completas (terminadas com \n ou \r\n)
+                        const lines = lineBuffer.split(/\r?\n/);
+                        lineBuffer = lines.pop() ?? ''; // guarda fragmento incompleto
+
+                        for (const line of lines) {
+                            const parsed = parseScaleData(line);
+                            if (parsed && parsed.weight >= 0) {
+                                setReading(parsed);
+                                setError(null);
+                            }
+                        }
+                    }
+                } catch (err: any) {
+                    if (!abortRef.current) {
+                        setError('Erro na leitura: ' + err.message);
+                    }
+                } finally {
+                    try { readerRef.current?.releaseLock(); } catch { /* ignore */ }
+                }
+            }
+        } catch {
+            // porta fechada normalmente
+        }
+
+        if (!abortRef.current) {
+            setStatus('error');
+            setError('Ligação à balança perdida');
         }
     }, []);
 
-    const startReading = useCallback(async () => {
-        if (!port || isReading) return;
+    // ── Conectar ──────────────────────────────────────────────────────────────
+    const connect = useCallback(async () => {
+        if (!isSupported) {
+            setError('Web Serial API não suportada. Use Chrome 89+');
+            setStatus('error');
+            return;
+        }
+        if (portRef.current) return; // já conectado
 
-        setIsReading(true);
-        const reader = port.readable.getReader();
+        setStatus('connecting');
+        setError(null);
 
         try {
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
+            // Tenta porta já autorizada primeiro
+            const existingPorts = await (navigator as any).serial.getPorts();
+            let port = existingPorts[0];
 
-                // Simple parser for common scale protocols (STX + weight + ETX)
-                // This is generic and might need specific adjustments for Toledo/Filizola
-                const text = new TextDecoder().decode(value);
-                const match = text.match(/(\d+\.\d+|\d+)/);
-                if (match) {
-                    setWeight(parseFloat(match[0]));
-                }
+            if (!port) {
+                // Pede ao utilizador para seleccionar a porta da balança
+                port = await (navigator as any).serial.requestPort({
+                    filters: [] // aceita qualquer dispositivo série
+                });
             }
-        } catch (err: any) {
-            setError(err.message);
-        } finally {
-            reader.releaseLock();
-            setIsReading(false);
-        }
-    }, [port, isReading]);
 
+            // Configuração padrão para balanças comerciais
+            // Toledo/Filizola: 9600, 8N1 | Mettler: 9600, 8N1
+            await port.open({
+                baudRate: 9600,
+                dataBits: 8,
+                stopBits: 1,
+                parity: 'none',
+                flowControl: 'none',
+            });
+
+            portRef.current = port;
+            setStatus('connected');
+
+            // Inicia leitura em background
+            startReading(port);
+        } catch (err: any) {
+            if (err.name !== 'NotFoundError') { // utilizador cancelou a seleção
+                setError(err.message || 'Erro ao conectar à balança');
+                setStatus('error');
+            } else {
+                setStatus('disconnected');
+            }
+        }
+    }, [isSupported, startReading]);
+
+    // ── Desconectar ───────────────────────────────────────────────────────────
+    const disconnect = useCallback(async () => {
+        abortRef.current = true;
+        try { readerRef.current?.cancel(); } catch { /* ignore */ }
+        try { await portRef.current?.close(); } catch { /* ignore */ }
+        portRef.current = null;
+        lineBuffer = '';
+        setStatus('disconnected');
+        setReading(null);
+        setError(null);
+    }, []);
+
+    // ── Captura de peso ───────────────────────────────────────────────────────
+    const captureWeight = useCallback((): ScaleReading | null => {
+        return reading;
+    }, [reading]);
+
+    // Cleanup ao desmontar
     useEffect(() => {
         return () => {
-            if (port) port.close();
+            abortRef.current = true;
+            try { readerRef.current?.cancel(); } catch { /* ignore */ }
+            try { portRef.current?.close(); } catch { /* ignore */ }
         };
-    }, [port]);
+    }, []);
 
     return {
-        connect,
-        startReading,
-        weight,
-        isReading,
+        status,
+        isConnected: status === 'reading' || status === 'connected',
+        isSupported,
+        reading,
         error,
-        isConnected: !!port
+        connect,
+        disconnect,
+        captureWeight,
     };
-};
+}

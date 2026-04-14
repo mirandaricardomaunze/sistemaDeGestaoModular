@@ -68,7 +68,7 @@
         "apply": "Aplicar"
     },
     "nav": {
-        "history": "Histórico",
+        "history": "Vendas Realizadas",
         "stock_movements": "Movimentos de Stock",
         "dashboard": "Painel",
         "inventory": "Inventário",
@@ -89,6 +89,9 @@
         "audit": "Auditoria",
         "backups": "Backups",
         "products": "Produtos",
+        "warehouses": "Armazéns",
+        "transfers": "Transferências",
+        "shifts": "Turnos de Caixa",
         "pharmacy_manage": "Gestão de Farmácia"
     },
     "auth": {
@@ -369,5 +372,433 @@
         "bottlestore": "Garrafeira / Distribuição",
         "logistics": "Logística / Transportes",
         "supermarket": "Supermercado"
+    },
+    "logistics_module": {
+      "hr": {
+        "title": "Recursos Humanos de Logística",
+        "subtitle": "Gestão estratégica de pessoal e performance",
+        "tabs": {
+          "dashboard": "Painel de Pessoal",
+          "staff": "Equipe Técnica",
+          "attendance": "Área de Ponto",
+          "payroll": "Folha de Salário",
+          "compliance": "Documentos e Conformidade"
+        },
+        "categories": {
+          "all": "Todo o Pessoal",
+          "driver": "Motorista",
+          "mechanic": "Mecânico",
+          "warehouse": "Fiel de Armazém",
+          "manager": "Gestor de Frota",
+          "admin": "Administrativo",
+          "other": "Outros"
+        },
+        "stats": {
+          "attendance": "Taxa de Assiduidade",
+          "efficiency": "Eficiência da Frota",
+          "safety": "Índice de Segurança",
+          "productivity": "Produtividade de Entregas"
+        },
+        "complianceDocs": {
+          "license": "Carta de Condução",
+          "medical": "Exame Médico",
+          "adr": "Certificação ADR",
+          "safety": "Treino de Segurança"
+        },
+        "attendance": {
+          "title": "Controle de Assiduidade",
+          "checkIn": "Registar Entrada",
+          "checkOut": "Registar Saída",
+          "inService": "Em Serviço",
+          "finished": "Finalizado",
+          "waiting": "Em Espera"
+        },
+        "payroll": {
+          "title": "Gestão de Folha Salarial",
+          "base": "Salário Base",
+          "commissions": "Comissões",
+          "deductions": "Deduções",
+          "net": "Salário Líquido",
+          "generate": "Gerar Folha",
+          "pay": "Pagar",
+          "statuses": {
+            "draft": "Rascunho",
+            "processed": "Processado",
+            "paid": "Pago"
+          }
+        }
+      },
+        "fuel": {
+            "title": "Gestão de Combustível",
+            "subtitle": "Controle de abastecimentos e consumo da frota",
+            "add": "Registar Abastecimento",
+            "liters": "Litros",
+            "pricePerLiter": "Preço/Litro",
+            "amount": "Valor Total",
+            "mileage": "Kilometragem",
+            "provider": "Posto / Fornecedor",
+            "consumption": "Consumo Médio",
+            "monthlyCost": "Custo este Mês",
+            "stats": "Estatísticas de Combustível"
+        },
+        "incidents": {
+            "title": "Registo de Incidentes",
+            "subtitle": "Histórico de acidentes, multas e avarias",
+            "add": "Reportar Incidente",
+            "types": {
+                "accident": "Acidente",
+                "fine": "Multa",
+                "breakdown": "Avaria",
+                "theft": "Roubo",
+                "other": "Outro"
+            },
+            "severity": {
+                "low": "Baixa",
+                "medium": "Média",
+                "high": "Alta",
+                "critical": "Crítica"
+            },
+            "status": {
+                "open": "Aberto",
+                "resolved": "Resolvido",
+                "closed": "Fechado"
+            },
+            "cost": "Custo do Incidente",
+            "location": "Localização"
+        },
+        "delivery": {
+            "proof": "Prova de Entrega",
+            "sign": "Colher Assinatura",
+            "signature": "Assinatura do Destinatário",
+            "clear": "Limpar",
+            "complete": "Concluir Entrega",
+            "success": "Entrega concluída com sucesso",
+            "signRequired": "A assinatura é obrigatória para concluir"
+        },
+        "vehicles": {
+            "title": "Gestão de Veículos",
+            "subtitle": "Gerir frota de veículos para entregas",
+            "add": "Novo Veículo",
+            "edit": "Editar Veículo",
+            "plate": "Matrícula",
+            "brand": "Marca",
+            "model": "Modelo",
+            "year": "Ano",
+            "type": "Tipo de Veículo",
+            "capacity": "Capacidade",
+            "unit": "Unidade",
+            "fuelType": "Combustível",
+            "status": "Estado",
+            "mileage": "Quilometragem",
+            "insurance": "Validade do Seguro",
+            "notes": "Observações",
+            "searchPlaceholder": "Pesquisar por matrícula, marca...",
+            "noVehicles": "Nenhum veículo encontrado",
+            "startAdding": "Comece adicionando o primeiro veículo da frota.",
+            "insuranceExpiry": "Seguro Expirado",
+            "insuranceDays": "Seguro: {{days}}d",
+            "types": {
+                "truck": "Camião",
+                "van": "Carrinha",
+                "motorcycle": "Mota",
+                "car": "Carro",
+                "bicycle": "Bicicleta",
+                "other": "Outro"
+            },
+            "statuses": {
+                "available": "Disponível",
+                "in_use": "Em Uso",
+                "maintenance": "Manutenção",
+                "inactive": "Inactivo"
+            }
+        },
+        "drivers": {
+            "title": "Gestão de Motoristas",
+            "subtitle": "Gerir motoristas e condutores de entregas",
+            "add": "Novo Motorista",
+            "edit": "Editar Motorista",
+            "code": "Código",
+            "name": "Nome Completo",
+            "phone": "Telefone",
+            "email": "Email",
+            "license": "Nº Carta de Condução",
+            "category": "Categoria",
+            "expiry": "Validade Carta",
+            "hireDate": "Data de Contratação",
+            "emergency": "Contacto de Emergência",
+            "address": "Morada",
+            "searchPlaceholder": "Pesquisar por nome, código, telefone...",
+            "noDrivers": "Nenhum motorista encontrado",
+            "startAdding": "Comece adicionando o primeiro motorista.",
+            "licenseExpired": "Carta Expirada",
+            "licenseDays": "Carta: {{days}}d",
+            "statuses": {
+                "available": "Disponível",
+                "on_delivery": "Em Entrega",
+                "off_duty": "Fora de Serviço",
+                "inactive": "Inactivo"
+            }
+        },
+        "routes": {
+            "title": "Gestão de Rotas",
+            "subtitle": "Definir rotas de entrega e estimativas",
+            "add": "Nova Rota",
+            "edit": "Editar Rota",
+            "code": "Código",
+            "name": "Nome da Rota",
+            "origin": "Origem",
+            "destination": "Destino",
+            "distance": "Distância",
+            "estimatedTime": "Tempo Estimado",
+            "tollCost": "Custo de Portagem",
+            "fuelEstimate": "Estimativa de Combustível",
+            "active": "Rota activa",
+            "inactive": "Inactiva",
+            "searchPlaceholder": "Pesquisar por nome, código, origem, destino...",
+            "noRoutes": "Nenhuma rota encontrada",
+            "path": "Trajecto"
+        },
+        "deliveries": {
+            "title": "Gestão de Entregas",
+            "subtitle": "Acompanhe e gerencie todas as entregas operacionais",
+            "add": "Nova Entrega",
+            "number": "Número",
+            "recipient": "Destinatário",
+            "address": "Endereço",
+            "driver": "Motorista",
+            "route": "Rota",
+            "vehicle": "Veículo",
+            "priority": "Prioridade",
+            "scheduled": "Data Agendada",
+            "items": "Itens para Entregar",
+            "addItem": "Adicionar Item",
+            "shippingCost": "Custo de Envio",
+            "paid": "Pago",
+            "manifest": "Manifesto de Carga",
+            "generateManifest": "Gerar Manifesto",
+            "selectDriver": "Seleccione um motorista",
+            "noPending": "Nenhuma entrega pendente para este motorista hoje.",
+            "searchPlaceholder": "Pesquisar por número, destinatário...",
+            "noDeliveries": "Nenhuma entrega encontrada",
+            "status": {
+                "pending": "Pendente",
+                "scheduled": "Agendada",
+                "in_transit": "Em Trânsito",
+                "out_for_delivery": "Saiu para Entrega",
+                "delivered": "Entregue",
+                "failed": "Falhou",
+                "returned": "Devolvida",
+                "cancelled": "Cancelada"
+            },
+            "priorities": {
+                "low": "Baixa",
+                "normal": "Normal",
+                "high": "Alta",
+                "urgent": "Urgente"
+            }
+        },
+        "parcels": {
+            "title": "Gestão de Encomendas",
+            "subtitle": "Receber e gerir encomendas para levantamento",
+            "newParcel": "Nova Encomenda",
+            "parcel": "Encomenda",
+            "found": "encomenda(s) encontrada(s)",
+            "notFound": "Nenhuma encomenda encontrada",
+            "startRegister": "Registre uma nova encomenda para começar.",
+            "searchPlaceholder": "Pesquisar por tracking, nome, telefone...",
+            "received": "Recebida",
+            "recipient": "Destinatário",
+            "sender": "Remetente",
+            "senderInfo": "Dados do Remetente",
+            "recipientInfo": "Dados do Destinatário",
+            "parcelInfo": "Dados da Encomenda",
+            "senderName": "Nome do Remetente",
+            "senderPhone": "Telefone do Remetente",
+            "recipientName": "Nome do Destinatário",
+            "recipientPhone": "Telefone do Destinatário",
+            "trackingNumber": "Número de Rastreio",
+            "trackingNumberCopied": "Número de rastreio copiado!",
+            "weight": "Peso",
+            "dimensions": "Dimensões",
+            "location": "Local",
+            "fee": "Taxa",
+            "expectedPickup": "Data Prevista de Levantamento",
+            "pickup": "Levantamento",
+            "pickedUpBy": "Nome de Quem Levanta",
+            "relationship": "Parentesco/Relação",
+            "sendNotification": "Enviar Notificação",
+            "notifyPlaceholder": "Escreva a mensagem para o destinatário...",
+            "sendSms": "Enviar SMS",
+            "parcelDetails": "Detalhes da Encomenda",
+            "status": {
+                "received": "Recebida",
+                "awaiting_pickup": "Aguardando Levantamento",
+                "picked_up": "Levantada",
+                "overdue": "Atrasada",
+                "returned_to_sender": "Devolvida ao Remetente",
+                "lost": "Extraviada"
+            }
+        },
+        "maintenance": {
+            "title": "Manutenção de Veículos",
+            "subtitle": "Gerencie as manutenções da frota",
+            "add": "Nova Manutenção",
+            "edit": "Editar Manutenção",
+            "records": "Registos",
+            "totalRecords": "Total Registos",
+            "scheduled": "Agendadas",
+            "completed": "Concluídas",
+            "totalCost": "Custo Total",
+            "upcoming": "Manutenções Próximas (30 dias)",
+            "searchPlaceholder": "Pesquisar descrição, fornecedor...",
+            "allVehicles": "Todos os Veículos",
+            "types": {
+                "preventive": "Preventiva",
+                "corrective": "Correctiva",
+                "inspection": "Inspecção",
+                "emergency": "Emergência"
+            },
+            "statuses": {
+                "scheduled": "Agendada",
+                "in_progress": "Em Andamento",
+                "completed": "Concluída",
+                "cancelled": "Cancelada"
+            },
+            "description": "Descrição",
+            "nextDate": "Próxima Manutenção",
+            "mileage": "Quilometragem",
+            "provider": "Fornecedor/Oficina",
+            "placeholderProvider": "Nome da oficina..."
+        },
+        "dashboard": {
+            "title": "Logística e Cadeia de Suprimentos",
+            "subtitle": "Monitoramento centralizado de armazéns, fluxo de mercadorias e transferências inteligentes",
+            "syncing": "Sincronizando Cadeia de Suprimentos...",
+            "newTransfer": "Nova Transferência",
+            "registerTransfer": "Registar Transferência",
+            "transferSameError": "Origem e destino não podem ser iguais",
+            "insightsSubtitle": "Otimização de rotas e logística detetada pela IA",
+            "warehouseNetwork": "Rede de Armazéns",
+            "stockOccupation": "OCUPAÇÃO DE STOCK",
+            "recentActivity": "Actividade Recente",
+            "liveTransfers": "TRANSFERÊNCIAS LIVE",
+            "transferItems": "Itens da Transferência",
+            "addProduct": "Adicionar Produto",
+            "periods": {
+                "today": "Hoje",
+                "month": "Este Mês",
+                "2months": "Últimos 2 Meses",
+                "3months": "Últimos 3 Meses",
+                "year": "Este Ano",
+                "all": "Todo Histórico"
+            },
+            "kpis": {
+                "totalStock": "Stock Total",
+                "itemsInNetwork": "Itens em rede",
+                "pickupRevenue": "Receita Pickups",
+                "totalPickups": "Total pickups",
+                "deliveryRevenue": "Receita Entregas",
+                "totalShipments": "Total envios",
+                "regions": "Regiões"
+            },
+            "charts": {
+                "flow": "Fluxo de Mercadorias (7 Dias)",
+                "transferVolume": "Volume de Transferências",
+                "distribution": "Distribuição de Stock por Hub"
+            },
+            "reports": {
+                "logisticsReport": "RELATÓRIO LOGÍSTICO",
+                "totalTransfers": "Total Transferências"
+            }
+        },
+        "hotel_module": {
+            "dashboard": {
+                "title": "Painel Hoteleiro",
+                "subtitle": "Visão geral de ocupação, receitas e métricas",
+                "metrics": {
+                    "monthlyRevenue": "Receita Mensal",
+                    "occupancyRate": "Taxa de Ocupação",
+                    "occupiedRooms": "Quartos Ocupados",
+                    "pendingCheckouts": "Check-outs Pendentes",
+                    "todayRevenue": "Receita Hoje",
+                    "todayCheckIns": "Check-ins Hoje",
+                    "availableRooms": "Quartos Disponíveis"
+                },
+                "charts": {
+                    "revenueByPeriod": "Receita por Período",
+                    "roomTypes": "Tipos de Quarto",
+                    "weeklyRevenue": "Receita Semanal"
+                },
+                "recentBookings": "Reservas Recentes",
+                "quickActions": "Acções Rápidas",
+                "alerts": "Alertas",
+                "noAlerts": "Nenhum alerta pendente"
+            },
+            "rooms": {
+                "title": "Gestão de Quartos",
+                "subtitle": "Controle de ocupação e manutenção",
+                "add": "Novo Quarto",
+                "edit": "Editar Quarto",
+                "number": "Número",
+                "type": "Tipo",
+                "price": "Preço/Noite",
+                "status": "Estado",
+                "searchPlaceholder": "Procurar quarto...",
+                "floor": "Piso/Andar",
+                "amenities": "Comodidades",
+                "statuses": {
+                    "available": "Disponível",
+                    "occupied": "Ocupado",
+                    "dirty": "Limpeza",
+                    "maintenance": "Manutenção",
+                    "reserved": "Reservado"
+                },
+                "types": {
+                    "single": "Individual",
+                    "double": "Duplo",
+                    "suite": "Suite",
+                    "deluxe": "Deluxe",
+                    "presidential": "Presidencial"
+                }
+            },
+            "reservations": {
+                "title": "Reservas e Estadias",
+                "subtitle": "Calendário e histórico de hospedagem",
+                "new": "Nova Reserva",
+                "checkIn": "Check-in",
+                "checkOut": "Check-out",
+                "guest": "Hóspede",
+                "nights": "Noites",
+                "stay": "Estadia",
+                "calendar": "Calendário de Reservas",
+                "history": "Histórico de Reservas"
+            },
+            "guests": {
+                "title": "Gestão de Hóspedes",
+                "subtitle": "Cadastro e histórico de clientes do hotel",
+                "add": "Novo Hóspede",
+                "nationality": "Nacionalidade",
+                "document": "Documento",
+                "totalSpend": "Total Gasto",
+                "lastStay": "Última Estadia"
+            },
+            "housekeeping": {
+                "title": "Governança e Limpeza",
+                "subtitle": "Tarefas diárias e estado dos quartos",
+                "tasks": "Tarefas",
+                "clean": "Limpar Quarto",
+                "inspect": "Inspeccionar",
+                "priority": "Prioridade"
+            },
+            "finance": {
+                "title": "Financeiro Hotel",
+                "subtitle": "Facturação, consumos e pagamentos",
+                "bill": "Factura do Quarto",
+                "consumption": "Consumos Extra",
+                "addConsumption": "Adicionar Consumo",
+                "totalBill": "Total da Conta",
+                "services": "Serviços"
+            }
+        }
     }
 }

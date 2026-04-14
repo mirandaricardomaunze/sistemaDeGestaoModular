@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useCallback, useEffect } from 'react';
 import { pharmacyAPI } from '../services/api';
 import { toast } from 'react-hot-toast';
@@ -24,7 +25,7 @@ export const usePharmacyPartners = () => {
             const data = await pharmacyAPI.getPartners();
             setPartners(data);
         } catch (error) {
-            console.error('Error fetching partners:', error);
+            logger.error('Error fetching partners:', error);
             toast.error('Erro ao carregar parceiros.');
         } finally {
             setIsLoading(false);
@@ -43,7 +44,7 @@ export const usePharmacyPartners = () => {
             toast.success('Parceiro adicionado com sucesso.');
             return newPartner;
         } catch (error) {
-            console.error('Error adding partner:', error);
+            logger.error('Error adding partner:', error);
             toast.error('Erro ao adicionar parceiro.');
             throw error;
         } finally {
@@ -59,7 +60,7 @@ export const usePharmacyPartners = () => {
             toast.success('Parceiro atualizado com sucesso.');
             return updated;
         } catch (error) {
-            console.error('Error updating partner:', error);
+            logger.error('Error updating partner:', error);
             toast.error('Erro ao atualizar parceiro.');
             throw error;
         } finally {
@@ -74,7 +75,7 @@ export const usePharmacyPartners = () => {
             setPartners(prev => prev.filter(p => p.id !== id));
             toast.success('Parceiro removido com sucesso.');
         } catch (error) {
-            console.error('Error deleting partner:', error);
+            logger.error('Error deleting partner:', error);
             toast.error('Erro ao remover parceiro.');
             throw error;
         } finally {

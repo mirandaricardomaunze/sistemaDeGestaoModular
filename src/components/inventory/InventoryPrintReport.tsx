@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useMemo, useRef, useEffect } from 'react';
 import { useStore } from '../../stores/useStore';
 import { useProducts } from '../../hooks/useData';
@@ -50,7 +51,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category }: Inve
         });
 
         // Debug log
-        console.log('Inventory Report - Company Settings:', companySettings);
+        logger.info('Inventory Report - Company Settings:', companySettings);
 
         // Format company info for display (with robust null safety)
         const company = {

@@ -1,4 +1,4 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 
 // ============================================================================
 // TypeScript Interfaces
@@ -22,8 +22,10 @@ export interface CreateSaleInput {
     paymentMethod?: 'cash' | 'card' | 'pix' | 'transfer' | 'credit' | 'mpesa' | 'emola';
     amountPaid: number;
     change?: number;
+    paymentRef?: string;   // JSON breakdown for mixed payments or M-Pesa/E-Mola reference
     notes?: string;
     redeemPoints?: number;
+    sessionId?: string;
 }
 
 // ============================================================================
@@ -58,7 +60,9 @@ export const createSaleSchema = z.object({
     amountPaid: z.number().min(0, 'Valor pago não pode ser negativo'),
     change: z.number().min(0, 'Troco não pode ser negativo').optional().default(0),
     notes: z.string().max(500, 'Notas não podem ter mais de 500 caracteres').optional(),
-    redeemPoints: z.number().int().min(0, 'Pontos não podem ser negativos').optional().default(0)
+    redeemPoints: z.number().int().min(0, 'Pontos não podem ser negativos').optional().default(0),
+    paymentRef: z.string().max(1000).optional(),
+    sessionId: z.string().uuid('ID de sessão inválido').optional()
 
 }).refine(
     (data) => {
@@ -121,8 +125,8 @@ export type UpdateCustomerBalanceInput = z.infer<typeof updateCustomerBalanceSch
 // ============================================================================
 
 export const salesQuerySchema = z.object({
-    startDate: z.string().datetime({ message: 'Data inicial inválida' }).optional(),
-    endDate: z.string().datetime({ message: 'Data final inválida' }).optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
     customerId: z.string().uuid('ID do cliente inválido').optional(),
     paymentMethod: z.enum(['cash', 'card', 'pix', 'transfer', 'credit', 'mpesa', 'emola']).optional(),
     page: z.string().regex(/^\d+$/, 'Página deve ser um número').optional().default('1'),

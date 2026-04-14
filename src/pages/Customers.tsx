@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -6,20 +7,25 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlinePlus,
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineUser,
-    HiOutlineOfficeBuilding,
+    HiOutlineBuildingOffice,
     HiOutlinePhone,
-    HiOutlineMail,
+    HiOutlineEnvelope,
     HiOutlineCurrencyDollar,
-} from 'react-icons/hi';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer } from '../components/ui';
+    HiOutlineArrowPath,
+    HiOutlineUsers,
+    HiOutlineEye
+} from 'react-icons/hi2';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer, PageHeader } from '../components/ui';
+import { StatCard } from '../components/common/ModuleMetricCard';
 import { ExportCustomersButton } from '../components/common/ExportButton';
 import { formatCurrency, cn } from '../utils/helpers';
 import type { Customer, CustomerType } from '../types';
 import { useCustomers } from '../hooks/useData';
+import { Customer360Modal } from '../components/crm/Customer360Modal';
 
 // Validation Schema
 const customerSchema = z.object({
@@ -39,7 +45,7 @@ type CustomerFormData = z.infer<typeof customerSchema>;
 
 const typeConfig: Record<CustomerType, { label: string; icon: typeof HiOutlineUser; color: string }> = {
     individual: { label: 'Pessoa Física', icon: HiOutlineUser, color: 'primary' },
-    company: { label: 'Empresa', icon: HiOutlineOfficeBuilding, color: 'info' },
+    company: { label: 'Empresa', icon: HiOutlineBuildingOffice, color: 'info' },
 };
 
 const provinceOptions = [
@@ -56,7 +62,11 @@ const provinceOptions = [
     { value: 'Cabo Delgado', label: 'Cabo Delgado' },
 ];
 
-export default function Customers() {
+interface CustomersProps {
+    originModule?: string;
+}
+
+export default function Customers({ originModule }: CustomersProps) {
     const [searchParams] = useSearchParams();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
@@ -86,6 +96,7 @@ export default function Customers() {
         type: typeFilter === 'all' ? undefined : typeFilter,
         page,
         limit: pageSize,
+        originModule,
     });
     const { t } = useTranslation();
 
@@ -94,6 +105,10 @@ export default function Customers() {
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // 360 Modal State
+    const [show360Modal, setShow360Modal] = useState(false);
+    const [customer360, setCustomer360] = useState<Customer | null>(null);
 
     const {
         register,
@@ -162,7 +177,7 @@ export default function Customers() {
             }
             closeFormModal();
         } catch (err) {
-            console.error('Error saving customer:', err);
+            logger.error('Error saving customer:', err);
         } finally {
             setIsSubmitting(false);
         }
@@ -193,7 +208,7 @@ export default function Customers() {
                 setDeleteModalOpen(false);
                 setCustomerToDelete(null);
             } catch (err) {
-                console.error('Error deleting customer:', err);
+                logger.error('Error deleting customer:', err);
             } finally {
                 setIsSubmitting(false);
             }
@@ -216,95 +231,90 @@ export default function Customers() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        {t('customers.title')}
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        {t('customers.description')}
-                    </p></div>
-                <div className="flex gap-3">
-                    <ExportCustomersButton data={customers} />
-                    <Button onClick={() => setShowFormModal(true)}>
-                        <HiOutlinePlus className="w-5 h-5 mr-2" />
-                        {t('customers.addCustomer')}
-                    </Button>
-                </div>
+            <PageHeader 
+                title="Gestão de Clientes"
+                subtitle="Controlo de Entidades, Histórico de Vendas e CRM"
+                icon={<HiOutlineUsers />}
+                actions={
+                    <>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} 
+                            onClick={() => refetch()}
+                        >
+                            Actualizar
+                        </Button>
+                        <ExportCustomersButton data={customers} />
+                        <Button 
+                            size="sm" 
+                            className="font-black text-[10px] uppercase tracking-widest"
+                            leftIcon={<HiOutlinePlus className="w-5 h-5" />} 
+                            onClick={() => setShowFormModal(true)}
+                        >
+                            Adicionar Cliente
+                        </Button>
+                    </>
+                }
+            />
+
+            {/* Metrics Layer - Standardized */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard 
+                    label="Total Clientes"
+                    value={metrics.total}
+                    icon={<HiOutlineUsers className="w-6 h-6" />}
+                    color="primary"
+                />
+                <StatCard 
+                    label="Pessoas Físicas"
+                    value={metrics.individuals}
+                    icon={<HiOutlineUser className="w-6 h-6" />}
+                    color="blue"
+                />
+                <StatCard 
+                    label="Empresas"
+                    value={metrics.companies}
+                    icon={<HiOutlineBuildingOffice className="w-6 h-6" />}
+                    color="purple"
+                />
+                <StatCard 
+                    label="Total Compras"
+                    value={formatCurrency(metrics.totalPurchases)}
+                    icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                    color="green"
+                    sublabel="Volume total transacionado"
+                />
             </div>
 
-            {/* Metrics */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-                <Card padding="md" className="border-l-4 border-l-primary-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                            <HiOutlineUser className="w-6 h-6 text-primary-600" />
+            {/* Filters Bar - High Density */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                <Card padding="md" className="md:col-span-12 bg-gray-100/50 dark:bg-dark-800/50 border-none shadow-none">
+                    <div className="flex flex-col lg:flex-row gap-4">
+                        <div className="flex-1 relative">
+                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                            <Input
+                                placeholder="Buscar clientes por nome, NUIT or contacto..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-10 bg-white dark:bg-dark-900 border-none shadow-sm h-11"
+                            />
                         </div>
-                        <div>
-                            <p className="text-sm text-gray-500">Total Clientes</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.total}</p>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-blue-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <HiOutlineUser className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500">Pessoas Físicas</p>
-                            <p className="text-2xl font-bold text-blue-600">{metrics.individuals}</p>
+                        <div className="w-full lg:w-48">
+                            <Select
+                                options={typeOptions}
+                                value={typeFilter}
+                                onChange={(e) => setTypeFilter(e.target.value as CustomerType | 'all')}
+                                className="h-11 bg-white dark:bg-dark-900 border-none shadow-sm"
+                            />
                         </div>
                     </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-purple-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                            <HiOutlineOfficeBuilding className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500">Empresas</p>
-                            <p className="text-2xl font-bold text-purple-600">{metrics.companies}</p>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-green-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500">Total Compras</p>
-                            <p className="text-lg font-bold text-green-600">{formatCurrency(metrics.totalPurchases)}</p>
-                        </div>
-                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-2 ml-1">
+                        {metrics.total} clientes registados na base
+                    </p>
                 </Card>
             </div>
-
-            {/* Filters */}
-            <Card padding="md">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="flex-1">
-                        <Input
-                            placeholder="Buscar clientes..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5" />}
-                        />
-                    </div>
-                    <div className="w-full lg:w-48">
-                        <Select
-                            options={typeOptions}
-                            value={typeFilter}
-                            onChange={(e) => setTypeFilter(e.target.value as CustomerType | 'all')}
-                        />
-                    </div>
-                </div>
-            </Card>
 
             {/* Customer List */}
             <Card padding="none">
@@ -382,6 +392,16 @@ export default function Customers() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex justify-center gap-1">
+                                                <button
+                                                    onClick={() => {
+                                                        setCustomer360(customer);
+                                                        setShow360Modal(true);
+                                                    }}
+                                                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-blue-600 transition-colors"
+                                                    title="Perfil 360º"
+                                                >
+                                                    <HiOutlineEye className="w-4 h-4" />
+                                                </button>
                                                 <button
                                                     onClick={() => handleEdit(customer)}
                                                     className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 transition-colors"
@@ -564,6 +584,16 @@ export default function Customers() {
                     </div>
                 </div>
             </Modal>
+
+            {/* Modal Perfil 360º */}
+            <Customer360Modal 
+                isOpen={show360Modal} 
+                onClose={() => {
+                    setShow360Modal(false);
+                    setTimeout(() => setCustomer360(null), 300); // clear after animation
+                }} 
+                customer={customer360} 
+            />
         </div >
     );
 }

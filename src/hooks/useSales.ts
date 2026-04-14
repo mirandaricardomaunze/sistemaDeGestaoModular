@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { salesAPI } from '../services/api';
@@ -56,7 +57,7 @@ export function useSales(params?: UseSalesParams) {
             setSales(salesData);
         } catch (err) {
             setError('Erro ao carregar vendas');
-            console.error('Error fetching sales:', err);
+            logger.error('Error fetching sales:', err);
         } finally {
             setIsLoading(false);
         }
@@ -128,7 +129,19 @@ export function useSales(params?: UseSalesParams) {
             toast.success('Venda realizada e IVA registado na Gestão Fiscal!');
             return newSale;
         } catch (err) {
-            console.error('Error creating sale:', err);
+            logger.error('Error creating sale:', err);
+            throw err;
+        }
+    };
+
+    const voidSale = async (id: string, reason: string) => {
+        try {
+            await salesAPI.voidSale(id, reason);
+            setSales(prev => prev.map(s => s.id === id ? { ...s, status: 'voided' } : s));
+            toast.success('Venda anulada com sucesso');
+        } catch (err) {
+            logger.error('Error voiding sale:', err);
+            toast.error('Erro ao anular venda');
             throw err;
         }
     };
@@ -140,5 +153,6 @@ export function useSales(params?: UseSalesParams) {
         error,
         refetch: fetchSales,
         createSale,
+        voidSale,
     };
 }

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { employeesAPI } from '../services/api';
@@ -23,7 +24,7 @@ export function useAttendance(params?: UseAttendanceParams) {
             setAttendance(attendanceData);
         } catch (err) {
             setError('Erro ao carregar presenças');
-            console.error('Error fetching attendance:', err);
+            logger.error('Error fetching attendance:', err);
         } finally {
             setIsLoading(false);
         }
@@ -40,7 +41,7 @@ export function useAttendance(params?: UseAttendanceParams) {
             toast.success('Presença registada com sucesso!');
             return record;
         } catch (err) {
-            console.error('Error recording attendance:', err);
+            logger.error('Error recording attendance:', err);
             throw err;
         }
     };

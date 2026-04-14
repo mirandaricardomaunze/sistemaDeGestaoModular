@@ -2,6 +2,7 @@
 import { prisma } from '../lib/prisma';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { fiscalService } from '../services/fiscal.service';
+import { ivaService } from '../services/iva.service';
 import { ApiError } from '../middleware/error.middleware';
 
 const router = Router();
@@ -175,6 +176,46 @@ router.get('/metrics/:module', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const metrics = await fiscalService.getModuleFiscalMetrics(req.companyId, req.params.module);
     res.json(metrics);
+});
+
+// ============================================================================
+// IVA RATES
+// ============================================================================
+
+router.get('/iva-rates/dashboard', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    res.json(await ivaService.getDashboard(req.companyId));
+});
+
+router.get('/iva-rates/active', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    res.json(await ivaService.getActive(req.companyId));
+});
+
+router.get('/iva-rates', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    res.json(await ivaService.list(req.companyId, req.query));
+});
+
+router.get('/iva-rates/:id', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    res.json(await ivaService.getById(req.params.id, req.companyId));
+});
+
+router.post('/iva-rates', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const rate = await ivaService.create(req.body, req.companyId);
+    res.status(201).json(rate);
+});
+
+router.put('/iva-rates/:id', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    res.json(await ivaService.update(req.params.id, req.body, req.companyId));
+});
+
+router.delete('/iva-rates/:id', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    res.json(await ivaService.delete(req.params.id, req.companyId));
 });
 
 export default router;

@@ -9,6 +9,8 @@ import {
     HiOutlineFilter,
     HiOutlinePlus,
     HiOutlineTrash,
+    HiOutlineCube,
+    HiOutlineDocumentText,
 } from 'react-icons/hi';
 import {
     PieChart,
@@ -69,9 +71,12 @@ interface OrdersDashboardProps {
     onNewOrder: () => void;
     onViewOrder: (order: Order) => void;
     onPrintOrder: (order: Order) => void;
+    onSeparateOrder: (order: Order) => void;
     onCompleteOrder: (order: Order) => void;
+    onGenerateInvoice: (order: Order) => void;
     onCancelOrder: (order: Order) => void;
     isLoading?: boolean;
+    isAdmin?: boolean;
 }
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor: string }> = {
@@ -112,9 +117,12 @@ export default function OrdersDashboard({
     onNewOrder,
     onViewOrder,
     onPrintOrder,
+    onSeparateOrder,
     onCompleteOrder,
+    onGenerateInvoice,
     onCancelOrder,
-    isLoading
+    isLoading,
+    isAdmin,
 }: OrdersDashboardProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const [dateFilter, setDateFilter] = useState<string>('all');
@@ -329,7 +337,7 @@ export default function OrdersDashboard({
                         Distribuição por Status
                     </h3>
                     <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={256}>
                             <PieChart>
                                 <Pie
                                     data={statusDistribution}
@@ -360,7 +368,7 @@ export default function OrdersDashboard({
                         Encomendas na Semana
                     </h3>
                     <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={256}>
                             <BarChart data={weeklyData}>
                                 <XAxis dataKey="day" />
                                 <YAxis allowDecimals={false} />
@@ -491,13 +499,41 @@ export default function OrdersDashboard({
                                                         <HiOutlinePrinter className="w-5 h-5 text-purple-600" />
                                                     </button>
                                                 )}
-                                                {(order.status === 'printed' || order.status === 'separated') && (
+                                                {order.status === 'printed' && (
+                                                    <button
+                                                        onClick={() => onSeparateOrder(order)}
+                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
+                                                        title="Marcar como Separada"
+                                                    >
+                                                        <HiOutlineCube className="w-5 h-5 text-orange-600" />
+                                                    </button>
+                                                )}
+                                                {order.status === 'separated' && (
                                                     <button
                                                         onClick={() => onCompleteOrder(order)}
                                                         className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
-                                                        title="Finalizar"
+                                                        title="Finalizar Encomenda"
                                                     >
                                                         <HiOutlineCheck className="w-5 h-5 text-green-600" />
+                                                    </button>
+                                                )}
+                                                {order.status === 'completed' && (
+                                                    <button
+                                                        onClick={() => onGenerateInvoice(order)}
+                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
+                                                        title="Gerar Fatura"
+                                                    >
+                                                        <HiOutlineDocumentText className="w-5 h-5 text-blue-600" />
+                                                    </button>
+                                                )}
+                                                {/* Reprint button — admin only, for orders already printed */}
+                                                {isAdmin && order.status !== 'created' && order.status !== 'cancelled' && (
+                                                    <button
+                                                        onClick={() => onPrintOrder(order)}
+                                                        className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
+                                                        title="Reimprimir (Admin)"
+                                                    >
+                                                        <HiOutlinePrinter className="w-5 h-5 text-purple-400" />
                                                     </button>
                                                 )}
                                                 {order.status !== 'completed' && order.status !== 'cancelled' && (

@@ -5,22 +5,25 @@ import {
     HiOutlineDocumentReport,
     HiOutlineClipboardCheck,
     HiOutlineCalendar,
+    HiOutlineCurrencyDollar,
 } from 'react-icons/hi';
 import FiscalDashboard from '../components/fiscal/FiscalDashboard';
 import TaxConfigManager from '../components/fiscal/TaxConfigManager';
 import FiscalReportGenerator from '../components/fiscal/FiscalReportGenerator';
 import FiscalAuditLog from '../components/fiscal/FiscalAuditLog';
 import DeadlineManager from '../components/fiscal/DeadlineManager';
+import IvaManager from '../components/fiscal/IvaManager';
 import { useStore } from '../stores/useStore';
 import { Badge } from '../components/ui';
 
-type FiscalTab = 'dashboard' | 'config' | 'reports' | 'audit' | 'deadlines';
+type FiscalTab = 'dashboard' | 'config' | 'reports' | 'audit' | 'deadlines' | 'iva';
 
 const tabs: { id: FiscalTab; label: string; icon: typeof HiOutlineChartPie }[] = [
     { id: 'dashboard', label: 'Painel', icon: HiOutlineChartPie },
     { id: 'config', label: 'Configuração', icon: HiOutlineCog },
     { id: 'reports', label: 'Relatórios', icon: HiOutlineDocumentReport },
     { id: 'deadlines', label: 'Prazos', icon: HiOutlineCalendar },
+    { id: 'iva', label: 'IVA', icon: HiOutlineCurrencyDollar },
     { id: 'audit', label: 'Auditoria', icon: HiOutlineClipboardCheck },
 ];
 
@@ -38,6 +41,8 @@ export default function Fiscal() {
                 return <FiscalReportGenerator />;
             case 'deadlines':
                 return <DeadlineManager />;
+            case 'iva':
+                return <IvaManager />;
             case 'audit':
                 return <FiscalAuditLog />;
             default:

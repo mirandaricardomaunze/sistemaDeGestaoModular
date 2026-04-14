@@ -1,4 +1,4 @@
-﻿import api from './client';
+import api from './client';
 
 // ============================================================================
 // Settings API
@@ -27,6 +27,8 @@ export const settingsAPI = {
         printerType: string;
         thermalPaperWidth: string;
         autoPrintReceipt: boolean;
+        receiptHeader: string;
+        receiptFooter: string;
         businessType: string;
     }>) => {
         const response = await api.put('/settings/company', data);
@@ -284,6 +286,7 @@ export const ordersAPI = {
     getAll: async (params?: {
         status?: string;
         priority?: string;
+        originModule?: string;
     }) => {
         const response = await api.get('/orders', { params });
         return response.data;
@@ -340,6 +343,11 @@ export const ordersAPI = {
 
     delete: async (id: string) => {
         const response = await api.delete(`/orders/${id}`);
+        return response.data;
+    },
+
+    convertToInvoice: async (id: string) => {
+        const response = await api.post(`/orders/${id}/invoice`);
         return response.data;
     },
 };

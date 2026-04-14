@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, Button, Input, Badge, LoadingSpinner, EmptyState, Modal, ConfirmationModal } from '../../components/ui';
 import ThermalReceiptPreview from '../../components/pos/ThermalReceiptPreview';
@@ -56,6 +57,7 @@ export default function BottleStorePOS() {
     const [lastSale, setLastSale] = useState<any>(null);
     const [thermalPreviewOpen, setThermalPreviewOpen] = useState(false);
     const [clearCartModalOpen, setClearCartModalOpen] = useState(false);
+    const [globalDiscount, setGlobalDiscount] = useState('0');
 
     // Customer Selection State
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -147,34 +149,52 @@ export default function BottleStorePOS() {
         setCart([]);
         setSelectedCustomer(null);
         setCustomerSearchQuery('');
+        setGlobalDiscount('0');
     };
 
     const addToCart = (product: any, mode: 'unit' | 'crate' = 'unit', withReturn: boolean = false) => {
         const quantityNeeded = mode === 'crate' ? (product.packSize || 1) : 1;
-        const existing = cart.find(item => item.id === product.id && item.mode === mode && item.withReturn === withReturn);
-        const currentCartQuantity = existing ? existing.quantity : 0;
-        const totalUnitsNeeded = (currentCartQuantity + 1) * quantityNeeded;
+        
+        // Find if this specific variant (product + mode + withReturn) already exists
+        const existingIndex = cart.findIndex(item => 
+            item.id === product.id && 
+            item.mode === mode && 
+            item.withReturn === withReturn
+        );
 
-        if (product.currentStock < totalUnitsNeeded) {
-            toast.error(`Stock insuficiente! Disponível: ${product.currentStock} unidades`);
-            return;
-        }
+        if (existingIndex > -1) {
+            const newCart = [...cart];
+            const nextQuantity = newCart[existingIndex].quantity + 1;
+            const totalUnitsNeeded = nextQuantity * (mode === 'crate' ? (product.packSize || 1) : 1);
 
-        if (existing) {
-            setCart(cart.map(item =>
-                (item.id === product.id && item.mode === mode && item.withReturn === withReturn)
-                    ? { ...item, quantity: item.quantity + 1 }
-                    : item
-            ));
+            if (product.currentStock < totalUnitsNeeded) {
+                toast.error(`Stock insuficiente! Disponível: ${product.currentStock} unidades`);
+                return;
+            }
+
+            newCart[existingIndex].quantity = nextQuantity;
+            setCart(newCart);
         } else {
+            const totalUnitsNeeded = mode === 'crate' ? (product.packSize || 1) : 1;
+            if (product.currentStock < totalUnitsNeeded) {
+                toast.error(`Stock insuficiente!`);
+                return;
+            }
+
+            const itemPrice = mode === 'crate' 
+                ? (product.price * (product.packSize || 1)) 
+                : product.price;
+            
+            const returnDiscount = withReturn 
+                ? (product.returnPrice * (mode === 'crate' ? (product.packSize || 1) : 1)) 
+                : 0;
+
             setCart([...cart, {
                 ...product,
                 quantity: 1,
                 mode,
                 withReturn,
-                finalPrice: mode === 'crate'
-                    ? (product.price * (product.packSize || 1)) - (withReturn ? (product.returnPrice * (product.packSize || 1)) : 0)
-                    : product.price - (withReturn ? product.returnPrice : 0)
+                finalPrice: itemPrice - returnDiscount
             }]);
         }
     };
@@ -184,9 +204,12 @@ export default function BottleStorePOS() {
     };
 
     const subtotal = useMemo(() => cart.reduce((acc, item) => acc + (item.finalPrice * item.quantity), 0), [cart]);
+    const discountAmount = parseFloat(globalDiscount) || 0;
+    const afterDiscount = Math.max(0, subtotal - discountAmount);
+    
     const IVA_RATE = 0.16;
-    const totalTax = subtotal * IVA_RATE;
-    const totalWithTax = subtotal + totalTax;
+    const totalTax = afterDiscount * IVA_RATE;
+    const totalWithTax = afterDiscount + totalTax;
 
     const handleCheckout = async () => {
         setProcessingSale(true);
@@ -212,11 +235,12 @@ export default function BottleStorePOS() {
                 subtotal: subtotal,
                 total: totalWithTax,
                 tax: totalTax,
+                discount: discountAmount,
                 notes: selectedCustomer ? `Cliente: ${selectedCustomer.name} (Garrafeira)` : 'Venda Garrafeira'
             });
 
             // Trigger Cash Drawer
-            PrinterService.openDrawer().catch(err => console.error('Auto-drawer failed:', err));
+            PrinterService.openDrawer().catch(err => logger.error('Auto-drawer failed:', err));
 
             toast.success('Venda realizada!');
             setLastSale(savedSale);
@@ -405,6 +429,12 @@ export default function BottleStorePOS() {
                                 <span className="text-gray-500">Subtotal</span>
                                 <span className="font-medium">{formatCurrency(subtotal)}</span>
                             </div>
+                            {discountAmount > 0 && (
+                                <div className="flex justify-between text-sm text-red-600">
+                                    <span>Desconto</span>
+                                    <span className="font-medium">- {formatCurrency(discountAmount)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-500">IVA (16%)</span>
                                 <span className="font-medium">{formatCurrency(totalTax)}</span>
@@ -428,7 +458,10 @@ export default function BottleStorePOS() {
                         <p className="text-xs text-gray-400 uppercase font-bold mb-1">Total Final com IVA</p>
                         <p className="text-5xl font-black text-primary-600">{formatCurrency(totalWithTax)}</p>
                     </div>
-                    <Input label="Valor Recebido (Opcional)" type="number" placeholder="0.00" value={customerMoney} onChange={(e) => setCustomerMoney(e.target.value)} className="text-lg" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input label="Desconto (MT)" type="number" placeholder="0.00" value={globalDiscount} onChange={(e) => setGlobalDiscount(e.target.value)} />
+                        <Input label="Valor Recebido (Opcional)" type="number" placeholder="0.00" value={customerMoney} onChange={(e) => setCustomerMoney(e.target.value)} className="text-lg font-bold" />
+                    </div>
                     {customerMoney && parseFloat(customerMoney) >= totalWithTax && (
                         <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 text-center">
                             <p className="text-xs text-green-700 font-bold uppercase mb-1">Troco a Devolver</p>
@@ -457,32 +490,55 @@ export default function BottleStorePOS() {
 function BottleProductCard({ product, onAdd }: { product: any, onAdd: (p: any, mode: 'unit' | 'crate', ret: boolean) => void }) {
     const isOut = product.currentStock <= 0;
     const isLow = product.currentStock <= (product.minStock || 10);
+    const hasCrate = product.packSize > 1;
 
     return (
-        <button
-            onClick={() => onAdd(product, 'unit', false)}
-            disabled={isOut}
-            className={`p-3 rounded-xl border-2 text-left transition-all hover:shadow-lg group overflow-hidden ${isOut
-                ? 'opacity-75 grayscale border-gray-200 dark:border-dark-700 cursor-not-allowed'
-                : 'border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 bg-white dark:bg-dark-800'
-                }`}
-        >
-            <div className="w-full h-16 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-2 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors flex-shrink-0">
-                <span className="text-2xl">🍾</span>
-            </div>
-            <p className="text-xs text-primary-600 dark:text-primary-400 font-mono mb-1 truncate">{product.code}</p>
-            <p className="text-sm font-medium text-gray-900 dark:text-white mb-1 line-clamp-2 break-words min-h-[2.5rem]">{product.name}</p>
-            <div className="flex items-center justify-between gap-1 mt-2">
-                <span className="text-sm font-bold text-primary-600 dark:text-primary-400 truncate">{formatCurrency(product.price)}</span>
-                <Badge variant={isOut ? 'danger' : isLow ? 'warning' : 'success'} size="sm">{isOut ? 'OUT' : product.currentStock}</Badge>
-            </div>
-            {product.packSize > 1 && <p className="text-[10px] text-gray-500 mt-1">Caixa de {product.packSize} un</p>}
-            {product.isReturnable && (
-                <div className="mt-1 flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400">
-                    <HiOutlineRefresh className="w-3 h-3" />
-                    <span>Retornável</span>
+        <div className={`flex flex-col rounded-xl border-2 transition-all hover:shadow-lg group overflow-hidden ${isOut
+                ? 'opacity-75 grayscale border-gray-200 dark:border-dark-700'
+                : 'border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800'
+                }`}>
+            <div className="p-3">
+                <div className="w-full h-16 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-2 flex-shrink-0">
+                    <span className="text-2xl">{product.category === 'beverages' ? '🍾' : '📦'}</span>
                 </div>
-            )}
-        </button>
+                <p className="text-[10px] text-primary-600 dark:text-primary-400 font-mono mb-0.5 truncate">{product.code}</p>
+                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">{product.name}</h3>
+                <div className="flex items-center justify-between gap-1 mb-2">
+                    <span className="text-sm font-black text-gray-900 dark:text-white">{formatCurrency(product.price)}</span>
+                    <Badge variant={isOut ? 'danger' : isLow ? 'warning' : 'success'} size="sm">{isOut ? 'OUT' : product.currentStock}</Badge>
+                </div>
+            </div>
+
+            <div className="mt-auto grid grid-cols-1 gap-px bg-gray-200 dark:bg-dark-700 border-t border-gray-200 dark:border-dark-700">
+                <button
+                    onClick={() => onAdd(product, 'unit', false)}
+                    disabled={isOut}
+                    className="flex justify-center items-center py-2 bg-white dark:bg-dark-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase transition-colors disabled:cursor-not-allowed"
+                >
+                    + Unidade
+                </button>
+                
+                {product.isReturnable && (
+                    <button
+                        onClick={() => onAdd(product, 'unit', true)}
+                        disabled={isOut}
+                        className="flex justify-center items-center py-2 bg-white dark:bg-dark-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-[10px] font-bold text-blue-600 dark:text-blue-400 border-t border-gray-100 dark:border-dark-700 uppercase transition-colors disabled:cursor-not-allowed"
+                    >
+                        <HiOutlineRefresh className="w-3 h-3 mr-1" />
+                        Com Devolução
+                    </button>
+                )}
+
+                {hasCrate && (
+                    <button
+                        onClick={() => onAdd(product, 'crate', false)}
+                        disabled={isOut}
+                        className="flex justify-center items-center py-2 bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20 text-[10px] font-bold text-amber-600 dark:text-amber-400 border-t border-gray-100 dark:border-dark-700 uppercase transition-colors disabled:cursor-not-allowed"
+                    >
+                        + Caixa ({product.packSize})
+                    </button>
+                )}
+            </div>
+        </div>
     );
 }

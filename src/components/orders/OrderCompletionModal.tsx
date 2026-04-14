@@ -66,9 +66,9 @@ export default function OrderCompletionModal({
         setStep('confirmation');
     };
 
-    const handleConfirmStockReduction = () => {
+    const handleConfirmFinalization = () => {
         onComplete(Array.from(checkedItems), notes);
-        toast.success('Encomenda finalizada! Estoque atualizado.');
+        toast.success('Encomenda finalizada com sucesso!');
         resetModal();
     };
 
@@ -221,17 +221,17 @@ export default function OrderCompletionModal({
             {/* Step: Confirmation */}
             {step === 'confirmation' && (
                 <div className="space-y-6">
-                    {/* Warning */}
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
+                    {/* Info Banner */}
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
                         <div className="flex items-start gap-3">
-                            <HiOutlineExclamation className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+                            <HiOutlineExclamation className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
                             <div>
-                                <p className="font-semibold text-yellow-800 dark:text-yellow-400">
-                                    Atenção: Redução de Estoque
+                                <p className="font-semibold text-blue-800 dark:text-blue-400">
+                                    Confirmação de Finalização
                                 </p>
-                                <p className="text-sm text-yellow-700 dark:text-yellow-500 mt-1">
-                                    Ao confirmar, o estoque dos produtos será reduzido automaticamente.
-                                    Esta ação não pode ser desfeita.
+                                <p className="text-sm text-blue-700 dark:text-blue-500 mt-1">
+                                    O estoque foi <strong>reservado</strong> no momento da criação da encomenda.
+                                    A dedução efetiva do estoque ocorrerá apenas na facturação.
                                 </p>
                             </div>
                         </div>
@@ -272,10 +272,10 @@ export default function OrderCompletionModal({
                         </div>
                     </Card>
 
-                    {/* Stock Changes */}
+                    {/* Stock Reservation Info */}
                     <Card padding="md">
                         <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                            Alterações no Estoque
+                            Estoque Reservado
                         </h3>
                         <div className="space-y-2 max-h-[150px] overflow-y-auto">
                             {items.map((item) => (
@@ -286,18 +286,9 @@ export default function OrderCompletionModal({
                                     <span className="text-sm text-gray-700 dark:text-gray-300">
                                         {item.product.name}
                                     </span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-gray-500">
-                                            {item.product.currentStock}
-                                        </span>
-                                        <span className="text-red-500">â†’</span>
-                                        <span className="text-sm font-medium text-red-600">
-                                            {item.product.currentStock - item.quantity}
-                                        </span>
-                                        <span className="text-xs text-red-500">
-                                            (-{item.quantity})
-                                        </span>
-                                    </div>
+                                    <span className="text-sm font-medium text-orange-600">
+                                        {item.quantity} reservado(s)
+                                    </span>
                                 </div>
                             ))}
                         </div>
@@ -310,10 +301,10 @@ export default function OrderCompletionModal({
                         </Button>
                         <Button
                             className="flex-1 bg-green-600 hover:bg-green-700"
-                            onClick={handleConfirmStockReduction}
+                            onClick={handleConfirmFinalization}
                         >
                             <HiOutlineShieldCheck className="w-5 h-5 mr-2" />
-                            Confirmar Redução de Estoque
+                            Confirmar Finalização
                         </Button>
                     </div>
                 </div>

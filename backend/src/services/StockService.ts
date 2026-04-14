@@ -153,6 +153,79 @@ export class StockService {
             }
         }
     }
+
+    /**
+     * Valida se há stock disponível considerando o stock já reservado (trancado).
+     */
+    async validateAvailability(
+        productId: string,
+        requestedQuantity: number,
+        companyId: string,
+        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma
+    ) {
+        const product = await tx.product.findFirst({
+            where: { id: productId, companyId },
+            select: { id: true, name: true, currentStock: true, reservedStock: true }
+        });
+
+        if (!product) {
+            throw ApiError.notFound(`Produto não encontrado ou acesso negado`);
+        }
+
+        const availableStock = product.currentStock - product.reservedStock;
+        if (availableStock < requestedQuantity) {
+            throw ApiError.badRequest(`Stock insuficiente para o produto "${product.name}". Disponível: ${availableStock}, Solicitado: ${requestedQuantity}`);
+        }
+
+        return product;
+    }
+
+    /**
+     * Tranca o stock para uma encomenda (incrementa reservedStock).
+     */
+    async reserveStock(
+        productId: string,
+        quantity: number,
+        companyId: string,
+        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma
+    ) {
+        if (quantity <= 0) return;
+
+        await this.validateAvailability(productId, quantity, companyId, tx);
+
+        await tx.product.update({
+            where: { id: productId },
+            data: { reservedStock: { increment: quantity } }
+        });
+    }
+
+    /**
+     * Destranca/Liberta a reserva de stock (ex: encomenda cancelada).
+     */
+    async releaseReservation(
+        productId: string,
+        quantity: number,
+        companyId: string,
+        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma
+    ) {
+        if (quantity <= 0) return;
+
+        const product = await tx.product.findFirst({
+            where: { id: productId, companyId },
+            select: { id: true, reservedStock: true }
+        });
+
+        if (!product) return;
+
+        const decrementAmount = Math.min(product.reservedStock, quantity);
+
+        if (decrementAmount > 0) {
+            await tx.product.update({
+                where: { id: productId },
+                data: { reservedStock: { decrement: decrementAmount } }
+            });
+        }
+    }
 }
 
 export const stockService = new StockService();

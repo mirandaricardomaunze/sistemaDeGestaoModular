@@ -688,7 +688,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                     </h3>
                     <div className="h-64">
                         {roleDistribution.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={256}>
                                 <PieChart>
                                     <Pie
                                         data={roleDistribution}
@@ -725,7 +725,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                     </h3>
                     <div className="h-64">
                         {qualificationDistribution.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height={256}>
                                 <BarChart data={qualificationDistribution} layout="vertical">
                                     <XAxis type="number" allowDecimals={false} />
                                     <YAxis dataKey="nivel" type="category" width={100} />

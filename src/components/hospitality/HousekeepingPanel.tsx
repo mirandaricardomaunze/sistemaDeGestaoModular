@@ -1,9 +1,6 @@
-﻿/**
- * HousekeepingPanel Component
- * Professional housekeeping workflow management with kanban-style columns
- */
-
+import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, LoadingSpinner, EmptyState, ConfirmationModal } from '../ui';
 import { hospitalityAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -11,12 +8,12 @@ import {
     HiOutlineHome,
     HiOutlineCheck,
     HiOutlinePlay,
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlineClock,
-    HiOutlineExclamation,
+    HiOutlineExclamationCircle,
     HiOutlineUser,
     HiOutlineTrash
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 
 interface HousekeepingTask {
     id: string;
@@ -43,6 +40,7 @@ interface HousekeepingPanelProps {
 }
 
 export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelProps) {
+    const { t } = useTranslation();
     const [tasks, setTasks] = useState<HousekeepingTask[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filter, setFilter] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
@@ -57,7 +55,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
             );
             setTasks(data);
         } catch (error) {
-            console.error('Failed to fetch housekeeping tasks:', error);
+            logger.error('Failed to fetch housekeeping tasks:', error);
         } finally {
             setIsLoading(false);
         }
@@ -72,15 +70,15 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
             await hospitalityAPI.updateHousekeepingTask(taskId, { status: newStatus });
             toast.success(
                 newStatus === 'in_progress'
-                    ? 'Limpeza iniciada!'
-                    : 'Limpeza concluída! Quarto disponível.'
+                    ? t('messages.saveSuccess')
+                    : t('messages.updateSuccess')
             );
             fetchTasks();
             if (newStatus === 'completed') {
                 onRoomCleaned?.();
             }
-        } catch (error: unknown) {
-            toast.error(error.message || 'Erro ao actualizar tarefa');
+        } catch (error: any) {
+            toast.error(error.message || t('messages.errorOccurred'));
         }
     };
 
@@ -93,21 +91,21 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
         if (!taskToDelete) return;
         try {
             await hospitalityAPI.deleteHousekeepingTask(taskToDelete);
-            toast.success('Tarefa eliminada');
+            toast.success(t('messages.deleteSuccess'));
             setDeleteConfirmOpen(false);
             setTaskToDelete(null);
             fetchTasks();
-        } catch (error: unknown) {
-            toast.error(error.message || 'Erro ao eliminar tarefa');
+        } catch (error: any) {
+            toast.error(error.message || t('messages.errorOccurred'));
         }
     };
 
     const getTypeLabel = (type: string) => {
         switch (type) {
-            case 'checkout_cleaning': return 'Limpeza Check-out';
-            case 'stay_cleaning': return 'Limpeza Estadia';
-            case 'deep_cleaning': return 'Limpeza Profunda';
-            case 'maintenance_prep': return 'Preparação Manutenção';
+            case 'checkout_cleaning': return t('hotel_module.housekeeping.clean');
+            case 'stay_cleaning': return t('hotel_module.housekeeping.inspect');
+            case 'deep_cleaning': return t('hotel_module.rooms.statuses.dirty');
+            case 'maintenance_prep': return t('hotel_module.rooms.statuses.maintenance');
             default: return type;
         }
     };
@@ -125,21 +123,21 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'pending':
-                return <Badge variant="warning">Pendente</Badge>;
+                return <Badge variant="warning">{t('hotel_module.housekeeping.status.pending')}</Badge>;
             case 'in_progress':
-                return <Badge variant="info">Em Progresso</Badge>;
+                return <Badge variant="info">{t('hotel_module.housekeeping.status.in_progress')}</Badge>;
             case 'completed':
-                return <Badge variant="success">Concluído</Badge>;
+                return <Badge variant="success">{t('hotel_module.housekeeping.status.completed')}</Badge>;
             case 'cancelled':
-                return <Badge variant="danger">Cancelado</Badge>;
+                return <Badge variant="danger">{t('common.cancel')}</Badge>;
             default:
                 return <Badge>{status}</Badge>;
         }
     };
 
     const formatTime = (dateStr: string | null) => {
-        if (!dateStr) return 'â€”';
-        return new Date(dateStr).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+        if (!dateStr) return '—';
+        return new Date(dateStr).toLocaleTimeString(t('common.locale') === 'pt' ? 'pt-PT' : 'en-US', { hour: '2-digit', minute: '2-digit' });
     };
 
     const pendingTasks = tasks.filter(t => t.status === 'pending');
@@ -164,10 +162,10 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">
-                            Gestão de Limpeza
+                            {t('hotel_module.housekeeping.title')}
                         </h3>
                         <p className="text-[10px] text-gray-500 font-medium">
-                            {pendingTasks.length} pendentes • {inProgressTasks.length} em progresso • {completedTasks.length} concluídas hoje
+                            {pendingTasks.length} {t('hotel_module.housekeeping.status.pending')} • {inProgressTasks.length} {t('hotel_module.housekeeping.status.in_progress')} • {completedTasks.length} {t('hotel_module.housekeeping.status.completed')}
                         </p>
                     </div>
                 </div>
@@ -183,10 +181,8 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                     }`}
                             >
-                                {status === 'all' ? 'Todos'
-                                    : status === 'pending' ? 'Pendentes'
-                                        : status === 'in_progress' ? 'Em Progresso'
-                                            : 'Concluídos'}
+                                {status === 'all' ? t('common.all')
+                                    : t(`hotel_module.housekeeping.status.${status}`)}
                             </button>
                         ))}
                     </div>
@@ -194,9 +190,9 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                         variant="outline"
                         size="sm"
                         onClick={fetchTasks}
-                        leftIcon={<HiOutlineRefresh className="w-4 h-4" />}
+                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
                     >
-                        Actualizar
+                        {t('common.refresh')}
                     </Button>
                 </div>
             </div>
@@ -204,8 +200,8 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
             {/* Tasks Grid */}
             {tasks.length === 0 ? (
                 <EmptyState
-                    title="Sem tarefas de limpeza"
-                    description="Nenhuma tarefa de housekeeping para exibir. As tarefas são criadas automaticamente após check-outs."
+                    title={t('common.noData')}
+                    description={t('hotel_module.housekeeping.inspect')}
                 />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -227,12 +223,12 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                                         <h4 className="text-lg font-black text-gray-900 dark:text-white">
                                             Q-{task.room.number}
                                         </h4>
-                                        <p className="text-xs text-gray-500 capitalize">{task.room.type}</p>
+                                        <p className="text-xs text-gray-500 capitalize">{t(`hotel_module.rooms.types.${task.room.type}`) || task.room.type}</p>
                                     </div>
                                 </div>
                                 {task.priority >= 2 && (
                                     <div className="p-1 bg-red-100 dark:bg-red-900/30 rounded-full" title="Alta Prioridade">
-                                        <HiOutlineExclamation className="w-4 h-4 text-red-600" />
+                                        <HiOutlineExclamationCircle className="w-4 h-4 text-red-600" />
                                     </div>
                                 )}
                             </div>
@@ -255,7 +251,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                             <div className="flex items-center justify-between mb-4 text-xs text-gray-500">
                                 <div className="flex items-center gap-1">
                                     <HiOutlineClock className="w-3 h-3" />
-                                    <span>Criado: {formatTime(task.createdAt)}</span>
+                                    <span>{t('common.active')}: {formatTime(task.createdAt)}</span>
                                 </div>
                                 {getStatusBadge(task.status)}
                             </div>
@@ -277,7 +273,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                                         onClick={() => handleStatusChange(task.id, 'in_progress')}
                                         leftIcon={<HiOutlinePlay className="w-4 h-4" />}
                                     >
-                                        Iniciar
+                                        {t('common.save')}
                                     </Button>
                                 )}
                                 {task.status === 'in_progress' && (
@@ -288,7 +284,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                                         onClick={() => handleStatusChange(task.id, 'completed')}
                                         leftIcon={<HiOutlineCheck className="w-4 h-4" />}
                                     >
-                                        Concluir
+                                        {t('common.finished')}
                                     </Button>
                                 )}
                                 {task.status !== 'completed' && (
@@ -303,7 +299,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                                 )}
                                 {task.status === 'completed' && (
                                     <div className="flex-1 text-center text-xs text-green-600 font-bold py-2">
-                                        ✓ Concluído às {formatTime(task.completedAt)}
+                                        ✓ {t('common.finished')} {formatTime(task.completedAt)}
                                     </div>
                                 )}
                             </div>
@@ -312,7 +308,6 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                 </div>
             )}
 
-            {/* Delete Task Confirmation Modal */}
             <ConfirmationModal
                 isOpen={deleteConfirmOpen}
                 onClose={() => {
@@ -320,10 +315,10 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                     setTaskToDelete(null);
                 }}
                 onConfirm={performDelete}
-                title="Eliminar Tarefa?"
-                message="Tem certeza que deseja eliminar esta tarefa de limpeza? Esta ação não pode ser desfeita."
-                confirmText="Sim, Eliminar"
-                cancelText="Cancelar"
+                title={t('common.confirm')}
+                message={t('messages.confirmDelete')}
+                confirmText={t('common.delete')}
+                cancelText={t('common.cancel')}
                 variant="danger"
             />
         </div>

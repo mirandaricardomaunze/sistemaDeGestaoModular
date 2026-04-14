@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -6,18 +7,18 @@ import { z } from 'zod';
 import {
     HiOutlinePlus,
     HiOutlineDocumentText,
-    HiOutlineCash,
+    HiOutlineBanknotes,
     HiOutlineClock,
     HiOutlineCheck,
-    HiOutlineExclamation,
-    HiOutlineSearch,
+    HiOutlineExclamationTriangle,
+    HiOutlineMagnifyingGlass,
     HiOutlineTrash,
     HiOutlineEye,
-    HiOutlineMail,
+    HiOutlineEnvelope,
     HiOutlinePrinter,
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlineTag,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import {
     PieChart,
     Pie,
@@ -26,7 +27,8 @@ import {
     Tooltip,
 } from 'recharts';
 import { format, parseISO, addDays, subDays } from 'date-fns';
-import { Card, Button, Input, Select, Modal, Pagination, TableContainer } from '../components/ui';
+import { Card, Button, Input, Select, Modal, Pagination, TableContainer, PageHeader } from '../components/ui';
+import { StatCard } from '../components/common/ModuleMetricCard';
 import { InvoicePrintPreview, CreditNoteManager } from '../components/invoices';
 import MobilePaymentModal from '../components/pos/MobilePaymentModal';
 import { formatCurrency, generateId, cn } from '../utils/helpers';
@@ -98,12 +100,18 @@ const CHART_COLORS = ['#6b7280', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#9
 
 import { useInvoices, useProducts } from '../hooks/useData';
 
-export default function Invoices() {
+interface InvoicesProps {
+    originModule?: string;
+}
+
+export default function Invoices({ originModule }: InvoicesProps) {
     const [searchParams] = useSearchParams();
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [search, setSearch] = useState(searchParams.get('search') || '');
     const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
+
+    const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
 
     useEffect(() => {
         const searchParam = searchParams.get('search');
@@ -116,6 +124,8 @@ export default function Invoices() {
         const openParam = searchParams.get('open');
         if (openParam === 'true') {
             setShowFormModal(true);
+            const orderId = searchParams.get('orderId');
+            if (orderId) setPendingOrderId(orderId);
         }
     }, [searchParams]);
 
@@ -131,11 +141,13 @@ export default function Invoices() {
         createInvoice,
         updateInvoice,
         addPayment: registerInvoicePayment,
+        getInvoiceById,
     } = useInvoices({
         search,
         status: statusFilter === 'all' ? undefined : statusFilter,
         page,
         limit: pageSize,
+        originModule,
     });
 
     const [showFormModal, setShowFormModal] = useState(false);
@@ -145,6 +157,14 @@ export default function Invoices() {
             fetchAvailableSources();
         }
     }, [showFormModal, fetchAvailableSources]);
+
+    // Auto-select order when sources are loaded (coming from Orders page)
+    useEffect(() => {
+        if (pendingOrderId && availableSources.length > 0) {
+            handleOrderSelect(pendingOrderId);
+            setPendingOrderId(null);
+        }
+    }, [pendingOrderId, availableSources]);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -224,7 +244,7 @@ export default function Invoices() {
         },
     });
 
-    const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+    const { fields, append, remove, replace } = useFieldArray({ control, name: 'items' });
     const watchItems = watch('items');
     const watchDiscount = watch('discount') || 0;
     const watchTax = watch('tax') || 0;
@@ -330,7 +350,7 @@ export default function Invoices() {
                 discount: 0,
                 total: item.total,
             }));
-            setValue('items', sourceItems);
+            replace(sourceItems);
 
             toast.success(`${source.type === 'pharmacy' ? 'Venda de Farmácia' : 'Encomenda'} ${source.number} carregada!`);
         }
@@ -371,35 +391,68 @@ export default function Invoices() {
         }
     }, [showFormModal, search, availableSources, selectedOrderNumber, handleOrderSelect]);
 
-    // Submit invoice
     const onSubmit = async (data: InvoiceFormData) => {
         try {
+            // Calculate totals to send to backend
+            const subtotal = data.items.reduce((sum, item) => {
+                return sum + ((item.quantity || 0) * (item.unitPrice || 0) - (item.discount || 0));
+            }, 0);
+            const taxAmount = data.tax || 0;
+            const discount = data.discount || 0;
+            const total = subtotal - discount + taxAmount;
+
+            // Map items to include calculated totals
+            const mappedItems = data.items.map(item => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discount: item.discount || 0,
+                total: (item.quantity || 0) * (item.unitPrice || 0) - (item.discount || 0),
+            }));
+
             if (editingInvoice) {
                 await updateInvoice(editingInvoice.id, {
                     ...data,
                 });
             } else {
                 await createInvoice({
-                    orderId: data.orderId,
-                    orderNumber: data.orderNumber,
+                    orderId: data.orderId || undefined,
+                    orderNumber: data.orderNumber || undefined,
                     customerName: data.customerName,
                     customerEmail: data.customerEmail || undefined,
                     customerPhone: data.customerPhone || undefined,
                     customerAddress: data.customerAddress || undefined,
-                    customerDocument: data.customerDocument || undefined,
-                    items: data.items,
-                    discount: data.discount,
-                    tax: data.tax,
+                    customerNuit: data.customerDocument || undefined,
+                    items: mappedItems,
+                    subtotal,
+                    discount,
+                    taxAmount,
+                    total,
                     dueDate: data.dueDate,
-                    notes: data.notes,
-                    terms: data.terms,
+                    notes: data.notes || undefined,
+                    paymentTerms: data.terms || undefined,
                 });
             }
             closeFormModal();
-        } catch (err) {
-            console.error('Error saving invoice:', err);
-        } finally {
+        } catch (err: any) {
+            const responseData = err?.response?.data;
+            if (responseData?.errors && Array.isArray(responseData.errors)) {
+                const errorDetails = responseData.errors.map((e: any) => `${e.path}: ${e.message}`).join(', ');
+                toast.error(`Erro de validação: ${errorDetails}`);
+            } else {
+                const message = responseData?.message || responseData?.error || err?.message || 'Erro ao criar fatura';
+                toast.error(message);
+            }
+            logger.error('Error saving invoice:', err?.response?.data || err);
         }
+    };
+
+    // Show validation errors to the user
+    const onFormError = (errors: any) => {
+        const firstError = Object.values(errors).find((e: any) => e?.message || e?.root?.message) as any;
+        const message = firstError?.message || firstError?.root?.message || 'Verifique os campos obrigatórios';
+        toast.error(`Erro de validação: ${message}`);
+        logger.error('Form validation errors:', errors);
     };
 
     // Submit payment
@@ -422,7 +475,7 @@ export default function Invoices() {
             });
             resetPayment();
         } catch (err) {
-            console.error('Error registering payment:', err);
+            logger.error('Error registering payment:', err);
         } finally {
         }
     };
@@ -440,9 +493,29 @@ export default function Invoices() {
         reset();
     };
 
+    // Handle view invoice (fetch full details)
+    const handleViewInvoice = async (invoice: Invoice) => {
+        if (!invoice.items || invoice.items.length === 0) {
+            const fullInvoice = await getInvoiceById(invoice.id);
+            if (fullInvoice) {
+                setSelectedInvoice(fullInvoice);
+            }
+        } else {
+            setSelectedInvoice(invoice);
+        }
+        setShowDetailsModal(true);
+    };
+
     // Handle print invoice
-    const handlePrintInvoice = (invoice: Invoice) => {
-        setSelectedInvoice(invoice);
+    const handlePrintInvoice = async (invoice: Invoice) => {
+        if (!invoice.items || invoice.items.length === 0) {
+            const fullInvoice = await getInvoiceById(invoice.id);
+            if (fullInvoice) {
+                setSelectedInvoice(fullInvoice);
+            }
+        } else {
+            setSelectedInvoice(invoice);
+        }
         setShowPrintModal(true);
     };
 
@@ -462,29 +535,40 @@ export default function Invoices() {
 
     return (
         <div className="space-y-6">
-            {/* Header with Responsive Tabs */}
-            <div className="bg-white dark:bg-dark-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Faturação & Crédito</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Gestão de Faturas, Notas de Crédito e Pagamentos</p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
+            <PageHeader 
+                title="Facturação & Crédito"
+                subtitle="Gestão de Facturas, Notas de Crédito e Fluxos de Recebimento"
+                icon={<HiOutlineDocumentText />}
+                actions={
+                    <>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} 
+                            onClick={() => refetch()}
+                        >
+                            Actualizar
+                        </Button>
                         <ExportInvoicesButton data={invoices} />
-                        <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />}>Actualizar</Button>
-                        <Button size="sm" leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => setShowFormModal(true)}>Nova Fatura</Button>
-                    </div>
-                </div>
-
-                {/* Tab Navigation */}
-                <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
+                        <Button 
+                            size="sm" 
+                            className="font-black text-[10px] uppercase tracking-widest"
+                            leftIcon={<HiOutlinePlus className="w-5 h-5" />} 
+                            onClick={() => setShowFormModal(true)}
+                        >
+                            Nova Factura
+                        </Button>
+                    </>
+                }
+                tabs={
                     <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => setActiveTab(tab.id as any)}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
@@ -496,8 +580,8 @@ export default function Invoices() {
                             </button>
                         ))}
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             <div className="min-h-[400px]">
                 {activeTab === 'credit_notes' && <CreditNoteManager invoices={invoices} />}
@@ -524,63 +608,32 @@ export default function Invoices() {
                                 ))}
                             </div>
                         </div>
-                        {/* Metrics */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-                            <Card padding="md" className="border-l-4 border-l-primary-500 overflow-hidden">
-                                <div className="flex items-center justify-between gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-xs sm:text-sm text-gray-500 truncate">Total Faturado</p>
-                                        <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
-                                            {formatCurrency(metrics.total)}
-                                        </p>
-                                    </div>
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
-                                        <HiOutlineDocumentText className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" />
-                                    </div>
-                                </div>
-                            </Card>
-
-                            <Card padding="md" className="border-l-4 border-l-green-500 overflow-hidden">
-                                <div className="flex items-center justify-between gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-xs sm:text-sm text-gray-500 truncate">Recebido</p>
-                                        <p className="text-lg sm:text-xl font-bold text-green-600 truncate">
-                                            {formatCurrency(metrics.received)}
-                                        </p>
-                                    </div>
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                                        <HiOutlineCheck className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                                    </div>
-                                </div>
-                            </Card>
-
-                            <Card padding="md" className="border-l-4 border-l-yellow-500 overflow-hidden">
-                                <div className="flex items-center justify-between gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-xs sm:text-sm text-gray-500 truncate">Pendente</p>
-                                        <p className="text-lg sm:text-xl font-bold text-yellow-600 truncate">
-                                            {formatCurrency(metrics.pending)}
-                                        </p>
-                                    </div>
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
-                                        <HiOutlineClock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
-                                    </div>
-                                </div>
-                            </Card>
-
-                            <Card padding="md" className="border-l-4 border-l-red-500 overflow-hidden">
-                                <div className="flex items-center justify-between gap-2">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-xs sm:text-sm text-gray-500 truncate">Vencido</p>
-                                        <p className="text-lg sm:text-xl font-bold text-red-600 truncate">
-                                            {formatCurrency(metrics.overdue)}
-                                        </p>
-                                    </div>
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                                        <HiOutlineExclamation className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-                                    </div>
-                                </div>
-                            </Card>
+                        {/* Metrics Layer - Standardized */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <StatCard 
+                                label="Total Facturado"
+                                value={formatCurrency(metrics.total)}
+                                icon={<HiOutlineDocumentText className="w-6 h-6" />}
+                                color="primary"
+                            />
+                            <StatCard 
+                                label="Total Recebido"
+                                value={formatCurrency(metrics.received)}
+                                icon={<HiOutlineCheck className="w-6 h-6" />}
+                                color="green"
+                            />
+                            <StatCard 
+                                label="Valor Pendente"
+                                value={formatCurrency(metrics.pending)}
+                                icon={<HiOutlineClock className="w-6 h-6" />}
+                                color="yellow"
+                            />
+                            <StatCard 
+                                label="Valor Vencido"
+                                value={formatCurrency(metrics.overdue)}
+                                icon={<HiOutlineExclamationTriangle className="w-6 h-6" />}
+                                color="red"
+                            />
                         </div>
 
                         {/* Chart & Filters */}
@@ -589,7 +642,7 @@ export default function Invoices() {
                                 <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Status das Faturas</h3>
                                 <div className="h-40">
                                     {statusDistribution.length > 0 ? (
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ResponsiveContainer width="100%" height={160}>
                                             <PieChart>
                                                 <Pie data={statusDistribution} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value">
                                                     {statusDistribution.map((_, index) => (
@@ -619,16 +672,29 @@ export default function Invoices() {
                                 )}
                             </Card>
 
-                            <Card padding="md" className="lg:col-span-2">
-                                <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                                    <div className="flex-1">
-                                        <Input placeholder="Buscar faturas..." value={search} onChange={(e) => setSearch(e.target.value)} leftIcon={<HiOutlineSearch className="w-5 h-5" />} />
+                            <Card padding="md" className="lg:col-span-2 bg-gray-100/50 dark:bg-dark-800/50 border-none shadow-none">
+                                <div className="flex flex-col sm:flex-row gap-4 mb-2">
+                                    <div className="flex-1 relative">
+                                        <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                                        <Input 
+                                            placeholder="Buscar facturas por número ou cliente..." 
+                                            value={search} 
+                                            onChange={(e) => setSearch(e.target.value)} 
+                                            className="pl-10 bg-white dark:bg-dark-900 border-none shadow-sm h-11"
+                                        />
                                     </div>
                                     <div className="w-full sm:w-48">
-                                        <Select options={statusOptions} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} />
+                                        <Select 
+                                            options={statusOptions} 
+                                            value={statusFilter} 
+                                            onChange={(e) => setStatusFilter(e.target.value)} 
+                                            className="h-11 bg-white dark:bg-dark-900 border-none shadow-sm"
+                                        />
                                     </div>
                                 </div>
-                                <p className="text-sm text-gray-500">{filteredInvoices.length} faturas encontradas</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
+                                    {filteredInvoices.length} facturas encontradas no período
+                                </p>
                             </Card>
                         </div>
 
@@ -676,7 +742,7 @@ export default function Invoices() {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex justify-center gap-1">
-                                                        <button onClick={() => { setSelectedInvoice(inv); setShowDetailsModal(true); }} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Ver"><HiOutlineEye className="w-4 h-4 text-gray-500" /></button>
+                                                        <button onClick={() => handleViewInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Ver"><HiOutlineEye className="w-4 h-4 text-gray-500" /></button>
                                                         <button onClick={() => handlePrintInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Imprimir"><HiOutlinePrinter className="w-4 h-4 text-primary-500" /></button>
                                                         {inv.status === 'draft' && <button onClick={() => handleSendInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Enviar"><HiOutlineMail className="w-4 h-4 text-blue-500" /></button>}
                                                         {(inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue') && <button onClick={() => { setSelectedInvoice(inv); resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') }); setShowPaymentModal(true); }} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Pagamento"><HiOutlineCash className="w-4 h-4 text-green-500" /></button>}
@@ -710,7 +776,7 @@ export default function Invoices() {
 
             {/* Invoice Form Modal */}
             <Modal isOpen={showFormModal} onClose={closeFormModal} title={editingInvoice ? 'Editar Fatura' : 'Nova Fatura'} size="xl">
-                <form onSubmit={handleSubmit(onSubmit as never)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                <form onSubmit={handleSubmit(onSubmit as never, onFormError)} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                     {/* Source Selection */}
                     {!editingInvoice && (
                         <Card padding="md" className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800">
@@ -898,7 +964,7 @@ export default function Invoices() {
 
                         <Card padding="sm" variant="glass">
                             <h4 className="font-medium mb-2">Itens</h4>
-                            {selectedInvoice.items.map((item, i) => (
+                            {(selectedInvoice.items || []).map((item, i) => (
                                 <div key={i} className="flex justify-between text-sm py-1 border-b last:border-0">
                                     <span>{item.quantity}x {item.description}</span>
                                     <span className="font-medium">{formatCurrency(item.total)}</span>
@@ -912,10 +978,10 @@ export default function Invoices() {
                             </div>
                         </Card>
 
-                        {selectedInvoice.payments.length > 0 && (
+                        {(selectedInvoice.payments || []).length > 0 && (
                             <Card padding="sm" variant="glass">
                                 <h4 className="font-medium mb-2">Pagamentos</h4>
-                                {selectedInvoice.payments.map((p, i) => (
+                                {(selectedInvoice.payments || []).map((p, i) => (
                                     <div key={i} className="flex justify-between text-sm py-1 border-b last:border-0">
                                         <span>{format(parseISO(p.date), 'dd/MM/yyyy')} - {p.method.toUpperCase()}</span>
                                         <span className="font-medium text-green-600">{formatCurrency(p.amount)}</span>

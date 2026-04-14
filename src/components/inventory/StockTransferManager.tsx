@@ -1,7 +1,7 @@
 ﻿import { useState, useMemo } from 'react';
 import { Button, Card, Input, Modal, Select, Pagination, usePagination } from '../ui';
-import { HiOutlineDocumentDownload, HiOutlineSearch, HiOutlineTrash } from 'react-icons/hi';
-import { generateId, formatDate } from '../../utils/helpers';
+import { HiOutlineDocumentDownload, HiOutlineSearch, HiOutlineTrash, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
+import { formatDate } from '../../utils/helpers';
 import type { StockTransfer } from '../../types';
 import toast from 'react-hot-toast';
 import TransferGuidePrint from './TransferGuidePrint.tsx';
@@ -11,7 +11,7 @@ export default function StockTransferManager() {
     // Use data hooks instead of store
     const { products: productsData, refetch: refetchProducts } = useProducts();
     const { warehouses: warehousesData } = useWarehouses();
-    const { transfers: transfersData, createTransfer } = useStockTransfers();
+    const { transfers: transfersData, createTransfer, completeTransfer, cancelTransfer, refetch: refetchTransfers } = useStockTransfers();
 
     // Ensure arrays are never undefined
     const products = Array.isArray(productsData) ? productsData : [];
@@ -163,24 +163,32 @@ export default function StockTransferManager() {
             return;
         }
 
-        const newTransfer: StockTransfer = {
-            id: generateId(),
-            number: `GT-${new Date().getFullYear()}-${String(transfers.length + 1).padStart(3, '0')}`,
+        await createTransfer({
             sourceWarehouseId: sourceId,
             targetWarehouseId: targetId,
-            items: transferItems,
-            status: 'completed',
+            items: transferItems.map(i => ({ productId: i.productId, quantity: i.quantity })),
             responsible,
             reason,
-            date: new Date().toISOString(),
-            createdAt: new Date().toISOString(),
-        };
-
-        await createTransfer(newTransfer);
-        await refetchProducts();
-        toast.success('Transferência realizada com sucesso!');
+        });
+        await Promise.all([refetchProducts(), refetchTransfers()]);
         setIsModalOpen(false);
         resetForm();
+    };
+
+    const handleComplete = async (transfer: StockTransfer) => {
+        if (!window.confirm(`Confirmar recepção da transferência ${transfer.number}?\nEsta acção vai adicionar os produtos ao armazém de destino.`)) return;
+        try {
+            await completeTransfer(transfer.id);
+            await refetchTransfers();
+        } catch { /* error toast handled by hook */ }
+    };
+
+    const handleCancel = async (transfer: StockTransfer) => {
+        if (!window.confirm(`Cancelar transferência ${transfer.number}?\nO stock será reposto no armazém de origem.`)) return;
+        try {
+            await cancelTransfer(transfer.id);
+            await refetchTransfers();
+        } catch { /* error toast handled by hook */ }
     };
 
     const resetForm = () => {
@@ -243,13 +251,14 @@ export default function StockTransferManager() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origem</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destino</th>
                                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Itens</th>
+                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-dark-900 divide-y divide-gray-200 dark:divide-dark-700">
                             {filteredHistory.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
                                         Nenhuma transferência encontrada com os filtros atuais
                                     </td>
                                 </tr>
@@ -272,24 +281,66 @@ export default function StockTransferManager() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">
                                                 {transfer.items.length}
                                             </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                {transfer.status === 'in_transit' && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                                        Em Trânsito
+                                                    </span>
+                                                )}
+                                                {transfer.status === 'completed' && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                                        Completada
+                                                    </span>
+                                                )}
+                                                {transfer.status === 'cancelled' && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                                        Cancelada
+                                                    </span>
+                                                )}
+                                                {transfer.status === 'pending' && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                                        Pendente
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedTransfer(transfer);
-                                                        setShowPrintModal(true);
-                                                    }}
-                                                    className="text-blue-600 hover:text-blue-900 dark:hover:text-blue-400"
-                                                    title="Imprimir Guia"
-                                                >
-                                                    <HiOutlineDocumentDownload className="w-5 h-5" />
-                                                </button>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    {transfer.status === 'in_transit' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleComplete(transfer)}
+                                                                className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all"
+                                                                title="Confirmar Recepção"
+                                                            >
+                                                                <HiOutlineCheck className="w-5 h-5" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleCancel(transfer)}
+                                                                className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                                                                title="Cancelar Transferência"
+                                                            >
+                                                                <HiOutlineX className="w-5 h-5" />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedTransfer(transfer);
+                                                            setShowPrintModal(true);
+                                                        }}
+                                                        className="p-1.5 text-blue-600 hover:text-blue-900 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                                                        title="Imprimir Guia"
+                                                    >
+                                                        <HiOutlineDocumentDownload className="w-5 h-5" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
                                     {/* Placeholder rows to maintain 10-item height */}
                                     {paginatedHistory.length > 0 && paginatedHistory.length < itemsPerPage && Array.from({ length: itemsPerPage - paginatedHistory.length }).map((_, i) => (
                                         <tr key={`placeholder-${i}`} className="h-[73px]">
-                                            <td colSpan={6}>&nbsp;</td>
+                                            <td colSpan={7}>&nbsp;</td>
                                         </tr>
                                     ))}
                                 </>

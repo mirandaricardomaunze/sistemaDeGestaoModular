@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 import { useState, useEffect, useCallback } from 'react';
 import {
     productsAPI,
@@ -129,7 +130,7 @@ export function useSmartInsights() {
             await Promise.all(promises);
             setInsights(newInsights.sort((a, b) => b.priority - a.priority));
         } catch (error) {
-            console.error('Error generating smart insights:', error);
+            logger.error('Error generating smart insights:', error);
         } finally {
             setIsLoading(false);
         }

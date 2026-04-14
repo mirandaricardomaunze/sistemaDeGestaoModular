@@ -14,8 +14,6 @@ const router = Router();
  *         description: List of optional modules (core modules are always included)
  */
 router.get('/', async (_req, res) => {
-    // Return static modules - no database query needed
-    console.log(`[Modules] Returning ${OPTIONAL_MODULES.length} optional modules`);
     res.json(OPTIONAL_MODULES);
 });
 

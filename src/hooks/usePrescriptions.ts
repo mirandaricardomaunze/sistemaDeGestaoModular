@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { pharmacyAPI } from '../services/api';
@@ -43,9 +44,9 @@ export function usePrescriptions(params?: UsePrescriptionsParams) {
                     hasMore: false
                 });
             }
-        } catch (err: unknown) {
+        } catch (err: any) {
             setError(err.message || 'Erro ao carregar receitas');
-            console.error('Error fetching prescriptions:', err);
+            logger.error('Error fetching prescriptions:', err);
         } finally {
             setIsLoading(false);
         }
@@ -66,7 +67,7 @@ export function usePrescriptions(params?: UsePrescriptionsParams) {
             toast.success('Receita registrada com sucesso!');
             fetchPrescriptions();
             return newPrescription;
-        } catch (err: unknown) {
+        } catch (err: any) {
             toast.error(err.response?.data?.message || 'Erro ao registrar receita');
             throw err;
         }

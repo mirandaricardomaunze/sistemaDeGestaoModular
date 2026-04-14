@@ -64,7 +64,6 @@ async function seedPharmacy() {
                     minStock: prod.minStock,
                     currentStock: 0,
                     unit: 'un',
-                    origin_module: 'pharmacy',
                     companyId: company.id,
                     supplierId: supplier.id
                 }

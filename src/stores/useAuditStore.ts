@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿/**
  * Audit Store
  * Gerencia o estado e operações de auditoria
@@ -121,7 +122,7 @@ export const useAuditStore = create<AuditState>()(
                         oldData: logData.previousValues,
                         newData: logData.newValues,
                     }).catch(error => {
-                        console.error('Failed to sync audit log to database:', error);
+                        logger.error('Failed to sync audit log to database:', error);
                         // Add to pending sync queue for retry
                         set((state) => ({
                             pendingSync: [...state.pendingSync, logData],
@@ -380,7 +381,7 @@ export const useAuditStore = create<AuditState>()(
                     // Clear successfully synced logs
                     set({ pendingSync: [] });
                 } catch (error) {
-                    console.error('Failed to sync audit logs:', error);
+                    logger.error('Failed to sync audit logs:', error);
                 } finally {
                     set({ isSyncing: false });
                 }
@@ -434,7 +435,7 @@ export const useAuditStore = create<AuditState>()(
                         }));
                     }
                 } catch (error) {
-                    console.error('Failed to load audit logs from database:', error);
+                    logger.error('Failed to load audit logs from database:', error);
                 }
             },
         }),

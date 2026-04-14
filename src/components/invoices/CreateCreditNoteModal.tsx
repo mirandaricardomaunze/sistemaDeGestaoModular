@@ -1,10 +1,11 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { HiOutlineSearch } from 'react-icons/hi';
 import { Modal, Button, Input } from '../ui'; // Adjust based on your UI components
-import { generateId, formatCurrency } from '../../utils/helpers';
+import { formatCurrency } from '../../utils/helpers';
 import type { Invoice, CreditNote } from '../../types';
 import { invoicesAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -64,7 +65,7 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
             setSelectedInvoice(invoice || null);
             if (invoice) {
                 // Populate items with 0 quantity initially
-                const initialItems = invoice.items.map(item => ({
+                const initialItems = (invoice.items || []).map(item => ({
                     // Assuming invoice item id maps to product or is unique. Ideally invoice item has productId.  
                     // Note: InvoiceItem in types/index.ts usually doesn't strictly have productId, it has 'id'. 
                     // However, for CreditNote we need to know which product to restock. 
@@ -145,7 +146,7 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
             toast.success("Nota de Crédito emitida com sucesso!");
             handleClose();
         } catch (error) {
-            console.error('Error creating credit note:', error);
+            logger.error('Error creating credit note:', error);
             toast.error('Erro ao emitir nota de crédito');
         }
     };

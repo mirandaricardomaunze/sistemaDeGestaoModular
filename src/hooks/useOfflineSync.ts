@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useEffect, useState, useCallback, useRef } from 'react';
 import { db } from '../db/offlineDB';
 import { salesAPI, api } from '../services/api';
@@ -28,7 +29,7 @@ export function useOfflineSync() {
                 await db.pendingSales.update(sale.id!, { synced: true as any });
                 successCount++;
             } catch (error) {
-                console.error('Failed to sync sale:', sale.id, error);
+                logger.error('Failed to sync sale:', sale.id, error);
                 await db.pendingSales.update(sale.id!, { error: String(error) });
             }
         }
@@ -52,7 +53,7 @@ export function useOfflineSync() {
                 await db.pendingOperations.update(op.id!, { synced: true as any });
                 successCount++;
             } catch (error) {
-                console.error(`Failed to sync ${op.module} operation:`, op.id, error);
+                logger.error(`Failed to sync ${op.module} operation:`, op.id, error);
                 await db.pendingOperations.update(op.id!, { error: String(error) });
             }
         }

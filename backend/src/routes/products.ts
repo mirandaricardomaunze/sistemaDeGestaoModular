@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 import {
@@ -80,7 +80,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     // Validate request body
     const validatedData = updateProductSchema.parse(req.body);
 
-    const product = await productsService.update(req.params.id, validatedData, req.companyId);
+    const product = await productsService.update(req.params.id, validatedData, req.companyId, req.userId);
     res.json(product);
 });
 
@@ -100,6 +100,36 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     await productsService.delete(req.params.id, req.companyId);
     res.json({ message: 'Produto removido com sucesso' });
+});
+
+// Bulk price adjustment
+router.post('/bulk-price-adjustment', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await productsService.bulkUpdatePrices(
+        req.body,
+        req.companyId,
+        req.userId,
+        req.userName
+    );
+    res.json(result);
+});
+
+// ── Price Tiers ───────────────────────────────────────────────────────────────
+
+// Get price tiers for a product
+router.get('/:id/price-tiers', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const tiers = await productsService.getPriceTiers(req.params.id, req.companyId);
+    res.json(tiers);
+});
+
+// Set/replace price tiers for a product
+router.put('/:id/price-tiers', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const { tiers } = req.body;
+    if (!Array.isArray(tiers)) throw ApiError.badRequest('tiers deve ser um array');
+    const result = await productsService.setPriceTiers(req.params.id, tiers, req.companyId);
+    res.json(result);
 });
 
 export default router;

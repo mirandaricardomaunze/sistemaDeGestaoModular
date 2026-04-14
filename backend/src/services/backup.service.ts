@@ -5,6 +5,7 @@ import * as path from 'path';
 import cron from 'node-cron';
 import { googleDriveService } from './googleDrive.service';
 import { prisma } from '../lib/prisma';
+import { logger } from '../utils/logger';
 
 const execAsync = promisify(exec);
 
@@ -40,7 +41,7 @@ class BackupService {
      */
     async initialize(): Promise<void> {
         if (!this.config.enabled) {
-            console.log('📦 Backup automático desabilitado');
+            logger.info('Automatic backup disabled');
             return;
         }
 
@@ -50,9 +51,11 @@ class BackupService {
         // Agendar backup automático
         this.scheduleBackup();
 
-        console.log(`📦 Backup automático configurado: ${this.config.schedule}`);
-        console.log(`📦 Retenção: ${this.config.retentionDays} dias`);
-        console.log(`📦 Diretório: ${this.config.backupPath}`);
+        logger.info('Automatic backup configured', {
+            schedule: this.config.schedule,
+            retentionDays: this.config.retentionDays,
+            backupPath: this.config.backupPath
+        });
     }
 
     /**
@@ -72,7 +75,7 @@ class BackupService {
                 await fs.access(companyPath);
             } catch {
                 await fs.mkdir(companyPath, { recursive: true });
-                console.log(`📂 Diretório de backup criado para empresa ${companyId}: ${companyPath}`);
+                logger.info('Backup directory created', { companyId, path: companyPath });
             }
             return companyPath;
         }
@@ -85,7 +88,7 @@ class BackupService {
      */
     private scheduleBackup(): void {
         cron.schedule(this.config.schedule, async () => {
-            console.log('⏰ Iniciando backups agendados para todas as empresas...');
+            logger.info('Starting scheduled backups for all companies');
             try {
                 const companies = await prisma.company.findMany({
                     where: { status: 'active' },
@@ -93,12 +96,12 @@ class BackupService {
                 });
 
                 for (const company of companies) {
-                    console.log(`⏰ Backup agendado para empresa: ${company.id}`);
+                    logger.info('Running scheduled backup', { companyId: company.id });
                     await this.createBackup(company.id);
                 }
             } catch (error: unknown) {
-                const message = error instanceof Error ? error.message : 'Erro desconhecido';
-                console.error('❌ Erro no backup agendado:', message);
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                logger.error('Scheduled backup failed', { message });
             }
         });
     }
@@ -121,7 +124,7 @@ class BackupService {
             const filename = `backup-${timestamp}.sql`;
             const filepath = path.join(companyPath, filename);
 
-            console.log(`📦 Criando backup para empresa ${companyId}: ${filename}`);
+            logger.info('Creating backup', { companyId, filename });
 
             // Obter URL do banco de dados e remover parâmetros extras (como ?schema=public) que o pg_dump não reconhece
             const databaseUrl = process.env.DATABASE_URL;
@@ -154,18 +157,16 @@ class BackupService {
             const stats = await fs.stat(filepath);
             const sizeInMB = (stats.size / (1024 * 1024)).toFixed(2);
 
-            console.log(`✅ Backup criado com sucesso: ${filename} (${sizeInMB} MB)`);
+            logger.info('Backup created successfully', { filename, sizeMB: sizeInMB });
 
             // Upload para Google Drive (se configurado)
             if (googleDriveService.isConfigured()) {
-                console.log(`☁️  Fazendo upload para Google Drive (Empresa: ${companyId})...`);
-                // Passamos o companyId para o Google Drive Service criar a estrutura de pastas
                 const uploadResult = await googleDriveService.uploadFile(filepath, filename, companyId);
 
                 if (uploadResult.success) {
-                    console.log(`✅ Backup enviado para Google Drive com sucesso!`);
+                    logger.info('Backup uploaded to Google Drive', { companyId, filename });
                 } else {
-                    console.error(`⚠️  Falha ao enviar para Google Drive: ${uploadResult.error}`);
+                    logger.warn('Google Drive upload failed', { companyId, error: uploadResult.error });
                 }
             }
 
@@ -179,8 +180,8 @@ class BackupService {
 
             return { success: true, filename, size: `${sizeInMB} MB` };
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Erro desconhecido';
-            console.error('❌ Erro ao criar backup:', message);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            logger.error('Backup creation failed', { companyId, message });
             return { success: false, error: message };
         } finally {
             this.isRunning = false;
@@ -211,16 +212,15 @@ class BackupService {
                 if (fileAge > retentionMs) {
                     await fs.unlink(filepath);
                     deletedCount++;
-                    console.log(`🗑️  Backup antigo removido: ${file}`);
                 }
             }
 
             if (deletedCount > 0) {
-                console.log(`🧹 ${deletedCount} backup(s) antigo(s) removido(s)`);
+                logger.info('Old backups removed', { companyId, deletedCount });
             }
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Erro desconhecido';
-            console.error('⚠️ Erro ao limpar backups antigos:', message);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            logger.warn('Failed to clean old backups', { companyId, message });
         }
     }
 
@@ -255,8 +255,8 @@ class BackupService {
 
             return backups;
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Erro desconhecido';
-            console.error('❌ Erro ao listar backups:', message);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            logger.error('Failed to list backups', { companyId, message });
             return [];
         }
     }
@@ -271,7 +271,7 @@ class BackupService {
             // Verificar se o arquivo existe
             await fs.access(filepath);
 
-            console.log(`🔄 Restaurando backup: ${filename}`);
+            logger.info('Restoring backup', { filename, companyId });
 
             const databaseUrl = process.env.DATABASE_URL;
             if (!databaseUrl) {
@@ -297,12 +297,12 @@ class BackupService {
                 }
             }
 
-            console.log(`✅ Backup restaurado com sucesso: ${filename}`);
+            logger.info('Backup restored successfully', { filename });
 
             return { success: true };
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Erro desconhecido';
-            console.error('❌ Erro ao restaurar backup:', message);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            logger.error('Backup restore failed', { filename, companyId, message });
             return { success: false, error: message };
         }
     }
@@ -315,12 +315,12 @@ class BackupService {
             const filepath = path.join(this.getCompanyBackupPath(companyId), filename);
             await fs.unlink(filepath);
 
-            console.log(`🗑️  Backup deletado: ${filename}`);
+            logger.info('Backup deleted', { filename, companyId });
 
             return { success: true };
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Erro desconhecido';
-            console.error('❌ Erro ao deletar backup:', message);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            logger.error('Backup deletion failed', { filename, companyId, message });
             return { success: false, error: message };
         }
     }
@@ -364,8 +364,8 @@ class BackupService {
                 newestBackup: backups[0]?.date,
             };
         } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : 'Erro desconhecido';
-            console.error('❌ Erro ao obter estatísticas:', message);
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            logger.error('Failed to get backup stats', { companyId, message });
             return {
                 totalBackups: 0,
                 totalSize: '0 MB',

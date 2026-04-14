@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿/**
  * CRM Store
  * Gerencia funil de vendas, oportunidades e campanhas
@@ -137,7 +138,7 @@ export const useCRMStore = create<CRMState>()(
                         set({ opportunities });
                     }
                 } catch (error) {
-                    console.error('Failed to load funnel from database:', error);
+                    logger.error('Failed to load funnel from database:', error);
                 } finally {
                     set({ isSyncingFunnel: false });
                 }
@@ -163,7 +164,7 @@ export const useCRMStore = create<CRMState>()(
                 try {
                     await crmAPI.createStage(newStage);
                 } catch (error) {
-                    console.error('Failed to sync stage to database:', error);
+                    logger.error('Failed to sync stage to database:', error);
                 }
             },
 
@@ -179,7 +180,7 @@ export const useCRMStore = create<CRMState>()(
                 try {
                     await crmAPI.updateStage(id, updates);
                 } catch (error) {
-                    console.error('Failed to update stage in database:', error);
+                    logger.error('Failed to update stage in database:', error);
                 }
             },
 
@@ -193,7 +194,7 @@ export const useCRMStore = create<CRMState>()(
                 try {
                     await crmAPI.deleteStage(id);
                 } catch (error) {
-                    console.error('Failed to delete stage from database:', error);
+                    logger.error('Failed to delete stage from database:', error);
                 }
             },
 
@@ -211,7 +212,7 @@ export const useCRMStore = create<CRMState>()(
                     const promises = updatedStages.map(s => crmAPI.updateStage(s.id, { order: s.order }));
                     await Promise.all(promises);
                 } catch (error) {
-                    console.error('Failed to sync stage reordering:', error);
+                    logger.error('Failed to sync stage reordering:', error);
                 }
             },
 
@@ -241,7 +242,7 @@ export const useCRMStore = create<CRMState>()(
                 try {
                     await crmAPI.createOpportunity(newOpportunity);
                 } catch (error) {
-                    console.error('Failed to sync opportunity to database:', error);
+                    logger.error('Failed to sync opportunity to database:', error);
                 }
 
                 return newOpportunity;
@@ -259,7 +260,7 @@ export const useCRMStore = create<CRMState>()(
                 try {
                     await crmAPI.updateOpportunity(id, updates);
                 } catch (error) {
-                    console.error('Failed to update opportunity in database:', error);
+                    logger.error('Failed to update opportunity in database:', error);
                 }
             },
 
@@ -273,7 +274,7 @@ export const useCRMStore = create<CRMState>()(
                 try {
                     await crmAPI.deleteOpportunity(id);
                 } catch (error) {
-                    console.error('Failed to delete opportunity from database:', error);
+                    logger.error('Failed to delete opportunity from database:', error);
                 }
             },
 
@@ -323,7 +324,7 @@ export const useCRMStore = create<CRMState>()(
                 try {
                     await crmAPI.moveOpportunity(opportunityId, newStageId, reason);
                 } catch (error) {
-                    console.error('Failed to sync opportunity move to database:', error);
+                    logger.error('Failed to sync opportunity move to database:', error);
                 }
             },
 
@@ -374,7 +375,7 @@ export const useCRMStore = create<CRMState>()(
                 try {
                     await crmAPI.addInteraction(opportunityId, interactionData);
                 } catch (error) {
-                    console.error('Failed to sync interaction to database:', error);
+                    logger.error('Failed to sync interaction to database:', error);
                 }
             },
 
@@ -535,7 +536,7 @@ export const useCRMStore = create<CRMState>()(
                         set({ campaigns });
                     }
                 } catch (error) {
-                    console.error('Failed to load campaigns from database:', error);
+                    logger.error('Failed to load campaigns from database:', error);
                 } finally {
                     set({ isSyncingCampaigns: false });
                 }
@@ -579,7 +580,7 @@ export const useCRMStore = create<CRMState>()(
                     maxDiscountAmount: data.maxDiscountAmount,
                     maxTotalUses: data.maxTotalUses,
                 }).catch(error => {
-                    console.error('Failed to sync campaign to database:', error);
+                    logger.error('Failed to sync campaign to database:', error);
                 });
 
                 return newCampaign;
@@ -594,7 +595,7 @@ export const useCRMStore = create<CRMState>()(
 
                 // Sync to database
                 campaignsAPI.update(id, updates as any).catch(error => {
-                    console.error('Failed to sync campaign update to database:', error);
+                    logger.error('Failed to sync campaign update to database:', error);
                 });
             },
 
@@ -605,7 +606,7 @@ export const useCRMStore = create<CRMState>()(
 
                 // Sync to database
                 campaignsAPI.delete(id).catch(error => {
-                    console.error('Failed to delete campaign from database:', error);
+                    logger.error('Failed to delete campaign from database:', error);
                 });
             },
 

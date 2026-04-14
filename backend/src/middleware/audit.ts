@@ -1,6 +1,7 @@
 ﻿import { Response, NextFunction } from 'express';
 import { prisma } from '../lib/prisma';
 import { AuthRequest } from './auth';
+import { logger } from '../utils/logger';
 
 /**
  * Manually log an audit entry
@@ -41,7 +42,7 @@ export const logAudit = async (params: {
             }
         });
     } catch (error) {
-        console.error('Audit log creation failed:', error);
+        logger.error('Audit log creation failed', { error });
     }
 };
 
@@ -71,7 +72,7 @@ export const auditMiddleware = (req: AuthRequest, res: Response, next: NextFunct
                 if (entity === 'auth' && (req.path === '/login' || req.path === '/register')) return;
 
                 // Prepare data
-                const entityId = req.params.id || (res as Record<string, unknown>).entityId as string;
+                const entityId = req.params.id;
 
                 // Filter out sensitive data from req.body if it's an update/create
                 const body = { ...req.body };

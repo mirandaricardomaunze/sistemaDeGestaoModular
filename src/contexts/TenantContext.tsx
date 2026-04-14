@@ -38,11 +38,16 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     useEffect(() => {
         if (user && activeModules.length > 0) {
-            // Primary module (usually the first one after registration)
-            const primaryModule = activeModules[0];
-            const mappedType = MODULE_TO_BUSINESS_TYPE[primaryModule];
-            if (mappedType) {
-                setBusinessType(mappedType);
+            // Find the first optional (non-core) module that has a business type mapping
+            // Core modules (POS, CRM, HR, FISCAL, INVOICES, FINANCIAL) have no mapping,
+            // so skip them and find the first optional module like PHARMACY, COMMERCIAL, etc.
+            const coreModuleCodes = ['POS', 'CRM', 'HR', 'FISCAL', 'INVOICES', 'FINANCIAL'];
+            const primaryModule = activeModules.find(m =>
+                !coreModuleCodes.includes(m.toUpperCase()) && MODULE_TO_BUSINESS_TYPE[m]
+            ) || activeModules.find(m => MODULE_TO_BUSINESS_TYPE[m]);
+            if (primaryModule) {
+                const mappedType = MODULE_TO_BUSINESS_TYPE[primaryModule];
+                if (mappedType) setBusinessType(mappedType);
             }
         }
     }, [user, activeModules, setBusinessType]);

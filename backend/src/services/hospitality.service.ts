@@ -1,9 +1,7 @@
-﻿import { PrismaClient } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 
 export class HospitalityService {
-    constructor(private prisma: PrismaClient) { }
 
     // ============================================================================
     // ROOMS MANAGEMENT
@@ -21,7 +19,7 @@ export class HospitalityService {
         }
 
         const [rooms, total, allRooms] = await Promise.all([
-            this.prisma.room.findMany({
+            prisma.room.findMany({
                 where,
                 include: {
                     bookings: {
@@ -39,8 +37,8 @@ export class HospitalityService {
                 skip,
                 take: limit
             }),
-            this.prisma.room.count({ where }),
-            this.prisma.room.groupBy({
+            prisma.room.count({ where }),
+            prisma.room.groupBy({
                 by: ['status'],
                 where: { companyId },
                 _count: true
@@ -68,7 +66,7 @@ export class HospitalityService {
     }
 
     async createRoom(companyId: string, data: any) {
-        return this.prisma.room.create({
+        return prisma.room.create({
             data: {
                 ...data,
                 status: 'available',
@@ -78,14 +76,14 @@ export class HospitalityService {
     }
 
     async updateRoom(companyId: string, roomId: string, data: any) {
-        return this.prisma.room.update({
+        return prisma.room.update({
             where: { id: roomId, companyId },
             data
         });
     }
 
     async deleteRoom(companyId: string, roomId: string) {
-        return this.prisma.room.delete({
+        return prisma.room.delete({
             where: { id: roomId, companyId }
         });
     }
@@ -104,7 +102,7 @@ export class HospitalityService {
         }
 
         const [bookings, total] = await Promise.all([
-            this.prisma.booking.findMany({
+            prisma.booking.findMany({
                 where,
                 include: {
                     room: true,
@@ -116,7 +114,7 @@ export class HospitalityService {
                 skip,
                 take: limit
             }),
-            this.prisma.booking.count({ where })
+            prisma.booking.count({ where })
         ]);
 
         return {
@@ -131,7 +129,7 @@ export class HospitalityService {
     }
 
     async checkIn(companyId: string, data: any) {
-        return this.prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx) => {
             const room = await tx.room.findUnique({ where: { id: data.roomId, companyId } });
             if (!room || room.status !== 'available') {
                 throw ApiError.badRequest('Quarto não disponível para ocupação');
@@ -170,7 +168,7 @@ export class HospitalityService {
     }
 
     async checkout(companyId: string, bookingId: string, userId: string) {
-        return this.prisma.$transaction(async (tx) => {
+        return prisma.$transaction(async (tx) => {
             const booking = await tx.booking.findUnique({
                 where: { id: bookingId },
                 include: { room: true, consumptions: true }
@@ -240,10 +238,12 @@ export class HospitalityService {
             where.createdAt = { gte: start, lt: end };
         }
 
-        return this.prisma.housekeepingTask.findMany({
+        return prisma.housekeepingTask.findMany({
             where,
             include: { room: { select: { id: true, number: true, type: true, status: true } } },
             orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }]
         });
     }
 }
+
+export const hospitalityService = new HospitalityService();

@@ -1,6 +1,8 @@
+import { logger } from '../utils/logger';
 ﻿import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productsAPI } from '../services/api';
+import { useAuthStore } from '../stores/useAuthStore';
 import { db } from '../db/offlineDB';
 import type { Product } from '../types';
 
@@ -74,7 +76,7 @@ export function useProducts(params?: UseProductsParams) {
                             await db.products.bulkPut(productsData);
                         }
                     } catch (dexieError) {
-                        console.error('Dexie error in useProducts:', dexieError);
+                        logger.error('Dexie error in useProducts:', dexieError);
                     }
                 }
 
@@ -129,7 +131,7 @@ export function useProducts(params?: UseProductsParams) {
             toast.success('Produto criado com sucesso!');
         },
         onError: (err) => {
-            console.error('Error creating product:', err);
+            logger.error('Error creating product:', err);
             toast.error('Erro ao criar produto');
         }
     });
@@ -155,7 +157,7 @@ export function useProducts(params?: UseProductsParams) {
             toast.success('Produto actualizado com sucesso!');
         },
         onError: (err) => {
-            console.error('Error updating product:', err);
+            logger.error('Error updating product:', err);
             toast.error('Erro ao actualizar produto');
         }
     });
@@ -167,38 +169,42 @@ export function useProducts(params?: UseProductsParams) {
             toast.success('Produto removido com sucesso!');
         },
         onError: (err) => {
-            console.error('Error deleting product:', err);
+            logger.error('Error deleting product:', err);
             toast.error('Erro ao remover produto');
         }
     });
 
     const updateStockMutation = useMutation({
-        mutationFn: async ({ id, quantity, operation, warehouseId }: {
+        mutationFn: async ({ id, quantity, operation, warehouseId, reason }: {
             id: string,
             quantity: number,
             operation: 'add' | 'subtract' | 'set',
-            warehouseId?: string
+            warehouseId?: string,
+            reason?: string
         }) => {
+            const user = useAuthStore.getState().user;
+            const performedBy = user?.name || 'Sistema';
+
             if (!navigator.onLine) {
                 await db.pendingOperations.add({
                     module: 'inventory',
                     endpoint: `/products/${id}/stock`,
                     method: 'PUT',
-                    data: { quantity, operation, warehouseId },
+                    data: { quantity, operation, warehouseId, reason, performedBy },
                     timestamp: Date.now(),
                     synced: false as any
                 });
                 toast('Ajuste de stock guardado (Offline)', { icon: '💾' });
                 return;
             }
-            return productsAPI.updateStock(id, { quantity, operation, warehouseId });
+            return productsAPI.updateStock(id, { quantity, operation, warehouseId, reason, performedBy });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
             toast.success('Stock actualizado com sucesso!');
         },
         onError: (err) => {
-            console.error('Error updating stock:', err);
+            logger.error('Error updating stock:', err);
             toast.error('Erro ao actualizar stock');
         }
     });
@@ -213,8 +219,8 @@ export function useProducts(params?: UseProductsParams) {
         addProduct: addMutation.mutateAsync,
         updateProduct: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
         deleteProduct: deleteMutation.mutateAsync,
-        updateStock: (id: string, quantity: number, operation: any, warehouseId?: string) =>
-            updateStockMutation.mutateAsync({ id, quantity, operation, warehouseId }),
+        updateStock: (id: string, quantity: number, operation: any, warehouseId?: string, reason?: string) =>
+            updateStockMutation.mutateAsync({ id, quantity, operation, warehouseId, reason }),
         getProductByBarcode: (barcode: string) => productsAPI.getByBarcode(barcode),
     };
 }

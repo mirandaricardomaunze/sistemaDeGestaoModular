@@ -1,8 +1,9 @@
 ﻿import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
+import { logger } from '../utils/logger';
 
 export const errorHandler = (err: Error & { status?: number; code?: string; meta?: Record<string, unknown> }, req: Request, res: Response, _next: NextFunction) => {
-    console.error(' [Error Log] ', {
+    logger.error('Request error', {
         message: err.message,
         stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
         path: req.path,

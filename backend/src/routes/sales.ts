@@ -23,6 +23,9 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
 
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(req.params.id)) throw ApiError.badRequest('ID inválido: deve ser um UUID válido');
+
     const sale = await salesService.getById(req.params.id, req.companyId);
     res.json(sale);
 });

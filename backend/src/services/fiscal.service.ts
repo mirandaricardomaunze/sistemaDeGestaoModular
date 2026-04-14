@@ -1,8 +1,8 @@
 ﻿import { PrismaClient } from '@prisma/client';
-import { prisma } from '../lib/prisma';
+import { prisma, ExtendedPrismaClient } from '../lib/prisma';
 
 export class FiscalService {
-    constructor(private prisma: PrismaClient) { }
+    constructor(private prisma: ExtendedPrismaClient) { }
 
     async getTaxConfigs(companyId: string) {
         return this.prisma.taxConfig.findMany({

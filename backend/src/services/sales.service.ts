@@ -5,6 +5,7 @@ import * as crypto from 'crypto';
 import { CreateSaleInput } from '../utils/validation';
 import { ApiError } from '../middleware/error.middleware';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { stockService } from './StockService';
 
 export class SalesService {
     /**
@@ -98,8 +99,10 @@ export class SalesService {
             paymentMethod,
             amountPaid,
             change,
+            paymentRef,
             notes,
-            redeemPoints
+            redeemPoints,
+            sessionId
         } = data;
 
         const POINTS_EARN_RATE = 100;
@@ -173,23 +176,15 @@ export class SalesService {
             const hashCode = crypto.createHash('sha256').update(hashData).digest('hex').substring(0, 4).toUpperCase();
 
             // 4. Validate Products & Stock
-            const productIds = items.map((item) => item.productId);
-            const products = await tx.product.findMany({
-                where: { id: { in: productIds }, companyId },
-                select: { id: true, name: true, code: true, currentStock: true, minStock: true }
-            });
-
-            const productMap = new Map<string, { id: string; name: string; code: string; currentStock: number; minStock: number }>(products.map((p: any) => [p.id, p]));
-
             for (const item of items) {
-                const product = productMap.get(item.productId);
-                if (!product) throw ApiError.notFound(`Produto ${item.productId} não encontrado`);
-                if (product.currentStock < item.quantity) {
-                    throw ApiError.badRequest(`Stock insuficiente para ${product.name}. Disponível: ${product.currentStock}`);
-                }
+                await stockService.validateAvailability(item.productId, item.quantity, companyId, tx);
             }
 
             // 5. Create Sale
+            const isCreditSale = paymentMethod === 'credit';
+            // Compute precise change (server-side authoritative calculation)
+            const computedChange = isCreditSale ? 0 : Math.max(0, (amountPaid || 0) - total);
+
             const createdSale = await tx.sale.create({
                 data: {
                     receiptNumber,
@@ -201,9 +196,12 @@ export class SalesService {
                     tax: tax || 0,
                     total,
                     paymentMethod: paymentMethod || 'cash',
-                    amountPaid,
-                    change: change || 0,
-                    notes: notes ? `${notes} ${pointsToRedeem > 0 ? `(Pontos redimidos: ${pointsToRedeem})` : ''}` : undefined,
+                    amountPaid: isCreditSale ? 0 : (amountPaid || 0),
+                    change: computedChange,
+                    isCredit: isCreditSale,
+                    paymentRef: paymentRef || undefined,
+                    sessionId: sessionId || undefined,
+                    notes: notes ? `${notes}${pointsToRedeem > 0 ? ` (Pontos redimidos: ${pointsToRedeem})` : ''}` : undefined,
                     series,
                     fiscalNumber,
                     hashCode,
@@ -223,69 +221,20 @@ export class SalesService {
                 }
             });
 
-            // 6. Update Stock & Log Movements
+            // 6. Update Stock & Log Movements (Alerts handled internally by StockService)
             for (const item of items) {
-                const product = productMap.get(item.productId);
-                const balanceBefore = product?.currentStock || 0;
-                const balanceAfter = balanceBefore - item.quantity;
-
-                await tx.product.update({
-                    where: { id: item.productId },
-                    data: { currentStock: { decrement: item.quantity } }
-                });
-
-                await tx.stockMovement.create({
-                    data: {
-                        productId: item.productId,
-                        movementType: 'sale',
-                        quantity: -item.quantity,
-                        balanceBefore,
-                        balanceAfter,
-                        reference: receiptNumber,
-                        referenceType: 'sale',
-                        reason: `Venda ${receiptNumber}`,
-                        performedBy: userName,
-                        companyId,
-                        originModule: 'pos'
-                    }
-                });
+                await stockService.recordMovement({
+                    productId: item.productId,
+                    quantity: -item.quantity,
+                    movementType: 'sale',
+                    originModule: 'COMMERCIAL',
+                    referenceType: 'SALE',
+                    referenceContent: receiptNumber,
+                    reason: `Venda ${receiptNumber}`,
+                    performedBy: userName,
+                    companyId
+                }, tx);
             }
-
-            // 7. Update Alerts (Optimized)
-            const updatedProducts = await tx.product.findMany({
-                where: { id: { in: productIds } },
-                select: { id: true, name: true, code: true, currentStock: true, minStock: true, status: true }
-            });
-
-            const alertsToCreate: any[] = [];
-
-            for (const product of updatedProducts) {
-                let newStatus: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
-                if (product.currentStock === 0) newStatus = 'out_of_stock';
-                else if (product.currentStock <= product.minStock) newStatus = 'low_stock';
-
-                if (newStatus !== product.status) {
-                    await tx.product.update({ where: { id: product.id }, data: { status: newStatus } });
-
-                    if (newStatus !== 'in_stock') {
-                        const existingAlert = await tx.alert.findFirst({
-                            where: { type: 'low_stock', relatedId: product.id, isResolved: false, companyId }
-                        });
-                        if (!existingAlert) {
-                            alertsToCreate.push({
-                                type: 'low_stock',
-                                priority: newStatus === 'out_of_stock' ? 'critical' : 'high',
-                                title: newStatus === 'out_of_stock' ? `Stock esgotado: ${product.name}` : `Stock baixo: ${product.name}`,
-                                message: `${product.name} (${product.code}) tem apenas ${product.currentStock} unidades.`,
-                                relatedId: product.id,
-                                relatedType: 'product',
-                                companyId
-                            });
-                        }
-                    }
-                }
-            }
-            if (alertsToCreate.length > 0) await tx.alert.createMany({ data: alertsToCreate });
 
             // 8. Update Customer
             if (customerId && customerData) {
@@ -381,35 +330,18 @@ export class SalesService {
             if (!sale) throw ApiError.notFound('Venda não encontrada');
 
             // Restore Stock
-            const productIds = sale.items.map((i: any) => i.productId);
-            const products = await tx.product.findMany({ where: { id: { in: productIds } } });
-
-            const productMap = new Map<string, any>(products.map((p: any) => [p.id, p]));
-
             for (const item of sale.items) {
-                const product = productMap.get(item.productId);
-                const balanceBefore = product?.currentStock || 0;
-
-                await tx.product.update({
-                    where: { id: item.productId },
-                    data: { currentStock: { increment: item.quantity } }
-                });
-
-                await tx.stockMovement.create({
-                    data: {
-                        productId: item.productId,
-                        movementType: 'return_in',
-                        quantity: item.quantity,
-                        balanceBefore,
-                        balanceAfter: balanceBefore + item.quantity,
-                        reason: `Anulação de Venda ${sale.receiptNumber}`,
-                        performedBy: userName,
-                        companyId,
-                        originModule: 'pos',
-                        reference: sale.receiptNumber,
-                        referenceType: 'sale'
-                    }
-                });
+                await stockService.recordMovement({
+                    productId: item.productId,
+                    quantity: item.quantity,
+                    movementType: 'return_in',
+                    originModule: 'COMMERCIAL',
+                    referenceType: 'SALE',
+                    referenceContent: sale.receiptNumber,
+                    reason: `Anulação de Venda ${sale.receiptNumber}`,
+                    performedBy: userName,
+                    companyId
+                }, tx);
             }
 
             // Audit
@@ -473,10 +405,10 @@ export class SalesService {
 
         const topProductsWithDetails = await Promise.all(
             topProducts.map(async (item) => {
-                const product = await prisma.product.findFirst({
+                const product = item.productId ? await prisma.product.findFirst({
                     where: { id: item.productId, companyId },
                     select: { id: true, name: true, code: true }
-                });
+                }) : null;
                 return {
                     product,
                     totalQuantity: item._sum?.quantity,

@@ -112,7 +112,7 @@ export class SuppliersService {
         return createPaginatedResponse(orders, page, limit, total);
     }
 
-    async receiveOrder(orderId: string, items: any[], companyId: string) {
+    async receiveOrder(orderId: string, items: any[], companyId: string, performedBy: string = 'Sistema', userId?: string, userName?: string) {
         const order = await prisma.purchaseOrder.findFirst({
             where: { id: orderId, supplier: { companyId } },
             include: { items: true }
@@ -122,13 +122,62 @@ export class SuppliersService {
         for (const received of items) {
             const orderItem = order.items.find(i => i.id === received.itemId);
             if (orderItem) {
-                await prisma.purchaseOrderItem.updateMany({
-                    where: { id: received.itemId, purchaseOrder: { companyId } },
-                    data: { receivedQty: { increment: received.receivedQty } }
-                });
-                await prisma.product.updateMany({
-                    where: { id: orderItem.productId, companyId },
-                    data: { currentStock: { increment: received.receivedQty }, status: 'in_stock' }
+                // Professional Inventory: Every receipt must create a batch
+                // If the user didn't provide an expiry date, we'll default to 1 year from now
+                // but in a real professional scenario, the UI should ask for it.
+                const defaultExpiry = new Date();
+                defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
+                
+                const expiryDate = received.expiryDate ? new Date(received.expiryDate) : defaultExpiry;
+                const batchNumber = received.batchNumber || `LOT-${order.orderNumber}-${orderItem.productId.slice(-4)}`;
+
+                await prisma.$transaction(async (tx) => {
+                    // 1. Update PO Item received quantity
+                    await tx.purchaseOrderItem.update({
+                        where: { id: received.itemId },
+                        data: { receivedQty: { increment: received.receivedQty } }
+                    });
+
+                    // 2. Create the Batch (Tracks cost and expiry)
+                    await tx.productBatch.create({
+                        data: {
+                            batchNumber,
+                            productId: orderItem.productId,
+                            companyId,
+                            supplierId: order.supplierId,
+                            initialQuantity: received.receivedQty,
+                            quantity: received.receivedQty,
+                            costPrice: orderItem.unitCost,
+                            expiryDate,
+                            receivedDate: new Date(),
+                            status: 'active'
+                        }
+                    });
+
+                    // 3. Update Product Global Stock
+                    await tx.product.update({
+                        where: { id: orderItem.productId },
+                        data: { 
+                            currentStock: { increment: received.receivedQty },
+                            status: 'in_stock' 
+                        }
+                    });
+
+                    // 4. Log Movement
+                    await tx.stockMovement.create({
+                        data: {
+                            productId: orderItem.productId,
+                            companyId,
+                            movementType: 'purchase',
+                            quantity: received.receivedQty,
+                            balanceBefore: 0, // Simplified, Product update handles the global balance
+                            balanceAfter: 0, 
+                            reference: order.orderNumber,
+                            reason: `Recebimento de OC ${order.orderNumber} (Lote: ${batchNumber})`,
+                            performedBy,
+                            originModule: 'commercial'
+                        }
+                    });
                 });
             }
         }
@@ -141,8 +190,30 @@ export class SuppliersService {
 
         await prisma.purchaseOrder.updateMany({
             where: { id: orderId, companyId },
-            data: { status: allReceived ? 'received' : 'partial', receivedDate: allReceived ? new Date() : null }
+            data: { 
+                status: allReceived ? 'received' : 'partial', 
+                receivedDate: allReceived ? new Date() : null 
+            }
         });
+
+        // 6. Audit Log
+        if (userId) {
+            const { auditService } = require('./audit.service');
+            await auditService.log({
+                userId,
+                userName,
+                action: 'RECEIVE_ORDER',
+                entity: 'purchase_orders',
+                entityId: orderId,
+                companyId,
+                details: {
+                    orderNumber: order.orderNumber,
+                    itemsReceived: items.length,
+                    isFullyReceived: allReceived
+                }
+            });
+        }
+
         return true;
     }
 }

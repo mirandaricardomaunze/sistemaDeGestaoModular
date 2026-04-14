@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { employeesAPI } from '../services/api';
@@ -24,7 +25,7 @@ export function useAttendanceRoster() {
             setRoster(data);
         } catch (err) {
             setError('Erro ao carregar lista de ponto');
-            console.error('Error fetching roster:', err);
+            logger.error('Error fetching roster:', err);
         } finally {
             setIsLoading(false);
         }
@@ -50,8 +51,8 @@ export function useAttendanceRoster() {
             await employeesAPI.removeFromRoster(id);
             toast.success('Funcionário removido da lista');
             fetchRoster();
-        } catch (err: unknown) {
-            const message = err.response?.data?.error || 'Erro ao remover da lista';
+        } catch (err) {
+            const message = (err as any).response?.data?.error || 'Erro ao remover da lista';
             toast.error(message);
             throw err;
         }
@@ -62,8 +63,8 @@ export function useAttendanceRoster() {
             await employeesAPI.recordRosterTime(id, { type });
             toast.success(type === 'checkIn' ? 'Entrada registrada' : 'Saída registrada');
             fetchRoster();
-        } catch (err: unknown) {
-            const message = err.response?.data?.error || 'Erro ao registrar tempo';
+        } catch (err) {
+            const message = (err as any).response?.data?.error || 'Erro ao registrar tempo';
             toast.error(message);
             throw err;
         }

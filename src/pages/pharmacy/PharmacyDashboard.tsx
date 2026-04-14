@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿/**
  * Pharmacy Dashboard
  * 
@@ -34,32 +35,25 @@ import {
     HiOutlineShoppingCart,
     HiOutlineBeaker,
     HiOutlineExclamationCircle,
-    HiOutlineTrendingUp,
-    HiOutlineTrendingDown,
+    HiOutlineArrowTrendingUp,
+    HiOutlineArrowTrendingDown,
     HiOutlineArrowRight,
     HiOutlinePlus,
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlineCalendar,
     HiOutlineCube,
-} from 'react-icons/hi';
-import { Card, Button, Badge, LoadingSpinner } from '../../components/ui';
+} from 'react-icons/hi2';
+import { Card, Button, Badge, LoadingSpinner, PageHeader } from '../../components/ui';
 import { formatCurrency, formatRelativeTime, cn } from '../../utils/helpers';
 import { pharmacyAPI } from '../../services/api';
+import { alertsAPI } from '../../services/api';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { SmartInsightCard } from '../../components/common/SmartInsightCard';
+import { MetricCard, StatCard, CHART_COLORS } from '../../components/common/ModuleMetricCard';
+import { ModulePeriodFilter } from '../../components/common/ModulePeriodFilter';
+import type { TimePeriod } from '../../components/common/ModulePeriodFilter';
+import { WeeklySalesWidget, RecentActivityWidget } from '../../components/dashboard/DashboardWidgets';
 import { HiOutlineLightBulb } from 'react-icons/hi';
-
-// Chart colors
-const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
-
-// Time period options
-type TimePeriod = '1m' | '3m' | '6m' | '1y';
-const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 Mês' },
-    { value: '3m', label: '3 Meses' },
-    { value: '6m', label: '6 Meses' },
-    { value: '1y', label: '1 Ano' },
-];
 
 // Day name mapping for weekly chart
 const dayNames: Record<string, string> = {
@@ -104,7 +98,7 @@ export default function PharmacyDashboard() {
             setTopProducts(topData);
             setRecentSales(salesData?.items || []);
         } catch (error) {
-            console.error('Error fetching dashboard:', error);
+            logger.error('Error fetching dashboard:', error);
         } finally {
             setIsLoading(false);
         }
@@ -113,6 +107,11 @@ export default function PharmacyDashboard() {
     useEffect(() => {
         fetchDashboard();
     }, [selectedPeriod]);
+
+    // Auto-generate pharmacy alerts (expiry, low stock) on first load
+    useEffect(() => {
+        alertsAPI.generateForModule('pharmacy').catch(() => { /* silent */ });
+    }, []);
 
     // Transform sales chart data
     const salesData = useMemo(() => {
@@ -182,54 +181,35 @@ export default function PharmacyDashboard() {
 
     return (
         <div className="space-y-6">
-            {/* Page Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Dashboard - Farmácia
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        Visão geral de vendas, stock e métricas farmacêuticas
-                    </p>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                    {/* Refresh Button */}
-                    <Button
-                        variant="ghost"
-                        onClick={fetchDashboard}
-                        leftIcon={<HiOutlineRefresh className="w-5 h-5" />}
-                    >
-                        Actualizar
-                    </Button>
-                    {/* Period Filter */}
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
-                        {periodOptions.map((option) => (
-                            <button
-                                key={option.value}
-                                onClick={() => setSelectedPeriod(option.value)}
-                                className={cn(
-                                    'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                                    selectedPeriod === option.value
-                                        ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm'
-                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                                )}
-                            >
-                                {option.label}
-                            </button>
-                        ))}
-                    </div>
-                    <Link to="/pharmacy/reports">
-                        <Button variant="outline">
-                            Relatórios
+            <PageHeader 
+                title="Dashboard Farmácia"
+                subtitle="Visão geral de vendas, stock e métricas farmacêuticas"
+                icon={<HiOutlineBeaker />}
+                actions={
+                    <>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={fetchDashboard}
+                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                        >
+                            Actualizar
                         </Button>
-                    </Link>
-                    <Link to="/pharmacy/manage">
-                        <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
-                            Nova Venda
-                        </Button>
-                    </Link>
-                </div>
-            </div>
+                        <ModulePeriodFilter value={selectedPeriod} onChange={setSelectedPeriod} />
+                        <Link to="/pharmacy/reports">
+                            <Button variant="outline" size="sm" className="font-black text-[10px] uppercase tracking-widest">
+                                Relatórios
+                            </Button>
+                        </Link>
+                        <Link to="/pharmacy/manage">
+                            <Button size="sm" className="font-black text-[10px] uppercase tracking-widest" leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
+                                Nova Venda
+                            </Button>
+                        </Link>
+                    </>
+                }
+            />
 
             {/* Smart Insights / Intelligent Advisor */}
             {insights.length > 0 && (
@@ -253,158 +233,59 @@ export default function PharmacyDashboard() {
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Total Sales */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-primary-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                <HiOutlineCurrencyDollar className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                            </div>
-                            <div className={cn(
-                                'flex items-center gap-1 text-sm font-medium',
-                                metrics.salesGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-                            )}>
-                                {metrics.salesGrowth >= 0 ? (
-                                    <HiOutlineTrendingUp className="w-4 h-4" />
-                                ) : (
-                                    <HiOutlineTrendingDown className="w-4 h-4" />
-                                )}
-                                {Math.abs(metrics.salesGrowth)}%
-                            </div>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {formatCurrency(metrics.totalSales)}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Vendas Mensais
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Orders Today */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-secondary-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-secondary-100 dark:bg-secondary-900/30 flex items-center justify-center">
-                                <HiOutlineShoppingCart className="w-6 h-6 text-secondary-600 dark:text-secondary-400" />
-                            </div>
-                            <Badge variant="success">Hoje</Badge>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {metrics.ordersToday}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Vendas Hoje
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Low Stock */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-yellow-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                <HiOutlineCube className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-                            </div>
-                            <Badge variant={metrics.lowStock > 5 ? 'danger' : 'warning'}>
-                                Atenção
-                            </Badge>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {metrics.lowStock}/{metrics.totalMedications}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Stock Baixo
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Expiring Soon */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-red-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                <HiOutlineCalendar className="w-6 h-6 text-red-600 dark:text-red-400" />
-                            </div>
-                            <Badge variant="danger">90 dias</Badge>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {metrics.expiring}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            A Expirar
-                        </p>
-                    </div>
-                </Card>
+                <MetricCard
+                    icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                    color="teal"
+                    value={formatCurrency(metrics.totalSales)}
+                    label="Vendas Mensais"
+                    growth={metrics.salesGrowth}
+                />
+                <MetricCard
+                    icon={<HiOutlineShoppingCart className="w-6 h-6" />}
+                    color="secondary"
+                    value={metrics.ordersToday}
+                    label="Vendas Hoje"
+                    badge={<Badge variant="success">Hoje</Badge>}
+                />
+                <MetricCard
+                    icon={<HiOutlineCube className="w-6 h-6" />}
+                    color="yellow"
+                    value={`${metrics.lowStock}/${metrics.totalMedications}`}
+                    label="Stock Baixo"
+                    badge={<Badge variant={metrics.lowStock > 5 ? 'danger' : 'warning'}>Atenção</Badge>}
+                />
+                <MetricCard
+                    icon={<HiOutlineCalendar className="w-6 h-6" />}
+                    color="red"
+                    value={metrics.expiring}
+                    label="A Expirar"
+                    badge={<Badge variant="danger">90 dias</Badge>}
+                />
             </div>
 
             {/* Profit Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Gross Profit */}
-                <Card padding="md" className="border-l-4 border-l-green-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <HiOutlineTrendingUp className="w-6 h-6 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Lucro Bruto</p>
-                            <p className="text-2xl font-bold text-green-600">
-                                {formatCurrency(metrics.grossProfit)}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                Margem: {metrics.profitMargin.toFixed(1)}%
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Total Medications */}
-                <Card padding="md" className="border-l-4 border-l-purple-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                            <HiOutlineBeaker className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Total Medicamentos</p>
-                            <p className="text-2xl font-bold text-purple-600">
-                                {metrics.totalMedications}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                Produtos cadastrados
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Pending Prescriptions */}
-                <Card padding="md" className="border-l-4 border-l-cyan-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
-                            <HiOutlineExclamationCircle className="w-6 h-6 text-cyan-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Receitas Pendentes</p>
-                            <p className="text-2xl font-bold text-cyan-600">
-                                {metrics.pendingPrescriptions}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                Aguardando processamento
-                            </p>
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    icon={<HiOutlineArrowTrendingUp className="w-6 h-6" />}
+                    color="green"
+                    value={formatCurrency(metrics.grossProfit)}
+                    label="Lucro Bruto"
+                    sublabel={`Margem: ${metrics.profitMargin.toFixed(1)}%`}
+                />
+                <StatCard
+                    icon={<HiOutlineBeaker className="w-6 h-6" />}
+                    color="purple"
+                    value={metrics.totalMedications}
+                    label="Total Medicamentos"
+                    sublabel="Produtos cadastrados"
+                />
+                <StatCard
+                    icon={<HiOutlineExclamationCircle className="w-6 h-6" />}
+                    color="cyan"
+                    value={metrics.pendingPrescriptions}
+                    label="Receitas Pendentes"
+                    sublabel="Aguardando processamento"
+                />
             </div>
 
             {/* Charts Row */}
@@ -423,12 +304,12 @@ export default function PharmacyDashboard() {
                         </Link>
                     </div>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <AreaChart data={salesData}>
                                 <defs>
                                     <linearGradient id="colorVendas" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                                        <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
@@ -446,7 +327,7 @@ export default function PharmacyDashboard() {
                                 <Area
                                     type="monotone"
                                     dataKey="vendas"
-                                    stroke="#6366f1"
+                                    stroke="#0d9488"
                                     strokeWidth={3}
                                     fill="url(#colorVendas)"
                                     name="Vendas"
@@ -462,7 +343,7 @@ export default function PharmacyDashboard() {
                         Mais Vendidos
                     </h2>
                     <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={256}>
                             <PieChart>
                                 <Pie
                                     data={categoryData}
@@ -504,30 +385,7 @@ export default function PharmacyDashboard() {
 
             {/* Bottom Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Weekly Sales */}
-                <Card padding="md">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                        Vendas Semanais
-                    </h2>
-                    <div className="h-48">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={weeklyData}>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
-                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
-                                <YAxis stroke="#94a3b8" fontSize={12} />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#fff',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                    }}
-                                />
-                                <Bar dataKey="valor" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </Card>
+                <WeeklySalesWidget weeklyData={weeklyData} />
 
                 {/* Stock Alerts */}
                 <Card padding="md">
@@ -576,42 +434,13 @@ export default function PharmacyDashboard() {
                     </div>
                     <Link
                         to="/pharmacy/manage"
-                        className="block mt-4 text-center text-sm text-primary-600 dark:text-primary-400 hover:underline"
+                        className="block mt-4 text-center text-sm text-teal-600 dark:text-teal-400 hover:underline"
                     >
                         Ver Stock Completo
                     </Link>
                 </Card>
 
-                {/* Recent Activity */}
-                <Card padding="md">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        Actividade Recente
-                    </h2>
-                    <div className="space-y-4">
-                        {recentActivities.length === 0 ? (
-                            <p className="text-center text-gray-500 dark:text-gray-400 py-4">
-                                Nenhuma actividade recente
-                            </p>
-                        ) : recentActivities.map((activity) => (
-                            <div key={activity.id} className="flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center flex-shrink-0">
-                                    <span className="text-sm">{activity.icon}</span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                        {activity.action}
-                                    </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                        {activity.detail}
-                                    </p>
-                                </div>
-                                <span className="text-xs text-gray-400 flex-shrink-0">
-                                    {activity.time}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </Card>
+                <RecentActivityWidget recentActivities={recentActivities} />
             </div>
 
             {/* Quick Actions */}
@@ -620,10 +449,10 @@ export default function PharmacyDashboard() {
                     Acções Rápidas
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Link to="/pharmacy/manage">
-                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineShoppingCart className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
+                    <Link to="/pharmacy/pos">
+                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-teal-500 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition-all group">
+                            <HiOutlineShoppingCart className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-teal-600 transition-colors" />
+                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-teal-600">
                                 Nova Venda
                             </p>
                         </button>
@@ -636,7 +465,7 @@ export default function PharmacyDashboard() {
                             </p>
                         </button>
                     </Link>
-                    <Link to="/pharmacy/employees">
+                    <Link to="/pharmacy/reconciliation">
                         <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
                             <HiOutlineCube className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">

@@ -1,3 +1,4 @@
+import { logger } from '../../../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import { HiOutlineX, HiOutlineCheck } from 'react-icons/hi';
 import { Input, Select, Textarea, Button } from '../../../components/ui';
@@ -115,8 +116,8 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
 
             onSave();
             onClose();
-        } catch (error: unknown) {
-            console.error('Error saving expense:', error);
+        } catch (error: any) {
+            logger.error('Error saving expense:', error);
             toast.error(error.response?.data?.message || 'Erro ao salvar despesa');
         } finally {
             setIsSubmitting(false);

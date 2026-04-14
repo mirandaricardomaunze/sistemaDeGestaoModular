@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * Printer Service handling ESC/POS commands for thermal printers.
  */
@@ -32,7 +33,7 @@ export class PrinterService {
             await device.close();
             return true;
         } catch (error) {
-            console.error('Failed to open drawer via USB:', error);
+            logger.error('Failed to open drawer via USB:', error);
 
             // Fallback: Try a hidden iframe print with the escape sequence
             // This works on some Windows drivers that handle raw sequences
@@ -48,14 +49,14 @@ export class PrinterService {
                 setTimeout(() => document.body.removeChild(dummyIframe), 1000);
                 return true;
             } catch (fallbackError) {
-                console.error('Fallback drawer trigger failed:', fallbackError);
+                logger.error('Fallback drawer trigger failed:', fallbackError);
                 return false;
             }
         }
     }
 
     static async printReceipt(content: string): Promise<boolean> {
-        console.log('Printing thermal receipt:', content);
+        logger.info('Printing thermal receipt:', content);
         // Implement full thermal receipt printing logic here
         return true;
     }

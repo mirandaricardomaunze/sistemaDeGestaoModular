@@ -8,7 +8,8 @@ class Logger {
     }
 
     private formatMessage(level: LogLevel, message: string, ...args: any[]): void {
-        if (!this.isDevelopment && level === 'debug') return;
+        // In production, only emit errors
+        if (!this.isDevelopment && level !== 'error') return;
 
         const timestamp = new Date().toISOString();
         const prefix = `[${timestamp}] [${level.toUpperCase()}]`;

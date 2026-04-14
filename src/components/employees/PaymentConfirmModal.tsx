@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * PaymentConfirmModal.tsx
  * 
@@ -86,7 +87,7 @@ export default function PaymentConfirmModal({ isOpen, onClose, record, onConfirm
 
             onClose();
         } catch (error) {
-            console.error('Error confirming payment:', error);
+            logger.error('Error confirming payment:', error);
             toast.error('Erro ao confirmar pagamento');
         } finally {
             setIsSubmitting(false);

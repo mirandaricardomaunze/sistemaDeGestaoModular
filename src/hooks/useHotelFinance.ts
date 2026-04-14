@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useMemo, useCallback } from 'react';
 import { hospitalityAPI } from '../services/api';
 import { toast } from 'react-hot-toast';
@@ -30,7 +31,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             const data = await hospitalityAPI.getFinanceDashboard(selectedPeriod);
             setDashboard(data);
         } catch (error) {
-            console.error('Error fetching finance dashboard:', error);
+            logger.error('Error fetching finance dashboard:', error);
             toast.error('Erro ao carregar dashboard financeiro');
         } finally {
             setIsLoading(false);
@@ -43,7 +44,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             const data = await hospitalityAPI.getRevenues({ limit: 50 });
             setRevenues(data.data || []);
         } catch (error) {
-            console.error('Error fetching revenues:', error);
+            logger.error('Error fetching revenues:', error);
             toast.error('Erro ao carregar receitas');
         }
     }, []);
@@ -54,7 +55,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             const data = await hospitalityAPI.getExpenses({ limit: 50 });
             setExpenses(data.data || []);
         } catch (error) {
-            console.error('Error fetching expenses:', error);
+            logger.error('Error fetching expenses:', error);
             toast.error('Erro ao carregar despesas');
         }
     }, []);
@@ -85,7 +86,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             setProfitLossReport(profitLoss);
             setRoomRevenueReport(roomRevenue);
         } catch (error) {
-            console.error('Error fetching reports:', error);
+            logger.error('Error fetching reports:', error);
             toast.error('Erro ao carregar relatórios');
         } finally {
             setIsLoadingReports(false);
@@ -198,9 +199,9 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             toast.success('Despesa eliminada com sucesso!');
             fetchExpenses();
             fetchDashboard();
-        } catch (error: unknown) {
-            console.error('Error deleting expense:', error);
-            toast.error(error.response?.data?.message || 'Erro ao eliminar despesa');
+        } catch (error) {
+            logger.error('Error deleting expense:', error);
+            toast.error((error as any).response?.data?.message || 'Erro ao eliminar despesa');
         }
     };
 
@@ -210,9 +211,9 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             toast.success('Despesa marcada como paga!');
             fetchExpenses();
             fetchDashboard();
-        } catch (error: unknown) {
-            console.error('Error updating expense:', error);
-            toast.error(error.response?.data?.message || 'Erro ao atualizar despesa');
+        } catch (error) {
+            logger.error('Error updating expense:', error);
+            toast.error((error as any).response?.data?.message || 'Erro ao atualizar despesa');
         }
     };
 

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * Hardware Service for managing Serial and USB device connections.
  * Uses Web Serial and Web USB APIs.
@@ -12,7 +13,7 @@ class HardwareService {
             const port = await (navigator as any).serial.requestPort(options);
             return port;
         } catch (error) {
-            console.error('Error requesting serial port:', error);
+            logger.error('Error requesting serial port:', error);
             return null;
         }
     }
@@ -25,7 +26,7 @@ class HardwareService {
             const device = await (navigator as any).usb.requestDevice(options);
             return device;
         } catch (error) {
-            console.error('Error requesting USB device:', error);
+            logger.error('Error requesting USB device:', error);
             return null;
         }
     }

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, Badge, LoadingSpinner, Input, Modal, Select, Pagination } from '../components/ui';
@@ -38,8 +39,8 @@ export default function PharmacyControl() {
         try {
             const data = await productsAPI.getExpiring(90, { page, limit: pageSize }); // Look ahead 90 days
             setExpiringSoonData(data);
-        } catch (err: unknown) {
-            console.error('Erro ao carregar produtos a expirar');
+        } catch (err: any) {
+            logger.error('Erro ao carregar produtos a expirar');
         }
     };
 

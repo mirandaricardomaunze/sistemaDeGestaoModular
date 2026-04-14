@@ -1,4 +1,4 @@
-﻿import {
+import {
     HiOutlineShare,
     HiOutlineMail,
     HiOutlineDocumentDownload,
@@ -192,7 +192,7 @@ export default function ShareButton({
                                 onClick={() => setStep('share')}
                                 className="w-full text-sm text-primary-600 hover:underline"
                             >
-                                Já tenho o ficheiro â†’ Ir para partilha
+                                Já tenho o ficheiro → Ir para partilha
                             </button>
                         </>
                     )}

@@ -28,11 +28,11 @@ import {
 import { bottleStoreAPI } from '../../services/api';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { SmartInsightCard } from '../../components/common/SmartInsightCard';
+import { MetricCard, StatCard, CHART_COLORS } from '../../components/common/ModuleMetricCard';
+import { ModulePeriodFilter } from '../../components/common/ModulePeriodFilter';
+import { WeeklySalesWidget, RecentActivityWidget } from '../../components/dashboard/DashboardWidgets';
 import { HiOutlineLightBulb } from 'react-icons/hi';
 import { logger, formatCurrency, cn } from '../../utils';
-
-// Chart colors
-const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 type TimeRange = '1M' | '2M' | '3M' | '6M' | '1Y';
 
@@ -130,22 +130,17 @@ export default function BottleStoreDashboard() {
                     </Button>
 
                     {/* Period Filter */}
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
-                        {(['1M', '2M', '3M', '6M', '1Y'] as TimeRange[]).map((r) => (
-                            <button
-                                key={r}
-                                onClick={() => setRange(r)}
-                                className={cn(
-                                    'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                                    range === r
-                                        ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm'
-                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                                )}
-                            >
-                                {r}
-                            </button>
-                        ))}
-                    </div>
+                    <ModulePeriodFilter
+                        value={range as any}
+                        onChange={(v) => setRange(v.toUpperCase() as TimeRange)}
+                        options={[
+                            { value: '1M', label: '1M' },
+                            { value: '2M', label: '2M' },
+                            { value: '3M', label: '3M' },
+                            { value: '6M', label: '6M' },
+                            { value: '1Y', label: '1A' },
+                        ]}
+                    />
 
                     <Link to="/bottle-store/reports">
                         <Button variant="outline" leftIcon={<HiOutlineDocumentReport className="w-5 h-5" />}>
@@ -182,160 +177,57 @@ export default function BottleStoreDashboard() {
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Total Sales */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-blue-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                <HiOutlineCash className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div className="flex items-center gap-1 text-sm font-medium text-green-600">
-                                <HiOutlineTrendingUp className="w-4 h-4" />
-                                <span>+12%</span>
-                            </div>
-                        </div>
-                        <ResponsiveValue
-                            value={stats.totalSales}
-                            size="lg"
-                        />
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Vendas do Período
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Transactions */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-purple-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                                <HiOutlineShoppingCart className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                            </div>
-                        </div>
-                        <ResponsiveValue
-                            value={stats.totalTx}
-                            type="number"
-                            size="lg"
-                        />
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Total de Pedidos
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Low Stock */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-yellow-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                <HiOutlineCube className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-                            </div>
-                            {stats.lowStockCount > 0 && (
-                                <Badge variant="danger">Atenção</Badge>
-                            )}
-                        </div>
-                        <div className="flex items-baseline gap-1">
-                            <ResponsiveValue value={stats.lowStockCount} type="number" size="lg" className="text-red-600" />
-                            <span className="text-gray-400 text-sm">/ {stats.totalProducts}</span>
-                        </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Produtos com Baixo Stock
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Average Ticket */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8">
-                        <div className="w-full h-full rounded-full bg-emerald-500/10" />
-                    </div>
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                                <HiOutlineChartBar className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                            </div>
-                        </div>
-                        <ResponsiveValue
-                            value={stats.avgTicket}
-                            size="lg"
-                        />
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Ticket Médio
-                        </p>
-                    </div>
-                </Card>
+                <MetricCard
+                    icon={<HiOutlineCash className="w-6 h-6" />}
+                    color="blue"
+                    value={formatCurrency(stats.totalSales)}
+                    label="Vendas do Período"
+                    growth={12}
+                />
+                <MetricCard
+                    icon={<HiOutlineShoppingCart className="w-6 h-6" />}
+                    color="purple"
+                    value={stats.totalTx}
+                    label="Total de Pedidos"
+                />
+                <MetricCard
+                    icon={<HiOutlineCube className="w-6 h-6" />}
+                    color="yellow"
+                    value={`${stats.lowStockCount ?? 0}/${stats.totalProducts ?? 0}`}
+                    label="Produtos com Baixo Stock"
+                    badge={stats.lowStockCount > 0 ? <Badge variant="danger">Atenção</Badge> : undefined}
+                />
+                <MetricCard
+                    icon={<HiOutlineChartBar className="w-6 h-6" />}
+                    color="primary"
+                    value={formatCurrency(stats.avgTicket)}
+                    label="Ticket Médio"
+                />
             </div>
 
             {/* Profit Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Gross Profit */}
-                <Card padding="md" className="border-l-4 border-l-green-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <HiOutlineTrendingUp className="w-6 h-6 text-green-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Lucro Bruto</p>
-                            <ResponsiveValue
-                                value={stats.totalProfit}
-                                size="lg"
-                                className="text-green-600"
-                            />
-                            <p className="text-xs text-gray-400">
-                                Margem: {stats.totalSales ? ((stats.totalProfit / stats.totalSales) * 100).toFixed(1) : 0}%
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Stock Cost Value */}
-                <Card padding="md" className="border-l-4 border-l-blue-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <HiOutlineCube className="w-6 h-6 text-blue-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Valor em Stock (Custo)</p>
-                            <ResponsiveValue
-                                value={stats.stockValueCost}
-                                size="md"
-                                className="text-blue-600"
-                            />
-                            <p className="text-xs text-gray-400">
-                                Valor de Aquisição
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                {/* Potential Profit */}
-                <Card padding="md" className="border-l-4 border-l-purple-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Lucro Potencial</p>
-                            <ResponsiveValue
-                                value={stats.stockValueSale - stats.stockValueCost}
-                                size="md"
-                                className="text-purple-600"
-                            />
-                            <p className="text-xs text-gray-400">
-                                Venda de todo o stock
-                            </p>
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    icon={<HiOutlineTrendingUp className="w-6 h-6" />}
+                    color="green"
+                    value={formatCurrency(stats.totalProfit)}
+                    label="Lucro Bruto"
+                    sublabel={`Margem: ${stats.totalSales ? ((stats.totalProfit / stats.totalSales) * 100).toFixed(1) : 0}%`}
+                />
+                <StatCard
+                    icon={<HiOutlineCube className="w-6 h-6" />}
+                    color="blue"
+                    value={formatCurrency(stats.stockValueCost)}
+                    label="Valor em Stock (Custo)"
+                    sublabel="Valor de Aquisição"
+                />
+                <StatCard
+                    icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                    color="purple"
+                    value={formatCurrency((stats.stockValueSale ?? 0) - (stats.stockValueCost ?? 0))}
+                    label="Lucro Potencial"
+                    sublabel="Venda de todo o stock"
+                />
             </div>
 
             {/* Charts Section */}
@@ -353,7 +245,7 @@ export default function BottleStoreDashboard() {
                         </Link>
                     </div>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <AreaChart data={chartData}>
                                 <defs>
                                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
@@ -384,7 +276,7 @@ export default function BottleStoreDashboard() {
                         Mix de Vendas (Categorias)
                     </h2>
                     <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={256}>
                             <PieChart>
                                 <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={4} dataKey="value">
                                     {categoryData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={entry.color} />)}

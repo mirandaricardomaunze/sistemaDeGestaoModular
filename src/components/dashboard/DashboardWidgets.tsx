@@ -145,7 +145,7 @@ export const RevenueChartWidget = ({ salesData }: { salesData: any[] }) => {
                 </Link>
             </div>
             <div className="h-72">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={288}>
                     <AreaChart data={salesData}>
                         <defs>
                             <linearGradient id="colorVendas" x1="0" y1="0" x2="0" y2="1">
@@ -180,7 +180,7 @@ export const CategoryPieWidget = ({ categoryData }: { categoryData: any[] }) => 
         <Card padding="md" className="w-full">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{t('dashboard.productsByCategory')}</h2>
             <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={256}>
                     <PieChart>
                         <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={4} dataKey="value">
                             {categoryData.map((_, index) => (
@@ -247,7 +247,7 @@ export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: any[] }) => {
                 {t('dashboard.weeklySales')}
             </h2>
             <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={192}>
                     <BarChart data={weeklyData}>
                         <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
                         <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />

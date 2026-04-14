@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { employeesAPI } from '../services/api';
@@ -24,7 +25,7 @@ export function usePayroll(params?: UsePayrollParams) {
             setPayroll(payrollData);
         } catch (err) {
             setError('Erro ao carregar folha salarial');
-            console.error('Error fetching payroll:', err);
+            logger.error('Error fetching payroll:', err);
         } finally {
             setIsLoading(false);
         }
@@ -41,7 +42,7 @@ export function usePayroll(params?: UsePayrollParams) {
             toast.success('Registro de salário criado com sucesso!');
             return record;
         } catch (err) {
-            console.error('Error creating payroll:', err);
+            logger.error('Error creating payroll:', err);
             throw err;
         }
     };
@@ -53,7 +54,7 @@ export function usePayroll(params?: UsePayrollParams) {
             toast.success('Folha salarial actualizada com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating payroll:', err);
+            logger.error('Error updating payroll:', err);
             throw err;
         }
     };
@@ -65,7 +66,7 @@ export function usePayroll(params?: UsePayrollParams) {
             toast.success('Salário processado com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error processing payroll:', err);
+            logger.error('Error processing payroll:', err);
             throw err;
         }
     };
@@ -77,7 +78,7 @@ export function usePayroll(params?: UsePayrollParams) {
             toast.success('Salário marcado como pago!');
             return updated;
         } catch (err) {
-            console.error('Error marking payroll as paid:', err);
+            logger.error('Error marking payroll as paid:', err);
             toast.error('Erro ao marcar como pago');
             throw err;
         }
@@ -87,7 +88,7 @@ export function usePayroll(params?: UsePayrollParams) {
         try {
             await employeesAPI.addPayrollAudit(id, { action, userId, userName, details });
         } catch (err) {
-            console.error('Error adding audit log:', err);
+            logger.error('Error adding audit log:', err);
         }
     };
 
@@ -96,7 +97,7 @@ export function usePayroll(params?: UsePayrollParams) {
             const history = await employeesAPI.getPayrollHistory(employeeId);
             return Array.isArray(history) ? history : (history.records || []);
         } catch (err) {
-            console.error('Error fetching payroll history:', err);
+            logger.error('Error fetching payroll history:', err);
             return [];
         }
     };

@@ -1,0 +1,317 @@
+import { useEffect, useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+    ResponsiveContainer, PieChart, Pie, Cell
+} from 'recharts';
+import {
+    HiOutlineRefresh, HiOutlinePlus,
+    HiOutlineShoppingCart, HiOutlineCash, HiOutlineChartBar,
+    HiOutlineTrendingUp, HiOutlineArrowRight,
+    HiOutlineBookOpen,
+} from 'react-icons/hi';
+
+
+import { HiOutlineCake } from 'react-icons/hi2';
+import { Card, Button, Skeleton, Badge, ResponsiveValue } from '../../components/ui';
+import { restaurantAPI } from '../../services/api';
+import { useSmartInsights } from '../../hooks/useSmartInsights';
+import { SmartInsightCard } from '../../components/common/SmartInsightCard';
+import { HiOutlineLightBulb, HiOutlineQueueList, HiOutlineUserGroup, HiOutlineFire } from 'react-icons/hi2';
+
+
+import { cn, formatCurrency } from '../../utils';
+
+const CHART_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#6366f1', '#8b5cf6'];
+type TimeRange = '1M' | '2M' | '3M' | '6M' | '1Y';
+
+export default function RestaurantDashboard() {
+    const [range, setRange] = useState<TimeRange>('1M');
+    const [loading, setLoading] = useState(true);
+    const [data, setData] = useState<any>(null);
+    const { insights } = useSmartInsights();
+
+    const fetchStats = async () => {
+        setLoading(true);
+        try {
+            const stats = await restaurantAPI.getDashboard(range);
+            setData(stats);
+        } catch {
+            // handled by axios interceptor
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchStats(); }, [range]);
+
+    const summary = data?.summary || { 
+        totalSales: 0, 
+        totalOrders: 0, 
+        avgTicket: 0, 
+        totalTables: 0, 
+        occupiedTables: 0, 
+        availableTables: 0,
+        pendingReservations: 0 // New KPI
+    };
+    const chartData = data?.chartData || [];
+
+    const categoryData = useMemo(() =>
+        (data?.categoryData || []).map((e: any, i: number) => ({ ...e, color: CHART_COLORS[i % CHART_COLORS.length] })),
+        [data]
+    );
+
+    if (loading && !data) {
+        return (
+            <div className="space-y-6 animate-pulse p-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-2"><Skeleton height={32} className="w-48" /><Skeleton height={20} className="w-64" /></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => <Card key={i} padding="md"><Skeleton height={80} /></Card>)}
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="lg:col-span-2" padding="md"><Skeleton height={288} /></Card>
+                    <Card padding="md"><Skeleton height={288} /></Card>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6 pb-12 animate-fade-in px-2">
+            {/* ── Premium Header ── */}
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-600 to-red-800 dark:from-red-700 dark:to-red-900 p-8 shadow-xl text-white">
+                <HiOutlineCake className="absolute right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-10 rotate-12" aria-hidden="true" />
+                
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-red-100 font-bold uppercase tracking-widest text-[10px]">
+                            <HiOutlineTrendingUp className="w-3 h-3" />
+                            Gestão de Excelência
+                        </div>
+                        <h1 className="text-3xl font-black">Restaurante</h1>
+                        <p className="text-red-100/70 text-sm max-w-md">Performance operacional em tempo real e análise de fluxo de clientes.</p>
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                        <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md rounded-2xl p-1 border border-white/10">
+                            {(['1M', '2M', '3M', '6M', '1Y'] as TimeRange[]).map(r => (
+                                <button key={r} onClick={() => setRange(r)}
+                                    className={cn('px-4 py-2 rounded-xl text-xs font-bold transition-all',
+                                        range === r ? 'bg-white text-red-700 shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/10'
+                                    )}>{r}</button>
+                            ))}
+                        </div>
+                        <Button 
+                            variant="ghost" 
+                            onClick={fetchStats} 
+                            className="text-white hover:bg-white/10"
+                            leftIcon={<HiOutlineRefresh className={cn("w-5 h-5", loading && "animate-spin")} />}
+                        >
+                            Atualizar
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Smart Insights */}
+            {insights.length > 0 && (
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <HiOutlineLightBulb className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
+                        {insights.map(insight => <SmartInsightCard key={insight.id} insight={insight} className="min-w-[320px] max-w-[400px] flex-shrink-0" />)}
+                    </div>
+                </div>
+            )}
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                    { label: 'Receita Líquida', value: summary.totalSales, type: 'currency', icon: HiOutlineCash, color: 'red' },
+                    { label: 'Fluxo de Pedidos', value: summary.totalOrders, type: 'number', icon: HiOutlineShoppingCart, color: 'orange' },
+                    { label: 'Reservas Pendentes', value: summary.pendingReservations, type: 'number', icon: HiOutlineUserGroup, color: 'indigo' },
+                    { label: 'Ticket Médio', value: summary.avgTicket, type: 'currency', icon: HiOutlineChartBar, color: 'emerald' },
+                ].map(({ label, value, type, icon: Icon, color }) => (
+                    <Card key={label} padding="md" className="relative overflow-hidden">
+                        <div className={cn('absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8')}>
+                            <div className={cn('w-full h-full rounded-full', `bg-${color}-500/10`)} />
+                        </div>
+                        <div className="relative">
+                            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center mb-4', `bg-${color}-100 dark:bg-${color}-900/30`)}>
+                                <Icon className={cn('w-6 h-6', `text-${color}-600`)} />
+                            </div>
+                            <div className="flex items-baseline gap-1">
+                                <ResponsiveValue value={value} type={type as any} size="lg" />
+                            </div>
+
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{label}</p>
+                        </div>
+                    </Card>
+                ))}
+            </div>
+
+            {/* Table Status Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card padding="md" className="border-l-4 border-l-emerald-500">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                            <HiOutlineCake className="w-6 h-6 text-emerald-600" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500">Mesas Disponíveis</p>
+                            <p className="text-2xl font-bold text-emerald-600">{summary.availableTables}</p>
+                        </div>
+                    </div>
+                </Card>
+                <Card padding="md" className="border-l-4 border-l-red-500">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                            <HiOutlineShoppingCart className="w-6 h-6 text-red-600" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500">Mesas Ocupadas</p>
+                            <p className="text-2xl font-bold text-red-600">{summary.occupiedTables}</p>
+                        </div>
+                    </div>
+                </Card>
+                <Card padding="md" className="border-l-4 border-l-blue-500">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <HiOutlineTrendingUp className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500">Total de Mesas</p>
+                            <p className="text-2xl font-bold text-blue-600">{summary.totalTables}</p>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card padding="md" className="lg:col-span-2">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Evolução de Receita</h2>
+                        <Link to="/restaurant/reports">
+                            <Button variant="ghost" size="sm">Ver mais <HiOutlineArrowRight className="w-4 h-4 ml-2" /></Button>
+                        </Link>
+                    </div>
+                    <div className="h-72">
+                        <ResponsiveContainer width="100%" height={288}>
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorRest" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-gray-200 dark:stroke-dark-700" />
+                                <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={v => `${v / 1000}k`} />
+                                <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
+                                <Area type="monotone" dataKey="amount" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorRest)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+
+                <Card padding="md">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Mix por Categoria</h2>
+                    {categoryData.length > 0 ? (
+                        <>
+                            <div className="h-56">
+                                <ResponsiveContainer width="100%" height={224}>
+                                    <PieChart>
+                                        <Pie data={categoryData} cx="50%" cy="50%" innerRadius={55} outerRadius={75} paddingAngle={4} dataKey="value">
+                                            {categoryData.map((e: any, i: number) => <Cell key={i} fill={e.color} />)}
+                                        </Pie>
+                                        <Tooltip />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mt-4">
+                                {categoryData.map((item: any) => (
+                                    <div key={item.name} className="flex items-center gap-2 min-w-0">
+                                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                                        <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{item.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="h-56 flex items-center justify-center text-gray-400 text-sm">Sem dados no período</div>
+                    )}
+                </Card>
+            </div>
+
+            {/* Recent Activity + Quick Actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Card padding="md" className="lg:col-span-2">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Pedidos Recentes</h2>
+                        <Link to="/restaurant/reports"><Button variant="ghost" size="sm">Ver Tudo</Button></Link>
+                    </div>
+                    <div className="divide-y divide-gray-100 dark:divide-dark-700">
+                        {(data?.recentActivity || []).length === 0 ? (
+                            <p className="text-center py-8 text-gray-500 text-sm">Sem pedidos recentes</p>
+                        ) : (
+                            (data?.recentActivity || []).slice(0, 6).map((sale: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between py-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                            <HiOutlineCake className="w-5 h-5 text-red-600" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                {sale.table ? `Mesa ${sale.table.number}${sale.table.name ? ` — ${sale.table.name}` : ''}` : 'Balcão'}
+                                            </p>
+                                            <p className="text-xs text-gray-500">{sale.receiptNumber}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">{formatCurrency(sale.total)}</p>
+                                        <p className="text-[10px] text-gray-400">{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </Card>
+
+                <Card padding="md">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Ações Rápidas</h2>
+                    <div className="space-y-3">
+                        {[
+                            { to: '/restaurant/pos', icon: HiOutlineShoppingCart, color: 'red', label: 'Terminal POS', desc: 'Registo rápido de pedidos' },
+                            { to: '/restaurant/kitchen', icon: HiOutlineFire, color: 'orange', label: 'Painel Cozinha', desc: ' Kitchen Display System (KDS)' },
+                            { to: '/restaurant/reservations', icon: HiOutlineUserGroup, color: 'indigo', label: 'Reservas', desc: 'Gestão de convidados' },
+                            { to: '/restaurant/menu', icon: HiOutlineBookOpen, color: 'emerald', label: 'Cardápio / Menu', desc: 'Gestão de pratos e preços' },
+                            { to: '/restaurant/tables', icon: HiOutlineCake, color: 'amber', label: 'Mesas', desc: 'Status e ocupação' },
+                        ].map(({ to, icon: Icon, color, label, desc }) => (
+                            <Link key={to} to={to}>
+                                <button className={cn(
+                                    'w-full flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-dark-700 transition-all group text-left',
+                                    `hover:border-${color}-500 hover:bg-${color}-50 dark:hover:bg-${color}-900/10`
+                                )}>
+                                    <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110', `bg-${color}-100 dark:bg-${color}-900/30 text-${color}-600`)}>
+                                        <Icon className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white">{label}</p>
+                                        <p className="text-xs text-gray-500">{desc}</p>
+                                    </div>
+                                </button>
+                            </Link>
+                        ))}
+                    </div>
+                </Card>
+            </div>
+        </div>
+    );
+}

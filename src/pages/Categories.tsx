@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -40,7 +41,11 @@ const colorOptions = [
     { value: '#84cc16', label: 'Lima' },
 ];
 
-export default function Categories() {
+interface CategoriesProps {
+    hideHeader?: boolean;
+}
+
+export default function Categories({ hideHeader = false }: CategoriesProps) {
     // Use API hook for real data
     const {
         categories,
@@ -123,7 +128,7 @@ export default function Categories() {
             }
             closeFormModal();
         } catch (err) {
-            console.error('Error saving category:', err);
+            logger.error('Error saving category:', err);
         } finally {
             setIsSubmitting(false);
         }
@@ -148,7 +153,7 @@ export default function Categories() {
                 setDeleteModalOpen(false);
                 setCategoryToDelete(null);
             } catch (err) {
-                console.error('Error deleting category:', err);
+                logger.error('Error deleting category:', err);
             } finally {
                 setIsSubmitting(false);
             }
@@ -186,17 +191,18 @@ export default function Categories() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Categorias</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Gestão de categorias de produtos</p>
+            {!hideHeader && (
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Categorias</h1>
+                        <p className="text-gray-500 dark:text-gray-400">Gestão de categorias de produtos</p>
+                    </div>
+                    <Button onClick={() => setShowFormModal(true)}>
+                        <HiOutlinePlus className="w-5 h-5 mr-2" />
+                        Nova Categoria
+                    </Button>
                 </div>
-                <Button onClick={() => setShowFormModal(true)}>
-                    <HiOutlinePlus className="w-5 h-5 mr-2" />
-                    Nova Categoria
-                </Button>
-            </div>
+            )}
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

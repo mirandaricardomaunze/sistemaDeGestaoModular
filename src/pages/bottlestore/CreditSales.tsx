@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge, Modal, Select, LoadingSpinner, EmptyState } from '../../components/ui';
 import {
@@ -68,7 +69,7 @@ export default function CreditSales() {
             setDebtors(res.debtors || []);
             setTotalOutstanding(res.totalOutstanding || 0);
         } catch (error) {
-            console.error('Error fetching debtors:', error);
+            logger.error('Error fetching debtors:', error);
         }
     };
 

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Modal, Badge, LoadingSpinner, Pagination } from '../ui';
 import { useStockMovements } from '../../hooks/useStockMovements';
 import { format } from 'date-fns';
@@ -113,7 +113,7 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
                                                 <td className="px-4 py-3 whitespace-nowrap text-center">
                                                     <div className="flex items-center justify-center gap-1 text-sm">
                                                         <span className="text-gray-400">{mov.balanceBefore}</span>
-                                                        <span className="text-gray-400">â†’</span>
+                                                        <span className="text-gray-400">→</span>
                                                         <span className="font-semibold text-gray-900 dark:text-white">{mov.balanceAfter}</span>
                                                     </div>
                                                 </td>

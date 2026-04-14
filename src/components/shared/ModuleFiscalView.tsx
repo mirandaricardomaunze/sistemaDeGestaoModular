@@ -36,7 +36,7 @@ export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProp
 
                 const retentionRes = await fiscalAPI.getRetentions();
                 setRetentions(retentionRes.filter((r: any) => r.module === module));
-            } catch (err: unknown) {
+            } catch (err: any) {
                 toast.error('Erro ao buscar dados fiscais');
                 setLoading(false);
             }

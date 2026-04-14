@@ -1,9 +1,10 @@
-﻿/**
+/**
  * Parcels Management Page
  * List, receive, and manage parcels for pickup
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, Pagination } from '../../components/ui';
 import {
     HiOutlineCube,
@@ -19,23 +20,24 @@ import {
 import { useParcels, useCreateParcel, useRegisterParcelPickup, useSendParcelNotification } from '../../hooks/useLogistics';
 import { useWarehouses } from '../../hooks/useData';
 import type { Parcel } from '../../services/api/logistics.api';
+import { PageHeader } from '../../components/ui';
 import toast from 'react-hot-toast';
 
-const parcelStatuses = [
-    { value: 'received', label: 'Recebida', color: 'primary' },
-    { value: 'awaiting_pickup', label: 'Aguardando Levantamento', color: 'warning' },
-    { value: 'picked_up', label: 'Levantada', color: 'success' },
-    { value: 'overdue', label: 'Atrasada', color: 'danger' },
-    { value: 'returned_to_sender', label: 'Devolvida ao Remetente', color: 'gray' },
-    { value: 'lost', label: 'Extraviada', color: 'danger' }
-];
-
-const getStatusBadge = (status: string) => {
-    const s = parcelStatuses.find(ps => ps.value === status);
+const getStatusBadge = (status: string, t: any) => {
+    const statusMap: Record<string, { label: string, color: string }> = {
+        received: { label: t('logistics_module.parcels.status.received'), color: 'primary' },
+        awaiting_pickup: { label: t('logistics_module.parcels.status.awaiting_pickup'), color: 'warning' },
+        picked_up: { label: t('logistics_module.parcels.status.picked_up'), color: 'success' },
+        overdue: { label: t('logistics_module.parcels.status.overdue'), color: 'danger' },
+        returned_to_sender: { label: t('logistics_module.parcels.status.returned_to_sender'), color: 'gray' },
+        lost: { label: t('logistics_module.parcels.status.lost'), color: 'danger' }
+    };
+    const s = statusMap[status];
     return <Badge variant={s?.color as any || 'gray'}>{s?.label || status}</Badge>;
 };
 
 export default function ParcelsPage() {
+    const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [warehouseFilter, setWarehouseFilter] = useState('');
@@ -179,7 +181,7 @@ export default function ParcelsPage() {
 
     const copyTrackingNumber = (trackingNumber: string) => {
         navigator.clipboard.writeText(trackingNumber);
-        toast.success('Número de rastreio copiado!');
+        toast.success(t('logistics_module.parcels.trackingNumberCopied'));
     };
 
     if (isLoading) {
@@ -188,26 +190,40 @@ export default function ParcelsPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Encomendas</h1>
-                    <p className="text-gray-500 dark:text-gray-400">Receber e gerir encomendas para levantamento</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()}>
-                        Actualizar
-                    </Button>
-                    <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={() => setIsModalOpen(true)}>
-                        Nova Encomenda
-                    </Button>
-                </div>
-            </div>
+            <PageHeader
+                title={t('logistics_module.parcels.title')}
+                subtitle={t('logistics_module.parcels.subtitle')}
+                icon={<HiOutlineCube />}
+                actions={
+                    <div className="flex gap-2 items-center">
+                        <Button
+                            variant="outline"
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                            onClick={() => refetch()}
+                        >
+                            {t('common.update')}
+                        </Button>
+                        <Button
+                            variant="primary"
+                            leftIcon={<HiOutlinePlus className="w-5 h-5" />}
+                            onClick={() => setIsModalOpen(true)}
+                        >
+                            {t('logistics_module.parcels.newParcel')}
+                        </Button>
+                    </div>
+                }
+            />
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {['received', 'awaiting_pickup', 'picked_up', 'overdue'].map((status) => {
-                    const statusInfo = parcelStatuses.find(s => s.value === status);
+                    const statusMap: Record<string, { label: string, color: string }> = {
+                        received: { label: t('logistics_module.parcels.status.received'), color: 'primary' },
+                        awaiting_pickup: { label: t('logistics_module.parcels.status.awaiting_pickup'), color: 'warning' },
+                        picked_up: { label: t('logistics_module.parcels.status.picked_up'), color: 'success' },
+                        overdue: { label: t('logistics_module.parcels.status.overdue'), color: 'danger' }
+                    };
+                    const statusInfo = statusMap[status];
                     const count = data?.parcels.filter((p: Parcel) => p.status === status).length || 0;
                     return (
                         <Card key={status} variant="glass" className={`p-4 cursor-pointer hover:shadow-lg transition-shadow ${status === statusFilter ? 'ring-2 ring-primary-500' : ''}`}>
@@ -231,24 +247,32 @@ export default function ParcelsPage() {
                     <div className="relative">
                         <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <Input
-                            placeholder="Pesquisar por tracking, nome, telefone..."
+                            placeholder={t('logistics_module.parcels.searchPlaceholder')}
                             className="pl-10"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                     <Select
-                        options={[{ value: '', label: 'Todos os Estados' }, ...parcelStatuses.map(s => ({ value: s.value, label: s.label }))]}
+                        options={[
+                            { value: '', label: t('common.all_statuses') },
+                            { value: 'received', label: t('logistics_module.parcels.status.received') },
+                            { value: 'awaiting_pickup', label: t('logistics_module.parcels.status.awaiting_pickup') },
+                            { value: 'picked_up', label: t('logistics_module.parcels.status.picked_up') },
+                            { value: 'overdue', label: t('logistics_module.parcels.status.overdue') },
+                            { value: 'returned_to_sender', label: t('logistics_module.parcels.status.returned_to_sender') },
+                            { value: 'lost', label: t('logistics_module.parcels.status.lost') }
+                        ]}
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
                     />
                     <Select
-                        options={[{ value: '', label: 'Todos os Armazéns' }, ...(warehouses?.map(w => ({ value: w.id, label: w.name })) || [])]}
+                        options={[{ value: '', label: t('logistics_module.dashboard.warehouseNetwork') }, ...(warehouses?.map(w => ({ value: w.id, label: w.name })) || [])]}
                         value={warehouseFilter}
                         onChange={(e) => setWarehouseFilter(e.target.value)}
                     />
                     <div className="text-right text-sm text-gray-500 dark:text-gray-400 self-center">
-                        {data?.pagination.total || 0} encomenda(s) encontrada(s)
+                        {data?.pagination.total || 0} {t('logistics_module.parcels.found')}
                     </div>
                 </div>
             </Card>
@@ -270,15 +294,15 @@ export default function ParcelsPage() {
                                     </span>
                                 </div>
                                 <p className="text-sm text-gray-500">
-                                    Recebida: {new Date(parcel.receivedAt).toLocaleDateString()}
+                                    {t('logistics_module.parcels.received')}: {new Date(parcel.receivedAt).toLocaleDateString()}
                                 </p>
                             </div>
-                            {getStatusBadge(parcel.status)}
+                            {getStatusBadge(parcel.status, t)}
                         </div>
 
                         <div className="space-y-3 mb-4">
                             <div className="p-3 bg-gray-50 dark:bg-dark-800 rounded-lg">
-                                <p className="text-xs text-gray-500 uppercase mb-1">Destinatário</p>
+                                <p className="text-xs text-gray-500 uppercase mb-1">{t('logistics_module.parcels.recipient')}</p>
                                 <p className="font-medium">{parcel.recipientName}</p>
                                 <div className="flex items-center gap-1 text-sm text-gray-500">
                                     <HiOutlinePhone className="w-4 h-4" />
@@ -288,21 +312,21 @@ export default function ParcelsPage() {
 
                             {parcel.description && (
                                 <div className="text-sm">
-                                    <span className="text-gray-500">Descrição: </span>
+                                    <span className="text-gray-500">{t('common.description')}: </span>
                                     <span>{parcel.description}</span>
                                 </div>
                             )}
 
                             {parcel.storageLocation && (
                                 <div className="text-sm">
-                                    <span className="text-gray-500">Local: </span>
+                                    <span className="text-gray-500">{t('logistics_module.parcels.location')}: </span>
                                     <Badge variant="gray" size="sm">{parcel.storageLocation}</Badge>
                                 </div>
                             )}
 
                             {parcel.fees > 0 && (
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Taxa</span>
+                                    <span className="text-gray-500">{t('logistics_module.parcels.fee')}</span>
                                     <span className="font-bold">{Number(parcel.fees).toLocaleString()} MZN</span>
                                 </div>
                             )}
@@ -310,7 +334,7 @@ export default function ParcelsPage() {
 
                         <div className="flex gap-2 pt-4 border-t dark:border-dark-700">
                             <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedParcel(parcel)}>
-                                <HiOutlineEye className="w-4 h-4 mr-1" /> Ver
+                                <HiOutlineEye className="w-4 h-4 mr-1" /> {t('common.view')}
                             </Button>
                             {parcel.status !== 'picked_up' && (
                                 <>
@@ -318,7 +342,7 @@ export default function ParcelsPage() {
                                         <HiOutlineBell className="w-4 h-4" />
                                     </Button>
                                     <Button size="sm" onClick={() => { setSelectedParcel(parcel); setIsPickupModalOpen(true); }}>
-                                        <HiOutlineCheckCircle className="w-4 h-4 mr-1" /> Levantar
+                                        <HiOutlineCheckCircle className="w-4 h-4 mr-1" /> {t('logistics_module.parcels.pickup')}
                                     </Button>
                                 </>
                             )}
@@ -330,10 +354,10 @@ export default function ParcelsPage() {
             {data?.parcels.length === 0 && (
                 <Card variant="glass" className="p-12 text-center">
                     <HiOutlineCube className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhuma encomenda encontrada</h3>
-                    <p className="text-gray-500 dark:text-gray-400 mb-4">Registre uma nova encomenda para começar.</p>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('logistics_module.parcels.notFound')}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">{t('logistics_module.parcels.startRegister')}</p>
                     <Button onClick={() => setIsModalOpen(true)}>
-                        <HiOutlinePlus className="w-5 h-5 mr-2" /> Registar Encomenda
+                        <HiOutlinePlus className="w-5 h-5 mr-2" /> {t('logistics_module.parcels.newParcel')}
                     </Button>
                 </Card>
             )}
@@ -360,23 +384,23 @@ export default function ParcelsPage() {
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => { setIsModalOpen(false); resetForm(); }}
-                title="Registar Nova Encomenda"
+                title={t('logistics_module.parcels.newParcel')}
                 size="xl"
             >
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Sender Info */}
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-lg border-b dark:border-dark-700 pb-2">Dados do Remetente</h3>
+                        <h3 className="font-semibold text-lg border-b dark:border-dark-700 pb-2">{t('logistics_module.parcels.senderInfo')}</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="Nome do Remetente *"
+                                label={`${t('logistics_module.parcels.senderName')} *`}
                                 placeholder="Nome completo"
                                 value={formData.senderName}
                                 onChange={(e) => setFormData({ ...formData, senderName: e.target.value })}
                                 required
                             />
                             <Input
-                                label="Telefone do Remetente *"
+                                label={`${t('logistics_module.parcels.senderPhone')} *`}
                                 placeholder="+258 84 000 0000"
                                 value={formData.senderPhone}
                                 onChange={(e) => setFormData({ ...formData, senderPhone: e.target.value })}
@@ -392,7 +416,7 @@ export default function ParcelsPage() {
                                 onChange={(e) => setFormData({ ...formData, senderEmail: e.target.value })}
                             />
                             <Input
-                                label="Morada"
+                                label={t('common.morada')}
                                 placeholder="Endereço do remetente"
                                 value={formData.senderAddress}
                                 onChange={(e) => setFormData({ ...formData, senderAddress: e.target.value })}
@@ -402,17 +426,17 @@ export default function ParcelsPage() {
 
                     {/* Recipient Info */}
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-lg border-b dark:border-dark-700 pb-2">Dados do Destinatário</h3>
+                        <h3 className="font-semibold text-lg border-b dark:border-dark-700 pb-2">{t('logistics_module.parcels.recipientInfo')}</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="Nome do Destinatário *"
+                                label={`${t('logistics_module.parcels.recipientName')} *`}
                                 placeholder="Nome completo"
                                 value={formData.recipientName}
                                 onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
                                 required
                             />
                             <Input
-                                label="Telefone do Destinatário *"
+                                label={`${t('logistics_module.parcels.recipientPhone')} *`}
                                 placeholder="+258 84 000 0000"
                                 value={formData.recipientPhone}
                                 onChange={(e) => setFormData({ ...formData, recipientPhone: e.target.value })}
@@ -428,7 +452,7 @@ export default function ParcelsPage() {
                                 onChange={(e) => setFormData({ ...formData, recipientEmail: e.target.value })}
                             />
                             <Input
-                                label="Documento (BI/NUIT)"
+                                label={t('common.document')}
                                 placeholder="Número do documento"
                                 value={formData.recipientDocument}
                                 onChange={(e) => setFormData({ ...formData, recipientDocument: e.target.value })}
@@ -438,16 +462,16 @@ export default function ParcelsPage() {
 
                     {/* Parcel Info */}
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-lg border-b dark:border-dark-700 pb-2">Dados da Encomenda</h3>
+                        <h3 className="font-semibold text-lg border-b dark:border-dark-700 pb-2">{t('logistics_module.parcels.parcelInfo')}</h3>
                         <Input
-                            label="Descrição"
+                            label={t('common.description')}
                             placeholder="Descrição do conteúdo da encomenda"
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         />
                         <div className="grid grid-cols-3 gap-4">
                             <Input
-                                label="Peso (kg)"
+                                label={`${t('logistics_module.parcels.weight')} (kg)`}
                                 type="number"
                                 step="0.1"
                                 placeholder="0.0"
@@ -455,13 +479,13 @@ export default function ParcelsPage() {
                                 onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                             />
                             <Input
-                                label="Dimensões"
+                                label={t('logistics_module.parcels.dimensions')}
                                 placeholder="30x20x10 cm"
                                 value={formData.dimensions}
                                 onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
                             />
                             <Input
-                                label="Taxa (MZN)"
+                                label={`${t('logistics_module.parcels.fee')} (MZN)`}
                                 type="number"
                                 step="0.01"
                                 placeholder="0.00"
@@ -476,21 +500,21 @@ export default function ParcelsPage() {
                                 value={formData.warehouseId}
                                 onChange={(e) => setFormData({ ...formData, warehouseId: e.target.value })}
                             />
-                            <Input
-                                label="Local de Armazenamento"
+                             <Input
+                                label={t('logistics_module.parcels.location')}
                                 placeholder="Prateleira A1"
                                 value={formData.storageLocation}
                                 onChange={(e) => setFormData({ ...formData, storageLocation: e.target.value })}
                             />
                             <Input
-                                label="Data Prevista de Levantamento"
+                                label={t('logistics_module.parcels.expectedPickup')}
                                 type="date"
                                 value={formData.expectedPickup}
                                 onChange={(e) => setFormData({ ...formData, expectedPickup: e.target.value })}
                             />
                         </div>
-                        <Input
-                            label="Observações"
+                             <Input
+                                label={t('common.notes')}
                             placeholder="Notas adicionais..."
                             value={formData.notes}
                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -499,10 +523,10 @@ export default function ParcelsPage() {
 
                     <div className="flex gap-3 pt-4">
                         <Button variant="outline" className="flex-1" onClick={() => { setIsModalOpen(false); resetForm(); }}>
-                            Cancelar
+                            {t('common.cancel')}
                         </Button>
                         <Button type="submit" className="flex-1" isLoading={createMutation.isLoading}>
-                            Registar Encomenda
+                            {t('logistics_module.parcels.newParcel')}
                         </Button>
                     </div>
                 </form>
@@ -522,18 +546,18 @@ export default function ParcelsPage() {
                         paidAmount: ''
                     });
                 }}
-                title="Registar Levantamento"
+                title={t('logistics_module.parcels.pickup')}
                 size="md"
             >
                 <div className="space-y-4">
                     <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-                        <p className="text-sm text-gray-500">Encomenda</p>
+                        <p className="text-sm text-gray-500">{t('logistics_module.parcels.parcel')}</p>
                         <p className="font-mono font-bold text-lg">{selectedParcel?.trackingNumber}</p>
-                        <p className="text-sm">Para: {selectedParcel?.recipientName}</p>
+                        <p className="text-sm">{t('logistics_module.parcels.recipient')}: {selectedParcel?.recipientName}</p>
                     </div>
 
                     <Input
-                        label="Nome de Quem Levanta *"
+                        label={`${t('logistics_module.parcels.pickedUpBy')} *`}
                         placeholder="Nome completo"
                         value={pickupData.pickedUpBy}
                         onChange={(e) => setPickupData({ ...pickupData, pickedUpBy: e.target.value })}
@@ -542,13 +566,13 @@ export default function ParcelsPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Documento (BI/NUIT)"
+                            label={t('common.document')}
                             placeholder="Número do documento"
                             value={pickupData.pickedUpDocument}
                             onChange={(e) => setPickupData({ ...pickupData, pickedUpDocument: e.target.value })}
                         />
                         <Input
-                            label="Parentesco/Relação"
+                            label={t('logistics_module.parcels.relationship')}
                             placeholder="Ex: Próprio, Irmão, etc"
                             value={pickupData.receiverRelationship}
                             onChange={(e) => setPickupData({ ...pickupData, receiverRelationship: e.target.value })}
@@ -559,23 +583,23 @@ export default function ParcelsPage() {
                         <>
                             <div className="p-3 bg-gray-50 dark:bg-dark-800 rounded-lg">
                                 <div className="flex justify-between">
-                                    <span>Taxa a Pagar:</span>
+                                    <span>{t('common.total_to_pay')}:</span>
                                     <span className="font-bold text-lg">{Number(selectedParcel.fees).toLocaleString()} MZN</span>
                                 </div>
                             </div>
                             <Select
-                                label="Método de Pagamento"
+                                label={t('common.payment_method')}
                                 options={[
-                                    { value: 'cash', label: 'Dinheiro' },
+                                    { value: 'cash', label: t('common.cash') },
                                     { value: 'mpesa', label: 'M-Pesa' },
-                                    { value: 'card', label: 'Cartão' },
-                                    { value: 'transfer', label: 'Transferência' }
+                                    { value: 'card', label: t('common.card') },
+                                    { value: 'transfer', label: t('common.transfer') }
                                 ]}
                                 value={pickupData.paymentMethod}
                                 onChange={(e) => setPickupData({ ...pickupData, paymentMethod: e.target.value })}
                             />
                             <Input
-                                label="Valor Pago (MZN)"
+                                label={`${t('common.amount_paid')} (MZN)`}
                                 type="number"
                                 placeholder={selectedParcel.fees.toString()}
                                 value={pickupData.paidAmount}
@@ -588,7 +612,7 @@ export default function ParcelsPage() {
                                     onChange={(e) => setPickupData({ ...pickupData, isPaid: e.target.checked })}
                                     className="w-4 h-4 rounded border-gray-300"
                                 />
-                                <span>Pagamento recebido</span>
+                                <span>{t('common.payment_received')}</span>
                             </label>
                         </>
                     )}
@@ -605,10 +629,10 @@ export default function ParcelsPage() {
                                 paidAmount: ''
                             });
                         }}>
-                            Cancelar
+                            {t('common.cancel')}
                         </Button>
                         <Button className="flex-1" onClick={handlePickup} isLoading={pickupMutation.isLoading} disabled={!pickupData.pickedUpBy}>
-                            Confirmar Levantamento
+                            {t('logistics_module.parcels.pickup')}
                         </Button>
                     </div>
                 </div>
@@ -618,7 +642,7 @@ export default function ParcelsPage() {
             <Modal
                 isOpen={isNotifyModalOpen}
                 onClose={() => { setIsNotifyModalOpen(false); setNotifyMessage(''); }}
-                title="Enviar Notificação"
+                title={t('logistics_module.parcels.sendNotification')}
                 size="md"
             >
                 <div className="space-y-4">
@@ -629,11 +653,11 @@ export default function ParcelsPage() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mensagem *</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('common.message')} *</label>
                         <textarea
                             className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
                             rows={4}
-                            placeholder="Escreva a mensagem para o destinatário..."
+                             placeholder={t('logistics_module.parcels.notifyPlaceholder')}
                             value={notifyMessage}
                             onChange={(e) => setNotifyMessage(e.target.value)}
                         />
@@ -641,10 +665,10 @@ export default function ParcelsPage() {
 
                     <div className="flex gap-3 pt-4">
                         <Button variant="outline" className="flex-1" onClick={() => { setIsNotifyModalOpen(false); setNotifyMessage(''); }}>
-                            Cancelar
+                            {t('common.cancel')}
                         </Button>
                         <Button className="flex-1" onClick={handleNotify} isLoading={notifyMutation.isLoading} disabled={!notifyMessage}>
-                            <HiOutlineBell className="w-4 h-4 mr-1" /> Enviar SMS
+                            <HiOutlineBell className="w-4 h-4 mr-1" /> {t('logistics_module.parcels.sendSms')}
                         </Button>
                     </div>
                 </div>
@@ -654,77 +678,77 @@ export default function ParcelsPage() {
             <Modal
                 isOpen={!!selectedParcel && !isPickupModalOpen && !isNotifyModalOpen}
                 onClose={() => setSelectedParcel(null)}
-                title={`Detalhes da Encomenda`}
+                title={t('logistics_module.parcels.parcelDetails')}
                 size="lg"
             >
                 {selectedParcel && (
                     <div className="space-y-6">
                         <div className="flex items-center justify-between p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
                             <div>
-                                <p className="text-sm text-gray-500">Número de Rastreio</p>
+                                <p className="text-sm text-gray-500">{t('logistics_module.parcels.trackingNumber')}</p>
                                 <p className="font-mono font-bold text-xl">{selectedParcel.trackingNumber}</p>
                             </div>
-                            {getStatusBadge(selectedParcel.status)}
+                            {getStatusBadge(selectedParcel.status, t)}
                         </div>
 
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-3">
-                                <h4 className="font-semibold text-gray-500 uppercase text-xs">Remetente</h4>
+                                <h4 className="font-semibold text-gray-500 uppercase text-xs">{t('logistics_module.parcels.sender')}</h4>
                                 <p className="font-medium">{selectedParcel.senderName}</p>
                                 <p className="text-sm text-gray-500">{selectedParcel.senderPhone}</p>
                                 {selectedParcel.senderEmail && <p className="text-sm text-gray-500">{selectedParcel.senderEmail}</p>}
                             </div>
                             <div className="space-y-3">
-                                <h4 className="font-semibold text-gray-500 uppercase text-xs">Destinatário</h4>
+                                <h4 className="font-semibold text-gray-500 uppercase text-xs">{t('logistics_module.parcels.recipient')}</h4>
                                 <p className="font-medium">{selectedParcel.recipientName}</p>
                                 <p className="text-sm text-gray-500">{selectedParcel.recipientPhone}</p>
-                                {selectedParcel.recipientDocument && <p className="text-sm text-gray-500">Doc: {selectedParcel.recipientDocument}</p>}
+                                {selectedParcel.recipientDocument && <p className="text-sm text-gray-500">{t('common.document')}: {selectedParcel.recipientDocument}</p>}
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <h4 className="font-semibold text-gray-500 uppercase text-xs">Detalhes</h4>
+                            <h4 className="font-semibold text-gray-500 uppercase text-xs">{t('common.details')}</h4>
                             {selectedParcel.description && (
-                                <p><span className="text-gray-500">Descrição:</span> {selectedParcel.description}</p>
+                                <p><span className="text-gray-500">{t('common.description')}:</span> {selectedParcel.description}</p>
                             )}
                             <div className="grid grid-cols-3 gap-4 text-sm">
                                 {selectedParcel.weight && (
-                                    <p><span className="text-gray-500">Peso:</span> {selectedParcel.weight} kg</p>
+                                    <p><span className="text-gray-500">{t('logistics_module.parcels.weight')}:</span> {selectedParcel.weight} kg</p>
                                 )}
                                 {selectedParcel.dimensions && (
-                                    <p><span className="text-gray-500">Dimensões:</span> {selectedParcel.dimensions}</p>
+                                    <p><span className="text-gray-500">{t('logistics_module.parcels.dimensions')}:</span> {selectedParcel.dimensions}</p>
                                 )}
                                 {selectedParcel.storageLocation && (
-                                    <p><span className="text-gray-500">Local:</span> {selectedParcel.storageLocation}</p>
+                                    <p><span className="text-gray-500">{t('logistics_module.parcels.location')}:</span> {selectedParcel.storageLocation}</p>
                                 )}
                             </div>
                         </div>
 
                         {selectedParcel.fees > 0 && (
                             <div className="p-3 bg-gray-50 dark:bg-dark-800 rounded-lg flex justify-between">
-                                <span>Taxa</span>
+                                <span>{t('logistics_module.parcels.fee')}</span>
                                 <span className="font-bold">{Number(selectedParcel.fees).toLocaleString()} MZN</span>
                             </div>
                         )}
 
                         {selectedParcel.status === 'picked_up' && (
                             <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg space-y-2">
-                                <h4 className="font-semibold text-green-800 dark:text-green-200">Levantado</h4>
-                                <p className="text-sm"><span className="text-gray-500">Por:</span> {selectedParcel.pickedUpBy}</p>
+                                <h4 className="font-semibold text-green-800 dark:text-green-200">{t('logistics_module.parcels.status.picked_up')}</h4>
+                                <p className="text-sm"><span className="text-gray-500">{t('common.by')}:</span> {selectedParcel.pickedUpBy}</p>
                                 {selectedParcel.pickedUpDocument && (
-                                    <p className="text-sm"><span className="text-gray-500">Doc:</span> {selectedParcel.pickedUpDocument}</p>
+                                    <p className="text-sm"><span className="text-gray-500">{t('common.document')}:</span> {selectedParcel.pickedUpDocument}</p>
                                 )}
-                                <p className="text-sm"><span className="text-gray-500">Data:</span> {selectedParcel.pickedUpAt ? new Date(selectedParcel.pickedUpAt).toLocaleString() : '-'}</p>
+                                <p className="text-sm"><span className="text-gray-500">{t('common.date')}:</span> {selectedParcel.pickedUpAt ? new Date(selectedParcel.pickedUpAt).toLocaleString() : '-'}</p>
                             </div>
                         )}
 
                         <div className="flex gap-3 pt-4 border-t dark:border-dark-700">
                             <Button variant="outline" className="flex-1" onClick={() => setSelectedParcel(null)}>
-                                Fechar
+                                {t('common.close')}
                             </Button>
                             {selectedParcel.status !== 'picked_up' && (
                                 <Button className="flex-1" onClick={() => setIsPickupModalOpen(true)}>
-                                    <HiOutlineCheckCircle className="w-4 h-4 mr-1" /> Registar Levantamento
+                                    <HiOutlineCheckCircle className="w-4 h-4 mr-1" /> {t('logistics_module.parcels.pickup')}
                                 </Button>
                             )}
                         </div>

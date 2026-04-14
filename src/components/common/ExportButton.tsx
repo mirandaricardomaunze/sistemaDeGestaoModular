@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿/**
  * ExportButton Component
  * 
@@ -81,7 +82,7 @@ export default function ExportButton({
 
             onExport?.(format);
         } catch (error) {
-            console.error('Export error:', error);
+            logger.error('Export error:', error);
         } finally {
             setIsExporting(false);
         }

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import api from './client';
 
 // ============================================================================
@@ -39,7 +40,7 @@ export const auditAPI = {
             return response.data;
         } catch (error) {
             // Fail silently for audit logs - don't disrupt user experience
-            console.error('Failed to create audit log:', error);
+            logger.error('Failed to create audit log:', error);
             return null;
         }
     },
@@ -61,7 +62,7 @@ export const auditAPI = {
             const promises = logs.map(log => auditAPI.create(log));
             await Promise.allSettled(promises);
         } catch (error) {
-            console.error('Failed to create batch audit logs:', error);
+            logger.error('Failed to create batch audit logs:', error);
         }
     },
 };

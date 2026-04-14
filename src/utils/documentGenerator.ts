@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -25,7 +26,7 @@ export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: an
             doc.text(`NUIT: ${companyInfo?.taxId || 'N/A'}`, 45, y + 11);
             doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 45, y + 16);
         } catch (e) {
-            console.warn('Failed to add logo to PDF', e);
+            logger.warn('Failed to add logo to PDF', e);
             // Fallback to no logo layout below
         }
     } else {
@@ -579,14 +580,14 @@ export const generatePOSReceipt = (sale: any, companyInfo: any) => {
             doc.addImage(companyInfo.logo, 'PNG', centerX - 10, y, 20, 20);
             y += 25;
         } catch (e) {
-            console.warn('Failed to add logo to PDF', e);
+            logger.warn('Failed to add logo to PDF', e);
         }
     }
 
     // Company Header
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text(companyInfo?.name || 'Empresa', centerX, y, { align: 'center' });
+    doc.text(companyInfo?.companyName || companyInfo?.name || 'Empresa', centerX, y, { align: 'center' });
     y += lineHeight;
 
     doc.setFontSize(7);

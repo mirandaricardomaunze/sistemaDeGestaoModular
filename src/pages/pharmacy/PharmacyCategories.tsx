@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -135,7 +136,7 @@ export default function PharmacyCategories() {
             }
             closeFormModal();
         } catch (err) {
-            console.error('Error saving category:', err);
+            logger.error('Error saving category:', err);
         } finally {
             setIsSubmitting(false);
         }
@@ -160,7 +161,7 @@ export default function PharmacyCategories() {
                 setDeleteModalOpen(false);
                 setCategoryToDelete(null);
             } catch (err) {
-                console.error('Error deleting category:', err);
+                logger.error('Error deleting category:', err);
             } finally {
                 setIsSubmitting(false);
             }
@@ -212,10 +213,10 @@ export default function PharmacyCategories() {
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card padding="md" className="border-l-4 border-l-primary-500">
+                <Card padding="md" className="border-l-4 border-l-teal-500 shadow-sm">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                            <HiOutlineTag className="w-6 h-6 text-primary-600" />
+                        <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                            <HiOutlineTag className="w-6 h-6 text-teal-600" />
                         </div>
                         <div>
                             <p className="text-sm text-gray-500">Total Categorias</p>
@@ -338,7 +339,7 @@ export default function PharmacyCategories() {
                                         <div className="flex gap-1 justify-end">
                                             <button
                                                 onClick={() => handleEdit(category)}
-                                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-600 text-gray-500 hover:text-primary-600 transition-colors"
+                                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-600 text-gray-500 hover:text-teal-600 transition-colors"
                                                 title="Editar"
                                             >
                                                 <HiOutlinePencil className="w-4 h-4" />

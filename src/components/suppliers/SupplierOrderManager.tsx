@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useMemo, useEffect } from 'react';
 import {
     HiOutlinePlus,
@@ -53,7 +54,7 @@ export default function SupplierOrderManager() {
             const allOrders = (await Promise.all(ordersPromises)).flat();
             setPurchaseOrders(allOrders);
         } catch (error) {
-            console.error('Error fetching orders:', error);
+            logger.error('Error fetching orders:', error);
             toast.error('Erro ao buscar encomendas');
         } finally {
             setIsLoading(false);
@@ -81,7 +82,7 @@ export default function SupplierOrderManager() {
                 setSelectedOrder(null);
                 fetchOrders(); // Refresh list
             } catch (error) {
-                console.error('Error receiving order:', error);
+                logger.error('Error receiving order:', error);
                 toast.error('Erro ao receber encomenda');
             }
         }

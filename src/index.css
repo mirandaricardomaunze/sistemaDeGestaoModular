@@ -195,6 +195,17 @@
   .skeleton {
     @apply animate-pulse bg-gray-200 dark:bg-dark-700 rounded;
   }
+
+  /* Force white background for document previews regardless of dark mode */
+  .print-table {
+    @apply bg-white text-gray-900 !important;
+    background-color: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .print-table * {
+    @apply border-gray-200 !important;
+  }
 }
 
 @layer utilities {

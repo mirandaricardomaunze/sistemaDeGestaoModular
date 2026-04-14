@@ -1,4 +1,4 @@
-﻿import type { User, UserRole } from '../types';
+import type { User, UserRole } from '../types';
 
 export type Permission =
     | 'view_dashboard'
@@ -157,6 +157,7 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
         { prefix: '/bottle-store', module: 'bottle_store' },
         { prefix: '/logistics', module: 'logistics' },
         { prefix: '/restaurant', module: 'restaurant' },
+        { prefix: '/commercial', module: 'commercial' },
     ];
 
     // Normalize path: Remove query params and trailing slash (except for just "/")
@@ -191,11 +192,18 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
         '/fiscal': 'view_fiscal',
         '/invoices': 'view_pos',
         '/orders': 'view_pos',
+        '/commercial/invoices': 'view_pos',
+        '/commercial/orders': 'view_pos',
+        '/commercial/pos': 'view_pos',
+        '/commercial/inventory': 'view_inventory',
+        '/commercial/customers': 'view_customers',
+        '/commercial/reports': 'view_reports',
         '/alerts': 'view_dashboard',
         '/reports': 'view_reports',
         '/audit': 'view_audit',
         '/settings': 'manage_settings',
         '/pharmacy': 'view_inventory',
+        '/pharmacy/employees': 'view_employees',
         '/hospitality': 'view_dashboard',
         '/bottle-store': 'view_inventory',
         '/logistics': 'view_dashboard',
