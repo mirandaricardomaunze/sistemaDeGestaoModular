@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { alertsAPI, type Alert, type AlertModule, type AlertsSummary, type UnreadCount } from '../services/api';
@@ -40,8 +41,8 @@ export function useAlerts(params: UseAlertsParams = {}) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const paramsRef = useRef({ module, type, priority, isRead, isResolved });
-    paramsRef.current = { module, type, priority, isRead, isResolved };
+    const paramsRef = useRef({ module, type, priority: priority as any, isRead, isResolved });
+    paramsRef.current = { module, type, priority: priority as any, isRead, isResolved };
 
     const fetchAlerts = useCallback(async (isSilent = false) => {
         if (!isSilent) setIsLoading(true);
@@ -65,7 +66,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
             }
         } catch (err) {
             setError('Erro ao carregar alertas');
-            console.error('Error fetching alerts:', err);
+            logger.error('Error fetching alerts:', err);
         } finally {
             if (!isSilent) setIsLoading(false);
         }
@@ -93,7 +94,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
             await fetchAlerts();
             toast.success('Alertas atualizados');
         } catch (err) {
-            console.error('Error generating alerts:', err);
+            logger.error('Error generating alerts:', err);
             toast.error('Erro ao gerar alertas');
             throw err;
         }
@@ -104,7 +105,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
             await alertsAPI.markAsRead(id);
             setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, isRead: true } : a)));
         } catch (err) {
-            console.error('Error marking alert as read:', err);
+            logger.error('Error marking alert as read:', err);
             throw err;
         }
     };
@@ -119,7 +120,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
             );
             toast.success('Alerta resolvido');
         } catch (err) {
-            console.error('Error resolving alert:', err);
+            logger.error('Error resolving alert:', err);
             throw err;
         }
     };
@@ -129,7 +130,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
             await alertsAPI.delete(id);
             setAlerts((prev) => prev.filter((a) => a.id !== id));
         } catch (err) {
-            console.error('Error deleting alert:', err);
+            logger.error('Error deleting alert:', err);
             throw err;
         }
     };
@@ -142,7 +143,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
             );
             toast.success('Alertas marcados como lidos');
         } catch (err) {
-            console.error('Error marking all alerts as read:', err);
+            logger.error('Error marking all alerts as read:', err);
             throw err;
         }
     };
@@ -153,7 +154,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
             setAlerts((prev) => prev.filter((a) => !a.isResolved));
             toast.success('Alertas resolvidos limpos');
         } catch (err) {
-            console.error('Error clearing resolved alerts:', err);
+            logger.error('Error clearing resolved alerts:', err);
             throw err;
         }
     };
@@ -202,7 +203,7 @@ export function useAlertsSummary() {
             const data = await alertsAPI.getSummary();
             setSummary(data);
         } catch (err) {
-            console.error('Error fetching alerts summary:', err);
+            logger.error('Error fetching alerts summary:', err);
         } finally {
             setIsLoading(false);
         }
@@ -230,7 +231,7 @@ export function useUnreadCount(module?: AlertModule) {
             const data = await alertsAPI.getUnreadCount(module);
             setCounts(data);
         } catch (err) {
-            console.error('Error fetching unread counts:', err);
+            logger.error('Error fetching unread counts:', err);
         } finally {
             setIsLoading(false);
         }

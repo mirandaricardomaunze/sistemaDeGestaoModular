@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HospitalityDashboard Component
  * Main dashboard for hotel analytics with KPIs, interactive charts, and period filtering
  */
@@ -297,10 +297,22 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                         <div className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 rounded-lg">
                             <HiOutlineChartPie className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Média/Res.</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">ADR</span>
                     </div>
                     <p className="text-2xl font-black text-gray-900 dark:text-white">{formatCurrency(metrics?.avgDailyRate || 0)}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-bold">Ticket médio ADR</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-bold">Ticket médio base/quarto</p>
+                </Card>
+
+                {/* RevPAR */}
+                <Card className="p-5 bg-white dark:bg-dark-800 shadow-sm border border-gray-100 dark:border-dark-700 hover:border-primary-500 transition-all">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-lg">
+                            <HiOutlineCurrencyDollar className="w-5 h-5" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">RevPAR</span>
+                    </div>
+                    <p className="text-2xl font-black text-gray-900 dark:text-white">{formatCurrency(metrics?.revpar || 0)}</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-bold">Receita/quarto disponível</p>
                 </Card>
 
                 {/* Active Guests */}
@@ -342,7 +354,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 <Card className="p-6 border-none shadow-sm dark:bg-dark-800">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6">Fluxo de Receita</h3>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <AreaChart data={revenueChart}>
                                 <defs>
                                     <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -370,7 +382,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 <Card className="p-6 border-none shadow-sm dark:bg-dark-800">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6">Ocupação Histórica (%)</h3>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <LineChart data={occupancyChart}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-gray-100 dark:stroke-dark-700" />
                                 <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={d => d.slice(5)} axisLine={false} tickLine={false} dy={10} />
@@ -386,7 +398,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 <Card className="p-6 border-none shadow-sm dark:bg-dark-800">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6">Mix de Categorias</h3>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <PieChart>
                                 <Pie
                                     data={roomTypesChart as any[]}
@@ -414,7 +426,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 <Card className="p-6 border-none shadow-sm dark:bg-dark-800">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6">Ranking de Consumos</h3>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <BarChart data={consumptionChart} layout="vertical" margin={{ left: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-gray-100 dark:stroke-dark-700" />
                                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />

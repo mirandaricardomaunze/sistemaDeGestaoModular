@@ -1,11 +1,19 @@
-﻿/**
- * Hotel Categories (Categorias)
- * 
- * Reuses the existing Categories component but scoped to hotel module
- */
-
+import { useTranslation } from 'react-i18next';
+import { PageHeader } from '../../components/ui';
 import Categories from '../Categories';
+import { HiOutlineTag } from 'react-icons/hi2';
 
 export default function HotelCategories() {
-    return <Categories />;
+    const { t } = useTranslation();
+
+    return (
+        <div className="space-y-6">
+            <PageHeader
+                title={t('nav.categories')}
+                subtitle="Categorias de produtos e serviços de hotelaria"
+                icon={<HiOutlineTag />}
+            />
+            <Categories hideHeader={true} />
+        </div>
+    );
 }

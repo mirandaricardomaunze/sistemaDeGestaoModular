@@ -1,6 +1,8 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { buildPaginationMeta } from '../utils/pagination';
+import { stockService } from './StockService';
+import { logger } from '../utils/logger';
 
 export class InvoicesService {
     async list(params: any, companyId: string) {
@@ -77,45 +79,180 @@ export class InvoicesService {
         ];
     }
 
-    async create(data: any, companyId: string) {
+    async create(data: any, companyId: string, userName?: string) {
         const count = await prisma.invoice.count({ where: { companyId } });
         const invoiceNumber = `FAT-${new Date().getFullYear()}-${String(count + 1).padStart(5, '0')}`;
+        const { items } = data;
 
-        const { items, ...invoiceData } = data;
-        const invoice = await prisma.invoice.create({
-            data: {
-                ...invoiceData,
-                invoiceNumber,
-                companyId,
-                dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
-                amountDue: data.total,
-                items: {
-                    create: items.map((item: any) => ({
-                        productId: item.productId, description: item.description,
-                        quantity: item.quantity, unitPrice: item.unitPrice,
-                        discount: item.discount || 0, total: item.total
-                    }))
-                }
-            },
-            include: { customer: true, items: true }
-        });
-
-        // Register IVA Retention
-        if (data.taxAmount > 0) {
-            try {
-                const ivaConfig = await prisma.taxConfig.findFirst({ where: { type: 'iva', isActive: true, companyId } });
-                await prisma.taxRetention.create({
-                    data: {
-                        companyId, type: 'iva', entityType: 'invoice', entityId: invoice.id,
-                        period: new Date().toISOString().slice(0, 7),
-                        baseAmount: data.subtotal, retainedAmount: data.taxAmount,
-                        rate: ivaConfig?.rate || 16, description: `IVA da Fatura ${invoiceNumber}`
-                    }
+        return await prisma.$transaction(async (tx) => {
+            // Validate unique invoice per order
+            if (data.orderId) {
+                const existingInvoice = await tx.invoice.findFirst({
+                    where: { orderId: data.orderId, companyId }
                 });
-            } catch (e) { console.error('Fiscal retention error:', e); }
-        }
+                if (existingInvoice) {
+                    throw ApiError.badRequest('Esta encomenda já foi faturada.');
+                }
+            }
 
-        return invoice;
+            // Validate customer credit limit for direct invoices (not linked to an order)
+            if (!data.orderId && data.customerId) {
+                const customer = await tx.customer.findFirst({
+                    where: { id: data.customerId, companyId }
+                });
+                if (customer && customer.creditLimit !== null) {
+                    const openInvoicesTotal = await tx.invoice.aggregate({
+                        where: { customerId: data.customerId, companyId, status: { in: ['draft', 'sent', 'partial', 'overdue'] as any[] } },
+                        _sum: { amountDue: true }
+                    });
+                    const currentExposure = Number((openInvoicesTotal._sum as any).amountDue ?? 0);
+                    if (currentExposure + data.total > Number(customer.creditLimit)) {
+                        throw ApiError.badRequest(
+                            `Limite de crédito excedido para "${customer.name}". ` +
+                            `Limite: ${Number(customer.creditLimit).toFixed(2)} MT, ` +
+                            `Em dívida: ${currentExposure.toFixed(2)} MT, ` +
+                            `Esta fatura: ${data.total.toFixed(2)} MT.`
+                        );
+                    }
+                }
+            }
+
+            // Validate stock for manual invoices (those not linked to an existing order/sale)
+            if (!data.orderId) {
+                for (const item of items) {
+                    if (item.productId) {
+                        await stockService.validateAvailability(item.productId, item.quantity, companyId, tx);
+                    }
+                }
+            } else {
+                // For Orders, release reservation and deduct effective stock
+                for (const item of items) {
+                    if (item.productId) {
+                        await stockService.releaseReservation(item.productId, item.quantity, companyId, tx);
+                        await stockService.recordMovement({
+                            productId: item.productId,
+                            quantity: -item.quantity,
+                            movementType: 'sale',
+                            originModule: 'COMMERCIAL',
+                            referenceType: 'SALE',
+                            referenceContent: data.orderNumber || 'Fatura via Encomenda',
+                            reason: `Venda via Encomenda ${data.orderNumber || 'Fatura via Encomenda'}`,
+                            performedBy: userName || 'Sistema',
+                            companyId
+                        }, tx);
+                    }
+                }
+            }
+
+            const invoice = await tx.invoice.create({
+                data: {
+                    invoiceNumber,
+                    companyId,
+                    orderId: data.orderId || null,
+                    orderNumber: data.orderNumber || null,
+                    customerId: data.customerId || null,
+                    customerName: data.customerName || 'Cliente',
+                    customerEmail: data.customerEmail || null,
+                    customerPhone: data.customerPhone || null,
+                    customerAddress: data.customerAddress || null,
+                    customerDocument: data.customerNuit || null,
+                    subtotal: data.subtotal,
+                    discount: data.discount || 0,
+                    tax: data.taxAmount || 0,
+                    total: data.total,
+                    amountDue: data.total,
+                    dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
+                    notes: data.notes || null,
+                    terms: data.paymentTerms || null,
+                    items: {
+                        create: items.map((item: any) => ({
+                            productId: item.productId || null,
+                            description: item.description,
+                            quantity: item.quantity,
+                            unitPrice: item.unitPrice,
+                            discount: item.discount || 0,
+                            total: item.total
+                        }))
+                    }
+                },
+                include: { customer: true, items: true }
+            });
+
+            // Deduct stock for manual invoices
+            if (!data.orderId) {
+                for (const item of items) {
+                    if (item.productId) {
+                        await stockService.recordMovement({
+                            productId: item.productId,
+                            quantity: -item.quantity,
+                            movementType: 'sale',
+                            originModule: 'COMMERCIAL',
+                            referenceType: 'SALE',
+                            referenceContent: invoice.invoiceNumber,
+                            reason: `Venda via Fatura Direta ${invoice.invoiceNumber}`,
+                            performedBy: userName || 'Sistema',
+                            companyId
+                        }, tx);
+                    }
+                }
+            }
+
+            // Register IVA Retention
+            if (data.taxAmount > 0) {
+                try {
+                    const [ivaConfig, companyCfg] = await Promise.all([
+                        tx.taxConfig.findFirst({ where: { type: 'iva', isActive: true, companyId } }),
+                        tx.companySettings.findFirst({ where: { companyId } })
+                    ]);
+                    const effectiveRate = ivaConfig?.rate ?? companyCfg?.ivaRate ?? 16;
+                    await tx.taxRetention.create({
+                        data: {
+                            companyId, type: 'iva', entityType: 'invoice', entityId: invoice.id,
+                            period: new Date().toISOString().slice(0, 7),
+                            baseAmount: data.subtotal, retainedAmount: data.taxAmount,
+                            rate: effectiveRate, description: `IVA da Fatura ${invoiceNumber}`
+                        }
+                    });
+                } catch (e) { logger.error('Fiscal retention creation failed', { invoiceId: invoice.id, error: e }); }
+            }
+
+            return invoice;
+        });
+    }
+
+    async update(id: string, data: any, companyId: string) {
+        const { items } = data;
+
+        return await prisma.$transaction(async (tx) => {
+            // Check if invoice exists and belongs to company
+            const existingInvoice = await tx.invoice.findFirst({
+                where: { id, companyId }
+            });
+            if (!existingInvoice) throw ApiError.notFound('Invoice not found');
+
+            // Update invoice
+            const invoice = await tx.invoice.update({
+                where: { id },
+                data: {
+                    ...data,
+                    items: items ? {
+                        deleteMany: {},
+                        create: items.map((item: any) => ({
+                            productId: item.productId,
+                            description: item.description,
+                            quantity: item.quantity,
+                            unitPrice: item.unitPrice,
+                            discount: item.discount || 0,
+                            taxRate: item.taxRate || 0,
+                            total: item.total
+                        }))
+                    } : undefined
+                },
+                include: { customer: true, items: { include: { product: true } }, payments: true }
+            });
+
+            return invoice;
+        });
     }
 
     async getById(id: string, companyId: string) {
@@ -185,13 +322,18 @@ export class InvoicesService {
         const count = await prisma.creditNote.count({ where: { companyId } });
         const number = `NC-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
 
+        // Use company IVA rate dynamically
+        const companySettings = await prisma.companySettings.findFirst({ where: { companyId } });
+        const ivaRate = Number(companySettings?.ivaRate ?? 16) / 100;
+
         const subtotal = data.items.reduce((sum: number, item: any) => sum + item.total, 0);
-        const total = subtotal * 1.16;
+        const taxAmount = subtotal * ivaRate;
+        const total = subtotal + taxAmount;
 
         return prisma.creditNote.create({
             data: {
                 number, originalInvoiceId: invoiceId, customerId: invoice.customerId,
-                customerName: invoice.customerName, subtotal, tax: subtotal * 0.16, total,
+                customerName: invoice.customerName, subtotal, tax: taxAmount, total,
                 reason: data.reason, notes: data.notes, companyId,
                 items: {
                     create: data.items.map((item: any) => ({
@@ -203,6 +345,61 @@ export class InvoicesService {
             },
             include: { items: true, originalInvoice: true }
         });
+    }
+
+    async incrementPrintCount(id: string, companyId: string) {
+        const invoice = await prisma.invoice.findFirst({
+            where: { id, companyId }
+        });
+        if (!invoice) throw ApiError.notFound('Fatura não encontrada');
+
+        return await prisma.invoice.update({
+            where: { id },
+            data: { printCount: { increment: 1 } }
+        });
+    }
+
+    async convertOrderToInvoice(orderId: string, companyId: string, userName?: string) {
+        const order = await prisma.customerOrder.findFirst({
+            where: { id: orderId, companyId },
+            include: { items: true }
+        });
+        if (!order) throw ApiError.notFound('Encomenda não encontrada');
+        if (order.status === 'cancelled') throw ApiError.badRequest('Não é possível faturar uma encomenda cancelada');
+
+        const existing = await prisma.invoice.findFirst({ where: { orderId, companyId } });
+        if (existing) throw ApiError.badRequest('Esta encomenda já foi faturada. Fatura: ' + existing.invoiceNumber);
+
+        const companySettings = await prisma.companySettings.findFirst({ where: { companyId } });
+        const ivaRate = Number(companySettings?.ivaRate ?? 16) / 100;
+
+        const subtotal = order.items.reduce((sum, i) => sum + Number(i.total), 0);
+        const taxAmount = subtotal * ivaRate;
+        const total = subtotal + taxAmount;
+
+        const invoiceData = {
+            orderId: order.id,
+            orderNumber: order.orderNumber,
+            customerName: order.customerName,
+            customerEmail: order.customerEmail,
+            customerPhone: order.customerPhone,
+            customerAddress: order.customerAddress,
+            subtotal,
+            taxAmount,
+            total,
+            dueDate: order.deliveryDate ? order.deliveryDate.toISOString() : undefined,
+            notes: order.notes,
+            items: order.items.map(i => ({
+                productId: i.productId,
+                description: i.productName,
+                quantity: i.quantity,
+                unitPrice: Number(i.price),
+                discount: 0,
+                total: Number(i.total),
+            })),
+        };
+
+        return this.create(invoiceData, companyId, userName);
     }
 }
 

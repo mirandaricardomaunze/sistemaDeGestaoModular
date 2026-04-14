@@ -1,5 +1,6 @@
 ﻿import { PrismaClient } from '@prisma/client';
 import { tenantContext } from './context';
+import { logger } from '../utils/logger';
 
 const basePrisma = new PrismaClient();
 
@@ -59,10 +60,10 @@ export const prisma = basePrisma.$extends({
                             };
 
                             basePrisma.auditLog.create({ data: auditData }).catch(err => {
-                                console.error('Audit Log Sync Error:', err.message);
+                                logger.error('Audit Log Sync Error', { message: err.message });
                             });
                         } catch (auditErr) {
-                            console.error('Audit Log Preparation Error:', auditErr);
+                            logger.error('Audit Log Preparation Error', { error: auditErr });
                         }
                     }
                 }

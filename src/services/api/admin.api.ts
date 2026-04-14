@@ -5,6 +5,7 @@
 // ============================================================================
 
 import { type BusinessModule } from '../../constants/modules.constants';
+export type { BusinessModule };
 
 export const modulesAPI = {
     getAll: async (): Promise<BusinessModule[]> => {

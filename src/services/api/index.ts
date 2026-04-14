@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // API Services - Barrel Export
 // ============================================================================
 // 
@@ -36,4 +36,18 @@ export { bottleStoreAPI } from './bottle-store.api';
 export { exportAPI } from './export.api';
 
 // Payments
-export { paymentsAPI, type PaymentModule, type MpesaStatus, type MpesaTransaction } from './payments.api';
+export { paymentsAPI, type PaymentModule, type MpesaStatus, type MpesaTransaction, type InitiatePaymentParams } from './payments.api';
+
+// Validities
+export { validitiesAPI, type ProductValidity } from './validities.api';
+
+// Restaurant Module
+export { restaurantAPI, type RestaurantTable, type RestaurantMenuItem, type RestaurantOrder, type RestaurantReservation, type OrderStatus, type ReservationStatus, type RestaurantOrderItem } from './restaurant.api';
+
+
+// IVA & Batches
+export { ivaAPI, type IvaRate, type CreateIvaRateDto } from './iva.api';
+export { batchesAPI, type ProductBatch, type CreateBatchDto } from './batches.api';
+
+// Commercial Module Analytics
+export { commercialAPI, shiftAPI, type CommercialAnalytics, type MarginAnalysis, type MarginByCategory, type MarginByProduct, type StockAgingReport, type StockAgingProduct, type SupplierPerformance, type PurchaseOrder, type InventoryTurnoverItem, type SalesReport, type ShiftSession, type ShiftSummary } from './commercial.api';

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import { Card, Button, Input, Pagination, usePagination } from '../ui';
 import { HiOutlineSearch, HiOutlinePlus, HiOutlinePrinter, HiOutlineEye } from 'react-icons/hi';
@@ -27,7 +28,7 @@ export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) 
             const data = await invoicesAPI.getCreditNotes();
             setCreditNotes(data);
         } catch (error) {
-            console.error('Error fetching credit notes:', error);
+            logger.error('Error fetching credit notes:', error);
             toast.error('Erro ao buscar notas de crédito');
         } finally {
             setIsLoading(false);

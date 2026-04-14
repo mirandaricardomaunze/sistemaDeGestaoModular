@@ -125,13 +125,14 @@ export function usePaginatedData<T = any>({
             if (onSuccess) {
                 onSuccess(responseData.data || responseData);
             }
-        } catch (err: unknown) {
-            if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        } catch (err) {
+            const anyErr = err as any;
+            if (anyErr.name === 'CanceledError' || anyErr.code === 'ERR_CANCELED') {
                 // Request was cancelled, ignore
                 return;
             }
 
-            const errorMessage = err.response?.data?.error || err.message || 'Erro ao carregar dados';
+            const errorMessage = anyErr.response?.data?.error || anyErr.message || 'Erro ao carregar dados';
             setError(errorMessage);
 
             if (onError) {

@@ -10,6 +10,8 @@ import { useStore } from '../../stores/useStore';
 import type { Sale } from '../../types';
 import toast from 'react-hot-toast';
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { HiOutlineDocumentText } from 'react-icons/hi';
 
 interface ThermalReceiptPreviewProps {
     isOpen: boolean;
@@ -21,6 +23,7 @@ interface ThermalReceiptPreviewProps {
 export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale }: ThermalReceiptPreviewProps) {
 
     const { companySettings: company } = useStore();
+    const navigate = useNavigate();
     const printProcessed = useRef(false);
 
     // Format date/time
@@ -258,7 +261,7 @@ export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale 
                             <span>Itens ({sale.items.length})</span>
                         </div>
 
-                        {sale.items.map((item, index) => (
+                        {(sale.items || []).map((item, index) => (
                             <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-dark-600 last:border-0">
                                 <div className="flex-1">
                                     <p className="font-medium text-gray-900 dark:text-white">{item.product.name}</p>
@@ -340,6 +343,15 @@ export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale 
                         Visualizar Fatura A4 Profissional
                     </Button>
                 )}
+
+                <Button
+                    variant="ghost"
+                    className="w-full text-emerald-600 dark:text-emerald-400 mt-2"
+                    onClick={() => navigate(`/commercial/invoices?search=${sale.receiptNumber}&open=true`)}
+                >
+                    <HiOutlineDocumentText className="w-4 h-4 mr-2" />
+                    Gerar Fatura Comercial (A4)
+                </Button>
 
                 {/* Print Preview Note */}
                 <p className="text-center text-xs text-gray-400 dark:text-gray-500">

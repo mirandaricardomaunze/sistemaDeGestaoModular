@@ -3,7 +3,8 @@
  * Used for Sales Reports, Inventory Reports, Financial Reports, etc.
  */
 
-import { useRef, ReactNode } from 'react';
+import { useRef } from 'react';
+import type { ReactNode } from 'react';
 import { HiOutlinePrinter, HiOutlineX, HiOutlineDownload, HiOutlineDocumentReport } from 'react-icons/hi';
 import { Modal, Button, Card } from '../ui';
 import { useStore } from '../../stores/useStore';

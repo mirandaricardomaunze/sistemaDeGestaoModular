@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
     HiOutlineSearch,
@@ -35,9 +36,15 @@ import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { useInvoiceTaxes } from '../../utils/fiscalIntegration';
 
 
-export default function POSInterface() {
+interface POSInterfaceProps {
+    originModule?: string;
+}
+
+export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
     // API hooks for data
-    const { products, isLoading: isLoadingProducts, refetch: refetchProducts } = useProducts();
+    const { products, isLoading: isLoadingProducts, refetch: refetchProducts } = useProducts(
+        originModule ? { origin_module: originModule } : undefined
+    );
     const { customers, isLoading: isLoadingCustomers } = useCustomers();
     const { createSale } = useSales();
     const { refetch: refetchAlerts } = useAlerts();
@@ -186,7 +193,7 @@ export default function POSInterface() {
                     toast.error(`${product.name} está sem stock`);
                 }
             } catch (error) {
-                console.error('Barcode scan error:', error);
+                logger.error('Barcode scan error:', error);
             }
         },
         enabled: !checkoutModalOpen && !receiptModalOpen && !scaleModalOpen && !cashDrawerModalOpen
@@ -549,8 +556,8 @@ export default function POSInterface() {
                 duration: 3000
             });
 
-        } catch (error: unknown) {
-            console.error('Sale confirmation error:', error);
+        } catch (error: any) {
+            logger.error('Sale confirmation error:', error);
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const err = error as any;
@@ -618,7 +625,7 @@ export default function POSInterface() {
                 );
 
                 // Log for debugging
-                console.error('Validation errors:', errorResponse.details);
+                logger.error('Validation errors:', errorResponse.details);
                 return;
             }
 
@@ -630,7 +637,7 @@ export default function POSInterface() {
                 );
 
                 // Log full error for debugging
-                console.error('Validation error details:', errorResponse);
+                logger.error('Validation error details:', errorResponse);
                 return;
             }
 

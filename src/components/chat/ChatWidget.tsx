@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useRef, useEffect } from 'react';
 import {
     HiOutlineX,
@@ -37,7 +38,7 @@ export default function ChatWidget() {
                         setSuggestions(allQuestions.slice(0, 6));
                     }
                 } catch (error) {
-                    console.error('Error loading suggestions:', error);
+                    logger.error('Error loading suggestions:', error);
                 }
             }
         };
@@ -46,7 +47,7 @@ export default function ChatWidget() {
 
 
     const handleClose = () => {
-        console.log('Closing chat widget');
+        logger.info('Closing chat widget');
         setIsOpen(false);
     };
 
@@ -87,8 +88,8 @@ export default function ChatWidget() {
             if (response.pdfUrl) {
                 toast.success('📄 Relatório PDF gerado!');
             }
-        } catch (error: unknown) {
-            console.error('Chat error:', error);
+        } catch (error: any) {
+            logger.error('Chat error:', error);
 
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),

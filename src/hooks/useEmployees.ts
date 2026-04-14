@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { employeesAPI } from '../services/api';
@@ -52,7 +53,7 @@ export function useEmployees(params?: UseEmployeesParams) {
             setEmployees(employeesData);
         } catch (err) {
             setError('Erro ao carregar funcionários');
-            console.error('Error fetching employees:', err);
+            logger.error('Error fetching employees:', err);
         } finally {
             setIsLoading(false);
         }
@@ -78,7 +79,7 @@ export function useEmployees(params?: UseEmployeesParams) {
             toast.success('Funcionário criado com sucesso!');
             return newEmployee;
         } catch (err) {
-            console.error('Error creating employee:', err);
+            logger.error('Error creating employee:', err);
             throw err;
         }
     };
@@ -90,7 +91,7 @@ export function useEmployees(params?: UseEmployeesParams) {
             toast.success('Funcionário actualizado com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating employee:', err);
+            logger.error('Error updating employee:', err);
             throw err;
         }
     };
@@ -101,7 +102,7 @@ export function useEmployees(params?: UseEmployeesParams) {
             setEmployees((prev) => prev.filter((e) => e.id !== id));
             toast.success('Funcionário removido com sucesso!');
         } catch (err) {
-            console.error('Error deleting employee:', err);
+            logger.error('Error deleting employee:', err);
             throw err;
         }
     };

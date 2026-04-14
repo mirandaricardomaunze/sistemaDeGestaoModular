@@ -2,6 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { ApiError } from '../middleware/error.middleware';
+import { logger } from '../utils/logger';
 
 export class GoogleDriveService {
     private config = {
@@ -26,7 +27,7 @@ export class GoogleDriveService {
             oauth2Client.setCredentials({ refresh_token: this.config.refreshToken });
             this.drive = google.drive({ version: 'v3', auth: oauth2Client });
         } catch (error: any) {
-            console.error('Google Drive Init Error:', error.message);
+            logger.error('Google Drive initialization failed', { message: error.message });
         }
     }
 
@@ -106,7 +107,7 @@ export class GoogleDriveService {
 
             return { success: true, fileId: file.data.id };
         } catch (error: any) {
-            console.error('❌ Erro no upload para Google Drive:', error.message);
+            logger.error('Google Drive upload failed', { message: error.message });
             return { success: false, error: error.message };
         }
     }
@@ -136,7 +137,7 @@ export class GoogleDriveService {
 
             return response.data.files || [];
         } catch (error: any) {
-            console.error('❌ Erro ao listar backups no Google Drive:', error.message);
+            logger.error('Google Drive list backups failed', { message: error.message });
             return [];
         }
     }
@@ -180,7 +181,7 @@ export class GoogleDriveService {
 
             return { success: true, deletedCount };
         } catch (error: any) {
-            console.error('❌ Erro ao limpar backups no Google Drive:', error.message);
+            logger.error('Google Drive clean old backups failed', { message: error.message });
             return { success: false, deletedCount: 0, error: error.message };
         }
     }

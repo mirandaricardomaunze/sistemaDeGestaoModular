@@ -43,7 +43,7 @@ export const createBatchSchema = z.object({
     costPrice: z.number().nonnegative('Preco de custo nao pode ser negativo').optional(),
     sellingPrice: z.number().positive('Preco de venda deve ser positivo').optional(),
     invoiceNumber: z.string().optional(),
-    supplierId: z.string().uuid().optional().nullable()
+    supplier: z.string().max(200).optional().nullable()
 });
 
 // ============================================================================
@@ -61,7 +61,10 @@ export const createPharmacySaleSchema = z.object({
     items: z.array(pharmacySaleItemSchema).min(1, 'A venda deve ter pelo menos um item'),
     customerId: z.string().uuid().optional().nullable(),
     customerName: z.string().optional(),
+    // Accept either a UUID (prescriptionId) or a human-readable number (prescriptionNumber)
     prescriptionId: z.string().uuid().optional().nullable(),
+    prescriptionNumber: z.string().optional().nullable(),
+    insuranceAmount: z.number().nonnegative().default(0),
     discount: z.number().nonnegative().default(0),
     paymentMethod: z.enum(['cash', 'card', 'mpesa', 'emola', 'transfer', 'credit']).default('cash'),
     paymentDetails: z.string().optional(),

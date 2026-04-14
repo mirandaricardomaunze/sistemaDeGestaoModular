@@ -120,7 +120,7 @@ export const useAuthStore = create<AuthStore>()(
                     useFiscalStore.getState().loadFiscalDataFromDatabase();
 
                     return true;
-                } catch (error: unknown) {
+                } catch (error: any) {
                     set({ isLoading: false });
 
                     // Audit log failed login
@@ -137,8 +137,7 @@ export const useAuthStore = create<AuthStore>()(
                         errorMessage: 'Credenciais inválidas',
                     });
 
-                    // Error is already handled by axios interceptor
-                    const errorMessage = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Email ou senha incorretos.';
+                    const errorMessage = (error as any)?.response?.data?.message || 'Email ou senha incorretos.';
                     toast.error(errorMessage);
                     return false;
                 }
@@ -189,9 +188,9 @@ export const useAuthStore = create<AuthStore>()(
                     set({ isLoading: false });
                     toast.success('Conta criada com sucesso! Faça login para continuar.');
                     return { success: true };
-                } catch (error: unknown) {
+                } catch (error: any) {
                     set({ isLoading: false });
-                    const errorMessage = (error as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Erro ao criar conta.';
+                    const errorMessage = (error as any)?.response?.data?.message || 'Erro ao criar conta.';
                     toast.error(errorMessage);
                     return { success: false, error: errorMessage };
                 }

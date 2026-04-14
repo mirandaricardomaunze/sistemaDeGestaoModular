@@ -1,8 +1,21 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
+import { Prisma, CampaignStatus } from '@prisma/client';
+
+export interface CampaignListParams {
+    status?: CampaignStatus;
+    active?: string;
+}
+
+export interface CampaignUsageData {
+    customerId?: string;
+    customerName?: string;
+    orderId: string;
+    discount: number | string;
+}
 
 export class CampaignsService {
-    async list(params: any, companyId: string) {
+    async list(params: CampaignListParams, companyId: string) {
         const { status, active } = params;
         const where: any = { companyId };
         if (status) where.status = status;
@@ -28,7 +41,7 @@ export class CampaignsService {
         return campaign;
     }
 
-    async create(data: any, companyId: string) {
+    async create(data: Prisma.CampaignUncheckedCreateInput, companyId: string) {
         const { code } = data;
         if (code) {
             const existing = await prisma.campaign.findFirst({
@@ -41,10 +54,10 @@ export class CampaignsService {
         });
     }
 
-    async update(id: string, data: any, companyId: string) {
+    async update(id: string, data: Prisma.CampaignUncheckedUpdateInput, companyId: string) {
         const updateData = { ...data };
-        if (updateData.startDate) updateData.startDate = new Date(updateData.startDate);
-        if (updateData.endDate) updateData.endDate = new Date(updateData.endDate);
+        if (updateData.startDate && typeof updateData.startDate === 'string') updateData.startDate = new Date(updateData.startDate);
+        if (updateData.endDate && typeof updateData.endDate === 'string') updateData.endDate = new Date(updateData.endDate);
 
         const result = await prisma.campaign.updateMany({
             where: { id, companyId },
@@ -54,7 +67,7 @@ export class CampaignsService {
         return prisma.campaign.findUnique({ where: { id } });
     }
 
-    async setStatus(id: string, status: string, companyId: string) {
+    async setStatus(id: string, status: CampaignStatus, companyId: string) {
         const result = await prisma.campaign.updateMany({
             where: { id, companyId },
             data: { status }
@@ -84,7 +97,7 @@ export class CampaignsService {
         return { valid: true, campaign: { id: campaign.id, name: campaign.name, discountType: campaign.discountType, discountValue: campaign.discountValue }, discount };
     }
 
-    async recordUsage(id: string, data: any, companyId: string) {
+    async recordUsage(id: string, data: Prisma.CampaignUsageUncheckedCreateInput, companyId: string) {
         const { customerId, customerName, orderId, discount } = data;
         const usage = await prisma.campaignUsage.create({
             data: { campaignId: id, customerId, customerName, orderId, discount }

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge, Modal, Select, EmptyState, LoadingSpinner } from '../../components/ui';
 import {
@@ -66,7 +67,7 @@ export default function BottleReturns() {
             const res = await bottleStoreAPI.getBottleReturnsSummary();
             setSummary(res || []);
         } catch (error) {
-            console.error('Error fetching summary:', error);
+            logger.error('Error fetching summary:', error);
         }
     };
 

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { warehousesAPI } from '../services/api';
@@ -22,7 +23,7 @@ export function useStockTransfers(params?: UseTransfersParams) {
             setTransfers(response.data || response);
         } catch (err) {
             setError('Erro ao carregar transferências');
-            console.error('Error fetching transfers:', err);
+            logger.error('Error fetching transfers:', err);
         } finally {
             setIsLoading(false);
         }
@@ -39,7 +40,7 @@ export function useStockTransfers(params?: UseTransfersParams) {
             toast.success('Transferência criada com sucesso!');
             return newTransfer;
         } catch (err) {
-            console.error('Error creating transfer:', err);
+            logger.error('Error creating transfer:', err);
             throw err;
         }
     };
@@ -51,7 +52,7 @@ export function useStockTransfers(params?: UseTransfersParams) {
             toast.success('Transferência completada com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error completing transfer:', err);
+            logger.error('Error completing transfer:', err);
             throw err;
         }
     };
@@ -63,7 +64,7 @@ export function useStockTransfers(params?: UseTransfersParams) {
             toast.success('Transferência cancelada com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error canceling transfer:', err);
+            logger.error('Error canceling transfer:', err);
             throw err;
         }
     };

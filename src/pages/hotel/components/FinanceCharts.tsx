@@ -31,7 +31,7 @@ export function FinanceCharts({ monthlyData, categoryData, expenseCategoryData }
                     Tendência Mensal
                 </h2>
                 <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height={288}>
                         <AreaChart data={monthlyData}>
                             <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
                             <XAxis dataKey="month" stroke="#94a3b8" />
@@ -52,7 +52,7 @@ export function FinanceCharts({ monthlyData, categoryData, expenseCategoryData }
                     Receitas por Categoria
                 </h2>
                 <div className="h-72">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height={288}>
                         <PieChart>
                             <Pie
                                 data={categoryData}
@@ -81,7 +81,7 @@ export function FinanceCharts({ monthlyData, categoryData, expenseCategoryData }
                         Despesas por Categoria
                     </h2>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <PieChart>
                                 <Pie
                                     data={expenseCategoryData}

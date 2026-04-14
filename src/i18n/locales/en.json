@@ -79,6 +79,8 @@
         "audit": "Audit",
         "backups": "Backups",
         "products": "Products",
+        "warehouses": "Warehouses",
+        "transfers": "Transfers",
         "pharmacy_manage": "Pharmacy Management"
     },
     "auth": {
@@ -337,5 +339,433 @@
         "errorOccurred": "An error occurred",
         "confirmDelete": "Are you sure you want to delete?",
         "noResults": "No results found"
+    },
+    "logistics_module": {
+      "hr": {
+        "title": "Logistics Human Resources",
+        "subtitle": "Strategic personnel and performance management",
+        "tabs": {
+          "dashboard": "Personnel Dashboard",
+          "staff": "Technical Staff",
+          "attendance": "Attendance Area",
+          "payroll": "Payroll",
+          "compliance": "Compliance & Documents"
+        },
+        "categories": {
+          "all": "All Personnel",
+          "driver": "Driver",
+          "mechanic": "Mechanic",
+          "warehouse": "Warehouse Keeper",
+          "manager": "Fleet Manager",
+          "admin": "Administrative",
+          "other": "Others"
+        },
+        "stats": {
+          "attendance": "Attendance Rate",
+          "efficiency": "Fleet Efficiency",
+          "safety": "Safety Index",
+          "productivity": "Delivery Productivity"
+        },
+        "complianceDocs": {
+          "license": "Driving License",
+          "medical": "Medical Exam",
+          "adr": "ADR Certification",
+          "safety": "Safety Training"
+        },
+        "attendance": {
+          "title": "Attendance Control",
+          "checkIn": "Check-In",
+          "checkOut": "Check-Out",
+          "inService": "In Service",
+          "finished": "Finished",
+          "waiting": "Waiting"
+        },
+        "payroll": {
+          "title": "Payroll Management",
+          "base": "Base Salary",
+          "commissions": "Commissions",
+          "deductions": "Deductions",
+          "net": "Net Salary",
+          "generate": "Generate Payroll",
+          "pay": "Pay",
+          "statuses": {
+            "draft": "Draft",
+            "processed": "Processed",
+            "paid": "Paid"
+          }
+        }
+      },
+        "fuel": {
+            "title": "Fuel Management",
+            "subtitle": "Track refueling and fleet consumption",
+            "add": "Record Refueling",
+            "liters": "Liters",
+            "pricePerLiter": "Price/Liter",
+            "amount": "Total Amount",
+            "mileage": "Mileage",
+            "provider": "Station / Provider",
+            "consumption": "Avg Consumption",
+            "monthlyCost": "Cost this Month",
+            "stats": "Fuel Statistics"
+        },
+        "incidents": {
+            "title": "Incident Reporting",
+            "subtitle": "History of accidents, fines, and breakdowns",
+            "add": "Report Incident",
+            "types": {
+                "accident": "Accident",
+                "fine": "Fine",
+                "breakdown": "Breakdown",
+                "theft": "Theft",
+                "other": "Other"
+            },
+            "severity": {
+                "low": "Low",
+                "medium": "Medium",
+                "high": "High",
+                "critical": "Critical"
+            },
+            "status": {
+                "open": "Open",
+                "resolved": "Resolved",
+                "closed": "Closed"
+            },
+            "cost": "Incident Cost",
+            "location": "Location"
+        },
+        "delivery": {
+            "proof": "Proof of Delivery",
+            "sign": "Capture Signature",
+            "signature": "Recipient Signature",
+            "clear": "Clear",
+            "complete": "Complete Delivery",
+            "success": "Delivery completed successfully",
+            "signRequired": "Signature is required to complete"
+        },
+        "vehicles": {
+            "title": "Vehicle Management",
+            "subtitle": "Manage delivery fleet",
+            "add": "New Vehicle",
+            "edit": "Edit Vehicle",
+            "plate": "License Plate",
+            "brand": "Brand",
+            "model": "Model",
+            "year": "Year",
+            "type": "Vehicle Type",
+            "capacity": "Capacity",
+            "unit": "Unit",
+            "fuelType": "Fuel Type",
+            "status": "Status",
+            "mileage": "Mileage",
+            "insurance": "Insurance Expiry",
+            "notes": "Notes",
+            "searchPlaceholder": "Search by plate, brand...",
+            "noVehicles": "No vehicles found",
+            "startAdding": "Start by adding the first vehicle to the fleet.",
+            "insuranceExpiry": "Insurance Expired",
+            "insuranceDays": "Insurance: {{days}}d",
+            "types": {
+                "truck": "Truck",
+                "van": "Van",
+                "motorcycle": "Motorcycle",
+                "car": "Car",
+                "bicycle": "Bicycle",
+                "other": "Other"
+            },
+            "statuses": {
+                "available": "Available",
+                "in_use": "In Use",
+                "maintenance": "Maintenance",
+                "inactive": "Inactive"
+            }
+        },
+        "drivers": {
+            "title": "Driver Management",
+            "subtitle": "Manage delivery drivers",
+            "add": "New Driver",
+            "edit": "Edit Driver",
+            "code": "Code",
+            "name": "Full Name",
+            "phone": "Phone",
+            "email": "Email",
+            "license": "License Number",
+            "category": "Category",
+            "expiry": "License Expiry",
+            "hireDate": "Hire Date",
+            "emergency": "Emergency Contact",
+            "address": "Address",
+            "searchPlaceholder": "Search by name, code, phone...",
+            "noDrivers": "No drivers found",
+            "startAdding": "Start by adding the first driver.",
+            "licenseExpired": "License Expired",
+            "licenseDays": "License: {{days}}d",
+            "statuses": {
+                "available": "Available",
+                "on_delivery": "On Delivery",
+                "off_duty": "Off Duty",
+                "inactive": "Inactive"
+            }
+        },
+        "routes": {
+            "title": "Route Management",
+            "subtitle": "Define delivery routes and estimates",
+            "add": "New Route",
+            "edit": "Edit Route",
+            "code": "Code",
+            "name": "Route Name",
+            "origin": "Origin",
+            "destination": "Destination",
+            "distance": "Distance",
+            "estimatedTime": "Estimated Time",
+            "tollCost": "Toll Cost",
+            "fuelEstimate": "Fuel Estimate",
+            "active": "Active Route",
+            "inactive": "Inactive",
+            "searchPlaceholder": "Search by name, code, origin, destination...",
+            "noRoutes": "No routes found",
+            "path": "Path"
+        },
+        "deliveries": {
+            "title": "Delivery Management",
+            "subtitle": "Track and manage operational deliveries",
+            "add": "New Delivery",
+            "number": "Number",
+            "recipient": "Recipient",
+            "address": "Address",
+            "driver": "Driver",
+            "route": "Route",
+            "vehicle": "Vehicle",
+            "priority": "Priority",
+            "scheduled": "Scheduled Date",
+            "items": "Items to Deliver",
+            "addItem": "Add Item",
+            "shippingCost": "Shipping Cost",
+            "paid": "Paid",
+            "manifest": "Load Manifest",
+            "generateManifest": "Generate Manifest",
+            "selectDriver": "Select a driver",
+            "noPending": "No pending deliveries for this driver today.",
+            "searchPlaceholder": "Search by number, recipient...",
+            "noDeliveries": "No deliveries found",
+            "status": {
+                "pending": "Pending",
+                "scheduled": "Scheduled",
+                "in_transit": "In Transit",
+                "out_for_delivery": "Out for Delivery",
+                "delivered": "Delivered",
+                "failed": "Failed",
+                "returned": "Returned",
+                "cancelled": "Cancelled"
+            },
+            "priorities": {
+                "low": "Low",
+                "normal": "Normal",
+                "high": "High",
+                "urgent": "Urgent"
+            }
+        },
+        "parcels": {
+            "title": "Parcel Management",
+            "subtitle": "Receive and manage parcels for pickup",
+            "newParcel": "New Parcel",
+            "parcel": "Parcel",
+            "found": "parcel(s) found",
+            "notFound": "No parcels found",
+            "startRegister": "Register a new parcel to get started.",
+            "searchPlaceholder": "Search by tracking, name, phone...",
+            "received": "Received",
+            "recipient": "Recipient",
+            "sender": "Sender",
+            "senderInfo": "Sender Information",
+            "recipientInfo": "Recipient Information",
+            "parcelInfo": "Parcel Information",
+            "senderName": "Sender Name",
+            "senderPhone": "Sender Phone",
+            "recipientName": "Recipient Name",
+            "recipientPhone": "Recipient Phone",
+            "trackingNumber": "Tracking Number",
+            "trackingNumberCopied": "Tracking number copied!",
+            "weight": "Weight",
+            "dimensions": "Dimensions",
+            "location": "Location",
+            "fee": "Fee",
+            "expectedPickup": "Expected Pickup Date",
+            "pickup": "Pickup",
+            "pickedUpBy": "Picked Up By",
+            "relationship": "Relationship",
+            "sendNotification": "Send Notification",
+            "notifyPlaceholder": "Write the message for the recipient...",
+            "sendSms": "Send SMS",
+            "parcelDetails": "Parcel Details",
+            "status": {
+                "received": "Received",
+                "awaiting_pickup": "Awaiting Pickup",
+                "picked_up": "Picked Up",
+                "overdue": "Overdue",
+                "returned_to_sender": "Returned to Sender",
+                "lost": "Lost"
+            }
+        },
+        "maintenance": {
+            "title": "Vehicle Maintenance",
+            "subtitle": "Manage fleet maintenance",
+            "add": "New Maintenance",
+            "edit": "Edit Maintenance",
+            "records": "Records",
+            "totalRecords": "Total Records",
+            "scheduled": "Scheduled",
+            "completed": "Completed",
+            "totalCost": "Total Cost",
+            "upcoming": "Upcoming Maintenance (30 days)",
+            "searchPlaceholder": "Search description, provider...",
+            "allVehicles": "All Vehicles",
+            "types": {
+                "preventive": "Preventive",
+                "corrective": "Corrective",
+                "inspection": "Inspection",
+                "emergency": "Emergency"
+            },
+            "statuses": {
+                "scheduled": "Scheduled",
+                "in_progress": "In Progress",
+                "completed": "Completed",
+                "cancelled": "Cancelled"
+            },
+            "description": "Description",
+            "nextDate": "Next Maintenance",
+            "mileage": "Mileage",
+            "provider": "Provider/Workshop",
+            "placeholderProvider": "Workshop name..."
+        },
+        "dashboard": {
+            "title": "Logistics & Supply Chain",
+            "subtitle": "Centralized monitoring of warehouses, goods flow and smart transfers",
+            "syncing": "Syncing Supply Chain...",
+            "newTransfer": "New Transfer",
+            "registerTransfer": "Register Transfer",
+            "transferSameError": "Origin and destination cannot be the same",
+            "insightsSubtitle": "Route optimization and logistics detected by AI",
+            "warehouseNetwork": "Warehouse Network",
+            "stockOccupation": "STOCK OCCUPATION",
+            "recentActivity": "Recent Activity",
+            "liveTransfers": "LIVE TRANSFERS",
+            "transferItems": "Transfer Items",
+            "addProduct": "Add Product",
+            "periods": {
+                "today": "Today",
+                "month": "This Month",
+                "2months": "Last 2 Months",
+                "3months": "Last 3 Months",
+                "year": "This Year",
+                "all": "All History"
+            },
+            "kpis": {
+                "totalStock": "Total Stock",
+                "itemsInNetwork": "Items in network",
+                "pickupRevenue": "Pickup Revenue",
+                "totalPickups": "Total pickups",
+                "deliveryRevenue": "Delivery Revenue",
+                "totalShipments": "Total shipments",
+                "regions": "Regions"
+            },
+            "charts": {
+                "flow": "Goods Flow (7 Days)",
+                "transferVolume": "Transfer Volume",
+                "distribution": "Stock Distribution by Hub"
+            },
+            "reports": {
+                "logisticsReport": "LOGISTICS REPORT",
+                "totalTransfers": "Total Transfers"
+            }
+        },
+        "hotel_module": {
+            "dashboard": {
+                "title": "Hotel Dashboard",
+                "subtitle": "Overview of occupancy, revenue, and metrics",
+                "metrics": {
+                    "monthlyRevenue": "Monthly Revenue",
+                    "occupancyRate": "Occupancy Rate",
+                    "occupiedRooms": "Occupied Rooms",
+                    "pendingCheckouts": "Pending Check-outs",
+                    "todayRevenue": "Today Revenue",
+                    "todayCheckIns": "Today Check-ins",
+                    "availableRooms": "Available Rooms"
+                },
+                "charts": {
+                    "revenueByPeriod": "Revenue by Period",
+                    "roomTypes": "Room Types",
+                    "weeklyRevenue": "Weekly Revenue"
+                },
+                "recentBookings": "Recent Bookings",
+                "quickActions": "Quick Actions",
+                "alerts": "Alerts",
+                "noAlerts": "No pending alerts"
+            },
+            "rooms": {
+                "title": "Room Management",
+                "subtitle": "Control occupancy and maintenance",
+                "add": "New Room",
+                "edit": "Edit Room",
+                "number": "Number",
+                "type": "Type",
+                "price": "Price/Night",
+                "status": "Status",
+                "searchPlaceholder": "Search room...",
+                "floor": "Floor",
+                "amenities": "Amenities",
+                "statuses": {
+                    "available": "Available",
+                    "occupied": "Occupied",
+                    "dirty": "Housekeeping",
+                    "maintenance": "Maintenance",
+                    "reserved": "Reserved"
+                },
+                "types": {
+                    "single": "Single",
+                    "double": "Double",
+                    "suite": "Suite",
+                    "deluxe": "Deluxe",
+                    "presidential": "Presidential"
+                }
+            },
+            "reservations": {
+                "title": "Bookings & Stays",
+                "subtitle": "Calendar and hospitality history",
+                "new": "New Booking",
+                "checkIn": "Check-in",
+                "checkOut": "Check-out",
+                "guest": "Guest",
+                "nights": "Nights",
+                "stay": "Stay",
+                "calendar": "Booking Calendar",
+                "history": "Booking History"
+            },
+            "guests": {
+                "title": "Guest Management",
+                "subtitle": "Hotel guest registration and history",
+                "add": "New Guest",
+                "nationality": "Nationality",
+                "document": "Document",
+                "totalSpend": "Total Spend",
+                "lastStay": "Last Stay"
+            },
+            "housekeeping": {
+                "title": "Housekeeping & Logistics",
+                "subtitle": "Daily tasks and room states",
+                "tasks": "Tasks",
+                "clean": "Clean Room",
+                "inspect": "Inspect",
+                "priority": "Priority"
+            },
+            "finance": {
+                "title": "Hotel Finance",
+                "subtitle": "Invoicing, consumption, and payments",
+                "bill": "Room Bill",
+                "consumption": "Extra Consumption",
+                "addConsumption": "Add Consumption",
+                "totalBill": "Total Bill",
+                "services": "Services"
+            }
+        }
     }
 }

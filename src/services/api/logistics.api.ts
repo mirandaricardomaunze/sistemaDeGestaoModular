@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Logistics API Service
  * Frontend API methods for vehicles, drivers, routes, deliveries, and parcels
  */
@@ -39,23 +39,65 @@ export interface Vehicle {
     _count?: { deliveries: number };
 }
 
+export type StaffCategory = 'driver' | 'mechanic' | 'warehouse' | 'manager' | 'admin' | 'other';
+
 export interface Driver {
     id: string;
     code: string;
     name: string;
     phone: string;
     email?: string;
-    licenseNumber: string;
+    category: StaffCategory;
+    licenseNumber?: string;
     licenseType?: string;
     licenseExpiry?: string;
+    medicalExamExpiry?: string;
+    safetyTrainingDate?: string;
     status: 'available' | 'on_delivery' | 'off_duty' | 'inactive';
     hireDate?: string;
+    baseSalary: number;
+    subsidyTransport?: number;
+    subsidyFood?: number;
+    commissionRate?: number;
     address?: string;
     emergencyContact?: string;
+    bankName?: string;
+    bankAccountNumber?: string;
+    bankNib?: string;
+    socialSecurityNumber?: string;
+    nuit?: string;
+    birthDate?: string;
     notes?: string;
     createdAt: string;
     updatedAt: string;
-    _count?: { deliveries: number };
+    _count?: { deliveries: number; maintenanceTasks?: number };
+}
+
+export interface StaffAttendance {
+    id: string;
+    staffId: string;
+    date: string;
+    checkIn?: string;
+    checkOut?: string;
+    status: 'present' | 'absent' | 'late' | 'leave';
+    notes?: string;
+    staff?: Driver;
+}
+
+export interface StaffPayroll {
+    id: string;
+    staffId: string;
+    month: number;
+    year: number;
+    baseSalary: number;
+    commissions: number;
+    bonuses: number;
+    totalEarnings: number;
+    deductions: number;
+    netSalary: number;
+    status: 'draft' | 'processed' | 'paid';
+    paidAt?: string;
+    staff?: Driver;
 }
 
 export interface DeliveryRoute {
@@ -187,6 +229,38 @@ export interface VehicleMaintenance {
     vehicle?: Vehicle;
 }
 
+export interface FuelSupply {
+    id: string;
+    vehicleId: string;
+    date: string;
+    liters: number;
+    pricePerLiter?: number;
+    amount: number;
+    mileage: number;
+    provider?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+    vehicle?: Vehicle;
+}
+
+export interface VehicleIncident {
+    id: string;
+    vehicleId: string;
+    driverId?: string;
+    date: string;
+    type: 'accident' | 'fine' | 'breakdown' | 'theft' | 'other';
+    severity: 'low' | 'medium' | 'high' | 'critical';
+    description: string;
+    cost?: number;
+    location?: string;
+    status: 'open' | 'resolved' | 'closed';
+    createdAt: string;
+    updatedAt: string;
+    vehicle?: Vehicle;
+    driver?: Driver;
+}
+
 export interface LogisticsDashboard {
     totals: {
         vehicles: number;
@@ -208,6 +282,44 @@ export interface LogisticsDashboard {
     };
     recentDeliveries: Delivery[];
 }
+
+/**
+ * Represents a single status transition event in a delivery's lifecycle.
+ * Built from delivery data to reconstruct the status progression timeline.
+ */
+export interface DeliveryStatusEvent {
+    status: Delivery['status'];
+    label: string;
+    timestamp: string | null;
+    isCompleted: boolean;
+    isCurrent: boolean;
+    notes?: string;
+}
+
+/**
+ * Represents an expiry alert for a compliance document.
+ * Severity is derived from daysUntilExpiry:
+ *   expired  -> daysUntilExpiry <= 0
+ *   critical -> 1..14 days
+ *   warning  -> 15..30 days
+ */
+export type ExpiryAlertSeverity = 'expired' | 'critical' | 'warning';
+
+export interface ExpiryAlert {
+    /** Unique key for React rendering (entityId + documentType) */
+    id: string;
+    entityType: 'vehicle' | 'driver';
+    entityId: string;
+    /** Human-readable label, e.g. "Toyota Hilux (ABC-123-DE)" */
+    entityLabel: string;
+    /** Document type label, e.g. "Seguro" or "Carta de Condução" */
+    documentType: string;
+    expiryDate: string;
+    daysUntilExpiry: number;
+    severity: ExpiryAlertSeverity;
+}
+
+
 
 // ============================================================================
 // API METHODS
@@ -245,8 +357,8 @@ export const logisticsAPI = {
         await api.delete(`/logistics/vehicles/${id}`);
     },
 
-    // Drivers
-    getDrivers: async (params?: { status?: string; search?: string; page?: number; limit?: number }): Promise<{ data: Driver[]; pagination: PaginationInfo }> => {
+    // Drivers / Staff
+    getDrivers: async (params?: { status?: string; category?: string; search?: string; page?: number; limit?: number }): Promise<{ data: Driver[]; pagination: PaginationInfo }> => {
         const response = await api.get('/logistics/drivers', { params });
         return response.data;
     },
@@ -340,6 +452,11 @@ export const logisticsAPI = {
         return response.data;
     },
 
+    downloadDeliveryPDF: async (id: string): Promise<Blob> => {
+        const response = await api.get(`/logistics/deliveries/${id}/pdf`, { responseType: 'blob' });
+        return response.data;
+    },
+
     // Parcels
     getParcels: async (params?: {
         status?: string;
@@ -409,6 +526,67 @@ export const logisticsAPI = {
 
     deleteMaintenance: async (id: string): Promise<void> => {
         await api.delete(`/logistics/maintenances/${id}`);
+    },
+
+    // Fuel
+    getFuelSupplies: async (params?: { vehicleId?: string; startDate?: string; endDate?: string; page?: number; limit?: number }): Promise<{ data: FuelSupply[]; pagination: PaginationInfo }> => {
+        const response = await api.get('/logistics/fuel', { params });
+        return response.data;
+    },
+
+    createFuelSupply: async (data: Partial<FuelSupply>): Promise<FuelSupply> => {
+        const response = await api.post('/logistics/fuel', data);
+        return response.data;
+    },
+
+    deleteFuelSupply: async (id: string): Promise<void> => {
+        await api.delete(`/logistics/fuel/${id}`);
+    },
+
+    // Incidents
+    getIncidents: async (params?: { vehicleId?: string; driverId?: string; type?: string; page?: number; limit?: number }): Promise<{ data: VehicleIncident[]; pagination: PaginationInfo }> => {
+        const response = await api.get('/logistics/incidents', { params });
+        return response.data;
+    },
+
+    createIncident: async (data: Partial<VehicleIncident>): Promise<VehicleIncident> => {
+        const response = await api.post('/logistics/incidents', data);
+        return response.data;
+    },
+
+    updateIncident: async (id: string, data: Partial<VehicleIncident>): Promise<VehicleIncident> => {
+        const response = await api.put(`/logistics/incidents/${id}`, data);
+        return response.data;
+    },
+
+    deleteIncident: async (id: string): Promise<void> => {
+        await api.delete(`/logistics/incidents/${id}`);
+    },
+
+    // Staff HR Extensions
+    getStaffAttendance: async (params?: { staffId?: string; startDate?: string; endDate?: string }): Promise<StaffAttendance[]> => {
+        const response = await api.get('/logistics/hr/attendance', { params });
+        return response.data;
+    },
+
+    recordStaffTime: async (data: { staffId: string; type: 'checkIn' | 'checkOut'; timestamp?: string; notes?: string }): Promise<StaffAttendance> => {
+        const response = await api.post('/logistics/hr/attendance', data);
+        return response.data;
+    },
+
+    getStaffPayroll: async (params?: { staffId?: string; month?: number; year?: number; status?: string }): Promise<StaffPayroll[]> => {
+        const response = await api.get('/logistics/hr/payroll', { params });
+        return response.data;
+    },
+
+    createStaffPayroll: async (data: { staffId: string; month: number; year: number }): Promise<StaffPayroll> => {
+        const response = await api.post('/logistics/hr/payroll', data);
+        return response.data;
+    },
+
+    updateStaffPayrollStatus: async (id: string, status: 'processed' | 'paid'): Promise<StaffPayroll> => {
+        const response = await api.patch(`/logistics/hr/payroll/${id}/status`, { status });
+        return response.data;
     }
 };
 

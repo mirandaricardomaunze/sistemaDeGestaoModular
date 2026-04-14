@@ -33,7 +33,7 @@ export class DashboardService {
             const currentMonthTotal = Number(monthSales._sum?.total) || 0;
             const lastMonthTotal = Number(lastMonthSales._sum?.total) || 0;
             const salesGrowth = lastMonthTotal > 0 ? ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
-            const monthProfit = salesItems.reduce((sum, item) => sum + (Number(item.total) - Number(item.product.costPrice) * item.quantity), 0);
+            const monthProfit = salesItems.reduce((sum, item) => sum + (Number(item.total) - Number(item.product?.costPrice ?? 0) * item.quantity), 0);
 
             return {
                 todaySales: { total: todaySales._sum?.total || 0, count: todaySales._count },
@@ -81,14 +81,15 @@ export class DashboardService {
                 orderBy: { _sum: { total: 'desc' } }, take: limit
             });
 
+            const productIds = topProducts.map(item => item.productId).filter((id): id is string => id !== null);
             const products = await prisma.product.findMany({
-                where: { id: { in: topProducts.map(item => item.productId) } },
+                where: { id: { in: productIds } },
                 select: { id: true, name: true, code: true, category: true }
             });
 
             const productsMap = new Map(products.map(p => [p.id, p]));
             return topProducts.map(item => ({
-                product: productsMap.get(item.productId),
+                product: item.productId ? productsMap.get(item.productId) : undefined,
                 quantity: item._sum?.quantity || 0,
                 revenue: item._sum?.total || 0
             }));
@@ -125,8 +126,9 @@ export class DashboardService {
             _sum: { total: true }
         });
 
+        const statsProductIds = stats.map(s => s.productId).filter((id): id is string => id !== null);
         const products = await prisma.product.findMany({
-            where: { id: { in: stats.map(s => s.productId) } },
+            where: { id: { in: statsProductIds } },
             select: { id: true, category: true }
         });
 
@@ -134,7 +136,7 @@ export class DashboardService {
         const productCategoryMap = new Map(products.map(p => [p.id, p.category]));
 
         stats.forEach(stat => {
-            const category = productCategoryMap.get(stat.productId) || 'other';
+            const category = (stat.productId ? productCategoryMap.get(stat.productId) : null) || 'other';
             categoryMap[category] = (categoryMap[category] || 0) + Number(stat._sum?.total || 0);
         });
 

@@ -1,6 +1,6 @@
 ﻿import { useRef } from 'react';
 import { format, parseISO } from 'date-fns';
-import { HiOutlinePrinter, HiOutlineX, HiOutlineOfficeBuilding, HiOutlineMail, HiOutlinePhone, HiOutlineTruck, HiOutlineCalendar } from 'react-icons/hi';
+import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
 import { Modal, Button, Card } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { useStore } from '../../stores/useStore';
@@ -27,11 +27,6 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
             return;
         }
 
-        // Collect all styles from the main document
-        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-            .map(style => style.outerHTML)
-            .join('');
-
         const logoHtml = company.logo
             ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${company.logo}" style="max-height: 80px;" /></div>`
             : '';
@@ -40,12 +35,19 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
             <html>
                 <head>
                     <title>Encomenda ${order.orderNumber}</title>
-                    ${styles}
-                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
                     <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { font-family: 'Inter', Arial, sans-serif; padding: 30px; max-width: 800px; margin: 0 auto; color: #1a1a1a; }
+                        .section-bar { background: #4a4a4a; color: white; padding: 5px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+                        table { width: 100%; border-collapse: collapse; }
+                        th { background: #e5e5e5; border: 1px solid #bbb; padding: 8px 12px; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+                        td { border: 1px solid #ccc; padding: 8px 12px; font-size: 13px; }
+                        .field-label { font-size: 11px; font-weight: 700; color: #555; min-width: 100px; display: inline-block; }
+                        .field-value { font-size: 13px; border-bottom: 1px solid #999; flex: 1; padding-bottom: 2px; }
                         @media print {
-                            @page { margin: 0; size: auto; }
-                            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            @page { margin: 15mm; size: A4; }
+                            body { padding: 0; }
                         }
                     </style>
                 </head>
@@ -65,8 +67,10 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
         }, 250);
     };
 
+
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Visualizar Encomenda`} size="xl">
+        <Modal isOpen={isOpen} onClose={onClose} title="Visualizar Encomenda" size="xl">
             <div className="flex justify-end gap-2 mb-4 no-print">
                 <Button variant="outline" onClick={onClose}>
                     <HiOutlineX className="w-4 h-4 mr-2" />
@@ -78,139 +82,206 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
                 </Button>
             </div>
 
-            <Card padding="none" className="max-h-[70vh] overflow-y-auto bg-gray-50/50 dark:bg-dark-900/50 flex justify-center p-4">
-                <div ref={printRef} className="bg-white text-gray-900 shadow-lg p-8 max-w-[800px] w-full mx-auto relative flex flex-col min-h-[29.7cm]">
-                    <style>{`
-                        @media print {
-                            @page { margin: 0; size: auto; }
-                            body { margin: 0; padding: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Inter', sans-serif; }
-                            .no-print { display: none !important; }
-                            .shadow-lg { box-shadow: none !important; }
-                            .bg-gray-50 { background-color: #f9fafb !important; }
-                        }
-                        .header-line { border-bottom: 2px solid #2563eb; }
-                        .text-primary { color: #2563eb; }
-                        .bg-primary-light { background-color: #eff6ff; }
-                        .bg-header { background-color: #2563eb; color: white; }
-                    `}</style>
-
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-8 pb-6 header-line">
-                        <div className="flex gap-4">
+            <Card padding="none" className="max-h-[70vh] overflow-y-auto !bg-white dark:!bg-white flex justify-center p-4 border-none shadow-none">
+                <div
+                    ref={printRef}
+                    className="bg-white text-gray-900 shadow-2xl w-full max-w-[800px] mx-auto relative print-table !bg-white !text-gray-900 border border-gray-100"
+                    style={{ fontFamily: "'Inter', Arial, Helvetica, sans-serif", backgroundColor: '#ffffff', color: '#1a1a1a', colorScheme: 'light' }}
+                >
+                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* TOP HEADER: Logo left + ORDER FORM title right    */}
+                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* TOP HEADER: Logo left + ORDER title right         */}
+                    {/* ═══════════════════════════════════════════════════ */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '24px 32px 16px', borderBottom: '2px solid #1a1a1a', backgroundColor: 'white', margin: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: 'white' }}>
                             {company.logo ? (
-                                <img src={company.logo} alt="Logo" className="w-16 h-16 object-contain" />
+                                <img src={company.logo} alt="Logo" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
                             ) : (
-                                <div className="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
-                                    <HiOutlineOfficeBuilding className="w-10 h-10" />
+                                <div style={{ width: '56px', height: '56px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb', backgroundColor: 'transparent' }}>
+                                    <span style={{ color: '#9ca3af', fontWeight: 900, fontSize: '20px' }}>M</span>
                                 </div>
                             )}
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900 uppercase tracking-tight">{company.tradeName || company.companyName}</h1>
-                                <div className="text-sm text-gray-500 mt-1 space-y-0.5">
-                                    <p>{company.address}, {company.city} - {company.state}</p>
-                                    <p className="flex items-center gap-1"><HiOutlinePhone className="w-3 h-3" /> {company.phone} | <HiOutlineMail className="w-3 h-3" /> {company.email}</p>
-                                    <p>NUIT: {company.taxId}</p>
-                                </div>
+                            <div style={{ backgroundColor: 'white' }}>
+                                <p style={{ fontWeight: 900, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: '1.1', color: '#1a1a1a' }}>
+                                    {company.tradeName || company.companyName}
+                                </p>
+                                {company.address && (
+                                    <p style={{ fontSize: '10px', color: '#64748b', marginTop: '1px', lineHeight: 1.2 }}>{company.address}</p>
+                                )}
+                                <p style={{ fontSize: '10px', color: '#64748b', lineHeight: 1.2 }}>
+                                    {company.phone && `Tel: ${company.phone}`}
+                                </p>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
-                                Ordem de Compra
-                            </span>
-                            <h2 className="text-3xl font-bold text-gray-900">{order.orderNumber}</h2>
-                            <p className="text-sm text-gray-500 mt-1">Status: <span className="font-medium text-gray-900 uppercase">{order.status === 'received' ? 'Recebido' : order.status === 'ordered' ? 'Encomendado' : order.status}</span></p>
+                        <div style={{ textAlign: 'right', backgroundColor: 'white' }}>
+                            <h1 style={{ fontWeight: 900, fontSize: '20px', letterSpacing: '-0.5px', color: '#1a1a1a', marginBottom: '2px' }}>
+                                ORDEM DE COMPRA
+                            </h1>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                <p style={{ fontSize: '12px', color: '#64748b', fontFamily: 'monospace', letterSpacing: '0.5px' }}>{order.orderNumber}</p>
+                                <p style={{ fontSize: '10px', color: '#94a3b8' }}>
+                                    {format(parseISO(order.createdAt), 'dd/MM/yyyy')}
+                                </p>
+                                <span style={{ alignSelf: 'flex-end', marginTop: '4px', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 700, background: order.status === 'received' ? '#dcfce7' : order.status === 'ordered' ? '#dbeafe' : '#fee2e2', color: order.status === 'received' ? '#16a34a' : order.status === 'ordered' ? '#2563eb' : '#dc2626' }}>
+                                    {order.status.toUpperCase()}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Info Grid */}
-                    <div className="grid grid-cols-2 gap-8 mb-8">
-                        <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
-                            <div className="flex items-center gap-2 mb-3 text-blue-600">
-                                <HiOutlineTruck className="w-5 h-5" />
-                                <h3 className="font-bold text-sm uppercase tracking-wide">Fornecedor</h3>
+                    {/* ═══════════════════════════ */}
+                    {/* SECTION: DADOS DO CLIENTE  */}
+                    {/* ═══════════════════════════ */}
+                    {/* ═══════════════ */}
+                    {/* SECTION: DADOS  */}
+                    {/* ═══════════════ */}
+                    {/* ═══════════════════════════════════════ */}
+                    {/* SECTION: FORNECEDOR + INFO (SIDE BY SIDE) */}
+                    {/* ═══════════════════════════════════════ */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', backgroundColor: 'white', margin: 0 }}>
+                        {/* Column 1: Fornecedor */}
+                        <div style={{ borderRight: '1px solid #f3f4f6' }}>
+                            <div style={{ borderBottom: '1px solid #1a1a1a', padding: '8px 32px 4px', margin: 0, backgroundColor: 'white' }}>
+                                <h3 style={{ fontSize: '10px', fontWeight: 900, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+                                    Dados do Fornecedor
+                                </h3>
                             </div>
-                            <div className="text-sm space-y-1 text-gray-700 pl-7">
-                                <p className="font-semibold text-gray-900 text-lg">{order.supplierName}</p>
-                                {/* We could add more supplier details here if we fetched the full supplier object */}
+                            <div style={{ padding: '12px 32px', backgroundColor: 'white' }}>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '2px' }}>
+                                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#555', minWidth: '80px', textTransform: 'uppercase' }}>Nome:</span>
+                                    <span style={{ flex: 1, fontSize: '13px', color: '#111827', fontWeight: 500 }}>{order.supplierName}</span>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
-                            <div className="flex items-center gap-2 mb-3 text-blue-600">
-                                <HiOutlineCalendar className="w-5 h-5" />
-                                <h3 className="font-bold text-sm uppercase tracking-wide">Detalhes do Pedido</h3>
+                        {/* Column 2: Datas/Info */}
+                        <div>
+                            <div style={{ borderBottom: '1px solid #1a1a1a', padding: '8px 24px 4px', margin: 0, backgroundColor: 'white' }}>
+                                <h3 style={{ fontSize: '10px', fontWeight: 900, color: '#1a1a1a', textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>
+                                    Informações de Entrega
+                                </h3>
                             </div>
-                            <div className="text-sm space-y-2 pl-7">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Data do Pedido:</span>
-                                    <span className="font-medium text-gray-900">{format(parseISO(order.createdAt), 'dd/MM/yyyy')}</span>
+                            <div style={{ padding: '12px 24px', backgroundColor: 'white' }}>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '2px' }}>
+                                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#555', minWidth: '80px', textTransform: 'uppercase' }}>Pedido em:</span>
+                                    <span style={{ flex: 1, fontSize: '12px', color: '#111827', fontWeight: 500 }}>{format(parseISO(order.createdAt), 'dd/MM/yyyy')}</span>
                                 </div>
                                 {order.expectedDeliveryDate && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500">Previsão de Entrega:</span>
-                                        <span className="font-medium text-gray-900">{format(parseISO(order.expectedDeliveryDate), 'dd/MM/yyyy')}</span>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginBottom: '2px' }}>
+                                        <span style={{ fontSize: '10px', fontWeight: 700, color: '#555', minWidth: '80px', textTransform: 'uppercase' }}>Previsão:</span>
+                                        <span style={{ flex: 1, fontSize: '12px', color: '#111827', fontWeight: 500 }}>{format(parseISO(order.expectedDeliveryDate), 'dd/MM/yyyy')}</span>
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Items Table */}
-                    <div className="mb-8 border rounded-lg overflow-hidden border-gray-200">
-                        <table className="w-full text-sm">
-                            <thead className="bg-header">
+                    {/* ═══════════════════════════════ */}
+                    {/* SECTION: DETALHES DOS PRODUTOS */}
+                    {/* ═══════════════════════════════ */}
+                    <div style={{ padding: '0 32px 16px' }}>
+                        <table className="print-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff' }}>
+                            <thead>
                                 <tr>
-                                    <th className="px-4 py-3 text-left font-semibold">Produto</th>
-                                    <th className="px-4 py-3 text-center font-semibold w-24">Qtd</th>
-                                    <th className="px-4 py-3 text-right font-semibold w-32">Custo Unit.</th>
-                                    <th className="px-4 py-3 text-right font-semibold w-32">Total</th>
+                                    <th style={{ textAlign: 'left', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
+                                        Descrição do Item
+                                    </th>
+                                    <th style={{ textAlign: 'center', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '80px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
+                                        Qtd
+                                    </th>
+                                    <th style={{ textAlign: 'right', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '120px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
+                                        V. Unitário
+                                    </th>
+                                    <th style={{ textAlign: 'right', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '120px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
+                                        Subtotal
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {order.items.map((item, index) => (
-                                    <tr key={index} className="odd:bg-white even:bg-gray-50">
-                                        <td className="px-4 py-3 text-gray-900">{item.productName}</td>
-                                        <td className="px-4 py-3 text-center text-gray-600">{item.quantity}</td>
-                                        <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(item.unitCost)}</td>
-                                        <td className="px-4 py-3 text-right font-medium text-gray-900">{formatCurrency(item.total)}</td>
+                            <tbody>
+                                {order.items.map((item) => (
+                                    <tr key={item.productName}>
+                                        <td style={{ padding: '10px 16px', color: '#1e293b', borderBottom: '1px solid #f1f5f9', fontWeight: 500 }}>
+                                            {item.productName}
+                                        </td>
+                                        <td style={{ padding: '10px 16px', textAlign: 'center', color: '#1e293b', fontWeight: 600, borderBottom: '1px solid #f1f5f9' }}>
+                                            {item.quantity}
+                                        </td>
+                                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#1e293b', borderBottom: '1px solid #f1f5f9' }}>
+                                            {formatCurrency(item.unitCost)}
+                                        </td>
+                                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#1a1a1a', fontWeight: 700, borderBottom: '1px solid #f1f5f9' }}>
+                                            {formatCurrency(item.total)}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
 
-                    {/* Footer / Totals */}
-                    <div className="flex justify-end mb-12">
-                        <div className="w-64 bg-primary-light p-6 rounded-xl">
-                            <div className="flex justify-between items-center text-blue-700 font-bold text-lg">
-                                <span>Total do Pedido</span>
-                                <span>{formatCurrency(order.total)}</span>
+                    {/* ═══════════════ */}
+                    {/* SECTION: TOTAIS */}
+                    {/* ═══════════════ */}
+                    {/* ═══════════════ */}
+                    {/* SECTION: TOTAIS */}
+                    {/* ═══════════════ */}
+                    <div style={{ padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        {/* Left: Notes + Terms */}
+                        <div style={{ maxWidth: '55%' }}>
+                            {order.notes && (
+                                <div className="mb-4">
+                                    <p className="text-[10px] font-black text-gray-800 mb-1 uppercase tracking-widest">Observações:</p>
+                                    <p className="text-xs text-gray-600 leading-relaxed italic">{order.notes}</p>
+                                </div>
+                            )}
+                            <div>
+                                <p className="text-[10px] font-black text-gray-800 mb-1 uppercase tracking-widest">Termos e Condições:</p>
+                                <p className="text-gray-400 leading-relaxed" style={{ fontSize: '10px' }}>
+                                    Esta ordem de compra é um documento comercial vinculativo.
+                                    Os produtos devem ser entregues conforme as especificações
+                                    e prazos acordados. Qualquer divergência deve ser comunicada
+                                    antes da entrega.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Right: Totals */}
+                        <div style={{ width: '220px', backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}>
+                                <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '9px' }}>Subtotal</span>
+                                <span style={{ color: '#1e293b', fontWeight: 500 }}>{formatCurrency(order.total)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}>
+                                <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '9px' }}>Taxas</span>
+                                <span style={{ color: '#1e293b', fontWeight: 500 }}>{formatCurrency(0)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0 4px', marginTop: '6px', borderTop: '1.5px solid #1a1a1a' }}>
+                                <span style={{ fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', fontSize: '10px' }}>Total da Ordem</span>
+                                <span style={{ color: '#0f172a', fontWeight: 900, fontSize: '14px' }}>{formatCurrency(order.total)}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Notes */}
-                    {order.notes && (
-                        <div className="mb-12 p-4 border border-dashed border-gray-300 rounded-lg">
-                            <h4 className="text-xs font-bold text-gray-500 uppercase mb-2">Observações</h4>
-                            <p className="text-sm text-gray-600 italic">{order.notes}</p>
-                        </div>
-                    )}
-
-                    {/* Signatures */}
-                    <div className="grid grid-cols-2 gap-12 mt-auto pt-12 pb-8">
-                        <div className="text-center">
-                            <div className="border-b border-gray-300 mb-2 h-8"></div>
-                            <p className="text-xs text-gray-500 uppercase">Autorizado Por</p>
-                        </div>
-                        <div className="text-center">
-                            <div className="border-b border-gray-300 mb-2 h-8"></div>
-                            <p className="text-xs text-gray-500 uppercase">Recebido Por</p>
+                    {/* ═══════════════════ */}
+                    {/* SIGNATURE SECTION  */}
+                    {/* ═══════════════════ */}
+                    <div className="px-8 pt-5 pb-6" style={{ borderTop: '1px solid #f1f5f9' }}>
+                        <div className="grid grid-cols-2 gap-16">
+                            <div className="text-center">
+                                <div className="mt-8 mb-1" style={{ borderBottom: '1px solid #1e293b' }} />
+                                <p className="text-[10px] text-gray-400 italic">Autorizado Por</p>
+                            </div>
+                            <div className="text-center">
+                                <div className="mt-8 mb-1" style={{ borderBottom: '1px solid #1e293b' }} />
+                                <p className="text-[10px] text-gray-400 italic">Recebido Por</p>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="text-center text-xs text-gray-400 pt-8 border-t border-gray-100">
-                        <p>Documento gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')} por {company.tradeName}</p>
+                    {/* Timestamp */}
+                    <div className="text-center text-xs text-gray-400 pb-6 px-8" style={{ borderTop: '1px solid #f0f0f0' }}>
+                        <p className="pt-3">Documento gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')} por {company.tradeName || company.companyName}</p>
                     </div>
                 </div>
             </Card>

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { warehousesAPI } from '../services/api';
@@ -23,7 +24,7 @@ export function useWarehouses() {
             setWarehouses(result);
         } catch (err) {
             setError('Erro ao carregar armazéns');
-            console.error('Error fetching warehouses:', err);
+            logger.error('Error fetching warehouses:', err);
         } finally {
             setIsLoading(false);
         }
@@ -40,7 +41,7 @@ export function useWarehouses() {
             toast.success('Armazém criado com sucesso!');
             return newWarehouse;
         } catch (err) {
-            console.error('Error creating warehouse:', err);
+            logger.error('Error creating warehouse:', err);
             throw err;
         }
     };
@@ -52,7 +53,7 @@ export function useWarehouses() {
             toast.success('Armazém actualizado com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating warehouse:', err);
+            logger.error('Error updating warehouse:', err);
             throw err;
         }
     };

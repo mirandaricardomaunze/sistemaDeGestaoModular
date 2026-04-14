@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import {
     HiOutlineDownload,
@@ -60,7 +61,7 @@ export default function BackupManagement() {
             const status = await gdriveAPI.getStatus();
             setGdriveStatus(status);
         } catch (error) {
-            console.error('Erro ao carregar status do Google Drive:', error);
+            logger.error('Erro ao carregar status do Google Drive:', error);
         }
     };
 
@@ -70,7 +71,7 @@ export default function BackupManagement() {
             const response = await backupsAPI.getList();
             setBackups(response.backups);
         } catch (error) {
-            console.error('Erro ao carregar backups:', error);
+            logger.error('Erro ao carregar backups:', error);
             toast.error('Erro ao carregar lista de backups');
         } finally {
             setIsLoading(false);
@@ -82,7 +83,7 @@ export default function BackupManagement() {
             const response = await backupsAPI.getStats();
             setStats(response.stats);
         } catch (error) {
-            console.error('Erro ao carregar estatísticas:', error);
+            logger.error('Erro ao carregar estatísticas:', error);
         }
     };
 
@@ -96,7 +97,7 @@ export default function BackupManagement() {
                 await loadStats();
             }
         } catch (error) {
-            console.error('Erro ao criar backup:', error);
+            logger.error('Erro ao criar backup:', error);
             toast.error('Erro ao criar backup');
         } finally {
             setIsCreatingBackup(false);
@@ -118,7 +119,7 @@ export default function BackupManagement() {
 
             toast.success('Download iniciado!');
         } catch (error) {
-            console.error('Erro ao fazer download:', error);
+            logger.error('Erro ao fazer download:', error);
             toast.error('Erro ao fazer download do backup');
         }
     };
@@ -141,7 +142,7 @@ export default function BackupManagement() {
                 setBackupToDelete(null);
             }
         } catch (error) {
-            console.error('Erro ao deletar backup:', error);
+            logger.error('Erro ao deletar backup:', error);
             toast.error('Erro ao deletar backup');
         }
     };
@@ -162,7 +163,7 @@ export default function BackupManagement() {
                 setBackupToRestore(null);
             }
         } catch (error) {
-            console.error('Erro ao restaurar backup:', error);
+            logger.error('Erro ao restaurar backup:', error);
             toast.error('Erro ao restaurar backup');
         }
     };
@@ -174,7 +175,7 @@ export default function BackupManagement() {
                 window.location.href = response.authUrl;
             }
         } catch (error) {
-            console.error('Erro ao obter URL de autenticação:', error);
+            logger.error('Erro ao obter URL de autenticação:', error);
             toast.error('Erro ao iniciar autenticação com Google Drive');
         }
     };
@@ -187,7 +188,7 @@ export default function BackupManagement() {
                 toast.success('Backup enviado para o Google Drive!');
             }
         } catch (error: any) {
-            console.error('Erro ao fazer upload para Drive:', error);
+            logger.error('Erro ao fazer upload para Drive:', error);
             toast.error(error.response?.data?.error || 'Erro ao enviar para o Google Drive');
         } finally {
             setIsUploadingToDrive(null);

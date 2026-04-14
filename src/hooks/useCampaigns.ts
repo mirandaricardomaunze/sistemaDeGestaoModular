@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { campaignsAPI } from '../services/api';
@@ -29,7 +30,7 @@ export function useCampaigns(params?: { status?: string }) {
             setCampaigns(result);
         } catch (err) {
             setError('Erro ao carregar campanhas');
-            console.error('Error fetching campaigns:', err);
+            logger.error('Error fetching campaigns:', err);
         } finally {
             setIsLoading(false);
         }
@@ -46,7 +47,7 @@ export function useCampaigns(params?: { status?: string }) {
             toast.success('Campanha criada com sucesso!');
             return newCampaign;
         } catch (err) {
-            console.error('Error creating campaign:', err);
+            logger.error('Error creating campaign:', err);
             throw err;
         }
     };
@@ -58,7 +59,7 @@ export function useCampaigns(params?: { status?: string }) {
             toast.success('Campanha actualizada com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating campaign:', err);
+            logger.error('Error updating campaign:', err);
             throw err;
         }
     };
@@ -69,7 +70,7 @@ export function useCampaigns(params?: { status?: string }) {
             setCampaigns((prev) => prev.filter((c) => c.id !== id));
             toast.success('Campanha removida com sucesso!');
         } catch (err) {
-            console.error('Error deleting campaign:', err);
+            logger.error('Error deleting campaign:', err);
             throw err;
         }
     };
@@ -79,7 +80,7 @@ export function useCampaigns(params?: { status?: string }) {
             const result = await campaignsAPI.validateCode(code, purchaseAmount);
             return result;
         } catch (err) {
-            console.error('Error validating campaign code:', err);
+            logger.error('Error validating campaign code:', err);
             throw err;
         }
     };

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿/**
  * Audit Log Viewer Component
  * Visualizador de logs de auditoria com filtros e exportação
@@ -165,7 +166,7 @@ export default function AuditLogViewer() {
                 doc.addImage(companySettings.logo, 'PNG', x, y, logoWidth, logoHeight);
                 y += logoHeight + 5;
             } catch (e) {
-                console.warn("Logo error", e);
+                logger.warn("Logo error", e);
             }
         }
 

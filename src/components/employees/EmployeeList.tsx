@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useMemo } from 'react';
 import {
     useReactTable,
@@ -32,9 +33,11 @@ const columnHelper = createColumnHelper<Employee>();
 interface EmployeeListProps {
     onEdit?: (employee: Employee) => void;
     onAddEmployee?: () => void;
+    department?: string;
+    hideHeader?: boolean;
 }
 
-export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProps) {
+export default function EmployeeList({ onEdit, onAddEmployee, department, hideHeader }: EmployeeListProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -49,6 +52,7 @@ export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProp
     const { employees: employeesData, pagination, isLoading, refetch, updateEmployee } = useEmployees({
         search: globalFilter,
         role: selectedRole === 'all' ? undefined : selectedRole,
+        department,
         isActive: selectedStatus === 'all' ? undefined : (selectedStatus === 'active'),
         page,
         limit: pageSize,
@@ -74,7 +78,7 @@ export default function EmployeeList({ onEdit, onAddEmployee }: EmployeeListProp
                 setDeleteModalOpen(false);
                 setEmployeeToToggle(null);
             } catch (error) {
-                console.error('Error toggling employee status:', error);
+                logger.error('Error toggling employee status:', error);
                 toast.error('Erro ao alterar status do funcionário');
             }
         }

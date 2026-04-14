@@ -645,7 +645,7 @@ export default function Help() {
                                                 className="p-1.5 rounded-lg"
                                                 style={{ backgroundColor: `${section.color}20` }}
                                             >
-                                                <Icon className="w-4 h-4" style={{ color: section.color }} />
+                                                <span style={{ color: section.color }}><Icon className="w-4 h-4" /></span>
                                             </div>
                                             <span className="text-sm font-semibold truncate">{section.title}</span>
                                             <span className="ml-auto text-xs text-gray-400 bg-gray-100 dark:bg-dark-600 px-2 py-0.5 rounded-full">
@@ -684,10 +684,7 @@ export default function Help() {
                                         className="p-3 rounded-2xl"
                                         style={{ backgroundColor: `${currentSection.color}20` }}
                                     >
-                                        <currentSection.icon
-                                            className="w-6 h-6"
-                                            style={{ color: currentSection.color }}
-                                        />
+                                        <span style={{ color: currentSection.color }}><currentSection.icon className="w-6 h-6" /></span>
                                     </div>
                                     <div>
                                         <h2 className="text-2xl font-black text-gray-900 dark:text-white">

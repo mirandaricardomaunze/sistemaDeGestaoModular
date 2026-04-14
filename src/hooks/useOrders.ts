@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { ordersAPI } from '../services/api';
@@ -53,6 +54,7 @@ interface UseOrdersParams {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    originModule?: string;
 }
 
 export function useOrders(params?: UseOrdersParams) {
@@ -88,7 +90,7 @@ export function useOrders(params?: UseOrdersParams) {
             setOrders(ordersData);
         } catch (err) {
             setError('Erro ao carregar encomendas');
-            console.error('Error fetching orders:', err);
+            logger.error('Error fetching orders:', err);
             setOrders([]);
         } finally {
             setIsLoading(false);
@@ -100,7 +102,8 @@ export function useOrders(params?: UseOrdersParams) {
         params?.page,
         params?.limit,
         params?.sortBy,
-        params?.sortOrder
+        params?.sortOrder,
+        params?.originModule
     ]);
 
     useEffect(() => {
@@ -114,7 +117,7 @@ export function useOrders(params?: UseOrdersParams) {
             toast.success('Encomenda criada com sucesso!');
             return newOrder;
         } catch (err) {
-            console.error('Error creating order:', err);
+            logger.error('Error creating order:', err);
             throw err;
         }
     };
@@ -126,7 +129,7 @@ export function useOrders(params?: UseOrdersParams) {
             toast.success('Encomenda actualizada com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating order:', err);
+            logger.error('Error updating order:', err);
             throw err;
         }
     };
@@ -138,7 +141,7 @@ export function useOrders(params?: UseOrdersParams) {
             toast.success('Status actualizado com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating order status:', err);
+            logger.error('Error updating order status:', err);
             throw err;
         }
     };
@@ -149,7 +152,7 @@ export function useOrders(params?: UseOrdersParams) {
             setOrders((prev) => prev.filter((o) => o.id !== id));
             toast.success('Encomenda eliminada com sucesso!');
         } catch (err) {
-            console.error('Error deleting order:', err);
+            logger.error('Error deleting order:', err);
             throw err;
         }
     };

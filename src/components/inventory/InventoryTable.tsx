@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useMemo, useEffect } from 'react';
 import {
     useReactTable,
@@ -10,6 +11,7 @@ import {
 import { HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineEye, HiOutlineOfficeBuilding, HiOutlineRefresh, HiOutlinePlusCircle, HiOutlineClock } from 'react-icons/hi';
 import { Button, Badge, Modal, Card, Input, Select, Pagination, DataTable } from '../ui';
 import StockAdjustmentModal from './StockAdjustmentModal';
+import ProductValiditiesSection from './ProductValiditiesSection';
 import { ProductStockHistory } from './ProductStockHistory';
 import { ExportProductsButton } from '../common/ExportButton';
 import { formatCurrency, cn } from '../../utils/helpers';
@@ -28,9 +30,10 @@ interface InventoryTableProps {
     onView?: (product: Product) => void;
     onAddProduct?: () => void;
     initialSearch?: string;
+    originModule?: string;
 }
 
-export default function InventoryTable({ onEdit, onView, onAddProduct, initialSearch }: InventoryTableProps) {
+export default function InventoryTable({ onEdit, onView, onAddProduct, initialSearch, originModule = 'inventory' }: InventoryTableProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -64,7 +67,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
         limit: pageSize,
         sortBy: sorting[0]?.id || 'name',
         sortOrder: sorting[0]?.desc ? 'desc' : 'asc',
-        origin_module: 'inventory'
+        origin_module: originModule
     });
     const { warehouses } = useWarehouses();
 
@@ -98,6 +101,29 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                         {info.getValue()}
                     </span>
                 ),
+            }),
+            columnHelper.accessor('sku', {
+                header: 'Referência',
+                cell: (info) => {
+                    const sku = info.getValue();
+                    const barcode = info.row.original.barcode;
+                    return (
+                        <div>
+                            {sku ? (
+                                <span className="font-mono text-sm font-medium text-gray-800 dark:text-gray-200">
+                                    {sku}
+                                </span>
+                            ) : (
+                                <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>
+                            )}
+                            {barcode && (
+                                <p className="font-mono text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                                    EAN: {barcode}
+                                </p>
+                            )}
+                        </div>
+                    );
+                },
             }),
             columnHelper.accessor('name', {
                 header: 'Nome',
@@ -151,12 +177,29 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                 ),
             }),
             columnHelper.accessor('price', {
-                header: 'Preço',
-                cell: (info) => (
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                        {formatCurrency(info.getValue())}
-                    </span>
-                ),
+                header: 'Preço / Margem',
+                cell: (info) => {
+                    const price = Number(info.getValue());
+                    const cost = Number(info.row.original.costPrice);
+                    const margin = price > 0 && cost > 0 ? ((price - cost) / price) * 100 : null;
+                    return (
+                        <div>
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                                {formatCurrency(price)}
+                            </span>
+                            {margin !== null && (
+                                <p className={cn(
+                                    'text-xs font-medium mt-0.5',
+                                    margin >= 30 ? 'text-green-600 dark:text-green-400' :
+                                    margin >= 10 ? 'text-amber-600 dark:text-amber-400' :
+                                    'text-red-600 dark:text-red-400'
+                                )}>
+                                    {margin.toFixed(1)}% margem
+                                </p>
+                            )}
+                        </div>
+                    );
+                },
             }),
             columnHelper.accessor('status', {
                 header: 'Status',
@@ -253,7 +296,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                 setDeleteModalOpen(false);
                 setProductToDelete(null);
             } catch (error) {
-                console.error('Error deleting product:', error);
+                logger.error('Error deleting product:', error);
             } finally {
                 setIsDeleting(false);
             }
@@ -458,22 +501,11 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                                     </p>
                                 </div>
                             )}
-                            {selectedProduct.expiryDate && (
-                                <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Validade</p>
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
-                                        {selectedProduct.expiryDate}
-                                    </p>
-                                </div>
-                            )}
-                            {selectedProduct.batchNumber && (
-                                <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Lote</p>
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
-                                        {selectedProduct.batchNumber}
-                                    </p>
-                                </div>
-                            )}
+                        </div>
+
+                        {/* Validades */}
+                        <div className="border-t border-gray-100 dark:border-dark-600 pt-6">
+                            <ProductValiditiesSection productId={selectedProduct.id} />
                         </div>
 
                         {/* Warehouse Breakdown */}

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { cn } from '../../utils/helpers';
 
 // ============================================================================
@@ -21,8 +21,8 @@ export { ConfirmationModal } from './ConfirmationModal';
 interface CardProps {
     children: React.ReactNode;
     className?: string;
-    variant?: 'default' | 'glass';
-    padding?: 'none' | 'sm' | 'md' | 'lg';
+    variant?: 'default' | 'glass' | 'premium';
+    padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export function Card({ children, className, variant = 'default', padding = 'md' }: CardProps) {
@@ -31,11 +31,13 @@ export function Card({ children, className, variant = 'default', padding = 'md' 
         sm: 'p-4',
         md: 'p-6',
         lg: 'p-8',
+        xl: 'p-10',
     };
 
     const variantClasses = {
         default: 'bg-white dark:bg-dark-800 rounded-xl shadow-card hover:shadow-card-hover',
         glass: 'bg-white/80 dark:bg-dark-800/80 backdrop-blur-lg rounded-xl shadow-glass border border-white/20 dark:border-dark-700/50',
+        premium: 'bg-white dark:bg-dark-900 rounded-3xl border border-gray-100 dark:border-dark-700 shadow-sm relative overflow-hidden',
     };
 
     return (
@@ -43,12 +45,65 @@ export function Card({ children, className, variant = 'default', padding = 'md' 
             className={cn(
                 variantClasses[variant],
                 paddingClasses[padding],
-                'transition-all duration-200 overflow-hidden relative',
+                'transition-all duration-200 relative',
+                !className?.includes('overflow-') && 'overflow-hidden',
                 className
             )}
         >
+            {variant === 'premium' && (
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+            )}
             {children}
         </div>
+    );
+}
+
+// ============================================================================
+// PageHeader Component
+// ============================================================================
+
+interface PageHeaderProps {
+    title: string;
+    subtitle?: string;
+    icon?: React.ReactNode;
+    actions?: React.ReactNode;
+    tabs?: React.ReactNode;
+    className?: string;
+}
+
+export function PageHeader({ title, subtitle, icon, actions, tabs, className }: PageHeaderProps) {
+    return (
+        <Card variant="premium" padding="md" className={cn("mb-6", className)}>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
+                <div className="flex items-center gap-4">
+                    {icon && (
+                        <div className="w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center shrink-0">
+                            {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6 text-primary-600' } as any)}
+                        </div>
+                    )}
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-tight">
+                            {title}
+                        </h1>
+                        {subtitle && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 italic">
+                                {subtitle}
+                            </p>
+                        )}
+                    </div>
+                </div>
+                {actions && (
+                    <div className="flex items-center gap-2">
+                        {actions}
+                    </div>
+                )}
+            </div>
+            {tabs && (
+                <div className="mt-6 -mb-6 border-t border-gray-100 dark:border-dark-700 relative z-10">
+                    {tabs}
+                </div>
+            )}
+        </Card>
     );
 }
 
@@ -76,7 +131,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 )}
                 <div className="relative">
                     {leftIcon && (
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                             {leftIcon}
                         </div>
                     )}
@@ -97,7 +152,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         {...props}
                     />
                     {rightIcon && (
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
                             {rightIcon}
                         </div>
                     )}
@@ -301,7 +356,7 @@ export function Modal({
 // Badge Component
 // ============================================================================
 
-type BadgeVariant = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'gray' | 'outline';
+export type BadgeVariant = 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'gray' | 'outline';
 
 interface BadgeProps {
     children: React.ReactNode;
@@ -329,7 +384,7 @@ export function Badge({ children, variant = 'primary', size = 'md', className }:
     return (
         <span
             className={cn(
-                'inline-flex items-center rounded-full font-medium',
+                'inline-flex items-center rounded-lg font-black uppercase tracking-widest',
                 variants[variant],
                 sizes[size],
                 className
@@ -466,6 +521,6 @@ export { SkeletonText, SkeletonCard, SkeletonTable, SkeletonAvatar, SkeletonButt
 // ============================================================================
 
 export { NoDataFound, NoResultsFound, ErrorState, ComingSoon, NoItems } from './EmptyState';
-
 export { DataTable, TableContainer } from './DataTable';
+export { Tabs, TabPanel, TabContent, Stepper, useTabs, useStepper } from './Tabs';
 

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { customersAPI } from '../services/api';
@@ -19,6 +20,7 @@ interface UseCustomersParams {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    originModule?: string;
 }
 
 export function useCustomers(params?: UseCustomersParams) {
@@ -59,7 +61,7 @@ export function useCustomers(params?: UseCustomersParams) {
                             await db.customers.bulkPut(customersData);
                         }
                     } catch (dexieError) {
-                        console.error('Dexie error in useCustomers:', dexieError);
+                        logger.error('Dexie error in useCustomers:', dexieError);
                     }
                 }
             } else {
@@ -76,7 +78,7 @@ export function useCustomers(params?: UseCustomersParams) {
             }
         } catch (err) {
             setError('Erro ao carregar clientes');
-            console.error('Error fetching customers:', err);
+            logger.error('Error fetching customers:', err);
         } finally {
             setIsLoading(false);
         }
@@ -86,7 +88,8 @@ export function useCustomers(params?: UseCustomersParams) {
         params?.page,
         params?.limit,
         params?.sortBy,
-        params?.sortOrder
+        params?.sortOrder,
+        params?.originModule
     ]);
 
     useEffect(() => {
@@ -113,7 +116,7 @@ export function useCustomers(params?: UseCustomersParams) {
             toast.success('Cliente criado com sucesso!');
             return newCustomer;
         } catch (err) {
-            console.error('Error creating customer:', err);
+            logger.error('Error creating customer:', err);
             throw err;
         }
     };
@@ -138,7 +141,7 @@ export function useCustomers(params?: UseCustomersParams) {
             toast.success('Cliente actualizado com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating customer:', err);
+            logger.error('Error updating customer:', err);
             throw err;
         }
     };
@@ -162,7 +165,7 @@ export function useCustomers(params?: UseCustomersParams) {
             setCustomers((prev) => prev.filter((c) => c.id !== id));
             toast.success('Cliente removido com sucesso!');
         } catch (err) {
-            console.error('Error deleting customer:', err);
+            logger.error('Error deleting customer:', err);
             throw err;
         }
     };

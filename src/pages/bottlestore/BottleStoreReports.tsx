@@ -192,7 +192,7 @@ export default function BottleStoreReports() {
                 <Card padding="md">
                     <h3 className="text-lg font-bold mb-4">Evolução de Vendas</h3>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <AreaChart data={dailySalesData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="date" />

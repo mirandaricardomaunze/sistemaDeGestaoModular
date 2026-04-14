@@ -54,15 +54,15 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
             <style>{`
                 .receipt-table { width: 100%; border-collapse: collapse; margin: 15px 0; }
                 .receipt-table th { 
-                    background: #f3f4f6; 
+                    background: #ffffff; 
                     padding: 10px 12px; 
                     text-align: left; 
                     font-size: 8pt; 
-                    font-weight: 700;
+                    font-weight: 800;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                    color: #374151;
-                    border-bottom: 2px solid #e5e7eb;
+                    color: #6b7280;
+                    border-bottom: 2px solid #1a1a1a;
                 }
                 .receipt-table td { 
                     padding: 10px 12px; 
@@ -73,9 +73,10 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
                 .receipt-totals { 
                     margin-left: auto; 
                     width: 280px; 
-                    background: #f9fafb; 
+                    background: #ffffff; 
                     border-radius: 8px; 
                     padding: 15px;
+                    border: 1px solid #e5e7eb;
                 }
                 .receipt-totals-row { 
                     display: flex; 
@@ -84,12 +85,12 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
                     font-size: 9pt;
                 }
                 .receipt-totals-row.total {
-                    border-top: 2px solid #6366f1;
+                    border-top: 2px solid #1a1a1a;
                     margin-top: 10px;
                     padding-top: 12px;
                     font-size: 12pt;
-                    font-weight: 700;
-                    color: #1f2937;
+                    font-weight: 800;
+                    color: #1a1a1a;
                 }
             `}</style>
 
@@ -103,29 +104,29 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
 
             {/* Receipt Info Grid */}
             <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-white border border-gray-100 rounded-lg p-4">
                     <p className="text-[8pt] text-gray-400 uppercase tracking-wider font-bold">Nº Documento</p>
-                    <p className="text-lg font-black text-primary-600">{sale.receiptNumber}</p>
+                    <p className="text-lg font-black text-gray-900">{sale.receiptNumber}</p>
                     {sale.series && (
                         <p className="text-[9pt] text-gray-500">Série: {sale.series}</p>
                     )}
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-white border border-gray-100 rounded-lg p-4">
                     <p className="text-[8pt] text-gray-400 uppercase tracking-wider font-bold">Data</p>
-                    <p className="text-base font-bold">{date}</p>
+                    <p className="text-base font-bold text-gray-900">{date}</p>
                     <p className="text-[9pt] text-gray-500">{time}</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4">
+                <div className="bg-white border border-gray-100 rounded-lg p-4">
                     <p className="text-[8pt] text-gray-400 uppercase tracking-wider font-bold">Estado</p>
-                    <span className="inline-block mt-1 px-3 py-1 bg-green-100 text-green-700 text-[9pt] font-bold rounded-full">
+                    <span className="inline-block mt-1 px-3 py-1 border border-green-600 text-green-700 text-[9pt] font-bold rounded-full">
                         PAGO
                     </span>
                 </div>
             </div>
 
             {/* Customer Info */}
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
-                <p className="text-[8pt] text-blue-400 uppercase tracking-wider font-bold mb-1">Cliente</p>
+            <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                <p className="text-[8pt] text-gray-400 uppercase tracking-wider font-bold mb-1">Cliente</p>
                 <p className="text-base font-bold text-gray-900">{customerName}</p>
             </div>
 
@@ -140,7 +141,7 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
                     </tr>
                 </thead>
                 <tbody>
-                    {sale.items.map((item, index) => (
+                    {(sale.items || []).map((item, index) => (
                         <tr key={index}>
                             <td>
                                 <p className="font-medium text-gray-900">{item.product.name}</p>
@@ -200,7 +201,7 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
 
             {/* Bank Accounts Section (Optional) */}
             {companySettings.bankAccounts && companySettings.bankAccounts.length > 0 && (
-                <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="mt-6 p-4 bg-white rounded-xl border border-gray-100">
                     <p className="text-[8pt] text-gray-400 uppercase font-bold mb-3 tracking-widest">Dados Bancários</p>
                     <div className="grid grid-cols-2 gap-4">
                         {companySettings.bankAccounts.map((bank, idx) => (

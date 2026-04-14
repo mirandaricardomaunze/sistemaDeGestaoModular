@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { pharmacyAPI } from '../services/api';
@@ -59,7 +60,7 @@ export function usePharmacy(params?: UsePharmacyParams) {
                                 await db.medications.bulkPut(data);
                             }
                         } catch (err) {
-                            console.error('Dexie error caching medications:', err);
+                            logger.error('Dexie error caching medications:', err);
                         }
                     }
                 } else {
@@ -94,9 +95,9 @@ export function usePharmacy(params?: UsePharmacyParams) {
                 });
                 toast('Catálogo de farmácia offline', { icon: '💊' });
             }
-        } catch (err: unknown) {
-            setError(err.message || 'Erro ao carregar medicamentos');
-            console.error('Error fetching medications:', err);
+        } catch (err) {
+            setError((err as any).message || 'Erro ao carregar medicamentos');
+            logger.error('Error fetching medications:', err);
         } finally {
             setIsLoading(false);
         }
@@ -115,7 +116,7 @@ export function usePharmacy(params?: UsePharmacyParams) {
             const data = await pharmacyAPI.getBatches();
             setBatches(Array.isArray(data) ? data : (data.data || []));
         } catch (err) {
-            console.error('Error fetching batches:', err);
+            logger.error('Error fetching batches:', err);
         }
     }, []);
 
@@ -143,8 +144,8 @@ export function usePharmacy(params?: UsePharmacyParams) {
             toast.success('Medicamento adicionado com sucesso!');
             fetchMedications();
             return newMed;
-        } catch (err: unknown) {
-            toast.error(err.response?.data?.message || 'Erro ao adicionar medicamento');
+        } catch (err) {
+            toast.error((err as any).response?.data?.message || 'Erro ao adicionar medicamento');
             throw err;
         }
     };
@@ -168,8 +169,8 @@ export function usePharmacy(params?: UsePharmacyParams) {
             toast.success('Medicamento actualizado com sucesso!');
             fetchMedications();
             return updated;
-        } catch (err: unknown) {
-            toast.error(err.response?.data?.message || 'Erro ao actualizar medicamento');
+        } catch (err) {
+            toast.error((err as any).response?.data?.message || 'Erro ao actualizar medicamento');
             throw err;
         }
     };
@@ -193,8 +194,8 @@ export function usePharmacy(params?: UsePharmacyParams) {
             toast.success('Medicamento removido com sucesso!');
             fetchMedications();
             return true;
-        } catch (err: unknown) {
-            toast.error(err.response?.data?.message || 'Erro ao remover medicamento');
+        } catch (err) {
+            toast.error((err as any).response?.data?.message || 'Erro ao remover medicamento');
             throw err;
         }
     };
@@ -206,8 +207,8 @@ export function usePharmacy(params?: UsePharmacyParams) {
             fetchMedications();
             fetchBatches();
             return newBatch;
-        } catch (err: unknown) {
-            toast.error(err.response?.data?.message || 'Erro ao registrar lote');
+        } catch (err) {
+            toast.error((err as any).response?.data?.message || 'Erro ao registrar lote');
             throw err;
         }
     };

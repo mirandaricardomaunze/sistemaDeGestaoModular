@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { productsAPI } from '../services/api';
 import type { StockMovement } from '../types';
@@ -31,7 +32,7 @@ export function useStockMovements(productId: string | null, params?: { page?: nu
             }
         } catch (err) {
             setError('Erro ao carregar histórico de stock');
-            console.error('Error fetching movements:', err);
+            logger.error('Error fetching movements:', err);
         } finally {
             setIsLoading(false);
         }

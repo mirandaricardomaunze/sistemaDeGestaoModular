@@ -14,9 +14,11 @@ import { dateSchema } from './base';
 export const createProductSchema = z.object({
     code: z.string().max(50, 'Código muito longo').optional(),
     barcode: z.string().max(100, 'Código de barras muito longo').optional().nullable(),
+    sku: z.string().max(100, 'Referência muito longa').optional().nullable(),
     name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(200, 'Nome muito longo'),
     description: z.string().max(1000, 'Descrição muito longa').optional().nullable(),
     category: z.string().optional().default('other'),
+    categoryId: z.string().uuid('ID da categoria inválido').optional().nullable(),
     price: z.number().positive('Preço deve ser maior que zero'),
     costPrice: z.number().min(0, 'Custo não pode ser negativo').optional().default(0),
     currentStock: z.number().int().min(0, 'Stock não pode ser negativo').optional().default(0),
@@ -36,7 +38,11 @@ export const createProductSchema = z.object({
     dosageForm: z.string().max(100, 'Forma de dosagem muito longa').optional().nullable(),
     strength: z.string().max(100, 'Dosagem muito longa').optional().nullable(),
     manufacturer: z.string().max(200, 'Fabricante muito longo').optional().nullable(),
-    originModule: z.string().max(50).optional().default('inventory')
+    originModule: z.string().max(50).optional().default('inventory'),
+    // Bottle Store fields
+    isReturnable: z.boolean().optional().default(false),
+    returnPrice: z.number().min(0, 'Preço de retorno não pode ser negativo').optional().default(0),
+    packSize: z.number().int().min(1, 'Tamanho do pack deve ser pelo menos 1').optional().default(1),
 });
 
 export const updateProductSchema = createProductSchema.partial();

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -36,6 +37,7 @@ const companySchema = z.object({
     city: z.string().min(2, 'Cidade é obrigatória'),
     state: z.string().min(2, 'Estado é obrigatório'),
     zipCode: z.string().optional(),
+    ivaRate: z.coerce.number().min(0, 'Taxa IVA inválida').max(100, 'Taxa IVA não pode exceder 100%'),
     printerType: z.enum(['thermal', 'a4']),
     thermalPaperWidth: z.enum(['80mm', '58mm']),
     autoPrintReceipt: z.boolean(),
@@ -170,6 +172,7 @@ export default function Settings() {
             city: data.city,
             state: data.state,
             zipCode: data.zipCode,
+            ivaRate: data.ivaRate,
             printerType: data.printerType,
             thermalPaperWidth: data.thermalPaperWidth,
             autoPrintReceipt: data.autoPrintReceipt,
@@ -313,7 +316,7 @@ export default function Settings() {
             toast.success('Perfil actualizado com sucesso!');
             resetProfile(data);
         } catch (error) {
-            console.error('Profile update error:', error);
+            logger.error('Profile update error:', error);
             toast.error('Erro ao atualizar perfil.');
         }
     };
@@ -325,8 +328,8 @@ export default function Settings() {
             await authAPI.changePassword(data.currentPassword, data.newPassword);
             toast.success('Senha alterada com sucesso!');
             resetPassword();
-        } catch (error: unknown) {
-            console.error('Password update error:', error);
+        } catch (error: any) {
+            logger.error('Password update error:', error);
             const msg = error.response?.data?.error || 'Erro ao alterar senha.';
             toast.error(msg);
         }
@@ -339,7 +342,7 @@ export default function Settings() {
             const data = await authAPI.getUsers();
             setUsers(data);
         } catch (error) {
-            console.error('Fetch users error:', error);
+            logger.error('Fetch users error:', error);
             toast.error('Erro ao carregar utilizadores.');
         } finally {
             setIsLoadingUsers(false);
@@ -371,7 +374,7 @@ export default function Settings() {
             }
             setIsUserModalOpen(false);
             fetchUsers();
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.response?.data?.error || 'Erro ao salvar utilizador.');
         }
     };
@@ -393,7 +396,7 @@ export default function Settings() {
             toast.success('Utilizador removido com sucesso!');
             setIsDeleteModalOpen(false);
             fetchUsers();
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.response?.data?.error || 'Erro ao remover utilizador.');
         }
     };
@@ -405,7 +408,7 @@ export default function Settings() {
             const data = await adminAPI.getStats();
             setAdminStats(data);
         } catch (error) {
-            console.error('Fetch admin stats error:', error);
+            logger.error('Fetch admin stats error:', error);
             toast.error('Erro ao carregar estatísticas');
         } finally {
             setIsLoadingStats(false);
@@ -418,7 +421,7 @@ export default function Settings() {
             const data = await adminAPI.getCompanies();
             setCompanies(data);
         } catch (error) {
-            console.error('Fetch companies error:', error);
+            logger.error('Fetch companies error:', error);
             toast.error('Erro ao carregar empresas');
         } finally {
             setIsLoadingCompanies(false);
@@ -721,6 +724,29 @@ export default function Settings() {
                                 {...registerCompany('zipCode')}
                                 error={companyErrors.zipCode?.message}
                             />
+                        </div>
+
+                        <div className="border-t border-gray-200 dark:border-dark-700 pt-6">
+                            <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
+                                Configurações Fiscais
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <Input
+                                        label="Taxa de IVA (%)"
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="0.1"
+                                        placeholder="Ex: 16"
+                                        {...registerCompany('ivaRate')}
+                                        error={companyErrors.ivaRate?.message}
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Aplicado em faturas, notas de crédito e documentos fiscais
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="border-t border-gray-200 dark:border-dark-700 pt-6">
@@ -1132,7 +1158,7 @@ export default function Settings() {
                                                                 setBackupDataToRestore(data);
                                                                 setRestoreConfirmOpen(true);
                                                             } catch (error) {
-                                                                console.error('Backup parse error:', error);
+                                                                logger.error('Backup parse error:', error);
                                                                 toast.error('Erro ao ler arquivo de backup.');
                                                             }
                                                         };

@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { io, Socket } from 'socket.io-client';
 
 // Socket.io client for real-time alerts
@@ -27,7 +28,7 @@ export const socketService = {
      */
     connect(config?: Partial<SocketConfig>) {
         if (socket?.connected) {
-            console.log('[Socket] Already connected');
+            logger.info('[Socket] Already connected');
             return;
         }
 
@@ -43,27 +44,27 @@ export const socketService = {
         });
 
         socket.on('connect', () => {
-            console.log('[Socket] Connected:', socket?.id);
+            logger.info('[Socket] Connected:', socket?.id);
             listeners.onConnect.forEach(handler => handler());
         });
 
         socket.on('disconnect', (reason: string) => {
-            console.log('[Socket] Disconnected:', reason);
+            logger.info('[Socket] Disconnected:', reason);
             listeners.onDisconnect.forEach(handler => handler());
         });
 
         socket.on('connect_error', (error: Error) => {
-            console.error('[Socket] Connection error:', error.message);
+            logger.error('[Socket] Connection error:', error.message);
         });
 
         // Listen for real-time alerts
         socket.on('alert:new', (alert: unknown) => {
-            console.log('[Socket] New alert received:', alert);
+            logger.info('[Socket] New alert received:', alert);
             listeners.onAlert.forEach(handler => handler(alert));
         });
 
         socket.on('alert:updated', (alert: unknown) => {
-            console.log('[Socket] Alert updated:', alert);
+            logger.info('[Socket] Alert updated:', alert);
             listeners.onAlert.forEach(handler => handler(alert));
         });
     },
@@ -75,7 +76,7 @@ export const socketService = {
         if (socket) {
             socket.disconnect();
             socket = null;
-            console.log('[Socket] Manually disconnected');
+            logger.info('[Socket] Manually disconnected');
         }
     },
 
@@ -126,7 +127,7 @@ export const socketService = {
         if (socket?.connected) {
             socket.emit(event, data);
         } else {
-            console.warn('[Socket] Cannot emit, not connected');
+            logger.warn('[Socket] Cannot emit, not connected');
         }
     },
 

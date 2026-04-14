@@ -177,7 +177,7 @@ export default function PayrollManager() {
         if (updatedCount > 0) {
             toast.success(`Valores recalculados! IRPS e INSS actualizados (INSS: ${inssEmployeeRate}%)`);
         } else {
-            toast('Nenhum rascunho para atualizar', { icon: 'â„¹ï¸' });
+            toast('Nenhum rascunho para atualizar');
         }
     };
 

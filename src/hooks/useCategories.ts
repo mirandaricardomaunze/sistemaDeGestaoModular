@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { settingsAPI } from '../services/api';
@@ -16,7 +17,7 @@ export function useCategories() {
             setCategories(result);
         } catch (err) {
             setError('Erro ao carregar categorias');
-            console.error('Error fetching categories:', err);
+            logger.error('Error fetching categories:', err);
         } finally {
             setIsLoading(false);
         }
@@ -33,7 +34,7 @@ export function useCategories() {
             toast.success('Categoria criada com sucesso!');
             return newCategory;
         } catch (err) {
-            console.error('Error creating category:', err);
+            logger.error('Error creating category:', err);
             throw err;
         }
     };
@@ -45,7 +46,7 @@ export function useCategories() {
             toast.success('Categoria actualizada com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating category:', err);
+            logger.error('Error updating category:', err);
             throw err;
         }
     };
@@ -56,7 +57,7 @@ export function useCategories() {
             setCategories((prev) => prev.filter((c) => c.id !== id));
             toast.success('Categoria removida com sucesso!');
         } catch (err) {
-            console.error('Error deleting category:', err);
+            logger.error('Error deleting category:', err);
             throw err;
         }
     };

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineMinus, HiOutlineViewList, HiOutlineCheck } from 'react-icons/hi';
 import { Modal, Button, Input, Select, Textarea } from '../ui';
@@ -48,12 +49,12 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
 
         setIsSubmitting(true);
         try {
-            await updateStock(product.id, quantity, operation, warehouseId || undefined);
+            await updateStock(product.id, quantity, operation, warehouseId || undefined, reason);
             toast.success('Stock atualizado com sucesso!');
             onSuccess?.();
             onClose();
         } catch (error) {
-            console.error('Error updating stock:', error);
+            logger.error('Error updating stock:', error);
             // Error toast is handled by the hook/api
         } finally {
             setIsSubmitting(false);

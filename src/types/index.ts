@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // Product Types
 // ============================================================================
 
@@ -22,6 +22,7 @@ export interface Product {
     name: string;
     description?: string;
     category: ProductCategory;
+    categoryId?: string;
     price: number;
     costPrice: number;
     currentStock: number;
@@ -29,6 +30,7 @@ export interface Product {
     maxStock?: number;
     unit: string;
     barcode?: string;
+    sku?: string;
     expiryDate?: string;
     batchNumber?: string;
     supplierId?: string;
@@ -42,6 +44,9 @@ export interface Product {
     dosageForm?: string;
     strength?: string;
     manufacturer?: string;
+    isReturnable?: boolean;
+    returnPrice?: number;
+    packSize?: number;
     origin_module?: string;
     taxRate?: number;
     createdAt: string;
@@ -132,7 +137,7 @@ export interface StockTransfer {
             unit: string;
         };
     }[];
-    status: 'pending' | 'completed' | 'cancelled';
+    status: 'pending' | 'in_transit' | 'completed' | 'cancelled';
     responsible: string;
     reason: string;
     date: string;
@@ -295,6 +300,7 @@ export interface Sale {
     change: number;
     customerId?: string;
     employeeId: string;
+    status: 'active' | 'voided';
     createdAt: string;
     receiptNumber: string;
     customer?: ReceiptCustomer;
@@ -636,6 +642,7 @@ export interface Booking {
     checkIn: string;
     checkOut?: string;
     totalPrice: number;
+    nightsStayed?: number;
     mealPlan?: MealPlan;
     status: BookingStatus;
     createdAt: string;

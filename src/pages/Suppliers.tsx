@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
@@ -5,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlinePlus,
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineTruck,
@@ -14,9 +15,11 @@ import {
     HiOutlineCurrencyDollar,
     HiOutlineUserCircle,
     HiOutlineCheck,
-    HiOutlineX
-} from 'react-icons/hi';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer } from '../components/ui';
+    HiOutlineXMark,
+    HiOutlineArrowPath
+} from 'react-icons/hi2';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer, PageHeader } from '../components/ui';
+import { StatCard } from '../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../utils/helpers';
 import type { Supplier } from '../types';
 import { useSuppliers } from '../hooks/useData';
@@ -64,7 +67,11 @@ const paymentTermsOptions = [
     { value: '90days', label: '90 Dias' },
 ];
 
-export default function Suppliers() {
+interface SuppliersProps {
+    hideHeader?: boolean;
+}
+
+export default function Suppliers({ hideHeader = false }: SuppliersProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
     const [search, setSearch] = useState('');
@@ -161,7 +168,7 @@ export default function Suppliers() {
             }
             closeFormModal();
         } catch (err) {
-            console.error('Error saving supplier:', err);
+            logger.error('Error saving supplier:', err);
         } finally {
             setIsSubmitting(false);
         }
@@ -194,7 +201,7 @@ export default function Suppliers() {
                 setDeleteModalOpen(false);
                 setSupplierToDelete(null);
             } catch (err) {
-                console.error('Error deleting supplier:', err);
+                logger.error('Error deleting supplier:', err);
             } finally {
                 setIsSubmitting(false);
             }
@@ -211,115 +218,109 @@ export default function Suppliers() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('suppliers.title')}</h1>
-                    <p className="text-gray-500 dark:text-gray-400">{t('suppliers.description')}</p>
-                </div>
-                {activeTab === 'directory' && (
-                    <div className="flex gap-2">
-                        <ExportSuppliersButton data={suppliers} />
-                        <Button onClick={() => setShowFormModal(true)}>
-                            <HiOutlinePlus className="w-5 h-5 mr-2" />
-                            {t('suppliers.newSupplier')}
-                        </Button>
-                    </div>
-                )}
-            </div>
-
-            {/* Tabs */}
-            <div className="border-b border-gray-200 dark:border-dark-700">
-                <nav className="-mb-px flex space-x-8">
-                    <button
-                        onClick={() => setActiveTab('directory')}
-                        className={cn(
-                            'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors',
-                            activeTab === 'directory'
-                                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                        )}
-                    >
-                        Diretório
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('orders')}
-                        className={cn(
-                            'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors',
-                            activeTab === 'orders'
-                                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                        )}
-                    >
-                        Encomendas
-                    </button>
-                </nav>
-            </div>
-
-            {activeTab === 'directory' ? (
-                <>
-                    {/* Metrics */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-                        <Card padding="md" className="border-l-4 border-l-primary-500">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                    <HiOutlineTruck className="w-6 h-6 text-primary-600" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Total Fornecedores</p>
-                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.total}</p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card padding="md" className="border-l-4 border-l-green-500">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                    <HiOutlineCurrencyDollar className="w-6 h-6 text-green-600" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Total Compras</p>
-                                    <p className="text-lg font-bold text-green-600">{formatCurrency(metrics.totalPurchases)}</p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card padding="md" className="border-l-4 border-l-yellow-500">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                    <HiOutlineCurrencyDollar className="w-6 h-6 text-yellow-600" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Saldo Pendente</p>
-                                    <p className="text-lg font-bold text-yellow-600">{formatCurrency(metrics.totalBalance)}</p>
-                                </div>
-                            </div>
-                        </Card>
-
-                        <Card padding="md" className="border-l-4 border-l-blue-500">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                    <HiOutlineTruck className="w-6 h-6 text-blue-600" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Activos</p>
-                                    <p className="text-2xl font-bold text-blue-600">{metrics.active}</p>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* Filters */}
-                    <Card padding="md">
-                        <div className="flex-1">
-                            <Input
-                                placeholder="Buscar fornecedores..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                leftIcon={<HiOutlineSearch className="w-5 h-5" />}
-                            />
+            {!hideHeader && (
+                <PageHeader 
+                    title="Gestão de Fornecedores"
+                    subtitle="Controlo de Entidades, Contactos e Encomendas de Compra"
+                    icon={<HiOutlineTruck />}
+                    actions={
+                        <>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                                leftIcon={<HiOutlineArrowPath className="w-4 h-4" />} 
+                                onClick={() => refetch()}
+                            >
+                                Actualizar
+                            </Button>
+                            {activeTab === 'directory' && (
+                                <>
+                                    <ExportSuppliersButton data={suppliers} />
+                                    <Button 
+                                        size="sm"
+                                        className="font-black text-[10px] uppercase tracking-widest"
+                                        onClick={() => setShowFormModal(true)}
+                                        leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                                    >
+                                        Novo Fornecedor
+                                    </Button>
+                                </>
+                            )}
+                        </>
+                    }
+                    tabs={
+                        <div className="flex flex-wrap -mb-px">
+                            {[
+                                { id: 'directory', label: 'Diretório', icon: <HiOutlineTruck className="w-5 h-5" /> },
+                                { id: 'orders', label: 'Encomendas', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> }
+                            ].map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    className={cn(
+                                        "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
+                                        activeTab === tab.id
+                                            ? "border-primary-500 text-primary-600 dark:text-primary-400"
+                                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
+                                    )}
+                                >
+                                    <span className="shrink-0">{tab.icon}</span>
+                                    <span className="hidden sm:inline-block">{tab.label}</span>
+                                    <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
+                                </button>
+                            ))}
                         </div>
-                    </Card>
+                    }
+                />
+                {activeTab === 'directory' ? (
+                <>
+                    {/* Metrics Layer - Standardized */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <StatCard 
+                            label="Total Fornecedores"
+                            value={metrics.total}
+                            icon={<HiOutlineTruck className="w-6 h-6" />}
+                            color="primary"
+                        />
+                        <StatCard 
+                            label="Total Compras"
+                            value={formatCurrency(metrics.totalPurchases)}
+                            icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                            color="green"
+                            sublabel="Volume total de aquisições"
+                        />
+                        <StatCard 
+                            label="Saldo Pendente"
+                            value={formatCurrency(metrics.totalBalance)}
+                            icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                            color="yellow"
+                            sublabel="Total em dívida a fornecedores"
+                        />
+                        <StatCard 
+                            label="Fornecedores Activos"
+                            value={metrics.active}
+                            icon={<HiOutlineTruck className="w-6 h-6" />}
+                            color="blue"
+                        />
+                    </div>
+
+                    {/* Filters Bar - High Density */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                        <Card padding="md" className="md:col-span-12 border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50">
+                            <div className="flex items-center gap-3">
+                                <div className="relative flex-1">
+                                    <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                                    <Input
+                                        placeholder="Buscar fornecedores por nome, NUIT ou contacto..."
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        className="pl-10 bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
+                                    />
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
 
                     {/* Supplier List */}
                     <Card padding="none">

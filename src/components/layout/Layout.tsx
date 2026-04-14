@@ -1,4 +1,4 @@
-﻿import { Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useStore } from '../../stores/useStore';
 import Sidebar from './Sidebar';
@@ -13,7 +13,7 @@ import { LoadingOverlay } from '../ui/Loading';
 import { useLocation } from 'react-router-dom';
 
 export default function Layout() {
-    const { theme, sidebarOpen } = useStore();
+    const { theme } = useStore();
     const location = useLocation();
 
     // Initialize offline data synchronization
@@ -64,10 +64,7 @@ export default function Layout() {
             <Sidebar />
 
             {/* Main Content */}
-            <div
-                className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'
-                    }`}
-            >
+            <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
                 {/* Header */}
                 <Header />
 
@@ -75,7 +72,7 @@ export default function Layout() {
                 <main
                     className={
                         isPOSPage
-                            ? "flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-100 dark:bg-dark-900"
+                            ? "flex-1 flex flex-col min-h-0 overflow-y-auto bg-gray-50 dark:bg-dark-900 p-4 lg:p-6 scrollbar-thin"
                             : "flex-1 overflow-y-auto p-4 lg:p-6 pb-12 scrollbar-thin"
                     }
                 >

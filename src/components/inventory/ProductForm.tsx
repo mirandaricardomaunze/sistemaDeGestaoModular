@@ -1,10 +1,12 @@
-﻿import { useEffect, useState } from 'react';
+import { logger } from '../../utils/logger';
+﻿import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button, Modal, Input, Select } from '../ui';
-import { categoryLabels } from '../../utils/constants';
 import type { Product, ProductCategory } from '../../types';
+import { useCategories } from '../../hooks/useCategories';
+import ProductValiditiesSection from './ProductValiditiesSection';
 
 import { useSuppliers } from '../../hooks/useData';
 import { productsAPI } from '../../services/api';
@@ -15,6 +17,8 @@ import { getBusinessConfig } from '../../config/businessFeatures';
 // Validation Schema
 const productSchema = z.object({
     code: z.string().min(1, 'Código é obrigatório'),
+    sku: z.string().optional(),
+    barcode: z.string().optional(),
     name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
     description: z.string().optional(),
     category: z.string().min(1, 'Categoria é obrigatória'),
@@ -23,11 +27,8 @@ const productSchema = z.object({
     currentStock: z.coerce.number().min(0, 'Estoque não pode ser negativo'),
     minStock: z.coerce.number().min(0, 'Estoque mínimo não pode ser negativo'),
     unit: z.string().min(1, 'Unidade é obrigatória'),
-    barcode: z.string().optional(),
     supplierId: z.string().optional(),
     location: z.string().optional(),
-    batchNumber: z.string().optional(),
-    expiryDate: z.string().optional(),
     isReturnable: z.boolean().optional(),
     returnPrice: z.coerce.number().min(0).optional(),
     packSize: z.coerce.number().min(1).optional(),
@@ -44,57 +45,70 @@ interface ProductFormProps {
 
 export default function ProductForm({ isOpen, onClose, product, onSuccess }: ProductFormProps) {
     const { suppliers } = useSuppliers();
+    const { categories, isLoading: categoriesLoading } = useCategories();
     const { companySettings } = useStore();
     const businessConfig = getBusinessConfig(companySettings.businessType);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [margin, setMargin] = useState(0);
     const isEditing = !!product;
 
     const {
         register,
         handleSubmit,
         reset,
+        watch,
         formState: { errors },
     } = useForm<ProductFormData>({
         resolver: zodResolver(productSchema) as never,
         defaultValues: {
             code: '',
+            sku: '',
+            barcode: '',
             name: '',
             description: '',
-            category: 'other',
+            category: '',
             price: 0,
             costPrice: 0,
             currentStock: 0,
             minStock: 5,
             unit: 'un',
-            barcode: '',
             supplierId: '',
             location: '',
-            batchNumber: '',
-            expiryDate: '',
             isReturnable: false,
             returnPrice: 0,
             packSize: 1,
         },
     });
 
+    const watchedPrice = watch('price');
+    const watchedCostPrice = watch('costPrice');
+
+    const calcMargin = useCallback((price: number, cost: number) => {
+        if (!price || price <= 0 || !cost || cost <= 0) return 0;
+        return ((price - cost) / price) * 100;
+    }, []);
+
+    useEffect(() => {
+        setMargin(calcMargin(Number(watchedPrice), Number(watchedCostPrice)));
+    }, [watchedPrice, watchedCostPrice, calcMargin]);
+
     // Reset form when product changes
     useEffect(() => {
         if (product) {
             reset({
                 code: product.code,
+                sku: product.sku || '',
+                barcode: product.barcode || '',
                 name: product.name,
                 description: product.description || '',
-                category: product.category,
+                category: product.categoryId || product.category,
                 price: product.price,
                 costPrice: product.costPrice,
                 currentStock: product.currentStock,
                 minStock: product.minStock,
                 unit: product.unit,
-                barcode: product.barcode || '',
                 supplierId: product.supplierId || '',
                 location: product.location || '',
-                batchNumber: product.batchNumber || '',
-                expiryDate: product.expiryDate || '',
                 isReturnable: product.isReturnable || false,
                 returnPrice: product.returnPrice || 0,
                 packSize: product.packSize || 1,
@@ -102,19 +116,18 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
         } else {
             reset({
                 code: `PROD-${Date.now().toString().slice(-6)}`,
+                sku: '',
+                barcode: '',
                 name: '',
                 description: '',
-                category: 'other',
+                category: categories[0]?.id || '',
                 price: 0,
                 costPrice: 0,
                 currentStock: 0,
                 minStock: 5,
                 unit: 'un',
-                barcode: '',
                 supplierId: '',
                 location: '',
-                batchNumber: '',
-                expiryDate: '',
                 isReturnable: false,
                 returnPrice: 0,
                 packSize: 1,
@@ -127,19 +140,19 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
         try {
             const productData = {
                 code: data.code,
+                sku: data.sku || undefined,
+                barcode: data.barcode || undefined,
                 name: data.name,
                 description: data.description || undefined,
-                category: data.category as ProductCategory,
+                category: 'other' as ProductCategory,
+                categoryId: data.category || undefined,
                 price: data.price,
                 costPrice: data.costPrice,
                 currentStock: data.currentStock,
                 minStock: data.minStock,
                 unit: data.unit,
-                barcode: data.barcode || undefined,
                 supplierId: data.supplierId || undefined,
                 location: data.location || undefined,
-                batchNumber: data.batchNumber || undefined,
-                expiryDate: data.expiryDate || undefined,
                 isReturnable: data.isReturnable,
                 returnPrice: data.returnPrice,
                 packSize: data.packSize,
@@ -156,7 +169,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
             onSuccess?.();
             onClose();
         } catch (error) {
-            console.error('Error saving product:', error);
+            logger.error('Error saving product:', error);
             // Error toast is already handled by the API interceptor
         } finally {
             setIsSubmitting(false);
@@ -168,9 +181,9 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
         onClose();
     };
 
-    const categoryOptions = Object.entries(categoryLabels).map(([value, label]) => ({
-        value,
-        label,
+    const categoryOptions = categories.map(c => ({
+        value: c.id,
+        label: c.name,
     }));
 
     const unitOptions = [
@@ -197,23 +210,37 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
             isOpen={isOpen}
             onClose={handleClose}
             title={isEditing ? 'Editar Produto' : 'Novo Produto'}
-            size="lg"
+            size="xl"
         >
             <form onSubmit={handleSubmit(onSubmit as never)} className="space-y-6">
-                {/* Basic Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Código *"
-                        {...register('code')}
-                        error={errors.code?.message}
-                        placeholder="PROD-001"
-                    />
-                    <Input
-                        label="Nome *"
-                        {...register('name')}
-                        error={errors.name?.message}
-                        placeholder="Nome do produto"
-                    />
+                {/* Identification */}
+                <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Identificação</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <Input
+                            label="Código Interno *"
+                            {...register('code')}
+                            error={errors.code?.message}
+                            placeholder="PROD-001"
+                        />
+                        <Input
+                            label="Referência (SKU)"
+                            {...register('sku')}
+                            placeholder="REF-0001"
+                            autoFocus={!isEditing}
+                        />
+                        <Input
+                            label="Cód. Barras (EAN)"
+                            {...register('barcode')}
+                            placeholder="Use o scanner..."
+                        />
+                        <Input
+                            label="Nome *"
+                            {...register('name')}
+                            error={errors.name?.message}
+                            placeholder="Nome do produto"
+                        />
+                    </div>
                 </div>
 
                 <Input
@@ -226,9 +253,13 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Select
                         label="Categoria *"
-                        options={categoryOptions}
+                        options={[
+                            { value: '', label: categoriesLoading ? 'A carregar...' : categoryOptions.length === 0 ? 'Sem categorias — crie primeiro' : 'Selecione uma categoria' },
+                            ...categoryOptions,
+                        ]}
                         {...register('category')}
                         error={errors.category?.message}
+                        disabled={categoriesLoading}
                     />
                     <Select
                         label="Unidade *"
@@ -238,37 +269,81 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                     />
                 </div>
 
-                {/* Prices */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Preço de Venda *"
-                        type="number"
-                        step="0.01"
-                        {...register('price')}
-                        error={errors.price?.message}
-                        placeholder="0.00"
-                    />
-                    <Input
-                        label="Preço de Custo"
-                        type="number"
-                        step="0.01"
-                        {...register('costPrice')}
-                        error={errors.costPrice?.message}
-                        placeholder="0.00"
-                    />
+                {/* Prices + Margin */}
+                <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Preços</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                        <Input
+                            label="Preço de Venda *"
+                            type="number"
+                            step="0.01"
+                            {...register('price')}
+                            error={errors.price?.message}
+                            placeholder="0.00"
+                        />
+                        <Input
+                            label="Preço de Custo"
+                            type="number"
+                            step="0.01"
+                            {...register('costPrice')}
+                            error={errors.costPrice?.message}
+                            placeholder="0.00"
+                        />
+                        <div className={`flex flex-col items-center justify-center h-[72px] rounded-xl border-2 ${
+                            margin >= 30 ? 'border-green-400 bg-green-50 dark:bg-green-900/20' :
+                            margin >= 10 ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' :
+                            margin > 0  ? 'border-red-400 bg-red-50 dark:bg-red-900/20' :
+                            'border-gray-200 bg-gray-50 dark:bg-dark-700'
+                        }`}>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Margem de Lucro</span>
+                            <span className={`text-2xl font-bold ${
+                                margin >= 30 ? 'text-green-600 dark:text-green-400' :
+                                margin >= 10 ? 'text-amber-600 dark:text-amber-400' :
+                                margin > 0  ? 'text-red-600 dark:text-red-400' :
+                                'text-gray-400'
+                            }`}>
+                                {margin > 0 ? `${margin.toFixed(1)}%` : '—'}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Stock */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {isEditing ? (
+                        <div className="relative">
+                            <Input
+                                label="Estoque Atual"
+                                type="number"
+                                {...register('currentStock')}
+                                error={errors.currentStock?.message}
+                                readOnly
+                                className="bg-gray-50 dark:bg-dark-700/50 cursor-not-allowed opacity-80"
+                            />
+                            <div className="absolute -top-1 -right-1 group">
+                                <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-2 bg-gray-800 text-white text-[10px] rounded shadow-lg w-48 z-10">
+                                    Para ajustar o stock, utilize a aba de "Lotes & Validades" ou "Movimentos".
+                                </div>
+                                <span className="w-4 h-4 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center cursor-help">
+                                    <span className="text-[10px] font-bold text-amber-600">!</span>
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-900/30 flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center shrink-0">
+                                <span className="text-primary-600 font-bold">i</span>
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-primary-900 dark:text-primary-100">Controlo de Inventário Profissional</p>
+                                <p className="text-[11px] text-primary-700 dark:text-primary-400 leading-tight mt-0.5">
+                                    O stock inicial será **zero**. Após cadastrar o produto, adicione quantidades reais através de **Lotes** (com validade e preço de custo) para garantir a rastreabilidade total.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     <Input
-                        label="Estoque Atual *"
-                        type="number"
-                        {...register('currentStock')}
-                        error={errors.currentStock?.message}
-                        placeholder="0"
-                    />
-                    <Input
-                        label="Estoque Mínimo"
+                        label="Estoque Mínimo (Alerta)"
                         type="number"
                         {...register('minStock')}
                         error={errors.minStock?.message}
@@ -278,43 +353,29 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
 
                 {/* Additional Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Input
-                        label="Código de Barras"
-                        {...register('barcode')}
-                        placeholder="7891234567890"
-                    />
                     <Select
                         label="Fornecedor"
                         options={supplierOptions}
                         {...register('supplierId')}
                     />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Input
                         label="Localização"
                         {...register('location')}
                         placeholder="A-01-02"
                     />
-                    {(businessConfig.features.batches || businessConfig.features.expiryDates) && (
-                        <>
-                            {businessConfig.features.batches && (
-                                <Input
-                                    label="Número do Lote"
-                                    {...register('batchNumber')}
-                                    placeholder="LOTE001"
-                                />
-                            )}
-                            {businessConfig.features.expiryDates && (
-                                <Input
-                                    label="Data de Validade"
-                                    type="date"
-                                    {...register('expiryDate')}
-                                />
-                            )}
-                        </>
-                    )}
                 </div>
+
+                {/* Validades — only shown when editing an existing product */}
+                {isEditing && product && (
+                    <div className="p-4 bg-gray-50 dark:bg-dark-700/50 rounded-xl border border-gray-200 dark:border-dark-600">
+                        <ProductValiditiesSection productId={product.id} />
+                    </div>
+                )}
+                {!isEditing && (
+                    <p className="text-xs text-gray-400 italic">
+                        Após criar o produto poderá adicionar as suas validades (lotes com datas de expiração).
+                    </p>
+                )}
 
                 {/* Bottle Store Configuration */}
                 <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800">

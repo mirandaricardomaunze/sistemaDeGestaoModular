@@ -1,16 +1,16 @@
-﻿import { useState, useMemo } from 'react';
-import { Card, Button, Input, Badge } from '../../components/ui';
+import { useState, useMemo } from 'react';
+import { Card, Button, Input, Badge, PageHeader } from '../../components/ui';
 import {
-    HiOutlineDocumentReport,
+    HiOutlineDocumentChartBar as HiOutlineDocumentReport,
     HiOutlineShieldCheck,
-    HiOutlineTrendingUp,
-    HiOutlineClipboardList,
-    HiOutlineDownload,
+    HiOutlineArrowTrendingUp as HiOutlineTrendingUp,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
+    HiOutlineArrowDownTray as HiOutlineDownload,
     HiOutlineCalendar,
     HiOutlineExclamationCircle,
     HiOutlineCurrencyDollar,
-    HiOutlineArchive
-} from 'react-icons/hi';
+    HiOutlineArchiveBox as HiOutlineArchive
+} from 'react-icons/hi2';
 import { usePharmacy } from '../../hooks/usePharmacy';
 import { usePharmacySales } from '../../hooks/usePharmacySales';
 import { formatDate, formatCurrency, formatDateTime } from '../../utils/helpers';
@@ -25,10 +25,10 @@ export default function PharmacyAudit() {
     const [period, setPeriod] = useState({ start: '', end: '' });
 
     // Fetch medications
-    const { medications, isLoading: isMedsLoading } = usePharmacy({ limit: 1000 });
+    const { medications, isLoading: isMedsLoading } = usePharmacy({ limit: 100 });
 
     // Fetch sales
-    const { sales, isLoading: isSalesLoading } = usePharmacySales({ limit: 1000 });
+    const { sales, isLoading: isSalesLoading } = usePharmacySales({ limit: 100 });
 
     const [isMovementsLoading, setIsMovementsLoading] = useState(false);
     const [isProfitLoading, setIsProfitLoading] = useState(false);
@@ -109,8 +109,8 @@ export default function PharmacyAudit() {
                         med.product.name,
                         item.batch?.batchNumber || '-',
                         item.quantity.toString(),
-                        sale.prescriptionNumber || '-',
-                        'Farmacêutico Responsável'
+                        sale.prescription?.prescriptionNo || '-',
+                        sale.soldBy || 'Farmacêutico Responsável'
                     ]);
                 }
             });
@@ -260,44 +260,36 @@ export default function PharmacyAudit() {
     return (
         <div className="space-y-8">
             {/* Header Section */}
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 pb-4 border-b border-gray-200 dark:border-dark-700">
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-                            <HiOutlineClipboardList className="w-6 h-6 text-white" />
+            <PageHeader 
+                title="Auditoria & Conformidade SARR"
+                subtitle="Relatórios regulatórios, controlo de substâncias e análise de performance"
+                icon={<HiOutlineClipboardList />}
+                actions={
+                    <Card className="p-4 bg-gray-50 dark:bg-dark-800 border-0 shadow-sm grow-0 shrink-0">
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 text-gray-500">
+                                <HiOutlineCalendar className="w-5 h-5" />
+                                <span className="text-xs font-bold uppercase tracking-wider">Período:</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    type="date"
+                                    value={period.start}
+                                    onChange={e => setPeriod({ ...period, start: e.target.value })}
+                                    className="w-36 text-sm"
+                                />
+                                <span className="text-gray-400">até</span>
+                                <Input
+                                    type="date"
+                                    value={period.end}
+                                    onChange={e => setPeriod({ ...period, end: e.target.value })}
+                                    className="w-36 text-sm"
+                                />
+                            </div>
                         </div>
-                        Auditoria & Conformidade SARR
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-13">
-                        Relatórios regulatórios, controlo de substâncias e análise de performance
-                    </p>
-                </div>
-
-                {/* Period Selector - Unified */}
-                <Card className="p-4 bg-gray-50 dark:bg-dark-800 border-0 shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 text-gray-500">
-                            <HiOutlineCalendar className="w-5 h-5" />
-                            <span className="text-xs font-bold uppercase tracking-wider">Período:</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Input
-                                type="date"
-                                value={period.start}
-                                onChange={e => setPeriod({ ...period, start: e.target.value })}
-                                className="w-36 text-sm"
-                            />
-                            <span className="text-gray-400">até</span>
-                            <Input
-                                type="date"
-                                value={period.end}
-                                onChange={e => setPeriod({ ...period, end: e.target.value })}
-                                className="w-36 text-sm"
-                            />
-                        </div>
-                    </div>
-                </Card>
-            </div>
+                    </Card>
+                }
+            />
 
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

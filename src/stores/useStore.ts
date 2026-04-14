@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { settingsAPI } from '../services/api';
@@ -13,15 +14,17 @@ import toast from 'react-hot-toast';
 
 // Mapping from Backend Module Codes to Frontend BusinessType
 export const MODULE_TO_BUSINESS_TYPE: Record<string, BusinessType> = {
-    // Lowercase codes (from backend registration)
-    'inventory': 'retail',
+    // Lowercase codes (from backend activeModules)
     'pharmacy': 'pharmacy',
+    'commercial': 'retail',
     'hospitality': 'hotel',
     'bottle_store': 'bottlestore',
     'logistics': 'logistics',
-    // Uppercase codes (legacy compatibility)
-    'COMMERCIAL': 'retail',
+    'restaurant': 'retail',
+    'inventory': 'retail',
+    // Uppercase codes (registered moduleCode format)
     'PHARMACY': 'pharmacy',
+    'COMMERCIAL': 'retail',
     'SUPERMARKET': 'supermarket',
     'BOTTLE_STORE': 'bottlestore',
     'HOTEL': 'hotel',
@@ -60,6 +63,8 @@ export interface CompanySettings {
     printerType: 'thermal' | 'a4';
     thermalPaperWidth: '80mm' | '58mm';
     autoPrintReceipt: boolean;
+    receiptHeader?: string;
+    receiptFooter?: string;
     bankAccounts: BankAccount[];
 }
 
@@ -81,6 +86,8 @@ const defaultCompanySettings: CompanySettings = {
     printerType: 'thermal',
     thermalPaperWidth: '80mm',
     autoPrintReceipt: false,
+    receiptHeader: '',
+    receiptFooter: '',
     bankAccounts: [],
 };
 
@@ -275,7 +282,7 @@ export const useStore = create<AppState>()(
                         });
                     }
                 } catch (error) {
-                    console.error('Failed to load alert config from database:', error);
+                    logger.error('Failed to load alert config from database:', error);
                 } finally {
                     set({ isLoadingAlertConfig: false });
                 }
@@ -289,7 +296,7 @@ export const useStore = create<AppState>()(
                 try {
                     await settingsAPI.updateAlertConfig(config);
                 } catch (error) {
-                    console.error('Failed to sync alert config to database:', error);
+                    logger.error('Failed to sync alert config to database:', error);
                 }
             },
 
@@ -321,13 +328,16 @@ export const useStore = create<AppState>()(
                                 printerType: data.printerType || 'thermal',
                                 thermalPaperWidth: data.thermalPaperWidth || '80mm',
                                 autoPrintReceipt: data.autoPrintReceipt ?? false,
+                                receiptHeader: data.receiptHeader || '',
+                                receiptFooter: data.receiptFooter || '',
+                                bankAccounts: data.bankAccounts || [],
                             },
                             // Only update businessType if specified and not already set by context
                             businessType: data.businessType as BusinessType || get().businessType || 'retail'
                         });
                     }
                 } catch (error) {
-                    console.error('Failed to load company settings from database:', error);
+                    logger.error('Failed to load company settings from database:', error);
                     // Keep default/cached settings on error
                 } finally {
                     set({ isLoadingSettings: false });
@@ -359,9 +369,11 @@ export const useStore = create<AppState>()(
                         printerType: settings.printerType,
                         thermalPaperWidth: settings.thermalPaperWidth,
                         autoPrintReceipt: settings.autoPrintReceipt,
+                        receiptHeader: settings.receiptHeader,
+                        receiptFooter: settings.receiptFooter,
                     });
                 } catch (error) {
-                    console.error('Failed to sync company settings to database:', error);
+                    logger.error('Failed to sync company settings to database:', error);
                     // TODO: Add to sync queue for retry
                 }
             },

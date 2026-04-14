@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { suppliersService } from '../services/suppliers.service';
 import { ApiError } from '../middleware/error.middleware';
@@ -53,7 +53,14 @@ router.get('/:id/orders', authenticate, async (req: AuthRequest, res) => {
 router.post('/orders/:orderId/receive', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const validatedData = receivePurchaseOrderSchema.parse(req.body);
-    await suppliersService.receiveOrder(req.params.orderId, validatedData.items, req.companyId);
+    await suppliersService.receiveOrder(
+        req.params.orderId, 
+        validatedData.items, 
+        req.companyId, 
+        req.userName || 'Sistema',
+        req.userId,
+        req.userName
+    );
     res.json({ message: 'Itens recebidos com sucesso' });
 });
 

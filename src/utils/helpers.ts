@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { format, parseISO, differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -158,7 +159,7 @@ export function setToStorage<T>(key: string, value: T): void {
     try {
         window.localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-        console.error('Error saving to localStorage:', error);
+        logger.error('Error saving to localStorage:', error);
     }
 }
 

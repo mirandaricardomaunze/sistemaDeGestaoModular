@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { dashboardAPI, hospitalityAPI, pharmacyAPI, bottleStoreAPI } from '../services/api';
 import { useTenant } from '../contexts/TenantContext';
@@ -108,7 +109,7 @@ export function useDashboard() {
             setRecentActivity(activityData);
         } catch (err) {
             setError('Erro ao carregar dashboard');
-            console.error('Error fetching dashboard:', err);
+            logger.error('Error fetching dashboard:', err);
         } finally {
             setIsLoading(false);
         }

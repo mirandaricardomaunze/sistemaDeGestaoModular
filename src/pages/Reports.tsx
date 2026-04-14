@@ -461,7 +461,7 @@ export default function Reports() {
                         Evolução de Vendas
                     </h3>
                     <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <AreaChart data={dailySalesData}>
                                 <defs>
                                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
@@ -499,7 +499,7 @@ export default function Reports() {
                         Métodos de Pagamento
                     </h3>
                     <div className="h-72 flex items-center justify-center">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height={288}>
                             <PieChart>
                                 <Pie
                                     data={paymentMethodData}

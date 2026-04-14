@@ -1,10 +1,6 @@
-﻿/**
- * ReservationCalendar Component
- * Visual calendar showing room occupancy and future reservations
- * Supports international guests with country, dial codes, and email
- */
-
+import { logger } from '../../utils/logger';
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, Button, Modal, Input, Select, TableContainer } from '../ui';
 import { hospitalityAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -13,12 +9,12 @@ import {
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
     HiOutlinePlus,
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlineHome,
     HiOutlineUser,
-    HiOutlineMail,
-    HiOutlineGlobe
-} from 'react-icons/hi';
+    HiOutlineEnvelope,
+    HiOutlineGlobeAmericas
+} from 'react-icons/hi2';
 import { COUNTRIES, getCountryByCode, type Country } from '../../config/countries';
 
 interface Room {
@@ -47,6 +43,7 @@ interface ReservationCalendarProps {
 }
 
 export default function ReservationCalendar({ onRefresh }: ReservationCalendarProps) {
+    const { t } = useTranslation();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [rooms, setRooms] = useState<Room[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
@@ -100,7 +97,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
             setRooms(data.rooms);
             setBookings(data.bookings);
         } catch (error) {
-            console.error('Failed to fetch calendar data:', error);
+            logger.error('Failed to fetch calendar data:', error);
         } finally {
             setIsLoading(false);
         }
@@ -189,8 +186,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
             await hospitalityAPI.createReservation({
                 roomId: reservationForm.roomId,
                 customerName: reservationForm.customerName,
-                guestEmail: reservationForm.guestEmail || undefined,
-                guestCountry: reservationForm.guestCountry,
+                guestNationality: reservationForm.guestCountry,
                 guestCount: parseInt(reservationForm.guestCount),
                 guestPhone: formattedPhone,
                 checkIn: reservationForm.checkIn,
@@ -199,18 +195,18 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                 notes: reservationForm.notes || undefined
             });
 
-            toast.success('Reserva criada com sucesso!');
+            toast.success(t('messages.saveSuccess'));
             setIsReservationModalOpen(false);
             fetchCalendarData();
             onRefresh?.();
-        } catch (error: unknown) {
-            toast.error(error.message || 'Erro ao criar reserva');
+        } catch (error: any) {
+            toast.error(error.message || t('messages.errorOccurred'));
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const monthYear = currentDate.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+    const monthYear = currentDate.toLocaleDateString(t('common.locale') === 'pt' ? 'pt-PT' : 'en-US', { month: 'long', year: 'numeric' });
 
     return (
         <div className="space-y-6">
@@ -222,10 +218,10 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">
-                            Calendário de Reservas
+                            {t('hotel_module.reservations.calendar')}
                         </h3>
                         <p className="text-[10px] text-gray-500 font-medium">
-                            {rooms.length} quartos • {bookings.length} reservas este mês
+                            {rooms.length} {t('hotel_module.rooms.title')} • {bookings.length} {t('hotel_module.reservations.title')}
                         </p>
                     </div>
                 </div>
@@ -241,10 +237,10 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                         <HiOutlineChevronRight className="w-4 h-4" />
                     </Button>
                     <Button variant="ghost" size="sm" onClick={goToday}>
-                        Hoje
+                        {t('common.today')}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={fetchCalendarData} leftIcon={<HiOutlineRefresh className="w-4 h-4" />}>
-                        Actualizar
+                    <Button variant="outline" size="sm" onClick={fetchCalendarData} leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}>
+                        {t('common.refresh')}
                     </Button>
                 </div>
             </div>
@@ -256,7 +252,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                         {/* Header Row - Days */}
                         <div className="grid" style={{ gridTemplateColumns: `120px repeat(${calendarDays.length}, minmax(40px, 1fr))` }}>
                             <div className="p-2 font-bold text-xs text-gray-500 uppercase border-b border-r dark:border-dark-700">
-                                Quarto
+                                {t('hotel_module.rooms.number')}
                             </div>
                             {calendarDays.map((day, i) => (
                                 <div
@@ -268,7 +264,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                                 >
                                     <div>{day.getDate()}</div>
                                     <div className="text-[9px] uppercase">
-                                        {day.toLocaleDateString('pt-PT', { weekday: 'short' }).replace('.', '')}
+                                        {day.toLocaleDateString(t('common.locale') === 'pt' ? 'pt-PT' : 'en-US', { weekday: 'short' }).replace('.', '')}
                                     </div>
                                 </div>
                             ))}
@@ -286,7 +282,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                                     <HiOutlineHome className="w-4 h-4 text-gray-400" />
                                     <div>
                                         <span className="font-bold text-gray-900 dark:text-white">Q-{room.number}</span>
-                                        <span className="text-xs text-gray-500 ml-1 capitalize">({room.type})</span>
+                                        <span className="text-xs text-gray-500 ml-1 capitalize">({t(`hotel_module.rooms.types.${room.type}`) || room.type})</span>
                                     </div>
                                 </div>
 
@@ -311,7 +307,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                                             onClick={() => !isPast && handleCellClick(room.id, day)}
                                             title={
                                                 occupied
-                                                    ? `${booking.customerName} (${booking.status === 'checked_in' ? 'Ocupado' : 'Reservado'})`
+                                                    ? `${booking.customerName} (${booking.status === 'checked_in' ? t('hotel_module.rooms.statuses.occupied') : t('hotel_module.rooms.statuses.reserved')})`
                                                     : isPast
                                                         ? 'Data passada'
                                                         : 'Clique para reservar'
@@ -334,19 +330,19 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                     <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t dark:border-dark-700">
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                             <div className="w-4 h-4 bg-blue-100 dark:bg-blue-900/30 rounded"></div>
-                            <span>Ocupado (Check-in)</span>
+                            <span>{t('hotel_module.rooms.statuses.occupied')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                             <div className="w-4 h-4 bg-amber-100 dark:bg-amber-900/30 rounded"></div>
-                            <span>Reservado</span>
+                            <span>{t('hotel_module.rooms.statuses.reserved')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                             <div className="w-4 h-4 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800"></div>
-                            <span>Disponível</span>
+                            <span>{t('hotel_module.rooms.statuses.available')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500">
                             <div className="w-4 h-4 ring-2 ring-primary-500 rounded"></div>
-                            <span>Hoje</span>
+                            <span>{t('common.today')}</span>
                         </div>
                     </div>
                 </Card>
@@ -356,7 +352,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
             <Modal
                 isOpen={isReservationModalOpen}
                 onClose={() => setIsReservationModalOpen(false)}
-                title="Nova Reserva"
+                title={t('hotel_module.reservations.new')}
                 size="md"
             >
                 <form onSubmit={handleReservationSubmit} className="space-y-4">
@@ -367,10 +363,10 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                                 <HiOutlineHome className="w-5 h-5 text-primary-600" />
                                 <div>
                                     <p className="font-bold text-gray-900 dark:text-white">
-                                        Quarto {rooms.find(r => r.id === selectedSlot.roomId)?.number}
+                                        {t('hotel_module.rooms.number')} {rooms.find(r => r.id === selectedSlot.roomId)?.number}
                                     </p>
                                     <p className="text-xs text-gray-500 capitalize">
-                                        {rooms.find(r => r.id === selectedSlot.roomId)?.type}
+                                        {t(`hotel_module.rooms.types.${rooms.find(r => r.id === selectedSlot.roomId)?.type}`)}
                                     </p>
                                 </div>
                             </div>
@@ -379,11 +375,11 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
 
                     {/* Guest Name */}
                     <Input
-                        label="Nome do Hóspede"
+                        label={t('hotel_module.reservations.guest')}
                         value={reservationForm.customerName}
                         onChange={(e) => setReservationForm({ ...reservationForm, customerName: e.target.value })}
                         required
-                        placeholder="Nome completo"
+                        placeholder={t('auth.fullName')}
                     />
 
                     {/* Email */}
@@ -392,15 +388,15 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                         type="email"
                         value={reservationForm.guestEmail}
                         onChange={(e) => setReservationForm({ ...reservationForm, guestEmail: e.target.value })}
-                        placeholder="email@exemplo.com"
+                        placeholder="email@example.com"
                     />
 
                     {/* Country and Phone */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                <HiOutlineGlobe className="w-4 h-4 inline mr-1" />
-                                País de Origem
+                                <HiOutlineGlobeAmericas className="w-4 h-4 inline mr-1" />
+                                {t('hotel_module.guests.nationality')}
                             </label>
                             <select
                                 value={reservationForm.guestCountry}
@@ -416,7 +412,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Telefone
+                                {t('auth.phone')}
                             </label>
                             <div className="flex">
                                 <span className="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-dark-600 border border-r-0 border-gray-300 dark:border-dark-600 rounded-l-lg">
@@ -436,21 +432,21 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                     {/* Guest Count and Dates */}
                     <div className="grid grid-cols-3 gap-4">
                         <Input
-                            label="Hóspedes"
+                            label={t('hotel_module.reservations.nights')}
                             type="number"
                             min="1"
                             value={reservationForm.guestCount}
                             onChange={(e) => setReservationForm({ ...reservationForm, guestCount: e.target.value })}
                         />
                         <Input
-                            label="Check-in"
+                            label={t('hotel_module.reservations.checkIn')}
                             type="date"
                             value={reservationForm.checkIn}
                             onChange={(e) => setReservationForm({ ...reservationForm, checkIn: e.target.value })}
                             required
                         />
                         <Input
-                            label="Check-out"
+                            label={t('hotel_module.reservations.checkOut')}
                             type="date"
                             value={reservationForm.expectedCheckout}
                             onChange={(e) => setReservationForm({ ...reservationForm, expectedCheckout: e.target.value })}
@@ -460,22 +456,22 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                     </div>
 
                     <Select
-                        label="Plano de Refeição"
+                        label={t('hotel_module.finance.services')}
                         options={[
-                            { value: 'none', label: 'Sem Refeições' },
-                            { value: 'breakfast', label: 'Pequeno-Almoço (BB)' },
-                            { value: 'half_board', label: 'Meia Pensão (HB)' },
-                            { value: 'full_board', label: 'Pensão Completa (FB)' }
+                            { value: 'none', label: t('hotel_module.finance.consumption') },
+                            { value: 'breakfast', label: 'Breakfast (BB)' },
+                            { value: 'half_board', label: 'Half Board (HB)' },
+                            { value: 'full_board', label: 'Full Board (FB)' }
                         ]}
                         value={reservationForm.mealPlan}
                         onChange={(e) => setReservationForm({ ...reservationForm, mealPlan: e.target.value })}
                     />
 
                     <Input
-                        label="Notas / Observações"
+                        label={t('common.notes')}
                         value={reservationForm.notes}
                         onChange={(e) => setReservationForm({ ...reservationForm, notes: e.target.value })}
-                        placeholder="Observações especiais, pedidos, restrições alimentares..."
+                        placeholder="..."
                     />
 
 
@@ -487,7 +483,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                             className="flex-1"
                             type="button"
                         >
-                            Cancelar
+                            {t('common.cancel')}
                         </Button>
                         <Button
                             type="submit"
@@ -495,7 +491,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
                             disabled={isSubmitting}
                             leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                         >
-                            {isSubmitting ? 'Criando...' : 'Criar Reserva'}
+                            {isSubmitting ? t('common.saving') : t('common.save')}
                         </Button>
                     </div>
                 </form>

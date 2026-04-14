@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -66,8 +67,8 @@ const SuperAdminDashboard: React.FC = () => {
             setStats(statsData);
             setCompanies(companiesData.slice(0, 5)); // Top 5 most recent
             setActivities(activitiesData.slice(0, 10)); // Last 10 activities
-        } catch (error: unknown) {
-            console.error('Error loading admin data:', error);
+        } catch (error: any) {
+            logger.error('Error loading admin data:', error);
 
             // Check if it's a permission error (403)
             if (error.response?.status === 403) {

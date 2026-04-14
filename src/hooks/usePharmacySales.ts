@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import { pharmacyAPI } from '../services/api';
 
@@ -44,9 +45,9 @@ export function usePharmacySales(params?: UsePharmacySalesParams) {
                     hasMore: false
                 });
             }
-        } catch (err: unknown) {
+        } catch (err: any) {
             setError(err.message || 'Erro ao carregar vendas');
-            console.error('Error fetching pharmacy sales:', err);
+            logger.error('Error fetching pharmacy sales:', err);
         } finally {
             setIsLoading(false);
         }

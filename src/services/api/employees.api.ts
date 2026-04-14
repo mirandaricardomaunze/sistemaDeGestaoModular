@@ -1,4 +1,4 @@
-﻿import api from './client';
+import api from './client';
 
 // ============================================================================
 // Employees API
@@ -24,6 +24,7 @@ export const employeesAPI = {
         department?: string;
         hireDate: string;
         baseSalary: number;
+        salary?: number;
         subsidyTransport?: number;
         subsidyFood?: number;
         address?: string;
@@ -33,6 +34,12 @@ export const employeesAPI = {
         bankName?: string;
         bankAccountNumber?: string;
         bankNib?: string;
+        bankInfo?: {
+            bankName: string;
+            accountNumber: string;
+            nib: string;
+        };
+        qualifications?: any[];
         birthDate?: string;
         contractType?: string;
         contractExpiry?: string;
@@ -48,6 +55,7 @@ export const employeesAPI = {
         role: string;
         department: string;
         baseSalary: number;
+        salary: number;
         subsidyTransport: number;
         subsidyFood: number;
         address: string;
@@ -57,6 +65,12 @@ export const employeesAPI = {
         bankName: string;
         bankAccountNumber: string;
         bankNib: string;
+        bankInfo: {
+            bankName: string;
+            accountNumber: string;
+            nib: string;
+        };
+        qualifications: any[];
         isActive: boolean;
         hireDate: string;
         birthDate: string;

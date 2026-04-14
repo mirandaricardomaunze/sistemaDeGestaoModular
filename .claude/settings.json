@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx jest:*)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npx jest --passWithNoTests --forceExit)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" NODE_ENV=test npx jest --passWithNoTests --forceExit)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(echo \"REAL EXIT: $?\")",
+      "Bash(node -e 'const { PrismaClient } = require\\('\\\\''@prisma/client'\\\\''\\); const p = new PrismaClient\\(\\); p.productValidity.count\\(\\).then\\(c => { console.log\\('\\\\''table OK, count:'\\\\'', c\\); p.$disconnect\\(\\); }\\).catch\\(e => { console.error\\('\\\\''ERROR:'\\\\'', e.message\\); p.$disconnect\\(\\); }\\);')",
+      "Bash(echo \"BACKEND EXIT: $?\")",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(echo \"BACKEND:$?\")",
+      "Bash(echo \"FRONTEND:$?\")"
+    ]
+  }
+}

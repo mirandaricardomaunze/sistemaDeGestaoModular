@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { buildPaginationMeta } from '../utils/pagination';
+import { logger } from '../utils/logger';
 
 export class PayrollService {
     async list(params: any, companyId: string) {
@@ -132,7 +133,7 @@ export class PayrollService {
                 });
             }
         } catch (error) {
-            console.error('Fiscal retention error:', error);
+            logger.error('Payroll fiscal retention failed', { payrollId: payroll.id, error });
         }
 
         return true;

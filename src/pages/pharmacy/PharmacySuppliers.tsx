@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -206,7 +207,7 @@ export default function PharmacySuppliers() {
             }
             closeFormModal();
         } catch (err) {
-            console.error('Error saving supplier:', err);
+            logger.error('Error saving supplier:', err);
         } finally {
             setIsSubmitting(false);
         }
@@ -239,7 +240,7 @@ export default function PharmacySuppliers() {
                 setDeleteModalOpen(false);
                 setSupplierToDelete(null);
             } catch (err) {
-                console.error('Error deleting supplier:', err);
+                logger.error('Error deleting supplier:', err);
             } finally {
                 setIsSubmitting(false);
             }
@@ -316,7 +317,7 @@ export default function PharmacySuppliers() {
                         className={cn(
                             'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors',
                             activeTab === 'directory'
-                                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                                ? 'border-teal-500 text-teal-600 dark:text-teal-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                         )}
                     >
@@ -327,7 +328,7 @@ export default function PharmacySuppliers() {
                         className={cn(
                             'whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm transition-colors',
                             activeTab === 'orders'
-                                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                                ? 'border-teal-500 text-teal-600 dark:text-teal-400'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                         )}
                     >
@@ -340,10 +341,10 @@ export default function PharmacySuppliers() {
                 <>
                     {/* Metrics */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-                        <Card padding="md" className="border-l-4 border-l-primary-500">
+                        <Card padding="md" className="border-l-4 border-l-teal-500 shadow-sm">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                    <HiOutlineTruck className="w-6 h-6 text-primary-600" />
+                                <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                                    <HiOutlineTruck className="w-6 h-6 text-teal-600" />
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">Total Fornecedores</p>
@@ -428,8 +429,8 @@ export default function PharmacySuppliers() {
                                             <tr key={supplier.id} className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                                            <HiOutlineTruck className="w-5 h-5 text-primary-600" />
+                                                        <div className="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                                                            <HiOutlineTruck className="w-5 h-5 text-teal-600" />
                                                         </div>
                                                         <div>
                                                             <p className="font-medium text-gray-900 dark:text-white">{supplier.name}</p>

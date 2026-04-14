@@ -1,4 +1,4 @@
-﻿import api from './client';
+import api from './client';
 
 // ============================================================================
 // Sales API
@@ -33,9 +33,11 @@ export const salesAPI = {
         discount?: number;
         tax?: number;
         total: number;
+        sessionId?: string;
         paymentMethod: string;
         amountPaid: number;
         change?: number;
+        paymentRef?: string;
         notes?: string;
     }) => {
         const response = await api.post('/sales', data);
@@ -44,6 +46,11 @@ export const salesAPI = {
 
     getStats: async (period?: string) => {
         const response = await api.get('/sales/stats', { params: { period } });
+        return response.data;
+    },
+
+    voidSale: async (id: string, reason: string) => {
+        const response = await api.post(`/sales/${id}/void`, { reason });
         return response.data;
     },
 };

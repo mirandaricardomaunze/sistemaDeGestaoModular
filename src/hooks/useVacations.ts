@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { employeesAPI } from '../services/api';
@@ -21,7 +22,7 @@ export function useVacations(params?: UseVacationsParams) {
             setVacations(result);
         } catch (err) {
             setError('Erro ao carregar férias');
-            console.error('Error fetching vacations:', err);
+            logger.error('Error fetching vacations:', err);
         } finally {
             setIsLoading(false);
         }
@@ -38,7 +39,7 @@ export function useVacations(params?: UseVacationsParams) {
             toast.success('Pedido de férias submetido com sucesso!');
             return vacation;
         } catch (err) {
-            console.error('Error requesting vacation:', err);
+            logger.error('Error requesting vacation:', err);
             throw err;
         }
     };
@@ -53,7 +54,7 @@ export function useVacations(params?: UseVacationsParams) {
             toast.success('Pedido de férias actualizado com sucesso!');
             return updated;
         } catch (err) {
-            console.error('Error updating vacation:', err);
+            logger.error('Error updating vacation:', err);
             throw err;
         }
     };

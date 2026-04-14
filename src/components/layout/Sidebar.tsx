@@ -1,4 +1,4 @@
-﻿import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { useStore } from '../../stores/useStore';
@@ -8,8 +8,12 @@ import { useTenant } from '../../contexts/TenantContext';
 
 import {
     HiOutlineHomeModern,
-    HiOutlineCake
+    HiOutlineCake,
+    HiOutlineRectangleStack,
+    HiOutlineFire
 } from 'react-icons/hi2';
+
+
 import {
     HiOutlineCube,
     HiOutlineShoppingCart,
@@ -36,10 +40,136 @@ import {
     HiOutlineQuestionMarkCircle,
     HiOutlineRefresh,
     HiOutlineClock,
+    HiOutlineExclamationCircle,
+    HiOutlineUserCircle,
+    HiOutlineDocumentReport,
+    HiOutlineBookOpen,
+    HiSparkles,
+    HiOutlineCurrencyDollar as HiOutlineCurrencyDollarSidebar,
 } from 'react-icons/hi';
+
 import { cn } from '../../utils/helpers';
 
 // Module codes from backend: pharmacy, inventory, hospitality, bottle_store, logistics
+
+// ============================================================================
+// MODULE COLOR THEMES — Each module gets a distinct sidebar accent
+// ============================================================================
+interface ModuleTheme {
+    // Active item background + text
+    activeBg: string;
+    activeText: string;
+    activeIconText: string;
+    // Hover state
+    hoverText: string;
+    // Brand badge gradient
+    brandGradient: string;
+    brandShadow: string;
+    // Submenu active
+    subActiveBg: string;
+    subActiveText: string;
+    // Sidebar accent line/dot
+    dotColor: string;
+    // Subtitle label
+    labelBg: string;
+    labelText: string;
+}
+
+const MODULE_THEMES: Record<string, ModuleTheme> = {
+    pharmacy: {
+        activeBg: 'bg-teal-50 dark:bg-teal-900/20',
+        activeText: 'text-teal-600 dark:text-teal-400',
+        activeIconText: 'text-teal-600 dark:text-teal-400',
+        hoverText: 'hover:text-teal-600 dark:hover:text-teal-400',
+        brandGradient: 'from-teal-600 via-teal-500 to-emerald-500',
+        brandShadow: 'shadow-teal-500/20',
+        subActiveBg: 'bg-teal-100 dark:bg-teal-900/30',
+        subActiveText: 'text-teal-700 dark:text-teal-300',
+        dotColor: 'bg-teal-500',
+        labelBg: 'bg-teal-50 dark:bg-teal-900/20',
+        labelText: 'text-teal-600 dark:text-teal-400',
+    },
+    commercial: {
+        activeBg: 'bg-blue-50 dark:bg-blue-900/20',
+        activeText: 'text-blue-600 dark:text-blue-400',
+        activeIconText: 'text-blue-600 dark:text-blue-400',
+        hoverText: 'hover:text-blue-600 dark:hover:text-blue-400',
+        brandGradient: 'from-blue-600 via-blue-500 to-indigo-500',
+        brandShadow: 'shadow-blue-500/20',
+        subActiveBg: 'bg-blue-100 dark:bg-blue-900/30',
+        subActiveText: 'text-blue-700 dark:text-blue-300',
+        dotColor: 'bg-blue-500',
+        labelBg: 'bg-blue-50 dark:bg-blue-900/20',
+        labelText: 'text-blue-600 dark:text-blue-400',
+    },
+    hospitality: {
+        activeBg: 'bg-amber-50 dark:bg-amber-900/20',
+        activeText: 'text-amber-600 dark:text-amber-400',
+        activeIconText: 'text-amber-600 dark:text-amber-400',
+        hoverText: 'hover:text-amber-600 dark:hover:text-amber-400',
+        brandGradient: 'from-amber-600 via-amber-500 to-yellow-500',
+        brandShadow: 'shadow-amber-500/20',
+        subActiveBg: 'bg-amber-100 dark:bg-amber-900/30',
+        subActiveText: 'text-amber-700 dark:text-amber-300',
+        dotColor: 'bg-amber-500',
+        labelBg: 'bg-amber-50 dark:bg-amber-900/20',
+        labelText: 'text-amber-600 dark:text-amber-400',
+    },
+    bottle_store: {
+        activeBg: 'bg-orange-50 dark:bg-orange-900/20',
+        activeText: 'text-orange-600 dark:text-orange-400',
+        activeIconText: 'text-orange-600 dark:text-orange-400',
+        hoverText: 'hover:text-orange-600 dark:hover:text-orange-400',
+        brandGradient: 'from-orange-600 via-orange-500 to-amber-500',
+        brandShadow: 'shadow-orange-500/20',
+        subActiveBg: 'bg-orange-100 dark:bg-orange-900/30',
+        subActiveText: 'text-orange-700 dark:text-orange-300',
+        dotColor: 'bg-orange-500',
+        labelBg: 'bg-orange-50 dark:bg-orange-900/20',
+        labelText: 'text-orange-600 dark:text-orange-400',
+    },
+    logistics: {
+        activeBg: 'bg-cyan-50 dark:bg-cyan-900/20',
+        activeText: 'text-cyan-600 dark:text-cyan-400',
+        activeIconText: 'text-cyan-600 dark:text-cyan-400',
+        hoverText: 'hover:text-cyan-600 dark:hover:text-cyan-400',
+        brandGradient: 'from-cyan-600 via-cyan-500 to-sky-500',
+        brandShadow: 'shadow-cyan-500/20',
+        subActiveBg: 'bg-cyan-100 dark:bg-cyan-900/30',
+        subActiveText: 'text-cyan-700 dark:text-cyan-300',
+        dotColor: 'bg-cyan-500',
+        labelBg: 'bg-cyan-50 dark:bg-cyan-900/20',
+        labelText: 'text-cyan-600 dark:text-cyan-400',
+    },
+    restaurant: {
+        activeBg: 'bg-rose-50 dark:bg-rose-900/20',
+        activeText: 'text-rose-600 dark:text-rose-400',
+        activeIconText: 'text-rose-600 dark:text-rose-400',
+        hoverText: 'hover:text-rose-600 dark:hover:text-rose-400',
+        brandGradient: 'from-rose-600 via-rose-500 to-red-500',
+        brandShadow: 'shadow-rose-500/20',
+        subActiveBg: 'bg-rose-100 dark:bg-rose-900/30',
+        subActiveText: 'text-rose-700 dark:text-rose-300',
+        dotColor: 'bg-rose-500',
+        labelBg: 'bg-rose-50 dark:bg-rose-900/20',
+        labelText: 'text-rose-600 dark:text-rose-400',
+    },
+};
+
+// Default theme (generic primary) for unrecognized modules or system pages
+const DEFAULT_THEME: ModuleTheme = {
+    activeBg: 'bg-primary-50 dark:bg-primary-900/20',
+    activeText: 'text-primary-600 dark:text-primary-400',
+    activeIconText: 'text-primary-600 dark:text-primary-400',
+    hoverText: 'hover:text-primary-600 dark:hover:text-primary-400',
+    brandGradient: 'from-primary-600 via-primary-500 to-accent-500',
+    brandShadow: 'shadow-primary-500/20',
+    subActiveBg: 'bg-primary-100 dark:bg-primary-900/30',
+    subActiveText: 'text-primary-700 dark:text-primary-300',
+    dotColor: 'bg-emerald-500',
+    labelBg: 'bg-primary-50 dark:bg-primary-900/20',
+    labelText: 'text-primary-600 dark:text-primary-400',
+};
 
 interface MenuItem {
     id: string;
@@ -56,50 +186,72 @@ const menuItems: MenuItem[] = [
     { id: 'dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/dashboard' },
 
     // ============================================================================
-    // PHARMACY Module - Specific pages (only for pharmacy businesses)
+    // PHARMACY Module — 7 focused items
     // ============================================================================
-    { id: 'pharmacy_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/pharmacy/dashboard', module: 'pharmacy' },
-    { id: 'pharmacy_manage', labelKey: 'nav.pharmacy_manage', icon: HiOutlineBeaker, path: '/pharmacy/manage', module: 'pharmacy' },
-    { id: 'pharmacy_pos', labelKey: 'nav.pos', icon: HiOutlineShoppingCart, path: '/pharmacy/pos', module: 'pharmacy' },
-    { id: 'pharmacy_employees', labelKey: 'Funcionários', icon: HiOutlineUsers, path: '/pharmacy/employees', module: 'pharmacy' },
-    { id: 'pharmacy_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/pharmacy/categories', module: 'pharmacy' },
-    { id: 'pharmacy_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/pharmacy/suppliers', module: 'pharmacy' },
+    { id: 'pharmacy_dashboard', labelKey: 'Dashboard', icon: HiOutlineViewGrid, path: '/pharmacy/dashboard', module: 'pharmacy' },
+    { id: 'pharmacy_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/pharmacy/pos', module: 'pharmacy' },
+    { id: 'pharmacy_shifts', labelKey: 'Turnos', icon: HiOutlineCalculator, path: '/pharmacy/shifts', module: 'pharmacy' },
+    { id: 'pharmacy_history', labelKey: 'Histórico', icon: HiOutlineClock, path: '/pharmacy/history', module: 'pharmacy' },
+    { id: 'pharmacy_manage', labelKey: 'Medicamentos', icon: HiOutlineBeaker, path: '/pharmacy/manage', module: 'pharmacy' },
+    { id: 'pharmacy_patients', labelKey: 'Pacientes', icon: HiOutlineUserCircle, path: '/pharmacy/patients', module: 'pharmacy' },
+    { id: 'pharmacy_employees', labelKey: 'Recursos Humanos', icon: HiOutlineUsers, path: '/pharmacy/employees', module: 'pharmacy' },
+    { id: 'pharmacy_compliance', labelKey: 'Conformidade', icon: HiOutlineClipboardList, path: '/pharmacy/compliance', module: 'pharmacy' },
+    { id: 'pharmacy_partners', labelKey: 'Parceiros', icon: HiOutlineCurrencyDollarSidebar, path: '/pharmacy/partners', module: 'pharmacy' },
+    { id: 'pharmacy_reconciliation', labelKey: 'Reconciliação', icon: HiOutlineClipboardList, path: '/pharmacy/reconciliation', module: 'pharmacy' },
     { id: 'pharmacy_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/pharmacy/reports', module: 'pharmacy' },
+    { id: 'pharmacy_alerts', labelKey: 'Alertas', icon: HiOutlineExclamationCircle, path: '/pharmacy/alerts', module: 'pharmacy' },
 
 
     // ============================================================================
     // HOSPITALITY Module - Specific pages (only for hotel businesses)
     // ============================================================================
     { id: 'hotel_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/hospitality/dashboard', module: 'hospitality' },
-    { id: 'hospitality_ops', labelKey: 'Gestão de Quartos', icon: HiOutlineHomeModern, path: '/hospitality/ops', module: 'hospitality' },
-    { id: 'hotel_finance', labelKey: 'Finanças', icon: HiOutlineCurrencyDollar, path: '/hospitality/finance', module: 'hospitality' },
-    { id: 'hotel_rooms', labelKey: 'Quartos', icon: HiOutlineHomeModern, path: '/hospitality/rooms', module: 'hospitality' },
-    { id: 'hotel_reservations', labelKey: 'Reservas', icon: HiOutlineCalendar, path: '/hospitality/reservations', module: 'hospitality' },
-    { id: 'hotel_employees', labelKey: 'Funcionários', icon: HiOutlineUsers, path: '/hospitality/employees', module: 'hospitality' },
-    { id: 'hotel_customers', labelKey: 'Clientes / Hóspedes', icon: HiOutlineUsers, path: '/hospitality/customers', module: 'hospitality' },
-    { id: 'hotel_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/hospitality/suppliers', module: 'hospitality' },
-    { id: 'hotel_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/hospitality/categories', module: 'hospitality' },
-    { id: 'hotel_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/hospitality/reports', module: 'hospitality' },
+    { id: 'hotel_rooms', labelKey: 'hotel_module.rooms.title', icon: HiOutlineHomeModern, path: '/hospitality/rooms', module: 'hospitality' },
+    { id: 'hotel_reservations', labelKey: 'hotel_module.reservations.title', icon: HiOutlineCalendar, path: '/hospitality/reservations', module: 'hospitality' },
+    { id: 'hotel_housekeeping', labelKey: 'hotel_module.housekeeping.title', icon: HiSparkles, path: '/hospitality/housekeeping', module: 'hospitality' },
+    { id: 'hotel_customers', labelKey: 'hotel_module.guests.title', icon: HiOutlineUsers, path: '/hospitality/customers', module: 'hospitality' },
+    { id: 'hotel_finance', labelKey: 'hotel_module.finance.title', icon: HiOutlineCurrencyDollar, path: '/hospitality/finance', module: 'hospitality' },
+    { id: 'hotel_employees', labelKey: 'nav.employees', icon: HiOutlineUsers, path: '/hospitality/employees', module: 'hospitality' },
+    { id: 'hotel_reports', labelKey: 'nav.reports', icon: HiOutlineChartBar, path: '/hospitality/reports', module: 'hospitality' },
+    { id: 'hospitality_ops', labelKey: 'Legacy (Ops)', icon: HiOutlineCog, path: '/hospitality/ops', module: 'hospitality' },
 
     // ============================================================================
-    // COMMERCIAL Module - Complete commerce management
+    // COMMERCIAL Module - Complete commerce management (Premium)
     // ============================================================================
-    { id: 'inventory', labelKey: 'nav.products', icon: HiOutlineCube, path: '/inventory', module: 'inventory' },
-    { id: 'stock_history', labelKey: 'nav.stock_movements', icon: HiOutlineClock, path: '/stock-movements', module: 'inventory' },
-    { id: 'orders', labelKey: 'nav.orders', icon: HiOutlineClipboardList, path: '/orders', module: 'inventory' },
-    { id: 'commercial_categories', labelKey: 'nav.categories', icon: HiOutlineTag, path: '/commercial/categories', module: 'inventory' },
-    { id: 'commercial_suppliers', labelKey: 'nav.suppliers', icon: HiOutlineTruck, path: '/commercial/suppliers', module: 'inventory' },
+    { id: 'commercial_dashboard', labelKey: 'Dashboard', icon: HiOutlineViewGrid, path: '/commercial/dashboard', module: 'commercial' },
+    { id: 'commercial_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/commercial/pos', module: 'commercial' },
+    { id: 'commercial_shifts', labelKey: 'nav.shifts', icon: HiOutlineCalculator, path: '/commercial/shifts', module: 'commercial' },
+    { id: 'commercial_history', labelKey: 'nav.history', icon: HiOutlineClock, path: '/commercial/history', module: 'commercial' },
+    { id: 'commercial_stock', labelKey: 'nav.stock_movements', icon: HiOutlineRefresh, path: '/commercial/stock', module: 'commercial' },
+    { id: 'commercial_inventory', labelKey: 'Inventário', icon: HiOutlineCube, path: '/commercial/inventory', module: 'commercial' },
+    { id: 'commercial_purchase_orders', labelKey: 'Ordens de Compra', icon: HiOutlineClipboardList, path: '/commercial/purchase-orders', module: 'commercial' },
+    { id: 'commercial_quotes', labelKey: 'Cotações', icon: HiOutlineClipboardList, path: '/commercial/quotes', module: 'commercial' },
+    { id: 'commercial_accounts_receivable', labelKey: 'Contas a Receber', icon: HiOutlineCurrencyDollarSidebar, path: '/commercial/accounts-receivable', module: 'commercial' },
+    { id: 'commercial_orders', labelKey: 'Encomendas', icon: HiOutlineDocumentReport, path: '/commercial/orders', module: 'commercial' },
+    { id: 'commercial_invoices', labelKey: 'Facturas', icon: HiOutlineDocumentText, path: '/commercial/invoices', module: 'commercial' },
+    { id: 'commercial_customers', labelKey: 'Clientes', icon: HiOutlineUserGroup, path: '/commercial/customers', module: 'commercial' },
+    { id: 'commercial_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/commercial/suppliers', module: 'commercial' },
+    { id: 'commercial_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/commercial/categories', module: 'commercial' },
+    { id: 'commercial_warehouses', labelKey: 'Armazéns', icon: HiOutlineHomeModern, path: '/warehouses', module: 'commercial' },
+    { id: 'commercial_margins', labelKey: 'Análise de Margens', icon: HiOutlineChartBar, path: '/commercial/margins', module: 'commercial' },
+    { id: 'commercial_audit', labelKey: 'Auditoria', icon: HiOutlineShieldCheck, path: '/commercial/audit', module: 'commercial' },
+    { id: 'commercial_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentReport, path: '/commercial/reports', module: 'commercial' },
+    { id: 'commercial_settings', labelKey: 'Configurações', icon: HiOutlineCog, path: '/commercial/settings', module: 'commercial' },
 
     // ============================================================================
     // LOGISTICS Module - Specific pages (only for logistics businesses)
     // ============================================================================
     { id: 'logistics_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/logistics/dashboard', module: 'logistics' },
+    { id: 'logistics_driver_panel', labelKey: 'Painel Motorista', icon: HiOutlineRectangleStack, path: '/logistics/driver-panel', module: 'logistics' },
     { id: 'logistics_vehicles', labelKey: 'Veículos', icon: HiOutlineTruck, path: '/logistics/vehicles', module: 'logistics' },
     { id: 'logistics_drivers', labelKey: 'Motoristas', icon: HiOutlineUsers, path: '/logistics/drivers', module: 'logistics' },
+    { id: 'logistics_hr', labelKey: 'logistics_module.hr.title', icon: HiOutlineUsers, path: '/logistics/hr', module: 'logistics' },
     { id: 'logistics_routes', labelKey: 'Rotas', icon: HiOutlineChartBar, path: '/logistics/routes', module: 'logistics' },
     { id: 'logistics_deliveries', labelKey: 'Entregas', icon: HiOutlineClipboardList, path: '/logistics/deliveries', module: 'logistics' },
     { id: 'logistics_parcels', labelKey: 'Encomendas', icon: HiOutlineCube, path: '/logistics/parcels', module: 'logistics' },
     { id: 'logistics_maintenance', labelKey: 'Manutenção', icon: HiOutlineCog, path: '/logistics/maintenance', module: 'logistics' },
+    { id: 'logistics_fuel', labelKey: 'logistics_module.fuel.title', icon: HiOutlineFire, path: '/logistics/fuel', module: 'logistics' },
+    { id: 'logistics_incidents', labelKey: 'logistics_module.incidents.title', icon: HiOutlineExclamationCircle, path: '/logistics/incidents', module: 'logistics' },
     { id: 'logistics_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/logistics/reports', module: 'logistics' },
 
     // ============================================================================
@@ -114,10 +266,13 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     // RESTAURANT Module - Specific pages
     // ============================================================================
-    { id: 'restaurant_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineCake, path: '/restaurant/dashboard', module: 'restaurant' },
+    { id: 'restaurant_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/restaurant/dashboard', module: 'restaurant' },
     { id: 'restaurant_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/restaurant/pos', module: 'restaurant' },
+    { id: 'restaurant_kitchen', labelKey: 'Cozinha (KDS)', icon: HiOutlineFire, path: '/restaurant/kitchen', module: 'restaurant' },
+    { id: 'restaurant_menu', labelKey: 'Cardápio / Menu', icon: HiOutlineBookOpen, path: '/restaurant/menu', module: 'restaurant' },
+    { id: 'restaurant_reservations', labelKey: 'Reservas', icon: HiOutlineCalendar, path: '/restaurant/reservations', module: 'restaurant' },
     { id: 'restaurant_tables', labelKey: 'Mesas', icon: HiOutlineCake, path: '/restaurant/tables', module: 'restaurant' },
-    { id: 'restaurant_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/restaurant/reports', module: 'restaurant' },
+    { id: 'restaurant_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/restaurant/reports', module: 'restaurant' },
 
 
     // ============================================================================
@@ -149,7 +304,7 @@ const menuItems: MenuItem[] = [
 
 export default function Sidebar() {
     const navigate = useNavigate();
-    const { sidebarOpen, toggleSidebar, alerts, companySettings } = useStore();
+    const { sidebarOpen, toggleSidebar, setSidebarOpen, alerts, companySettings } = useStore();
     const { user, logout } = useAuthStore();
     const { canViewPage } = usePermissions();
     const location = useLocation();
@@ -180,34 +335,56 @@ export default function Sidebar() {
         });
     }, [location.pathname]);
 
+    // Close sidebar on mobile when navigating (prevents overlay from blocking page content)
+    useEffect(() => {
+        if (window.innerWidth < 1024) {
+            setSidebarOpen(false);
+        }
+    }, [location.pathname]);
+
+    // Close sidebar on first mount if screen is small
+    useEffect(() => {
+        if (window.innerWidth < 1024) {
+            setSidebarOpen(false);
+        }
+    }, []);
+
+    // Modules that each have their own dedicated sidebar section
+    const SPECIALIZED_MODULES = ['pharmacy', 'commercial', 'hospitality', 'bottle_store', 'logistics', 'restaurant'];
+    // Items that are always visible regardless of module (system-level)
+    const ALWAYS_VISIBLE_IDS = ['alerts', 'fiscal', 'audit', 'backups', 'help', 'settings', 'super_admin'];
+
+    const isSuperAdmin = user?.role === 'super_admin';
+    // Determine which specialized module this user belongs to
+    const userSpecializedModule = !isSuperAdmin
+        ? SPECIALIZED_MODULES.find(m => hasModule(m))
+        : undefined;
+
+    // Resolve sidebar color theme for current user's module
+    const theme = userSpecializedModule ? (MODULE_THEMES[userSpecializedModule] || DEFAULT_THEME) : DEFAULT_THEME;
+
     const filteredMenuItems = menuItems.filter(item => {
-        // 1. Check permissions (RBAC)
+        // Super admin exclusive items
+        if (item.id === 'super_admin' && !isSuperAdmin) return false;
+
+        // Permission check (RBAC)
         if (!canViewPage(item.path)) return false;
 
-        // 2. Check active modules for this tenant
-        const coreModules = ['pos', 'crm', 'hr', 'fiscal', 'invoices', 'financial', 'audit', 'alerts', 'settings', 'reports', 'backups', 'help', 'inventory'];
-        const itemModule = (item as any).module;
+        // Super admin sees everything
+        if (isSuperAdmin) return true;
 
-        if (itemModule && !coreModules.includes(itemModule)) {
-            const moduleActive = hasModule(itemModule);
-            if (!moduleActive) return false;
+        // System-level items always visible
+        if (ALWAYS_VISIBLE_IDS.includes(item.id)) return true;
+
+        const itemModule = item.module as string | undefined;
+
+        if (userSpecializedModule) {
+            // User has a specialized module: ONLY show items for that module
+            return itemModule === userSpecializedModule;
+        } else {
+            // No specialized module (edge case): show generic core items only
+            return !itemModule || !SPECIALIZED_MODULES.includes(itemModule);
         }
-
-        const isPharmacyActive = hasModule('pharmacy');
-        const isHospitalityActive = hasModule('hospitality');
-        const isBottleStoreActive = hasModule('bottle_store');
-
-        // 3. Special Case: POS - Hide generic POS if specialized POS is active (unless super_admin)
-        if (user?.role !== 'super_admin' && item.id === 'pos' && (isPharmacyActive || isHospitalityActive || isBottleStoreActive)) {
-            return false;
-        }
-
-        // 4. Special Case: Super Admin - ONLY super_admin role
-        if (item.id === 'super_admin' && user?.role !== 'super_admin') {
-            return false;
-        }
-
-        return true;
     });
 
     // Get user initials
@@ -227,21 +404,19 @@ export default function Sidebar() {
 
     return (
         <>
-            {/* Mobile Overlay */}
+            {/* Global Overlay (dim background when sidebar is open) */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-                    onClick={toggleSidebar}
+                    className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40"
+                    onClick={() => setSidebarOpen(false)}
                 />
             )}
 
-            {/* Sidebar */}
+            {/* Sidebar - Now an Overlay (Off-Canvas) */}
             <aside
                 className={cn(
-                    'fixed top-0 left-0 h-full bg-white dark:bg-dark-800 shadow-xl z-50 transition-all duration-300 flex flex-col',
-                    sidebarOpen ? 'w-64' : 'w-20',
-                    'transform lg:translate-x-0',
-                    !sidebarOpen && 'max-lg:-translate-x-full'
+                    'fixed top-4 left-4 h-[calc(100vh-2rem)] bg-white dark:bg-dark-800 shadow-2xl z-50 transition-all duration-500 ease-in-out flex flex-col w-72 rounded-3xl border border-gray-100 dark:border-dark-700/50',
+                    sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+2rem)] opacity-0'
                 )}
             >
                 {/* Logo / Brand */}
@@ -249,7 +424,7 @@ export default function Sidebar() {
                     <div className="flex items-center gap-3 overflow-hidden">
                         {companySettings.logo ? (
                             <div className="relative group">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-primary-600 to-accent-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                                <div className={cn('absolute -inset-1 bg-gradient-to-r rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200', theme.brandGradient)}></div>
                                 <img
                                     src={companySettings.logo}
                                     alt="Logo"
@@ -257,7 +432,7 @@ export default function Sidebar() {
                                 />
                             </div>
                         ) : (
-                            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-600 via-primary-500 to-accent-500 flex items-center justify-center shadow-lg shadow-primary-500/20 shrink-0 transform transition-transform hover:scale-105">
+                            <div className={cn('w-11 h-11 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg shrink-0 transform transition-transform hover:scale-105', theme.brandGradient, theme.brandShadow)}>
                                 <span className="text-white font-black text-xl tracking-tighter">
                                     {(companySettings.tradeName || companySettings.companyName || 'S').charAt(0).toUpperCase()}
                                 </span>
@@ -270,7 +445,7 @@ export default function Sidebar() {
                                     {companySettings.tradeName || companySettings.companyName || 'MULTICORE'}
                                 </h1>
                                 <div className="flex items-center gap-1.5">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    <div className={cn('w-2 h-2 rounded-full animate-pulse', theme.dotColor)}></div>
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 truncate">
                                         {companySettings.businessType ? t(`businessType.${companySettings.businessType}`) : 'Modular ERP'}
                                     </p>
@@ -309,14 +484,14 @@ export default function Sidebar() {
                                         className={cn(
                                             'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group',
                                             isSubmenuActive || isExpanded
-                                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 font-medium shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 hover:text-primary-600 dark:hover:text-primary-400'
+                                                ? `${theme.activeBg} ${theme.activeText} font-medium shadow-sm`
+                                                : `text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${theme.hoverText}`
                                         )}
                                     >
                                         <Icon
                                             className={cn(
                                                 'w-6 h-6 flex-shrink-0',
-                                                (isSubmenuActive || isExpanded) && 'text-primary-600 dark:text-primary-400'
+                                                (isSubmenuActive || isExpanded) && theme.activeIconText
                                             )}
                                         />
                                         {sidebarOpen && (
@@ -346,14 +521,14 @@ export default function Sidebar() {
                                         className={cn(
                                             'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group',
                                             isActive
-                                                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 font-medium shadow-sm'
-                                                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 hover:text-primary-600 dark:hover:text-primary-400'
+                                                ? `${theme.activeBg} ${theme.activeText} font-medium shadow-sm`
+                                                : `text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${theme.hoverText}`
                                         )}
                                     >
                                         <Icon
                                             className={cn(
                                                 'w-6 h-6 flex-shrink-0',
-                                                isActive && 'text-primary-600 dark:text-primary-400'
+                                                isActive && theme.activeIconText
                                             )}
                                         />
                                         {sidebarOpen && (
@@ -394,8 +569,8 @@ export default function Sidebar() {
                                                     className={cn(
                                                         'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 text-sm',
                                                         subIsActive
-                                                            ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
-                                                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-700/50 hover:text-primary-600 dark:hover:text-primary-400'
+                                                            ? `${theme.subActiveBg} ${theme.subActiveText} font-medium`
+                                                            : `text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-700/50 ${theme.hoverText}`
                                                     )}
                                                 >
                                                     <SubIcon className="w-5 h-5 flex-shrink-0" />

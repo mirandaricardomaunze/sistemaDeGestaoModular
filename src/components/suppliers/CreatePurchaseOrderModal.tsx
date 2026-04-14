@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -120,7 +121,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose }: CreatePurc
             // Trigger refresh in parent if needed (would require a callback prop, but for now just close)
             window.location.reload(); // Simple refresh for now
         } catch (error) {
-            console.error('Error creating purchase order:', error);
+            logger.error('Error creating purchase order:', error);
             toast.error('Erro ao criar encomenda');
         }
     };

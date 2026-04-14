@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 ﻿import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +13,7 @@ import {
     useStepper,
     ConfirmationModal,
     ResponsiveValue,
+    PageHeader
 } from '../components/ui';
 import Pagination from '../components/ui/Pagination';
 import {
@@ -28,33 +30,37 @@ import {
     CheckoutNotifications
 } from '../components/hospitality';
 import { ExportBookingsButton, ExportRoomsButton } from '../components/common/ExportButton';
+import { generatePOSReceipt } from '../utils/documentGenerator';
+import { useStore } from '../stores/useStore';
 import { cn } from '../utils/helpers';
 import {
     HiOutlineCheck,
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass,
     HiOutlineHome,
     HiOutlineCalendar,
     HiOutlineSparkles,
-    HiOutlineClipboardList,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
     HiOutlineCog,
     HiOutlineChartBar,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineUsers,
     HiOutlinePlus,
-    HiOutlineRefresh,
-    HiOutlineUserAdd,
-} from 'react-icons/hi';
+    HiOutlineArrowPath,
+    HiOutlineUserPlus,
+    HiOutlineLightBulb,
+    HiOutlineBuildingOffice2
+} from 'react-icons/hi2';
 import { useHospitality } from '../hooks/useData';
 import { useSmartInsights } from '../hooks/useSmartInsights';
 import { SmartInsightCard } from '../components/common/SmartInsightCard';
-import { HiOutlineLightBulb } from 'react-icons/hi';
 import { useDebounce } from '../hooks/useDebounce';
 
 
 type MainTab = 'rooms' | 'history' | 'management' | 'dashboard' | 'housekeeping' | 'calendar';
 
 export default function Hospitality() {
+    const { companySettings } = useStore();
     const [searchParams] = useSearchParams();
     const initialTab = (searchParams.get('tab') as MainTab) || 'rooms';
     const [activeMainTab, setActiveMainTab] = useState<MainTab>(initialTab);
@@ -78,7 +84,6 @@ export default function Hospitality() {
     useTranslation();
     const {
         rooms,
-        bookings: bookingHistory,
         pagination: roomPaginationMeta,
         metrics,
         isLoading,
@@ -112,6 +117,7 @@ export default function Hospitality() {
     const [historyPageSize, setHistoryPageSize] = useState(10);
     const [historyMeta, setHistoryMeta] = useState<any>(null);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [bookingHistory, setBookingHistory] = useState<any[]>([]);
 
     const [selectedRoom, setSelectedRoom] = useState<any>(null);
     const [editingRoom, setEditingRoom] = useState<any>(null);
@@ -157,9 +163,10 @@ export default function Hospitality() {
         setHistoryLoading(true);
         try {
             const res = await fetchBookings({ page: p, limit: historyPageSize });
+            if (res?.data) setBookingHistory(res.data);
             if (res?.pagination) setHistoryMeta(res.pagination);
         } catch (err) {
-            console.error('Error fetching history:', err);
+            logger.error('Error fetching history:', err);
         } finally {
             setHistoryLoading(false);
         }
@@ -172,29 +179,27 @@ export default function Hospitality() {
         }
     }, [activeMainTab, historyPage, fetchHistory]);
 
-    const handleCheckIn = async (e?: React.FormEvent) => {
-        if (e) e.preventDefault();
-        if (!selectedRoom || !checkInData.customerName) return;
+    const handleCheckIn = async (modalData: any) => {
+        if (!selectedRoom || !modalData.customerName) return;
 
         try {
             await createBooking({
                 roomId: selectedRoom.id,
                 customerId: null,
-                customerName: checkInData.customerName,
-                guestCount: parseInt(checkInData.guestCount),
-                guestDocumentType: checkInData.guestDocumentType,
-                guestDocumentNumber: checkInData.guestDocumentNumber,
-                guestNationality: checkInData.guestNationality,
-                guestPhone: checkInData.guestPhone,
+                customerName: modalData.customerName,
+                guestCount: parseInt(modalData.guestCount) || 1,
+                guestDocumentType: modalData.guestDocumentType,
+                guestDocumentNumber: modalData.guestDocumentNumber,
+                guestNationality: modalData.guestNationality,
+                guestPhone: modalData.guestPhone,
                 checkIn: new Date().toISOString(),
-                checkOut: checkInData.checkOutDate ? new Date(checkInData.checkOutDate).toISOString() : null,
-                totalPrice: parseFloat(checkInData.totalPrice) || null,
-                mealPlan: checkInData.mealPlan,
-                notes: checkInData.notes
+                checkOut: modalData.checkOutDate ? new Date(modalData.checkOutDate).toISOString() : null,
+                totalPrice: parseFloat(modalData.totalPrice) || null,
+                mealPlan: modalData.mealPlan,
+                notes: modalData.notes
             });
             toast.success('Check-in realizado com sucesso!');
             setIsCheckInModalOpen(false);
-            checkInStepper.reset();
             setCheckInData({
                 customerName: '',
                 guestCount: '1',
@@ -218,10 +223,40 @@ export default function Hospitality() {
         setIsCheckoutModalOpen(true);
     };
 
-    const performCheckout = async () => {
+    const performCheckout = async (sale?: any) => {
         refetch();
         setIsCheckoutModalOpen(false);
         setSelectedBookingForCheckout(null);
+
+        if (sale) {
+            toast.success(
+                (t) => (
+                    <div className="flex flex-col gap-2">
+                        <span>Check-out concluído na perfeição!</span>
+                        <button
+                            onClick={() => {
+                                const companyInfo = {
+                                    name: companySettings?.companyName || 'Empresa',
+                                    address: companySettings?.address || '',
+                                    phone: companySettings?.phone || '',
+                                    email: companySettings?.email || '',
+                                    taxId: companySettings?.taxId || '',
+                                    logo: companySettings?.logo
+                                };
+                                generatePOSReceipt(sale, companyInfo);
+                                toast.dismiss(t.id);
+                            }}
+                            className="bg-white text-primary-600 px-3 py-1 rounded text-sm font-medium hover:bg-gray-50 border border-primary-200"
+                        >
+                            Imprimir Recibo Fiscal
+                        </button>
+                    </div>
+                ),
+                { duration: 6000 }
+            );
+        } else {
+            toast.success('Check-out concluído com sucesso!');
+        }
     };
 
     const handleRoomSubmit = async (e: React.FormEvent) => {
@@ -248,17 +283,15 @@ export default function Hospitality() {
         } catch (err) { }
     };
 
-    const handleConsumptionSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleConsumptionSubmit = async (modalData: any) => {
         const activeBooking = selectedRoom?.bookings?.[0];
         if (!activeBooking) return;
         try {
             await addConsumption(activeBooking.id, {
-                productId: consumptionData.productId,
-                quantity: consumptionData.quantity
+                productId: modalData.productId,
+                quantity: modalData.quantity
             });
             setIsConsumptionModalOpen(false);
-            setConsumptionData({ productId: '', quantity: 1 });
         } catch (err) { }
     };
 
@@ -399,32 +432,43 @@ export default function Hospitality() {
 
     return (
         <div className="space-y-6 px-2 pt-6 pb-6 md:px-6">
-            {/* Module Header Card */}
-            <div className="bg-white dark:bg-dark-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">Hospedagem & Hotelaria</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Controle de Ocupação, Reservas e Consumos</p>
-                    </div>
-                    <div className="flex flex-wrap gap-3">
-                        <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-5 h-5" />} onClick={() => refetch()}>Actualizar</Button>
+            <PageHeader 
+                title="Hospedagem & Hotelaria"
+                subtitle="Controle de Ocupação, Reservas e Consumos"
+                icon={<HiOutlineBuildingOffice2 />}
+                actions={
+                    <>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} 
+                            onClick={() => refetch()}
+                        >
+                            Actualizar
+                        </Button>
                         {activeMainTab === 'history' && <ExportBookingsButton data={bookingHistory} />}
                         {activeMainTab === 'rooms' && <ExportRoomsButton data={rooms} />}
                         {activeMainTab === 'rooms' && (
-                            <Button size="sm" leftIcon={<HiOutlineUserAdd className="w-5 h-5" />} onClick={() => { setSelectedRoom(null); setIsCheckInModalOpen(true); }}>Novo Check-in</Button>
+                            <Button 
+                                size="sm" 
+                                className="font-black text-[10px] uppercase tracking-widest"
+                                leftIcon={<HiOutlineUserPlus className="w-5 h-5" />} 
+                                onClick={() => { setSelectedRoom(null); setIsCheckInModalOpen(true); }}
+                            >
+                                Novo Check-in
+                            </Button>
                         )}
-                    </div>
-                </div>
-
-                {/* Responsive Tabs Navigation */}
-                <div className="mt-6 border-b border-gray-100 dark:border-dark-700">
+                    </>
+                }
+                tabs={
                     <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveMainTab(tab.id as MainTab)}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-bold border-b-2 transition-all whitespace-nowrap uppercase tracking-wider",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
                                     activeMainTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
@@ -436,16 +480,17 @@ export default function Hospitality() {
                             </button>
                         ))}
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             {/* Quick Actions (only on rooms tab) */}
             {activeMainTab === 'rooms' && (
-                <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700">
+                <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-100/50 dark:bg-dark-800/50 p-3 rounded-2xl border-none">
                     <div className="flex flex-wrap items-center gap-2">
                         <Button
                             variant={filter === 'all' ? 'primary' : 'ghost'}
                             size="sm"
+                            className="font-black text-[10px] uppercase tracking-widest"
                             onClick={() => setFilter('all')}
                         >
                             Todos
@@ -453,6 +498,7 @@ export default function Hospitality() {
                         <Button
                             variant={filter === 'available' ? 'primary' : 'ghost'}
                             size="sm"
+                            className="font-black text-[10px] uppercase tracking-widest"
                             onClick={() => setFilter('available')}
                         >
                             Disponíveis ({metrics.available})
@@ -460,6 +506,7 @@ export default function Hospitality() {
                         <Button
                             variant={filter === 'occupied' ? 'primary' : 'ghost'}
                             size="sm"
+                            className="font-black text-[10px] uppercase tracking-widest"
                             onClick={() => setFilter('occupied')}
                         >
                             Ocupados ({metrics.occupied})
@@ -467,24 +514,27 @@ export default function Hospitality() {
                         <Button
                             variant={filter === 'dirty' ? 'primary' : 'ghost'}
                             size="sm"
+                            className="font-black text-[10px] uppercase tracking-widest"
                             onClick={() => setFilter('dirty')}
                         >
-                            Para Limpar ({metrics.dirty})
+                            Limpeza ({metrics.dirty})
                         </Button>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                             <Input
                                 placeholder="Procurar quarto..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10 w-full sm:w-64"
+                                className="pl-10 w-full sm:w-64 bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
                             />
                         </div>
                         <Button
                             variant="primary"
+                            size="sm"
+                            className="font-black text-[10px] uppercase tracking-widest h-10 px-6"
                             leftIcon={<HiOutlinePlus className="w-5 h-5" />}
                             onClick={() => setIsRoomModalOpen(true)}
                         >
@@ -571,7 +621,7 @@ export default function Hospitality() {
                                 {/* Rooms Grid */}
                                 {filteredRooms.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                        {filteredRooms.map((room) => (
+                                        {filteredRooms.map((room: any) => (
                                             <RoomCard
                                                 key={room.id}
                                                 room={room}
@@ -627,24 +677,16 @@ export default function Hospitality() {
                 onClose={() => {
                     setIsCheckInModalOpen(false);
                     setSelectedRoom(null);
-                    checkInStepper.reset();
                 }}
-                onConfirm={handleCheckIn}
+                onCheckIn={handleCheckIn}
                 room={selectedRoom}
-                onRoomSelect={setSelectedRoom}
-                availableRooms={rooms.filter(r => r.status === 'available')}
-                data={checkInData}
-                setData={setCheckInData}
-                stepper={checkInStepper}
-                steps={checkInSteps}
+                availableRooms={rooms.filter((r: any) => r.status === 'available')}
             />
 
             <ConsumptionModal
                 isOpen={isConsumptionModalOpen}
                 onClose={() => setIsConsumptionModalOpen(false)}
-                onAdd={handleConsumptionSubmit}
-                data={consumptionData}
-                setData={setConsumptionData}
+                onConfirm={handleConsumptionSubmit}
             />
 
             <GuestProfileModal

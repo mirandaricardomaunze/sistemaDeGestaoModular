@@ -77,7 +77,7 @@ export default function ExtendStayModal({
             toast.success(`Estadia estendida por ${additionalNights} noite${additionalNights > 1 ? 's' : ''}`);
             onSuccess?.();
             onClose();
-        } catch (error: unknown) {
+        } catch (error: any) {
             toast.error(error.message || 'Erro ao estender estadia');
         } finally {
             setIsSubmitting(false);

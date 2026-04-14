@@ -2,6 +2,18 @@ import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { buildPaginationMeta } from '../utils/pagination';
 import { pdfService } from './pdfService';
+import { stockService } from './StockService';
+import { logger } from '../utils/logger';
+import type { CreateOrderInput, UpdateOrderInput, UpdateOrderStatusInput } from '../validation/orders';
+
+// Valid status transitions: enforces sequential flow
+const validTransitions: Record<string, string[]> = {
+    created: ['printed', 'cancelled'],
+    printed: ['separated', 'cancelled'],
+    separated: ['completed', 'cancelled'],
+    completed: [],
+    cancelled: [],
+};
 
 export class OrdersService {
     async list(params: any, companyId: string) {
@@ -40,53 +52,79 @@ export class OrdersService {
         return order;
     }
 
-    async create(data: any, companyId: string) {
+    async create(data: CreateOrderInput, companyId: string) {
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
         const count = await prisma.customerOrder.count({ where: { companyId } });
         const orderNumber = `ENC-${dateStr}-${String(count + 1).padStart(4, '0')}`;
 
+        const {
+            customerName, customerPhone, customerEmail, customerAddress,
+            customerId, items, total, priority, paymentMethod, deliveryDate, notes
+        } = data;
+
         return await prisma.$transaction(async (tx) => {
-            // 1. Verify and reserve stock for each item
-            for (const item of data.items) {
-                const product = await tx.product.findFirst({
-                    where: { id: item.productId, companyId }
+            // 0. Validate customer credit limit if a customer is linked
+            if (customerId) {
+                const customer = await tx.customer.findFirst({
+                    where: { id: customerId, companyId }
                 });
-
-                if (!product) {
-                    throw ApiError.notFound(`Produto não encontrado: ${item.productName || item.productId}`);
+                if (customer && customer.creditLimit !== null) {
+                    const openOrdersTotal = await tx.customerOrder.aggregate({
+                        where: { customerId, companyId, status: { notIn: ['cancelled', 'completed'] } },
+                        _sum: { total: true }
+                    });
+                    const openInvoicesTotal = await tx.invoice.aggregate({
+                        where: { customerId, companyId, status: { in: ['draft', 'sent', 'partial', 'overdue'] as any[] } },
+                        _sum: { amountDue: true }
+                    });
+                    const currentExposure =
+                        Number(openOrdersTotal._sum.total ?? 0) +
+                        Number((openInvoicesTotal._sum as any).amountDue ?? 0);
+                    if (currentExposure + total > Number(customer.creditLimit)) {
+                        throw ApiError.badRequest(
+                            `Limite de crédito excedido para "${customer.name}". ` +
+                            `Limite: ${Number(customer.creditLimit).toFixed(2)} MT, ` +
+                            `Exposição atual: ${currentExposure.toFixed(2)} MT, ` +
+                            `Este pedido: ${total.toFixed(2)} MT.`
+                        );
+                    }
                 }
-
-                const availableStock = product.currentStock - product.reservedStock;
-                if (availableStock < item.quantity) {
-                    throw ApiError.badRequest(`Estoque insuficiente para o produto: ${product.name}. Disponível: ${availableStock}, Solicitado: ${item.quantity}`);
-                }
-
-                // Reserve the stock
-                await tx.product.update({
-                    where: { id: product.id },
-                    data: { reservedStock: { increment: item.quantity } }
-                });
             }
 
-            // 2. Create the order
+            // 1. Verify and reserve stock for each item
+            for (const item of items) {
+                await stockService.reserveStock(item.productId, item.quantity, companyId, tx);
+            }
+
+            // 2. Create the order with only valid fields
             const order = await tx.customerOrder.create({
                 data: {
-                    ...data,
                     orderNumber,
+                    customerName,
+                    customerPhone,
+                    customerEmail: customerEmail || null,
+                    customerAddress: customerAddress || null,
+                    customerId: customerId || null,
+                    total,
+                    status: 'created',
+                    priority: priority || 'normal',
+                    paymentMethod: paymentMethod || null,
+                    deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
+                    notes: notes || null,
                     companyId,
                     items: {
-                        create: data.items.map((item: any) => ({
+                        create: items.map((item: any) => ({
                             productId: item.productId,
                             productName: item.productName || '',
                             quantity: item.quantity,
-                            price: item.unitPrice,
-                            total: item.quantity * item.unitPrice
+                            price: item.price || item.unitPrice,
+                            total: item.quantity * (item.price || item.unitPrice)
                         }))
                     },
                     transitions: {
                         create: { status: 'created', responsibleName: 'Sistema' }
                     }
-                } as any,
+                },
                 include: { items: true, transitions: true }
             });
 
@@ -94,7 +132,7 @@ export class OrdersService {
         });
     }
 
-    async updateStatus(id: string, data: any, companyId: string) {
+    async updateStatus(id: string, data: UpdateOrderStatusInput, companyId: string) {
         const existing = await prisma.customerOrder.findFirst({
             where: { id, companyId },
             include: { items: true }
@@ -103,9 +141,17 @@ export class OrdersService {
 
         const { status, responsibleName, notes } = data;
 
-        // Block multiple cancellations or completions
-        if (existing.status === 'cancelled' || existing.status === 'completed' || existing.status === 'delivered') {
-            throw ApiError.badRequest(`Esta encomenda já se encontra no estado: ${existing.status}`);
+        // Enforce sequential status transitions
+        const allowed = validTransitions[existing.status] || [];
+        if (!allowed.includes(status)) {
+            if (existing.status === 'cancelled' || existing.status === 'completed') {
+                throw ApiError.badRequest(`Esta encomenda já se encontra no estado final: ${existing.status}`);
+            }
+            const allowedLabels = allowed.join(', ') || 'nenhum';
+            throw ApiError.badRequest(
+                `Transição inválida: não é possível mudar de "${existing.status}" para "${status}". ` +
+                `Próximos estados permitidos: ${allowedLabels}`
+            );
         }
 
         return await prisma.$transaction(async (tx) => {
@@ -116,11 +162,7 @@ export class OrdersService {
                 const itemsToReport = [];
 
                 for (const item of existing.items) {
-                    await tx.product.update({
-                        where: { id: item.productId },
-                        // Ensure we don't go below 0 for reserved stock
-                        data: { reservedStock: { decrement: item.quantity } }
-                    });
+                    await stockService.releaseReservation(item.productId, item.quantity, companyId, tx);
 
                     totalCanceled += item.total.toNumber ? item.total.toNumber() : Number(item.total);
                     itemsToReport.push({
@@ -130,8 +172,16 @@ export class OrdersService {
                     });
                 }
 
-                // Generate standard PDF cancellation document here via pdfService
-                const companyInfo = { name: "A Minha Empresa", address: "Localização", nuit: "123456789" }; // this should ideally come from tenant config
+                // Fetch real company info for the cancellation document
+                const company = await prisma.company.findUnique({
+                    where: { id: companyId },
+                    select: { name: true, address: true, nuit: true }
+                });
+                const companyInfo = {
+                    name: company?.name || 'N/A',
+                    address: company?.address || '',
+                    nuit: company?.nuit || ''
+                };
                 const reportData = {
                     orderNumber: existing.orderNumber,
                     customerName: 'Cliente Associado',
@@ -144,45 +194,13 @@ export class OrdersService {
                 try {
                     cancellationDocUrl = await pdfService.generateReport(reportData, 'order_cancellation', companyInfo);
                 } catch (err) {
-                    console.error("Failed to generate cancellation PDF", err);
+                    logger.error('Failed to generate cancellation PDF', { orderId: id, error: err });
                 }
             }
 
-            // If the order is completed/delivered, deduct from current stock, and release reserved stock
-            if (status === 'completed' || status === 'delivered') {
-                for (const item of existing.items) {
-                    const product = await tx.product.findFirst({ where: { id: item.productId } });
-                    if (product) {
-                        const newReserved = Math.max(0, product.reservedStock - item.quantity);
-                        const newStock = Math.max(0, product.currentStock - item.quantity);
-
-                        await tx.product.update({
-                            where: { id: item.productId },
-                            data: {
-                                reservedStock: newReserved,
-                                currentStock: newStock
-                            }
-                        });
-
-                        // Record stock movement for the sale consummation
-                        await tx.stockMovement.create({
-                            data: {
-                                productId: item.productId,
-                                warehouseId: null, // Depending on system logic, maybe order specifies warehouse
-                                movementType: 'sale',
-                                quantity: -item.quantity,
-                                balanceBefore: product.currentStock,
-                                balanceAfter: newStock,
-                                reason: `Venda via Encomenda ${existing.orderNumber}`,
-                                performedBy: responsibleName || 'Sistema',
-                                companyId: companyId,
-                                originModule: 'inventory',
-                                reference: existing.orderNumber
-                            }
-                        });
-                    }
-                }
-            }
+            // If the order is completed/delivered, do nothing to the stock.
+            // Stock deduction and reservation release happens on Invoicing.
+            // The reservation is kept until invoiced or cancelled.
 
             const updateData: any = {
                 status: status as any,
@@ -204,7 +222,7 @@ export class OrdersService {
         });
     }
 
-    async update(id: string, data: any, companyId: string) {
+    async update(id: string, data: UpdateOrderInput, companyId: string) {
         const existing = await prisma.customerOrder.findFirst({
             where: { id, companyId }
         });
@@ -229,6 +247,18 @@ export class OrdersService {
         });
         if (result.count === 0) throw ApiError.notFound('Encomenda não encontrada');
         return true;
+    }
+
+    async incrementPrintCount(id: string, companyId: string) {
+        const order = await prisma.customerOrder.findFirst({
+            where: { id, companyId }
+        });
+        if (!order) throw ApiError.notFound('Encomenda não encontrada');
+
+        return await prisma.customerOrder.update({
+            where: { id },
+            data: { printCount: { increment: 1 } }
+        });
     }
 }
 

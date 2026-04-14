@@ -1,4 +1,4 @@
-﻿import api from './client';
+import api from './client';
 
 // ============================================================================
 // Invoices API
@@ -10,6 +10,7 @@ export const invoicesAPI = {
         customerId?: string;
         startDate?: string;
         endDate?: string;
+        originModule?: string;
     }) => {
         const response = await api.get('/invoices', { params });
         return response.data;
@@ -31,19 +32,22 @@ export const invoicesAPI = {
         customerEmail?: string;
         customerPhone?: string;
         customerAddress?: string;
-        customerDocument?: string;
+        customerNuit?: string;
         items: Array<{
             productId?: string;
             description: string;
             quantity: number;
             unitPrice: number;
             discount?: number;
+            total: number;
         }>;
+        subtotal: number;
         discount?: number;
-        tax?: number;
+        taxAmount?: number;
+        total: number;
         dueDate: string;
         notes?: string;
-        terms?: string;
+        paymentTerms?: string;
         orderId?: string;
         orderNumber?: string;
     }) => {
@@ -79,6 +83,16 @@ export const invoicesAPI = {
         return response.data;
     },
 
+    downloadPdf: async (id: string): Promise<Blob> => {
+        const response = await api.get(`/invoices/${id}/pdf`, { responseType: 'blob' });
+        return response.data;
+    },
+
+    sendByEmail: async (id: string, email?: string): Promise<{ message: string }> => {
+        const response = await api.post(`/invoices/${id}/send-email`, { email });
+        return response.data;
+    },
+
     createCreditNote: async (data: {
         originalInvoiceId: string;
         customerId?: string;
@@ -100,5 +114,10 @@ export const invoicesAPI = {
     getCreditNotes: async (params?: { invoiceId?: string }) => {
         const response = await api.get('/invoices/credit-notes', { params });
         return response.data.data || response.data; // Handle both paginated and direct array responses
+    },
+
+    convertOrderToInvoice: async (orderId: string) => {
+        const response = await api.post(`/invoices/convert-order/${orderId}`);
+        return response.data;
     },
 };

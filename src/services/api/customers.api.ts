@@ -1,11 +1,11 @@
-﻿import api from './client';
+import api from './client';
 
 // ============================================================================
 // Customers API
 // ============================================================================
 
 export const customersAPI = {
-    getAll: async (params?: { search?: string; type?: string }) => {
+    getAll: async (params?: { search?: string; type?: string; originModule?: string }) => {
         const response = await api.get('/customers', { params });
         return response.data;
     },

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -39,7 +40,7 @@ import { useTenant } from '../../contexts/TenantContext';
 export default function Header() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { theme, toggleTheme, toggleSidebar } = useStore();
+    const { theme, toggleTheme, sidebarOpen, toggleSidebar, setSidebarOpen } = useStore();
     const { user, logout } = useAuthStore();
     const { isOnline, isSyncing, pendingCount, syncAll } = useOfflineSync();
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -212,7 +213,7 @@ export default function Header() {
                     sales: getItems(salesRes)
                 });
             } catch (error) {
-                console.error('Search failed:', error);
+                logger.error('Search failed:', error);
             } finally {
                 setIsSearching(false);
             }
@@ -236,7 +237,8 @@ export default function Header() {
                     {/* Mobile Menu Toggle */}
                     <button
                         onClick={toggleSidebar}
-                        className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300"
+                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300 transition-colors"
+                        title="Menu"
                     >
                         <HiOutlineMenu className="w-6 h-6" />
                     </button>
@@ -739,7 +741,6 @@ export default function Header() {
                 </div>
             </div>
 
-            {/* Click outside to close dropdowns */}
             {showUserMenu && (
                 <div
                     className="fixed inset-0"

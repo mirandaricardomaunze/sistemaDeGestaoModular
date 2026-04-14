@@ -3,8 +3,8 @@
  * Provides consistent A4 paper preview with print functionality
  */
 
-import { useRef, ReactNode } from 'react';
-import { HiOutlinePrinter, HiOutlineX, HiOutlineDownload } from 'react-icons/hi';
+import { useRef, type ReactNode } from 'react';
+import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
 import { Modal, Button, Card } from '../ui';
 import { useStore } from '../../stores/useStore';
 import { format } from 'date-fns';
@@ -60,31 +60,42 @@ export default function DocumentPreviewModal({
                             body { 
                                 margin: 0; 
                                 padding: 0; 
-                                -webkit-print-color-adjust: exact; 
-                                print-color-adjust: exact; 
+                                -webkit-print-color-adjust: exact !important; 
+                                print-color-adjust: exact !important; 
                                 font-family: 'Inter', sans-serif; 
                                 font-size: 10pt; 
+                                background: white !important;
+                                color: black !important;
                             }
                             .no-print { display: none !important; }
                             .shadow-lg { box-shadow: none !important; }
                         }
                         body {
                             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                            background: #fff;
-                            color: #000;
+                            background: #ffffff !important;
+                            color: #000000 !important;
                         }
                         .document-container {
                             max-width: 210mm;
                             min-height: 297mm;
                             margin: 0 auto;
                             padding: 15mm;
+                            background: white !important;
+                        }
+                        .document-container * {
+                            background-color: transparent !important;
+                        }
+                        .document-container .bg-white,
+                        .document-container table,
+                        .document-container div[style*="background"] {
+                            background-color: white !important;
                         }
                         .company-header {
                             display: flex;
                             justify-content: space-between;
                             align-items: flex-start;
                             padding-bottom: 20px;
-                            border-bottom: 2px solid #6366f1;
+                            border-bottom: 2px solid #1a1a1a;
                             margin-bottom: 20px;
                         }
                         .company-logo img {
@@ -146,10 +157,11 @@ export default function DocumentPreviewModal({
             </div>
 
             {/* Document Preview Container */}
-            <Card padding="none" className="h-[calc(100vh-200px)] overflow-auto bg-gray-200 dark:bg-dark-950 p-4 sm:p-8">
+            <Card padding="none" className="h-[calc(100vh-200px)] overflow-auto !bg-white dark:!bg-white p-4 sm:p-8 border-none shadow-none flex justify-center">
                 <div
                     ref={printRef}
-                    className="bg-white text-black shadow-lg p-6 sm:p-12 max-w-[850px] w-full mx-auto relative flex flex-col border border-gray-300 min-h-[29.7cm]"
+                    className="bg-white text-black shadow-2xl p-6 sm:p-12 max-w-[850px] w-full mx-auto relative flex flex-col border border-gray-100 min-h-[29.7cm] !bg-white !text-black"
+                    style={{ colorScheme: 'light', backgroundColor: '#ffffff' }}
                 >
                     {/* Company Header */}
                     {showCompanyHeader && (

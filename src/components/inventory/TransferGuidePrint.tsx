@@ -1,6 +1,7 @@
 ﻿import { useRef } from 'react';
 import { format, parseISO } from 'date-fns';
-import { HiOutlinePrinter, HiOutlineX, HiOutlineOfficeBuilding, HiOutlineTruck } from 'react-icons/hi';
+import { ptBR } from 'date-fns/locale';
+import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
 import { Modal, Button, Card } from '../ui';
 import { useStore } from '../../stores/useStore';
 import { useWarehouses } from '../../hooks/useData';
@@ -13,14 +14,19 @@ interface TransferGuidePrintProps {
     transfer: StockTransfer;
 }
 
+/* ── Shared inline style fragments (DRY) ─────────────────────── */
+const sectionBar = { background: '#4a4a4a', padding: '6px 16px' } as const;
+const sectionTitle = { fontSize: '11px', fontWeight: 700, color: 'white', textTransform: 'uppercase' as const, letterSpacing: '2px', margin: 0 };
+const fieldLabel = { fontSize: '11px', fontWeight: 700, color: '#4b5563', minWidth: '100px' } as const;
+const fieldValue = { flex: 1, fontSize: '13px', color: '#111827', paddingBottom: '2px', borderBottom: '1px solid #999' } as const;
+const fieldRow = { display: 'flex', alignItems: 'baseline', gap: '4px' } as const;
+
 export default function TransferGuidePrint({ isOpen, onClose, transfer }: TransferGuidePrintProps) {
     const printRef = useRef<HTMLDivElement>(null);
-    const { companySettings } = useStore();
+    const { companySettings: company } = useStore();
     const { warehouses: warehousesData } = useWarehouses();
 
-    // Ensure warehouses is always an array
     const warehouses = Array.isArray(warehousesData) ? warehousesData : [];
-
     const getWarehouse = (id: string) => warehouses.find(w => w.id === id);
     const source = getWarehouse(transfer.sourceWarehouseId);
     const target = getWarehouse(transfer.targetWarehouseId);
@@ -35,30 +41,22 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
             return;
         }
 
-        // Collect all styles from the main document
-        const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
-            .map(style => style.outerHTML)
-            .join('');
-
-        const logoHtml = companySettings.logo
-            ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${companySettings.logo}" style="max-height: 80px;" /></div>`
-            : '';
-
         printWindow.document.write(`
             <html>
                 <head>
                     <title>Guia de Transferência ${transfer.number}</title>
-                    ${styles}
-                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
                     <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body { font-family: 'Inter', Arial, sans-serif; padding: 30px; max-width: 800px; margin: 0 auto; color: #1a1a1a; }
+                        table { width: 100%; border-collapse: collapse; }
                         @media print {
-                            @page { margin: 0; size: auto; }
-                            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            @page { margin: 15mm; size: A4; }
+                            body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                         }
                     </style>
                 </head>
                 <body>
-                    ${logoHtml}
                     ${content.innerHTML}
                 </body>
             </html>
@@ -71,108 +69,135 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
             printWindow.print();
             printWindow.close();
         }, 250);
+
+        toast.success('Guia enviada para impressão!');
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Visualizar Guia`} size="xl">
-            <div className="flex justify-end gap-2 mb-4 no-print">
+        <Modal isOpen={isOpen} onClose={onClose} title="Visualizar Guia" size="xl">
+            <div className="flex justify-end gap-2 mb-4">
                 <Button variant="outline" onClick={onClose}>
                     <HiOutlineX className="w-4 h-4 mr-2" />
                     Fechar
                 </Button>
-                <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button onClick={handlePrint}>
                     <HiOutlinePrinter className="w-4 h-4 mr-2" />
                     Imprimir
                 </Button>
             </div>
 
-            <Card padding="none" className="max-h-[85vh] overflow-y-auto bg-gray-100 dark:bg-dark-950 p-4 md:p-8">
-                <div ref={printRef} className="bg-white text-gray-900 shadow-lg p-6 max-w-[800px] w-full mx-auto relative flex flex-col">
-                    <style>{`
-                        @media print {
-                            @page { margin: 10mm; size: auto; }
-                            body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Inter', sans-serif; }
-                            .no-print { display: none !important; }
-                            .shadow-lg { box-shadow: none !important; }
-                            .bg-gray-50 { background-color: #f9fafb !important; }
-                        }
-                        .header-line { border-bottom: 2px solid #2563eb; }
-                        .text-primary { color: #2563eb; }
-                        .bg-header { background-color: #2563eb; color: white; }
-                    `}</style>
-
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-4 pb-4 header-line">
-                        <div className="flex gap-3">
-                            {companySettings.logo ? (
-                                <img src={companySettings.logo} alt="Logo" className="w-12 h-12 object-contain" />
+            <Card padding="none" className="max-h-[70vh] overflow-y-auto bg-gray-100 dark:bg-dark-900 flex justify-center p-4">
+                <div
+                    ref={printRef}
+                    className="bg-white text-gray-900 shadow-xl w-full max-w-[800px] mx-auto relative"
+                    style={{ fontFamily: "'Inter', Arial, Helvetica, sans-serif", position: 'relative', background: 'white', color: '#1a1a1a', maxWidth: '800px', margin: '0 auto' }}
+                >
+                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* TOP HEADER: Company + GUIA DE TRANSFERÊNCIA       */}
+                    {/* ═══════════════════════════════════════════════════ */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '32px 32px 20px', borderBottom: '3px solid #333' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            {company.logo ? (
+                                <img src={company.logo} alt="Logo" style={{ width: '64px', height: '64px', objectFit: 'contain' }} />
                             ) : (
-                                <div className="w-12 h-12 bg-blue-100 rounded flex items-center justify-center text-blue-600">
-                                    <HiOutlineOfficeBuilding className="w-8 h-8" />
+                                <div style={{ width: '64px', height: '64px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #34d399, #3b82f6)' }}>
+                                    <span style={{ color: 'white', fontWeight: 900, fontSize: '24px' }}>M</span>
                                 </div>
                             )}
                             <div>
-                                <h1 className="text-lg font-bold text-gray-900 uppercase tracking-tight">{companySettings?.tradeName ?? 'Empresa'}</h1>
-                                <div className="text-[10px] text-gray-500 mt-0.5 space-y-0">
-                                    <p>{companySettings?.address ?? ''}, {companySettings?.city ?? ''}</p>
-                                    <p>Tel: {companySettings?.phone ?? ''}</p>
-                                </div>
+                                <p style={{ fontWeight: 900, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', lineHeight: '1.2', color: '#1a1a1a' }}>
+                                    {company.tradeName || company.companyName}
+                                </p>
+                                {company.address && (
+                                    <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>{company.address}{company.city ? `, ${company.city}` : ''}</p>
+                                )}
+                                {company.phone && (
+                                    <p style={{ fontSize: '11px', color: '#6b7280' }}>Tel: {company.phone}</p>
+                                )}
+                                {company.email && (
+                                    <p style={{ fontSize: '11px', color: '#6b7280' }}>{company.email}</p>
+                                )}
+                                {company.taxId && (
+                                    <p style={{ fontSize: '11px', color: '#6b7280' }}>NUIT: {company.taxId}</p>
+                                )}
                             </div>
                         </div>
-                        <div className="text-right">
-                            <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1">
-                                Guia de Transferência
-                            </span>
-                            <h2 className="text-xl font-bold text-gray-900">{transfer.number}</h2>
-                            <p className="text-[10px] text-gray-500 mt-0.5">Data: <span className="font-medium text-gray-900">{format(parseISO(transfer.date), 'dd/MM/yyyy HH:mm')}</span></p>
+                        <div style={{ textAlign: 'right' }}>
+                            <h1 style={{ fontWeight: 900, fontSize: '20px', letterSpacing: '-0.5px', fontFamily: 'Georgia, "Times New Roman", serif', color: '#1a1a1a' }}>
+                                GUIA DE TRANSFERÊNCIA
+                            </h1>
+                            <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px', fontFamily: 'monospace', letterSpacing: '1px' }}>{transfer.number}</p>
+                            <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px' }}>
+                                {format(parseISO(transfer.date), 'dd/MM/yyyy HH:mm')}
+                            </p>
                         </div>
                     </div>
 
-                    {/* Warehouses Info */}
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 relative">
-                            <div className="absolute top-0 right-0 p-1 text-gray-300">
-                                <HiOutlineTruck className="w-8 h-8 opacity-10" />
-                            </div>
-                            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Origem</h3>
-                            <p className="font-bold text-base text-gray-900">{source?.name}</p>
-                            <p className="text-xs text-gray-600 line-clamp-1">{source?.location}</p>
+                    {/* ═══════════════════════════════ */}
+                    {/* SECTION: ARMAZÉNS              */}
+                    {/* ═══════════════════════════════ */}
+                    <div style={sectionBar}>
+                        <h3 style={sectionTitle}>Armazéns</h3>
+                    </div>
+                    <div style={{ padding: '20px 32px', borderBottom: '1px solid #e5e5e5', display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '40px' }}>
+                        {/* Origem */}
+                        <div style={{ padding: '12px 16px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Origem</p>
+                            <p style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>{source?.name || 'N/A'}</p>
+                            {source?.location && <p style={{ fontSize: '11px', color: '#4b5563' }}>{source.location}</p>}
                         </div>
-                        <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wide mb-1">Destino</h3>
-                            <p className="font-bold text-base text-gray-900">{target?.name}</p>
-                            <p className="text-xs text-gray-600 line-clamp-1">{target?.location}</p>
+                        {/* Destino */}
+                        <div style={{ padding: '12px 16px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                            <p style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Destino</p>
+                            <p style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>{target?.name || 'N/A'}</p>
+                            {target?.location && <p style={{ fontSize: '11px', color: '#4b5563' }}>{target.location}</p>}
                         </div>
                     </div>
 
-                    {/* Items Table */}
-                    <div className="mb-4 border rounded overflow-hidden border-gray-200">
-                        <table className="w-full text-xs">
-                            <thead className="bg-header">
+                    {/* ═══════════════════════════════ */}
+                    {/* SECTION: ITENS TRANSFERIDOS    */}
+                    {/* ═══════════════════════════════ */}
+                    <div style={sectionBar}>
+                        <h3 style={sectionTitle}>Itens Transferidos</h3>
+                    </div>
+                    <div style={{ padding: '16px 32px' }}>
+                        <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+                            <thead>
                                 <tr>
-                                    <th className="px-3 py-2 text-left font-semibold w-32">Cód. Barras</th>
-                                    <th className="px-3 py-2 text-left font-semibold w-24">REF</th>
-                                    <th className="px-3 py-2 text-left font-semibold">Produto / Descrição</th>
-                                    <th className="px-3 py-2 text-right font-semibold w-20">Qtd</th>
+                                    <th style={{ textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#1f2937', textTransform: 'uppercase', padding: '8px 12px', background: '#e5e5e5', border: '1px solid #bbb' }}>
+                                        Cód. Barras
+                                    </th>
+                                    <th style={{ textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#1f2937', textTransform: 'uppercase', padding: '8px 12px', width: '90px', background: '#e5e5e5', border: '1px solid #bbb' }}>
+                                        REF
+                                    </th>
+                                    <th style={{ textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#1f2937', textTransform: 'uppercase', padding: '8px 12px', background: '#e5e5e5', border: '1px solid #bbb' }}>
+                                        Produto
+                                    </th>
+                                    <th style={{ textAlign: 'right', fontSize: '11px', fontWeight: 700, color: '#1f2937', textTransform: 'uppercase', padding: '8px 12px', width: '80px', background: '#e5e5e5', border: '1px solid #bbb' }}>
+                                        Qtd
+                                    </th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody>
                                 {transfer.items.map((item, index) => {
                                     const productName = item.product?.name || item.productName;
                                     const productCode = item.product?.code || item.productCode;
-                                    const productDescription = item.product?.description || item.productDescription;
+                                    const productBarcode = item.product?.barcode || item.productBarcode || 'N/A';
 
                                     return (
-                                        <tr key={index} className="odd:bg-white even:bg-[#fafafa]">
-                                            <td className="px-3 py-1.5 font-mono text-[10px] text-gray-600 truncate max-w-[120px]" title={item.product?.barcode || item.productBarcode}>{item.product?.barcode || item.productBarcode || 'N/A'}</td>
-                                            <td className="px-3 py-1.5 font-mono text-[10px] text-gray-500">{productCode || 'N/A'}</td>
-                                            <td className="px-3 py-1.5 text-left">
-                                                <p className="font-semibold text-gray-900 text-xs">{productName}</p>
-                                                {productDescription && (
-                                                    <p className="text-[10px] text-gray-500 line-clamp-1 italic">{productDescription}</p>
-                                                )}
+                                        <tr key={index}>
+                                            <td style={{ padding: '10px 12px', color: '#4b5563', fontFamily: 'monospace', fontSize: '10px', border: '1px solid #ccc' }}>
+                                                {productBarcode}
                                             </td>
-                                            <td className="px-3 py-1.5 text-right font-bold text-gray-900 tabular-nums">{item.quantity}</td>
+                                            <td style={{ padding: '10px 12px', color: '#6b7280', fontFamily: 'monospace', fontSize: '10px', border: '1px solid #ccc' }}>
+                                                {productCode || 'N/A'}
+                                            </td>
+                                            <td style={{ padding: '10px 12px', color: '#1f2937', border: '1px solid #ccc' }}>
+                                                {productName}
+                                            </td>
+                                            <td style={{ padding: '10px 12px', textAlign: 'right', color: '#1f2937', fontWeight: 700, border: '1px solid #ccc' }}>
+                                                {item.quantity}
+                                            </td>
                                         </tr>
                                     );
                                 })}
@@ -180,38 +205,48 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                         </table>
                     </div>
 
-                    {/* Footer Info */}
-                    <div className="mb-6 p-3 bg-gray-50 rounded border border-gray-100">
-                        <div className="grid grid-cols-2 gap-4 text-xs font-inter">
-                            <div>
-                                <span className="block text-gray-500 text-[10px] uppercase mb-0.5">Motivo / Observações</span>
-                                <p className="text-gray-900">{transfer.reason || 'N/A'}</p>
+                    {/* ═══════════════════════ */}
+                    {/* SECTION: OBSERVAÇÕES   */}
+                    {/* ═══════════════════════ */}
+                    <div style={sectionBar}>
+                        <h3 style={sectionTitle}>Informações Adicionais</h3>
+                    </div>
+                    <div style={{ padding: '20px 32px', borderBottom: '1px solid #e5e5e5' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '40px', rowGap: '12px' }}>
+                            <div style={fieldRow}>
+                                <span style={fieldLabel}>Motivo:</span>
+                                <span style={fieldValue}>{transfer.reason || 'N/A'}</span>
                             </div>
-                            <div>
-                                <span className="block text-gray-500 text-[10px] uppercase mb-0.5">Emissor</span>
-                                <p className="text-gray-900 font-medium">{transfer.responsible}</p>
+                            <div style={fieldRow}>
+                                <span style={fieldLabel}>Emissor:</span>
+                                <span style={fieldValue}>{transfer.responsible}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Signatures */}
-                    <div className="grid grid-cols-3 gap-6 pt-4 pb-4 mt-auto">
-                        <div className="text-center">
-                            <div className="border-b border-gray-300 mb-1 h-6"></div>
-                            <p className="text-[9px] text-gray-500 uppercase">Emitente</p>
+                    {/* ═══════════════════ */}
+                    {/* SIGNATURE SECTION  */}
+                    {/* ═══════════════════ */}
+                    <div style={{ padding: '24px 32px 32px', borderTop: '1px solid #e5e5e5', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '40px' }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ marginTop: '48px', marginBottom: '6px', borderBottom: '1px solid #333' }} />
+                            <p style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic' }}>Emitente</p>
                         </div>
-                        <div className="text-center">
-                            <div className="border-b border-gray-300 mb-1 h-6"></div>
-                            <p className="text-[9px] text-gray-500 uppercase">Transportador</p>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ marginTop: '48px', marginBottom: '6px', borderBottom: '1px solid #333' }} />
+                            <p style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic' }}>Transportador</p>
                         </div>
-                        <div className="text-center">
-                            <div className="border-b border-gray-300 mb-1 h-6"></div>
-                            <p className="text-[9px] text-gray-500 uppercase">Recebedor</p>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ marginTop: '48px', marginBottom: '6px', borderBottom: '1px solid #333' }} />
+                            <p style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic' }}>Recebedor</p>
                         </div>
                     </div>
 
-                    <div className="text-center text-[9px] text-gray-400 pt-4 border-t border-gray-100">
-                        <p>Gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')} • Multicore</p>
+                    {/* Timestamp */}
+                    <div style={{ textAlign: 'center', fontSize: '11px', color: '#9ca3af', padding: '12px 32px 24px', borderTop: '1px solid #f0f0f0' }}>
+                        <p>
+                            Documento gerado em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} por {company.tradeName || company.companyName}
+                        </p>
                     </div>
                 </div>
             </Card>

@@ -1,4 +1,4 @@
-﻿import api from './client';
+import api from './client';
 
 // ============================================================================
 // Products API
@@ -42,6 +42,7 @@ export const productsAPI = {
         maxStock?: number;
         unit?: string;
         barcode?: string;
+        sku?: string;
         expiryDate?: string;
         batchNumber?: string;
         location?: string;
@@ -71,6 +72,7 @@ export const productsAPI = {
         maxStock: number;
         unit: string;
         barcode: string;
+        sku: string;
         expiryDate: string;
         batchNumber: string;
         location: string;
@@ -101,9 +103,21 @@ export const productsAPI = {
             operation: 'add' | 'subtract' | 'set';
             warehouseId?: string;
             reason?: string;
+            performedBy?: string;
         }
     ) => {
         const response = await api.patch(`/products/${id}/stock`, data);
+        return response.data;
+    },
+
+    bulkUpdatePrices: async (data: {
+        category?: string;
+        adjustmentType: 'percentage' | 'fixed';
+        adjustmentValue: number;
+        operation: 'increase' | 'decrease';
+        origin_module?: string;
+    }) => {
+        const response = await api.post('/products/bulk-price-adjustment', data);
         return response.data;
     },
 
@@ -138,4 +152,25 @@ export const productsAPI = {
         const response = await api.get('/products/alerts/expiring', { params: { ...params, days } });
         return response.data;
     },
+
+    // ── Price Tiers (preços escalonados por volume) ──────────────────────────
+    getPriceTiers: async (productId: string) => {
+        const response = await api.get(`/products/${productId}/price-tiers`);
+        return response.data as PriceTier[];
+    },
+
+    setPriceTiers: async (productId: string, tiers: Omit<PriceTier, 'id' | 'productId' | 'companyId' | 'createdAt'>[]) => {
+        const response = await api.put(`/products/${productId}/price-tiers`, { tiers });
+        return response.data as PriceTier[];
+    },
 };
+
+export interface PriceTier {
+    id: string;
+    productId: string;
+    companyId: string;
+    minQty: number;
+    price: number;
+    label?: string;
+    createdAt: string;
+}

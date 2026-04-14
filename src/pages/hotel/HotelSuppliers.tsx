@@ -1,11 +1,19 @@
-﻿/**
- * Hotel Suppliers (Fornecedores)
- * 
- * Reuses the existing Suppliers component but scoped to hotel module
- */
-
+import { useTranslation } from 'react-i18next';
+import { PageHeader } from '../../components/ui';
 import Suppliers from '../Suppliers';
+import { HiOutlineTruck } from 'react-icons/hi2';
 
 export default function HotelSuppliers() {
-    return <Suppliers />;
+    const { t } = useTranslation();
+
+    return (
+        <div className="space-y-6">
+            <PageHeader
+                title={t('nav.suppliers')}
+                subtitle="Fornecedores e parceiros da hotelaria"
+                icon={<HiOutlineTruck />}
+            />
+            <Suppliers hideHeader={true} />
+        </div>
+    );
 }

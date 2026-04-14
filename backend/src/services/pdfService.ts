@@ -188,9 +188,11 @@ export class PDFService {
         doc.fontSize(12).fillColor('#000000');
 
         const metrics = [
-            { label: 'Total de Produtos', value: (data.totalProducts || 0).toString() },
-            { label: 'Produtos com Stock Baixo', value: (data.lowStockCount || 0).toString() },
-            { label: 'Valor Total em Stock', value: this.formatCurrency(data.totalValue || 0) }
+            { label: 'Total de Produtos em Stock', value: (data.totalProducts || 0).toString() },
+            { label: 'Produtos com Stock Crítico', value: (data.lowStockCount || 0).toString() },
+            { label: 'Custo Total do Inventário', value: this.formatCurrency(data.totalCost || 0) },
+            { label: 'Valor de Venda Potencial', value: this.formatCurrency(data.totalValue || 0) },
+            { label: 'Lucro Bruto Potencial', value: this.formatCurrency(data.potentialProfit || 0) }
         ];
 
         metrics.forEach(metric => {
@@ -200,8 +202,20 @@ export class PDFService {
 
         doc.moveDown(2);
 
+        // Top Moving Products
+        if (data.topMovingProducts && data.topMovingProducts.length > 0) {
+            doc.fontSize(14).fillColor('#1e40af').text('📈 Produtos com Maior Giro (Últimos 30 dias):', { underline: true });
+            doc.moveDown(0.5);
+            doc.fontSize(10).fillColor('#000000');
+
+            data.topMovingProducts.forEach((p: any) => {
+                doc.text(`• ${p.name} - Vendas: ${p.salesLast30Days} unid. | Stock Atual: ${p.stock}`);
+            });
+            doc.moveDown(2);
+        }
+
         if (data.lowStockProducts && data.lowStockProducts.length > 0) {
-            doc.fontSize(14).fillColor('#dc2626').text('âš ï¸ Produtos com Stock Crítico:', { underline: true });
+            doc.fontSize(14).fillColor('#dc2626').text('⚠️ Produtos com Stock Crítico:', { underline: true });
             doc.moveDown(0.5);
             doc.fontSize(10).fillColor('#000000');
 
@@ -326,6 +340,166 @@ export class PDFService {
             currency: 'MZN',
             minimumFractionDigits: 2
         }).format(value);
+    }
+
+    /**
+     * Gera PDF de uma Fatura — retorna Buffer pronto para HTTP
+     */
+    async generateInvoicePDF(invoice: any, company: any): Promise<Buffer> {
+        return new Promise((resolve, reject) => {
+            try {
+                const doc = new PDFDocument({ margin: 50, size: 'A4' });
+                const chunks: Buffer[] = [];
+                doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+                doc.on('end', () => resolve(Buffer.concat(chunks)));
+                doc.on('error', reject);
+
+                const ivaRate = Number(company?.ivaRate ?? 16);
+                const formatN = (v: number) => this.formatCurrency(v);
+                const gray = '#64748b';
+                const black = '#1a1a1a';
+
+                // ── CABEÇALHO ──────────────────────────────────────────────
+                doc.fontSize(20).fillColor('#1e40af')
+                    .text(company?.tradeName || company?.companyName || 'Empresa', 50, 50);
+                doc.fontSize(9).fillColor(gray)
+                    .text(company?.address || '', 50)
+                    .text(`NUIT: ${company?.taxId || 'N/A'} | Tel: ${company?.phone || 'N/A'}`)
+                    .text(company?.email || '');
+
+                // FATURA title (right side)
+                doc.fontSize(24).fillColor(black)
+                    .text('FATURA', 400, 50, { align: 'right', width: 145 });
+                doc.fontSize(10).fillColor(gray)
+                    .text(invoice.invoiceNumber, 400, 82, { align: 'right', width: 145 });
+                if (invoice.orderNumber) {
+                    doc.fontSize(8).text(`Ref: ${invoice.orderNumber}`, 400, 97, { align: 'right', width: 145 });
+                }
+
+                // Linha separadora
+                doc.moveDown(0.5);
+                const lineY = doc.y + 4;
+                doc.strokeColor('#1a1a1a').lineWidth(1.5)
+                    .moveTo(50, lineY).lineTo(545, lineY).stroke();
+
+                // ── DADOS CLIENTE / DATAS ──────────────────────────────────
+                const colY = lineY + 14;
+                doc.fontSize(7).fillColor(gray).font('Helvetica-Bold')
+                    .text('DADOS DO CLIENTE', 50, colY).text('INFORMAÇÕES GERAIS', 320, colY);
+                doc.font('Helvetica');
+
+                const fmt = (d: string) => {
+                    try { return new Date(d).toLocaleDateString('pt-MZ'); } catch { return d; }
+                };
+
+                const clientY = colY + 12;
+                doc.fontSize(9).fillColor(black)
+                    .text(`Nome: ${invoice.customerName}`, 50, clientY)
+                    .text(`Tel: ${invoice.customerPhone || '-'}`, 50)
+                    .text(`Email: ${invoice.customerEmail || '-'}`, 50)
+                    .text(`NUIT: ${invoice.customerDocument || '-'}`, 50);
+
+                doc.fontSize(9).fillColor(black)
+                    .text(`Emissão: ${fmt(invoice.issueDate)}`, 320, clientY)
+                    .text(`Vencimento: ${fmt(invoice.dueDate)}`, 320)
+                    .text(`Moeda: MZN`, 320)
+                    .text(`Estado: ${invoice.status?.toUpperCase() || 'EMITIDA'}`, 320);
+
+                // ── TABELA DE ITENS ────────────────────────────────────────
+                doc.moveDown(1);
+                const tableY = doc.y;
+                doc.fillColor('#f8fafc').rect(50, tableY, 495, 18).fill();
+                doc.fontSize(8).font('Helvetica-Bold').fillColor(black)
+                    .text('Descrição', 56, tableY + 5)
+                    .text('Qtd', 340, tableY + 5, { width: 40, align: 'right' })
+                    .text('V. Unit.', 385, tableY + 5, { width: 60, align: 'right' })
+                    .text('Total', 450, tableY + 5, { width: 90, align: 'right' });
+
+                doc.strokeColor('#e5e7eb').lineWidth(0.5)
+                    .moveTo(50, tableY + 18).lineTo(545, tableY + 18).stroke();
+
+                doc.font('Helvetica');
+                let rowY = tableY + 22;
+                for (const item of (invoice.items || [])) {
+                    doc.fontSize(9).fillColor(black)
+                        .text(item.description || item.productName || '-', 56, rowY, { width: 280 })
+                        .text(String(item.quantity), 340, rowY, { width: 40, align: 'right' })
+                        .text(formatN(Number(item.unitPrice)), 385, rowY, { width: 60, align: 'right' })
+                        .text(formatN(Number(item.total)), 450, rowY, { width: 90, align: 'right' });
+                    rowY += 18;
+                    doc.strokeColor('#f1f5f9').lineWidth(0.3)
+                        .moveTo(50, rowY - 2).lineTo(545, rowY - 2).stroke();
+                }
+
+                // ── TOTAIS ────────────────────────────────────────────────
+                const totY = rowY + 10;
+                doc.strokeColor('#1a1a1a').lineWidth(1)
+                    .moveTo(360, totY).lineTo(545, totY).stroke();
+
+                const subtotal = Number(invoice.subtotal);
+                const discount = Number(invoice.discount ?? 0);
+                const tax = Number(invoice.tax);
+                const total = Number(invoice.total);
+                const amountPaid = Number(invoice.amountPaid ?? 0);
+                const amountDue = Number(invoice.amountDue ?? 0);
+
+                let ty = totY + 8;
+                const totRow = (label: string, value: string, bold = false) => {
+                    doc.fontSize(9).font(bold ? 'Helvetica-Bold' : 'Helvetica').fillColor(black)
+                        .text(label, 360, ty, { width: 100 })
+                        .text(value, 460, ty, { width: 85, align: 'right' });
+                    ty += 14;
+                };
+
+                totRow('Subtotal:', formatN(subtotal));
+                if (discount > 0) totRow('Desconto:', `-${formatN(discount)}`);
+                totRow(`IVA (${ivaRate}%):`, formatN(tax));
+                doc.strokeColor('#1a1a1a').lineWidth(0.8)
+                    .moveTo(360, ty).lineTo(545, ty).stroke();
+                ty += 4;
+                totRow('TOTAL A PAGAR:', formatN(total), true);
+                if (amountPaid > 0) totRow('Total Pago:', formatN(amountPaid));
+                if (amountDue > 0) {
+                    doc.fillColor('#dc2626');
+                    totRow('Saldo Pendente:', formatN(amountDue), true);
+                }
+
+                // ── DADOS BANCÁRIOS ────────────────────────────────────────
+                if (company?.bankAccounts?.length > 0) {
+                    doc.moveDown(1.5);
+                    doc.fontSize(8).font('Helvetica-Bold').fillColor(gray)
+                        .text('DADOS BANCÁRIOS', 50);
+                    doc.font('Helvetica');
+                    for (const bank of company.bankAccounts) {
+                        doc.fontSize(8).fillColor(black)
+                            .text(`${bank.bankName} | Conta: ${bank.accountNumber}${bank.nib ? ` | NIB: ${bank.nib}` : ''}`, 50);
+                    }
+                }
+
+                // ── OBSERVAÇÕES ────────────────────────────────────────────
+                if (invoice.notes) {
+                    doc.moveDown(0.5);
+                    doc.fontSize(8).font('Helvetica-Bold').fillColor(gray).text('OBSERVAÇÕES', 50);
+                    doc.font('Helvetica').fontSize(8).fillColor(black).text(invoice.notes, 50);
+                }
+
+                // ── ASSINATURAS ────────────────────────────────────────────
+                const sigY = 720;
+                doc.fontSize(8).fillColor(gray)
+                    .text('_______________________________', 50, sigY)
+                    .text('Emitido por', 50, sigY + 10)
+                    .text('_______________________________', 320, sigY)
+                    .text('Recebido por', 320, sigY + 10);
+
+                // ── RODAPÉ ────────────────────────────────────────────────
+                doc.fontSize(7).fillColor('#9ca3af')
+                    .text(`Documento gerado automaticamente em ${new Date().toLocaleString('pt-MZ')}`, 50, 780, { align: 'center', width: 495 });
+
+                doc.end();
+            } catch (err) {
+                reject(err);
+            }
+        });
     }
 
     /**

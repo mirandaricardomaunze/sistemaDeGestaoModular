@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 ﻿/**
  * CheckoutModal Component
  * Handles guest checkout with payment method selection (Cash, Card, M-Pesa, etc.)
@@ -14,7 +15,7 @@ interface CheckoutModalProps {
     isOpen: boolean;
     onClose: () => void;
     bookingId: string | null;
-    onSuccess: () => void;
+    onSuccess: (sale?: any) => void;
 }
 
 interface BookingTotal {
@@ -54,7 +55,7 @@ export default function CheckoutModal({
             const data = await hospitalityAPI.getBookingDetails(bookingId);
             setBooking(data);
         } catch (err) {
-            console.error('Error fetching booking summary:', err);
+            logger.error('Error fetching booking summary:', err);
         } finally {
             setIsLoading(false);
         }
@@ -70,14 +71,14 @@ export default function CheckoutModal({
 
         setIsSubmitting(true);
         try {
-            await hospitalityAPI.checkout(bookingId, {
+            const res = await hospitalityAPI.checkout(bookingId, {
                 paymentMethod,
                 amount: booking?.grandTotal || 0,
             });
-            onSuccess();
+            onSuccess(res.sale);
             onClose();
         } catch (err) {
-            console.error('Error during checkout:', err);
+            logger.error('Error during checkout:', err);
         } finally {
             setIsSubmitting(false);
         }

@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 /**
  * EmployeeSalaryHistory.tsx
  * 
@@ -10,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { HiOutlineCurrencyDollar, HiOutlineDocumentReport } from 'react-icons/hi';
 import { usePayroll } from '../../hooks/useData';
 import { Card, Badge, LoadingSpinner, TableContainer, Button } from '../ui';
-import { Pagination, usePagination } from '../ui/Pagination';
+import { Pagination, usePagination } from '../ui';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import type { PayrollRecord, Employee } from '../../types';
 import PayslipGenerator from './PayslipGenerator';
@@ -37,7 +38,7 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
                 });
                 setHistory(records);
             } catch (error) {
-                console.error('Error fetching salary history:', error);
+                logger.error('Error fetching salary history:', error);
             } finally {
                 setIsLoading(false);
             }
@@ -61,7 +62,7 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
             case 'processed':
                 return <Badge variant="warning">Processado</Badge>;
             default:
-                return <Badge variant="default">Rascunho</Badge>;
+                return <Badge variant="gray">Rascunho</Badge>;
         }
     };
 
@@ -119,7 +120,7 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
             </div>
 
             {/* Table */}
-            <TableContainer isLoading={isLoading} isEmpty={history.length === 0} emptyMessage="Sem registos salariais para este colaborador.">
+            <TableContainer isLoading={isLoading} isEmpty={history.length === 0} emptyDescription="Sem registos salariais para este colaborador.">
                 <table className="w-full text-sm text-left">
                     <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-dark-800">
                         <tr>

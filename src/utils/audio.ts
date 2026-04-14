@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 /**
  * Play a professional beep sound to confirm a successful barcode scan.
  */
@@ -23,6 +24,6 @@ export const playScanSound = () => {
         // Cleanup to prevent memory leaks
         setTimeout(() => audioCtx.close(), 200);
     } catch (e) {
-        console.warn('Audio feedback failed:', e);
+        logger.warn('Audio feedback failed:', e);
     }
 };

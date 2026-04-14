@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { HiOutlineShieldCheck, HiOutlineLockClosed, HiOutlineSave } from 'react-icons/hi';
 import { Card, Button, LoadingSpinner } from '../ui';
@@ -31,7 +32,7 @@ export default function PermissionMatrix() {
                 const data = await modulesAPI.getAll();
                 setModules(data);
             } catch (err) {
-                console.error('Error fetching modules:', err);
+                logger.error('Error fetching modules:', err);
             } finally {
                 setIsLoading(false);
             }

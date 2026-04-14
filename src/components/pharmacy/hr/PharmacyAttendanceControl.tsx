@@ -1,0 +1,256 @@
+import React, { useState, useMemo } from 'react';
+import { 
+    HiOutlineMagnifyingGlass, 
+    HiOutlineClock,
+    HiOutlineCalendar,
+    HiOutlineDocumentMagnifyingGlass
+} from 'react-icons/hi2';
+import { HiOutlineLogin, HiOutlineLogout } from 'react-icons/hi';
+import { Card, Button, Input, Badge, LoadingSpinner, Modal } from '../../ui';
+import { useEmployees, useAttendance } from '../../../hooks/useData';
+import { format, subDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+export const PharmacyAttendanceControl: React.FC = () => {
+    const [searchTerm, setSearchTerm] = useState('');
+    const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+    const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+    const { employees: staff, isLoading: isLoadingStaff } = useEmployees({ limit: 100 });
+    
+    // Today's attendance
+    const { attendance, refetch, recordAttendance } = useAttendance({
+        startDate: format(new Date(), 'yyyy-MM-dd'),
+        endDate: format(new Date(), 'yyyy-MM-dd')
+    });
+
+    // History for selected employee (last 30 days)
+    const { attendance: history, isLoading: isLoadingHistory } = useAttendance({
+        employeeId: selectedEmployee?.id,
+        startDate: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
+        endDate: format(new Date(), 'yyyy-MM-dd')
+    });
+
+    const handleRecord = async (employeeId: string, type: 'checkIn' | 'checkOut') => {
+        const time = format(new Date(), 'HH:mm');
+        await recordAttendance({
+            employeeId,
+            date: format(new Date(), 'yyyy-MM-dd'),
+            [type]: time,
+            status: type === 'checkIn' ? 'present' : undefined
+        });
+        refetch();
+    };
+
+    const openHistory = (employee: any) => {
+        setSelectedEmployee(employee);
+        setIsHistoryOpen(true);
+    };
+
+    const filteredStaff = staff?.filter(s => 
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.code.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
+    const statsSummary = useMemo(() => {
+        if (!history || history.length === 0) return { present: 0, late: 0, hours: 0 };
+        return {
+            present: history.filter(h => h.status === 'present').length,
+            late: history.filter(h => h.status === 'late').length,
+            hours: history.reduce((acc, h) => acc + (h.hoursWorked || 0), 0)
+        };
+    }, [history]);
+
+    if (isLoadingStaff) return <LoadingSpinner size="lg" className="h-64" />;
+
+    return (
+        <div className="space-y-6 animate-fade-in">
+            {/* Header & Filter */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex-1 max-w-md relative">
+                    <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <Input
+                        placeholder="Pesquisar colaborador..."
+                        className="pl-10 h-11"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+                        <HiOutlineCalendar className="w-5 h-5" />
+                        {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Status Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card variant="glass" className="p-4 border-l-4 border-l-teal-500 flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600">
+                        <HiOutlineLogin className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Presentes Hoje</p>
+                        <h4 className="text-xl font-black font-mono">{attendance?.filter(a => a.checkIn && !a.checkOut).length || 0}</h4>
+                    </div>
+                </Card>
+                <Card variant="glass" className="p-4 border-l-4 border-l-blue-500 flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600">
+                        <HiOutlineLogout className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Saídas Registadas</p>
+                        <h4 className="text-xl font-black font-mono">{attendance?.filter(a => a.checkOut).length || 0}</h4>
+                    </div>
+                </Card>
+                <Card variant="glass" className="p-4 border-l-4 border-l-amber-500 flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600">
+                        <HiOutlineClock className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Ausentes/Atrasados</p>
+                        <h4 className="text-xl font-black font-mono">{Math.max(0, filteredStaff.length - (attendance?.length || 0))}</h4>
+                    </div>
+                </Card>
+            </div>
+
+            {/* Staff Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredStaff.map((person) => {
+                    const record = attendance?.find(a => a.employeeId === person.id);
+                    return (
+                        <Card key={person.id} variant="glass" className="relative group overflow-hidden border-t-2 border-t-primary-500/10 hover:border-t-primary-500 transition-all duration-300">
+                            <div className="p-5 space-y-4">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 font-black text-lg">
+                                        {person.name.charAt(0)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-gray-900 dark:text-white truncate">{person.name}</h4>
+                                        <p className="text-[10px] uppercase font-black tracking-widest text-gray-400">
+                                            {person.role || (person.department + ' • ' + person.code)}
+                                        </p>
+                                    </div>
+                                    <button 
+                                        onClick={() => openHistory(person)}
+                                        className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-dark-700/50 text-gray-400 hover:text-primary-500 transition-colors"
+                                        title="Ver Histórico"
+                                    >
+                                        <HiOutlineDocumentMagnifyingGlass className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4 py-2 border-y border-gray-100 dark:border-dark-700/50">
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Entrada</span>
+                                        <p className={`text-xs font-black font-mono italic ${record?.checkIn ? 'text-teal-600' : 'text-gray-400'}`}>
+                                            {record?.checkIn || '--:--'}
+                                        </p>
+                                    </div>
+                                    <div className="space-y-1 text-right">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Saída</span>
+                                        <p className={`text-xs font-black font-mono italic ${record?.checkOut ? 'text-blue-600' : 'text-gray-400'}`}>
+                                            {record?.checkOut || '--:--'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2 pt-2">
+                                    <Button
+                                        variant={record?.checkIn ? "outline" : "primary"}
+                                        size="sm"
+                                        className={`flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest h-10`}
+                                        disabled={!!record?.checkIn}
+                                        leftIcon={<HiOutlineLogin className="w-4 h-4" />}
+                                        onClick={() => handleRecord(person.id, 'checkIn')}
+                                    >
+                                        Check-In
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest h-10 border-orange-200 text-orange-600 hover:bg-orange-50"
+                                        disabled={!record?.checkIn || !!record?.checkOut}
+                                        leftIcon={<HiOutlineLogout className="w-4 h-4" />}
+                                        onClick={() => handleRecord(person.id, 'checkOut')}
+                                    >
+                                        Check-Out
+                                    </Button>
+                                </div>
+                            </div>
+                        </Card>
+                    );
+                })}
+            </div>
+
+            {/* Attendance History Modal */}
+            <Modal
+                isOpen={isHistoryOpen}
+                onClose={() => setIsHistoryOpen(false)}
+                title={`Histórico: ${selectedEmployee?.name}`}
+                size="lg"
+            >
+                <div className="space-y-6">
+                    {/* Monthly Summary */}
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-900/20">
+                            <p className="text-[10px] font-black uppercase text-teal-600 mb-1">Presenças</p>
+                            <p className="text-xl font-black text-teal-700">{statsSummary.present}</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
+                            <p className="text-[10px] font-black uppercase text-amber-600 mb-1">Atrasos</p>
+                            <p className="text-xl font-black text-amber-700">{statsSummary.late}</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20">
+                            <p className="text-[10px] font-black uppercase text-indigo-600 mb-1">Horas Total</p>
+                            <p className="text-xl font-black text-indigo-700">{statsSummary.hours.toFixed(1)}h</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <h5 className="text-xs font-black uppercase tracking-widest text-gray-500">Registos Recentes (30 dias)</h5>
+                        {isLoadingHistory ? (
+                            <LoadingSpinner size="md" />
+                        ) : history?.length === 0 ? (
+                            <p className="text-center py-8 text-gray-400 italic">Nenhum registo encontrado</p>
+                        ) : (
+                            <div className="max-h-64 overflow-y-auto pr-2 space-y-2">
+                                {history.sort((a, b) => b.date.localeCompare(a.date)).map((h, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-dark-700/50 border border-gray-100 dark:border-dark-700">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-dark-800 flex items-center justify-center text-[10px] font-black">
+                                                {format(new Date(h.date), 'dd')}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold">{format(new Date(h.date), "dd/MM/yyyy")}</p>
+                                                <div className="flex gap-2">
+                                                    <Badge variant={h.status === 'present' ? 'success' : 'warning'} size="sm">
+                                                        {h.status.toUpperCase()}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs font-black font-mono">
+                                                {h.checkIn || '--:--'} → {h.checkOut || '--:--'}
+                                            </p>
+                                            <p className="text-[10px] text-gray-400">{h.hoursWorked?.toFixed(1) || '0.0'}h trabalhadas</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="pt-4 flex justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setIsHistoryOpen(false)}>
+                            Fechar
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+        </div>
+    );
+};
+

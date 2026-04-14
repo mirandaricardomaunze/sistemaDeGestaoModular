@@ -1,5 +1,6 @@
+import { logger } from '../../utils/logger';
 ﻿import { useState, useEffect } from 'react';
-import { Card, Button, Input, Badge, Modal, LoadingSpinner, EmptyState } from '../../components/ui';
+import { Card, Button, Input, Badge, Modal, LoadingSpinner, EmptyState, Pagination, usePagination } from '../../components/ui';
 import {
     HiOutlineCash,
     HiOutlineRefresh,
@@ -21,6 +22,7 @@ export default function CashRegister() {
     const [summary, setSummary] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [history, setHistory] = useState<any[]>([]);
+    const { paginatedItems: pagedHistory, currentPage: histPage, setCurrentPage: setHistPage, totalItems: histTotal, itemsPerPage: histPerPage, setItemsPerPage: setHistPerPage } = usePagination(history, 10);
 
     // Modal states
     const [openModalOpen, setOpenModalOpen] = useState(false);
@@ -48,7 +50,7 @@ export default function CashRegister() {
                 setSummary(summaryData);
             }
         } catch (error) {
-            console.error('Error fetching session:', error);
+            logger.error('Error fetching session:', error);
         } finally {
             setLoading(false);
         }
@@ -60,7 +62,7 @@ export default function CashRegister() {
             const res = await bottleStoreAPI.getCashSessionHistory({ limit: 10 });
             setHistory(res.data || []);
         } catch (error) {
-            console.error('Error fetching history:', error);
+            logger.error('Error fetching history:', error);
         }
     };
 
@@ -326,38 +328,48 @@ export default function CashRegister() {
                         description="Nenhuma sessão de caixa anterior encontrada"
                     />
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b dark:border-dark-700">
-                                    <th className="text-left py-3 px-4 font-medium text-gray-500">Data</th>
-                                    <th className="text-left py-3 px-4 font-medium text-gray-500">Operador</th>
-                                    <th className="text-right py-3 px-4 font-medium text-gray-500">Abertura</th>
-                                    <th className="text-right py-3 px-4 font-medium text-gray-500">Vendas</th>
-                                    <th className="text-right py-3 px-4 font-medium text-gray-500">Fecho</th>
-                                    <th className="text-right py-3 px-4 font-medium text-gray-500">Diferença</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {history.map((session: any) => (
-                                    <tr key={session.id} className="border-b dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800">
-                                        <td className="py-3 px-4">{formatDateTime(session.closedAt)}</td>
-                                        <td className="py-3 px-4">{session.openedBy}</td>
-                                        <td className="py-3 px-4 text-right">{formatCurrency(Number(session.openingBalance))}</td>
-                                        <td className="py-3 px-4 text-right text-green-600 font-medium">
-                                            {formatCurrency(Number(session.totalSales))}
-                                        </td>
-                                        <td className="py-3 px-4 text-right">{formatCurrency(Number(session.closingBalance))}</td>
-                                        <td className="py-3 px-4 text-right">
-                                            <Badge variant={Number(session.difference) === 0 ? 'success' : Number(session.difference) > 0 ? 'primary' : 'danger'}>
-                                                {formatCurrency(Number(session.difference))}
-                                            </Badge>
-                                        </td>
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b dark:border-dark-700">
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500">Data</th>
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500">Operador</th>
+                                        <th className="text-right py-3 px-4 font-medium text-gray-500">Abertura</th>
+                                        <th className="text-right py-3 px-4 font-medium text-gray-500">Vendas</th>
+                                        <th className="text-right py-3 px-4 font-medium text-gray-500">Fecho</th>
+                                        <th className="text-right py-3 px-4 font-medium text-gray-500">Diferença</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {pagedHistory.map((session: any) => (
+                                        <tr key={session.id} className="border-b dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800">
+                                            <td className="py-3 px-4">{formatDateTime(session.closedAt)}</td>
+                                            <td className="py-3 px-4">{session.openedBy}</td>
+                                            <td className="py-3 px-4 text-right">{formatCurrency(Number(session.openingBalance))}</td>
+                                            <td className="py-3 px-4 text-right text-green-600 font-medium">
+                                                {formatCurrency(Number(session.totalSales))}
+                                            </td>
+                                            <td className="py-3 px-4 text-right">{formatCurrency(Number(session.closingBalance))}</td>
+                                            <td className="py-3 px-4 text-right">
+                                                <Badge variant={Number(session.difference) === 0 ? 'success' : Number(session.difference) > 0 ? 'primary' : 'danger'}>
+                                                    {formatCurrency(Number(session.difference))}
+                                                </Badge>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <Pagination
+                            currentPage={histPage}
+                            totalItems={histTotal}
+                            itemsPerPage={histPerPage}
+                            onPageChange={setHistPage}
+                            onItemsPerPageChange={setHistPerPage}
+                            itemsPerPageOptions={[10, 20, 50]}
+                        />
+                    </>
                 )}
             </Card>
 
