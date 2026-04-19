@@ -26,6 +26,9 @@ export interface CreateSaleInput {
     notes?: string;
     redeemPoints?: number;
     sessionId?: string;
+    originModule?: 'pharmacy' | 'logistics' | 'bottlestore' | 'restaurant' | 'commercial' | 'hospitality';
+    tableId?: string;
+    warehouseId?: string;
 }
 
 // ============================================================================
@@ -35,7 +38,7 @@ export interface CreateSaleInput {
 export const saleItemSchema = z.object({
     productId: z.string().uuid('ID do produto inválido'),
     quantity: z.number().int().positive('Quantidade deve ser maior que zero'),
-    unitPrice: z.number().positive('Preço unitário deve ser maior que zero'),
+    unitPrice: z.number().positive('Preço unitrio deve ser maior que zero'),
     discount: z.number().min(0, 'Desconto não pode ser negativo').optional().default(0),
     total: z.number().positive('Total deve ser maior que zero')
 }).refine(
@@ -62,7 +65,10 @@ export const createSaleSchema = z.object({
     notes: z.string().max(500, 'Notas não podem ter mais de 500 caracteres').optional(),
     redeemPoints: z.number().int().min(0, 'Pontos não podem ser negativos').optional().default(0),
     paymentRef: z.string().max(1000).optional(),
-    sessionId: z.string().uuid('ID de sessão inválido').optional()
+    sessionId: z.string().uuid('ID de sessão inválido').optional(),
+    originModule: z.enum(['pharmacy', 'logistics', 'bottlestore', 'restaurant', 'commercial', 'hospitality']).optional().default('commercial'),
+    tableId: z.string().uuid('ID da mesa inválido').optional(),
+    warehouseId: z.string().uuid('ID do armazém inválido').optional()
 
 }).refine(
     (data) => {
@@ -157,6 +163,17 @@ export function validateCreateSale(data: unknown): CreateSaleInput {
 
 export function validateSalesQuery(data: unknown) {
     return salesQuerySchema.parse(data);
+}
+
+/**
+ * Safely parses and clamps pagination query parameters.
+ * - page: minimum 1
+ * - limit: minimum 1, maximum MAX_LIMIT (default 500) to prevent DoS attacks
+ */
+export function parsePaginationParams(query: Record<string, any>, maxLimit = 500) {
+    const page = Math.max(1, parseInt(query.page as string) || 1);
+    const limit = Math.min(maxLimit, Math.max(1, parseInt(query.limit as string) || 20));
+    return { page, limit };
 }
 
 // ============================================================================

@@ -40,16 +40,48 @@ A strict separation of concerns is required. Do not mix responsibilities between
   - *Bad*: `if (valid) { if (exists) { ... } }` -> *Good*: `if (!valid) return; if (!exists) return; ...`
 - **Self-Documenting Code**: Write code that is easy to read. Use comments only to explain *why* something complex is done, not *what* it does. The code itself should explain *what* it is doing.
 
+### 🏷️ Naming Conventions (Strictly Followed)
+- **Files & Folders**: Use **camelCase** for ALL files and directories.
+  - *Good*: `inventoryList.tsx`, `useInventory.ts`, `authService.ts`.
+  - *Bad*: `inventory-list.tsx`, `InventoryList.tsx`.
+- **React Components**: Use **PascalCase** for the component name within the file.
+  - *Example*: `export function InventoryList() { ... }` in `inventoryList.tsx`.
+- **Hooks**: Use **camelCase** starting with `use`.
+  - *Example*: `export function useInventory() { ... }` in `useInventory.ts`.
+- **API Services**: Use **camelCase** ending with `API`.
+  - *Example*: `export const salesAPI = { ... }` in `salesAPI.ts` or `sales.api.ts`.
+- **Booleans**: Start with `is`, `has`, `can`, `should`. (e.g., `isValid`, `hasPermission`).
+- **Functions**: Use verb-noun pairs. (e.g., `fetchUser`, `calculateTotal`).
+- **Classes/Types**: Use **PascalCase** nouns. (e.g., `SalesService`, `UserCredentials`).
+- **Constants**: Use **UPPER_SNAKE_CASE**. (e.g., `MAX_RETRY_ATTEMPTS`).
+
+## 🚀 Senior Methodology: Feature Implementation Lifecycle
+
+Every new feature or module MUST follow this 6-step lifecycle to ensure professional architecture and maintainability.
+
+1.  **Step 1: Type Specification**: Define domain models and interfaces in `src/types/[module].ts`. These are the "source of truth".
+2.  **Step 2: Backend Domain Logic**:
+    - Define Zod schemas in `src/validation/`.
+    - Implement the business logic in `src/services/[module].service.ts`.
+    - Expose via `src/routes/[module].routes.ts` (keeping the route layer "thin").
+3.  **Step 3: API Service Declaration**: Define the frontend client call in `src/services/api/[module].api.ts`.
+4.  **Step 4: Business Logic Hook**: Wrap API calls in TanStack Query hooks in `src/hooks/[module].ts`. This hook manages state, caching, and invalidation.
+5.  **Step 5: Atomic UI Components**: Build or update Atoms, Molecules, and Organisms in `src/components/ui/` or module-specific card components.
+6.  **Step 6: Page Orchestration**: Assemble everything in the main page file in `src/pages/[module]/`.
+
+---
+
 ## ♻️ DRY Code (Don't Repeat Yourself)
 
+- **Rule of Three**: If you write the same logic twice, it's okay. When you write it a third time, you **MUST** refactor it into a reusable helper, hook, or utility.
 - Extract repeated logic into helper functions, utilities, or shared services.
 - If you find yourself copying and pasting code, refactor it into a reusable and generic component.
 - Use constants for magic numbers and strings that appear multiple times.
-- Centralize TypeScript types and interfaces in dedicated files if used across multiple modules.
+- Centralize TypeScript types and interfaces in dedicated files (`src/types/[module].ts`) for every module. These types MUST be shared between the API layer and the frontend hooks to ensure end-to-end type safety.
 
 ## 🧩 SOLID Principles Focus
-
 - **Single Responsibility Principle (SRP)**: Each class/module/function should have only one reason to change.
+  - *Example*: A `PDFGenerator` should only generate PDFs, not calculate the business logic for the data it's printing. Pass the pre-calculated data to it.
 - **Open/Closed Principle (OCP)**: Code should be open for extension but closed for modification.
 - **Dependency Inversion**: Rely on abstractions/types rather than concrete implementations where possible to decouple modules.
 

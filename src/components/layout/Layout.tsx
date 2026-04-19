@@ -9,7 +9,6 @@ import { useEffect, Suspense } from 'react';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import { LoadingOverlay } from '../ui/Loading';
 
-// Footer imported at top
 import { useLocation } from 'react-router-dom';
 
 export default function Layout() {
@@ -32,7 +31,11 @@ export default function Layout() {
     const isPOSPage = location.pathname.includes('/pos') || location.pathname.includes('/bottle-store/pos') || location.pathname.includes('/pharmacy/pos');
 
     return (
-        <div className="h-screen flex flex-col overflow-hidden bg-gray-50 dark:bg-dark-900 transition-colors duration-200">
+        <div className="h-screen flex flex-col overflow-hidden bg-slate-50 dark:bg-dark-900 transition-colors duration-500 relative">
+            {/* Premium Background Decorations (Light Mode Only) */}
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-500/5 rounded-full blur-[120px] pointer-events-none dark:hidden animate-pulse-slow"></div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-500/5 rounded-full blur-[120px] pointer-events-none dark:hidden animate-pulse-slow animation-delay-3000"></div>
+
             {/* Toast Container */}
             <Toaster
                 position="top-right"

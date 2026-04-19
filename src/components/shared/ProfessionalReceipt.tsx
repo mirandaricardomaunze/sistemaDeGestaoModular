@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ProfessionalReceipt - A4 Professional Receipt/Invoice for POS Sales
  * Uses DocumentPreviewModal for consistent preview experience
  */
@@ -201,7 +201,7 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
 
             {/* Bank Accounts Section (Optional) */}
             {companySettings.bankAccounts && companySettings.bankAccounts.length > 0 && (
-                <div className="mt-6 p-4 bg-white rounded-xl border border-gray-100">
+                <div className="mt-6 p-4 bg-white rounded-lg border border-gray-100">
                     <p className="text-[8pt] text-gray-400 uppercase font-bold mb-3 tracking-widest">Dados Bancários</p>
                     <div className="grid grid-cols-2 gap-4">
                         {companySettings.bankAccounts.map((bank, idx) => (

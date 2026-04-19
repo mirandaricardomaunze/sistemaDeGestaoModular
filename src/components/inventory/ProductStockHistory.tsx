@@ -1,8 +1,16 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Modal, Badge, LoadingSpinner, Pagination } from '../ui';
 import { useStockMovements } from '../../hooks/useStockMovements';
 import { format } from 'date-fns';
-import { HiOutlineClock, HiOutlineCube, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineRefresh, HiOutlineExclamation, HiOutlineTruck } from 'react-icons/hi';
+import { 
+    HiOutlineClock, 
+    HiOutlineCube, 
+    HiOutlineArrowUp, 
+    HiOutlineArrowDown, 
+    HiOutlineArrowPath, 
+    HiOutlineExclamationTriangle, 
+    HiOutlineTruck 
+} from 'react-icons/hi2';
 import type { Product, MovementType, StockMovement } from '../../types';
 
 interface ProductStockHistoryProps {
@@ -14,12 +22,12 @@ interface ProductStockHistoryProps {
 const movementTypeConfig: Record<MovementType, { label: string; color: 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'gray'; icon: any }> = {
     purchase: { label: 'Compra', color: 'success', icon: HiOutlineArrowUp },
     sale: { label: 'Venda', color: 'danger', icon: HiOutlineArrowDown },
-    return_in: { label: 'Devol. Entrada', color: 'info', icon: HiOutlineRefresh },
+    return_in: { label: 'Devol. Entrada', color: 'info', icon: HiOutlineArrowPath },
     return_out: { label: 'Devol. Saída', color: 'warning', icon: HiOutlineArrowDown },
     adjustment: { label: 'Ajuste', color: 'primary', icon: HiOutlineClock },
-    expired: { label: 'Expirado', color: 'danger', icon: HiOutlineExclamation },
+    expired: { label: 'Expirado', color: 'danger', icon: HiOutlineExclamationTriangle },
     transfer: { label: 'Transferência', color: 'info', icon: HiOutlineTruck },
-    loss: { label: 'Perda', color: 'danger', icon: HiOutlineExclamation },
+    loss: { label: 'Perda', color: 'danger', icon: HiOutlineExclamationTriangle },
 };
 
 export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHistoryProps) {
@@ -43,7 +51,7 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
         >
             <div className="flex flex-col gap-6">
                 {/* Product Info Header */}
-                <div className="flex items-center justify-between bg-gray-50 dark:bg-dark-900/50 p-4 rounded-xl border border-gray-100 dark:border-dark-700">
+                <div className="flex items-center justify-between bg-gray-50 dark:bg-dark-900/50 p-4 rounded-lg border border-gray-100 dark:border-dark-700">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
                             <HiOutlineCube className="w-5 h-5" />
@@ -71,13 +79,13 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
                                 <thead className="bg-gray-50 dark:bg-dark-800">
                                     <tr>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Data</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Armazém</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Qtd</th>
-                                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Saldo</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Motivo</th>
-                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Responsável</th>
+                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Data</th>
+                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipo</th>
+                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Armazém</th>
+                                        <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Qtd</th>
+                                        <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Saldo</th>
+                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Motivo</th>
+                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Responsável</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-dark-700 bg-white dark:bg-dark-900">
@@ -97,7 +105,7 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 whitespace-nowrap">
-                                                    <Badge variant={config.color} className="flex items-center gap-1 w-fit">
+                                                    <Badge variant={config.color} className="flex items-center gap-1 w-fit font-black uppercase tracking-widest text-[9px]">
                                                         <Icon className="w-3 h-3" />
                                                         {config.label}
                                                     </Badge>

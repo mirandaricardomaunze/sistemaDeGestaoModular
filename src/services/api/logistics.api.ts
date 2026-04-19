@@ -1,325 +1,49 @@
-/**
- * Logistics API Service
- * Frontend API methods for vehicles, drivers, routes, deliveries, and parcels
- */
-
 import api from './client';
+import type {
+    Vehicle, Driver, DeliveryRoute, Delivery, PaginationInfo,
+    LogisticsDashboard, LogisticsReportsSummary,
+    VehicleMaintenance, FuelSupply, VehicleIncident,
+    StaffAttendance, StaffPayroll
+} from '../../types/logistics';
+
+export type { DeliveryStatusEvent, ExpiryAlert, ExpiryAlertSeverity } from '../../types/logistics';
+export type { Vehicle, Driver, DeliveryRoute, Delivery, VehicleMaintenance, FuelSupply, VehicleIncident, StaffAttendance, StaffPayroll, StaffCategory } from '../../types/logistics';
 
 // ============================================================================
-// TYPES
+// Parcel types
 // ============================================================================
 
-export interface PaginationInfo {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasMore: boolean;
-}
-
-export interface Vehicle {
+export interface Parcel {
     id: string;
-    plate: string;
-    brand: string;
-    model: string;
-    year?: number;
-    type: 'truck' | 'van' | 'motorcycle' | 'car' | 'bicycle' | 'other';
-    capacity?: number;
-    capacityUnit?: string;
-    fuelType?: string;
-    status: 'available' | 'in_use' | 'maintenance' | 'inactive';
-    lastMaintenance?: string;
-    nextMaintenance?: string;
-    mileage: number;
-    insuranceExpiry?: string;
-    notes?: string;
-    createdAt: string;
-    updatedAt: string;
-    maintenances?: VehicleMaintenance[];
-    _count?: { deliveries: number };
-}
-
-export type StaffCategory = 'driver' | 'mechanic' | 'warehouse' | 'manager' | 'admin' | 'other';
-
-export interface Driver {
-    id: string;
-    code: string;
-    name: string;
-    phone: string;
-    email?: string;
-    category: StaffCategory;
-    licenseNumber?: string;
-    licenseType?: string;
-    licenseExpiry?: string;
-    medicalExamExpiry?: string;
-    safetyTrainingDate?: string;
-    status: 'available' | 'on_delivery' | 'off_duty' | 'inactive';
-    hireDate?: string;
-    baseSalary: number;
-    subsidyTransport?: number;
-    subsidyFood?: number;
-    commissionRate?: number;
-    address?: string;
-    emergencyContact?: string;
-    bankName?: string;
-    bankAccountNumber?: string;
-    bankNib?: string;
-    socialSecurityNumber?: string;
-    nuit?: string;
-    birthDate?: string;
-    notes?: string;
-    createdAt: string;
-    updatedAt: string;
-    _count?: { deliveries: number; maintenanceTasks?: number };
-}
-
-export interface StaffAttendance {
-    id: string;
-    staffId: string;
-    date: string;
-    checkIn?: string;
-    checkOut?: string;
-    status: 'present' | 'absent' | 'late' | 'leave';
-    notes?: string;
-    staff?: Driver;
-}
-
-export interface StaffPayroll {
-    id: string;
-    staffId: string;
-    month: number;
-    year: number;
-    baseSalary: number;
-    commissions: number;
-    bonuses: number;
-    totalEarnings: number;
-    deductions: number;
-    netSalary: number;
-    status: 'draft' | 'processed' | 'paid';
-    paidAt?: string;
-    staff?: Driver;
-}
-
-export interface DeliveryRoute {
-    id: string;
-    code: string;
-    name: string;
-    origin: string;
-    destination: string;
-    distance?: number;
-    estimatedTime?: number;
-    tollCost?: number;
-    fuelEstimate?: number;
-    isActive: boolean;
-    notes?: string;
-    createdAt: string;
-    updatedAt: string;
-    _count?: { deliveries: number };
-}
-
-export interface DeliveryItem {
-    id: string;
-    deliveryId: string;
-    productId?: string;
-    description: string;
-    quantity: number;
+    trackingNumber: string;
+    senderId?: string;
+    recipientName: string;
+    recipientPhone: string;
+    recipientAddress?: string;
+    warehouseId?: string;
+    description?: string;
     weight?: number;
-    notes?: string;
-    product?: { id: string; name: string; code: string };
-}
-
-export interface Delivery {
-    id: string;
-    number: string;
-    orderId?: string;
-    customerId?: string;
-    routeId?: string;
-    vehicleId?: string;
-    driverId?: string;
-    status: 'pending' | 'scheduled' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'failed' | 'returned' | 'cancelled';
-    priority: 'low' | 'normal' | 'high' | 'urgent';
-    scheduledDate?: string;
-    departureDate?: string;
-    deliveredDate?: string;
-    recipientName?: string;
-    recipientPhone?: string;
-    recipientSign?: string;
-    deliveryAddress: string;
-    latitude?: number;
-    longitude?: number;
-    country?: string;
-    province?: string;
-    city?: string;
-    shippingCost?: number;
+    value?: number;
+    status: string;
     isPaid: boolean;
-    transactionId?: string;
+    paymentMethod?: string;
+    price?: number;
+    pickedUpBy?: string;
+    pickedUpAt?: string;
     notes?: string;
-    proofOfDelivery?: string;
-    failureReason?: string;
-    attempts: number;
     createdAt: string;
     updatedAt: string;
-    driver?: Driver;
-    vehicle?: Vehicle;
-    route?: DeliveryRoute;
-    items: DeliveryItem[];
 }
 
 export interface ParcelNotification {
     id: string;
     parcelId: string;
-    type: 'email' | 'sms' | 'whatsapp' | 'push';
+    type: string;
     recipient: string;
     message: string;
     sentAt: string;
     status: string;
-    errorMsg?: string;
 }
-
-export interface Parcel {
-    id: string;
-    trackingNumber: string;
-    senderName: string;
-    senderPhone: string;
-    senderEmail?: string;
-    senderAddress?: string;
-    recipientName: string;
-    recipientPhone: string;
-    recipientEmail?: string;
-    recipientAddress?: string;
-    recipientDocument?: string;
-    description?: string;
-    weight?: number;
-    dimensions?: string;
-    status: 'received' | 'awaiting_pickup' | 'picked_up' | 'overdue' | 'returned_to_sender' | 'lost';
-    receivedAt: string;
-    expectedPickup?: string;
-    pickedUpAt?: string;
-    pickedUpBy?: string;
-    pickedUpDocument?: string;
-    pickupSignature?: string;
-    storageLocation?: string;
-    warehouseId?: string;
-    fees: number;
-    isPaid: boolean;
-    paymentMethod?: string;
-    receiverRelationship?: string;
-    transactionId?: string;
-    notes?: string;
-    createdAt: string;
-    updatedAt: string;
-    warehouse?: { id: string; name: string; location?: string };
-    notifications?: ParcelNotification[];
-}
-
-export interface VehicleMaintenance {
-    id: string;
-    vehicleId: string;
-    type: 'preventive' | 'corrective' | 'inspection' | 'emergency';
-    description: string;
-    cost: number;
-    date: string;
-    nextDate?: string;
-    mileageAt?: number;
-    status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-    provider?: string;
-    notes?: string;
-    createdAt: string;
-    updatedAt: string;
-    vehicle?: Vehicle;
-}
-
-export interface FuelSupply {
-    id: string;
-    vehicleId: string;
-    date: string;
-    liters: number;
-    pricePerLiter?: number;
-    amount: number;
-    mileage: number;
-    provider?: string;
-    notes?: string;
-    createdAt: string;
-    updatedAt: string;
-    vehicle?: Vehicle;
-}
-
-export interface VehicleIncident {
-    id: string;
-    vehicleId: string;
-    driverId?: string;
-    date: string;
-    type: 'accident' | 'fine' | 'breakdown' | 'theft' | 'other';
-    severity: 'low' | 'medium' | 'high' | 'critical';
-    description: string;
-    cost?: number;
-    location?: string;
-    status: 'open' | 'resolved' | 'closed';
-    createdAt: string;
-    updatedAt: string;
-    vehicle?: Vehicle;
-    driver?: Driver;
-}
-
-export interface LogisticsDashboard {
-    totals: {
-        vehicles: number;
-        drivers: number;
-        routes: number;
-        deliveries: number;
-        parcels: number;
-    };
-    stats: {
-        pendingDeliveries: number;
-        inTransitDeliveries: number;
-        deliveredToday: number;
-        availableVehicles: number;
-        availableDrivers: number;
-        pendingParcels: number;
-        pickupRevenue: number;
-        deliveryRevenue: number;
-        deliveriesByProvince: Array<{ province: string; count: number }>;
-    };
-    recentDeliveries: Delivery[];
-}
-
-/**
- * Represents a single status transition event in a delivery's lifecycle.
- * Built from delivery data to reconstruct the status progression timeline.
- */
-export interface DeliveryStatusEvent {
-    status: Delivery['status'];
-    label: string;
-    timestamp: string | null;
-    isCompleted: boolean;
-    isCurrent: boolean;
-    notes?: string;
-}
-
-/**
- * Represents an expiry alert for a compliance document.
- * Severity is derived from daysUntilExpiry:
- *   expired  -> daysUntilExpiry <= 0
- *   critical -> 1..14 days
- *   warning  -> 15..30 days
- */
-export type ExpiryAlertSeverity = 'expired' | 'critical' | 'warning';
-
-export interface ExpiryAlert {
-    /** Unique key for React rendering (entityId + documentType) */
-    id: string;
-    entityType: 'vehicle' | 'driver';
-    entityId: string;
-    /** Human-readable label, e.g. "Toyota Hilux (ABC-123-DE)" */
-    entityLabel: string;
-    /** Document type label, e.g. "Seguro" or "Carta de Condução" */
-    documentType: string;
-    expiryDate: string;
-    daysUntilExpiry: number;
-    severity: ExpiryAlertSeverity;
-}
-
-
 
 // ============================================================================
 // API METHODS
@@ -586,6 +310,34 @@ export const logisticsAPI = {
 
     updateStaffPayrollStatus: async (id: string, status: 'processed' | 'paid'): Promise<StaffPayroll> => {
         const response = await api.patch(`/logistics/hr/payroll/${id}/status`, { status });
+        return response.data;
+    },
+
+    // Reports Summary
+    getReportsSummary: async (params?: { startDate?: string; endDate?: string }): Promise<LogisticsReportsSummary> => {
+        const response = await api.get('/logistics/reports/summary', { params });
+        return response.data;
+    },
+
+    // Finance
+    getFinanceDashboard: async (period?: string) => {
+        const response = await api.get('/logistics/finance/dashboard', { params: { period } });
+        return response.data;
+    },
+    getTransactions: async (params?: any) => {
+        const response = await api.get('/logistics/finance/transactions', { params });
+        return response.data;
+    },
+    createTransaction: async (data: any) => {
+        const response = await api.post('/logistics/finance/transactions', data);
+        return response.data;
+    },
+    updateTransaction: async (id: string, data: any) => {
+        const response = await api.put(`/logistics/finance/transactions/${id}`, data);
+        return response.data;
+    },
+    deleteTransaction: async (id: string) => {
+        const response = await api.delete(`/logistics/finance/transactions/${id}`);
         return response.data;
     }
 };

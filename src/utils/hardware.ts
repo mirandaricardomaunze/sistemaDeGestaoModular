@@ -1,5 +1,5 @@
 // ============================================================================
-// Hardware Utilities — ESC/POS & Web Serial
+// Hardware Utilities -- ESC/POS & Web Serial
 // ============================================================================
 //
 // Gaveta de dinheiro: comunicação via ESC/POS (porta série / USB directo)
@@ -12,9 +12,9 @@
 // ============================================================================
 
 export const ESC_POS = {
-    /** Abre gaveta no pino 2 (DK2) — mais comum em gavetas Epson/Star */
+    /** Abre gaveta no pino 2 (DK2) -- mais comum em gavetas Epson/Star */
     OPEN_DRAWER: '\x1B\x70\x00\x19\xFA',
-    /** Abre gaveta no pino 5 (DK5) — alguns modelos Bixolon */
+    /** Abre gaveta no pino 5 (DK5) -- alguns modelos Bixolon */
     OPEN_DRAWER_ALT: '\x1B\x70\x01\x19\xFA',
     /** Inicialização da impressora */
     INIT: '\x1B\x40',
@@ -30,18 +30,18 @@ export const hasSerialSupport = (): boolean => 'serial' in navigator;
 /**
  * Abre a gaveta de dinheiro directamente via Web Serial API.
  * O utilizador tem de seleccionar a porta da impressora uma vez;
- * a partir daí o browser memoriza.
- * @returns true se conseguiu enviar o comando, false caso contrário
+ * a partir da o browser memoriza.
+ * @returns true se conseguiu enviar o comando, false caso contrrio
  */
 export async function openCashDrawerSerial(): Promise<boolean> {
     if (!hasSerialSupport()) return false;
     let port: any;
     try {
-        // Tenta obter porta já autorizada sem pedir ao utilizador
+        // Tenta obter porta j autorizada sem pedir ao utilizador
         const ports = await (navigator as any).serial.getPorts();
         port = ports[0];
         if (!port) {
-            // Primeira vez — pede ao utilizador para seleccionar
+            // Primeira vez -- pede ao utilizador para seleccionar
             port = await (navigator as any).serial.requestPort();
         }
         await port.open({ baudRate: 9600 });
@@ -67,8 +67,8 @@ export async function openCashDrawerSerial(): Promise<boolean> {
  * Funciona quando o browser envia directamente para uma impressora térmica USB
  * sem driver (modo RAW / GDI).
  *
- * O elemento usa position absolute fora do ecrã para não afectar o layout,
- * mas está presente no stream enviado à impressora.
+ * O elemento usa position absolute fora do ecr para não afectar o layout,
+ * mas est presente no stream enviado à impressora.
  */
 export function getDrawerEscPosHtml(): string {
     // Os bytes em decimal: 27, 112, 0, 25, 250
@@ -77,7 +77,7 @@ export function getDrawerEscPosHtml(): string {
     return `<pre style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;font-size:1px">${encoded}</pre>`;
 }
 
-// ── Balança — parsers de protocolo ───────────────────────────────────────────
+// ── Balança -- parsers de protocolo ───────────────────────────────────────────
 
 export interface ScaleReading {
     weight: number;   // valor em gramas
@@ -96,7 +96,7 @@ export function parseScaleData(raw: string): ScaleReading | null {
     const text = raw.trim();
     if (!text) return null;
 
-    // Toledo / Filizola — ex: "S S   1.500 kg"
+    // Toledo / Filizola -- ex: "S S   1.500 kg"
     const toledoMatch = text.match(/^(S\s+S|S\s+D|S\s+U)\s+([\d.,]+)\s*(kg|g|lb)/i);
     if (toledoMatch) {
         const stable = toledoMatch[1].includes('S S') || toledoMatch[1].includes('S D');
@@ -106,7 +106,7 @@ export function parseScaleData(raw: string): ScaleReading | null {
         return { weight: Math.round(weight), unit, stable, raw };
     }
 
-    // Mettler / Genérico — ex: "  1234g" ou "1.500kg"
+    // Mettler / Genérico -- ex: "  1234g" ou "1.500kg"
     const genericMatch = text.match(/([\d.,]+)\s*(kg|g|lb)/i);
     if (genericMatch) {
         const value = parseFloat(genericMatch[1].replace(',', '.'));
@@ -115,7 +115,7 @@ export function parseScaleData(raw: string): ScaleReading | null {
         return { weight: Math.round(weight), unit, stable: true, raw };
     }
 
-    // Só número (assume gramas)
+    // S número (assume gramas)
     const numberOnly = text.match(/^[\s+\-]*([\d.,]+)/);
     if (numberOnly) {
         const weight = parseFloat(numberOnly[1].replace(',', '.'));

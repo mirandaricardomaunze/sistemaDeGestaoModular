@@ -7,7 +7,7 @@ import {
     HiOutlineEye
 } from 'react-icons/hi';
 import { formatCurrency } from '../../../utils/helpers';
-import { pharmacyAPI } from '../../../services/api/hospitality.api';
+import { pharmacyAPI } from '../../../services/api';
 import toast from 'react-hot-toast';
 
 export function POSCartPanel({
@@ -53,7 +53,7 @@ export function POSCartPanel({
         try {
             const rx = await pharmacyAPI.lookupPrescription(prescriptionNumber.trim());
             setValidatedRx(rx);
-            toast.success(`Receita ${rx.prescriptionNo} encontrada — ${rx.patientName || 'Paciente'}`);
+            toast.success(`Receita ${rx.prescriptionNumber || rx.prescriptionNo || ''} encontrada - ${rx.patientName || 'Paciente'}`);
             if (onPrescriptionValidated) onPrescriptionValidated(rx);
         } catch (err: any) {
             const msg = err?.response?.data?.message || 'Receita não encontrada';
@@ -66,7 +66,7 @@ export function POSCartPanel({
 
     const handlePrescriptionChange = (val: string) => {
         setPrescriptionNumber(val);
-        if (validatedRx && validatedRx.prescriptionNo !== val) {
+        if (validatedRx && (validatedRx.prescriptionNumber || validatedRx.prescriptionNo) !== val) {
             setValidatedRx(null);
             setRxImageUrl(null);
         }
@@ -110,7 +110,7 @@ export function POSCartPanel({
     return (
         <div className="flex flex-col h-[calc(100vh-10rem)] sticky top-6 mb-6">
             <Card className="flex flex-col flex-1 overflow-hidden p-0">
-                {/* ── Header ─────────────────────────────────────── */}
+                {/* ── Header ──────────────────────────────────────-*/}
                 <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b dark:border-dark-700 flex-shrink-0">
                     <h3 className="font-bold text-base flex items-center gap-2">
                         <HiOutlineShoppingCart className="w-5 h-5 text-teal-600" />
@@ -137,7 +137,7 @@ export function POSCartPanel({
                     </div>
                 </div>
 
-                {/* ── Scrollable body ─────────────────────────────── */}
+                {/* ── Scrollable body ──────────────────────────────-*/}
                 <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
                     {/* Customer */}
                     <div className="flex gap-2 items-end">
@@ -189,8 +189,8 @@ export function POSCartPanel({
 
                     {/* Prescription (controlled items) */}
                     {cartHasControlledItems && (
-                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 border border-amber-200 dark:border-amber-700">
-                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">⚠ Receita obrigatória</p>
+                        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-700">
+                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">⚠️ Receita obrigatória</p>
                             <div className="flex gap-2">
                                 <div className="flex-1">
                                     <Input
@@ -203,7 +203,7 @@ export function POSCartPanel({
                                     type="button"
                                     onClick={handleLookupPrescription}
                                     disabled={lookingUp || !prescriptionNumber.trim()}
-                                    className="mt-0.5 px-3 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl text-xs font-medium transition-colors flex items-center gap-1 whitespace-nowrap"
+                                    className="mt-0.5 px-3 py-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors flex items-center gap-1 whitespace-nowrap"
                                 >
                                     {lookingUp
                                         ? <span className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
@@ -229,7 +229,7 @@ export function POSCartPanel({
                                                 <p className="text-green-600">Prescritor: {validatedRx.prescriberName}</p>
                                             )}
                                             {validatedRx.status === 'dispensed' && (
-                                                <p className="text-amber-600 font-medium mt-0.5">⚠ Esta receita já foi dispensada</p>
+                                                <p className="text-amber-600 font-medium mt-0.5">⚠️ Esta receita já foi dispensada anteriormente.</p>
                                             )}
                                         </div>
                                     </div>
@@ -323,7 +323,7 @@ export function POSCartPanel({
                                         <img
                                             src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001'}${rxImageUrl || validatedRx?.imageUrl}`}
                                             alt="Imagem da Receita"
-                                            className="max-w-full max-h-[80vh] rounded-xl shadow-2xl object-contain"
+                                            className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain"
                                         />
                                     </div>
                                 </div>
@@ -340,11 +340,11 @@ export function POSCartPanel({
                                 <p className="text-xs text-gray-300 dark:text-dark-500 mt-1">Clique num medicamento para adicionar</p>
                             </div>
                         ) : cart.map((item: any) => (
-                            <div key={item.batchId} className="flex items-start gap-2 p-2.5 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                            <div key={item.batchId} className="flex items-start gap-2 p-2.5 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold truncate text-gray-900 dark:text-white">{item.productName}</p>
                                     <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="text-xs text-gray-500">{formatCurrency(item.unitPrice)} × {item.quantity}</span>
+                                        <span className="text-xs text-gray-500">{formatCurrency(item.unitPrice)} x {item.quantity}</span>
                                         {item.expiryDate && (
                                             <span className="text-[10px] text-red-500 font-medium">
                                                 Val: {new Date(item.expiryDate).toLocaleDateString('pt-MZ')}
@@ -362,7 +362,7 @@ export function POSCartPanel({
                                 <div className="flex items-center gap-1 flex-shrink-0">
                                     <button onClick={() => updateCartItem(item.batchId, item.quantity - 1)}
                                         className="w-6 h-6 rounded-md bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 flex items-center justify-center text-sm font-bold transition-colors">
-                                        −
+                                        -
                                     </button>
                                     <span className="w-6 text-center text-sm font-bold">{item.quantity}</span>
                                     <button onClick={() => updateCartItem(item.batchId, Math.min(item.quantity + 1, item.maxQuantity))}
@@ -380,7 +380,7 @@ export function POSCartPanel({
 
                     {/* Controlled items warning for known patient */}
                     {cartHasControlledItems && selectedCustomer && (
-                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-2.5 border border-blue-200 dark:border-blue-800 flex items-start gap-2">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2.5 border border-blue-200 dark:border-blue-800 flex items-start gap-2">
                             <HiOutlineExclamationCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                             <p className="text-xs text-blue-700 dark:text-blue-300">
                                 Verifique o histórico do paciente para garantir que os limites de dispensação de substâncias controladas não foram excedidos.
@@ -404,11 +404,11 @@ export function POSCartPanel({
                         <Select
                             label="Forma de Pagamento"
                             options={[
-                                { value: 'cash', label: '💵 Dinheiro' },
-                                { value: 'card', label: '💳 Cartão' },
-                                { value: 'mpesa', label: '📱 M-Pesa' },
-                                { value: 'emola', label: '📱 e-Mola' },
-                                { value: 'transfer', label: '🏦 Transferência' },
+                                { value: 'cash', label: 'Dinheiro' },
+                                { value: 'card', label: 'Cartão' },
+                                { value: 'mpesa', label: 'M-Pesa' },
+                                { value: 'emola', label: 'e-Mola' },
+                                { value: 'transfer', label: 'Transferência' },
                             ]}
                             value={paymentMethod}
                             onChange={(e: any) => setPaymentMethod(e.target.value)}
@@ -416,7 +416,7 @@ export function POSCartPanel({
                     )}
                 </div>
 
-                {/* ── Fixed footer: totals + checkout button ─────── */}
+                {/* ── Fixed footer: totals + checkout button ──────-*/}
                 <div className="flex-shrink-0 border-t dark:border-dark-700 px-4 pt-4 pb-8 bg-white dark:bg-dark-800">
                     {cart.length > 0 && (
                         <div className="space-y-1 mb-3">
@@ -427,13 +427,13 @@ export function POSCartPanel({
                             {insuranceEntity && (
                                 <div className="flex justify-between text-sm text-blue-600">
                                     <span>Cobertura Seguro</span>
-                                    <span>− {formatCurrency(insuranceAmount)}</span>
+                                    <span>- {formatCurrency(insuranceAmount)}</span>
                                 </div>
                             )}
                             {discount > 0 && (
                                 <div className="flex justify-between text-sm text-amber-600">
                                     <span>Desconto</span>
-                                    <span>− {formatCurrency(discount)}</span>
+                                    <span>- {formatCurrency(discount)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between text-lg font-black text-gray-900 dark:text-white pt-2 border-t dark:border-dark-700">

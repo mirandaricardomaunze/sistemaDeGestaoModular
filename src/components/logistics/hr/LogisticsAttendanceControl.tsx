@@ -54,7 +54,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
             {/* Quick Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card variant="glass" className="p-4 border-l-4 border-l-green-500 flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600">
+                    <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600">
                         <HiOutlineLogin className="w-6 h-6" />
                     </div>
                     <div>
@@ -63,7 +63,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                     </div>
                 </Card>
                 <Card variant="glass" className="p-4 border-l-4 border-l-blue-500 flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600">
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600">
                         <HiOutlineLogout className="w-6 h-6" />
                     </div>
                     <div>
@@ -72,7 +72,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                     </div>
                 </Card>
                 <Card variant="glass" className="p-4 border-l-4 border-l-orange-500 flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-orange-50 dark:bg-orange-900/20 text-orange-600">
+                    <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600">
                         <HiOutlineClock className="w-6 h-6" />
                     </div>
                     <div>
@@ -90,7 +90,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                         <Card key={person.id} variant="glass" className="relative group overflow-hidden border-t-2 border-t-primary-500/30">
                             <div className="p-5 space-y-4">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 font-black text-lg">
+                                    <div className="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 font-black text-lg">
                                         {person.name.charAt(0)}
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -117,7 +117,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                                     <Button
                                         variant={record?.checkIn ? "outline" : "primary"}
                                         size="sm"
-                                        className="flex-1 rounded-xl font-black text-[10px] uppercase"
+                                        className="flex-1 rounded-lg font-black text-[10px] uppercase"
                                         disabled={!!record?.checkIn || recordMutation.isLoading}
                                         leftIcon={<HiOutlineLogin className="w-4 h-4" />}
                                         onClick={() => handleRecord(person.id, 'checkIn')}
@@ -127,7 +127,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="flex-1 rounded-xl font-black text-[10px] uppercase border-orange-200 text-orange-600"
+                                        className="flex-1 rounded-lg font-black text-[10px] uppercase border-orange-200 text-orange-600"
                                         disabled={!record?.checkIn || !!record?.checkOut || recordMutation.isLoading}
                                         leftIcon={<HiOutlineLogout className="w-4 h-4" />}
                                         onClick={() => handleRecord(person.id, 'checkOut')}

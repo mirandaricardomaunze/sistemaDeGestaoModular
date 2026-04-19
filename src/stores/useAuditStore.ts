@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿/**
+/**
  * Audit Store
  * Gerencia o estado e operações de auditoria
  */
@@ -337,7 +337,7 @@ export const useAuditStore = create<AuditState>()(
                     log.entityType,
                     log.entityId || '',
                     log.entityName || '',
-                    `"${log.description.replace(/"/g, '""')}"`,
+                    `"${log.description.replace(/"/g, '')}"`,
                     log.success ? 'Sim' : 'Não',
                     log.errorMessage || '',
                 ].join(';'));

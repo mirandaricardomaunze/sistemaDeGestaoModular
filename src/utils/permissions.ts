@@ -154,7 +154,7 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
         { prefix: '/pharmacy', module: 'pharmacy' },
         { prefix: '/hotel', module: 'hospitality' },
         { prefix: '/hospitality', module: 'hospitality' },
-        { prefix: '/bottle-store', module: 'bottle_store' },
+        { prefix: '/bottleStore', module: 'bottle_store' },
         { prefix: '/logistics', module: 'logistics' },
         { prefix: '/restaurant', module: 'restaurant' },
         { prefix: '/commercial', module: 'commercial' },
@@ -205,7 +205,7 @@ export const canViewPage = (user: User | null | undefined, path: string): boolea
         '/pharmacy': 'view_inventory',
         '/pharmacy/employees': 'view_employees',
         '/hospitality': 'view_dashboard',
-        '/bottle-store': 'view_inventory',
+        '/bottleStore': 'view_inventory',
         '/logistics': 'view_dashboard',
         '/restaurant': 'view_dashboard',
     };

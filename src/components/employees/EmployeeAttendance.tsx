@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -274,7 +274,7 @@ export default function EmployeeAttendance() {
                                     </p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
                                 </div>
-                                <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl">
+                                <div className="p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
                                     <HiOutlineUsers className="w-6 h-6 text-primary-500" />
                                 </div>
                             </div>
@@ -287,7 +287,7 @@ export default function EmployeeAttendance() {
                                     </p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Presentes</p>
                                 </div>
-                                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                     <HiOutlineCheck className="w-6 h-6 text-green-500" />
                                 </div>
                             </div>
@@ -300,7 +300,7 @@ export default function EmployeeAttendance() {
                                     </p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Em Férias</p>
                                 </div>
-                                <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
+                                <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                                     <HiOutlineCalendar className="w-6 h-6 text-orange-500" />
                                 </div>
                             </div>
@@ -313,7 +313,7 @@ export default function EmployeeAttendance() {
                                     </p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Ausentes</p>
                                 </div>
-                                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
                                     <HiOutlineX className="w-6 h-6 text-red-500" />
                                 </div>
                             </div>
@@ -428,7 +428,7 @@ export default function EmployeeAttendance() {
                                                 <button
                                                     onClick={() => toggleAttendance(employee.id, 'present')}
                                                     className={cn(
-                                                        'w-14 h-14 rounded-xl flex items-center justify-center transition-all transform hover:scale-105',
+                                                        'w-14 h-14 rounded-lg flex items-center justify-center transition-all transform hover:scale-105',
                                                         status === 'present'
                                                             ? 'bg-green-500 text-white shadow-lg shadow-green-500/30'
                                                             : 'bg-gray-100 dark:bg-dark-700 text-gray-400 hover:bg-green-100 hover:text-green-500 dark:hover:bg-green-900/20'

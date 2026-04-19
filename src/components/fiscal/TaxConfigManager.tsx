@@ -1,13 +1,13 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import {
-    HiOutlineCog,
+    HiOutlineCog6Tooth as HiOutlineCog,
     HiOutlinePlus,
-    HiOutlinePencil,
+    HiOutlinePencilSquare as HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineCheck,
-    HiOutlineX,
+    HiOutlineXMark as HiOutlineX,
     HiOutlineInformationCircle,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { Button, Card, Input, Modal, Select, Badge, Pagination, usePagination } from '../ui';
 import { formatCurrency, generateId } from '../../utils/helpers';
@@ -174,15 +174,19 @@ export default function TaxConfigManager() {
                 <>
                     {/* Header */}
                     <div className="flex justify-between items-center">
-                        <div>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <div className="flex flex-col">
+                            <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
                                 Impostos e Retenções
                             </h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
                                 Configure as taxas de IVA, INSS, IRPS e outras retenções
                             </p>
                         </div>
-                        <Button onClick={() => handleOpenModal()} leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
+                        <Button 
+                            onClick={() => handleOpenModal()} 
+                            className="text-[10px] font-black uppercase tracking-widest"
+                        >
+                            <HiOutlinePlus className="w-4 h-4 mr-2" />
                             Novo Imposto
                         </Button>
                     </div>
@@ -191,26 +195,14 @@ export default function TaxConfigManager() {
                     <Card padding="none">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                                <thead className="bg-gray-50 dark:bg-dark-800">
+                                <thead className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Tipo
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Nome
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Taxa
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Aplicável a
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Estado
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Ações
-                                        </th>
+                                        <th className="px-6 py-4 text-left font-black">Tipo</th>
+                                        <th className="px-6 py-4 text-left font-black">Nome</th>
+                                        <th className="px-6 py-4 text-center font-black">Taxa (%)</th>
+                                        <th className="px-6 py-4 text-center font-black">Aplicável a</th>
+                                        <th className="px-6 py-4 text-center font-black">Estado</th>
+                                        <th className="px-6 py-4 text-right font-black">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white dark:bg-dark-900 divide-y divide-gray-200 dark:divide-dark-700">
@@ -310,26 +302,14 @@ export default function TaxConfigManager() {
                     <Card padding="none">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                                <thead className="bg-gray-50 dark:bg-dark-800">
+                                <thead className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Escalão
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Rendimento Mínimo
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Rendimento Máximo
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Taxa (%)
-                                        </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Dedução Fixa
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Estado
-                                        </th>
+                                        <th className="px-6 py-4 text-left font-black">Escalão</th>
+                                        <th className="px-6 py-4 text-right font-black">Rendimento Mínimo</th>
+                                        <th className="px-6 py-4 text-right font-black">Rendimento Máximo</th>
+                                        <th className="px-6 py-4 text-center font-black">Taxa (%)</th>
+                                        <th className="px-6 py-4 text-right font-black">Dedução Fixa</th>
+                                        <th className="px-6 py-4 text-center font-black">Estado</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white dark:bg-dark-900 divide-y divide-gray-200 dark:divide-dark-700">
@@ -385,11 +365,11 @@ export default function TaxConfigManager() {
                                     Fórmula de Cálculo do IRPS
                                 </h4>
                                 <p className="text-blue-700 dark:text-blue-400 text-sm mb-2">
-                                    <strong>IRPS = (Salário Bruto × Taxa%) - Dedução Fixa</strong>
+                                    <strong>IRPS = (Salário Bruto x Taxa%) - Dedução Fixa</strong>
                                 </p>
                                 <p className="text-blue-600 dark:text-blue-500 text-sm">
                                     Exemplo: Para um salário de 50.000 MZN, aplica-se o escalão 3 (20%):<br />
-                                    IRPS = (50.000 × 20%) - 3.267 = 10.000 - 3.267 = <strong>6.733 MZN</strong>
+                                    IRPS = (50.000 x 20%) - 3.267 = 10.000 - 3.267 = <strong>6.733 MZN</strong>
                                 </p>
                             </div>
                         </div>

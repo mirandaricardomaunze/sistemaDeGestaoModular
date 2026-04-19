@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     HiOutlineDocumentText, HiOutlinePlus, HiOutlineRefresh,
@@ -9,9 +9,9 @@ import { Card, Badge, Button, Input, Select, Textarea, Modal } from '../../compo
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { CustomerSearchInput, type CustomerOption } from '../../components/commercial/CustomerSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
-import { useOrders } from '../../hooks/useOrders';
+import { useQuotations } from '../../hooks/useCommercial';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
-import { invoicesAPI } from '../../services/api';
+import { ordersAPI } from '../../services/api';
 import { commercialAPI } from '../../services/api/commercial.api';
 import toast from 'react-hot-toast';
 
@@ -241,40 +241,38 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
     );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Main Page ────────────────────────────────────────────────────────────────-
 
 export default function CommercialQuotes() {
     const navigate = useNavigate();
     const [statusFilter, setStatusFilter] = useState('');
     const [search, setSearch]             = useState('');
+    const [page, setPage]                 = useState(1);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [expandedId, setExpandedId]           = useState<string | null>(null);
     const [converting, setConverting]           = useState<string | null>(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [quoteToDelete, setQuoteToDelete]     = useState<string | null>(null);
+    const [deleting, setDeleting]               = useState(false);
 
-    // Reuse ordersAPI — quotations are CustomerOrders tagged with __QUOTE__
-    const { orders: quotes, isLoading, refetch, updateOrderStatus, deleteOrder } = useOrders({
+    // Server-side filtered + paginated quotations via /commercial/quotations
+    const { quotes, pagination, isLoading, refetch } = useQuotations({
         status: statusFilter || undefined,
         search: search || undefined,
+        page,
         limit: 20,
     });
 
-    // Filter client-side to only show items tagged as quotes
-    const filteredQuotes = quotes.filter(q =>
-        q.notes?.includes('__QUOTE__')
-    );
-
     const handleStatusUpdate = async (id: string, next: string) => {
         if (next === 'sale') {
-            const quote = quotes.find(q => q.id === id);
-            if (quote) {
-                navigate('/commercial/pos', { state: { fromQuote: quote } });
-            }
+            const quote = quotes.find((q: any) => q.id === id);
+            if (quote) navigate('/commercial/pos', { state: { fromQuote: quote } });
             return;
         }
         if (next === 'invoice') {
             setConverting(id);
             try {
-                await invoicesAPI.convertOrderToInvoice(id);
+                await commercialAPI.convertQuotationToInvoice(id);
                 toast.success('Cotação convertida a factura!');
                 refetch();
             } catch {
@@ -285,26 +283,46 @@ export default function CommercialQuotes() {
             return;
         }
         try {
-            await updateOrderStatus(id, { status: next as any });
+            await ordersAPI.updateStatus(id, { status: next as any });
+            toast.success('Estado actualizado!');
+            refetch();
         } catch {
             toast.error('Erro ao actualizar estado');
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Eliminar esta cotação?')) return;
-        try { await deleteOrder(id); }
-        catch { toast.error('Erro ao eliminar'); }
+    const handleDeleteRequest = (id: string) => {
+        setQuoteToDelete(id);
+        setDeleteModalOpen(true);
     };
+
+    const handleDeleteConfirm = async () => {
+        if (!quoteToDelete) return;
+        setDeleting(true);
+        try {
+            await ordersAPI.delete(quoteToDelete);
+            toast.success('Cotação eliminada!');
+            setDeleteModalOpen(false);
+            setQuoteToDelete(null);
+            refetch();
+        } catch {
+            toast.error('Erro ao eliminar');
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    const handleFilterChange = (val: string) => { setStatusFilter(val); setPage(1); };
+    const handleSearchChange = (val: string)  => { setSearch(val);       setPage(1); };
 
     const statusOptions = [
         { value: '', label: 'Todos os estados' },
         ...Object.entries(QUOTE_STATUS).map(([k, v]) => ({ value: k, label: v.label })),
     ];
 
-    const totalQuotes   = filteredQuotes.length;
-    const totalValue    = filteredQuotes.reduce((s, q) => s + Number(q.total), 0);
-    const acceptedValue = filteredQuotes.filter(q => q.status === 'separated').reduce((s, q) => s + Number(q.total), 0);
+    const totalQuotes   = pagination?.total ?? quotes.length;
+    const totalValue    = quotes.reduce((s: number, q: any) => s + Number(q.total), 0);
+    const acceptedValue = quotes.filter((q: any) => q.status === 'separated').reduce((s: number, q: any) => s + Number(q.total), 0);
 
     return (
         <div className="space-y-6">
@@ -328,7 +346,7 @@ export default function CommercialQuotes() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                     { label: 'Total Cotações',  value: String(totalQuotes),              color: 'border-l-primary-500' },
-                    { label: 'Pendentes',        value: String(filteredQuotes.filter(q => ['created','printed'].includes(q.status)).length), color: 'border-l-yellow-500' },
+                    { label: 'Pendentes',        value: String(quotes.filter((q: any) => ['created','printed'].includes(q.status)).length), color: 'border-l-yellow-500' },
                     { label: 'Valor Total',      value: formatCurrency(totalValue),       color: 'border-l-blue-500'    },
                     { label: 'Aceites',          value: formatCurrency(acceptedValue),    color: 'border-l-green-500'   },
                 ].map(c => (
@@ -344,13 +362,13 @@ export default function CommercialQuotes() {
                 <div className="flex flex-col md:flex-row gap-3">
                     <div className="flex-1">
                         <Input placeholder="Pesquisar por número ou cliente..."
-                            value={search} onChange={e => setSearch(e.target.value)}
+                            value={search} onChange={e => handleSearchChange(e.target.value)}
                             leftIcon={<HiOutlineDocumentText className="w-4 h-4" />} />
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-44">
                             <Select options={statusOptions} value={statusFilter}
-                                onChange={e => setStatusFilter(e.target.value)} />
+                                onChange={e => handleFilterChange(e.target.value)} />
                         </div>
                         <button onClick={refetch} title="Actualizar"
                             className="p-2.5 rounded-lg border border-gray-300 dark:border-dark-600 text-gray-500 hover:text-gray-700 transition-colors">
@@ -364,9 +382,9 @@ export default function CommercialQuotes() {
             <div className="space-y-3">
                 {isLoading ? (
                     Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-20 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />
+                        <div key={i} className="h-20 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
                     ))
-                ) : filteredQuotes.length === 0 ? (
+                ) : quotes.length === 0 ? (
                     <Card padding="lg" className="text-center py-16">
                         <HiOutlineDocumentText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                         <p className="text-gray-500 font-medium">Nenhuma cotação encontrada</p>
@@ -375,7 +393,7 @@ export default function CommercialQuotes() {
                         </Button>
                     </Card>
                 ) : (
-                    filteredQuotes.map(quote => {
+                    quotes.map((quote: any) => {
                         const cfg        = QUOTE_STATUS[quote.status as QuoteStatus] ?? QUOTE_STATUS.created;
                         const Icon       = cfg.icon;
                         const isExpanded = expandedId === quote.id;
@@ -461,7 +479,7 @@ export default function CommercialQuotes() {
                                                 </Button>
                                             ))}
                                             {quote.status === 'created' && (
-                                                <Button size="sm" variant="danger" onClick={() => handleDelete(quote.id)}>
+                                                <Button size="sm" variant="danger" onClick={() => handleDeleteRequest(quote.id)}>
                                                     Eliminar
                                                 </Button>
                                             )}
@@ -474,9 +492,58 @@ export default function CommercialQuotes() {
                 )}
             </div>
 
+            {/* Pagination */}
+            {pagination && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between px-1 py-2">
+                    <p className="text-xs text-gray-400">
+                        Mostrando {quotes.length} de {pagination.total} Cotações
+                    </p>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setPage(p => Math.max(p - 1, 1))}
+                            disabled={page === 1}
+                            className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-dark-600 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                        >
+                            Anterior
+                        </button>
+                        <span className="px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400">
+                            {page} / {pagination.totalPages}
+                        </span>
+                        <button
+                            onClick={() => setPage(p => Math.min(p + 1, pagination.totalPages))}
+                            disabled={page === pagination.totalPages}
+                            className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-dark-600 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                        >
+                            Próxima
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {showCreateModal && (
                 <CreateQuoteModal onClose={() => setShowCreateModal(false)} onSuccess={refetch} />
             )}
+
+            <Modal
+                isOpen={deleteModalOpen}
+                onClose={() => { setDeleteModalOpen(false); setQuoteToDelete(null); }}
+                title="Eliminar Cotação"
+                size="sm"
+            >
+                <div className="space-y-4 py-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Tem a certeza que deseja eliminar esta cotação? Esta acção é irreversível.
+                    </p>
+                    <div className="flex gap-3 justify-end pt-2">
+                        <Button variant="ghost" onClick={() => { setDeleteModalOpen(false); setQuoteToDelete(null); }}>
+                            Cancelar
+                        </Button>
+                        <Button variant="danger" isLoading={deleting} onClick={handleDeleteConfirm}>
+                            Eliminar
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

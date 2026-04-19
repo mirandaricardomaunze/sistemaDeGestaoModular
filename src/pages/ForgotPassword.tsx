@@ -1,9 +1,9 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { HiOutlineMail, HiOutlineLockClosed, HiOutlineKey, HiOutlineArrowLeft, HiOutlineEye, HiOutlineEyeOff, HiOutlineShieldCheck } from 'react-icons/hi';
+import { HiOutlineEnvelope, HiOutlineLockClosed, HiOutlineKey, HiOutlineArrowLeft, HiOutlineEye, HiOutlineEyeSlash, HiOutlineShieldCheck } from 'react-icons/hi2';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -85,7 +85,7 @@ export default function ForgotPassword() {
 
     return (
         <div className="min-h-screen relative flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50 dark:bg-dark-950 overflow-hidden font-sans">
-            {/* Animated Background Elements — same as Login */}
+            {/* Animated Background Elements -- same as Login */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary-500/10 dark:bg-primary-500/5 rounded-full blur-3xl animate-blob"></div>
                 <div className="absolute top-1/2 -right-24 w-80 h-80 bg-accent-500/10 dark:bg-accent-500/5 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
@@ -94,11 +94,11 @@ export default function ForgotPassword() {
             </div>
 
             <div className="relative z-10 sm:mx-auto sm:w-full sm:max-w-md px-4">
-                {/* Logo & Header — same as Login */}
+                {/* Logo & Header -- same as Login */}
                 <div className="text-center group">
                     <div className="relative mx-auto h-24 w-24 mb-8">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-primary-600 to-accent-600 rounded-3xl blur-xl opacity-40 group-hover:opacity-60 transition duration-1000 animate-pulse-slow"></div>
-                        <div className="relative h-full w-full rounded-3xl bg-gradient-to-tr from-primary-600 to-primary-500 flex items-center justify-center shadow-2xl border border-white/20">
+                        <div className="absolute inset-0 bg-gradient-to-tr from-primary-600 to-accent-600 rounded-lg blur-xl opacity-40 group-hover:opacity-60 transition duration-1000 animate-pulse-slow"></div>
+                        <div className="relative h-full w-full rounded-lg bg-gradient-to-tr from-primary-600 to-primary-500 flex items-center justify-center shadow-2xl border border-white/20">
                             <HiOutlineKey className="w-12 h-12 text-white animate-float" />
                         </div>
                     </div>
@@ -112,7 +112,7 @@ export default function ForgotPassword() {
                 </div>
 
                 <div className="mt-10 animate-slide-up">
-                    <div className="bg-white/70 dark:bg-dark-900/40 backdrop-blur-xl py-10 px-8 shadow-2xl sm:rounded-3xl border border-white/20 dark:border-dark-800/50 transition-all duration-500">
+                    <div className="bg-white/70 dark:bg-dark-900/40 backdrop-blur-xl py-10 px-8 shadow-2xl sm:rounded-lg border border-white/20 dark:border-dark-800/50 transition-all duration-500">
 
                         {/* Welcome Text */}
                         <div className="mb-8">
@@ -132,7 +132,7 @@ export default function ForgotPassword() {
                                             ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-500/25'
                                             : 'bg-slate-100 dark:bg-dark-800 text-slate-400 dark:text-slate-500'
                                         }`}>
-                                        {step > s ? '✓' : s}
+                                        {step > s ? '?' : s}
                                     </div>
                                     {s < 3 && (
                                         <div className={`w-8 h-0.5 rounded-full transition-all duration-500 ${step > s ? 'bg-primary-500' : 'bg-slate-200 dark:bg-dark-700'
@@ -151,12 +151,12 @@ export default function ForgotPassword() {
                                     </label>
                                     <div className="relative group">
                                         <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                            <HiOutlineMail className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
+                                            <HiOutlineEnvelope className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
                                         </div>
                                         <input
                                             type="email"
                                             placeholder="seu@email.com"
-                                            className={`block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-dark-800/50 border ${emailForm.formState.errors.email ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
+                                            className={`block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-dark-800/50 border ${emailForm.formState.errors.email ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
                                             {...emailForm.register('email')}
                                         />
                                     </div>
@@ -168,7 +168,7 @@ export default function ForgotPassword() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
+                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-lg bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
                                 >
                                     <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
                                     <div className="flex items-center justify-center gap-2">
@@ -176,7 +176,7 @@ export default function ForgotPassword() {
                                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                         ) : (
                                             <>
-                                                <HiOutlineMail className="w-5 h-5" />
+                                                <HiOutlineEnvelope className="w-5 h-5" />
                                                 <span>ENVIAR CÓDIGO</span>
                                             </>
                                         )}
@@ -197,7 +197,7 @@ export default function ForgotPassword() {
                                             type="text"
                                             placeholder="000000"
                                             maxLength={6}
-                                            className={`block w-full text-center tracking-[0.5em] py-3 bg-slate-50 dark:bg-dark-800/50 border ${otpForm.formState.errors.otp ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200 font-mono text-lg`}
+                                            className={`block w-full text-center tracking-[0.5em] py-3 bg-slate-50 dark:bg-dark-800/50 border ${otpForm.formState.errors.otp ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200 font-mono text-lg`}
                                             {...otpForm.register('otp')}
                                         />
                                     </div>
@@ -209,7 +209,7 @@ export default function ForgotPassword() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
+                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-lg bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
                                 >
                                     <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
                                     <div className="flex items-center justify-center gap-2">
@@ -247,14 +247,14 @@ export default function ForgotPassword() {
                                         <input
                                             type={showPassword ? 'text' : 'password'}
                                             placeholder="••••••••"
-                                            className={`block w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-dark-800/50 border ${passwordForm.formState.errors.password ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
+                                            className={`block w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-dark-800/50 border ${passwordForm.formState.errors.password ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
                                             {...passwordForm.register('password')}
                                         />
                                         <div
                                             className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-primary-500 transition-colors"
                                             onClick={() => setShowPassword(!showPassword)}
                                         >
-                                            {showPassword ? <HiOutlineEyeOff className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
+                                            {showPassword ? <HiOutlineEyeSlash className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
                                         </div>
                                     </div>
                                     {passwordForm.formState.errors.password && (
@@ -274,14 +274,14 @@ export default function ForgotPassword() {
                                         <input
                                             type={showConfirmPassword ? 'text' : 'password'}
                                             placeholder="••••••••"
-                                            className={`block w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-dark-800/50 border ${passwordForm.formState.errors.confirmPassword ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
+                                            className={`block w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-dark-800/50 border ${passwordForm.formState.errors.confirmPassword ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
                                             {...passwordForm.register('confirmPassword')}
                                         />
                                         <div
                                             className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-primary-500 transition-colors"
                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                                         >
-                                            {showConfirmPassword ? <HiOutlineEyeOff className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
+                                            {showConfirmPassword ? <HiOutlineEyeSlash className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
                                         </div>
                                     </div>
                                     {passwordForm.formState.errors.confirmPassword && (
@@ -292,7 +292,7 @@ export default function ForgotPassword() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
+                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-lg bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
                                 >
                                     <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
                                     <div className="flex items-center justify-center gap-2">

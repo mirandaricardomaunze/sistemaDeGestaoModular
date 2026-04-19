@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge, Modal, LoadingSpinner, EmptyState, Pagination, usePagination } from '../../components/ui';
 import {
     HiOutlineCash,
@@ -29,6 +29,9 @@ export default function CashRegister() {
     const [closeModalOpen, setCloseModalOpen] = useState(false);
     const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
     const [depositModalOpen, setDepositModalOpen] = useState(false);
+    const [zReportOpen, setZReportOpen] = useState(false);
+    const [zReport, setZReport] = useState<any>(null);
+    const [loadingZReport, setLoadingZReport] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
     // Form states
@@ -37,6 +40,68 @@ export default function CashRegister() {
     const [closingNotes, setClosingNotes] = useState('');
     const [withdrawAmount, setWithdrawAmount] = useState('');
     const [depositAmount, setDepositAmount] = useState('');
+
+    const fetchZReport = async () => {
+        setLoadingZReport(true);
+        setZReportOpen(true);
+        try {
+            const report = await bottleStoreAPI.getZReport();
+            setZReport(report);
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || 'Erro ao gerar relatório Z');
+            setZReportOpen(false);
+        } finally {
+            setLoadingZReport(false);
+        }
+    };
+
+    const printZReport = () => {
+        if (!zReport) return;
+        const w = window.open('', '_blank');
+        if (!w) return;
+        const r = zReport;
+        const rows = (items: any[], keys: string[], _headers: string[]) =>
+            items.map(item => `<tr>${keys.map(k => `<td>${item[k] ?? ''}</td>`).join('')}</tr>`).join('');
+        w.document.write(`<html><head><title>Relatório Z</title>
+        <style>body{font-family:monospace;font-size:12px;margin:20px}h2{text-align:center}hr{border-top:1px dashed #000}
+        table{width:100%}td{padding:2px 4px}td:last-child{text-align:right}.total{font-weight:bold}</style></head><body>
+        <h2>${r.company?.name || 'GARRAFEIRA'}</h2>
+        <p style="text-align:center">${r.company?.address || ''} | ${r.company?.phone || ''}</p>
+        <hr/><h3>RELATÓRIO Z - FECHO DE TURNO</h3>
+        <table>
+            <tr><td>Turno:</td><td>${r.session?.id?.slice(-8)}</td></tr>
+            <tr><td>Aberto por:</td><td>${r.session?.openedByName || '-'}</td></tr>
+            <tr><td>Abertura:</td><td>${new Date(r.session?.openedAt).toLocaleString('pt-MZ')}</td></tr>
+            ${r.session?.closedAt ? `<tr><td>Fecho:</td><td>${new Date(r.session.closedAt).toLocaleString('pt-MZ')}</td></tr>` : ''}
+        </table><hr/>
+        <h3>VENDAS POR MÉTODO</h3>
+        <table>
+            <tr><td>Dinheiro</td><td>${r.byMethod?.cash?.toFixed(2)} MT</td></tr>
+            <tr><td>M-Pesa</td><td>${r.byMethod?.mpesa?.toFixed(2)} MT</td></tr>
+            <tr><td>E-Mola</td><td>${r.byMethod?.emola?.toFixed(2)} MT</td></tr>
+            <tr><td>Cartão</td><td>${r.byMethod?.card?.toFixed(2)} MT</td></tr>
+            <tr><td>Crédito</td><td>${r.byMethod?.credit?.toFixed(2)} MT</td></tr>
+            <tr class="total"><td>TOTAL</td><td>${r.totalSales?.toFixed(2)} MT</td></tr>
+        </table><hr/>
+        <h3>RECONCILIAÇÃO</h3>
+        <table>
+            <tr><td>Saldo inicial</td><td>${r.openingBalance?.toFixed(2)} MT</td></tr>
+            <tr><td>+ Vendas (dinheiro)</td><td>${r.byMethod?.cash?.toFixed(2)} MT</td></tr>
+            <tr><td>+ Depósitos</td><td>${r.totalDeposits?.toFixed(2)} MT</td></tr>
+            <tr><td>- Levantamentos</td><td>${r.totalWithdrawals?.toFixed(2)} MT</td></tr>
+            <tr class="total"><td>Saldo esperado</td><td>${r.expectedBalance?.toFixed(2)} MT</td></tr>
+            ${r.closingBalance ? `<tr><td>Saldo contado</td><td>${r.closingBalance?.toFixed(2)} MT</td></tr>
+            <tr class="total"><td>Diferença</td><td>${r.difference?.toFixed(2)} MT</td></tr>` : ''}
+        </table><hr/>
+        <h3>TOP PRODUTOS</h3>
+        <table><tr><th style="text-align:left">Produto</th><th>Qtd</th><th>Total</th></tr>
+        ${(r.topProducts || []).map((p: any) => `<tr><td>${p.name}</td><td style="text-align:right">${p.qty}</td><td style="text-align:right">${p.total?.toFixed(2)} MT</td></tr>`).join('')}
+        </table><hr/>
+        <p style="text-align:center;font-size:10px">Gerado em ${new Date(r.generatedAt).toLocaleString('pt-MZ')}</p>
+        </body></html>`);
+        w.document.close();
+        w.print();
+    };
 
     // Fetch current session
     const fetchCurrentSession = async () => {
@@ -173,6 +238,10 @@ export default function CashRegister() {
                     </p>
                 </div>
                 <div className="flex gap-3">
+                    <Button variant="outline" onClick={fetchZReport}>
+                        <HiOutlineDocumentReport className="w-4 h-4 mr-2" />
+                        Relatório Z
+                    </Button>
                     <Button variant="outline" onClick={fetchCurrentSession}>
                         <HiOutlineRefresh className="w-4 h-4 mr-2" />
                         Atualizar
@@ -494,6 +563,116 @@ export default function CashRegister() {
                         </Button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* Z Report Modal */}
+            <Modal
+                isOpen={zReportOpen}
+                onClose={() => setZReportOpen(false)}
+                title="Relatório Z - Fecho de Turno"
+                size="lg"
+            >
+                {loadingZReport ? (
+                    <div className="flex justify-center items-center py-16">
+                        <LoadingSpinner size="lg" />
+                    </div>
+                ) : zReport ? (
+                    <div className="space-y-5 text-sm">
+                        {/* Company header */}
+                        <div className="text-center border-b pb-4 dark:border-dark-700">
+                            <p className="text-lg font-bold">{zReport.company?.name}</p>
+                            <p className="text-gray-500 text-xs">{zReport.company?.address} | {zReport.company?.phone}</p>
+                            {zReport.company?.nuit && <p className="text-gray-500 text-xs">NUIT: {zReport.company.nuit}</p>}
+                        </div>
+
+                        {/* Session info */}
+                        <div className="grid grid-cols-2 gap-2 bg-gray-50 dark:bg-dark-800 rounded-lg p-4">
+                            <div><span className="text-gray-500">Turno:</span> <span className="font-mono font-bold">#{zReport.session?.id?.slice(-8)}</span></div>
+                            <div><span className="text-gray-500">Operador:</span> {zReport.session?.openedByName || '-'}</div>
+                            <div><span className="text-gray-500">Abertura:</span> {zReport.session?.openedAt ? new Date(zReport.session.openedAt).toLocaleString('pt-MZ') : '-'}</div>
+                            <div><span className="text-gray-500">Fecho:</span> {zReport.session?.closedAt ? new Date(zReport.session.closedAt).toLocaleString('pt-MZ') : 'Em curso'}</div>
+                            <div><span className="text-gray-500">Transaces:</span> <strong>{zReport.totalTransactions}</strong></div>
+                            <div><span className="text-gray-500">IVA Total:</span> {formatCurrency(zReport.totalTax || 0)}</div>
+                        </div>
+
+                        {/* Sales by method */}
+                        <div>
+                            <h4 className="font-semibold mb-3">Vendas por Método de Pagamento</h4>
+                            <div className="space-y-2">
+                                {[
+                                    { label: 'Dinheiro', value: zReport.byMethod?.cash, color: 'bg-green-500' },
+                                    { label: 'M-Pesa', value: zReport.byMethod?.mpesa, color: 'bg-red-500' },
+                                    { label: 'E-Mola', value: zReport.byMethod?.emola, color: 'bg-orange-500' },
+                                    { label: 'Cartão', value: zReport.byMethod?.card, color: 'bg-blue-500' },
+                                    { label: 'Crédito', value: zReport.byMethod?.credit, color: 'bg-purple-500' },
+                                ].map((m, i) => (
+                                    <div key={i} className="flex items-center justify-between py-1.5 border-b dark:border-dark-700 last:border-0">
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-2 h-2 rounded-full ${m.color}`} />
+                                            <span className="text-gray-600 dark:text-gray-400">{m.label}</span>
+                                        </div>
+                                        <span className="font-semibold">{formatCurrency(m.value || 0)}</span>
+                                    </div>
+                                ))}
+                                <div className="flex justify-between pt-2 font-bold text-base">
+                                    <span>TOTAL VENDAS</span>
+                                    <span className="text-green-600">{formatCurrency(zReport.totalSales || 0)}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Cash reconciliation */}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                            <h4 className="font-semibold mb-3 text-blue-800 dark:text-blue-300">Reconciliação de Caixa</h4>
+                            <div className="space-y-1.5 text-sm">
+                                <div className="flex justify-between"><span>Saldo inicial</span><span>{formatCurrency(zReport.openingBalance || 0)}</span></div>
+                                <div className="flex justify-between text-green-600"><span>+ Vendas dinheiro</span><span>+{formatCurrency(zReport.byMethod?.cash || 0)}</span></div>
+                                {zReport.totalDeposits > 0 && <div className="flex justify-between text-green-600"><span>+ Depósitos</span><span>+{formatCurrency(zReport.totalDeposits)}</span></div>}
+                                {zReport.totalWithdrawals > 0 && <div className="flex justify-between text-red-500"><span>- Levantamentos</span><span>-{formatCurrency(zReport.totalWithdrawals)}</span></div>}
+                                <div className="flex justify-between font-bold border-t pt-1.5 dark:border-blue-700"><span>Saldo esperado</span><span>{formatCurrency(zReport.expectedBalance || 0)}</span></div>
+                                {zReport.closingBalance > 0 && <>
+                                    <div className="flex justify-between"><span>Saldo contado</span><span>{formatCurrency(zReport.closingBalance)}</span></div>
+                                    <div className={`flex justify-between font-bold ${zReport.difference === 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        <span>Diferença</span><span>{formatCurrency(zReport.difference || 0)}</span>
+                                    </div>
+                                </>}
+                            </div>
+                        </div>
+
+                        {/* Top products */}
+                        {zReport.topProducts?.length > 0 && (
+                            <div>
+                                <h4 className="font-semibold mb-3">Top Produtos Vendidos</h4>
+                                <table className="w-full text-xs">
+                                    <thead>
+                                        <tr className="bg-gray-50 dark:bg-dark-800">
+                                            <th className="text-left py-2 px-3">Produto</th>
+                                            <th className="text-right py-2 px-3">Qtd</th>
+                                            <th className="text-right py-2 px-3">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {zReport.topProducts.map((p: any, i: number) => (
+                                            <tr key={i} className="border-b dark:border-dark-700">
+                                                <td className="py-1.5 px-3">{p.name}</td>
+                                                <td className="py-1.5 px-3 text-right">{p.qty}</td>
+                                                <td className="py-1.5 px-3 text-right font-medium">{formatCurrency(p.total)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        <div className="flex gap-3 pt-2 border-t dark:border-dark-700">
+                            <Button variant="ghost" fullWidth onClick={() => setZReportOpen(false)}>Fechar</Button>
+                            <Button fullWidth onClick={printZReport}>
+                                <HiOutlineDocumentReport className="w-4 h-4 mr-2" />
+                                Imprimir Relatório Z
+                            </Button>
+                        </div>
+                    </div>
+                ) : null}
             </Modal>
         </div>
     );

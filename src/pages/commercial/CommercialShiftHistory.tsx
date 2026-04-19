@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-    HiOutlineClock, 
-    HiOutlineMagnifyingGlass, 
-    HiOutlineArrowDownTray, 
+    HiOutlineClock,
+    HiOutlineArrowDownTray,
     HiOutlinePrinter, 
     HiOutlineEye, 
     HiOutlineCheckCircle, 
@@ -22,6 +21,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn, formatCurrency } from '../../utils/helpers';
 import { CommercialShiftDetailsModal } from '../../components/commercial/pos/CommercialShiftDetailsModal';
+import { logger } from '../../utils/logger';
 
 const CommercialShiftHistory: React.FC = () => {
     const [sessions, setSessions] = useState<CashSession[]>([]);
@@ -62,7 +62,7 @@ const CommercialShiftHistory: React.FC = () => {
     const handlePrintZReport = (session: CashSession) => {
         toast.success(`Relatório Z gerado para o turno de ${session.openedBy?.name}`);
         // Mock print logic similar to ReceiptModal
-        console.log('Printing Z-Report for shift:', session.id);
+        logger.debug('Printing Z-Report for shift:', session.id);
     };
 
     const getStatusBadge = (session: CashSession) => {
@@ -95,11 +95,11 @@ const CommercialShiftHistory: React.FC = () => {
     return (
         <div className="space-y-4 animate-fade-in pb-10">
             {/* Premium Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white dark:bg-dark-900 p-6 rounded-3xl border border-gray-100 dark:border-dark-700 shadow-sm relative overflow-hidden">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white dark:bg-dark-900 p-6 rounded-lg border border-gray-100 dark:border-dark-700 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
                 <div className="relative z-10">
                     <div className="flex items-center gap-3 mb-1">
-                        <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-lg bg-indigo-600/10 flex items-center justify-center">
                             <HiOutlineCalculator className="text-indigo-600 w-6 h-6" />
                         </div>
                         <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
@@ -122,7 +122,7 @@ const CommercialShiftHistory: React.FC = () => {
                     <Button 
                         variant="outline" 
                         size="sm"
-                        className="rounded-xl border-gray-100 dark:border-dark-700 font-bold text-xs"
+                        className="rounded-lg border-gray-100 dark:border-dark-700 font-bold text-xs"
                     >
                         <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                         Exportar
@@ -131,7 +131,7 @@ const CommercialShiftHistory: React.FC = () => {
             </div>
 
             {/* High Density Filters */}
-            <Card padding="md" className="border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50 rounded-3xl">
+            <Card padding="md" className="border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div className="md:col-span-1">
                         <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">Operador</label>
@@ -140,7 +140,7 @@ const CommercialShiftHistory: React.FC = () => {
                             <input 
                                 type="text" 
                                 placeholder="Filtrar por nome..."
-                                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-xl text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                             />
                         </div>
                     </div>
@@ -148,7 +148,7 @@ const CommercialShiftHistory: React.FC = () => {
                         <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">Início</label>
                         <input 
                             type="date" 
-                            className="w-full px-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-xl text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                            className="w-full px-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                             value={dateRange.start}
                             onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
                         />
@@ -157,12 +157,12 @@ const CommercialShiftHistory: React.FC = () => {
                         <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">Fim</label>
                         <input 
                             type="date" 
-                            className="w-full px-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-xl text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                            className="w-full px-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
                             value={dateRange.end}
                             onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
                         />
                     </div>
-                    <Button onClick={loadHistory} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 font-black uppercase text-[10px] tracking-widest">
+                    <Button onClick={loadHistory} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-10 font-black uppercase text-[10px] tracking-widest">
                         Processar Filtros
                     </Button>
                 </div>
@@ -178,7 +178,7 @@ const CommercialShiftHistory: React.FC = () => {
                 ].map((stat, i) => (
                     <Card key={i} padding="md" className="border-gray-100 dark:border-dark-700/50 shadow-sm hover:shadow-md transition-all">
                         <div className="flex items-center gap-4">
-                            <div className={cn("p-2.5 rounded-xl shrink-0", stat.bg)}>
+                            <div className={cn("p-2.5 rounded-lg shrink-0", stat.bg)}>
                                 <stat.icon className={cn("w-5 h-5", stat.color)} />
                             </div>
                             <div className="min-w-0">
@@ -244,7 +244,7 @@ const CommercialShiftHistory: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase">
+                                                <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase">
                                                     {session.openedBy?.name.charAt(0)}
                                                 </div>
                                                 <div className="flex flex-col min-w-0">
@@ -276,14 +276,14 @@ const CommercialShiftHistory: React.FC = () => {
                                             <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
                                                 <button 
                                                     onClick={() => handleViewDetails(session)}
-                                                    className="p-2 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-sm active:scale-95"
+                                                    className="p-2 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg transition-all shadow-sm active:scale-95"
                                                     title="Ver Detalhes do Turno"
                                                 >
                                                     <HiOutlineEye className="w-5 h-5" />
                                                 </button>
                                                 <button 
                                                     onClick={() => handlePrintZReport(session)}
-                                                    className="p-2 text-gray-500 hover:bg-gray-800 hover:text-white rounded-xl transition-all shadow-sm active:scale-95"
+                                                    className="p-2 text-gray-500 hover:bg-gray-800 hover:text-white rounded-lg transition-all shadow-sm active:scale-95"
                                                     title="Re-imprimir Relatório Z"
                                                 >
                                                     <HiOutlinePrinter className="w-5 h-5" />

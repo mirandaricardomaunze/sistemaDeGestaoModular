@@ -1,5 +1,5 @@
 /**
- * ModulePeriodFilter — filtro de período reutilizável para dashboards de módulos.
+ * ModulePeriodFilter - filtro de período reutilizável para dashboards de módulos.
  *
  * Elimina duplicação do bloco de botões de período que aparecia identicamente
  * em Farmácia, Hotel, Logística e Bottle Store.
@@ -25,7 +25,7 @@ interface ModulePeriodFilterProps {
 
 export function ModulePeriodFilter({ value, onChange, options = PERIOD_OPTIONS, className }: ModulePeriodFilterProps) {
     return (
-        <div className={cn('flex items-center gap-2 bg-gray-100 dark:bg-dark-700 rounded-xl p-1', className)}>
+        <div className={cn('flex items-center gap-2 bg-gray-100 dark:bg-dark-700 rounded-lg p-1', className)}>
             {options.map((opt) => (
                 <button
                     key={opt.value}

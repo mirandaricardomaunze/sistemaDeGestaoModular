@@ -13,11 +13,10 @@ import {
     HiOutlineArrowPath,
     HiOutlineCog,
     HiOutlineCurrencyDollar,
-    HiOutlineDocumentText
 } from 'react-icons/hi2';
 import { subDays, parseISO } from 'date-fns';
 import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, ResponsiveValue, PageHeader } from '../components/ui';
-import { formatCurrency, formatDate, generateId, cn } from '../utils/helpers';
+import { formatDate, generateId, cn } from '../utils/helpers';
 import type { Transaction, TransactionType, TransactionStatus } from '../types';
 import toast from 'react-hot-toast';
 
@@ -294,8 +293,8 @@ export default function Financial() {
                 {activeTab === 'transactions' && (
                     <div className="space-y-6">
                         {/* Period Filter for Transactions */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-100/50 dark:bg-dark-800/50 p-3 rounded-2xl border-none">
-                            <div className="flex items-center gap-1 bg-white/50 dark:bg-dark-700/50 rounded-xl p-1 shadow-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-100/50 dark:bg-dark-800/50 p-3 rounded-lg border-none">
+                            <div className="flex items-center gap-1 bg-white/50 dark:bg-dark-700/50 rounded-lg p-1 shadow-sm">
                                 {periodOptions.map((option) => (
                                     <button
                                         key={option.value}
@@ -317,7 +316,7 @@ export default function Financial() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <Card padding="md" className="border-l-4 border-l-green-500">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                                         <HiOutlineArrowTrendingUp className="w-6 h-6 text-green-600" />
                                     </div>
                                     <div>
@@ -329,7 +328,7 @@ export default function Financial() {
 
                             <Card padding="md" className="border-l-4 border-l-red-500">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                                         <HiOutlineArrowTrendingDown className="w-6 h-6 text-red-600" />
                                     </div>
                                     <div>
@@ -341,7 +340,7 @@ export default function Financial() {
 
                             <Card padding="md" className="border-l-4 border-l-primary-500">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                                         <HiOutlineArrowTrendingUp className="w-6 h-6 text-primary-600" />
                                     </div>
                                     <div>
@@ -357,7 +356,7 @@ export default function Financial() {
 
                             <Card padding="md" className="border-l-4 border-l-yellow-500">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
                                         <HiOutlineArrowTrendingDown className="w-6 h-6 text-yellow-600" />
                                     </div>
                                     <div>
@@ -373,7 +372,7 @@ export default function Financial() {
                             <div className="flex flex-col lg:flex-row gap-4">
                                 <div className="flex-1">
                                     <Input
-                                        placeholder="Buscar transações..."
+                                        placeholder="Buscar transaces..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
@@ -504,7 +503,7 @@ export default function Financial() {
                     <Card padding="lg" className="flex flex-col items-center justify-center py-20">
                         <HiOutlineCog className="w-16 h-16 text-gray-300 mb-4" />
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">Configurações Financeiras</h3>
-                        <p className="text-gray-500 text-center max-w-md">Configure categorias, contas bancárias e automações.</p>
+                        <p className="text-gray-500 text-center max-w-md">Configure categorias, contas bancárias e automaces.</p>
                     </Card>
                 )}
             </div>
@@ -524,7 +523,7 @@ export default function Financial() {
                     <div className="grid grid-cols-2 gap-4">
                         <label
                             className={cn(
-                                'flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
+                                'flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
                                 selectedType === 'income'
                                     ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                                     : 'border-gray-200 dark:border-dark-600'
@@ -544,7 +543,7 @@ export default function Financial() {
                         </label>
                         <label
                             className={cn(
-                                'flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
+                                'flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
                                 selectedType === 'expense'
                                     ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                                     : 'border-gray-200 dark:border-dark-600'

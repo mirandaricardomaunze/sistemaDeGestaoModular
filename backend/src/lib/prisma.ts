@@ -1,4 +1,4 @@
-﻿import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { tenantContext } from './context';
 import { logger } from '../utils/logger';
 
@@ -17,11 +17,35 @@ export const prisma = basePrisma.$extends({
                     return query(args);
                 }
 
-                // List of models that HAVE companyId and should be filtered
+                // List of models that HAVE companyId and should be filtered.
+                // IMPORTANT: Add new models here whenever a model with companyId is added to the schema.
                 const tenantModels = [
+                    // Core
                     'User', 'Product', 'Category', 'Warehouse', 'StockMovement',
                     'Customer', 'Supplier', 'Sale', 'PharmacySale', 'Medication',
-                    'Employee', 'Transaction', 'Invoice', 'Alert', 'Booking', 'Room'
+                    'Employee', 'Transaction', 'Invoice', 'Alert', 'Booking', 'Room',
+                    // Stock & logistics
+                    'StockTransfer', 'WarehouseStock', 'PriceTier', 'ProductBatch',
+                    'PurchaseOrder', 'CreditNote', 'CustomerOrder', 'DocumentSeries',
+                    // Restaurant
+                    'RestaurantTable', 'RestaurantMenuItem', 'RestaurantOrder', 'RestaurantReservation',
+                    // CRM
+                    'FunnelStage', 'Opportunity', 'Campaign',
+                    // HR
+                    'AttendanceRecord', 'PayrollRecord', 'VacationRequest',
+                    // Logistics / fleet
+                    'Vehicle', 'Driver', 'Delivery', 'Parcel', 'DeliveryRoute',
+                    'VehicleMaintenance', 'FuelSupply', 'VehicleIncident',
+                    // Pharmacy
+                    'Prescription', 'MedicationBatch', 'NarcoticRegister',
+                    'PharmacyPartner', 'PartnerInvoice', 'BatchRecall',
+                    // Finance & fiscal
+                    'TaxConfig', 'TaxRetention', 'FiscalReport', 'FiscalDeadline', 'IvaRate',
+                    // Payments & cash
+                    'MpesaTransaction', 'CashSession', 'CreditPayment', 'BottleReturn',
+                    'LoyaltyTransaction', 'CustomerHistory',
+                    // Hospitality
+                    'HousekeepingTask',
                 ];
 
                 if (tenantModels.includes(model)) {
@@ -42,38 +66,34 @@ export const prisma = basePrisma.$extends({
                         }
                     }
 
-                    // Audit logic ...
-                    if (['create', 'update', 'upsert', 'delete', 'updateMany', 'deleteMany'].includes(operation)) {
-                        try {
-                            const auditId = ((args as any).where?.id as string) ||
-                                ((args as any).data?.id as string) ||
-                                'N/A';
-
-                            const auditData = {
-                                userId: context?.userId,
-                                userName: context?.userName || 'Sistema (Autónomo)',
-                                action: operation.toUpperCase(),
-                                entity: model,
-                                entityId: auditId,
-                                newData: operation !== 'delete' ? (args as any).data : undefined,
-                                companyId
-                            };
-
-                            basePrisma.auditLog.create({ data: auditData }).catch(err => {
-                                logger.error('Audit Log Sync Error', { message: err.message });
-                            });
-                        } catch (auditErr) {
-                            logger.error('Audit Log Preparation Error', { error: auditErr });
-                        }
-                    }
                 }
 
-                // Global Security: Always omit sensitive fields from User unless explicitly requested
+                // Execute the actual query first
+                const result = await query(args);
 
-                // Note: We stick to manual sanitizeUser to avoid breaking complex queries (like includes).
+                // Audit AFTER the operation succeeds (fire-and-forget but errors are logged)
+                if (tenantModels.includes(model) &&
+                    ['create', 'update', 'upsert', 'delete', 'updateMany', 'deleteMany'].includes(operation)) {
+                    const auditId = ((args as any).where?.id as string) ||
+                        ((args as any).data?.id as string) ||
+                        'N/A';
 
+                    basePrisma.auditLog.create({
+                        data: {
+                            userId: context?.userId,
+                            userName: context?.userName || 'Sistema (Autónomo)',
+                            action: operation.toUpperCase(),
+                            entity: model,
+                            entityId: auditId,
+                            newData: operation !== 'delete' ? (args as any).data : undefined,
+                            companyId
+                        }
+                    }).catch((auditErr: unknown) => {
+                        logger.error('CRITICAL: Audit log creation failed', { error: auditErr, model, operation });
+                    });
+                }
 
-                return query(args);
+                return result;
             },
         },
     },

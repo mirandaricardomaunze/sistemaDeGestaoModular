@@ -103,7 +103,7 @@ export default function CheckInModal({
                                     <div
                                         key={r.id}
                                         onClick={() => setSelectedRoom(r)}
-                                        className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center justify-between ${selectedRoom?.id === r.id
+                                        className={`p-4 rounded-lg border-2 transition-all cursor-pointer flex items-center justify-between ${selectedRoom?.id === r.id
                                             ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/10'
                                             : 'border-gray-100 dark:border-dark-700 hover:border-primary-200 dark:hover:border-primary-800'
                                             }`}
@@ -143,7 +143,7 @@ export default function CheckInModal({
                 )}
 
                 {currentStepId === 'form' && (() => {
-                    const selectedCountry = getCountryByCode(data.guestCountry) || COUNTRIES[0];
+                    const _selectedCountry = getCountryByCode(data.guestCountry) || COUNTRIES[0];
                     const documentTypes = getDocumentTypesForCountry(data.guestCountry || 'MZ');
 
                     return (
@@ -230,7 +230,7 @@ export default function CheckInModal({
 
                 {currentStepId === 'confirm' && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                        <div className="p-4 bg-gray-50 dark:bg-dark-800/50 rounded-xl space-y-3 shadow-inner border border-gray-100 dark:border-dark-700">
+                        <div className="p-4 bg-gray-50 dark:bg-dark-800/50 rounded-lg space-y-3 shadow-inner border border-gray-100 dark:border-dark-700">
                             <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                                 <HiOutlineClipboardList className="text-primary-500" />
                                 Resumo da Estadia
@@ -258,7 +258,7 @@ export default function CheckInModal({
                                 value={data.mealPlan}
                                 onChange={(e) => setData({ ...data, mealPlan: e.target.value })}
                                 options={[
-                                    { value: 'none', label: 'Só Alojamento' },
+                                    { value: 'none', label: 'S Alojamento' },
                                     { value: 'breakfast', label: 'Pequeno Almoço' },
                                     { value: 'half_board', label: 'Meia Pensão' },
                                     { value: 'full_board', label: 'Pensão Completa' },

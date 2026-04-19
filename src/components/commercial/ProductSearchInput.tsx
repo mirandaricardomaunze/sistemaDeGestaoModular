@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+﻿import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { HiOutlineSearch, HiOutlineX, HiOutlineCube } from 'react-icons/hi';
@@ -9,7 +9,7 @@ import { productsAPI } from '../../services/api';
 import { logger } from '../../utils/logger';
 
 // ============================================================================
-// ProductSearchInput — Reusable product picker with live search
+// ProductSearchInput - Reusable product picker with live search
 //
 // Usage:
 //   <ProductSearchInput onSelect={(p) => setProduct(p)} />
@@ -77,7 +77,7 @@ export function ProductSearchInput({
     const inputRef       = useRef<HTMLInputElement>(null);
     const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
 
-    // ── Position calculation ─────────────────────────────────────────────────
+    // ── Position calculation ────────────────────────────────────────────────-
     useLayoutEffect(() => {
         if (!isOpen || !wrapperRef.current) return;
 
@@ -99,7 +99,7 @@ export function ProductSearchInput({
         };
     }, [isOpen]);
 
-    // ── Close on outside click ───────────────────────────────────────────────
+    // ── Close on outside click ──────────────────────────────────────────────-
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
@@ -172,7 +172,7 @@ export function ProductSearchInput({
         }
     }, [isOpen, results, highlightIdx]);
 
-    // ── Selection ─────────────────────────────────────────────────────────────
+    // ── Selection ────────────────────────────────────────────────────────────-
     const handleSelect = useCallback((product: ProductOption) => {
         onSelect(product);
         setQuery('');
@@ -265,7 +265,7 @@ export function ProductSearchInput({
                         width: coords.width,
                         zIndex: 9999 
                     }}
-                    className="mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
+                    className="mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
                 >
                     {results.length > 0 ? (
                         <>
@@ -319,7 +319,7 @@ export function ProductSearchInput({
                             </ul>
                             <div className="px-3 py-2 border-t border-gray-100 dark:border-dark-700 bg-gray-50 dark:bg-dark-900/50">
                                 <p className="text-xs text-gray-400 font-medium">
-                                    ↑↓ navegar · Enter seleccionar · Esc fechar
+                                    →↔ navegar · Enter seleccionar · Esc fechar
                                 </p>
                             </div>
                         </>

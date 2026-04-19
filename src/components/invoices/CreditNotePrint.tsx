@@ -1,6 +1,6 @@
-﻿import { useRef } from 'react';
+import { useRef } from 'react';
 import { format, parseISO } from 'date-fns';
-import { HiOutlinePrinter, HiOutlineX, HiOutlineUser, HiOutlineDocumentText, HiOutlineOfficeBuilding, HiOutlineMail, HiOutlinePhone } from 'react-icons/hi';
+import { HiOutlinePrinter, HiOutlineXMark as HiOutlineX, HiOutlineUser, HiOutlineDocumentText, HiOutlineBuildingOffice as HiOutlineOfficeBuilding, HiOutlineEnvelope as HiOutlineMail, HiOutlinePhone } from 'react-icons/hi2';
 import { Modal, Button, Card } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { useStore } from '../../stores/useStore';
@@ -111,7 +111,7 @@ export default function CreditNotePrint({ isOpen, onClose, creditNote }: CreditN
 
                     {/* Info Grid */}
                     <div className="grid grid-cols-2 gap-8 mb-8">
-                        <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                        <div className="bg-gray-50 p-5 rounded-lg border border-gray-100">
                             <div className="flex items-center gap-2 mb-3 text-red-600">
                                 <HiOutlineUser className="w-5 h-5" />
                                 <h3 className="font-bold text-sm uppercase tracking-wide">Dados do Cliente</h3>
@@ -122,7 +122,7 @@ export default function CreditNotePrint({ isOpen, onClose, creditNote }: CreditN
                             </div>
                         </div>
 
-                        <div className="bg-gray-50 p-5 rounded-xl border border-gray-100">
+                        <div className="bg-gray-50 p-5 rounded-lg border border-gray-100">
                             <div className="flex items-center gap-2 mb-3 text-red-600">
                                 <HiOutlineDocumentText className="w-5 h-5" />
                                 <h3 className="font-bold text-sm uppercase tracking-wide">Detalhes da Emissão</h3>
@@ -141,23 +141,23 @@ export default function CreditNotePrint({ isOpen, onClose, creditNote }: CreditN
                     </div>
 
                     {/* Items Table */}
-                    <div className="mb-8 border rounded-lg overflow-hidden border-gray-200">
+                    <div className="mb-8 overflow-hidden">
                         <table className="w-full text-sm">
-                            <thead className="bg-header">
-                                <tr>
-                                    <th className="px-4 py-3 text-left font-semibold">Descrição</th>
-                                    <th className="px-4 py-3 text-center font-semibold w-24">Qtd</th>
-                                    <th className="px-4 py-3 text-right font-semibold w-32">Preço Unit.</th>
-                                    <th className="px-4 py-3 text-right font-semibold w-32">Total</th>
+                            <thead>
+                                <tr className="bg-slate-50/80 border-b border-slate-100">
+                                    <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Descrição</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 w-24">Qtd</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 w-32">Preço Unit.</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-32">Total</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-slate-50">
                                 {creditNote.items.map((item, index) => (
-                                    <tr key={index} className="odd:bg-white even:bg-gray-50">
-                                        <td className="px-4 py-3 text-gray-900">{item.description}</td>
-                                        <td className="px-4 py-3 text-center text-gray-600">{item.quantity}</td>
-                                        <td className="px-4 py-3 text-right text-gray-600">{formatCurrency(item.unitPrice)}</td>
-                                        <td className="px-4 py-3 text-right font-medium text-gray-900">{formatCurrency(item.total)}</td>
+                                    <tr key={index}>
+                                        <td className="px-6 py-4 text-gray-900 font-semibold">{item.description}</td>
+                                        <td className="px-6 py-4 text-left text-gray-500 font-medium">{item.quantity}</td>
+                                        <td className="px-6 py-4 text-left text-gray-500 font-medium">{formatCurrency(item.unitPrice)}</td>
+                                        <td className="px-6 py-4 text-right font-bold text-gray-900">{formatCurrency(item.total)}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -166,21 +166,21 @@ export default function CreditNotePrint({ isOpen, onClose, creditNote }: CreditN
 
                     {/* Footer / Totals */}
                     <div className="flex justify-end mb-12">
-                        <div className="w-64 bg-primary-light p-6 rounded-xl">
-                            <div className="flex justify-between items-center mb-2 text-red-800/70 text-sm">
+                        <div className="w-64 bg-slate-50 p-6 rounded-lg border border-slate-100">
+                            <div className="flex justify-between items-center mb-2 text-slate-500 text-[10px] font-black uppercase tracking-widest">
                                 <span>Subtotal</span>
-                                <span>{formatCurrency(creditNote.subtotal)}</span>
+                                <span className="text-slate-900">{formatCurrency(creditNote.subtotal)}</span>
                             </div>
-                            <div className="h-px bg-red-200 my-3"></div>
-                            <div className="flex justify-between items-center text-red-700 font-bold text-lg">
-                                <span>Total a Reembolsar</span>
+                            <div className="h-px bg-slate-200/50 my-3"></div>
+                            <div className="flex justify-between items-center text-slate-900 font-black text-xl tracking-tighter">
+                                <span className="text-sm uppercase tracking-widest text-red-500">Reembolso</span>
                                 <span>{formatCurrency(creditNote.total)}</span>
                             </div>
                         </div>
                     </div>
 
                     <div className="text-center text-xs text-gray-400 mt-auto pt-8 border-t border-gray-100">
-                        <p>Documento processado por computador Â© {new Date().getFullYear()} {company.tradeName}</p>
+                        <p>Documento processado por computador © {new Date().getFullYear()} {company.tradeName}</p>
                     </div>
                 </div>
             </Card>

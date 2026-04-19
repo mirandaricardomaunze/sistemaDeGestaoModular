@@ -1,11 +1,11 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
-    HiOutlineDocumentReport,
-    HiOutlineDownload,
+    HiOutlineDocumentChartBar as HiOutlineDocumentReport,
+    HiOutlineArrowDownTray as HiOutlineDownload,
     HiOutlinePrinter,
     HiOutlineCheck,
-    HiOutlineRefresh,
-} from 'react-icons/hi';
+    HiOutlineArrowPath as HiOutlineRefresh,
+} from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { useStore } from '../../stores/useStore';
 import { Button, Card, Select, Badge, Modal, Pagination, usePagination } from '../ui';
@@ -135,7 +135,7 @@ export default function FiscalReportGenerator() {
         }
 
         if (validation.warnings.length > 0) {
-            toast(validation.warnings.map(w => w.message).join('\n'), { icon: 'âš ï¸' });
+            toast(validation.warnings.map(w => w.message).join('\n'), { icon: '⚠️' });
         }
 
         addFiscalReport(report);
@@ -215,7 +215,7 @@ export default function FiscalReportGenerator() {
                         { key: 'documentNumber', header: 'Nº Documento', width: 20 },
                         { key: 'entityName', header: 'Entidade', width: 30 },
                         { key: 'entityNuit', header: 'NUIT', width: 15 },
-                        { key: 'baseAmount', header: 'Base Tributável', format: 'currency', width: 20, align: 'right' },
+                        { key: 'baseAmount', header: 'Base Tributvel', format: 'currency', width: 20, align: 'right' },
                         { key: 'retainedAmount', header: 'Imposto', format: 'currency', width: 20, align: 'right' },
                         { key: 'date', header: 'Data', format: 'date', width: 15 },
                     ],
@@ -277,8 +277,10 @@ export default function FiscalReportGenerator() {
         <div className="space-y-6">
             {/* Generate Report Section */}
             <Card padding="md">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    <HiOutlineDocumentReport className="w-5 h-5 inline mr-2" />
+                <h3 className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300 flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                        <HiOutlineDocumentReport className="w-5 h-5 text-primary-600" />
+                    </div>
                     Gerar Relatório Fiscal
                 </h3>
 
@@ -338,15 +340,15 @@ export default function FiscalReportGenerator() {
 
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead className="bg-gray-50 dark:bg-dark-800">
+                        <thead className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Relatório</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Período</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Base</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total Imposto</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Docs</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                <th className="px-6 py-4 text-left font-black">Relatório</th>
+                                <th className="px-6 py-4 text-left font-black">Período</th>
+                                <th className="px-6 py-4 text-right font-black">Total Base</th>
+                                <th className="px-6 py-4 text-right font-black">Total Imposto</th>
+                                <th className="px-6 py-4 text-center font-black">Docs</th>
+                                <th className="px-6 py-4 text-center font-black">Estado</th>
+                                <th className="px-6 py-4 text-right font-black">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
@@ -461,7 +463,7 @@ export default function FiscalReportGenerator() {
                         {/* Summary */}
                         <div className="grid grid-cols-3 gap-4">
                             <div className="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg text-center">
-                                <p className="text-sm text-gray-500">Total Base Tributável</p>
+                                <p className="text-sm text-gray-500">Total Base Tributvel</p>
                                 <p className="text-xl font-bold text-gray-900 dark:text-white">
                                     {formatCurrency(previewReport.summary.totalBaseAmount)}
                                 </p>

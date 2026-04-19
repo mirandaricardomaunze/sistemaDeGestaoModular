@@ -231,7 +231,7 @@ export default function MaintenancePage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card variant="glass" className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary-100 dark:bg-primary-900/30">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-primary-100 dark:bg-primary-900/30">
                             <HiOutlineWrenchScrewdriver className="w-6 h-6 text-primary-600" />
                         </div>
                         <div>
@@ -242,7 +242,7 @@ export default function MaintenancePage() {
                 </Card>
                 <Card variant="glass" className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-warning-100 dark:bg-warning-900/30">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-warning-100 dark:bg-warning-900/30">
                             <HiOutlineClock className="w-6 h-6 text-warning-600" />
                         </div>
                         <div>
@@ -253,7 +253,7 @@ export default function MaintenancePage() {
                 </Card>
                 <Card variant="glass" className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-success-100 dark:bg-success-900/30">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-success-100 dark:bg-success-900/30">
                             <HiOutlineCheckCircle className="w-6 h-6 text-success-600" />
                         </div>
                         <div>
@@ -264,7 +264,7 @@ export default function MaintenancePage() {
                 </Card>
                 <Card variant="glass" className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-danger-100 dark:bg-danger-900/30">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-danger-100 dark:bg-danger-900/30">
                             <HiOutlineCurrencyDollar className="w-6 h-6 text-danger-600" />
                         </div>
                         <div>
@@ -301,7 +301,7 @@ export default function MaintenancePage() {
                         <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
                             placeholder={t('logistics_module.maintenance.searchPlaceholder')}
-                            className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />

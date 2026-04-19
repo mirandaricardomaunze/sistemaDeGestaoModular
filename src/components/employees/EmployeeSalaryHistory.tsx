@@ -8,11 +8,11 @@ import { logger } from '../../utils/logger';
  */
 
 import { useState, useEffect } from 'react';
-import { HiOutlineCurrencyDollar, HiOutlineDocumentReport } from 'react-icons/hi';
+import { HiOutlineCurrencyDollar } from 'react-icons/hi';
 import { usePayroll } from '../../hooks/useData';
-import { Card, Badge, LoadingSpinner, TableContainer, Button } from '../ui';
+import { Card, Badge, TableContainer, Button } from '../ui';
 import { Pagination, usePagination } from '../ui';
-import { formatCurrency, formatDate } from '../../utils/helpers';
+import { formatCurrency } from '../../utils/helpers';
 import type { PayrollRecord, Employee } from '../../types';
 import PayslipGenerator from './PayslipGenerator';
 
@@ -76,7 +76,7 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
             {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-dark-700 pb-4">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                         <HiOutlineCurrencyDollar className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -95,23 +95,23 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
 
             {/* Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-4 rounded-xl bg-gray-50 dark:bg-dark-800">
+                <div className="p-4 rounded-lg bg-gray-50 dark:bg-dark-800">
                     <p className="text-xs text-gray-500 uppercase font-bold">Total de Registos</p>
                     <p className="text-xl font-black text-gray-900 dark:text-white">{history.length}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/20">
+                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20">
                     <p className="text-xs text-green-600 uppercase font-bold">Pagos</p>
                     <p className="text-xl font-black text-green-700 dark:text-green-400">
                         {history.filter(r => r.status === 'paid').length}
                     </p>
                 </div>
-                <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20">
+                <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20">
                     <p className="text-xs text-amber-600 uppercase font-bold">Processados</p>
                     <p className="text-xl font-black text-amber-700 dark:text-amber-400">
                         {history.filter(r => r.status === 'processed').length}
                     </p>
                 </div>
-                <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20">
+                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20">
                     <p className="text-xs text-blue-600 uppercase font-bold">Valor Total Acumulado</p>
                     <p className="text-xl font-black text-blue-700 dark:text-blue-400">
                         {formatCurrency(history.reduce((sum, r) => sum + r.netSalary, 0))}

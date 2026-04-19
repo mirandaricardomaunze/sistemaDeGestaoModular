@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { 
-    HiOutlineCalendar, 
-    HiOutlineUsers, 
-    HiOutlineChartBar, 
+import {
+    HiOutlineCalendar,
+    HiOutlineUsers,
+    HiOutlineChartBar,
     HiOutlineBanknotes,
     HiOutlineShieldCheck,
     HiOutlinePlus,
-    HiOutlineArrowPath
+    HiOutlineArrowPath,
+    HiOutlineSun,
+    HiOutlineCurrencyDollar,
 } from 'react-icons/hi2';
 import EmployeeList from '../../components/employees/EmployeeList';
 import EmployeeForm from '../../components/employees/EmployeeForm';
@@ -15,11 +17,29 @@ import { PharmacyHRDashboard } from '../../components/pharmacy/hr/PharmacyHRDash
 import { PharmacyAttendanceControl } from '../../components/pharmacy/hr/PharmacyAttendanceControl';
 import { PharmacyPayrollManager } from '../../components/pharmacy/hr/PharmacyPayrollManager';
 import { PharmacyDocumentCenter } from '../../components/pharmacy/hr/PharmacyDocumentCenter';
+import { VacationsPanel, BonusConfigPanel } from '../../components/employees/ModuleHRPage';
 import { useEmployees } from '../../hooks/useData';
 import { cn } from '../../utils/helpers';
 import type { Employee } from '../../types';
 
-type Tab = 'dashboard' | 'staff' | 'attendance' | 'payroll' | 'compliance';
+const PHARMACY_CONFIG = {
+    department: 'Farmácia',
+    moduleName: 'Farmácia',
+    accentColor: 'green',
+    icon: null,
+    showCommissions: false,
+    documentTypes: [
+        { id: 'bi', label: 'Bilhete de Identidade', required: true },
+        { id: 'nuit', label: 'NUIT', required: true },
+        { id: 'inss', label: 'Cartão INSS', required: true },
+        { id: 'contract', label: 'Contrato de Trabalho', required: true },
+        { id: 'ordem', label: 'Ordem dos Farmacêuticos', required: true },
+        { id: 'license', label: 'Licença Profissional', required: true },
+        { id: 'narcotic', label: 'Habilitação para Medicamentos Controlados' },
+    ],
+};
+
+type Tab = 'dashboard' | 'staff' | 'attendance' | 'payroll' | 'compliance' | 'vacations' | 'config';
 
 export default function PharmacyEmployees() {
     const [activeTab, setActiveTab] = useState<Tab>('dashboard');
@@ -48,7 +68,9 @@ export default function PharmacyEmployees() {
         { id: 'staff', label: 'Equipe Técnica', icon: <HiOutlineUsers className="w-5 h-5" /> },
         { id: 'attendance', label: 'Controle de Ponto', icon: <HiOutlineCalendar className="w-5 h-5" /> },
         { id: 'payroll', label: 'Processamento Salarial', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
+        { id: 'vacations', label: 'Férias', icon: <HiOutlineSun className="w-5 h-5" /> },
         { id: 'compliance', label: 'Conformidade Legal', icon: <HiOutlineShieldCheck className="w-5 h-5" /> },
+        { id: 'config', label: 'Configurações', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> },
     ];
 
     return (
@@ -63,7 +85,7 @@ export default function PharmacyEmployees() {
                             variant="outline"
                             onClick={() => refetch()}
                             leftIcon={<HiOutlineArrowPath />}
-                            className="rounded-xl"
+                            className="rounded-lg"
                         >
                             Actualizar
                         </Button>
@@ -71,7 +93,7 @@ export default function PharmacyEmployees() {
                             variant="primary"
                             onClick={handleAddEmployee}
                             leftIcon={<HiOutlinePlus />}
-                            className="rounded-xl shadow-lg shadow-primary-500/20"
+                            className="rounded-lg shadow-lg shadow-primary-500/20"
                         >
                             Adicionar Colaborador
                         </Button>
@@ -79,27 +101,27 @@ export default function PharmacyEmployees() {
                 }
             />
 
-            {/* Premium Tab Navigation */}
-            <div className="flex gap-1 p-1 bg-white dark:bg-dark-800 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700/50 overflow-x-auto no-scrollbar">
+            {/* Tab Navigation */}
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-dark-800 rounded-lg overflow-x-auto scroller-hidden">
                 {tabs.map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as Tab)}
                         className={cn(
-                            "flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all whitespace-nowrap uppercase tracking-widest italic font-mono",
+                            "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 flex-1 justify-center",
                             activeTab === tab.id
-                                ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30"
-                                : "text-gray-500 hover:bg-gray-50 dark:hover:bg-dark-700 hover:text-gray-900 dark:hover:text-white"
+                                ? "bg-white dark:bg-dark-700 text-primary-600 shadow-sm border border-primary-50 dark:border-primary-900/30"
+                                : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                         )}
                     >
                         {tab.icon}
-                        {tab.label}
+                        <span className="hidden sm:inline">{tab.label}</span>
                     </button>
                 ))}
             </div>
 
             {/* Content Area */}
-            <div className="min-h-[500px]">
+            <div className="min-h-[600px] animate-fade-in transition-all duration-300">
                 {isLoading ? (
                     <div className="flex items-center justify-center h-96">
                         <LoadingSpinner size="xl" />
@@ -122,7 +144,11 @@ export default function PharmacyEmployees() {
 
                         {activeTab === 'payroll' && <PharmacyPayrollManager />}
 
+                        {activeTab === 'vacations' && <VacationsPanel config={PHARMACY_CONFIG as any} employees={[]} />}
+
                         {activeTab === 'compliance' && <PharmacyDocumentCenter />}
+
+                        {activeTab === 'config' && <BonusConfigPanel config={PHARMACY_CONFIG as any} />}
                     </>
                 )}
             </div>

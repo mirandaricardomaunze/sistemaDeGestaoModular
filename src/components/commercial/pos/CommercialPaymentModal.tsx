@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import {
     HiOutlineCash, HiOutlineCheck, HiOutlineX, HiOutlinePlus,
     HiOutlineTrash
 } from 'react-icons/hi';
 import { formatCurrency } from '../../../utils/helpers';
 
-// ─── Icons ───────────────────────────────────────────────────────────────────
+// ──-Icons ──────────────────────────────────────────────────────────────────-
 function PhoneIcon({ className }: { className?: string }) {
     return (
         <svg fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className={className}>
@@ -28,8 +28,8 @@ function DocumentIcon({ className }: { className?: string }) {
     );
 }
 
-// ─── Types ───────────────────────────────────────────────────────────────────
-export type PaymentMethodType = 'cash' | 'mpesa' | 'card' | 'credit';
+// ──-Types ──────────────────────────────────────────────────────────────────-
+export type PaymentMethodType = 'cash' | 'mpesa' | 'emola' | 'card' | 'credit';
 
 export interface PaymentEntry {
     method: PaymentMethodType;
@@ -60,6 +60,11 @@ const METHOD_CONFIG: Record<PaymentMethodType, { label: string; color: string; b
         bg: 'bg-red-50 dark:bg-red-900/20', border: 'border-red-500',
         icon: <PhoneIcon className="w-5 h-5" />
     },
+    emola: {
+        label: 'E-Mola', color: 'text-orange-700 dark:text-orange-400',
+        bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-500',
+        icon: <PhoneIcon className="w-5 h-5" />
+    },
     card: {
         label: 'Cartão/TPA', color: 'text-blue-700 dark:text-blue-400',
         bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-500',
@@ -74,7 +79,7 @@ const METHOD_CONFIG: Record<PaymentMethodType, { label: string; color: string; b
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ──-Component ──────────────────────────────────────────────────────────────-
 export function CommercialPaymentModal({
     isOpen, onClose, onConfirm,
     cartTotal, cartSubtotal, cartDiscount, cartTax,
@@ -149,7 +154,7 @@ export function CommercialPaymentModal({
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-            <div className="relative z-10 w-full max-w-xl mx-4 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="relative z-10 w-full max-w-xl mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 {/* Header */}
                 <div className="bg-blue-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
                     <div>
@@ -177,7 +182,7 @@ export function CommercialPaymentModal({
                             </div>
                             <div>
                                 <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Desconto</p>
-                                <p className="font-bold text-red-500 text-sm">− {formatCurrency(cartDiscount)}</p>
+                                <p className="font-bold text-red-500 text-sm">âˆ' {formatCurrency(cartDiscount)}</p>
                             </div>
                         </div>
                         <div className="mt-3 pt-3 border-t dark:border-dark-700 flex items-center justify-between">
@@ -190,7 +195,7 @@ export function CommercialPaymentModal({
                     <div className="px-6 pt-4">
                         <button
                             onClick={handleCredit}
-                            className={`w-full flex items-center justify-between p-3 rounded-xl border-2 transition-all ${isCredit
+                            className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all ${isCredit
                                 ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
                                 : 'border-gray-100 dark:border-dark-700 bg-gray-50 dark:bg-dark-900 text-gray-500 hover:border-amber-300'}`}
                         >
@@ -229,7 +234,7 @@ export function CommercialPaymentModal({
                             <div className="flex items-center justify-between mb-1">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Métodos de Pagamento</p>
                                 <div className="flex gap-1">
-                                    {(['cash', 'mpesa', 'card'] as PaymentMethodType[]).map(m => {
+                                    {(['cash', 'mpesa', 'emola', 'card'] as PaymentMethodType[]).map(m => {
                                         const conf = METHOD_CONFIG[m];
                                         const active = payments.some(p => p.method === m);
                                         return (
@@ -252,7 +257,7 @@ export function CommercialPaymentModal({
                             {payments.filter(p => p.method !== 'credit').map((payment, idx) => {
                                 const conf = METHOD_CONFIG[payment.method];
                                 return (
-                                    <div key={idx} className={`p-3 rounded-xl border-2 ${conf.border} ${conf.bg} space-y-2`}>
+                                    <div key={idx} className={`p-3 rounded-lg border-2 ${conf.border} ${conf.bg} space-y-2`}>
                                         <div className="flex items-center justify-between">
                                             <div className={`flex items-center gap-2 ${conf.color} font-black text-xs uppercase tracking-wider`}>
                                                 {conf.icon}
@@ -299,13 +304,17 @@ export function CommercialPaymentModal({
                                             </div>
                                         )}
 
-                                        {/* Reference for M-Pesa / Card */}
-                                        {(payment.method === 'mpesa' || payment.method === 'card') && (
+                                        {/* Reference for M-Pesa / E-Mola / Card */}
+                                        {(payment.method === 'mpesa' || payment.method === 'emola' || payment.method === 'card') && (
                                             <input
                                                 type="text"
                                                 value={payment.reference || ''}
                                                 onChange={e => updatePayment(idx, 'reference', e.target.value)}
-                                                placeholder={payment.method === 'mpesa' ? 'Referência M-Pesa (ex: BC12345)...' : 'Nº aprovação cartão...'}
+                                                placeholder={
+                                                    payment.method === 'mpesa' ? 'Referência M-Pesa (ex: BC12345)...'
+                                                    : payment.method === 'emola' ? 'Referência E-Mola (ex: EM12345)...'
+                                                    : 'Nº aprovação cartão...'
+                                                }
                                                 className="w-full px-3 py-1.5 text-xs rounded-lg border dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                                             />
                                         )}
@@ -319,19 +328,19 @@ export function CommercialPaymentModal({
                     {!isCredit && (
                         <div className="px-6 py-4 space-y-2">
                             {remaining > 0.01 && (
-                                <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
+                                <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                                     <span className="text-xs font-black uppercase tracking-widest text-red-600">Em falta</span>
-                                    <span className="text-lg font-black text-red-600">− {formatCurrency(remaining)}</span>
+                                    <span className="text-lg font-black text-red-600">âˆ' {formatCurrency(remaining)}</span>
                                 </div>
                             )}
                             {change > 0.01 && (
-                                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+                                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                                     <span className="text-xs font-black uppercase tracking-widest text-green-700 dark:text-green-400">Troco</span>
                                     <span className="text-2xl font-black text-green-700 dark:text-green-400">{formatCurrency(change)}</span>
                                 </div>
                             )}
                             {Math.abs(totalPaid - cartTotal) < 0.01 && (
-                                <div className="flex items-center justify-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                                <div className="flex items-center justify-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                                     <HiOutlineCheck className="w-4 h-4 text-blue-600 mr-2" />
                                     <span className="text-xs font-black uppercase tracking-widest text-blue-600">Valor exato</span>
                                 </div>
@@ -344,14 +353,14 @@ export function CommercialPaymentModal({
                 <div className="px-6 py-4 border-t dark:border-dark-700 flex gap-3 flex-shrink-0">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                        className="flex-1 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
                     >
                         Cancelar
                     </button>
                     <button
                         onClick={handleConfirm}
                         disabled={!isFullyPaid}
-                        className={`flex-1 py-3 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${isFullyPaid
+                        className={`flex-1 py-3 rounded-lg font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${isFullyPaid
                             ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
                             : 'bg-gray-100 dark:bg-dark-700 text-gray-400 cursor-not-allowed shadow-none'}`}
                     >

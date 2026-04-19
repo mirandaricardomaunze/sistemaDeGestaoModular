@@ -1,98 +1,33 @@
-import { logger } from '../utils/logger';
-﻿/**
- * Logistics Module Hooks 
- * Re-implemented without dependency on @tanstack/react-query to match project architecture.
- */
-
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logisticsAPI } from '../services/api/logistics.api';
-import type { 
-    Vehicle, Driver, DeliveryRoute, Delivery, Parcel, VehicleMaintenance, 
-    LogisticsDashboard, PaginationInfo, DeliveryStatusEvent, ExpiryAlert, 
-    ExpiryAlertSeverity, FuelSupply, VehicleIncident, StaffAttendance, 
-    StaffPayroll 
-} from '../services/api/logistics.api';
+import type {
+    Vehicle, Driver, DeliveryRoute, Delivery,
+    LogisticsDashboard, PaginationInfo, DeliveryStatusEvent, ExpiryAlert,
+    FuelSupply, VehicleIncident, StaffAttendance,
+    StaffPayroll, LogisticsReportsSummary,
+    VehicleMaintenance, ExpiryAlertSeverity
+} from '../types/logistics';
+import type { Parcel } from '../services/api/logistics.api';
 import toast from 'react-hot-toast';
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
-// Simple event bus for cache invalidation
-const cacheEvents = new EventTarget();
-export const invalidateQueries = (keys: string[]) => {
-    keys.forEach(key => {
-        cacheEvents.dispatchEvent(new CustomEvent('invalidate', { detail: key }));
-    });
-};
-
-function useQueryManual<T>(queryFn: () => Promise<T>, queryKey: string[], deps: any[] = [], enabled: boolean = true) {
-    const [data, setData] = useState<T | null>(null);
-    const [isLoading, setIsLoading] = useState(enabled);
-    const [error, setError] = useState<any>(null);
-
-    const fetchData = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const result = await queryFn();
-            setData(result);
-        } catch (err: any) {
-            setError(err);
-            logger.error('Query error:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [queryFn]);
-
-    useEffect(() => {
-        if (enabled) {
-            fetchData();
-        }
-    }, [enabled, ...deps]);
-
-    // Handle invalidation
-    useEffect(() => {
-        const handleInvalidate = (e: any) => {
-            const invalidatedKey = e.detail;
-            if (queryKey.includes(invalidatedKey)) {
-                fetchData();
-            }
-        };
-        cacheEvents.addEventListener('invalidate', handleInvalidate);
-        return () => cacheEvents.removeEventListener('invalidate', handleInvalidate);
-    }, [queryKey, fetchData]);
-
-    return { data, isLoading, error, refetch: fetchData };
+/**
+ * Wraps a React Query v5 mutation result to expose `isLoading` as an alias
+ * for `isPending`, so existing components don't require updates.
+ */
+function withIsLoading<T extends object & { isPending: boolean }>(m: T) {
+    return Object.assign(m, { isLoading: m.isPending });
 }
 
-function useMutationManual<T, V>(
-    mutationFn: (variables: V) => Promise<T>,
-    options?: { onSuccess?: (data: T) => void; onError?: (err: any) => void; invalidateKeys?: string[] }
-) {
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<any>(null);
-
-    const mutate = async (variables: V) => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const result = await mutationFn(variables);
-            if (options?.invalidateKeys) {
-                invalidateQueries(options.invalidateKeys);
-            }
-            options?.onSuccess?.(result);
-            return result;
-        } catch (err: any) {
-            setError(err);
-            options?.onError?.(err);
-            throw err;
-        } finally {
-            setIsLoading(false);
-        }
+/** Invalidate a set of logistics entity query keys */
+function useInvalidate() {
+    const qc = useQueryClient();
+    return (keys: string[][]) => {
+        keys.forEach(key => qc.invalidateQueries({ queryKey: key }));
     };
-
-    return { mutate, mutateAsync: mutate, isLoading, error };
 }
 
 // ============================================================================
@@ -100,7 +35,10 @@ function useMutationManual<T, V>(
 // ============================================================================
 
 export function useLogisticsDashboard() {
-    return useQueryManual<LogisticsDashboard>(() => logisticsAPI.getDashboard(), ['logistics', 'dashboard']);
+    return useQuery<LogisticsDashboard>({
+        queryKey: ['logistics', 'dashboard'],
+        queryFn: () => logisticsAPI.getDashboard(),
+    });
 }
 
 // ============================================================================
@@ -108,48 +46,54 @@ export function useLogisticsDashboard() {
 // ============================================================================
 
 export function useVehicles(params?: { status?: string; type?: string; search?: string; page?: number; limit?: number }) {
-    return useQueryManual<{ data: Vehicle[]; pagination: PaginationInfo }>(
-        () => logisticsAPI.getVehicles(params),
-        ['logistics', 'vehicles'],
-        [params?.status, params?.type, params?.search, params?.page, params?.limit]
-    );
+    return useQuery<{ data: Vehicle[]; pagination: PaginationInfo }>({
+        queryKey: ['logistics', 'vehicles', params],
+        queryFn: () => logisticsAPI.getVehicles(params),
+    });
 }
 
 export function useVehicle(id: string) {
-    return useQueryManual<Vehicle>(() => logisticsAPI.getVehicle(id), ['logistics', 'vehicle', id], [id], !!id);
+    return useQuery<Vehicle>({
+        queryKey: ['logistics', 'vehicle', id],
+        queryFn: () => logisticsAPI.getVehicle(id),
+        enabled: !!id,
+    });
 }
 
 export function useCreateVehicle() {
-    return useMutationManual(
-        (data: Partial<Vehicle>) => logisticsAPI.createVehicle(data),
-        {
-            invalidateKeys: ['logistics', 'vehicles', 'dashboard'],
-            onSuccess: () => toast.success('Veículo criado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar veículo')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Partial<Vehicle>) => logisticsAPI.createVehicle(data),
+        onSuccess: () => {
+            invalidate([['logistics', 'vehicles'], ['logistics', 'dashboard']]);
+            toast.success('Veículo criado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar veículo'),
+    }));
 }
 
 export function useUpdateVehicle() {
-    return useMutationManual(
-        ({ id, data }: { id: string; data: Partial<Vehicle> }) => logisticsAPI.updateVehicle(id, data),
-        {
-            invalidateKeys: ['logistics', 'vehicles'],
-            onSuccess: () => toast.success('Veículo actualizado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar veículo')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<Vehicle> }) => logisticsAPI.updateVehicle(id, data),
+        onSuccess: () => {
+            invalidate([['logistics', 'vehicles']]);
+            toast.success('Veículo actualizado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar veículo'),
+    }));
 }
 
 export function useDeleteVehicle() {
-    return useMutationManual(
-        (id: string) => logisticsAPI.deleteVehicle(id),
-        {
-            invalidateKeys: ['logistics', 'vehicles', 'dashboard'],
-            onSuccess: () => toast.success('Veículo eliminado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar veículo')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => logisticsAPI.deleteVehicle(id),
+        onSuccess: () => {
+            invalidate([['logistics', 'vehicles'], ['logistics', 'dashboard']]);
+            toast.success('Veículo eliminado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar veículo'),
+    }));
 }
 
 // ============================================================================
@@ -157,48 +101,54 @@ export function useDeleteVehicle() {
 // ============================================================================
 
 export function useDrivers(params?: { status?: string; category?: string; search?: string; page?: number; limit?: number }) {
-    return useQueryManual<{ data: Driver[]; pagination: PaginationInfo }>(
-        () => logisticsAPI.getDrivers(params),
-        ['logistics', 'drivers'],
-        [params?.status, params?.category, params?.search, params?.page, params?.limit]
-    );
+    return useQuery<{ data: Driver[]; pagination: PaginationInfo }>({
+        queryKey: ['logistics', 'drivers', params],
+        queryFn: () => logisticsAPI.getDrivers(params),
+    });
 }
 
 export function useDriver(id: string) {
-    return useQueryManual<Driver>(() => logisticsAPI.getDriver(id), ['logistics', 'driver', id], [id], !!id);
+    return useQuery<Driver>({
+        queryKey: ['logistics', 'driver', id],
+        queryFn: () => logisticsAPI.getDriver(id),
+        enabled: !!id,
+    });
 }
 
 export function useCreateDriver() {
-    return useMutationManual(
-        (data: Partial<Driver>) => logisticsAPI.createDriver(data),
-        {
-            invalidateKeys: ['logistics', 'drivers', 'dashboard'],
-            onSuccess: () => toast.success('Motorista criado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar motorista')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Partial<Driver>) => logisticsAPI.createDriver(data),
+        onSuccess: () => {
+            invalidate([['logistics', 'drivers'], ['logistics', 'dashboard']]);
+            toast.success('Motorista criado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar motorista'),
+    }));
 }
 
 export function useUpdateDriver() {
-    return useMutationManual(
-        ({ id, data }: { id: string; data: Partial<Driver> }) => logisticsAPI.updateDriver(id, data),
-        {
-            invalidateKeys: ['logistics', 'drivers'],
-            onSuccess: () => toast.success('Motorista actualizado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar motorista')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<Driver> }) => logisticsAPI.updateDriver(id, data),
+        onSuccess: () => {
+            invalidate([['logistics', 'drivers']]);
+            toast.success('Motorista actualizado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar motorista'),
+    }));
 }
 
 export function useDeleteDriver() {
-    return useMutationManual(
-        (id: string) => logisticsAPI.deleteDriver(id),
-        {
-            invalidateKeys: ['logistics', 'drivers', 'dashboard'],
-            onSuccess: () => toast.success('Motorista eliminado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar motorista')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => logisticsAPI.deleteDriver(id),
+        onSuccess: () => {
+            invalidate([['logistics', 'drivers'], ['logistics', 'dashboard']]);
+            toast.success('Motorista eliminado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar motorista'),
+    }));
 }
 
 // ============================================================================
@@ -206,48 +156,54 @@ export function useDeleteDriver() {
 // ============================================================================
 
 export function useDeliveryRoutes(params?: { active?: boolean; search?: string; page?: number; limit?: number }) {
-    return useQueryManual<{ data: DeliveryRoute[]; pagination: PaginationInfo }>(
-        () => logisticsAPI.getRoutes(params),
-        ['logistics', 'routes'],
-        [params?.active, params?.search, params?.page, params?.limit]
-    );
+    return useQuery<{ data: DeliveryRoute[]; pagination: PaginationInfo }>({
+        queryKey: ['logistics', 'routes', params],
+        queryFn: () => logisticsAPI.getRoutes(params),
+    });
 }
 
 export function useDeliveryRoute(id: string) {
-    return useQueryManual<DeliveryRoute>(() => logisticsAPI.getRoute(id), ['logistics', 'route', id], [id], !!id);
+    return useQuery<DeliveryRoute>({
+        queryKey: ['logistics', 'route', id],
+        queryFn: () => logisticsAPI.getRoute(id),
+        enabled: !!id,
+    });
 }
 
 export function useCreateRoute() {
-    return useMutationManual(
-        (data: Partial<DeliveryRoute>) => logisticsAPI.createRoute(data),
-        {
-            invalidateKeys: ['logistics', 'routes', 'dashboard'],
-            onSuccess: () => toast.success('Rota criada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar rota')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Partial<DeliveryRoute>) => logisticsAPI.createRoute(data),
+        onSuccess: () => {
+            invalidate([['logistics', 'routes'], ['logistics', 'dashboard']]);
+            toast.success('Rota criada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar rota'),
+    }));
 }
 
 export function useUpdateRoute() {
-    return useMutationManual(
-        ({ id, data }: { id: string; data: Partial<DeliveryRoute> }) => logisticsAPI.updateRoute(id, data),
-        {
-            invalidateKeys: ['logistics', 'routes'],
-            onSuccess: () => toast.success('Rota actualizada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar rota')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<DeliveryRoute> }) => logisticsAPI.updateRoute(id, data),
+        onSuccess: () => {
+            invalidate([['logistics', 'routes']]);
+            toast.success('Rota actualizada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar rota'),
+    }));
 }
 
 export function useDeleteRoute() {
-    return useMutationManual(
-        (id: string) => logisticsAPI.deleteRoute(id),
-        {
-            invalidateKeys: ['logistics', 'routes', 'dashboard'],
-            onSuccess: () => toast.success('Rota eliminada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar rota')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => logisticsAPI.deleteRoute(id),
+        onSuccess: () => {
+            invalidate([['logistics', 'routes'], ['logistics', 'dashboard']]);
+            toast.success('Rota eliminada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar rota'),
+    }));
 }
 
 // ============================================================================
@@ -265,76 +221,81 @@ export function useDeliveries(params?: {
     page?: number;
     limit?: number;
 }) {
-    return useQueryManual(
-        () => logisticsAPI.getDeliveries(params),
-        ['logistics', 'deliveries'],
-        [
-            params?.status, params?.priority, params?.driverId, params?.vehicleId,
-            params?.search, params?.startDate, params?.endDate, params?.page, params?.limit
-        ]
-    );
+    return useQuery({
+        queryKey: ['logistics', 'deliveries', params],
+        queryFn: () => logisticsAPI.getDeliveries(params),
+    });
 }
 
 export function useDelivery(id: string) {
-    return useQueryManual<Delivery>(() => logisticsAPI.getDelivery(id), ['logistics', 'delivery', id], [id], !!id);
+    return useQuery<Delivery>({
+        queryKey: ['logistics', 'delivery', id],
+        queryFn: () => logisticsAPI.getDelivery(id),
+        enabled: !!id,
+    });
 }
 
 export function useCreateDelivery() {
-    return useMutationManual(
-        (data: Partial<Delivery> & { items?: Array<{ productId?: string; description: string; quantity: number; weight?: number }> }) =>
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Partial<Delivery> & { items?: Array<{ productId?: string; description: string; quantity: number; weight?: number }> }) =>
             logisticsAPI.createDelivery(data),
-        {
-            invalidateKeys: ['logistics', 'deliveries', 'dashboard'],
-            onSuccess: () => toast.success('Entrega criada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar entrega')
-        }
-    );
+        onSuccess: () => {
+            invalidate([['logistics', 'deliveries'], ['logistics', 'dashboard']]);
+            toast.success('Entrega criada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar entrega'),
+    }));
 }
 
 export function useUpdateDelivery() {
-    return useMutationManual(
-        ({ id, data }: { id: string; data: Partial<Delivery> }) => logisticsAPI.updateDelivery(id, data),
-        {
-            invalidateKeys: ['logistics', 'deliveries'],
-            onSuccess: () => toast.success('Entrega actualizada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar entrega')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<Delivery> }) => logisticsAPI.updateDelivery(id, data),
+        onSuccess: () => {
+            invalidate([['logistics', 'deliveries']]);
+            toast.success('Entrega actualizada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar entrega'),
+    }));
 }
 
 export function useUpdateDeliveryStatus() {
-    return useMutationManual(
-        ({ id, ...data }: { id: string; status: string; failureReason?: string; recipientSign?: string; proofOfDelivery?: string }) =>
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, ...data }: { id: string; status: string; failureReason?: string; recipientSign?: string; proofOfDelivery?: string }) =>
             logisticsAPI.updateDeliveryStatus(id, data),
-        {
-            invalidateKeys: ['logistics', 'deliveries', 'dashboard', 'drivers', 'vehicles'],
-            onSuccess: () => toast.success('Estado da entrega actualizado'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar estado')
-        }
-    );
+        onSuccess: () => {
+            invalidate([['logistics', 'deliveries'], ['logistics', 'dashboard'], ['logistics', 'drivers'], ['logistics', 'vehicles']]);
+            toast.success('Estado da entrega actualizado');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar estado'),
+    }));
 }
 
 export function usePayDelivery() {
-    return useMutationManual(
-        ({ id, ...data }: { id: string; paymentMethod: string; amount?: number }) =>
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, ...data }: { id: string; paymentMethod: string; amount?: number }) =>
             logisticsAPI.payDelivery(id, data),
-        {
-            invalidateKeys: ['logistics', 'deliveries', 'dashboard'],
-            onSuccess: () => toast.success('Pagamento de entrega registado'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao processar pagamento')
-        }
-    );
+        onSuccess: () => {
+            invalidate([['logistics', 'deliveries'], ['logistics', 'dashboard']]);
+            toast.success('Pagamento de entrega registado');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao processar pagamento'),
+    }));
 }
 
 export function useDeleteDelivery() {
-    return useMutationManual(
-        (id: string) => logisticsAPI.deleteDelivery(id),
-        {
-            invalidateKeys: ['logistics', 'deliveries', 'dashboard'],
-            onSuccess: () => toast.success('Entrega eliminada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar entrega')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => logisticsAPI.deleteDelivery(id),
+        onSuccess: () => {
+            invalidate([['logistics', 'deliveries'], ['logistics', 'dashboard']]);
+            toast.success('Entrega eliminada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar entrega'),
+    }));
 }
 
 // ============================================================================
@@ -348,83 +309,88 @@ export function useParcels(params?: {
     page?: number;
     limit?: number;
 }) {
-    return useQueryManual(
-        () => logisticsAPI.getParcels(params),
-        ['logistics', 'parcels'],
-        [
-            params?.status, params?.warehouseId, params?.search, params?.page, params?.limit
-        ]
-    );
+    return useQuery({
+        queryKey: ['logistics', 'parcels', params],
+        queryFn: () => logisticsAPI.getParcels(params),
+    });
 }
 
 export function useParcel(id: string) {
-    return useQueryManual<Parcel>(() => logisticsAPI.getParcel(id), ['logistics', 'parcel', id], [id], !!id);
+    return useQuery<Parcel>({
+        queryKey: ['logistics', 'parcel', id],
+        queryFn: () => logisticsAPI.getParcel(id),
+        enabled: !!id,
+    });
 }
 
 export function useTrackParcel(trackingNumber: string) {
-    return useQueryManual<Parcel>(
-        () => logisticsAPI.trackParcel(trackingNumber),
-        ['logistics', 'parcel_track', trackingNumber],
-        [trackingNumber],
-        !!trackingNumber && trackingNumber.length >= 6
-    );
+    return useQuery<Parcel>({
+        queryKey: ['logistics', 'parcel_track', trackingNumber],
+        queryFn: () => logisticsAPI.trackParcel(trackingNumber),
+        enabled: !!trackingNumber && trackingNumber.length >= 6,
+    });
 }
 
 export function useCreateParcel() {
-    return useMutationManual(
-        (data: Partial<Parcel>) => logisticsAPI.createParcel(data),
-        {
-            invalidateKeys: ['logistics', 'parcels', 'dashboard'],
-            onSuccess: () => toast.success('Encomenda registada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar encomenda')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Partial<Parcel>) => logisticsAPI.createParcel(data),
+        onSuccess: () => {
+            invalidate([['logistics', 'parcels'], ['logistics', 'dashboard']]);
+            toast.success('Encomenda registada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar encomenda'),
+    }));
 }
 
 export function useUpdateParcel() {
-    return useMutationManual(
-        ({ id, data }: { id: string; data: Partial<Parcel> }) => logisticsAPI.updateParcel(id, data),
-        {
-            invalidateKeys: ['logistics', 'parcels'],
-            onSuccess: () => toast.success('Encomenda actualizada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar encomenda')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<Parcel> }) => logisticsAPI.updateParcel(id, data),
+        onSuccess: () => {
+            invalidate([['logistics', 'parcels']]);
+            toast.success('Encomenda actualizada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar encomenda'),
+    }));
 }
 
 export function useRegisterParcelPickup() {
-    return useMutationManual(
-        ({ id, ...data }: { id: string; pickedUpBy: string; pickedUpDocument?: string; receiverRelationship?: string; pickupSignature?: string; paymentMethod?: string; isPaid?: boolean; paidAmount?: number }) =>
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, ...data }: { id: string; pickedUpBy: string; pickedUpDocument?: string; receiverRelationship?: string; pickupSignature?: string; paymentMethod?: string; isPaid?: boolean; paidAmount?: number }) =>
             logisticsAPI.registerParcelPickup(id, data),
-        {
-            invalidateKeys: ['logistics', 'parcels', 'dashboard'],
-            onSuccess: () => toast.success('Levantamento registado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar levantamento')
-        }
-    );
+        onSuccess: () => {
+            invalidate([['logistics', 'parcels'], ['logistics', 'dashboard']]);
+            toast.success('Levantamento registado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar levantamento'),
+    }));
 }
 
 export function useSendParcelNotification() {
-    return useMutationManual(
-        ({ id, ...data }: { id: string; type?: string; recipient?: string; message: string }) =>
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, ...data }: { id: string; type?: string; recipient?: string; message: string }) =>
             logisticsAPI.sendParcelNotification(id, data),
-        {
-            invalidateKeys: ['logistics', 'parcels'],
-            onSuccess: () => toast.success('Notificação enviada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao enviar notificação')
-        }
-    );
+        onSuccess: () => {
+            invalidate([['logistics', 'parcels']]);
+            toast.success('Notificação enviada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao enviar notificação'),
+    }));
 }
 
 export function useDeleteParcel() {
-    return useMutationManual(
-        (id: string) => logisticsAPI.deleteParcel(id),
-        {
-            invalidateKeys: ['logistics', 'parcels', 'dashboard'],
-            onSuccess: () => toast.success('Encomenda eliminada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar encomenda')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => logisticsAPI.deleteParcel(id),
+        onSuccess: () => {
+            invalidate([['logistics', 'parcels'], ['logistics', 'dashboard']]);
+            toast.success('Encomenda eliminada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar encomenda'),
+    }));
 }
 
 // ============================================================================
@@ -432,44 +398,46 @@ export function useDeleteParcel() {
 // ============================================================================
 
 export function useVehicleMaintenances(params?: { vehicleId?: string; status?: string; page?: number; limit?: number }) {
-    return useQueryManual<{ data: VehicleMaintenance[]; pagination: PaginationInfo }>(
-        () => logisticsAPI.getMaintenances(params),
-        ['logistics', 'maintenances'],
-        [params?.vehicleId, params?.status, params?.page, params?.limit]
-    );
+    return useQuery<{ data: VehicleMaintenance[]; pagination: PaginationInfo }>({
+        queryKey: ['logistics', 'maintenances', params],
+        queryFn: () => logisticsAPI.getMaintenances(params),
+    });
 }
 
 export function useCreateMaintenance() {
-    return useMutationManual(
-        (data: Partial<VehicleMaintenance>) => logisticsAPI.createMaintenance(data),
-        {
-            invalidateKeys: ['logistics', 'maintenances', 'vehicles'],
-            onSuccess: () => toast.success('Manutenção registada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar manutenção')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Partial<VehicleMaintenance>) => logisticsAPI.createMaintenance(data),
+        onSuccess: () => {
+            invalidate([['logistics', 'maintenances'], ['logistics', 'vehicles']]);
+            toast.success('Manutenção registada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar manutenção'),
+    }));
 }
 
 export function useUpdateMaintenance() {
-    return useMutationManual(
-        ({ id, data }: { id: string; data: Partial<VehicleMaintenance> }) => logisticsAPI.updateMaintenance(id, data),
-        {
-            invalidateKeys: ['logistics', 'maintenances', 'vehicles'],
-            onSuccess: () => toast.success('Manutenção actualizada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar manutenção')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<VehicleMaintenance> }) => logisticsAPI.updateMaintenance(id, data),
+        onSuccess: () => {
+            invalidate([['logistics', 'maintenances'], ['logistics', 'vehicles']]);
+            toast.success('Manutenção actualizada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar manutenção'),
+    }));
 }
 
 export function useDeleteMaintenance() {
-    return useMutationManual(
-        (id: string) => logisticsAPI.deleteMaintenance(id),
-        {
-            invalidateKeys: ['logistics', 'maintenances', 'vehicles'],
-            onSuccess: () => toast.success('Manutenção eliminada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar manutenção')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => logisticsAPI.deleteMaintenance(id),
+        onSuccess: () => {
+            invalidate([['logistics', 'maintenances'], ['logistics', 'vehicles']]);
+            toast.success('Manutenção eliminada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar manutenção'),
+    }));
 }
 
 // ============================================================================
@@ -493,7 +461,7 @@ const TERMINAL_FAILURE_STATUSES: Delivery['status'][] = ['failed', 'returned', '
 
 /**
  * Pure function: derives the status timeline events from a delivery object.
- * No API call needed — uses data already present in the delivery.
+ * No API call needed -- uses data already present in the delivery.
  */
 function buildStatusTimeline(delivery: Delivery): DeliveryStatusEvent[] {
     const currentStatusIndex = DELIVERY_STATUS_SEQUENCE.findIndex(
@@ -538,7 +506,7 @@ function buildStatusTimeline(delivery: Delivery): DeliveryStatusEvent[] {
 
 /**
  * Hook: provides the status timeline for a single delivery.
- * Responsible ONLY for data derivation — no side effects.
+ * Responsible ONLY for data derivation -- no side effects.
  */
 export function useDeliveryStatusTimeline(delivery: Delivery | null): DeliveryStatusEvent[] {
     if (!delivery) return [];
@@ -616,7 +584,7 @@ function buildDriverAlerts(driver: Driver): ExpiryAlert[] {
 
 /**
  * Hook: aggregates all expiry alerts across vehicles and drivers.
- * Fetches its own data — no props needed — and exposes a clean `alerts` array.
+ * Fetches its own data -- no props needed -- and exposes a clean `alerts` array.
  * Components remain dumb: they just render what this hook provides.
  */
 export function useExpiryAlerts(): { alerts: ExpiryAlert[]; isLoading: boolean } {
@@ -648,33 +616,34 @@ export function useExpiryAlerts(): { alerts: ExpiryAlert[]; isLoading: boolean }
 // ============================================================================
 
 export function useFuelSupplies(params?: { vehicleId?: string; startDate?: string; endDate?: string; page?: number; limit?: number }) {
-    return useQueryManual<{ data: FuelSupply[]; pagination: PaginationInfo }>(
-        () => logisticsAPI.getFuelSupplies(params),
-        ['logistics', 'fuel'],
-        [params?.vehicleId, params?.startDate, params?.endDate, params?.page, params?.limit]
-    );
+    return useQuery<{ data: FuelSupply[]; pagination: PaginationInfo }>({
+        queryKey: ['logistics', 'fuel', params],
+        queryFn: () => logisticsAPI.getFuelSupplies(params),
+    });
 }
 
 export function useCreateFuelSupply() {
-    return useMutationManual(
-        (data: Partial<FuelSupply>) => logisticsAPI.createFuelSupply(data),
-        {
-            invalidateKeys: ['logistics', 'fuel', 'dashboard', 'vehicles'],
-            onSuccess: () => toast.success('Abastecimento registado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar abastecimento')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Partial<FuelSupply>) => logisticsAPI.createFuelSupply(data),
+        onSuccess: () => {
+            invalidate([['logistics', 'fuel'], ['logistics', 'dashboard'], ['logistics', 'vehicles']]);
+            toast.success('Abastecimento registado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar abastecimento'),
+    }));
 }
 
 export function useDeleteFuelSupply() {
-    return useMutationManual(
-        (id: string) => logisticsAPI.deleteFuelSupply(id),
-        {
-            invalidateKeys: ['logistics', 'fuel', 'dashboard', 'vehicles'],
-            onSuccess: () => toast.success('Abastecimento eliminado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar registo')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => logisticsAPI.deleteFuelSupply(id),
+        onSuccess: () => {
+            invalidate([['logistics', 'fuel'], ['logistics', 'dashboard'], ['logistics', 'vehicles']]);
+            toast.success('Abastecimento eliminado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar registo'),
+    }));
 }
 
 // ============================================================================
@@ -682,43 +651,46 @@ export function useDeleteFuelSupply() {
 // ============================================================================
 
 export function useVehicleIncidents(params?: { vehicleId?: string; driverId?: string; type?: string; page?: number; limit?: number }) {
-    return useQueryManual<{ data: VehicleIncident[]; pagination: PaginationInfo }>(
-        () => logisticsAPI.getIncidents(params),
-        ['logistics', 'incidents'],
-        [params?.vehicleId, params?.driverId, params?.type, params?.page, params?.limit]
-    );
+    return useQuery<{ data: VehicleIncident[]; pagination: PaginationInfo }>({
+        queryKey: ['logistics', 'incidents', params],
+        queryFn: () => logisticsAPI.getIncidents(params),
+    });
 }
 
 export function useCreateIncident() {
-    return useMutationManual(
-        (data: Partial<VehicleIncident>) => logisticsAPI.createIncident(data),
-        {
-            invalidateKeys: ['logistics', 'incidents', 'dashboard', 'vehicles', 'drivers'],
-            onSuccess: () => toast.success('Incidente reportado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao reportar incidente')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Partial<VehicleIncident>) => logisticsAPI.createIncident(data),
+        onSuccess: () => {
+            invalidate([['logistics', 'incidents'], ['logistics', 'dashboard'], ['logistics', 'vehicles'], ['logistics', 'drivers']]);
+            toast.success('Incidente reportado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao reportar incidente'),
+    }));
 }
 
 export function useUpdateIncident() {
-    return useMutationManual(
-        ({ id, data }: { id: string; data: Partial<VehicleIncident> }) => logisticsAPI.updateIncident(id, data),
-        {
-            invalidateKeys: ['logistics', 'incidents'],
-            onSuccess: () => toast.success('Incidente actualizado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar incidente')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<VehicleIncident> }) => logisticsAPI.updateIncident(id, data),
+        onSuccess: () => {
+            invalidate([['logistics', 'incidents']]);
+            toast.success('Incidente actualizado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar incidente'),
+    }));
 }
+
 export function useDeleteIncident() {
-    return useMutationManual(
-        (id: string) => logisticsAPI.deleteIncident(id),
-        {
-            invalidateKeys: ['logistics', 'incidents', 'dashboard', 'vehicles', 'drivers'],
-            onSuccess: () => toast.success('Incidente eliminado com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar incidente')
-        }
-    );
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => logisticsAPI.deleteIncident(id),
+        onSuccess: () => {
+            invalidate([['logistics', 'incidents'], ['logistics', 'dashboard'], ['logistics', 'vehicles'], ['logistics', 'drivers']]);
+            toast.success('Incidente eliminado com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar incidente'),
+    }));
 }
 
 // ============================================================================
@@ -726,53 +698,90 @@ export function useDeleteIncident() {
 // ============================================================================
 
 export function useStaffAttendance(params?: { staffId?: string; startDate?: string; endDate?: string }) {
-    return useQueryManual<StaffAttendance[]>(
-        () => logisticsAPI.getStaffAttendance(params),
-        ['logistics', 'hr', 'attendance'],
-        [params?.staffId, params?.startDate, params?.endDate]
-    );
+    return useQuery<StaffAttendance[]>({
+        queryKey: ['logistics', 'hr', 'attendance', params],
+        queryFn: () => logisticsAPI.getStaffAttendance(params),
+    });
 }
 
 export function useRecordStaffTime() {
-    return useMutationManual(
-        (data: { staffId: string; type: 'checkIn' | 'checkOut'; timestamp?: string; notes?: string }) =>
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: { staffId: string; type: 'checkIn' | 'checkOut'; timestamp?: string; notes?: string }) =>
             logisticsAPI.recordStaffTime(data),
-        {
-            invalidateKeys: ['logistics', 'hr', 'attendance', 'drivers'],
-            onSuccess: (data) => toast.success(data.status === 'present' ? 'Entrada registada' : 'Saída registada'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar ponto')
-        }
-    );
+        onSuccess: (data) => {
+            invalidate([['logistics', 'hr', 'attendance'], ['logistics', 'drivers']]);
+            toast.success(data.status === 'present' ? 'Entrada registada' : 'Saída registada');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar ponto'),
+    }));
 }
 
 export function useStaffPayroll(params?: { staffId?: string; month?: number; year?: number; status?: string }) {
-    return useQueryManual<StaffPayroll[]>(
-        () => logisticsAPI.getStaffPayroll(params),
-        ['logistics', 'hr', 'payroll'],
-        [params?.staffId, params?.month, params?.year, params?.status]
-  );
+    return useQuery<StaffPayroll[]>({
+        queryKey: ['logistics', 'hr', 'payroll', params],
+        queryFn: () => logisticsAPI.getStaffPayroll(params),
+    });
 }
 
 export function useCreateStaffPayroll() {
-    return useMutationManual(
-        (data: { staffId: string; month: number; year: number }) =>
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: { staffId: string; month: number; year: number }) =>
             logisticsAPI.createStaffPayroll(data),
-        {
-            invalidateKeys: ['logistics', 'hr', 'payroll'],
-            onSuccess: () => toast.success('Folha de salário gerada com sucesso'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao gerar folha')
-        }
-    );
+        onSuccess: () => {
+            invalidate([['logistics', 'hr', 'payroll']]);
+            toast.success('Folha de salário gerada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao gerar folha'),
+    }));
 }
 
 export function useUpdateStaffPayrollStatus() {
-    return useMutationManual(
-        ({ id, status }: { id: string; status: 'processed' | 'paid' }) =>
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, status }: { id: string; status: 'processed' | 'paid' }) =>
             logisticsAPI.updateStaffPayrollStatus(id, status),
-        {
-            invalidateKeys: ['logistics', 'hr', 'payroll'],
-            onSuccess: () => toast.success('Estado do salário actualizado'),
-            onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar estado')
-        }
-    );
+        onSuccess: () => {
+            invalidate([['logistics', 'hr', 'payroll']]);
+            toast.success('Estado do salário actualizado');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar estado'),
+    }));
+}
+
+// ============================================================================
+// REPORTS SUMMARY
+// ============================================================================
+
+export function useLogisticsReportsSummary(params?: { startDate?: string; endDate?: string }) {
+    return useQuery<LogisticsReportsSummary>({
+        queryKey: ['logistics', 'reports', 'summary', params],
+        queryFn: () => logisticsAPI.getReportsSummary(params),
+    });
+}
+
+// ============================================================================
+// STOCK TRANSFERS
+// ============================================================================
+
+import { warehousesAPI } from '../services/api/warehouses.api';
+
+export function useTransfers(params?: { sourceWarehouseId?: string; targetWarehouseId?: string; status?: string }) {
+    return useQuery<any[]>({
+        queryKey: ['logistics', 'transfers', params],
+        queryFn: () => warehousesAPI.getTransfers(params),
+    });
+}
+
+export function useCreateTransfer() {
+    const invalidate = useInvalidate();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Parameters<typeof warehousesAPI.createTransfer>[0]) => warehousesAPI.createTransfer(data),
+        onSuccess: () => {
+            invalidate([['logistics', 'transfers'], ['logistics', 'dashboard']]);
+            toast.success('Transferência registada com sucesso');
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar transferência'),
+    }));
 }

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Audit Page
  * Página principal de auditoria do sistema
  */
@@ -100,7 +100,7 @@ export default function Audit() {
                                             Auditoria Ativa
                                         </p>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            Ativar ou desativar o registo de ações
+                                            Ativar ou desativar o registo de aces
                                         </p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
@@ -122,7 +122,7 @@ export default function Audit() {
                                     max={365}
                                     value={configForm.retentionDays}
                                     onChange={(e) => setConfigForm({ ...configForm, retentionDays: Number(e.target.value) })}
-                                    helperText="Logs mais antigos serão automaticamente eliminados"
+                                    helperText="Logs mais antigos seráão automaticamente eliminados"
                                 />
 
                                 {/* Minimum Severity */}
@@ -191,7 +191,7 @@ export default function Audit() {
                                         ))}
                                     </div>
                                     <p className="text-xs text-gray-500 mt-2">
-                                        Clique para excluir/incluir ações do registo
+                                        Clique para excluir/incluir aces do registo
                                     </p>
                                 </div>
                             </div>
@@ -212,8 +212,8 @@ export default function Audit() {
                                         Sobre Logs de Auditoria
                                     </h4>
                                     <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                                        <li>• Os logs são registados automaticamente para ações importantes</li>
-                                        <li>• Logins, alterações de dados e exportações são sempre registados</li>
+                                        <li>• Os logs são registados automaticamente para aces importantes</li>
+                                        <li>• Logins, alterações de dados e exportaces são sempre registados</li>
                                         <li>• Utilize os filtros para encontrar eventos específicos</li>
                                         <li>• Exporte relatórios para análise externa ou conformidade</li>
                                     </ul>

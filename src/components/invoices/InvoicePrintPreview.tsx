@@ -1,8 +1,8 @@
 import { logger } from '../../utils/logger';
-﻿import { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { HiOutlinePrinter, HiOutlineX, HiOutlineDownload, HiOutlineMail } from 'react-icons/hi';
+import { HiOutlinePrinter, HiOutlineXMark as HiOutlineX, HiOutlineArrowDownTray as HiOutlineDownload, HiOutlineEnvelope as HiOutlineMail } from 'react-icons/hi2';
 import { Modal, Button, Card, Input } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { useStore } from '../../stores/useStore';
@@ -43,7 +43,7 @@ const paymentMethodLabels: Record<string, string> = {
     invoice: 'Fatura',
 };
 
-/* ── Shared inline style fragments (DRY) ─────────────────────── */
+/* ── Shared inline style fragments (DRY) ──────────────────────-*/
 const sectionHeader = { borderBottom: '1.5px solid #1a1a1a', padding: '8px 32px 4px', margin: 0, backgroundColor: 'white' } as const;
 const sectionTitle = { fontSize: '10px', fontWeight: 900, color: '#1a1a1a', textTransform: 'uppercase' as const, letterSpacing: '1px', margin: 0 };
 const fieldLabel = { fontSize: '10px', fontWeight: 700, color: '#64748b', minWidth: '80px', textTransform: 'uppercase' as const } as const;
@@ -225,56 +225,51 @@ export default function InvoicePrintPreview({ isOpen, onClose, invoice }: Invoic
                         flexDirection: 'column'
                     }}
                 >
-                    {/* ═══════════════════════════════ */}
+                    {/* ───────────────────────────────────────────────────────────── */}
                     {/* TOP HEADER: Company + FATURA    */}
-                    {/* ═══════════════════════════════ */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '24px 32px 16px', borderBottom: '2px solid #1a1a1a', backgroundColor: 'white', margin: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: 'white' }}>
+                    {/* ───────────────────────────────────────────────────────────── */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '32px 32px 24px', borderBottom: '2px solid #f8fafc', backgroundColor: 'white', margin: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', backgroundColor: 'white' }}>
                             {company.logo ? (
-                                <img src={company.logo} alt="Logo" style={{ width: '56px', height: '56px', objectFit: 'contain' }} />
+                                <img src={company.logo} alt="Logo" style={{ width: '64px', height: '64px', objectFit: 'contain' }} />
                             ) : (
-                                <div style={{ width: '56px', height: '56px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb', backgroundColor: 'transparent' }}>
-                                    <span style={{ color: '#9ca3af', fontWeight: 900, fontSize: '20px' }}>M</span>
+                                <div style={{ width: '64px', height: '64px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#6366f1', color: 'white' }}>
+                                    <span style={{ fontWeight: 900, fontSize: '24px' }}>M</span>
                                 </div>
                             )}
                             <div style={{ backgroundColor: 'white' }}>
-                                <p style={{ fontWeight: 900, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', lineHeight: '1.1', color: '#1a1a1a' }}>
+                                <h2 style={{ fontWeight: 900, fontSize: '16px', textTransform: 'uppercase', letterSpacing: '-0.5px', marginBottom: '4px', color: '#0f172a' }}>
                                     {company.tradeName || company.companyName}
-                                </p>
-                                {company.address && (
-                                    <p style={{ fontSize: '10px', color: '#64748b', marginTop: '1px', lineHeight: 1.2 }}>{company.address}{company.city ? `, ${company.city}` : ''}</p>
-                                )}
-                                <p style={{ fontSize: '10px', color: '#64748b', lineHeight: 1.2 }}>
-                                    {company.phone && `Tel: ${company.phone}`}
-                                    {company.email && ` | ${company.email}`}
-                                </p>
-                                {company.taxId && (
-                                    <p style={{ fontSize: '10px', color: '#64748b', fontWeight: 500 }}>NUIT: {company.taxId}</p>
-                                )}
+                                </h2>
+                                <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    {company.address && <p>{company.address}{company.city ? `, ${company.city}` : ''}</p>}
+                                    <p>
+                                        {company.phone && `Tel: ${company.phone}`}
+                                        {company.email && ` | ${company.email}`}
+                                    </p>
+                                    {company.taxId && <p>NUIT: {company.taxId}</p>}
+                                </div>
                             </div>
                         </div>
                         <div style={{ textAlign: 'right', backgroundColor: 'white' }}>
-                            <h1 style={{ fontWeight: 900, fontSize: '20px', letterSpacing: '-0.5px', color: '#1a1a1a', marginBottom: '2px' }}>
+                            <h1 style={{ fontWeight: 900, fontSize: '28px', letterSpacing: '-1.5px', color: '#6366f1', textTransform: 'uppercase', marginBottom: '2px' }}>
                                 FATURA
                             </h1>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                                <p style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '1.5px', color: isCopy ? '#dc2626' : '#16a34a' }}>
-                                    {isCopy ? 'CÓPIA' : 'ORIGINAL'}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <p style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '2px', color: isCopy ? '#ef4444' : '#64748b', textTransform: 'uppercase' }}>
+                                    {isCopy ? 'Deduplicada / Cópia' : 'Documento Original'}
                                 </p>
-                                <p style={{ fontSize: '12px', color: '#64748b', fontFamily: 'monospace', letterSpacing: '0.5px' }}>{invoice.invoiceNumber}</p>
-                                {invoice.orderNumber && (
-                                    <p style={{ fontSize: '10px', color: '#94a3b8' }}>Ref: {invoice.orderNumber}</p>
-                                )}
-                                <span style={{ alignSelf: 'flex-end', marginTop: '4px', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', fontWeight: 600, background: stColors.bg, color: stColors.color }}>
+                                <p style={{ fontSize: '13px', color: '#0f172a', fontWeight: 800, fontFamily: "'Inter', sans-serif" }}>Nº {invoice.invoiceNumber}</p>
+                                <div style={{ alignSelf: 'flex-end', marginTop: '6px', padding: '4px 12px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', background: stColors.bg, color: stColors.color }}>
                                     {statusLabels[invoice.status]}
-                                </span>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════════════════ */}
+                    {/* ─────────────────────────────────────── */}
                     {/* SECTION: CLIENTE + INFO (SIDE BY SIDE) */}
-                    {/* ═══════════════════════════════════════ */}
+                    {/* ─────────────────────────────────────── */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', backgroundColor: 'white', margin: 0 }}>
                         {/* Column 1: Cliente */}
                         <div style={{ borderRight: '1px solid #f3f4f6' }}>
@@ -335,37 +330,37 @@ export default function InvoicePrintPreview({ isOpen, onClose, invoice }: Invoic
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════════ */}
+                    {/* ─────────────────────────────── */}
                     {/* SECTION: DETALHES DOS PRODUTOS */}
-                    {/* ═══════════════════════════════ */}
-                    <div style={{ padding: '16px 32px 16px', backgroundColor: 'white', margin: 0 }}>
-                        <table className="print-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff' }}>
+                    {/* ─────────────────────────────── */}
+                    <div style={{ padding: '0 32px 16px', backgroundColor: 'white', margin: 0 }}>
+                        <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff', overflow: 'hidden', borderRadius: '8px' }}>
                             <thead>
-                                <tr style={{ backgroundColor: '#ffffff' }}>
-                                    <th style={{ padding: '10px 12px', borderBottom: '1.5px solid #1a1a1a', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Descrição</th>
-                                    <th style={{ padding: '10px 12px', borderBottom: '1.5px solid #1a1a1a', textAlign: 'center', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Qtd</th>
-                                    <th style={{ padding: '10px 12px', borderBottom: '1.5px solid #1a1a1a', textAlign: 'right', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>V. Unitário</th>
-                                    <th style={{ padding: '10px 12px', borderBottom: '1.5px solid #1a1a1a', textAlign: 'right', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</th>
+                                <tr style={{ backgroundColor: '#f8fafc' }}>
+                                    <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Produto / Serviço</th>
+                                    <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Qtd</th>
+                                    <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Preço Unitário</th>
+                                    <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Total</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {(invoice.items || []).map((item, index) => (
                                     <tr key={index} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '10px 12px', fontSize: '11px', color: '#1a1a1a', fontWeight: 500 }}>
+                                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#1e293b', fontWeight: 600 }}>
                                             {item.description}
                                         </td>
-                                        <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: '11px', color: '#475569' }}>{item.quantity}</td>
-                                        <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '11px', color: '#475569' }}>{formatCurrency(item.unitPrice)}</td>
-                                        <td style={{ padding: '10px 12px', textAlign: 'right', fontSize: '11px', fontWeight: 800, color: '#1a1a1a' }}>{formatCurrency(item.total)}</td>
+                                        <td style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: '#475569', fontWeight: 500 }}>{item.quantity}</td>
+                                        <td style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: '#475569', fontWeight: 500 }}>{formatCurrency(item.unitPrice)}</td>
+                                        <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(item.total)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
 
-                    {/* ═══════════════ */}
+                    {/* ───────────────── */}
                     {/* SECTION: TOTAIS */}
-                    {/* ═══════════════ */}
+                    {/* ───────────────── */}
                     <div style={{ padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', backgroundColor: 'white', margin: 0, flex: 1 }}>
                         {/* Left: Notes + Terms */}
                         <div style={{ maxWidth: '55%' }}>
@@ -431,9 +426,9 @@ export default function InvoicePrintPreview({ isOpen, onClose, invoice }: Invoic
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════ */}
+                    {/* ─────────────────────────── */}
                     {/* PAYMENTS HISTORY           */}
-                    {/* ═══════════════════════════ */}
+                    {/* ─────────────────────────── */}
                     {(invoice.payments || []).length > 0 && (
                         <>
                             <div style={{ ...sectionHeader, backgroundColor: 'white', margin: 0 }}>
@@ -460,9 +455,9 @@ export default function InvoicePrintPreview({ isOpen, onClose, invoice }: Invoic
                         </>
                     )}
 
-                    {/* ═══════════════════ */}
+                    {/* ─────────────────── */}
                     {/* SIGNATURE SECTION  */}
-                    {/* ═══════════════════ */}
+                    {/* ─────────────────── */}
                     <div style={{ padding: '20px 32px 24px', borderTop: '1px solid #f1f5f9', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px', backgroundColor: 'white', margin: 0 }}>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ marginTop: '36px', marginBottom: '4px', borderBottom: '1px solid #1e293b' }} />

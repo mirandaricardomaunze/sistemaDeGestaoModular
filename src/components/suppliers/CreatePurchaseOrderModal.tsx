@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -272,7 +272,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose }: CreatePurc
                             placeholder="Notas para o fornecedor ou internas..."
                         />
                     </div>
-                    <div className="w-full md:w-64 bg-gray-50 dark:bg-dark-800 p-4 rounded-xl">
+                    <div className="w-full md:w-64 bg-gray-50 dark:bg-dark-800 p-4 rounded-lg">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-gray-600 dark:text-gray-400">Total Itens</span>
                             <span className="font-semibold">{watchedItems?.length || 0}</span>

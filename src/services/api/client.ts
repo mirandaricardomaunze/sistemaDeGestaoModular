@@ -1,4 +1,4 @@
-﻿import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 
 // ============================================================================
@@ -38,7 +38,17 @@ api.interceptors.request.use(
 // ============================================================================
 
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Automatic unwrapping of Result Pattern responses
+        // If the response follows { success: true, data: ... }, we return response.data.data
+        if (response.data && typeof response.data === 'object' && response.data.success === true && 'data' in response.data) {
+            return {
+                ...response,
+                data: response.data.data
+            };
+        }
+        return response;
+    },
     (error: AxiosError<{ error?: string; message?: string }>) => {
         // Check if this request should skip automatic error toasts
         const skipErrorToast = (error.config as any)?.skipErrorToast;

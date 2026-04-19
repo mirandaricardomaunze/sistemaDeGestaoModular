@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useEffect, useCallback } from 'react';
-import { pharmacyAPI } from '../services/api';
+import { useState, useEffect, useCallback } from 'react';
+import { pharmacyAPI, salesAPI } from '../services/api';
 
 interface PaginationMeta {
     page: number;
@@ -15,6 +15,7 @@ interface UsePharmacySalesParams {
     endDate?: string;
     status?: string;
     customerId?: string;
+    search?: string;
     page?: number;
     limit?: number;
 }
@@ -56,6 +57,7 @@ export function usePharmacySales(params?: UsePharmacySalesParams) {
         params?.endDate,
         params?.status,
         params?.customerId,
+        params?.search,
         params?.page,
         params?.limit
     ]);
@@ -64,11 +66,17 @@ export function usePharmacySales(params?: UsePharmacySalesParams) {
         fetchSales();
     }, [fetchSales]);
 
+    const voidSale = async (id: string, reason: string) => {
+        await salesAPI.voidSale(id, reason);
+        setSales(prev => prev.map(s => s.id === id ? { ...s, status: 'voided' } : s));
+    };
+
     return {
         sales,
         pagination,
         isLoading,
         error,
-        refetch: fetchSales
+        refetch: fetchSales,
+        voidSale,
     };
 }

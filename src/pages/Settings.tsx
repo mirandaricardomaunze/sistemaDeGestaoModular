@@ -1,24 +1,24 @@
-import { logger } from '../utils/logger';
-﻿import { useState, useEffect } from 'react';
+﻿import { logger } from '../utils/logger';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
-    HiOutlineCog,
-    HiOutlineOfficeBuilding,
+    HiOutlineCog6Tooth as HiOutlineCog,
+    HiOutlineBuildingOffice as HiOutlineOfficeBuilding,
     HiOutlineShieldCheck,
-    HiOutlineCloudDownload,
+    HiOutlineArrowDownTray as HiOutlineCloudDownload,
     HiOutlineSun,
     HiOutlineMoon,
     HiOutlineUser,
     HiOutlineLockClosed,
     HiOutlineUsers,
     HiOutlineTrash,
-    HiOutlinePencilAlt,
+    HiOutlinePencilSquare as HiOutlinePencilAlt,
     HiOutlineCheckCircle,
     HiOutlineXCircle,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { Card, Button, Input, Select, ConfirmationModal } from '../components/ui';
 import { useStore } from '../stores/useStore';
 import { useAuthStore, roleLabels } from '../stores/useAuthStore';
@@ -41,6 +41,8 @@ const companySchema = z.object({
     printerType: z.enum(['thermal', 'a4']),
     thermalPaperWidth: z.enum(['80mm', '58mm']),
     autoPrintReceipt: z.boolean(),
+    receiptHeader: z.string().optional(),
+    receiptFooter: z.string().optional(),
     bankAccounts: z.array(z.object({
         bankName: z.string().min(1, 'Banco é obrigatório'),
         accountNumber: z.string().min(1, 'Conta é obrigatória'),
@@ -176,6 +178,8 @@ export default function Settings() {
             printerType: data.printerType,
             thermalPaperWidth: data.thermalPaperWidth,
             autoPrintReceipt: data.autoPrintReceipt,
+            receiptHeader: data.receiptHeader,
+            receiptFooter: data.receiptFooter,
             businessType: businessType, // Sync current businessType to company settings
         });
         toast.success('Dados da empresa salvos com sucesso!');
@@ -229,12 +233,12 @@ export default function Settings() {
     };
 
     const businessTypeOptions = [
-        { value: 'retail', label: 'Comércio / Retalho', icon: '🛍️', description: 'Loja de artigos diversos, vestuário, eletrónicos' },
-        { value: 'pharmacy', label: 'Farmácia', icon: '💊', description: 'Medicamentos, controle de lotes e validades' },
-        { value: 'supermarket', label: 'Supermercado', icon: '🛒', description: 'Mercearia, balança e alto volume de vendas' },
-        { value: 'bottlestore', label: 'Bottle Store', icon: '🍺', description: 'Garrafeira, bebidas e gestão de vasilhame' },
-        { value: 'hotel', label: 'Hotel / Residencial', icon: '🏨', description: 'Hospedagem, gestão de quartos e reservas' },
-        { value: 'logistics', label: 'Logística / Armazém', icon: '🚚', description: 'Gestão de estoque multifocal e transferências' },
+        { value: 'retail', label: 'Comércio / Retalho', icon: '', description: 'Loja de artigos diversos, vestuário, eletrónicos' },
+        { value: 'pharmacy', label: 'Farmácia', icon: 'ðŸ’Š', description: 'Medicamentos, controle de lotes e validades' },
+        { value: 'supermarket', label: 'Supermercado', icon: 'ðŸ›’', description: 'Mercearia, balança e alto volume de vendas' },
+        { value: 'bottlestore', label: 'Bottle Store', icon: 'ðŸ¾', description: 'Garrafeira, bebidas e gestão de vasilhame' },
+        { value: 'hotel', label: 'Hotel / Residencial', icon: 'ðŸ¨', description: 'Hospedagem, gestão de quartos e reservas' },
+        { value: 'logistics', label: 'Logística / Armazém', icon: 'ðŸ“¦', description: 'Gestão de estoque multifocal e transferências' },
     ];
 
     const stateOptions = [
@@ -597,7 +601,7 @@ export default function Settings() {
                     </h2>
                     <form onSubmit={handleSubmitCompany(onSubmitCompany as never)} className="space-y-6">
                         {/* Logo Upload Section */}
-                        <div className="border border-dashed border-gray-300 dark:border-dark-600 rounded-xl p-6 bg-gray-50 dark:bg-dark-800">
+                        <div className="border border-dashed border-gray-300 dark:border-dark-600 rounded-lg p-6 bg-gray-50 dark:bg-dark-800">
                             <div className="flex flex-col md:flex-row items-center gap-6">
                                 {/* Logo Preview */}
                                 <div className="relative">
@@ -606,7 +610,7 @@ export default function Settings() {
                                             <img
                                                 src={companySettings.logo}
                                                 alt="Logo da Empresa"
-                                                className="w-28 h-28 rounded-2xl object-contain bg-white dark:bg-dark-700 border-2 border-gray-200 dark:border-dark-600 shadow-lg"
+                                                className="w-28 h-28 rounded-lg object-contain bg-white dark:bg-dark-700 border-2 border-gray-200 dark:border-dark-600 shadow-lg"
                                             />
                                             <button
                                                 type="button"
@@ -621,7 +625,7 @@ export default function Settings() {
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-dashed border-primary-300 dark:border-primary-700 flex items-center justify-center">
+                                        <div className="w-28 h-28 rounded-lg bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-dashed border-primary-300 dark:border-primary-700 flex items-center justify-center">
                                             <HiOutlineOfficeBuilding className="w-10 h-10 text-primary-400 dark:text-primary-500" />
                                         </div>
                                     )}
@@ -783,6 +787,32 @@ export default function Settings() {
                                     </label>
                                 </div>
                             </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">
+                                        Cabeçalho do Recibo
+                                    </label>
+                                    <p className="text-[10px] text-gray-400 mb-1">Aparece logo abaixo do logótipo ou nome da empresa.</p>
+                                    <textarea
+                                        className="w-full rounded-lg border-gray-300 dark:border-dark-700 dark:bg-dark-800 focus:border-primary-500 focus:ring-primary-500 text-sm p-3 min-h-[80px]"
+                                        placeholder="Ex: Bem-vindos! Preços baixos sempre."
+                                        {...registerCompany('receiptHeader')}
+                                    />
+                                </div>
+
+                                <div className="space-y-1">
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">
+                                        Rodap do Recibo
+                                    </label>
+                                    <p className="text-[10px] text-gray-400 mb-1">Aparece no fundo do recibo, ideal para políticas ou agradecimentos.</p>
+                                    <textarea
+                                        className="w-full rounded-lg border-gray-300 dark:border-dark-700 dark:bg-dark-800 focus:border-primary-500 focus:ring-primary-500 text-sm p-3 min-h-[80px]"
+                                        placeholder="Ex: Obrigado pela sua visita. Volte sempre!"
+                                        {...registerCompany('receiptFooter')}
+                                    />
+                                </div>
+                            </div>
                         </div>
 
                         <div className="border-t border-gray-200 dark:border-dark-700 pt-6">
@@ -940,9 +970,9 @@ export default function Settings() {
                                     <button
                                         key={option.value}
                                         onClick={async () => {
-                                            if (isSelected) return; // Se já estiver ativo, não faz nada e não dá aviso
+                                            if (isSelected) return; // Se j estiver ativo, não faz nada e não d aviso
 
-                                            // Verificar se o módulo correspondente está disponível
+                                            // Verificar se o módulo correspondente est disponível
                                             const requiredModule = BUSINESS_TYPE_TO_MODULE[option.value];
                                             const hasRequiredModule = user?.activeModules?.includes(requiredModule);
 
@@ -961,7 +991,7 @@ export default function Settings() {
                                             toast.success(`Tipo de negócio alterado para ${option.label}`);
                                         }}
                                         className={`
-                                            p-4 rounded-xl border-2 text-left transition-all group
+                                            p-4 rounded-lg border-2 text-left transition-all group
                                             ${isSelected
                                                 ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 shadow-lg'
                                                 : 'border-gray-200 dark:border-dark-600 hover:border-primary-300 hover:bg-gray-50 dark:hover:bg-dark-700'
@@ -1021,7 +1051,7 @@ export default function Settings() {
                         </div>
 
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <div>
                                     <p className="font-medium text-gray-900 dark:text-white">
                                         Alertas por Email
@@ -1045,10 +1075,10 @@ export default function Settings() {
                                 </button>
                             </div>
 
-                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                            <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <div>
                                     <p className="font-medium text-gray-900 dark:text-white">
-                                        Notificações Push
+                                        Notificaces Push
                                     </p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">
                                         Receber notificações no navegador
@@ -1089,9 +1119,9 @@ export default function Settings() {
 
                         <div className="space-y-6">
                             {/* Export Section */}
-                            <div className="p-6 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-xl border border-primary-200 dark:border-primary-800">
+                            <div className="p-6 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-lg border border-primary-200 dark:border-primary-800">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-primary-600 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-lg bg-primary-600 flex items-center justify-center">
                                         <HiOutlineCloudDownload className="w-6 h-6 text-white" />
                                     </div>
                                     <div className="flex-1">
@@ -1102,12 +1132,12 @@ export default function Settings() {
                                             Faça o download de um backup com todos os dados do sistema:
                                         </p>
                                         <ul className="text-sm text-gray-500 dark:text-gray-400 mt-2 space-y-1">
-                                            <li>✓ Configurações da empresa</li>
-                                            <li>✓ Produtos e categorias</li>
-                                            <li>✓ Funcionários e presença</li>
-                                            <li>✓ Vendas e transações</li>
-                                            <li>✓ Alertas e configurações</li>
-                                            <li>✓ Utilizadores registados</li>
+                                            <li>âœ… Configurações da empresa</li>
+                                            <li>âœ… Produtos e categorias</li>
+                                            <li>âœ… Funcionários e presença</li>
+                                            <li>âœ… Vendas e transaces</li>
+                                            <li>âœ… Alertas e configurações</li>
+                                            <li>âœ… Utilizadores registados</li>
                                         </ul>
                                         <Button onClick={handleExportData} className="mt-4">
                                             <HiOutlineCloudDownload className="w-4 h-4 mr-2" />
@@ -1118,9 +1148,9 @@ export default function Settings() {
                             </div>
 
                             {/* Import Section */}
-                            <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-200 dark:border-amber-800">
+                            <div className="p-6 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-200 dark:border-amber-800">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center">
+                                    <div className="w-12 h-12 rounded-lg bg-amber-500 flex items-center justify-center">
                                         <HiOutlineShieldCheck className="w-6 h-6 text-white" />
                                     </div>
                                     <div className="flex-1">
@@ -1132,7 +1162,7 @@ export default function Settings() {
                                         </p>
                                         <div className="mt-3 p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
                                             <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                                                ⚠️ Atenção: Este processo irá substituir todos os dados actuais!
+                                                âš ï¸ Atenção: Este processo ir substituir todos os dados actuais!
                                             </p>
                                         </div>
                                         <label className="mt-4 inline-block">
@@ -1177,7 +1207,7 @@ export default function Settings() {
                         </div>
 
                         {/* Backup Info */}
-                        <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <h4 className="font-medium text-gray-900 dark:text-white mb-2">
                                 Informações do Backup
                             </h4>
@@ -1205,7 +1235,7 @@ export default function Settings() {
                     {/* Tips Card */}
                     <Card padding="md" className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
                         <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
-                            💡 Dicas de Backup
+                            icas de Backup
                         </h3>
                         <ul className="text-sm text-blue-800 dark:text-blue-400 space-y-1">
                             <li>• Faça backups regulares (recomendado: diariamente)</li>
@@ -1282,7 +1312,7 @@ export default function Settings() {
                                                 {adminStats.companies.active} ativas
                                             </p>
                                         </div>
-                                        <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center">
+                                        <div className="w-12 h-12 rounded-lg bg-blue-500 flex items-center justify-center">
                                             <HiOutlineOfficeBuilding className="w-6 h-6 text-white" />
                                         </div>
                                     </div>
@@ -1299,7 +1329,7 @@ export default function Settings() {
                                                 {adminStats.users.active} ativos
                                             </p>
                                         </div>
-                                        <div className="w-12 h-12 rounded-xl bg-green-500 flex items-center justify-center">
+                                        <div className="w-12 h-12 rounded-lg bg-green-500 flex items-center justify-center">
                                             <HiOutlineUsers className="w-6 h-6 text-white" />
                                         </div>
                                     </div>
@@ -1316,7 +1346,7 @@ export default function Settings() {
                                                 {new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(adminStats.sales.revenue)}
                                             </p>
                                         </div>
-                                        <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center">
+                                        <div className="w-12 h-12 rounded-lg bg-purple-500 flex items-center justify-center">
                                             <HiOutlineCheckCircle className="w-6 h-6 text-white" />
                                         </div>
                                     </div>
@@ -1333,7 +1363,7 @@ export default function Settings() {
                                                 {adminStats.recentActivity.newUsers} novos utilizadores
                                             </p>
                                         </div>
-                                        <div className="w-12 h-12 rounded-xl bg-amber-500 flex items-center justify-center">
+                                        <div className="w-12 h-12 rounded-lg bg-amber-500 flex items-center justify-center">
                                             <HiOutlineCog className="w-6 h-6 text-white" />
                                         </div>
                                     </div>
@@ -1379,7 +1409,7 @@ export default function Settings() {
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                             </div>
                         ) : companies.length === 0 ? (
-                            <div className="text-center py-12 bg-gray-50 dark:bg-dark-700 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600">
+                            <div className="text-center py-12 bg-gray-50 dark:bg-dark-700 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600">
                                 <HiOutlineOfficeBuilding className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-gray-500 dark:text-gray-400">Nenhuma empresa encontrada.</p>
                             </div>
@@ -1479,7 +1509,7 @@ export default function Settings() {
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                             </div>
                         ) : users.length === 0 ? (
-                            <div className="text-center py-12 bg-gray-50 dark:bg-dark-700 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600">
+                            <div className="text-center py-12 bg-gray-50 dark:bg-dark-700 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600">
                                 <HiOutlineUsers className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-gray-500 dark:text-gray-400">Nenhum utilizador encontrado.</p>
                             </div>
@@ -1491,7 +1521,7 @@ export default function Settings() {
                                             <th className="px-6 py-3">Nome / Email</th>
                                             <th className="px-6 py-3">Papel</th>
                                             <th className="px-6 py-3">Status</th>
-                                            <th className="px-6 py-3">Último Acesso</th>
+                                            <th className="px-6 py-3">Ãšltimo Acesso</th>
                                             <th className="px-6 py-3 text-right">Acções</th>
                                         </tr>
                                     </thead>
@@ -1571,7 +1601,7 @@ export default function Settings() {
             {/* Edit User Modal Content */}
             {isUserModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-xl border border-gray-200 dark:border-dark-700 w-full max-w-md overflow-hidden">
+                    <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl border border-gray-200 dark:border-dark-700 w-full max-w-md overflow-hidden">
                         <div className="p-6 border-b border-gray-200 dark:border-dark-700">
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white">Editar Utilizador</h3>
                         </div>
@@ -1595,7 +1625,7 @@ export default function Settings() {
                                         { value: 'manager', label: 'Gerente' },
                                         { value: 'operator', label: 'Operador' },
                                         { value: 'cashier', label: 'Caixa' },
-                                        { value: 'stock_keeper', label: 'Gestor de Stock' },
+                                        { value: 'stock_keeper', label: 'Gestãor de Stock' },
                                     ]}
                                     {...registerUser('role')}
                                     error={userErrors.role?.message}
@@ -1643,3 +1673,4 @@ export default function Settings() {
         </div>
     );
 }
+

@@ -1,20 +1,20 @@
-﻿import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function migrate() {
     console.log('ðŸš€ Iniciando script de migração Multi-Tenant...');
-    console.log(`ðŸ“¡ DATABASE_URL: ${process.env.DATABASE_URL ? 'Definida' : 'NÃO DEFINIDA'}`);
+    console.log(`ðŸ"¡ DATABASE_URL: ${process.env.DATABASE_URL ? 'Definida' : 'NÀO DEFINIDA'}`);
 
     try {
-        console.log('ðŸ” Buscando empresa padrão...');
+        console.log('ðŸ" Buscando empresa padrão...');
         // 1. Criar Empresa Padrão
         let defaultCompany = await prisma.company.findFirst({
             where: { name: 'Sistema Principal' }
         });
 
         if (!defaultCompany) {
-            console.log('ðŸ—ï¸ Criando empresa padrão...');
+            console.log('ðŸ--ï¸ Criando empresa padrão...');
             defaultCompany = await prisma.company.create({
                 data: {
                     name: 'Sistema Principal',
@@ -37,8 +37,8 @@ async function migrate() {
             { code: 'BOTTLE_STORE', name: 'Garrafeira' },
             { code: 'HOSPITALITY', name: 'Hospedagem' },
             { code: 'INVENTORY', name: 'Estoque' },
-            { code: 'FISCAL', name: 'Fiscal/Contábil' },
-            { code: 'CRM', name: 'CRM' },
+            { code: 'FISCAL', name: 'Fiscal/Contbil' },
+            { code: 'crm', name: 'crm' },
             { code: 'HR', name: 'Recursos Humanos' },
         ];
 

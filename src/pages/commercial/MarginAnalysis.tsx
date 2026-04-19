@@ -93,7 +93,7 @@ export default function MarginAnalysis() {
                         <HiOutlineAdjustmentsHorizontal className="w-4 h-4" />
                         <span className="hidden sm:inline">Ajuste em Massa</span>
                     </Button>
-                    <div className="flex bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-xl p-1 gap-1 border border-gray-200 dark:border-dark-700 shadow-sm">
+                    <div className="flex bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1 gap-1 border border-gray-200 dark:border-dark-700 shadow-sm">
                         {PERIOD_OPTIONS.map(opt => (
                             <button
                                 key={opt.value}
@@ -160,7 +160,7 @@ export default function MarginAnalysis() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-xl p-1.5 border border-gray-200 dark:border-dark-700 shadow-inner">
+            <div className="flex gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1.5 border border-gray-200 dark:border-dark-700 shadow-inner">
                 {[
                     { key: 'category', label: 'Por Categoria', icon: HiOutlineTag },
                     { key: 'product', label: 'Por Produto', icon: HiOutlineCube },
@@ -190,7 +190,7 @@ export default function MarginAnalysis() {
             {isLoading ? (
                 <div className="space-y-3">
                     {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />
+                        <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
                     ))}
                 </div>
             ) : (
@@ -299,7 +299,7 @@ export default function MarginAnalysis() {
                     {/* Monthly Trend */}
                     {activeTab === 'trend' && (
                         <Card padding="lg">
-                            <h3 className="font-bold text-gray-900 dark:text-white mb-6">Tendência de Margem — Últimos 6 Meses</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-white mb-6">Tendência de Margem - Últimos 6 Meses</h3>
                             {(!data?.monthlyTrend || data.monthlyTrend.length === 0) ? (
                                 <p className="text-center text-gray-500 py-8">Sem dados suficientes</p>
                             ) : (
@@ -416,7 +416,7 @@ export default function MarginAnalysis() {
                                                         </Badge>
                                                     </td>
                                                     <td className="py-3 text-right text-gray-600 dark:text-gray-400">
-                                                        {row.daysOnHand > 0 ? `${row.daysOnHand} dias` : '—'}
+                                                        {row.daysOnHand > 0 ? `${row.daysOnHand} dias` : ''}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -481,7 +481,7 @@ function BulkAdjustmentModal({ isOpen, onClose, categories, onSuccess }: BulkMod
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Ajuste de Preços em Massa" size="md">
             <div className="space-y-5">
-                <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-900/30">
+                <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-100 dark:border-primary-900/30">
                     <p className="text-xs text-primary-700 dark:text-primary-400 leading-relaxed">
                         Esta ferramenta permite ajustar os preços de venda de múltiplos produtos simultaneamente. 
                         <strong> Use com cautela.</strong>

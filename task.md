@@ -15,14 +15,39 @@
     - [x] Re-implement `HotelRooms.tsx` with Dual-View system
     - [x] Implement `HotelDashboard.tsx` with high-density metrics
     - [x] Implement `HotelReservations.tsx` (Calendar + List)
-    - [x] Implement `HotelHousekeeping.tsx`
-    - [x] Implement `HotelCustomers.tsx` (Guest Management)
-    - [x] Implement `HotelFinance.tsx` (Revenue/Expense tracking)
-- [x] Phase 3: Routing & Navigation
-    - [x] Update `Sidebar.tsx` with hierarchical menu
-    - [x] Update `main.tsx` (Router) for distributed paths
-- [x] Phase 4: Final Polishing
-    - [x] Standardize all icons to `hi2` variants
+  ## Restaurant Module
+- [x] **Backend Implementation (Restaurant)**
+    - [x] Create `backend/src/services/restaurant-finance.service.ts`
+    - [x] Create `backend/src/routes/restaurant-finance.ts`
+    - [x] Register routes in `backend/src/index.ts`
+- [x] **Frontend Implementation (Restaurant)**
+    - [x] Update `src/services/api/restaurant.api.ts`
+    - [x] Create `src/pages/restaurant/RestaurantFinance.tsx`
+    - [x] Add route to `src/main.tsx`
+    - [x] Add sidebar link to `src/components/layout/Sidebar.tsx`
+
+## Inteligência Artificial
+- [x] **Integração Gemini (Chat)**
+    - [x] Instalar `@google/generative-ai` no backend
+    - [x] Refatorar `aiService.ts` para integração direta
+    - [x] Implementar sugestões e health check em `chatService.ts`
+    - [x] Adicionar endpoints em `chat.ts`
+    - [x] Verificar integração com frontend
+
+## Commercial Module
+- [x] **Backend Implementation (Commercial)**
+    - [x] Create `backend/src/services/commercial-finance.service.ts`
+    - [x] Create `backend/src/routes/commercial-finance.ts`
+    - [x] Register routes in `backend/src/index.ts`
+- [x] **Frontend Implementation (Commercial)**
+    - [x] Update `src/services/api/commercial.api.ts`
+    - [x] Create `src/pages/commercial/CommercialFinance.tsx`
+    - [x] Add route to `src/main.tsx`
+    - [x] Add sidebar link to `src/components/layout/Sidebar.tsx`
+
+## Verification
+- [x] Manual test of navigation and CRUD for Restaurant
+- [x] Manual test of navigation and CRUD for Commerciale Storeiants
     - [x] Professionalize remaining stubs (Employees, Suppliers, etc.)
     - [x] Final type safety check (`tsc --noEmit`)
 

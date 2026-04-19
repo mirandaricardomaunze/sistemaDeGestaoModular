@@ -66,7 +66,7 @@ export function CommercialProductGrid({
     return (
         <div className="lg:col-span-2 space-y-4">
             {/* Search */}
-            <div className="bg-white dark:bg-dark-900 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-dark-700 relative overflow-hidden group">
+            <div className="bg-white dark:bg-dark-900 rounded-lg p-4 shadow-sm border border-gray-100 dark:border-dark-700 relative overflow-hidden group">
                 <div className="absolute top-0 left-0 w-1 h-full bg-blue-600 opacity-0 group-focus-within:opacity-100 transition-opacity" />
                 <Input
                     ref={searchInputRef}
@@ -102,7 +102,7 @@ export function CommercialProductGrid({
                         <button
                             key={cat}
                             onClick={() => { setSelectedCategory(cat); posPagination.setCurrentPage(1); }}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap active:scale-95 ${selectedCategory === cat
+                            className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap active:scale-95 ${selectedCategory === cat
                                 ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20'
                                 : 'bg-white dark:bg-dark-900 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-dark-700 hover:border-blue-300 dark:hover:border-blue-700 shadow-sm'}`}
                         >
@@ -117,7 +117,7 @@ export function CommercialProductGrid({
                 {paginatedItems.map((product: any) => (
                     <div
                         key={product.id}
-                        className="p-4 cursor-pointer bg-white dark:bg-dark-900 border border-gray-100 dark:border-dark-700/50 rounded-3xl hover:border-blue-500/50 hover:shadow-[0_20px_40px_rgba(59,130,246,0.12)] transition-all duration-300 flex flex-col min-h-[140px] group relative overflow-hidden"
+                        className="p-4 cursor-pointer bg-white dark:bg-dark-900 border border-gray-100 dark:border-dark-700/50 rounded-lg hover:border-blue-500/50 hover:shadow-[0_20px_40px_rgba(59,130,246,0.12)] transition-all duration-300 flex flex-col min-h-[140px] group relative overflow-hidden"
                         onClick={() => handleProductClick(product)}
                     >
                         <div className="flex-1 relative z-10">
@@ -152,7 +152,7 @@ export function CommercialProductGrid({
                                     {product.currentStock || 0} ESTOQUE
                                 </Badge>
                                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-500/20 active:scale-90 transition-transform">
+                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-black uppercase shadow-lg shadow-blue-500/20 active:scale-90 transition-transform">
                                         <HiOutlinePlus className="w-3.5 h-3.5" />
                                         ADD
                                     </div>
@@ -197,7 +197,7 @@ export function CommercialProductGrid({
             {qtyModalProduct && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center">
                     <div className="absolute inset-0 bg-black/40" onClick={() => setQtyModalProduct(null)} />
-                    <div className="relative z-10 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl p-6 w-72 flex flex-col gap-4">
+                    <div className="relative z-10 bg-white dark:bg-dark-800 rounded-lg shadow-2xl p-6 w-72 flex flex-col gap-4">
                         <div>
                             <h3 className="font-black text-gray-900 dark:text-white text-base truncate">{qtyModalProduct.name}</h3>
                             <p className="text-xs text-gray-400 mt-0.5">
@@ -217,7 +217,7 @@ export function CommercialProductGrid({
                                 min="1"
                                 max={qtyModalProduct.currentStock}
                                 autoFocus
-                                className="w-full px-4 py-3 text-3xl font-black text-center rounded-xl border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
+                                className="w-full px-4 py-3 text-3xl font-black text-center rounded-lg border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
                             />
                             <div className="flex gap-2 mt-2">
                                 {[1, 2, 5, 10].map(q => (
@@ -235,13 +235,13 @@ export function CommercialProductGrid({
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setQtyModalProduct(null)}
-                                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 dark:border-dark-600 text-gray-500 font-black text-sm uppercase transition-colors hover:bg-gray-50"
+                                className="flex-1 py-2.5 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-500 font-black text-sm uppercase transition-colors hover:bg-gray-50"
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={confirmQty}
-                                className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm uppercase flex items-center justify-center gap-1 transition-colors shadow-lg shadow-blue-500/20"
+                                className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black text-sm uppercase flex items-center justify-center gap-1 transition-colors shadow-lg shadow-blue-500/20"
                             >
                                 <HiOutlinePlus className="w-4 h-4" />
                                 Adicionar

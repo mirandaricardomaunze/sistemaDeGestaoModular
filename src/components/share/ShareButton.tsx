@@ -1,4 +1,4 @@
-import {
+﻿import {
     HiOutlineShare,
     HiOutlineMail,
     HiOutlineDocumentDownload,
@@ -41,7 +41,7 @@ export default function ShareButton({
     const handleDownloadPDF = () => {
         if (onGeneratePDF) {
             onGeneratePDF();
-            toast.success('📥 PDF baixado! Agora pode partilhar.');
+            toast.success('DF baixado! Agora pode partilhar.');
             setStep('share');
         } else {
             toast.error('Função de gerar PDF não disponível');
@@ -52,23 +52,23 @@ export default function ShareButton({
     const handleDownloadExcel = () => {
         if (onGenerateExcel) {
             onGenerateExcel();
-            toast.success('📥 Excel baixado! Agora pode partilhar.');
+            toast.success('xcel baixado! Agora pode partilhar.');
             setStep('share');
         } else {
             toast.error('Função de gerar Excel não disponível');
         }
     };
 
-    const shareMessage = `📊 *${title}*\n\n${description}\n\n📎 Documento: ${fileName}.pdf\n\n✅ Gerado por ${companyName}`;
+    const shareMessage = `${title}*\n\n${description}\n\nocumento: ${fileName}.pdf\n\n✅ Gerado por ${companyName}`;
     const emailSubject = `${title} - ${companyName}`;
-    const emailBody = `Olá,\n\nSegue em anexo o documento: ${title}\n\n${description}\n\nPor favor, veja o ficheiro anexo.\n\nAtenciosamente,\n${companyName}`;
+    const emailBody = `Ol,\n\nSegue em anexo o documento: ${title}\n\n${description}\n\nPor favor, veja o ficheiro anexo.\n\nAtenciosamente,\n${companyName}`;
 
     // Copy message to clipboard
     const handleCopyMessage = async () => {
         try {
             await navigator.clipboard.writeText(shareMessage.replace(/\*/g, ''));
             setCopied(true);
-            toast.success('📋 Mensagem copiada!');
+            toast.success('ensagem copiada!');
             setTimeout(() => setCopied(false), 3000);
         } catch {
             toast.error('Erro ao copiar');
@@ -79,14 +79,14 @@ export default function ShareButton({
     const handleShareWhatsApp = () => {
         const encodedMessage = encodeURIComponent(shareMessage.replace(/\*/g, ''));
         window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
-        toast.success('🛒¬ Abrindo WhatsApp... Anexe o ficheiro baixado!');
+        toast.success(' Abrindo WhatsApp... Anexe o ficheiro baixado!');
     };
 
     // Share via Email
     const handleShareEmail = () => {
         const mailtoUrl = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
         window.location.href = mailtoUrl;
-        toast.success('📧 Abrindo email... Anexe o ficheiro baixado!');
+        toast.success('brindo email... Anexe o ficheiro baixado!');
     };
 
     return (
@@ -126,7 +126,7 @@ export default function ShareButton({
             >
                 <div className="space-y-5">
                     {/* Document Info */}
-                    <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                    <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                         <h3 className="font-semibold text-gray-900 dark:text-white">
                             {title}
                         </h3>
@@ -155,13 +155,13 @@ export default function ShareButton({
                             {/* Download Options */}
                             <div>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                                    📥 <strong>Passo 1:</strong> Primeiro, baixe o ficheiro
+                                    <strong>Passo 1:</strong> Primeiro, baixe o ficheiro
                                 </p>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={handleDownloadPDF}
                                         disabled={!onGeneratePDF}
-                                        className="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-red-500 dark:hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-red-500 dark:hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                                             <HiOutlineDocumentDownload className="w-5 h-5 text-red-600" />
@@ -175,7 +175,7 @@ export default function ShareButton({
                                     <button
                                         onClick={handleDownloadExcel}
                                         disabled={!onGenerateExcel}
-                                        className="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-green-500 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-green-500 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                                             <HiOutlineTable className="w-5 h-5 text-green-600" />
@@ -192,7 +192,7 @@ export default function ShareButton({
                                 onClick={() => setStep('share')}
                                 className="w-full text-sm text-primary-600 hover:underline"
                             >
-                                Já tenho o ficheiro → Ir para partilha
+                                J tenho o ficheiro → Ir para partilha
                             </button>
                         </>
                     )}
@@ -202,13 +202,13 @@ export default function ShareButton({
                             {/* Share Options */}
                             <div>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                                    📤 <strong>Passo 2:</strong> Escolha como partilhar e anexe o ficheiro
+                                    <strong>Passo 2:</strong> Escolha como partilhar e anexe o ficheiro
                                 </p>
                                 <div className="grid grid-cols-2 gap-3">
                                     {/* WhatsApp */}
                                     <button
                                         onClick={handleShareWhatsApp}
-                                        className="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-green-500 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all"
+                                        className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-green-500 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all"
                                     >
                                         <div className="w-10 h-10 rounded-lg bg-green-500 flex items-center justify-center">
                                             <FaWhatsapp className="w-5 h-5 text-white" />
@@ -222,7 +222,7 @@ export default function ShareButton({
                                     {/* Email */}
                                     <button
                                         onClick={handleShareEmail}
-                                        className="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-dark-600 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all"
+                                        className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all"
                                     >
                                         <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
                                             <HiOutlineMail className="w-5 h-5 text-white" />
@@ -236,9 +236,9 @@ export default function ShareButton({
                             </div>
 
                             {/* Copy Message */}
-                            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+                            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                                 <p className="text-sm text-amber-800 dark:text-amber-300 mb-2">
-                                    🛒¡ <strong>Dica:</strong> Copie a mensagem e anexe o ficheiro manualmente
+                                     <strong>Dica:</strong> Copie a mensagem e anexe o ficheiro manualmente
                                 </p>
                                 <button
                                     onClick={handleCopyMessage}
@@ -262,7 +262,7 @@ export default function ShareButton({
                                 onClick={() => setStep('download')}
                                 className="w-full text-sm text-gray-500 hover:text-gray-700"
                             >
-                                â† Voltar para baixar ficheiro
+                                ←  Voltar para baixar ficheiro
                             </button>
                         </>
                     )}

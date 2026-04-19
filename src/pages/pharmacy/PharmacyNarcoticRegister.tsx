@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Button, Input, Badge, LoadingSpinner, Pagination, PageHeader } from '../../components/ui';
 import {
@@ -62,14 +62,14 @@ export default function PharmacyNarcoticRegister() {
         doc.text('Registo de Substâncias Psicotrópicas e Estupefacientes', 14, 20);
         doc.setFontSize(10);
         doc.text(`${companySettings?.companyName || ''}`, 14, 28);
-        doc.text(`Período: ${dateRange.start || 'Início'} — ${dateRange.end || 'Hoje'}`, 14, 34);
+        doc.text(`Período: ${dateRange.start || 'Início'} a ${dateRange.end || 'Hoje'}`, 14, 34);
         autoTable(doc, {
             startY: 40,
             head: [['Data', 'Medicamento', 'Lote', 'Saldo Inicial', 'Entrada', 'Saída', 'Devol.', 'Destr.', 'Saldo Final', 'Discrep.', 'Verificado por']],
             body: records.map((r: any) => [
                 formatDate(r.registerDate), r.medicationName, r.batchNumber,
                 r.openingBalance, r.received, r.dispensed, r.returned, r.destroyed,
-                r.closingBalance, r.discrepancy > 0 ? `⚠ ${r.discrepancy}` : '0',
+                r.closingBalance, r.discrepancy > 0 ? `⚠️ ${r.discrepancy}` : '0',
                 r.verifiedBy
             ]),
             styles: { fontSize: 7 },
@@ -103,7 +103,7 @@ export default function PharmacyNarcoticRegister() {
                         <Input label="Data do Registo" type="date" value={form.registerDate} onChange={e => setForm(f => ({ ...f, registerDate: e.target.value }))} />
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Medicamento Controlado *</label>
-                            <select className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                                 value={form.medicationId} onChange={e => setForm(f => ({ ...f, medicationId: e.target.value }))}>
                                 <option value="">Seleccionar...</option>
                                 {medications.filter((m: any) => m.isControlled).map((m: any) => (
@@ -116,11 +116,11 @@ export default function PharmacyNarcoticRegister() {
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                         <Input label="Saldo Inicial" type="number" value={form.openingBalance} onChange={e => setForm(f => ({ ...f, openingBalance: Number(e.target.value) }))} min={0} />
                         <Input label="Entradas (+)" type="number" value={form.received} onChange={e => setForm(f => ({ ...f, received: Number(e.target.value) }))} min={0} />
-                        <Input label="Saídas (−)" type="number" value={form.dispensed} onChange={e => setForm(f => ({ ...f, dispensed: Number(e.target.value) }))} min={0} />
+                        <Input label="Saídas (âˆ')" type="number" value={form.dispensed} onChange={e => setForm(f => ({ ...f, dispensed: Number(e.target.value) }))} min={0} />
                         <Input label="Devoluções (+)" type="number" value={form.returned} onChange={e => setForm(f => ({ ...f, returned: Number(e.target.value) }))} min={0} />
-                        <Input label="Destruídos (−)" type="number" value={form.destroyed} onChange={e => setForm(f => ({ ...f, destroyed: Number(e.target.value) }))} min={0} />
+                        <Input label="Destruídos (âˆ')" type="number" value={form.destroyed} onChange={e => setForm(f => ({ ...f, destroyed: Number(e.target.value) }))} min={0} />
                     </div>
-                    <div className="flex items-center gap-4 mb-4 p-3 rounded-xl bg-gray-50 dark:bg-dark-700">
+                    <div className="flex items-center gap-4 mb-4 p-3 rounded-lg bg-gray-50 dark:bg-dark-700">
                         <div className="text-center">
                             <p className="text-xs text-gray-500">Saldo Final Previsto</p>
                             <p className={`text-2xl font-black ${closingPreview < 0 ? 'text-red-600' : 'text-green-600'}`}>{Math.max(0, closingPreview)}</p>
@@ -148,7 +148,7 @@ export default function PharmacyNarcoticRegister() {
                         <Input type="date" value={dateRange.start} onChange={e => setDateRange(d => ({ ...d, start: e.target.value }))} />
                     </div>
                     <div>
-                        <label className="block text-sm text-gray-600 mb-1">Até</label>
+                        <label className="block text-sm text-gray-600 mb-1">At</label>
                         <Input type="date" value={dateRange.end} onChange={e => setDateRange(d => ({ ...d, end: e.target.value }))} />
                     </div>
                     <Button variant="outline" onClick={() => setDateRange({ start: '', end: '' })}>Limpar</Button>
@@ -176,14 +176,14 @@ export default function PharmacyNarcoticRegister() {
                                         <td className="px-4 py-3 font-medium">{r.medicationName}</td>
                                         <td className="px-4 py-3 font-mono text-xs">{r.batchNumber}</td>
                                         <td className="px-4 py-3 text-center">{r.openingBalance}</td>
-                                        <td className="px-4 py-3 text-center text-green-600 font-medium">{r.received > 0 ? `+${r.received}` : '—'}</td>
-                                        <td className="px-4 py-3 text-center text-red-600 font-medium">{r.dispensed > 0 ? `-${r.dispensed}` : '—'}</td>
-                                        <td className="px-4 py-3 text-center text-blue-600">{r.returned > 0 ? `+${r.returned}` : '—'}</td>
-                                        <td className="px-4 py-3 text-center text-amber-600">{r.destroyed > 0 ? `-${r.destroyed}` : '—'}</td>
+                                        <td className="px-4 py-3 text-center text-green-600 font-medium">{r.received > 0 ? `+${r.received}` : ''}</td>
+                                        <td className="px-4 py-3 text-center text-red-600 font-medium">{r.dispensed > 0 ? `-${r.dispensed}` : ''}</td>
+                                        <td className="px-4 py-3 text-center text-blue-600">{r.returned > 0 ? `+${r.returned}` : ''}</td>
+                                        <td className="px-4 py-3 text-center text-amber-600">{r.destroyed > 0 ? `-${r.destroyed}` : ''}</td>
                                         <td className="px-4 py-3 text-center font-bold">{r.closingBalance}</td>
                                         <td className="px-4 py-3 text-center">
                                             {r.discrepancy > 0 ? (
-                                                <Badge variant="danger" className="font-bold">⚠ {r.discrepancy}</Badge>
+                                                <Badge variant="danger" className="font-bold">⚠️ {r.discrepancy}</Badge>
                                             ) : <Badge variant="success">OK</Badge>}
                                         </td>
                                         <td className="px-4 py-3 text-xs text-gray-500">{r.verifiedBy}</td>

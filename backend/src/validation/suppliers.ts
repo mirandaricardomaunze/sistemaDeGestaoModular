@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Validation Schemas - Suppliers
  * 
  * Schemas for supplier CRUD and purchase order operations.
@@ -36,7 +36,7 @@ export const updateSupplierSchema = createSupplierSchema.partial();
 export const purchaseOrderItemSchema = z.object({
     productId: z.string().uuid('ID do produto inválido'),
     quantity: z.number().int().positive('Quantidade deve ser maior que zero'),
-    unitCost: z.number().positive('Custo unitário deve ser maior que zero').optional()
+    unitCost: z.number().positive('Custo unitrio deve ser maior que zero').optional()
 });
 
 export const createPurchaseOrderSchema = z.object({
@@ -54,6 +54,7 @@ export const receivePurchaseOrderItemSchema = z.object({
 });
 
 export const receivePurchaseOrderSchema = z.object({
+    warehouseId: z.string().uuid('ID do armazém inválido').optional(),
     items: z.array(receivePurchaseOrderItemSchema)
         .min(1, 'Deve informar pelo menos um item recebido')
 });

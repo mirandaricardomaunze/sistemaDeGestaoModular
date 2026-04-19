@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { format, getYear, differenceInDays } from 'date-fns';
 import {
     HiOutlineCalendar,
@@ -174,7 +174,7 @@ export default function VacationManager() {
                                 {activeVacations.length}
                             </p>
                         </div>
-                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-xl backdrop-blur-sm">
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm">
                             <HiOutlineCalendar className="w-8 h-8 text-blue-500" />
                         </div>
                     </div>
@@ -187,7 +187,7 @@ export default function VacationManager() {
                                 {vacationsTodayCount}
                             </p>
                         </div>
-                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-xl backdrop-blur-sm">
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm">
                             <HiOutlineSun className="w-8 h-8 text-green-500" />
                         </div>
                     </div>
@@ -200,7 +200,7 @@ export default function VacationManager() {
                                 {activeEmployees.reduce((acc, curr) => acc + (curr.vacationDaysUsed || 0), 0)}
                             </p>
                         </div>
-                        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                        <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                             <HiOutlineClock className="w-8 h-8 text-gray-500" />
                         </div>
                     </div>

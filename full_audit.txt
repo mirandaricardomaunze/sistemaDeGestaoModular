@@ -1,0 +1,41 @@
+
+=== components\employees\PaymentConfirmModal.tsx (1 issues) ===
+  L 194  [BROKEN_IDENT: "será"]  Um PDF será gerado com os detalhes do pagamento
+
+=== components\employees\VacationManager.tsx (1 issues) ===
+  L 409  [BROKEN_IDENT: "será"]  message="Tem certeza que deseja cancelar estas férias? O saldo de dias será devolvido ao c
+
+=== components\hospitality\CheckoutModal.tsx (1 issues) ===
+  L 137  [BROKEN_IDENT: "será"]  Ao confirmar, o quarto será marcado como "Para Limpeza" e a estadia será encerrada.
+
+=== components\hospitality\ConsumptionModal.tsx (1 issues) ===
+  L  41  [BROKEN_IDENT: "será"]  O consumo será adicionado À  conta corrente do quarto e facturado no check-out.
+
+=== components\inventory\ProductForm.tsx (1 issues) ===
+  L 340  [BROKEN_IDENT: "será"]  O stock inicial será **zero**. Após cadastrar o produto, adicione quantidades reais atravé
+
+=== components\inventory\StockTransferManager.tsx (1 issues) ===
+  L 187  [BROKEN_IDENT: "será"]  if (!window.confirm(`Cancelar transferência ${transfer.number}?\nO stock será reposto no a
+
+=== components\invoices\InvoicePrintPreview.tsx (1 issues) ===
+  L 191  [BROKEN_IDENT: "será"]  A fatura <strong>{invoice.invoiceNumber}</strong> será enviada em PDF para o email indicad
+
+=== components\pos\ThermalReceiptPreview.tsx (1 issues) ===
+  L 358  [BROKEN_IDENT: "será"]  O recibo será impresso no formato optimizado para impressora térmica ({company.thermalPape
+
+=== pages\Help.tsx (2 issues) ===
+  L 148  [BROKEN_IDENT: "será"]  'O recibo será impresso automaticamente'
+  L 328  [BROKEN_IDENT: "será"]  'O ficheiro será descarregado automaticamente'
+
+=== pages\Orders.tsx (1 issues) ===
+  L 544  [BROKEN_IDENT: "será"]  reservados e a entrega será confirmada após processamento logístico.
+
+=== pages\Settings.tsx (1 issues) ===
+  L 640  [BROKEN_IDENT: "será"]  A imagem será exibida na barra lateral e em documentos gerados (PDF)
+
+=== pages\commercial\PurchaseOrders.tsx (1 issues) ===
+  L 278  [BROKEN_IDENT: "será"]  Defina as quantidades recebidas e o armazém de destino. O stock será actualizado automatic
+
+
+TOTAL FILES WITH ISSUES : 12
+TOTAL ISSUE LINES        : 13

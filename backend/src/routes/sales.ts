@@ -1,10 +1,11 @@
-﻿import { Router, Response } from 'express';
+import { Router, Response } from 'express';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
-import { salesService } from '../services/sales.service';
+import { salesService } from '../services/salesService';
 import { validateCreateSale, validateSalesQuery, formatZodError } from '../utils/validation';
 import { z } from 'zod';
 import { ApiError } from '../middleware/error.middleware';
+import { emitToCompany } from '../lib/socket';
 
 const router = Router();
 
@@ -30,10 +31,15 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     res.json(sale);
 });
 
-// Get sales statistics
+// Get sales statistics (both /stats and /stats/summary for compatibility)
+router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    const result = await salesService.getStats(req.query, req.companyId);
+    res.json(result);
+});
+
 router.get('/stats/summary', authenticate, async (req: AuthRequest, res: Response) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
-
     const result = await salesService.getStats(req.query, req.companyId);
     res.json(result);
 });
@@ -59,7 +65,17 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         req.userId!,
         req.userName || 'Sistema',
         (req as any).ip || req.socket.remoteAddress || ''
-    );
+    ) as any;
+
+    // Emit Real-time Notification if it's a Restaurant Order
+    if (validatedData.originModule === 'restaurant') {
+        emitToCompany(req.companyId, 'restaurant:new_order', {
+            id: sale.id,
+            total: sale.total,
+            table: sale.tableId, // We could fetch the table number for a better message
+            timestamp: new Date()
+        });
+    }
 
     res.status(201).json(sale);
 });

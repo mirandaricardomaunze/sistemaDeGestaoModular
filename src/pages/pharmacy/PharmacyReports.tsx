@@ -14,7 +14,7 @@ import {
     HiOutlineCurrencyDollar, HiOutlineCube, HiOutlinePrinter,
     HiOutlineChartBar, HiOutlineTable, HiOutlineUsers, HiOutlineTruck,
 } from 'react-icons/hi';
-import { Card, Button, Input, Select, LoadingSpinner, TableContainer, PageHeader } from '../../components/ui';
+import { Card, Button, Input, LoadingSpinner, TableContainer, PageHeader } from '../../components/ui';
 import Pagination from '../../components/ui/Pagination';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
 import { useStore } from '../../stores/useStore';
@@ -157,7 +157,69 @@ export default function PharmacyReports() {
             }
             toast.success('PDF gerado!');
         } else {
-            toast.success('Excel em breve!');
+            // CSV export
+            let rows: string[][] = [];
+            let filename = 'relatorio';
+            if (reportType === 'sales' || reportType === 'profitability') {
+                filename = `vendas_${period.start || 'inicio'}_${period.end || 'fim'}`;
+                rows = [
+                    ['Nº Recibo', 'Data', 'Cliente', 'Método Pagamento', 'Total', 'Lucro'],
+                    ...reportData.sales.map((s: any) => [
+                        s.receiptNumber || s.id?.slice(-8) || '',
+                        s.createdAt ? s.createdAt.slice(0, 10) : '',
+                        s.customer?.name || 'Balcão',
+                        s.paymentMethod || '',
+                        String(Number(s.total || 0).toFixed(2)),
+                        String(Number(s.profit || 0).toFixed(2)),
+                    ])
+                ];
+            } else if (reportType === 'stock') {
+                filename = `stock_${new Date().toISOString().slice(0, 10)}`;
+                rows = [
+                    ['Código', 'Medicamento', 'Categoria', 'Stock Total', 'Stock Mínimo', 'Stock Baixo'],
+                    ...reportData.medications.map((m: any) => [
+                        m.code || '',
+                        m.name || '',
+                        m.category?.name || '',
+                        String(m.totalStock ?? 0),
+                        String(m.minimumStock ?? 0),
+                        m.isLowStock ? 'Sim' : 'Não',
+                    ])
+                ];
+            } else if (reportType === 'top-customers') {
+                filename = `top_clientes_${new Date().toISOString().slice(0, 10)}`;
+                rows = [
+                    ['Cliente', 'Total Compras', 'Nº Visitas', 'Última Compra'],
+                    ...reportData.customers.map((c: any) => [
+                        c.name || '',
+                        String(Number(c.totalSpent || 0).toFixed(2)),
+                        String(c.visitCount || 0),
+                        c.lastPurchase ? c.lastPurchase.slice(0, 10) : '',
+                    ])
+                ];
+            } else if (reportType === 'suppliers') {
+                filename = `fornecedores_${new Date().toISOString().slice(0, 10)}`;
+                rows = [
+                    ['Fornecedor', 'Total Compras', 'Nº Encomendas', 'Última Encomenda'],
+                    ...reportData.suppliers.map((s: any) => [
+                        s.name || '',
+                        String(Number(s.totalPurchases || 0).toFixed(2)),
+                        String(s.orderCount || 0),
+                        s.lastOrder ? s.lastOrder.slice(0, 10) : '',
+                    ])
+                ];
+            }
+            if (rows.length > 0) {
+                const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '')}"`).join(',')).join('\n');
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = `${filename}.csv`; a.click();
+                URL.revokeObjectURL(url);
+                toast.success('CSV exportado!');
+            } else {
+                toast.error('Sem dados para exportar.');
+            }
         }
     };
 
@@ -283,7 +345,7 @@ export default function PharmacyReports() {
                                 <h3 className="font-bold mb-4">Por Método de Pagamento</h3>
                                 <ResponsiveContainer width="100%" height={280}>
                                     <PieChart>
-                                        <Pie data={paymentMethodData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                                        <Pie data={paymentMethodData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
                                             {paymentMethodData.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                                         </Pie>
                                         <Tooltip formatter={(v: any) => formatCurrency(v)} />
@@ -293,14 +355,14 @@ export default function PharmacyReports() {
 
                             {/* Daily transactions bar */}
                             <Card className="p-6 lg:col-span-2">
-                                <h3 className="font-bold mb-4">Transações por Dia</h3>
+                                <h3 className="font-bold mb-4">Transaces por Dia</h3>
                                 <ResponsiveContainer width="100%" height={200}>
                                     <BarChart data={dailySalesData}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                                         <YAxis tick={{ fontSize: 11 }} />
                                         <Tooltip />
-                                        <Bar dataKey="transactions" name="Transações" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="transactions" name="Transaces" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </Card>
@@ -326,7 +388,7 @@ export default function PharmacyReports() {
                                             <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                                 <td className="px-4 py-3 text-sm font-mono">{s.saleNumber}</td>
                                                 <td className="px-4 py-3 text-sm">{formatDate(s.createdAt)}</td>
-                                                <td className="px-4 py-3 text-sm">{s.customerName || '—'}</td>
+                                                <td className="px-4 py-3 text-sm">{s.customerName || ''}</td>
                                                 <td className="px-4 py-3 text-sm uppercase">{s.paymentMethod}</td>
                                                 <td className="px-4 py-3 text-sm text-right font-medium">{formatCurrency(s.total)}</td>
                                                 <td className="px-4 py-3 text-sm text-right text-gray-500">{formatCurrency(s.cost || 0)}</td>
@@ -428,7 +490,7 @@ export default function PharmacyReports() {
                                                         <span className={cn('text-xs', m.daysToExpiry <= 30 ? 'text-red-600 font-bold' : m.daysToExpiry <= 90 ? 'text-orange-500' : 'text-gray-500')}>
                                                             {m.daysToExpiry <= 0 ? 'Expirado' : `${m.daysToExpiry}d`}
                                                         </span>
-                                                    ) : '—'}
+                                                    ) : ''}
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
                                                     <span className={cn('px-2 py-0.5 rounded-full text-xs font-bold',
@@ -459,7 +521,7 @@ export default function PharmacyReports() {
                         </Card>
                         <Card className="p-5 border-l-4 border-teal-500">
                             <p className="text-xs font-bold uppercase text-teal-600">Top Cliente</p>
-                            <p className="text-xl font-black truncate">{reportData.customers[0]?.customerName || '—'}</p>
+                            <p className="text-xl font-black truncate">{reportData.customers[0]?.customerName || ''}</p>
                         </Card>
                         <Card className="p-5 border-l-4 border-emerald-500">
                             <p className="text-xs font-bold uppercase text-emerald-600">Total Top 20</p>
@@ -489,7 +551,7 @@ export default function PharmacyReports() {
                                     <tr className="text-xs text-gray-500 uppercase">
                                         <th className="px-4 py-3 text-center">#</th>
                                         <th className="px-4 py-3 text-left">Cliente</th>
-                                        <th className="px-4 py-3 text-right">Transações</th>
+                                        <th className="px-4 py-3 text-right">Transaces</th>
                                         <th className="px-4 py-3 text-right">Total Gasto</th>
                                         <th className="px-4 py-3 text-right">Ticket Médio</th>
                                     </tr>

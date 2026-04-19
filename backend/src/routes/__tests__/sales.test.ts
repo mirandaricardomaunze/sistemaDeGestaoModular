@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Sales Route Test Suite
  * 
  * Tests for critical functionality including:
@@ -233,7 +233,7 @@ describe('Sales Route', () => {
             const successfulSales = responses.filter(r => r.status === 201);
             expect(successfulSales.length).toBeGreaterThan(0);
 
-            // All receipt numbers must be unique — no duplicates allowed
+            // All receipt numbers must be unique -- no duplicates allowed
             const receiptNumbers = successfulSales.map(r => r.body.receiptNumber);
             const uniqueReceipts = new Set(receiptNumbers);
             expect(uniqueReceipts.size).toBe(successfulSales.length);

@@ -1,4 +1,4 @@
-﻿import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
 export interface KeyboardShortcut {
     key: string;

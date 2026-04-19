@@ -1,4 +1,4 @@
-﻿import { cn } from '../../utils/helpers';
+import { cn } from '../../utils/helpers';
 
 interface SkeletonProps {
     className?: string;
@@ -63,7 +63,7 @@ export function SkeletonText({ lines = 3, className }: { lines?: number; classNa
 
 export function SkeletonCard({ className }: { className?: string }) {
     return (
-        <div className={cn('p-6 bg-white dark:bg-dark-800 rounded-xl border border-gray-200 dark:border-dark-700', className)}>
+        <div className={cn('p-6 bg-white dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-700', className)}>
             <div className="flex items-center gap-4 mb-4">
                 <Skeleton variant="circular" width={48} height={48} />
                 <div className="flex-1 space-y-2">

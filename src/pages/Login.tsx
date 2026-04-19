@@ -4,16 +4,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
-    HiOutlineMail, 
+    HiOutlineEnvelope, 
     HiOutlineLockClosed, 
     HiOutlineEye, 
-    HiOutlineEyeOff, 
-    HiOutlineShieldCheck, 
+    HiOutlineEyeSlash, 
+    HiOutlineShieldCheck,
     HiOutlineExclamationCircle,
-    HiOutlineViewGrid,
-    HiOutlineChartBar,
+    HiOutlineSquares2X2,
     HiOutlineShoppingCart
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { useAuthStore } from '../stores/useAuthStore';
 
 // Validation Schema
@@ -65,7 +64,7 @@ export default function Login() {
                     {/* Header */}
                     <div className="mb-10">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
+                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
                                 <HiOutlineShieldCheck className="w-7 h-7 text-white" />
                             </div>
                             <div>
@@ -88,7 +87,7 @@ export default function Login() {
 
                     {/* Error Handling */}
                     <div className={`transition-all duration-300 overflow-hidden ${loginError ? 'max-h-24 opacity-100 mb-6' : 'max-h-0 opacity-0 mb-0'}`}>
-                        <div className="rounded-2xl bg-red-50 dark:bg-red-900/20 p-4 border border-red-100 dark:border-red-900/30">
+                        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 border border-red-100 dark:border-red-900/30">
                             <div className="flex items-start gap-3">
                                 <HiOutlineExclamationCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                                 <p className="text-sm font-medium text-red-800 dark:text-red-300">{loginError}</p>
@@ -104,12 +103,12 @@ export default function Login() {
                             </label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <HiOutlineMail className={`h-5 w-5 transition-colors ${errors.email ? 'text-red-400' : 'text-slate-400 group-focus-within:text-primary-500'}`} />
+                                    <HiOutlineEnvelope className={`h-5 w-5 transition-colors ${errors.email ? 'text-red-400' : 'text-slate-400 group-focus-within:text-primary-500'}`} />
                                 </div>
                                 <input
                                     id="email"
                                     type="email"
-                                    className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-dark-800/50 border ${errors.email ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/60'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium`}
+                                    className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-dark-800/50 border ${errors.email ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/60'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium`}
                                     placeholder="exemplo@multicore.co.mz"
                                     {...register('email')}
                                 />
@@ -133,7 +132,7 @@ export default function Login() {
                                 <input
                                     id="password"
                                     type={showPassword ? 'text' : 'password'}
-                                    className={`block w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-dark-800/50 border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/60'} rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium`}
+                                    className={`block w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-dark-800/50 border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/60'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium`}
                                     placeholder="••••••••"
                                     {...register('password')}
                                 />
@@ -141,7 +140,7 @@ export default function Login() {
                                     className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-primary-500 transition-colors"
                                     onClick={() => setShowPassword(!showPassword)}
                                 >
-                                    {showPassword ? <HiOutlineEyeOff className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
+                                    {showPassword ? <HiOutlineEyeSlash className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
                                 </div>
                             </div>
                         </div>
@@ -149,7 +148,7 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full relative overflow-hidden group py-4 px-6 rounded-2xl bg-slate-900 dark:bg-primary-600 outline-none hover:bg-slate-800 dark:hover:bg-primary-500 text-white font-bold shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                            className="w-full relative overflow-hidden group py-4 px-6 rounded-lg bg-slate-900 dark:bg-primary-600 outline-none hover:bg-slate-800 dark:hover:bg-primary-500 text-white font-bold shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
                         >
                             <div className="flex items-center justify-center gap-2">
                                 {isLoading ? (
@@ -204,15 +203,15 @@ export default function Login() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Feature Card 1 */}
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors">
+                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-colors">
                             <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center mb-4">
-                                <HiOutlineViewGrid className="w-5 h-5 text-primary-300" />
+                                <HiOutlineSquares2X2 className="w-5 h-5 text-primary-300" />
                             </div>
                             <h3 className="text-white font-bold mb-2">Visão 360º de Dados</h3>
                             <p className="text-sm text-slate-400">Dashboards profissionais instantâneos e reconciliação nativa.</p>
                         </div>
                         {/* Feature Card 2 */}
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors">
+                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-colors">
                             <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center mb-4">
                                 <HiOutlineShoppingCart className="w-5 h-5 text-accent-300" />
                             </div>

@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { dashboardAPI, hospitalityAPI, pharmacyAPI, bottleStoreAPI } from '../services/api';
 import { useTenant } from '../contexts/TenantContext';
 import type { Sale, Alert } from '../types';
@@ -33,7 +33,7 @@ interface RecentActivityData {
     recentAlerts: Alert[];
 }
 
-export function useDashboard() {
+export function useDashboard(warehouseId?: string) {
     const { hasModule } = useTenant();
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [salesChart, setSalesChart] = useState<Array<{ date: string; value: number }>>([]);
@@ -49,11 +49,11 @@ export function useDashboard() {
         try {
             // Core Commercial Dashboard Data
             const [statsData, chartData, weeklyChartData, topProductsData, activityData] = await Promise.all([
-                dashboardAPI.getStats(),
-                dashboardAPI.getSalesChart({ period: 'month' }),
-                dashboardAPI.getSalesChart({ period: 'week' }),
-                dashboardAPI.getTopProducts({ limit: 5 }),
-                dashboardAPI.getRecentSales({ limit: 10 }),
+                dashboardAPI.getStats({ warehouseId } as any),
+                dashboardAPI.getSalesChart({ period: 'month', warehouseId } as any),
+                dashboardAPI.getSalesChart({ period: 'week', warehouseId } as any),
+                dashboardAPI.getTopProducts({ limit: 5, warehouseId: warehouseId as any } as any),
+                dashboardAPI.getRecentSales({ limit: 10, warehouseId } as any),
             ]);
 
             // Optional Module Data (Consolidation)
@@ -113,7 +113,7 @@ export function useDashboard() {
         } finally {
             setIsLoading(false);
         }
-    }, [hasModule]);
+    }, [hasModule, warehouseId]);
 
     useEffect(() => {
         fetchDashboard();

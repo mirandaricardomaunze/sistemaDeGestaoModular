@@ -30,7 +30,7 @@ export default function CommercialHistory() {
 
         const labels: Record<string, string> = {
             'cash': 'Dinheiro',
-            'card': 'Cartão/POS',
+            'card': 'Cartão/pos',
             'mpesa': 'M-Pesa',
             'emola': 'E-Mola',
             'bank_transfer': 'Transferência',
@@ -106,7 +106,7 @@ export default function CommercialHistory() {
         <div className="space-y-4 animate-fade-in pb-10">
             <PageHeader 
                 title="Vendas Realizadas"
-                subtitle="Consulte, reimprima recibos ou anule transacções comerciais"
+                subtitle="Consulte, reimprima recibos ou anule transações comerciais"
                 icon={<HiOutlineTicket />}
                 actions={
                     <Button 
@@ -237,7 +237,7 @@ export default function CommercialHistory() {
                                         <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
                                             <button 
                                                 onClick={() => handleViewReceipt(sale)}
-                                                className="p-2 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-blue-500/20 shadow-transparent active:scale-90"
+                                                className="p-2 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all shadow-sm hover:shadow-blue-500/20 shadow-transparent active:scale-90"
                                                 title="Reimprimir Recibo"
                                             >
                                                 <HiOutlineEye className="w-4 h-4" />
@@ -245,7 +245,7 @@ export default function CommercialHistory() {
                                             {sale.status !== 'voided' && (
                                                 <button 
                                                     onClick={() => handleOpenVoidModal(sale)}
-                                                    className="p-2 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-red-500/20 shadow-transparent active:scale-95"
+                                                    className="p-2 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all shadow-sm hover:shadow-red-500/20 shadow-transparent active:scale-95"
                                                     title="Anular Venda"
                                                 >
                                                     <HiOutlineTrash className="w-4 h-4" />
@@ -279,14 +279,14 @@ export default function CommercialHistory() {
                 size="md"
             >
                 <div className="space-y-6">
-                    <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-3xl border border-red-100 dark:border-red-800/30 flex gap-4 text-red-700 dark:text-red-400">
-                        <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+                    <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-lg border border-red-100 dark:border-red-800/30 flex gap-4 text-red-700 dark:text-red-400">
+                        <div className="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center shrink-0">
                             <HiOutlineExclamationTriangle className="w-6 h-6 text-red-600" />
                         </div>
                         <div>
                             <p className="font-black text-sm uppercase tracking-tighter mb-1">Acção Crítica e Irreversível</p>
                             <p className="text-xs leading-relaxed opacity-80">
-                                Ao confirmar, o sistema irá **devolver automaticamente os itens ao stock** e estornar o valor financeiro do historial de caixa. Este registo ficará marcado como anulado para fins de auditoria.
+                                Ao confirmar, o sistema ir **devolver automaticamente os itens ao stock** e estornar o valor financeiro do historial de caixa. Este registo ficar marcado como anulado para fins de auditoria.
                             </p>
                         </div>
                     </div>
@@ -300,14 +300,14 @@ export default function CommercialHistory() {
                             onChange={e => setVoidReason(e.target.value)}
                             rows={3}
                             placeholder="Descreva detalhadamente o motivo (ex: Erro de digitação, Devolução do cliente...)"
-                            className="w-full px-5 py-4 rounded-3xl border-2 border-gray-100 dark:border-dark-700 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 focus:outline-none bg-gray-50 dark:bg-dark-800 text-gray-900 dark:text-white text-sm transition-all resize-none font-medium"
+                            className="w-full px-5 py-4 rounded-lg border-2 border-gray-100 dark:border-dark-700 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 focus:outline-none bg-gray-50 dark:bg-dark-800 text-gray-900 dark:text-white text-sm transition-all resize-none font-medium"
                         />
                     </div>
 
                     <div className="flex gap-3">
                         <Button 
                             variant="ghost" 
-                            className="flex-1 rounded-2xl font-black uppercase text-[10px] tracking-widest" 
+                            className="flex-1 rounded-lg font-black uppercase text-[10px] tracking-widest" 
                             onClick={() => setShowVoidModal(false)}
                             disabled={isVoiding}
                         >
@@ -315,7 +315,7 @@ export default function CommercialHistory() {
                         </Button>
                         <Button 
                             variant="danger" 
-                            className="flex-1 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-500/20"
+                            className="flex-1 rounded-lg font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-500/20"
                             onClick={handleConfirmVoid}
                             isLoading={isVoiding}
                             disabled={!voidReason.trim()}

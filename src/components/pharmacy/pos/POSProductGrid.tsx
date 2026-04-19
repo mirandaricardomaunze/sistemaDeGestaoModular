@@ -29,7 +29,7 @@ export function POSProductGrid({
                 {posPagination.paginatedItems.map((med: any) => (
                     <div
                         key={med.id}
-                        className="p-5 cursor-pointer bg-white dark:bg-dark-800 border-2 border-gray-100 dark:border-dark-700 rounded-3xl hover:border-teal-500 hover:shadow-2xl hover:shadow-teal-500/10 transition-all flex flex-col min-h-[160px] group"
+                        className="p-5 cursor-pointer bg-white dark:bg-dark-800 border-2 border-gray-100 dark:border-dark-700 rounded-lg hover:border-teal-500 hover:shadow-2xl hover:shadow-teal-500/10 transition-all flex flex-col min-h-[160px] group"
                         onClick={() => addToCart(med)}
                     >
                         <div className="flex-1">

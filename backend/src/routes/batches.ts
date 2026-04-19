@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { batchesService } from '../services/batches.service';
+import { batchesService } from '../services/batchesService';
 import { ApiError } from '../middleware/error.middleware';
 
 const router = Router();

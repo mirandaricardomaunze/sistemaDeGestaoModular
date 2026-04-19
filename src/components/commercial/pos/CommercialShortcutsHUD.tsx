@@ -1,6 +1,4 @@
-import React from 'react';
-
-interface ShortcutItem {
+﻿interface ShortcutItem {
     key: string;
     description: string;
     category: 'venda' | 'turno' | 'hardware' | 'navegação';
@@ -42,7 +40,7 @@ export function CommercialShortcutsHUD({ isOpen, onClose }: CommercialShortcutsH
 
             {/* Panel */}
             <div
-                className="relative bg-white dark:bg-dark-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-dark-700 p-6 w-full max-w-md mx-4"
+                className="relative bg-white dark:bg-dark-800 rounded-lg shadow-2xl border border-gray-100 dark:border-dark-700 p-6 w-full max-w-md mx-4"
                 onClick={e => e.stopPropagation()}
             >
                 <div className="flex items-center justify-between mb-5">
@@ -50,7 +48,7 @@ export function CommercialShortcutsHUD({ isOpen, onClose }: CommercialShortcutsH
                         <h3 className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tighter">
                             Atalhos de Teclado
                         </h3>
-                        <p className="text-xs text-gray-400 mt-0.5">PDV — Módulo Comercial</p>
+                        <p className="text-xs text-gray-400 mt-0.5">PDV - Módulo Comercial</p>
                     </div>
                     <button
                         onClick={onClose}

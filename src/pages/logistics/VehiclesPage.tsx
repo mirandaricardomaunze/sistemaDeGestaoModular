@@ -22,15 +22,6 @@ import { ExportVehiclesButton } from '../../components/common/ExportButton';
 import { PageHeader } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 
-const vehicleTypes = [
-    { value: 'truck', label: 'Camião' },
-    { value: 'van', label: 'Carrinha' },
-    { value: 'motorcycle', label: 'Mota' },
-    { value: 'car', label: 'Carro' },
-    { value: 'bicycle', label: 'Bicicleta' },
-    { value: 'other', label: 'Outro' }
-];
-
 const getStatusBadge = (status: string, t: any) => {
     const variants: Record<string, any> = {
         available: 'success',
@@ -41,9 +32,7 @@ const getStatusBadge = (status: string, t: any) => {
     return <Badge variant={variants[status] || 'gray'}>{t(`logistics_module.vehicles.statuses.${status}`)}</Badge>;
 };
 
-const getTypeLabel = (type: string) => {
-    return vehicleTypes.find(t => t.value === type)?.label || type;
-};
+
 
 /**
  * Returns expiry badge config for a vehicle's insurance.
@@ -266,7 +255,7 @@ export default function VehiclesPage() {
                     <Card key={vehicle.id} variant="glass" className="hover:shadow-lg transition-shadow">
                         <div className="flex items-start justify-between mb-3 sm:mb-4">
                             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
                                     <HiOutlineTruck className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" />
                                 </div>
                                 <div className="min-w-0">

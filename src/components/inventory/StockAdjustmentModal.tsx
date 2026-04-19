@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineMinus, HiOutlineViewList, HiOutlineCheck } from 'react-icons/hi';
 import { Modal, Button, Input, Select, Textarea } from '../ui';
 import { useWarehouses, useProducts } from '../../hooks/useData';
@@ -78,7 +78,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
         >
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Product Info Summary */}
-                <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl border border-gray-100 dark:border-dark-600">
+                <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg border border-gray-100 dark:border-dark-600">
                     <div className="flex justify-between items-start">
                         <div>
                             <h4 className="font-bold text-gray-900 dark:text-white">{product.name}</h4>
@@ -99,7 +99,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                             type="button"
                             onClick={() => setOperation(op.id)}
                             className={cn(
-                                "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all",
+                                "flex flex-col items-center justify-center p-3 rounded-lg border-2 transition-all",
                                 operation === op.id
                                     ? op.color + " ring-2 ring-offset-2 ring-primary-500 dark:ring-offset-dark-800"
                                     : "border-gray-200 dark:border-dark-700 text-gray-500 hover:border-gray-300 dark:hover:border-dark-600"

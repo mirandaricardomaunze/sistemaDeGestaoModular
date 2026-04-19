@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 import {
     HiOutlineCurrencyDollar, HiOutlineRefresh, HiOutlineExclamationCircle,
     HiOutlineCheckCircle, HiOutlineClock, HiOutlineSearch,
@@ -7,7 +7,7 @@ import { Card, Badge, Input, Select } from '../../components/ui';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useAccountsReceivable } from '../../hooks/useCommercial';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────-
 
 type FilterOption = 'all' | 'overdue' | 'pending';
 
@@ -48,7 +48,7 @@ function SummaryCard({ label, value, sub, colorClass, icon: Icon }: SummaryCardP
     );
 }
 
-// ── Row ───────────────────────────────────────────────────────────────────────
+// ── Row ──────────────────────────────────────────────────────────────────────-
 
 interface ReceivableRowProps {
     invoice: {
@@ -71,11 +71,11 @@ interface ReceivableRowProps {
 function ReceivableRow({ invoice }: ReceivableRowProps) {
     const cfg        = STATUS_CONFIG[invoice.status] ?? STATUS_CONFIG.sent;
     const Icon       = cfg.icon;
-    const customerName  = invoice.customer?.name  ?? invoice.customerName  ?? '—';
+    const customerName  = invoice.customer?.name  ?? invoice.customerName  ?? '';
     const customerPhone = invoice.customer?.phone ?? invoice.customerPhone ?? '';
     const dateStr    = invoice.issueDate ?? invoice.createdAt;
-    const issuedAt   = dateStr ? new Date(dateStr).toLocaleDateString('pt-MZ') : '—';
-    const dueAt      = invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('pt-MZ') : '—';
+    const issuedAt   = dateStr ? new Date(dateStr).toLocaleDateString('pt-MZ') : '';
+    const dueAt      = invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('pt-MZ') : '';
     const progress   = invoice.total > 0 ? (invoice.amountPaid / invoice.total) * 100 : 0;
 
     return (
@@ -119,7 +119,7 @@ function ReceivableRow({ invoice }: ReceivableRowProps) {
     );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ── Main Page ────────────────────────────────────────────────────────────────-
 
 export default function AccountsReceivable() {
     const [filter, setFilter]   = useState<FilterOption>('all');
@@ -245,7 +245,7 @@ export default function AccountsReceivable() {
                     <div className="p-16 text-center">
                         <HiOutlineCheckCircle className="w-12 h-12 text-green-300 mx-auto mb-3" />
                         <p className="text-gray-500 font-medium">Sem faturas em aberto</p>
-                        <p className="text-xs text-gray-400 mt-1">Todos os pagamentos estão em dia</p>
+                        <p className="text-xs text-gray-400 mt-1">Todos os pagamentos estáão em dia</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">

@@ -1,15 +1,15 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     HiOutlineDocumentText,
-    HiOutlineCash,
+    HiOutlineBanknotes as HiOutlineCash,
     HiOutlineUsers,
-    HiOutlineLibrary,
-    HiOutlineClipboardCheck,
-    HiOutlineExclamation,
-    HiOutlineCalendar,
-    HiOutlineTrendingUp,
+    HiOutlineBuildingLibrary as HiOutlineLibrary,
+    HiOutlineClipboardDocumentCheck as HiOutlineClipboardCheck,
+    HiOutlineExclamationTriangle as HiOutlineExclamation,
+    HiOutlineCalendarDays as HiOutlineCalendar,
+    HiOutlineChartBar as HiOutlineTrendingUp,
     HiOutlineTruck,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { Card, Badge } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
@@ -53,112 +53,64 @@ export default function FiscalDashboard() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
                         Painel Fiscal
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Período atual: <span className="font-medium">{formatPeriod(currentPeriod)}</span>
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1 italic">
+                        Período atual: <span className="text-primary-600 font-black">{formatPeriod(currentPeriod)}</span>
                     </p>
                 </div>
 
                 {/* Compliance Status */}
-                <div className={`px-4 py-2 rounded-xl font-medium flex items-center gap-2 ${getComplianceColor(metrics.complianceStatus)}`}>
+                <div className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${getComplianceColor(metrics.complianceStatus)}`}>
                     <HiOutlineClipboardCheck className="w-5 h-5" />
                     {getComplianceLabel(metrics.complianceStatus)}
                 </div>
             </div>
 
             {/* Current Month Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* IVA Card */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">IVA a Pagar</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                {formatCurrency(metrics.currentMonth.ivaPayable)}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Este mês
-                            </p>
-                        </div>
-                        <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
-                            <HiOutlineDocumentText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                        </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500"></div>
-                </Card>
-
-                {/* INSS Card */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">INSS Total</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                {formatCurrency(metrics.currentMonth.inssEmployee + metrics.currentMonth.inssEmployer)}
-                            </p>
-                            <div className="flex gap-2 mt-1">
-                                <span className="text-xs text-gray-500">
-                                    Trab: {formatCurrency(metrics.currentMonth.inssEmployee)}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                    Emp: {formatCurrency(metrics.currentMonth.inssEmployer)}
-                                </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                    { label: 'IVA a Pagar', value: metrics.currentMonth.ivaPayable, sub: 'Este mês', icon: HiOutlineDocumentText,
+                      cardBg: 'bg-blue-50/60 dark:bg-blue-950/30', cardBorder: 'border border-blue-200/70 dark:border-blue-800/40',
+                      iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', accent: 'bg-blue-500' },
+                    { label: 'INSS Total', value: metrics.currentMonth.inssEmployee + metrics.currentMonth.inssEmployer,
+                      sub: `Trab: ${formatCurrency(metrics.currentMonth.inssEmployee)} • Emp: ${formatCurrency(metrics.currentMonth.inssEmployer)}`,
+                      icon: HiOutlineUsers,
+                      cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30', cardBorder: 'border border-emerald-200/70 dark:border-emerald-800/40',
+                      iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', accent: 'bg-emerald-500' },
+                    { label: 'IRPS Retido', value: metrics.currentMonth.irtRetained, sub: 'Este mês', icon: HiOutlineCash,
+                      cardBg: 'bg-orange-50/60 dark:bg-orange-950/30', cardBorder: 'border border-orange-200/70 dark:border-orange-800/40',
+                      iconBg: 'bg-orange-100 dark:bg-orange-900/40', iconColor: 'text-orange-600 dark:text-orange-400', accent: 'bg-orange-500' },
+                    { label: 'Retenções Fonte', value: metrics.currentMonth.withholdingTotal, sub: 'Fornecedores', icon: HiOutlineLibrary,
+                      cardBg: 'bg-purple-50/60 dark:bg-purple-950/30', cardBorder: 'border border-purple-200/70 dark:border-purple-800/40',
+                      iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', accent: 'bg-purple-500' },
+                ].map((s, i) => (
+                    <div key={i} className={`relative group overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all duration-300 ${s.cardBg} ${s.cardBorder}`}>
+                        <div className="p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className={`p-3 rounded-xl ${s.iconBg} ${s.iconColor} transition-transform group-hover:scale-110 duration-300`}>
+                                    <s.icon className="w-6 h-6" />
+                                </div>
                             </div>
+                            <h3 className="text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">{s.label}</h3>
+                            <p className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-1 leading-none">{formatCurrency(s.value)}</p>
+                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">{s.sub}</p>
                         </div>
-                        <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
-                            <HiOutlineUsers className="w-6 h-6 text-green-600 dark:text-green-400" />
-                        </div>
+                        <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-500 group-hover:w-full w-8 ${s.accent}`} />
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-green-500"></div>
-                </Card>
-
-                {/* IRPS Card */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">IRPS Retido</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                {formatCurrency(metrics.currentMonth.irtRetained)}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Este mês
-                            </p>
-                        </div>
-                        <div className="p-3 bg-orange-100 dark:bg-orange-900/30 rounded-xl">
-                            <HiOutlineCash className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                        </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-orange-500"></div>
-                </Card>
-
-                {/* Withholding Card */}
-                <Card padding="md" className="relative overflow-hidden">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Retenções Fonte</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                {formatCurrency(metrics.currentMonth.withholdingTotal)}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Fornecedores
-                            </p>
-                        </div>
-                        <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
-                            <HiOutlineLibrary className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                        </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-500"></div>
-                </Card>
+                ))}
             </div>
 
             {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* YTD Summary */}
-                <Card padding="md">
-                    <div className="flex items-center gap-2 mb-4">
-                        <HiOutlineTrendingUp className="w-5 h-5 text-primary-500" />
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                <Card variant="glass" padding="md">
+                    <div className="flex items-center gap-2 mb-6">
+                        <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                            <HiOutlineTrendingUp className="w-5 h-5 text-primary-600" />
+                        </div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
                             Acumulado do Ano (YTD)
                         </h3>
                     </div>
@@ -208,10 +160,12 @@ export default function FiscalDashboard() {
                 </Card>
 
                 {/* Pending Deadlines */}
-                <Card padding="md">
-                    <div className="flex items-center gap-2 mb-4">
-                        <HiOutlineCalendar className="w-5 h-5 text-primary-500" />
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                <Card variant="glass" padding="md">
+                    <div className="flex items-center gap-2 mb-6">
+                        <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                            <HiOutlineCalendar className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
                             Prazos Próximos
                         </h3>
                     </div>
@@ -279,85 +233,55 @@ export default function FiscalDashboard() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card padding="md" className="bg-green-50/50 dark:bg-green-900/5 border-green-100 dark:border-green-900/20">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-green-700 dark:text-green-400">Receita Logística</span>
-                                <HiOutlineTrendingUp className="w-5 h-5 text-green-500" />
-                            </div>
-                            <p className="text-xl font-bold text-gray-900 dark:text-white">
-                                {formatCurrency(metrics.logisticsMetrics.income)}
-                            </p>
-                            <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                {metrics.logisticsMetrics.count} transações registadas
-                            </p>
-                        </Card>
-
-                        <Card padding="md" className="bg-red-50/50 dark:bg-red-900/5 border-red-100 dark:border-red-900/20">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-red-700 dark:text-red-400">Custos de Manutenção</span>
-                                <div className="group relative">
-                                    <HiOutlineExclamation className="w-5 h-5 text-red-500 cursor-help" />
-                                    <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                        Custos sincronizados automaticamente do módulo de logística
-                                    </div>
+                        {[
+                            { label: 'Receita Logística', value: metrics.logisticsMetrics.income, sub: `${metrics.logisticsMetrics.count} transaces`, icon: HiOutlineTrendingUp, color: 'text-green-500', textColor: 'text-green-600', border: 'border-l-green-500' },
+                            { label: 'Custos Manutenção', value: metrics.logisticsMetrics.maintenanceCosts, sub: 'Dedução automática', icon: HiOutlineExclamation, color: 'text-red-500', textColor: 'text-red-600', border: 'border-l-red-500' },
+                            { label: 'Lucro Operacional', value: metrics.logisticsMetrics.profit, sub: 'Margem Bruta (EBIT)', icon: HiOutlineTrendingUp, color: 'text-blue-500', textColor: 'text-blue-600', border: 'border-l-blue-500' },
+                        ].map((info, idx) => (
+                            <Card key={idx} variant="glass" className={`p-5 border-l-4 ${info.border} group transition-all hover:scale-[1.02]`}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">{info.label}</span>
+                                    <info.icon className={`w-5 h-5 ${info.color}`} />
                                 </div>
-                            </div>
-                            <p className="text-xl font-bold text-gray-900 dark:text-white">
-                                {formatCurrency(metrics.logisticsMetrics.maintenanceCosts)}
-                            </p>
-                            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                                Dedução automática de manutenção
-                            </p>
-                        </Card>
-
-                        <Card padding="md" className="bg-blue-50/50 dark:bg-blue-900/5 border-blue-100 dark:border-blue-900/20">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Lucro Operacional</span>
-                                <HiOutlineTrendingUp className="w-5 h-5 text-blue-500" />
-                            </div>
-                            <p className="text-xl font-bold text-gray-900 dark:text-white">
-                                {formatCurrency(metrics.logisticsMetrics.profit)}
-                            </p>
-                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                                Margem antes de impostos
-                            </p>
-                        </Card>
-                    </div>
+                                <p className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white leading-none">
+                                    {formatCurrency(info.value)}
+                                </p>
+                                <p className={`text-[9px] font-bold mt-1 uppercase tracking-tighter ${info.textColor}`}>
+                                    {info.sub}
+                                </p>
+                            </Card>
+                        ))}
+            </div>
                 </div>
             )}
 
             {/* Recent Retentions */}
-            <Card padding="md">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                        <HiOutlineDocumentText className="w-5 h-5 text-primary-500" />
-                        <h3 className="font-semibold text-gray-900 dark:text-white">
+            <Card variant="glass" padding="none" className="overflow-hidden border border-gray-100 dark:border-dark-700/50 shadow-xl">
+                <div className="p-6 border-b border-gray-100 dark:border-dark-700/50 flex items-center justify-between bg-white/30 dark:bg-dark-900/30">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                            <HiOutlineDocumentText className="w-5 h-5 text-primary-600" />
+                        </div>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
                             Retenções Recentes
                         </h3>
                     </div>
-                    <Badge variant="gray">{metrics.recentRetentions.length} registos</Badge>
+                    <Badge variant="gray" className="font-black text-[9px] uppercase tracking-widest">{metrics.recentRetentions.length} registos</Badge>
                 </div>
 
-                {metrics.recentRetentions.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        <HiOutlineDocumentText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                        <p>Nenhuma retenção registada</p>
-                        <p className="text-sm mt-1">As retenções aparecerão aqui após o processamento de faturas e salários</p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                            <thead>
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Documento</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Entidade</th>
-                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valor Base</th>
-                                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Retido</th>
-                                    <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
+                                <th className="px-6 py-4 text-left font-black">Tipo</th>
+                                <th className="px-6 py-4 text-left font-black">Documento</th>
+                                <th className="px-6 py-4 text-left font-black">Entidade</th>
+                                <th className="px-6 py-4 text-right font-black">Base Tributvel</th>
+                                <th className="px-6 py-4 text-right font-black">Retido</th>
+                                <th className="px-6 py-4 text-center font-black">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700/50">
                                 {metrics.recentRetentions.slice(0, 5).map((retention) => (
                                     <tr key={retention.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
                                         <td className="px-4 py-3">
@@ -398,13 +322,12 @@ export default function FiscalDashboard() {
                             </tbody>
                         </table>
                     </div>
-                )}
             </Card>
 
             {/* Info Banner */}
             <Card padding="md" className="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-primary-100 dark:border-primary-800">
                 <div className="flex items-start gap-4">
-                    <div className="p-3 bg-white dark:bg-dark-800 rounded-xl shadow-sm">
+                    <div className="p-3 bg-white dark:bg-dark-800 rounded-lg shadow-sm">
                         <HiOutlineExclamation className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                     </div>
                     <div>
@@ -412,7 +335,7 @@ export default function FiscalDashboard() {
                             Lembre-se dos Prazos Fiscais
                         </h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Os impostos devem ser declarados e pagos até ao <strong>dia 20 de cada mês</strong> referente ao mês anterior.
+                            Os impostos devem ser declarados e pagos at ao <strong>dia 20 de cada mês</strong> referente ao mês anterior.
                             Atrasos podem resultar em multas e juros de mora.
                         </p>
                     </div>

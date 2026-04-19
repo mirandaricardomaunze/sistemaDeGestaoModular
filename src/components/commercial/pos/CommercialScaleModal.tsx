@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { HiOutlineX, HiOutlineCheck, HiOutlineRefresh } from 'react-icons/hi';
 import { useScale } from '../../../hooks/useScale';
 import { formatCurrency } from '../../../utils/helpers';
@@ -14,7 +14,7 @@ function ScaleIcon({ className }: { className?: string }) {
 interface CommercialScaleModalProps {
     isOpen: boolean;
     onClose: () => void;
-    /** Produto seleccionado para pesar — null se não houver produto activo */
+    /** Produto seleccionado para pesar - null se não houver produto activo */
     product: { name: string; unitPrice: number; unit?: string } | null;
     /** Callback quando o utilizador confirma o peso e quer adicionar ao carrinho */
     onConfirm: (weight: number, qty: number) => void;
@@ -62,7 +62,7 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
-            <div className="relative z-10 w-full max-w-sm mx-4 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="relative z-10 w-full max-w-sm mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden">
 
                 {/* Header */}
                 <div className="bg-gray-900 px-5 py-3 flex items-center justify-between">
@@ -83,15 +83,15 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
                 <div className="p-6 space-y-5">
                     {/* Produto activo */}
                     {product && (
-                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
                             <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-0.5">Produto</p>
                             <p className="font-black text-gray-900 dark:text-white text-sm">{product.name}</p>
                             <p className="text-xs text-blue-600 font-bold">{formatCurrency(product.unitPrice)} / kg</p>
                         </div>
                     )}
 
-                    {/* Ecrã do peso — estilo display de balança */}
-                    <div className={`rounded-2xl border-4 p-6 text-center transition-all ${
+                    {/* Ecr do peso - estilo display de balança */}
+                    <div className={`rounded-lg border-4 p-6 text-center transition-all ${
                         captured ? 'border-green-500 bg-green-50 dark:bg-green-900/10'
                         : isStable && weightG > 0 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10'
                         : 'border-gray-200 dark:border-dark-600 bg-gray-50 dark:bg-dark-900'
@@ -134,7 +134,7 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
                                         </span>
                                     ) : isStable && weightG > 0 ? (
                                         <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                                            Estável
+                                            Estvel
                                         </span>
                                     ) : weightG > 0 ? (
                                         <span className="text-[10px] font-black uppercase text-amber-600 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded-full animate-pulse">
@@ -151,7 +151,7 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
                                 {product && (captured !== null ? captured : weightG) > 0 && (
                                     <div className="mt-2 pt-2 border-t border-gray-200 dark:border-dark-600">
                                         <p className="text-xs text-gray-500">
-                                            {((captured ?? weightG) / 1000).toFixed(3)} kg × {formatCurrency(product.unitPrice)}
+                                            {((captured ?? weightG) / 1000).toFixed(3)} kg x {formatCurrency(product.unitPrice)}
                                         </p>
                                         <p className="text-lg font-black text-blue-600 dark:text-blue-400">
                                             {formatCurrency(captured !== null
@@ -166,7 +166,7 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
 
                     {/* Erro */}
                     {error && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                             <p className="text-xs font-bold text-red-600">{error}</p>
                         </div>
                     )}
@@ -184,7 +184,7 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
                             <button
                                 onClick={connect}
                                 disabled={!isSupported || status === 'connecting'}
-                                className="flex-1 py-3 rounded-xl bg-gray-900 hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg"
+                                className="flex-1 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg"
                             >
                                 <ScaleIcon className="w-4 h-4" />
                                 {status === 'connecting' ? 'A conectar...' : 'Conectar Balança'}
@@ -193,7 +193,7 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
                             <>
                                 <button
                                     onClick={disconnect}
-                                    className="px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 text-gray-500 font-black text-xs uppercase hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                                    className="px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-500 font-black text-xs uppercase hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
                                     title="Desconectar"
                                 >
                                     <HiOutlineX className="w-4 h-4" />
@@ -202,7 +202,7 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
                                 <button
                                     onClick={handleCapture}
                                     disabled={!isStable || weightG <= 0}
-                                    className="flex-1 py-3 rounded-xl border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-black text-xs uppercase tracking-widest hover:bg-blue-50 dark:hover:bg-blue-900/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                                    className="flex-1 py-3 rounded-lg border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-black text-xs uppercase tracking-widest hover:bg-blue-50 dark:hover:bg-blue-900/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
                                 >
                                     <HiOutlineRefresh className="w-4 h-4" />
                                     Capturar
@@ -212,7 +212,7 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
                                     <button
                                         onClick={handleConfirm}
                                         disabled={(captured ?? weightG) <= 0}
-                                        className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/20"
+                                        className="flex-1 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/20"
                                     >
                                         <HiOutlineCheck className="w-4 h-4" />
                                         Adicionar

@@ -11,12 +11,13 @@ export interface UseScaleReturn {
     isConnected: boolean;
     isSupported: boolean;
     reading: ScaleReading | null;
+    weight: number;
     error: string | null;
 
     // Acções
     connect: () => Promise<void>;
     disconnect: () => Promise<void>;
-    captureWeight: () => ScaleReading | null; // captura o último peso estável
+    captureWeight: () => ScaleReading | null; // captura o último peso estvel
 }
 
 // Buffer para acumular bytes parciais da porta série
@@ -87,13 +88,13 @@ export function useScale(): UseScaleReturn {
             setStatus('error');
             return;
         }
-        if (portRef.current) return; // já conectado
+        if (portRef.current) return; // j conectado
 
         setStatus('connecting');
         setError(null);
 
         try {
-            // Tenta porta já autorizada primeiro
+            // Tenta porta j autorizada primeiro
             const existingPorts = await (navigator as any).serial.getPorts();
             let port = existingPorts[0];
 
@@ -160,6 +161,7 @@ export function useScale(): UseScaleReturn {
         isConnected: status === 'reading' || status === 'connected',
         isSupported,
         reading,
+        weight: reading?.weight ?? 0,
         error,
         connect,
         disconnect,

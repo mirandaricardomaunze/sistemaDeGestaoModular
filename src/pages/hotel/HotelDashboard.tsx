@@ -1,5 +1,4 @@
-import { logger } from '../../utils/logger';
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -29,71 +28,25 @@ import {
     HiOutlineExclamationCircle,
     HiOutlineBuildingOffice2
 } from 'react-icons/hi2';
-import { Card, Button, Badge, LoadingSpinner, PageHeader } from '../../components/ui';
-import { formatCurrency, formatDate, cn } from '../../utils/helpers';
-import { hospitalityAPI } from '../../services/api';
+import { Card, Button, Badge, Skeleton, PageHeader } from '../../components/ui';
+import { formatCurrency, formatDate } from '../../utils/helpers';
+import { useHotelDashboardSummary, useRecentBookings } from '../../hooks/useHospitality';
 import { MetricCard, CHART_COLORS } from '../../components/common/ModuleMetricCard';
 import { ModulePeriodFilter } from '../../components/common/ModulePeriodFilter';
 import type { TimePeriod } from '../../components/common/ModulePeriodFilter';
 
 
-interface DashboardSummary {
-    totalRooms: number;
-    occupiedRooms: number;
-    availableRooms: number;
-    occupancyRate: number;
-    todayRevenue: number;
-    monthRevenue: number;
-    todayCheckIns: number;
-    todayCheckOuts: number;
-    pendingCheckouts: number;
-    monthlyGrowth?: number;
-    // Chart data
-    revenueChart?: Array<{ name: string; revenue: number }>;
-    weeklyChart?: Array<{ name: string; value: number }>;
-    roomTypeData?: Array<{ name: string; value: number }>;
-}
-
 export default function HotelDashboard() {
     const { t } = useTranslation();
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
-    const [isLoading, setIsLoading] = useState(true);
-    const [summary, setSummary] = useState<DashboardSummary | null>(null);
-    const [revenueChart, setRevenueChart] = useState<any[]>([]);
-    const [weeklyChart, setWeeklyChart] = useState<any[]>([]);
-    const [roomTypeData, setRoomTypeData] = useState<any[]>([]);
-    const [recentBookings, setRecentBookings] = useState<any[]>([]);
-
-    const fetchDashboard = async () => {
-        try {
-            setIsLoading(true);
-            const [summaryData, bookingsData] = await Promise.all([
-                hospitalityAPI.getDashboardSummary(),
-                hospitalityAPI.getRecentBookings(5)
-            ]);
-
-            setSummary(summaryData);
-
-            // Use real data from API
-            setRevenueChart(summaryData.revenueChart || []);
-            setWeeklyChart(summaryData.weeklyChart || []);
-            setRoomTypeData(summaryData.roomTypeData || []);
-            setRecentBookings(bookingsData || []);
-        } catch (error) {
-            logger.error('Error fetching dashboard:', error);
-            // Set empty data on error
-            setRevenueChart([]);
-            setWeeklyChart([]);
-            setRoomTypeData([]);
-            setRecentBookings([]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchDashboard();
-    }, [selectedPeriod]);
+    const { data: summary, isLoading, refetch: refetchDashboard } = useHotelDashboardSummary();
+    const { data: recentBookingsData } = useRecentBookings(5);
+    
+    // Calculate metrics
+    const recentBookings = recentBookingsData || [];
+    const revenueChart = summary?.revenueChart || [];
+    const weeklyChart = summary?.weeklyChart || [];
+    const roomTypeData = summary?.roomTypeData || [];
 
     // Calculate metrics
     const metrics = useMemo(() => {
@@ -128,8 +81,28 @@ export default function HotelDashboard() {
 
     if (isLoading || !metrics) {
         return (
-            <div className="flex items-center justify-center h-96">
-                <LoadingSpinner size="lg" />
+            <div className="space-y-6 animate-pulse p-4">
+                <div className="space-y-2">
+                    <Skeleton height={32} className="w-64" />
+                    <Skeleton height={20} className="w-96" />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => (
+                        <Card key={i} className="h-32">
+                            <Skeleton className="h-full w-full" />
+                        </Card>
+                    ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="lg:col-span-2 h-96">
+                        <Skeleton className="h-full w-full" />
+                    </Card>
+                    <Card className="h-96">
+                        <Skeleton className="h-full w-full" />
+                    </Card>
+                </div>
             </div>
         );
     }
@@ -144,7 +117,7 @@ export default function HotelDashboard() {
                     <>
                         <Button
                             variant="ghost"
-                            onClick={fetchDashboard}
+                            onClick={() => refetchDashboard()}
                             leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
                         >
                             {t('common.refresh')}
@@ -199,7 +172,7 @@ export default function HotelDashboard() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Revenue Chart */}
-                <Card padding="md" className="lg:col-span-2">
+                <Card padding="md" color="slate" className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                             {t('hotel_module.dashboard.charts.revenueByPeriod')}
@@ -246,7 +219,7 @@ export default function HotelDashboard() {
                 </Card>
 
                 {/* Room Types */}
-                <Card padding="md">
+                <Card padding="md" color="slate">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                         {t('hotel_module.dashboard.charts.roomTypes')}
                     </h2>
@@ -262,7 +235,7 @@ export default function HotelDashboard() {
                                     paddingAngle={4}
                                     dataKey="value"
                                 >
-                                    {roomTypeData.map((_, index) => (
+                                    {roomTypeData.map((_: any, index: any) => (
                                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                                     ))}
                                 </Pie>
@@ -271,7 +244,7 @@ export default function HotelDashboard() {
                         </ResponsiveContainer>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mt-4">
-                        {roomTypeData.map((item, index) => (
+                        {roomTypeData.map((item: any, index: any) => (
                             <div key={item.name} className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <div
@@ -328,7 +301,7 @@ export default function HotelDashboard() {
                     </div>
                     <div className="space-y-3">
                         {metrics.pendingCheckouts > 0 && (
-                            <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                            <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600">
                                     <HiOutlineExclamationCircle className="w-4 h-4" />
                                 </div>
@@ -362,7 +335,7 @@ export default function HotelDashboard() {
                         {t('dashboard.quickActions')}
                     </h2>
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                                     <HiOutlineHome className="w-4 h-4 text-green-600" />
@@ -375,7 +348,7 @@ export default function HotelDashboard() {
                                 {metrics.availableRooms}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                                     <HiOutlineUsers className="w-4 h-4 text-blue-600" />
@@ -388,7 +361,7 @@ export default function HotelDashboard() {
                                 {metrics.todayCheckIns}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                                     <HiOutlineCurrencyDollar className="w-4 h-4 text-purple-600" />
@@ -432,40 +405,43 @@ export default function HotelDashboard() {
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
                             {recentBookings.length > 0 ? (
-                                recentBookings.map((booking) => (
+                                recentBookings.map((booking) => {
+                                    const b = booking as any;
+                                    return (
                                     <tr key={booking.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/30 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-300 font-medium text-xs">
-                                                    {booking.customerName.charAt(0)}
+                                                    {b.customerName?.charAt(0)}
                                                 </div>
                                                 <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {booking.customerName}
+                                                    {b.customerName}
                                                 </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-sm text-gray-900 dark:text-white">
-                                                Quarto {booking.roomNumber}
+                                                Quarto {b.roomNumber}
                                             </div>
                                             <div className="text-xs text-gray-500">
-                                                {booking.roomType}
+                                                {b.roomType}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
                                             {formatDate(booking.checkIn)}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
-                                            {booking.checkOut ? formatDate(booking.checkOut) : 'â€”'}
+                                            {booking.checkOut ? formatDate(booking.checkOut) : '-'}
                                         </td>
                                         <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
-                                            {formatCurrency(booking.totalPrice)}
+                                            {formatCurrency(b.totalPrice)}
                                         </td>
                                         <td className="px-6 py-4">
                                             <StatusBadge status={booking.status} />
                                         </td>
                                     </tr>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
@@ -485,7 +461,7 @@ export default function HotelDashboard() {
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <Link to="/hospitality/rooms">
-                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
                             <HiOutlinePlus className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
                                 {t('hotel_module.reservations.checkIn')}
@@ -493,7 +469,7 @@ export default function HotelDashboard() {
                         </button>
                     </Link>
                     <Link to="/hospitality/reservations">
-                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
                             <HiOutlineCalendar className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
                                 {t('hotel_module.reservations.calendar')}
@@ -501,7 +477,7 @@ export default function HotelDashboard() {
                         </button>
                     </Link>
                     <Link to="/hospitality/customers">
-                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
                             <HiOutlineUsers className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
                                 {t('hotel_module.guests.title')}
@@ -509,7 +485,7 @@ export default function HotelDashboard() {
                         </button>
                     </Link>
                     <Link to="/hospitality/reports">
-                        <button className="w-full p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
                             <HiOutlineChartBar className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
                             <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
                                 {t('nav.reports')}

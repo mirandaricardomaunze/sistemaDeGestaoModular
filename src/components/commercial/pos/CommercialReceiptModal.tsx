@@ -8,6 +8,7 @@ import { getDrawerEscPosHtml, openCashDrawerSerial } from '../../../utils/hardwa
 const METHOD_LABELS: Record<PaymentMethodType, string> = {
     cash: 'Dinheiro',
     mpesa: 'M-Pesa',
+    emola: 'E-Mola',
     card: 'Cartão/TPA',
     credit: 'Crédito',
 };
@@ -61,8 +62,8 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
         const win = window.open('', '_blank', 'width=400,height=700');
         if (!win) return;
 
-        // 3. Constrói o HTML da impressão — inclui ESC/POS como fallback
-        //    para gavetas conectadas directamente à impressora térmica USB
+        // 3. Constrói o HTML da impressão - inclui ESC/POS como fallback
+        //    para gavetas conectadas directamente à impressora trmica USB
         const drawerCmd = openedViaSerial ? '' : getDrawerEscPosHtml();
 
         const html = `<!DOCTYPE html>
@@ -96,13 +97,17 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-sm mx-4 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="relative z-10 w-full max-w-sm mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 {/* Header */}
-                <div className="bg-gray-900 px-5 py-3 flex items-center justify-between flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                        <HiOutlinePrinter className="w-4 h-4 text-white/70" />
-                        <h2 className="text-white font-black text-sm uppercase tracking-tight">Recibo</h2>
-                        <span className="text-white/50 text-xs">#{receipt.saleNumber}</span>
+                <div className="bg-slate-900 px-6 py-4 flex items-center justify-between flex-shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white/10 rounded-lg backdrop-blur-md">
+                            <HiOutlinePrinter className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Recibo Digital</h2>
+                            <p className="text-white/40 text-[10px] font-bold">VENDA Nº {receipt.saleNumber}</p>
+                        </div>
                     </div>
                     <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-white transition-colors">
                         <HiOutlineX className="w-4 h-4" />
@@ -121,25 +126,27 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
                         )}
 
                         {/* ── Nome da Empresa ── */}
-                        <h1>{displayName.toUpperCase()}</h1>
-                        {company.tradeName && company.companyName !== company.tradeName && (
-                            <h2>{company.companyName}</h2>
-                        )}
-                        {company.taxId && (
-                            <p className="meta text-center text-[10px] text-gray-500">
-                                NUIT: {company.taxId}
-                            </p>
-                        )}
-                        {company.address && (
-                            <p className="meta text-center text-[10px] text-gray-500">
-                                {company.address}{company.city ? `, ${company.city}` : ''}
-                            </p>
-                        )}
-                        {(company.phone || company.email) && (
-                            <p className="meta text-center text-[10px] text-gray-500">
-                                {[company.phone, company.email].filter(Boolean).join(' · ')}
-                            </p>
-                        )}
+                        <div className="text-center mb-4">
+                            <h1 className="text-lg font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+                                {displayName.toUpperCase()}
+                            </h1>
+                            {company.tradeName && company.companyName !== company.tradeName && (
+                                <h2 className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">{company.companyName}</h2>
+                            )}
+                            <div className="flex flex-col gap-0.5 mt-3 opacity-70">
+                                {company.taxId && (
+                                    <p className="meta text-[9px] font-bold">NUIT: {company.taxId}</p>
+                                )}
+                                {company.address && (
+                                    <p className="meta text-[9px]">{company.address}{company.city ? `, ${company.city}` : ''}</p>
+                                )}
+                                {(company.phone || company.email) && (
+                                    <p className="meta text-[9px]">
+                                        {[company.phone, company.email].filter(Boolean).join(' • ')}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
 
                         <div className="border-t border-dashed border-gray-400 my-2" />
 
@@ -192,7 +199,7 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
                             {receipt.discount > 0 && (
                                 <div className="flex justify-between text-[10px] text-red-600">
                                     <span>Desconto</span>
-                                    <span>− {formatCurrency(receipt.discount)}</span>
+                                    <span>âˆ' {formatCurrency(receipt.discount)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between text-[10px] text-gray-500">
@@ -226,7 +233,7 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
                             )}
                             {receipt.isCredit && (
                                 <div className="flex justify-between text-[10px] font-black text-amber-700">
-                                    <span>A Crédito — vence em {receipt.creditDueDays} dias</span>
+                                    <span>A Crédito - vence em {receipt.creditDueDays} dias</span>
                                     <span>{formatCurrency(receipt.total)}</span>
                                 </div>
                             )}
@@ -234,19 +241,21 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
 
                         <div className="border-t border-dashed border-gray-400 my-3" />
 
-                        {/* ── Rodapé ── */}
-                        <div className="text-center text-[9px] text-gray-400 space-y-1">
-                            {company.receiptFooter ? (
-                                <div className="text-gray-600 font-bold whitespace-pre-wrap leading-tight mb-2">
-                                    {company.receiptFooter}
-                                </div>
-                            ) : (
-                                <>
-                                    <p>Obrigado pela sua preferência!</p>
-                                    <p>Guarde este recibo para futuras referências.</p>
-                                </>
-                            )}
-                            {company.email && <p>{company.email}</p>}
+                        {/* ── Rodap ── */}
+                        <div className="text-center pt-4 opacity-50">
+                            <div className="w-12 h-1 bg-slate-200 dark:bg-slate-700 mx-auto rounded-full mb-4" />
+                            <div className="text-[9px] uppercase tracking-widest font-bold space-y-1">
+                                {company.receiptFooter ? (
+                                    <div className="whitespace-pre-wrap leading-relaxed">
+                                        {company.receiptFooter}
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p>Obrigado pela preferência</p>
+                                        <p>Volte Sempre</p>
+                                    </>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -256,7 +265,7 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
                     {onSendEmail && (
                         <button
                             onClick={onSendEmail}
-                            className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-xs uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors flex items-center justify-center gap-1.5"
+                            className="flex-1 py-2.5 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-xs uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors flex items-center justify-center gap-1.5"
                         >
                             <HiOutlineMail className="w-4 h-4" />
                             Email
@@ -264,14 +273,14 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
                     )}
                     <button
                         onClick={handlePrint}
-                        className="flex-1 py-2.5 rounded-xl bg-gray-900 hover:bg-gray-800 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-lg"
+                        className="flex-1 py-2.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-lg"
                     >
                         <HiOutlinePrinter className="w-4 h-4" />
                         Imprimir
                     </button>
                     <button
                         onClick={onClose}
-                        className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest transition-colors shadow-lg shadow-blue-500/20"
+                        className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest transition-colors shadow-lg shadow-blue-500/20"
                     >
                         Nova Venda
                     </button>

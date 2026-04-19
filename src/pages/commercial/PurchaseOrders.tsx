@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import {
     HiOutlineClipboardList, HiOutlinePlus, HiOutlineRefresh,
     HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock,
@@ -7,10 +7,10 @@ import {
 } from 'react-icons/hi';
 import { Card, Badge, Button, Input, Select, Textarea, Modal } from '../../components/ui';
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
-import { CustomerSearchInput, type CustomerOption } from '../../components/commercial/CustomerSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { usePurchaseOrders } from '../../hooks/useCommercial';
 import { useSuppliers } from '../../hooks/useSuppliers';
+import { useWarehouses } from '../../hooks/useData';
 import toast from 'react-hot-toast';
 import { suppliersAPI } from '../../services/api';
 
@@ -41,7 +41,7 @@ function lineTotal(item: LineItem): number {
     return item.quantity * item.unitCost;
 }
 
-// ── CreatePOModal ─────────────────────────────────────────────────────────────
+// ── CreatePOModal ────────────────────────────────────────────────────────────-
 
 interface CreatePOModalProps { onClose: () => void; onSuccess: () => void }
 
@@ -141,7 +141,7 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                     <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
                         {lines.map((line, i) => (
                             <div key={i} className="grid grid-cols-12 gap-2 items-end p-3 rounded-lg border border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-700/30">
-                                {/* Product search — spans 6 cols */}
+                                {/* Product search - spans 6 cols */}
                                 <div className="col-span-6">
                                     <ProductSearchInput
                                         label={i === 0 ? 'Produto' : undefined}
@@ -222,7 +222,7 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
     );
 }
 
-// ── ReceiveModal — partial stock receipt ─────────────────────────────────────
+// ── ReceiveModal - partial stock receipt ────────────────────────────────────-
 
 interface ReceiveModalProps {
     order: any; // PurchaseOrder with items
@@ -239,7 +239,16 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
             ])
         )
     );
+    const { warehouses } = useWarehouses();
+    const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
     const [saving, setSaving] = useState(false);
+
+    // Set default warehouse
+    useEffect(() => {
+        if (warehouses && warehouses.length > 0 && !selectedWarehouseId) {
+            setSelectedWarehouseId(warehouses[0].id);
+        }
+    }, [warehouses, selectedWarehouseId]);
 
     const handleReceive = async () => {
         const items = Object.entries(quantities)
@@ -250,7 +259,7 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
 
         setSaving(true);
         try {
-            await suppliersAPI.receivePurchaseOrder(order.id, items);
+            await suppliersAPI.receivePurchaseOrder(order.id, items, selectedWarehouseId);
             toast.success('Stock actualizado com sucesso!');
             onSuccess();
             onClose();
@@ -262,11 +271,27 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
     };
 
     return (
-        <Modal isOpen onClose={onClose} title={`Receber — ${order.orderNumber}`} size="lg">
+        <Modal isOpen onClose={onClose} title={`Receber - ${order.orderNumber}`} size="lg">
             <div className="space-y-4">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Defina as quantidades recebidas. O stock será actualizado automaticamente.
+                    Defina as quantidades recebidas e o armazém de destino. O stock será actualizado automaticamente.
                 </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-dark-700/30 p-4 rounded-lg border border-gray-100 dark:border-dark-700">
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Destino da Mercadoria</p>
+                        <select
+                            value={selectedWarehouseId}
+                            onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                            className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 text-sm focus:ring-2 focus:ring-primary-500 transition-all outline-none"
+                        >
+                            <option value="">Seleccione um armazém...</option>
+                            {warehouses?.map(w => (
+                                <option key={w.id} value={w.id}>{w.name} ({w.location})</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -274,7 +299,7 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
                             <tr className="text-xs text-gray-400 border-b border-gray-100 dark:border-dark-700">
                                 <th className="text-left py-2 font-medium">Produto</th>
                                 <th className="text-right py-2 font-medium">Encomendado</th>
-                                <th className="text-right py-2 font-medium">Já recebido</th>
+                                <th className="text-right py-2 font-medium">J recebido</th>
                                 <th className="text-right py-2 font-medium w-32">Receber agora</th>
                             </tr>
                         </thead>
@@ -444,7 +469,7 @@ export default function PurchaseOrders() {
             <div className="space-y-3">
                 {isLoading ? (
                     Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-20 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />
+                        <div key={i} className="h-20 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
                     ))
                 ) : orders.length === 0 ? (
                     <Card padding="lg" className="text-center py-16">

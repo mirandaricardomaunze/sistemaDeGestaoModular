@@ -1,8 +1,8 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
-import { fiscalService } from '../services/fiscal.service';
-import { ivaService } from '../services/iva.service';
+import { fiscalService } from '../services/fiscalService';
+import { ivaService } from '../services/ivaService';
 import { ApiError } from '../middleware/error.middleware';
 
 const router = Router();

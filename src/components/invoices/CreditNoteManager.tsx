@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Button, Input, Pagination, usePagination } from '../ui';
 import { HiOutlineSearch, HiOutlinePlus, HiOutlinePrinter, HiOutlineEye } from 'react-icons/hi';
 import { format } from 'date-fns';
@@ -16,7 +16,7 @@ interface CreditNoteManagerProps {
 
 export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) {
     const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [_isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedNote, setSelectedNote] = useState<CreditNote | null>(null);

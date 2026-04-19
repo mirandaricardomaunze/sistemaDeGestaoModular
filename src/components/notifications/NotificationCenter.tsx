@@ -1,4 +1,4 @@
-﻿/**
+/**
  * NotificationCenter Component
  * 
  * Central notification hub with module filtering, priority indicators,
@@ -11,15 +11,15 @@ import {
     HiOutlineBell,
     HiOutlineCheck,
     HiOutlineCheckCircle,
-    HiOutlineX,
-    HiOutlineExclamation,
+    HiOutlineXMark as HiOutlineX,
+    HiOutlineExclamationTriangle as HiOutlineExclamation,
     HiOutlineExclamationCircle,
     HiOutlineInformationCircle,
     HiOutlineChevronRight,
-    HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineRefresh,
     HiOutlineTrash,
-    HiOutlineFilter
-} from 'react-icons/hi';
+    HiOutlineFunnel as HiOutlineFilter
+} from 'react-icons/hi2';
 import { useAlerts, useUnreadCount } from '../../hooks/useAlerts';
 import { Button, Badge } from '../ui';
 import type { Alert, AlertModule, AlertPriority } from '../../services/api';
@@ -33,8 +33,8 @@ const MODULE_CONFIG: Record<string, { label: string; color: string; icon?: strin
     invoices: { label: 'Facturas', color: 'green' },
     hospitality: { label: 'Hotelaria', color: 'purple' },
     pharmacy: { label: 'Farmácia', color: 'red' },
-    crm: { label: 'CRM', color: 'orange' },
-    pos: { label: 'POS', color: 'cyan' },
+    crm: { label: 'crm', color: 'orange' },
+    pos: { label: 'pos', color: 'cyan' },
     general: { label: 'Geral', color: 'gray' }
 };
 
@@ -163,7 +163,7 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
         <div
             ref={containerRef}
             className={`absolute right-0 top-12 w-96 max-h-[80vh] bg-white dark:bg-dark-800 
-                       rounded-xl shadow-2xl border border-gray-200 dark:border-dark-700 
+                       rounded-lg shadow-2xl border border-gray-200 dark:border-dark-700 
                        flex flex-col z-50 overflow-hidden ${className}`}
         >
             {/* Header */}
@@ -172,7 +172,7 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
                     <div className="flex items-center gap-2">
                         <HiOutlineBell className="w-5 h-5 text-primary-600" />
                         <h3 className="font-semibold text-gray-900 dark:text-white">
-                            Notificações
+                            Notificaces
                         </h3>
                         {unreadCount > 0 && (
                             <Badge variant="primary" size="sm">{unreadCount}</Badge>
@@ -276,7 +276,7 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
                             Sem notificações
                         </p>
                         <p className="text-sm text-gray-500 mt-1">
-                            Está tudo em ordem!
+                            Est tudo em ordem!
                         </p>
                     </div>
                 ) : (

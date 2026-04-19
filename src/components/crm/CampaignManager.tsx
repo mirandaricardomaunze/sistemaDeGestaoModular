@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Campaign Manager Component
  * Gestão de campanhas promocionais e segmentação de clientes
  */

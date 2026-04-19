@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiOutlineGlobeAlt, HiCheck } from 'react-icons/hi';
 import { languages, type LanguageCode } from '../../i18n';
@@ -39,7 +39,7 @@ export default function LanguageSelector() {
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-xl shadow-lg border border-gray-200 dark:border-dark-700 py-1 z-50 animate-fade-in">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 py-1 z-50 animate-fade-in">
                     {languages.map((lang) => (
                         <button
                             key={lang.code}

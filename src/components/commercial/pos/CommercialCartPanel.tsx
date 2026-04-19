@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, Button, Input } from '../../ui';
 import {
     HiOutlineShoppingCart, HiOutlineTrash, HiOutlineCheck,
     HiOutlineTag, HiOutlinePlus, HiOutlineMinus,
     HiOutlineScale, HiOutlineLockOpen, HiOutlineLockClosed, HiOutlineCash,
-    HiOutlinePause, HiOutlinePlay, HiOutlineDotsHorizontal
+    HiOutlinePause, HiOutlinePlay, HiOutlineDotsHorizontal,
 } from 'react-icons/hi';
 import { formatCurrency, cn } from '../../../utils/helpers';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 export interface HeldSale {
     id: string;
@@ -56,7 +57,7 @@ interface CommercialCartPanelProps {
 export function CommercialCartPanel({
     cart, setCart,
     updateQuantity, updateItemDiscount, removeFromCart,
-    cartTotal, cartSubtotal, cartTax, cartDiscount,
+    cartTotal, cartSubtotal, cartTax: _cartTax, cartDiscount,
     selectedCustomer, setSelectedCustomer,
     customerName, setCustomerName,
     promoCode, setPromoCode, promoCodeApplied, handleApplyPromoCode,
@@ -71,11 +72,14 @@ export function CommercialCartPanel({
     const [showHeld, setShowHeld] = useState(false);
     const [editingGlobalDiscount, setEditingGlobalDiscount] = useState(false);
 
+    // Only managers and above can apply global discounts
+    const { isManager } = usePermissions();
+
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)] sticky top-4 mb-6 transition-all duration-300">
-            <Card className="flex flex-col flex-1 overflow-hidden p-0 border-none shadow-2xl shadow-blue-500/10 bg-white dark:bg-dark-900 rounded-3xl relative">
+            <Card className="flex flex-col flex-1 overflow-hidden p-0 border-none shadow-2xl shadow-blue-500/10 bg-white dark:bg-dark-900 rounded-lg relative">
                 {/* Header */}
-                <div className="bg-slate-900 dark:bg-black px-3 py-2 text-white flex items-center justify-between flex-shrink-0 shadow-sm relative z-20 border-b border-white/5">
+                <div className="bg-slate-50 dark:bg-black px-3 py-2 text-slate-900 dark:text-white flex items-center justify-between flex-shrink-0 shadow-sm relative z-20 border-b border-slate-200 dark:border-white/5">
                     <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                             <HiOutlineShoppingCart className="w-3.5 h-3.5 text-white" />
@@ -110,7 +114,7 @@ export function CommercialCartPanel({
                             <>
                                 <button
                                     onClick={onHoldSale}
-                                    className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 rounded-lg transition-all border border-white/5"
+                                    className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-all border border-white/5"
                                     title="Suspender venda"
                                 >
                                     <HiOutlineDotsHorizontal className="w-3 h-3" />
@@ -220,14 +224,14 @@ export function CommercialCartPanel({
                         </div>
                     ) : (
                         cart.map((item: any) => (
-                            <div key={item.productId} className="group px-3 py-2 bg-white dark:bg-dark-800 rounded-2xl border border-gray-100 dark:border-dark-700/50 hover:border-blue-500/50 hover:shadow-xl hover:shadow-black/5 transition-all">
+                            <div key={item.productId} className="group px-3 py-2 bg-white dark:bg-dark-800 rounded-lg border border-gray-100 dark:border-dark-700/50 hover:border-blue-500/50 hover:shadow-xl hover:shadow-black/5 transition-all">
                                 <div className="flex items-center justify-between gap-3">
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-black text-gray-900 dark:text-white text-xs truncate leading-none mb-2">
                                             {item.product.name}
                                         </h4>
                                         <div className="flex items-center gap-2">
-                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-dark-900 p-1 rounded-xl border border-gray-100 dark:border-dark-700 leading-none">
+                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-dark-900 p-1 rounded-lg border border-gray-100 dark:border-dark-700 leading-none">
                                                 <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white dark:hover:bg-dark-800 rounded-lg font-bold transition-all active:scale-95 shadow-sm">
                                                     <HiOutlineMinus className="w-3 h-3 text-gray-400 hover:text-red-500" />
                                                 </button>
@@ -325,21 +329,33 @@ export function CommercialCartPanel({
                 {/* Footer totals */}
                 <div className="flex-shrink-0 bg-white dark:bg-dark-900 p-3 pt-2 pb-3 border-t dark:border-dark-800 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] relative z-20">
 
-                    {/* Global discount row */}
+                    {/* Global discount row - only managers/admins */}
                     <div className="flex items-center justify-between mb-2 px-1">
                         <div className="flex items-center gap-1.5 opacity-60">
                             <HiOutlineTag className="w-3 h-3 text-red-500" />
                             <span className="text-[9px] font-black uppercase tracking-tighter text-gray-400">DESC. GLOBAL</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                            {editingGlobalDiscount ? (
+                            {!isManager ? (
+                                <span
+                                    title="Apenas gerentes podem aplicar descontos globais"
+                                    className="flex items-center gap-1 text-[9px] text-gray-300 dark:text-gray-600 border border-gray-100 dark:border-dark-700 px-2 py-0.5 rounded cursor-not-allowed select-none"
+                                >
+                                    <HiOutlineLockClosed className="w-2.5 h-2.5" />
+                                    Restrito
+                                </span>
+                            ) : editingGlobalDiscount ? (
                                 <input
                                     type="number"
                                     min="0"
                                     max="100"
+                                    step="1"
                                     autoFocus
                                     value={globalDiscountPct || ''}
-                                    onChange={e => onGlobalDiscountChange(Math.min(100, Math.max(0, Number(e.target.value))))}
+                                    onChange={e => {
+                                        const v = Number(e.target.value);
+                                        if (!isNaN(v)) onGlobalDiscountChange(Math.min(100, Math.max(0, v)));
+                                    }}
                                     onBlur={() => setEditingGlobalDiscount(false)}
                                     onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingGlobalDiscount(false); }}
                                     className="w-10 text-center text-[9px] font-black border border-primary-500/50 rounded bg-white dark:bg-dark-800 h-6"
@@ -355,13 +371,15 @@ export function CommercialCartPanel({
                                     {globalDiscountPct > 0 ? `-${globalDiscountPct}%` : '+ ADD'}
                                 </button>
                             )}
-                            {globalDiscountPct > 0 && !editingGlobalDiscount && (
-                                <button onClick={() => onGlobalDiscountChange(0)} className="text-gray-300 hover:text-red-500"><HiOutlineTrash className="w-3 h-3" /></button>
+                            {isManager && globalDiscountPct > 0 && !editingGlobalDiscount && (
+                                <button onClick={() => onGlobalDiscountChange(0)} className="text-gray-300 hover:text-red-500">
+                                    <HiOutlineTrash className="w-3 h-3" />
+                                </button>
                             )}
                         </div>
                     </div>
 
-                    <div className="flex justify-between items-end mb-3 bg-gray-50/50 dark:bg-dark-800/20 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
+                    <div className="flex justify-between items-end mb-3 bg-gray-50/50 dark:bg-dark-800/20 p-2 rounded-lg border border-gray-100 dark:border-dark-700/50">
                         <div className="flex flex-col gap-0.5">
                             <div className="flex justify-between gap-4 text-[9px] text-gray-400 uppercase font-black whitespace-nowrap leading-none">
                                 <span>Sub</span>
@@ -384,7 +402,7 @@ export function CommercialCartPanel({
 
                     <Button
                         className={cn(
-                            "w-full py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-xl",
+                            "w-full py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-xl",
                             cart.length === 0 || checkoutLoading 
                                 ? 'bg-gray-100 text-gray-400' 
                                 : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20'

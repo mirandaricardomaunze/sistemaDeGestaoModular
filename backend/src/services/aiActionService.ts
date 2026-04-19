@@ -2,7 +2,7 @@ import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 
 export class AIActionService {
-    async executeAction(action: string, params: any, companyId: string) {
+    async executeAction(action: string, params: any, companyId: string): Promise<{ success: boolean; [key: string]: any }> {
         switch (action) {
             case 'get_sales_summary': return await this.getSalesSummary(companyId, params.period || 'today');
             case 'get_stock_alerts': return await this.getStockAlerts(companyId);
@@ -14,12 +14,12 @@ export class AIActionService {
         const start = new Date(); start.setHours(0, 0, 0, 0);
         const sales = await prisma.sale.findMany({ where: { companyId, createdAt: { gte: start } }, select: { total: true } });
         const total = sales.reduce((sum, s) => sum + Number(s.total), 0);
-        return { total_sales_mzn: total, count: sales.length };
+        return { success: true, total_sales_mzn: total, count: sales.length };
     }
 
     private async getStockAlerts(companyId: string) {
         const lowStock = await prisma.product.count({ where: { companyId, currentStock: { lte: 10 } } });
-        return { low_stock_count: lowStock };
+        return { success: true, low_stock_count: lowStock };
     }
 }
 

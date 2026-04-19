@@ -1,0 +1,50 @@
+# Multicore System - Project Rules & Standards
+
+This document defines the mandatory architectural, design, and coding standards for the Multicore project. All AI contributions and developer commits MUST strictly adhere to these rules.
+
+## 🏛️ 1. Modern Modular Architecture (FE)
+
+We follow a strict 6-layer methodology for every feature:
+1.  **Type Specification**: All interfaces must be centralized in `src/types/[module].ts`.
+2.  **Backend Implementation**: Zod schemas, stateless services, and thin controllers.
+3.  **API Client Layer**: Declare methods in `src/services/api/[module].api.ts`.
+4.  **Logic Hook Layer**: Use **TanStack Query v5** for all data fetching and state management in `src/hooks/[module].ts`.
+5.  **Pure UI Layer**: Build reusable Atoms/Molecules in `src/components/ui/`.
+6.  **Page Orchestration**: Assemble the feature in `src/pages/[module]/`.
+
+### Mandatory FE Rules:
+- **NO `useEffect` for Data Fetching**: Always use TanStack Query v5 hooks.
+- **Strict Separation**: React components MUST NOT contain direct API calls or complex logic; they consume hooks.
+- **Type Safety**: No `any`. Use the centralized module types for everything.
+
+## 🏗️ 2. Professional Backend Standards
+
+- **Multi-Tenancy**: Every Prisma query MUST filter by `companyId` (extracted via `tenant` middleware).
+- **Result Pattern**: Standardize response objects: `{ success: boolean, data: T, error?: string, message?: string }`.
+- **Transactions**: Use `prisma.$transaction` for all financial or stock-affecting operations.
+- **Thin Controllers**: Business logic belongs in `src/services/`, not routes.
+
+## 🎨 3. Premium UI/UX & Design
+
+- **Visual Excellence**:
+    - **8px Grid System**: Use consistent spacing increments (`p-2`, `m-4`, `gap-8`).
+    - **Premium Colors**: Avoid default colors. Use the custom HSL palette from `tailwind.config.js`.
+    - **Iconography**: Strictly use **Heroicons v2** (`react-icons/hi2`).
+- **Loading States**: Mandatory use of **Skeleton Loaders** for dashboards and page transitions.
+- **Unified Header**: Every page must use the `PageHeader` component with integrated Actions and Refresh control.
+- **Responsiveness**: Mobile-first approach for all UI components.
+
+## 🏷️ 4. Nomenclature & Conventions
+
+- **Files & Folders**: Use **camelCase** for ALL files and directories.
+  - *Good*: `inventoryList.tsx`, `useInventory.ts`, `authService.ts`.
+  - *Bad*: `inventory-list.tsx`, `InventoryList.tsx`.
+- **React Components**: **PascalCase** (`InventoryList`).
+- **Hooks**: **camelCase** starting with `use` (`useInventory`).
+- **Services/APIs**: **camelCase** ending with `API` (`inventoryAPI`) or `Service` (`salesService`).
+- **Booleans**: Prefixed with `is`, `has`, `can`, `should`.
+
+---
+
+> [!IMPORTANT]
+> Failure to follow these rules results in technical debt. If you are an AI assistant, you MUST refuse to generate code that violates these patterns and instead suggest the correct professional alternative.

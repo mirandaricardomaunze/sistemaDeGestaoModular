@@ -9,6 +9,7 @@ import {
     Input,
     Badge,
     PageHeader,
+    Skeleton,
     type BadgeVariant
 } from '../../components/ui';
 import Pagination from '../../components/ui/Pagination';
@@ -129,7 +130,7 @@ export default function HotelRooms() {
                 )}>
                     <div className="flex items-center gap-3">
                         <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg",
+                            "w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg",
                             room.status === 'available' ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" :
                                 room.status === 'occupied' ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" :
                                     room.status === 'dirty' ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" :
@@ -163,7 +164,7 @@ export default function HotelRooms() {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center py-4 border-2 border-dashed border-gray-100 dark:border-dark-700 rounded-xl opacity-60">
+                        <div className="flex-1 flex flex-col items-center justify-center py-4 border-2 border-dashed border-gray-100 dark:border-dark-700 rounded-lg opacity-60">
                             <HiOutlineHome className="w-8 h-8 text-gray-300 mb-2" />
                             <p className="text-xs font-medium text-gray-400">{room.status === 'available' ? t('hotel_module.rooms.statuses.available') : t('hotel_module.rooms.statuses.dirty')}</p>
                         </div>
@@ -255,7 +256,7 @@ export default function HotelRooms() {
                                     key={s}
                                     onClick={() => setFilter(s)}
                                     className={cn(
-                                        "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                                        "px-4 py-2 rounded-lg text-sm font-medium transition-all",
                                         filter === s
                                             ? "bg-primary-600 text-white shadow-lg shadow-primary-200 dark:shadow-none"
                                             : "bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-dark-600"
@@ -278,7 +279,37 @@ export default function HotelRooms() {
 
                     {/* Room Grid */}
                     {isLoading ? (
-                        <div className="flex justify-center py-20"><LoadingSpinner size="lg" /></div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-pulse">
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                                <Card key={i} className="h-64 flex flex-col p-0 overflow-hidden border border-gray-100 dark:border-dark-700">
+                                    <div className="h-16 bg-gray-50 dark:bg-dark-800 p-4 flex items-center justify-between">
+                                        <div className="flex gap-2">
+                                            <Skeleton className="w-10 h-10 rounded-lg" />
+                                            <div className="space-y-1">
+                                                <Skeleton className="h-3 w-16" />
+                                                <Skeleton className="h-4 w-24" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 flex-1 space-y-4">
+                                        <div className="flex gap-3">
+                                            <Skeleton className="w-8 h-8 rounded-full" />
+                                            <div className="flex-1 space-y-1">
+                                                <Skeleton className="h-2 w-12" />
+                                                <Skeleton className="h-4 w-3/4" />
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <Skeleton className="h-3 w-16" />
+                                            <Skeleton className="h-3 w-8" />
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 dark:bg-dark-800/50">
+                                        <Skeleton className="h-9 w-full rounded-md" />
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
                     ) : rooms.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {rooms.map((room: Room) => (

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Mobile Payment Modal Component
  * Supports M-Pesa and e-Mola payments with real API integration
  */
@@ -172,7 +172,7 @@ export default function MobilePaymentModal({
                     {/* Simulated mode badge */}
                     {mpesa.isSimulated && status === 'success' && (
                         <span className="mt-2 px-2 py-1 text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full">
-                            🧪 Modo Sandbox
+                            ?? Modo Sandbox
                         </span>
                     )}
                 </div>

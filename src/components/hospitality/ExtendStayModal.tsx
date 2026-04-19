@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ExtendStayModal Component
  * Allows extending a guest's stay by updating the checkout date
  */

@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -343,7 +343,7 @@ export default function PharmacySuppliers() {
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
                         <Card padding="md" className="border-l-4 border-l-teal-500 shadow-sm">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
                                     <HiOutlineTruck className="w-6 h-6 text-teal-600" />
                                 </div>
                                 <div>
@@ -355,7 +355,7 @@ export default function PharmacySuppliers() {
 
                         <Card padding="md" className="border-l-4 border-l-green-500">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                                     <HiOutlineCurrencyDollar className="w-6 h-6 text-green-600" />
                                 </div>
                                 <div>
@@ -367,7 +367,7 @@ export default function PharmacySuppliers() {
 
                         <Card padding="md" className="border-l-4 border-l-yellow-500">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
                                     <HiOutlineCurrencyDollar className="w-6 h-6 text-yellow-600" />
                                 </div>
                                 <div>
@@ -379,7 +379,7 @@ export default function PharmacySuppliers() {
 
                         <Card padding="md" className="border-l-4 border-l-blue-500">
                             <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                                     <HiOutlineTruck className="w-6 h-6 text-blue-600" />
                                 </div>
                                 <div>

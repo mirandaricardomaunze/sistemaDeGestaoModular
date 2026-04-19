@@ -1,11 +1,22 @@
-import { logger } from '../../utils/logger';
-﻿import { useState, useEffect, useCallback } from 'react';
+﻿import { logger } from '../../utils/logger';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Input, Select, Badge, LoadingSpinner, Button, Modal } from '../ui';
 import Pagination from '../ui/Pagination';
 import { productsAPI } from '../../services/api';
 import { useWarehouses } from '../../hooks/useData';
 import { format } from 'date-fns';
-import { HiOutlineSearch, HiOutlineFilter, HiOutlineRefresh, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineTruck, HiOutlineExclamation, HiOutlineClock, HiOutlineEye, HiOutlineTrash } from 'react-icons/hi';
+import { 
+    HiOutlineMagnifyingGlass as HiOutlineSearch, 
+    HiOutlineFunnel, 
+    HiOutlineArrowPath, 
+    HiOutlineArrowUp, 
+    HiOutlineArrowDown, 
+    HiOutlineTruck, 
+    HiOutlineExclamationTriangle, 
+    HiOutlineClock, 
+    HiOutlineEye, 
+    HiOutlineTrash 
+} from 'react-icons/hi2';
 import type { MovementType, StockMovement } from '../../types';
 
 interface MovementFilters {
@@ -19,12 +30,12 @@ interface MovementFilters {
 const movementTypeConfig: Record<MovementType, { label: string; color: 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'gray'; icon: any }> = {
     purchase: { label: 'Compra', color: 'success', icon: HiOutlineArrowUp },
     sale: { label: 'Venda', color: 'danger', icon: HiOutlineArrowDown },
-    return_in: { label: 'Devol. Entrada', color: 'info', icon: HiOutlineRefresh },
+    return_in: { label: 'Devol. Entrada', color: 'info', icon: HiOutlineArrowPath },
     return_out: { label: 'Devol. Saída', color: 'warning', icon: HiOutlineArrowDown },
     adjustment: { label: 'Ajuste', color: 'primary', icon: HiOutlineClock },
-    expired: { label: 'Expirado', color: 'danger', icon: HiOutlineExclamation },
+    expired: { label: 'Expirado', color: 'danger', icon: HiOutlineExclamationTriangle },
     transfer: { label: 'Transferência', color: 'info', icon: HiOutlineTruck },
-    loss: { label: 'Perda', color: 'danger', icon: HiOutlineExclamation },
+    loss: { label: 'Perda', color: 'danger', icon: HiOutlineExclamationTriangle },
 };
 
 const movementTypeOptions = [
@@ -105,10 +116,10 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Histórico de Movimentações
+                    <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
+                        Controlo de Movimentaces
                     </h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
                         Registo completo de todas as entradas e saídas de stock
                     </p>
                 </div>
@@ -116,8 +127,9 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                     variant="ghost"
                     onClick={fetchMovements}
                     isLoading={isLoading}
+                    className="text-[10px] font-black uppercase tracking-widest"
                 >
-                    <HiOutlineRefresh className="w-5 h-5" />
+                    <HiOutlineArrowPath className="w-5 h-5" />
                 </Button>
             </div>
 
@@ -179,7 +191,7 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                 ) : movements.length === 0 ? (
                     <div className="py-16 flex flex-col items-center justify-center text-center">
                         <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
-                            <HiOutlineFilter className="w-8 h-8 text-gray-400" />
+                            <HiOutlineFunnel className="w-8 h-8 text-gray-400" />
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
                             Nenhuma movimentação encontrada
@@ -191,17 +203,17 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                            <thead className="bg-gray-50 dark:bg-dark-800">
+                            <thead className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Data</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Produto</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Armazém</th>
-                                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Qtd</th>
-                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Saldo</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Motivo</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Responsável</th>
-                                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Ações</th>
+                                    <th className="px-6 py-4 text-left">Data</th>
+                                    <th className="px-6 py-4 text-left">Tipo</th>
+                                    <th className="px-6 py-4 text-left">Produto</th>
+                                    <th className="px-6 py-4 text-left">Armazém</th>
+                                    <th className="px-6 py-4 text-left">Qtd</th>
+                                    <th className="px-6 py-4 text-left">Saldo</th>
+                                    <th className="px-6 py-4 text-left">Motivo</th>
+                                    <th className="px-6 py-4 text-left">Responsável</th>
+                                    <th className="px-6 py-4 text-right">Ações</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 dark:divide-dark-700 bg-white dark:bg-dark-900">
@@ -221,7 +233,7 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
-                                                <Badge variant={config.color} className="flex items-center gap-1 w-fit">
+                                                <Badge variant={config.color} className="flex items-center gap-1 w-fit font-black uppercase tracking-widest text-[9px]">
                                                     <Icon className="w-3 h-3" />
                                                     {config.label}
                                                 </Badge>
@@ -239,16 +251,16 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                                             <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
                                                 {mov.warehouse?.name || <span className="italic text-gray-400">Global</span>}
                                             </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-right">
+                                            <td className="px-5 py-3 whitespace-nowrap text-left">
                                                 <span className={`font-bold ${mov.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
                                                     {mov.quantity > 0 ? `+${mov.quantity}` : mov.quantity}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                <div className="flex items-center justify-center gap-1 text-sm">
-                                                    <span className="text-gray-400">{mov.balanceBefore}</span>
-                                                    <span className="text-gray-400">→</span>
-                                                    <span className="font-semibold text-gray-900 dark:text-white">{mov.balanceAfter}</span>
+                                            <td className="px-5 py-3 whitespace-nowrap text-left">
+                                                <div className="flex items-center gap-1.5 text-sm">
+                                                    <span className="text-gray-400 text-[10px]">{mov.balanceBefore}</span>
+                                                    <span className="text-gray-300">→</span>
+                                                    <span className="font-bold text-slate-700 dark:text-white uppercase tracking-tighter text-xs">{mov.balanceAfter}</span>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 max-w-[180px]">
@@ -271,18 +283,18 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <div className="flex items-center justify-center gap-1">
+                                            <td className="px-5 py-3 whitespace-nowrap">
+                                                <div className="flex items-center gap-1">
                                                     <button
                                                         onClick={() => setSelectedMovement(mov)}
-                                                        className="p-2 rounded-lg text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+                                                        className="p-2 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all border border-transparent hover:border-primary-100"
                                                         title="Ver detalhes"
                                                     >
                                                         <HiOutlineEye className="w-4 h-4" />
                                                     </button>
                                                     <button
                                                         onClick={() => logger.info('Eliminar:', mov.id)}
-                                                        className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                        className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all border border-transparent hover:border-red-100"
                                                         title="Eliminar"
                                                     >
                                                         <HiOutlineTrash className="w-4 h-4" />

@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿/**
+/**
  * CRM Store
  * Gerencia funil de vendas, oportunidades e campanhas
  */
@@ -475,12 +475,27 @@ export const useCRMStore = create<CRMState>()(
                     count,
                 }));
 
+                const conversionRates = stages.slice(0, -1).map((stage, idx) => {
+                    const nextStage = stages[idx + 1];
+                    const enteredCurrent = filteredOpps.filter((o) =>
+                        o.stageHistory.some((h) => h.toStageId === stage.id) || o.stageId === stage.id
+                    ).length;
+                    const movedToNext = filteredOpps.filter((o) =>
+                        o.stageHistory.some((h) => h.fromStageId === stage.id && h.toStageId === nextStage.id)
+                    ).length;
+                    return {
+                        fromStage: stage.name,
+                        toStage: nextStage.name,
+                        rate: enteredCurrent > 0 ? Math.round((movedToNext / enteredCurrent) * 1000) / 10 : 0,
+                    };
+                });
+
                 return {
                     totalOpportunities,
                     totalValue,
                     weightedValue,
                     byStage,
-                    conversionRates: [], // TODO: Calculate stage-to-stage conversion
+                    conversionRates,
                     avgTimeToClose: Math.round(avgTimeToClose * 10) / 10,
                     winRate: Math.round(winRate * 10) / 10,
                     lossReasons,

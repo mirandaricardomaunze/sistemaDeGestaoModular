@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -313,7 +313,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                         placeholder="Digite nome ou código..."
                                     />
                                     {productSearch && (
-                                        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                                        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {filteredProducts.map((product) => (
                                                 <button
                                                     key={product.id}
@@ -373,7 +373,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                         </Card>
 
                         {/* Products Table */}
-                        <div className="border border-gray-200 dark:border-dark-600 rounded-xl overflow-hidden">
+                        <div className="border border-gray-200 dark:border-dark-600 rounded-lg overflow-hidden">
                             <table className="w-full">
                                 <thead className="bg-gray-50 dark:bg-dark-700">
                                     <tr>
@@ -384,7 +384,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                             Qtd
                                         </th>
                                         <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Unitário
+                                            Unitrio
                                         </th>
                                         <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 dark:text-gray-300">
                                             Subtotal

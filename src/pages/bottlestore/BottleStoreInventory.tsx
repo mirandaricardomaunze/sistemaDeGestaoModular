@@ -1,7 +1,7 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Card, Button, Input, Badge, EmptyState, Modal, Select } from '../../components/ui';
-import { HiOutlineSearch, HiOutlineRefresh, HiOutlineCube, HiOutlinePlus, HiOutlineMinus, HiOutlinePrinter, HiOutlineDownload } from 'react-icons/hi';
+import { HiOutlineSearch, HiOutlineRefresh, HiOutlineCube, HiOutlinePlus, HiOutlineMinus, HiOutlinePrinter, HiOutlineDownload, HiOutlineArchive, HiOutlineTag, HiOutlineTrash } from 'react-icons/hi';
 import { useProducts } from '../../hooks/useData';
 import Pagination from '../../components/ui/Pagination';
 import { formatCurrency } from '../../utils/helpers';
@@ -45,6 +45,89 @@ export default function BottleStoreInventory() {
     });
     const [adjustmentData, setAdjustmentData] = useState({ quantity: '', reason: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Batch modal
+    const [batchModal, setBatchModal] = useState<{ isOpen: boolean; product: any | null }>({ isOpen: false, product: null });
+    const [batches, setBatches] = useState<any[]>([]);
+    const [loadingBatches, setLoadingBatches] = useState(false);
+    const [newBatch, setNewBatch] = useState({ batchNumber: '', quantity: '', expiryDate: '', costPrice: '', notes: '' });
+    const [savingBatch, setSavingBatch] = useState(false);
+
+    // Price tier modal
+    const [tierModal, setTierModal] = useState<{ isOpen: boolean; product: any | null }>({ isOpen: false, product: null });
+    const [tiers, setTiers] = useState<any[]>([]);
+    const [loadingTiers, setLoadingTiers] = useState(false);
+    const [newTier, setNewTier] = useState({ minQty: '', price: '', label: '' });
+    const [savingTier, setSavingTier] = useState(false);
+
+    const openBatchModal = async (product: any) => {
+        setBatchModal({ isOpen: true, product });
+        setLoadingBatches(true);
+        try {
+            const res = await bottleStoreAPI.getBatches({ productId: product.id, limit: 50 });
+            setBatches(res.data || []);
+        } catch { toast.error('Erro ao carregar lotes'); }
+        finally { setLoadingBatches(false); }
+    };
+
+    const handleCreateBatch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!batchModal.product || !newBatch.batchNumber || !newBatch.quantity) return;
+        setSavingBatch(true);
+        try {
+            await bottleStoreAPI.createBatch({
+                productId: batchModal.product.id,
+                batchNumber: newBatch.batchNumber,
+                quantity: Number(newBatch.quantity),
+                expiryDate: newBatch.expiryDate || undefined,
+                costPrice: newBatch.costPrice ? Number(newBatch.costPrice) : undefined,
+                notes: newBatch.notes || undefined,
+            });
+            toast.success('Lote registado com sucesso!');
+            setNewBatch({ batchNumber: '', quantity: '', expiryDate: '', costPrice: '', notes: '' });
+            const res = await bottleStoreAPI.getBatches({ productId: batchModal.product.id, limit: 50 });
+            setBatches(res.data || []);
+            refetch();
+        } catch (err: any) { toast.error(err.response?.data?.error || 'Erro ao criar lote'); }
+        finally { setSavingBatch(false); }
+    };
+
+    const openTierModal = async (product: any) => {
+        setTierModal({ isOpen: true, product });
+        setLoadingTiers(true);
+        try {
+            const res = await bottleStoreAPI.getPriceTiers(product.id);
+            setTiers(res || []);
+        } catch { toast.error('Erro ao carregar preços'); }
+        finally { setLoadingTiers(false); }
+    };
+
+    const handleCreateTier = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!tierModal.product || !newTier.minQty || !newTier.price) return;
+        setSavingTier(true);
+        try {
+            await bottleStoreAPI.createPriceTier({
+                productId: tierModal.product.id,
+                minQty: Number(newTier.minQty),
+                price: Number(newTier.price),
+                label: newTier.label || undefined,
+            });
+            toast.success('Nível de preço criado!');
+            setNewTier({ minQty: '', price: '', label: '' });
+            const res = await bottleStoreAPI.getPriceTiers(tierModal.product.id);
+            setTiers(res || []);
+        } catch (err: any) { toast.error(err.response?.data?.error || 'Erro ao criar nível'); }
+        finally { setSavingTier(false); }
+    };
+
+    const handleDeleteTier = async (id: string) => {
+        try {
+            await bottleStoreAPI.deletePriceTier(id);
+            setTiers(prev => prev.filter(t => t.id !== id));
+            toast.success('Nível removido');
+        } catch { toast.error('Erro ao remover nível'); }
+    };
 
     const {
         products,
@@ -217,6 +300,24 @@ export default function BottleStoreInventory() {
                                             >
                                                 <HiOutlineMinus className="w-4 h-4" />
                                             </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                title="Gerir Lotes/Validades"
+                                                className="text-blue-600 hover:bg-blue-50"
+                                                onClick={() => openBatchModal(p)}
+                                            >
+                                                <HiOutlineArchive className="w-4 h-4" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                title="Preços por Volume"
+                                                className="text-purple-600 hover:bg-purple-50"
+                                                onClick={() => openTierModal(p)}
+                                            >
+                                                <HiOutlineTag className="w-4 h-4" />
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>
@@ -297,6 +398,182 @@ export default function BottleStoreInventory() {
                 onClose={() => setShowPrintReport(false)}
                 category="beverages"
             />
+
+            {/* -- Batch / Expiry Modal -- */}
+            <Modal
+                isOpen={batchModal.isOpen}
+                onClose={() => setBatchModal({ isOpen: false, product: null })}
+                title={`Lotes & Validades -- ${batchModal.product?.name}`}
+                size="lg"
+            >
+                <div className="space-y-6">
+                    {/* New batch form */}
+                    <form onSubmit={handleCreateBatch} className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3">
+                        <h4 className="font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
+                            <HiOutlineArchive className="w-4 h-4" /> Registar Novo Lote
+                        </h4>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input
+                                label="Nº Lote *"
+                                value={newBatch.batchNumber}
+                                onChange={e => setNewBatch({ ...newBatch, batchNumber: e.target.value })}
+                                placeholder="LOT-2025-001"
+                                required
+                            />
+                            <Input
+                                label="Quantidade *"
+                                type="number"
+                                min="1"
+                                value={newBatch.quantity}
+                                onChange={e => setNewBatch({ ...newBatch, quantity: e.target.value })}
+                                placeholder="0"
+                                required
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <Input
+                                label="Data de Validade"
+                                type="date"
+                                value={newBatch.expiryDate}
+                                onChange={e => setNewBatch({ ...newBatch, expiryDate: e.target.value })}
+                            />
+                            <Input
+                                label="Preço de Custo"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={newBatch.costPrice}
+                                onChange={e => setNewBatch({ ...newBatch, costPrice: e.target.value })}
+                                placeholder="0.00"
+                            />
+                        </div>
+                        <Input
+                            label="Notas"
+                            value={newBatch.notes}
+                            onChange={e => setNewBatch({ ...newBatch, notes: e.target.value })}
+                            placeholder="Observações opcionais..."
+                        />
+                        <Button type="submit" isLoading={savingBatch} variant="primary" size="sm">
+                            <HiOutlinePlus className="w-4 h-4 mr-1" /> Registar Lote
+                        </Button>
+                    </form>
+
+                    {/* Existing batches */}
+                    <div>
+                        <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">Lotes Existentes</h4>
+                        {loadingBatches ? (
+                            <p className="text-gray-500 text-sm py-4 text-center">A carregar...</p>
+                        ) : batches.length === 0 ? (
+                            <p className="text-gray-400 text-sm py-4 text-center">Nenhum lote registado</p>
+                        ) : (
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                                {batches.map((b: any) => (
+                                    <div key={b.id} className="flex items-center justify-between bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg px-4 py-3">
+                                        <div>
+                                            <span className="font-mono font-bold text-sm">{b.batchNumber}</span>
+                                            <span className="ml-3 text-sm text-gray-600 dark:text-gray-400">{b.quantity} un</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            {b.expiryDate ? (
+                                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                                    b.computedStatus === 'expired' ? 'bg-red-100 text-red-700' :
+                                                    b.computedStatus === 'expiring_soon' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-green-100 text-green-700'
+                                                }`}>
+                                                    {new Date(b.expiryDate).toLocaleDateString('pt-MZ')}
+                                                    {b.daysToExpiry != null && b.daysToExpiry >= 0 && ` (${b.daysToExpiry}d)`}
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-gray-400">Sem validade</span>
+                                            )}
+                                            <Badge variant={b.computedStatus === 'expired' ? 'danger' : b.computedStatus === 'expiring_soon' ? 'warning' : 'success'} size="sm">
+                                                {b.computedStatus === 'expired' ? 'Expirado' : b.computedStatus === 'expiring_soon' ? 'A expirar' : 'Válido'}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Modal>
+
+            {/* -- Price Tier Modal -- */}
+            <Modal
+                isOpen={tierModal.isOpen}
+                onClose={() => setTierModal({ isOpen: false, product: null })}
+                title={`Preços por Volume -- ${tierModal.product?.name}`}
+                size="md"
+            >
+                <div className="space-y-6">
+                    {/* New tier form */}
+                    <form onSubmit={handleCreateTier} className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 space-y-3">
+                        <h4 className="font-semibold text-purple-800 dark:text-purple-300 flex items-center gap-2">
+                            <HiOutlineTag className="w-4 h-4" /> Novo Nível de Preço
+                        </h4>
+                        <div className="grid grid-cols-3 gap-3">
+                            <Input
+                                label="Qtd Mínima *"
+                                type="number"
+                                min="1"
+                                value={newTier.minQty}
+                                onChange={e => setNewTier({ ...newTier, minQty: e.target.value })}
+                                placeholder="Ex: 6"
+                                required
+                            />
+                            <Input
+                                label="Preço *"
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={newTier.price}
+                                onChange={e => setNewTier({ ...newTier, price: e.target.value })}
+                                placeholder="0.00"
+                                required
+                            />
+                            <Input
+                                label="Etiqueta"
+                                value={newTier.label}
+                                onChange={e => setNewTier({ ...newTier, label: e.target.value })}
+                                placeholder="Ex: Caixa"
+                            />
+                        </div>
+                        <Button type="submit" isLoading={savingTier} variant="primary" size="sm">
+                            <HiOutlinePlus className="w-4 h-4 mr-1" /> Adicionar Nível
+                        </Button>
+                    </form>
+
+                    {/* Existing tiers */}
+                    <div>
+                        <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">Níveis Configurados</h4>
+                        {loadingTiers ? (
+                            <p className="text-gray-500 text-sm py-4 text-center">A carregar...</p>
+                        ) : tiers.length === 0 ? (
+                            <p className="text-gray-400 text-sm py-4 text-center">Nenhum nível configurado -- preço único</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {tiers.sort((a: any, b: any) => a.minQty - b.minQty).map((t: any) => (
+                                    <div key={t.id} className="flex items-center justify-between bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg px-4 py-3">
+                                        <div className="flex items-center gap-4">
+                                            <span className="text-sm font-medium">A partir de <strong>{t.minQty}</strong> un</span>
+                                            <span className="text-purple-700 dark:text-purple-400 font-bold">{formatCurrency(t.price)}</span>
+                                            {t.label && <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">{t.label}</span>}
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="text-red-500 hover:bg-red-50"
+                                            onClick={() => handleDeleteTier(t.id)}
+                                        >
+                                            <HiOutlineTrash className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

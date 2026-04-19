@@ -29,32 +29,28 @@ import {
 import { Card, Button, Badge, ResponsiveValue } from '../ui';
 import { formatRelativeTime, cn } from '../../utils/helpers';
 
-const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+const CHART_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#0ea5e9'];
 
 export const StatsWidget = ({ metrics, stats }: any) => {
     const { t } = useTranslation();
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-            <Card padding="md" className="relative overflow-hidden bg-gradient-to-br from-primary-600 to-indigo-700 text-white shadow-lg">
-                <div className="relative">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-white" />
-                        </div>
-                        <div className={cn(
-                            'flex items-center gap-1 text-sm font-medium',
-                            metrics.salesGrowth >= 0 ? 'text-green-300' : 'text-red-300'
-                        )}>
-                            {metrics.salesGrowth >= 0 ? <HiOutlineTrendingUp className="w-4 h-4" /> : <HiOutlineTrendingDown className="w-4 h-4" />}
-                            {Math.abs(metrics.salesGrowth)}%
-                        </div>
+            <div className="relative group overflow-hidden rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/40 shadow-sm hover:shadow-md transition-all duration-300 p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
+                        <HiOutlineCurrencyDollar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                     </div>
-                    <ResponsiveValue value={stats?.totalRevenue || 0} size="xl" className="mb-1" />
-                    <p className="text-sm text-white/80 font-medium">Faturação Consolidada</p>
+                    <div className={cn('flex items-center gap-1 text-xs font-black', metrics.salesGrowth >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                        {metrics.salesGrowth >= 0 ? <HiOutlineTrendingUp className="w-3.5 h-3.5" /> : <HiOutlineTrendingDown className="w-3.5 h-3.5" />}
+                        {Math.abs(metrics.salesGrowth)}%
+                    </div>
                 </div>
-            </Card>
+                <ResponsiveValue value={stats?.totalRevenue || 0} size="xl" className="mb-1 text-gray-900 dark:text-white" />
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Faturação Consolidada</p>
+                <div className="absolute bottom-0 left-0 h-0.5 bg-indigo-500 transition-all duration-500 group-hover:w-full w-8" />
+            </div>
 
-            <Card padding="md" className="border-t-4 border-t-primary-500 shadow-sm">
+            <Card padding="md" color="slate">
                 <div className="flex items-center justify-between mb-3 text-gray-900 dark:text-white">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Desempenho por Módulo</h3>
                     <Badge variant="outline" size="sm" className="text-[10px]">Mensal</Badge>
@@ -63,7 +59,7 @@ export const StatsWidget = ({ metrics, stats }: any) => {
                     {stats?.commercialRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-gray-600 dark:text-gray-400">🛍️ Comercial</span>
+                                <span className="text-gray-600 dark:text-gray-400"> Comercial</span>
                                 <ResponsiveValue value={stats.commercialRevenue} size="sm" className="font-bold text-gray-900 dark:text-white" />
                             </div>
                             <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
@@ -74,7 +70,7 @@ export const StatsWidget = ({ metrics, stats }: any) => {
                     {stats?.hospitalityRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-gray-600 dark:text-gray-400">🏨 Hotelaria</span>
+                                <span className="text-gray-600 dark:text-gray-400">otelaria</span>
                                 <ResponsiveValue value={stats.hospitalityRevenue} size="sm" className="font-bold text-gray-900 dark:text-white" />
                             </div>
                             <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
@@ -85,7 +81,7 @@ export const StatsWidget = ({ metrics, stats }: any) => {
                     {stats?.pharmacyRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-gray-600 dark:text-gray-400">💊 Farmácia</span>
+                                <span className="text-gray-600 dark:text-gray-400">armácia</span>
                                 <ResponsiveValue value={stats.pharmacyRevenue} size="sm" className="font-bold text-gray-900 dark:text-white" />
                             </div>
                             <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
@@ -96,7 +92,7 @@ export const StatsWidget = ({ metrics, stats }: any) => {
                     {stats?.bottleStoreRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-gray-600 dark:text-gray-400">🍾 Bottle Store</span>
+                                <span className="text-gray-600 dark:text-gray-400">ottle Store</span>
                                 <ResponsiveValue value={stats.bottleStoreRevenue} size="sm" className="font-bold text-gray-900 dark:text-white" />
                             </div>
                             <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
@@ -107,26 +103,28 @@ export const StatsWidget = ({ metrics, stats }: any) => {
                 </div>
             </Card>
 
-            <Card padding="md" className="relative overflow-hidden shadow-sm">
+            <div className="relative group overflow-hidden rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 shadow-sm hover:shadow-md transition-all duration-300 p-5">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                        <HiOutlineCube className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                    <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
+                        <HiOutlineCube className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                     </div>
                     <Badge variant={metrics.lowStock > 5 ? 'danger' : 'warning'}>{t('common.attention')}</Badge>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.lowStock}/{metrics.totalProducts}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.productsLow')}</p>
-            </Card>
+                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{metrics.lowStock}/{metrics.totalProducts}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">{t('dashboard.productsLow')}</p>
+                <div className="absolute bottom-0 left-0 h-0.5 bg-amber-500 transition-all duration-500 group-hover:w-full w-8" />
+            </div>
 
-            <Card padding="md" className="relative overflow-hidden shadow-sm">
+            <div className="relative group overflow-hidden rounded-xl bg-cyan-50/60 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/40 shadow-sm hover:shadow-md transition-all duration-300 p-5">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-accent-100 dark:bg-accent-900/30 flex items-center justify-center">
-                        <HiOutlineUsers className="w-6 h-6 text-accent-600 dark:text-accent-400" />
+                    <div className="w-11 h-11 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
+                        <HiOutlineUsers className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
                     </div>
                 </div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.employees}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.activeEmployees')}</p>
-            </Card>
+                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{metrics.employees}</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">{t('dashboard.activeEmployees')}</p>
+                <div className="absolute bottom-0 left-0 h-0.5 bg-cyan-500 transition-all duration-500 group-hover:w-full w-8" />
+            </div>
         </div>
     );
 };
@@ -177,7 +175,7 @@ export const RevenueChartWidget = ({ salesData }: { salesData: any[] }) => {
 export const CategoryPieWidget = ({ categoryData }: { categoryData: any[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
+        <Card padding="md" color="slate" className="w-full">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{t('dashboard.productsByCategory')}</h2>
             <div className="h-64">
                 <ResponsiveContainer width="100%" height={256}>
@@ -209,7 +207,7 @@ export const CategoryPieWidget = ({ categoryData }: { categoryData: any[] }) => 
 export const RecentAlertsWidget = ({ alerts, metrics }: any) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
+        <Card padding="md" color="slate" className="w-full">
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('dashboard.pendingAlerts')}</h2>
                 <Link to="/alerts"><Badge variant="danger">{metrics.pendingAlerts}</Badge></Link>
@@ -219,7 +217,7 @@ export const RecentAlertsWidget = ({ alerts, metrics }: any) => {
                     <p className="text-center text-gray-500 dark:text-gray-400 py-8">{t('dashboard.noPendingAlerts')}</p>
                 ) : (
                     alerts.slice(0, 5).map((alert: any) => (
-                        <div key={alert.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div key={alert.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <div className={cn(
                                 'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
                                 alert.priority === 'critical' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'
@@ -242,7 +240,7 @@ export const RecentAlertsWidget = ({ alerts, metrics }: any) => {
 export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: any[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
+        <Card padding="md" color="slate" className="w-full">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                 {t('dashboard.weeklySales')}
             </h2>
@@ -271,7 +269,7 @@ export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: any[] }) => {
 export const RecentActivityWidget = ({ recentActivities }: { recentActivities: any[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
+        <Card padding="md" color="slate" className="w-full">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 {t('dashboard.recentActivity')}
             </h2>
@@ -306,38 +304,38 @@ export const RecentActivityWidget = ({ recentActivities }: { recentActivities: a
 export const QuickActionsWidget = () => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
+        <Card padding="md" color="slate" className="w-full">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 {t('dashboard.quickActions')}
             </h2>
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <Link to="/pos">
-                    <button className="w-full p-3 sm:p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                        <HiOutlineShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
+                    <button className="w-full p-3 sm:p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                        <HiOutlineShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
                         <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600 break-words line-clamp-2">
                             {t('sales.newSale')}
                         </p>
                     </button>
                 </Link>
                 <Link to="/inventory">
-                    <button className="w-full p-3 sm:p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                        <HiOutlineCube className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
+                    <button className="w-full p-3 sm:p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                        <HiOutlineCube className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
                         <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600 break-words line-clamp-2">
                             {t('dashboard.newProduct')}
                         </p>
                     </button>
                 </Link>
                 <Link to="/employees">
-                    <button className="w-full p-3 sm:p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                        <HiOutlineUsers className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
+                    <button className="w-full p-3 sm:p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                        <HiOutlineUsers className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
                         <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600 break-words line-clamp-2">
                             {t('nav.employees')}
                         </p>
                     </button>
                 </Link>
                 <Link to="/reports">
-                    <button className="w-full p-3 sm:p-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                        <HiOutlineCurrencyDollar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
+                    <button className="w-full p-3 sm:p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                        <HiOutlineCurrencyDollar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
                         <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600 break-words line-clamp-2">
                             {t('nav.reports')}
                         </p>

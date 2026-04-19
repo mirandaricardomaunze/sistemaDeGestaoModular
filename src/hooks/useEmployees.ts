@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { employeesAPI } from '../services/api';
 import type { Employee } from '../types';
@@ -33,21 +33,30 @@ export function useEmployees(params?: UseEmployeesParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await employeesAPI.getAll(params);
+            const result = await employeesAPI.getAll(params);
 
             let employeesData: Employee[] = [];
-            if (response.data && response.pagination) {
-                employeesData = response.data;
-                setPagination(response.pagination);
-            } else {
-                employeesData = Array.isArray(response) ? response : (response.data || []);
-                setPagination({
-                    page: params?.page || 1,
-                    limit: params?.limit || employeesData.length,
-                    total: employeesData.length,
-                    totalPages: 1,
-                    hasMore: false
-                });
+            // Handle Result<PaginatedResponse<Employee>>
+            if (result.success && result.data) {
+                const payload = result.data;
+                if (payload.data && payload.meta) {
+                    employeesData = payload.data;
+                    setPagination(payload.meta);
+                } else if (Array.isArray(payload)) {
+                    employeesData = payload;
+                    setPagination({
+                        page: params?.page || 1,
+                        limit: params?.limit || payload.length,
+                        total: payload.length,
+                        totalPages: 1,
+                        hasMore: false
+                    });
+                } else if (payload.data) {
+                    employeesData = payload.data;
+                }
+            } else if (Array.isArray(result)) {
+                // Legacy support
+                employeesData = result;
             }
 
             setEmployees(employeesData);
@@ -74,7 +83,8 @@ export function useEmployees(params?: UseEmployeesParams) {
 
     const addEmployee = async (data: Parameters<typeof employeesAPI.create>[0]) => {
         try {
-            const newEmployee = await employeesAPI.create(data);
+            const result = await employeesAPI.create(data);
+            const newEmployee = result.success ? result.data : result;
             setEmployees((prev) => [newEmployee, ...prev]);
             toast.success('Funcionário criado com sucesso!');
             return newEmployee;
@@ -86,7 +96,8 @@ export function useEmployees(params?: UseEmployeesParams) {
 
     const updateEmployee = async (id: string, data: Parameters<typeof employeesAPI.update>[1]) => {
         try {
-            const updated = await employeesAPI.update(id, data);
+            const result = await employeesAPI.update(id, data);
+            const updated = result.success ? result.data : result;
             setEmployees((prev) => prev.map((e) => (e.id === id ? updated : e)));
             toast.success('Funcionário actualizado com sucesso!');
             return updated;

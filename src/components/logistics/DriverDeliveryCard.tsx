@@ -1,9 +1,9 @@
-/**
+﻿/**
  * DriverDeliveryCard Component
  *
  * Responsibility: Render a single delivery card for the Driver Panel.
  * Displays delivery info + allowed action buttons.
- * Zero business logic — all data and actions come via props.
+ * Zero business logic - all data and actions come via props.
  *
  * Design tokens:
  *   Priority visual cues:  urgent=red pulse ring, high=orange, normal=blue, low=gray
@@ -30,7 +30,7 @@ import {
     HiOutlineArrowPath,
 } from 'react-icons/hi2';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ──-Constants ────────────────────────────────────────────────────────────────
 
 const PRIORITY_CONFIG = {
     urgent: {
@@ -68,7 +68,7 @@ const STATUS_ACTION_CONFIG: Partial<Record<Delivery['status'], { label: string; 
     cancelled:        { label: 'Cancelar',             className: 'border border-gray-300 dark:border-dark-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-700', icon: HiOutlineXCircle },
 };
 
-// ─── Sub-component: Failure Reason Input ─────────────────────────────────────
+// ──-Sub-component: Failure Reason Input ────────────────────────────────────-
 
 interface FailureInputProps {
     value: string;
@@ -111,7 +111,7 @@ function FailureReasonInput({ value, onChange, onConfirm, onCancel, isLoading }:
     );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ──-Main Component ──────────────────────────────────────────────────────────-
 
 interface DriverDeliveryCardProps {
     item: DriverPanelDelivery;
@@ -162,7 +162,7 @@ export function DriverDeliveryCard({ item, onStatusUpdate, isUpdating }: DriverD
 
     return (
         <article
-            className={`bg-white dark:bg-dark-800 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700 overflow-hidden transition-shadow hover:shadow-md ${priorityConfig.ring}`}
+            className={`bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700 overflow-hidden transition-shadow hover:shadow-md ${priorityConfig.ring}`}
             aria-label={`Entrega ${delivery.number}`}
         >
             {/* Card Header */}
@@ -249,7 +249,7 @@ export function DriverDeliveryCard({ item, onStatusUpdate, isUpdating }: DriverD
                                 onClick={() => handleActionClick(status)}
                                 disabled={isUpdating}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${actionConfig.className}`}
-                                aria-label={`${label} — Entrega ${delivery.number}`}
+                                aria-label={`${label} "" Entrega ${delivery.number}`}
                             >
                                 <ActionIcon className="w-4 h-4" aria-hidden="true" />
                                 {label}
@@ -304,7 +304,7 @@ export function DriverDeliveryCard({ item, onStatusUpdate, isUpdating }: DriverD
                 size="md"
             >
                 <div className="space-y-4">
-                    <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-100 dark:border-primary-800">
+                    <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-100 dark:border-primary-800">
                         <p className="text-sm text-primary-800 dark:text-primary-300 font-medium">
                             Por favor, peça ao cliente para assinar no campo abaixo para confirmar a recepção da entrega #{delivery.number}.
                         </p>

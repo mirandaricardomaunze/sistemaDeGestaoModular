@@ -51,7 +51,7 @@ export const roleLabels: Record<UserRole, string> = {
     manager: 'Gerente',
     operator: 'Operador',
     cashier: 'Caixa',
-    stock_keeper: 'Gestor de Stock',
+    stock_keeper: 'Gestãor de Stock',
 };
 
 // ============================================================================
@@ -258,3 +258,4 @@ export const useAuthStore = create<AuthStore>()(
 export const useUser = () => useAuthStore((state) => state.user);
 export const useIsAuthenticated = () => useAuthStore((state) => state.isAuthenticated);
 export const useIsAuthLoading = () => useAuthStore((state) => state.isLoading);
+

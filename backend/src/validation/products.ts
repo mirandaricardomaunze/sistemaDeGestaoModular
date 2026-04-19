@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Validation Schemas - Products
  * 
  * Schemas for product CRUD and stock operations.

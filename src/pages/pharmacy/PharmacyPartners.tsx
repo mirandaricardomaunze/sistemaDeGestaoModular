@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { Card, Button, Input, Modal, Badge, Pagination } from '../../components/ui';
 import {
     HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash,
-    HiOutlineShieldCheck, HiOutlineMail, HiOutlinePhone, HiOutlineLocationMarker,
-    HiOutlineDocumentText, HiOutlineTruck, HiOutlineCurrencyDollar, HiOutlineCheck,
+    HiOutlineShieldCheck, HiOutlineMail, HiOutlinePhone,
+    HiOutlineTruck, HiOutlineCurrencyDollar, HiOutlineCheck,
     HiOutlineOfficeBuilding
 } from 'react-icons/hi';
 import { cn, formatCurrency, formatDate } from '../../utils/helpers';
@@ -35,7 +35,7 @@ export default function PharmacyPartners() {
             </div>
 
             {/* Tab switcher */}
-            <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-xl p-1 w-fit">
+            <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1 w-fit">
                 {([
                     { id: 'insurers', label: 'Seguradoras', icon: HiOutlineShieldCheck },
                     { id: 'suppliers', label: 'Fornecedores', icon: HiOutlineTruck },
@@ -63,7 +63,7 @@ export default function PharmacyPartners() {
     );
 }
 
-// ─── Seguradoras/Convénios ────────────────────────────────────────────────────
+// ──-Seguradoras/Convénios ────────────────────────────────────────────────────
 function InsurersTab() {
     const { partners, isLoading, addPartner, updatePartner, deletePartner } = usePharmacyPartners();
     const [search, setSearch] = useState('');
@@ -102,7 +102,7 @@ function InsurersTab() {
 
             {isLoading && partners.length === 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[1, 2, 3].map(i => <Card key={i} className="h-36 animate-pulse" />)}
+                    {[1, 2, 3].map(i => <Card key={i} className="h-36 animate-pulse">{null}</Card>)}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -110,7 +110,7 @@ function InsurersTab() {
                         <Card key={partner.id} padding="md" className={cn('border-l-4 hover:shadow-md transition-shadow', partner.isActive ? 'border-l-primary-500' : 'border-l-gray-300')}>
                             <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center">
                                         <HiOutlineShieldCheck className="w-5 h-5 text-primary-600" />
                                     </div>
                                     <div>
@@ -166,7 +166,7 @@ function InsurersTab() {
     );
 }
 
-// ─── Fornecedores ────────────────────────────────────────────────────────────
+// ──-Fornecedores ────────────────────────────────────────────────────────────
 function SuppliersTab() {
     const { suppliers, isLoading, pagination, page, setPage, search, setSearch, addSupplier, updateSupplier, deleteSupplier } = usePharmacySuppliers();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -228,8 +228,8 @@ function SuppliersTab() {
                                             <div>{s.phone}</div>
                                             {s.email && <div className="text-xs">{s.email}</div>}
                                         </td>
-                                        <td className="px-4 py-3 text-gray-500">{s.contactPerson || '—'}</td>
-                                        <td className="px-4 py-3 font-mono text-xs text-gray-500">{s.nuit || '—'}</td>
+                                        <td className="px-4 py-3 text-gray-500">{s.contactPerson || ''}</td>
+                                        <td className="px-4 py-3 font-mono text-xs text-gray-500">{s.nuit || ''}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex gap-1">
                                                 <button onClick={() => { setEditing(s); setIsModalOpen(true); }} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-dark-600 text-gray-400 hover:text-primary-600">
@@ -275,7 +275,7 @@ function SuppliersTab() {
     );
 }
 
-// ─── Faturação a Parceiros ────────────────────────────────────────────────────
+// ──-Faturação a Parceiros ────────────────────────────────────────────────────
 function BillingTab() {
     const queryClient = useQueryClient();
     const [showGenerate, setShowGenerate] = useState(false);
@@ -357,14 +357,14 @@ function BillingTab() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div className="col-span-2 md:col-span-1">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parceiro *</label>
-                            <select className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 value={generateForm.partnerId} onChange={e => setGenerateForm(f => ({ ...f, partnerId: e.target.value }))}>
                                 <option value="">Seleccionar...</option>
                                 {partners.map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.coveragePercentage}%)</option>)}
                             </select>
                         </div>
-                        <Input label="Período — Início" type="date" value={generateForm.periodStart} onChange={e => setGenerateForm(f => ({ ...f, periodStart: e.target.value }))} />
-                        <Input label="Período — Fim" type="date" value={generateForm.periodEnd} onChange={e => setGenerateForm(f => ({ ...f, periodEnd: e.target.value }))} />
+                        <Input label="Período de Início" type="date" value={generateForm.periodStart} onChange={e => setGenerateForm(f => ({ ...f, periodStart: e.target.value }))} />
+                        <Input label="Período de Fim" type="date" value={generateForm.periodEnd} onChange={e => setGenerateForm(f => ({ ...f, periodEnd: e.target.value }))} />
                         <Input label="Vencimento" type="date" value={generateForm.dueDate} onChange={e => setGenerateForm(f => ({ ...f, dueDate: e.target.value }))} />
                     </div>
                     <div className="flex gap-2">
@@ -399,11 +399,11 @@ function BillingTab() {
                                                     <span className="font-medium">{inv.partner?.name}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-500">{formatDate(inv.periodStart)} — {formatDate(inv.periodEnd)}</td>
+                                            <td className="px-4 py-3 text-xs text-gray-500">{formatDate(inv.periodStart)} a {formatDate(inv.periodEnd)}</td>
                                             <td className="px-4 py-3 font-semibold">{formatCurrency(Number(inv.totalAmount))}</td>
                                             <td className="px-4 py-3 text-green-600">{formatCurrency(Number(inv.paidAmount))}</td>
                                             <td className="px-4 py-3 font-bold text-amber-600">{formatCurrency(remaining)}</td>
-                                            <td className="px-4 py-3 text-xs">{inv.dueDate ? formatDate(inv.dueDate) : '—'}</td>
+                                            <td className="px-4 py-3 text-xs">{inv.dueDate ? formatDate(inv.dueDate) : ''}</td>
                                             <td className="px-4 py-3">
                                                 <Badge variant={STATUS_MAP[inv.status]?.variant || 'default'}>{STATUS_MAP[inv.status]?.label}</Badge>
                                             </td>
@@ -432,8 +432,8 @@ function BillingTab() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
                     <Card className="w-full max-w-md p-6">
                         <h3 className="font-bold text-lg mb-1">Registar Pagamento</h3>
-                        <p className="text-sm text-gray-500 mb-4">{showPayment.partner?.name} — {showPayment.invoiceNumber}</p>
-                        <div className="flex justify-between text-sm mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <p className="text-sm text-gray-500 mb-4">{showPayment.partner?.name} a {showPayment.invoiceNumber}</p>
+                        <div className="flex justify-between text-sm mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <span>Total:</span><span className="font-bold">{formatCurrency(Number(showPayment.totalAmount))}</span>
                         </div>
                         <Input label="Valor (MT)" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} min={0} className="mb-4" />

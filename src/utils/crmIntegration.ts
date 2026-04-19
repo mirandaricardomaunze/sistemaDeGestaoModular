@@ -1,4 +1,4 @@
-﻿/**
+/**
  * POS-CRM Integration Utilities
  * Funções para integrar campanhas e descontos automáticos no POS
  */
@@ -179,7 +179,7 @@ export function applyPromoCode(
     // Check usage limits
     if (campaign.maxTotalUses) {
         if (campaign.currentUses >= campaign.maxTotalUses) {
-            return { success: false, message: 'Este código já atingiu o limite de utilizações' };
+            return { success: false, message: 'Este código j atingiu o limite de utilizaces' };
         }
     }
 

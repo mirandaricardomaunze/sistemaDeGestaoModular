@@ -1,4 +1,4 @@
-﻿import {
+import {
     HiOutlineDocumentAdd,
     HiOutlinePrinter,
     HiOutlineCube,
@@ -214,7 +214,7 @@ export default function OrderStatusTracker({
 
             {/* Cancelled Status */}
             {isCancelled && (
-                <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
+                <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                             <HiOutlineClock className="w-5 h-5 text-red-600" />

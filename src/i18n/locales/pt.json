@@ -380,23 +380,23 @@
         "tabs": {
           "dashboard": "Painel de Pessoal",
           "staff": "Equipe Técnica",
-          "attendance": "Área de Ponto",
+          "attendance": "Ãrea de Ponto",
           "payroll": "Folha de Salário",
           "compliance": "Documentos e Conformidade"
         },
         "categories": {
           "all": "Todo o Pessoal",
           "driver": "Motorista",
-          "mechanic": "Mecânico",
+          "mechanic": "MecÃ¢nico",
           "warehouse": "Fiel de Armazém",
-          "manager": "Gestor de Frota",
+          "manager": "Gestãor de Frota",
           "admin": "Administrativo",
           "other": "Outros"
         },
         "stats": {
           "attendance": "Taxa de Assiduidade",
           "efficiency": "Eficiência da Frota",
-          "safety": "Índice de Segurança",
+          "safety": "Ãndice de Segurança",
           "productivity": "Produtividade de Entregas"
         },
         "complianceDocs": {
@@ -548,7 +548,7 @@
             "name": "Nome da Rota",
             "origin": "Origem",
             "destination": "Destino",
-            "distance": "Distância",
+            "distance": "DistÃ¢ncia",
             "estimatedTime": "Tempo Estimado",
             "tollCost": "Custo de Portagem",
             "fuelEstimate": "Estimativa de Combustível",
@@ -583,7 +583,7 @@
             "status": {
                 "pending": "Pendente",
                 "scheduled": "Agendada",
-                "in_transit": "Em Trânsito",
+                "in_transit": "Em TrÃ¢nsito",
                 "out_for_delivery": "Saiu para Entrega",
                 "delivered": "Entregue",
                 "failed": "Falhou",

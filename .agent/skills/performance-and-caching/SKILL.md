@@ -30,6 +30,15 @@ This skill ensures the Multicore system remains fast and responsive, capable of 
 - **TTL (Time to Live)**:
   - All cached items MUST have a TTL. Do not store eternal keys unless absolutely required by the business logic.
 
+## 3. Frontend Caching (TanStack Query)
+
+- **Standardization**: Use `useQuery` for all data retrieval and `useMutation` for data modifications.
+- **Keys Management**: Use structured and consistent `queryKeys` (e.g., `['products', companyId, filters]`).
+- **Optimized Loading**: 
+  - Use `staleTime` and `cacheTime` (gcTime) to minimize redundant network requests.
+  - Implement **Optimistic Updates** for high-priority actions (e.g., ticking a checkbox, toggling status) to make the UI feel instantaneous.
+- **Background Sync**: Leverage `refetchOnWindowFocus` and `refetchInterval` for critical dashboards (like Real-time Sales or Logistics Tracking).
+
 ## 3. Asynchronous & Background Jobs
 
 - **Non-Blocking Operations**:

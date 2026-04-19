@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+﻿import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { formatCurrency } from '../../utils/helpers';
 import { 
@@ -88,7 +88,7 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                             </div>
 
                                             <div className="relative flex items-center gap-6 mt-4">
-                                                <div className="flex-shrink-0 w-24 h-24 rounded-3xl bg-white/20 border border-white/30 backdrop-blur-xl flex items-center justify-center shadow-2xl">
+                                                <div className="flex-shrink-0 w-24 h-24 rounded-lg bg-white/20 border border-white/30 backdrop-blur-xl flex items-center justify-center shadow-2xl">
                                                     <span className="text-4xl font-black text-white capitalize shadow-sm">
                                                         {customer.name.charAt(0)}
                                                     </span>
@@ -127,8 +127,8 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                             {/* Top KPIs */}
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                                 {/* LTV */}
-                                                <div className="bg-slate-50 dark:bg-dark-800 rounded-3xl p-5 border border-slate-100 dark:border-dark-700">
-                                                    <div className="w-10 h-10 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-3">
+                                                <div className="bg-slate-50 dark:bg-dark-800 rounded-lg p-5 border border-slate-100 dark:border-dark-700">
+                                                    <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-3">
                                                         <HiOutlineCurrencyDollar className="w-5 h-5 text-green-600 dark:text-green-400" />
                                                     </div>
                                                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Vendas Totais</p>
@@ -137,8 +137,8 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                                     </p>
                                                 </div>
                                                 {/* Dívida */}
-                                                <div className="bg-slate-50 dark:bg-dark-800 rounded-3xl p-5 border border-slate-100 dark:border-dark-700">
-                                                    <div className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+                                                <div className="bg-slate-50 dark:bg-dark-800 rounded-lg p-5 border border-slate-100 dark:border-dark-700">
+                                                    <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
                                                         <HiOutlineArrowTrendingUp className="w-5 h-5 text-red-600 dark:text-red-400" />
                                                     </div>
                                                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Dívida Atual</p>
@@ -147,8 +147,8 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                                     </p>
                                                 </div>
                                                 {/* Pontos Fidelidade */}
-                                                <div className="bg-slate-50 dark:bg-dark-800 rounded-3xl p-5 border border-slate-100 dark:border-dark-700 col-span-2 md:col-span-1">
-                                                    <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-3">
+                                                <div className="bg-slate-50 dark:bg-dark-800 rounded-lg p-5 border border-slate-100 dark:border-dark-700 col-span-2 md:col-span-1">
+                                                    <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-3">
                                                         <HiOutlineStar className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                                                     </div>
                                                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Fidelização</p>
@@ -167,13 +167,13 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                                     <HiOutlineMapPin className="w-5 h-5 text-primary-500" />
                                                     Detalhes de Acesso
                                                 </h3>
-                                                <div className="bg-slate-50 dark:bg-dark-800 rounded-3xl border border-slate-100 dark:border-dark-700 divide-y divide-slate-100 dark:divide-dark-700 overflow-hidden">
+                                                <div className="bg-slate-50 dark:bg-dark-800 rounded-lg border border-slate-100 dark:border-dark-700 divide-y divide-slate-100 dark:divide-dark-700 overflow-hidden">
                                                     <div className="flex flex-col sm:flex-row items-start sm:items-center p-4">
                                                         <div className="w-32 flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 sm:mb-0">
                                                             <HiOutlinePhone className="w-4 h-4" /> Telefone
                                                         </div>
                                                         <div className="flex-1 text-sm font-bold text-slate-900 dark:text-white">
-                                                            {customer.phone || '—'}
+                                                            {customer.phone || ''}
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-col sm:flex-row items-start sm:items-center p-4">
@@ -181,7 +181,7 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                                             <HiOutlineEnvelope className="w-4 h-4" /> Email
                                                         </div>
                                                         <div className="flex-1 text-sm font-bold text-slate-900 dark:text-white">
-                                                            {customer.email || '—'}
+                                                            {customer.email || ''}
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-col sm:flex-row items-start sm:items-center p-4">
@@ -189,7 +189,7 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                                             <HiOutlineMapPin className="w-4 h-4" /> Endereço
                                                         </div>
                                                         <div className="flex-1 text-sm font-bold text-slate-900 dark:text-white leading-relaxed">
-                                                            {customer.address ? `${customer.address}, ${customer.city || ''} ${customer.province || ''}` : '—'}
+                                                            {customer.address ? `${customer.address}, ${customer.city || ''} ${customer.province || ''}` : ''}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -199,19 +199,19 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                             <div>
                                                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                                                     <HiOutlineShoppingCart className="w-5 h-5 text-primary-500" />
-                                                    Últimas Interações
+                                                    Ãšltimas interações
                                                 </h3>
                                                 
                                                 {isLoading ? (
-                                                    <div className="p-8 text-center bg-slate-50 dark:bg-dark-800 rounded-3xl border border-slate-100 dark:border-dark-700">
+                                                    <div className="p-8 text-center bg-slate-50 dark:bg-dark-800 rounded-lg border border-slate-100 dark:border-dark-700">
                                                         <div className="w-8 h-8 rounded-full border-4 border-primary-500 border-t-transparent animate-spin mx-auto mb-3"></div>
                                                         <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Carregando Histórico...</p>
                                                     </div>
                                                 ) : sales && sales.length > 0 ? (
                                                     <div className="space-y-3">
                                                         {sales.map((sale) => (
-                                                            <div key={sale.id} className="group relative bg-white dark:bg-dark-800 border border-slate-200 dark:border-dark-700 rounded-2xl p-4 hover:border-primary-500 dark:hover:border-primary-500 transition-all flex items-center gap-4 shadow-sm hover:shadow-lg hover:shadow-primary-500/10 cursor-pointer">
-                                                                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-dark-900 flex items-center justify-center flex-shrink-0 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/30 transition-colors">
+                                                            <div key={sale.id} className="group relative bg-white dark:bg-dark-800 border border-slate-200 dark:border-dark-700 rounded-lg p-4 hover:border-primary-500 dark:hover:border-primary-500 transition-all flex items-center gap-4 shadow-sm hover:shadow-lg hover:shadow-primary-500/10 cursor-pointer">
+                                                                <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-dark-900 flex items-center justify-center flex-shrink-0 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/30 transition-colors">
                                                                     <HiOutlineReceiptPercent className="w-5 h-5 text-slate-400 group-hover:text-primary-500" />
                                                                 </div>
                                                                 <div className="flex-1 min-w-0">
@@ -239,7 +239,7 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                                         ))}
                                                     </div>
                                                 ) : (
-                                                    <div className="p-8 text-center bg-slate-50 dark:bg-dark-800 rounded-3xl border border-slate-100 dark:border-dark-700">
+                                                    <div className="p-8 text-center bg-slate-50 dark:bg-dark-800 rounded-lg border border-slate-100 dark:border-dark-700">
                                                         <HiOutlineShoppingCart className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
                                                         <p className="text-sm font-bold text-slate-600 dark:text-slate-400">Nenhum histórico comercial.</p>
                                                         <p className="text-xs text-slate-500 mt-1">Este cliente ainda não efetuou compras no sistema.</p>
@@ -259,3 +259,4 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
         </Transition.Root>
     );
 }
+

@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Button, Card, Input, Modal, Select, Pagination, usePagination } from '../ui';
 import { HiOutlineDocumentDownload, HiOutlineSearch, HiOutlineTrash, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
 import { formatDate } from '../../utils/helpers';
@@ -54,7 +54,7 @@ export default function StockTransferManager() {
         if (!sourceId) return [];
         return products.map(p => ({
             ...p,
-            warehouseStock: p.stocks?.[sourceId] ?? (sourceId === '1' ? p.currentStock : 0)
+            warehouseStock: (p.warehouseStocks?.find((ws: any) => ws.warehouseId === sourceId)?.quantity) ?? 0
         }));
     }, [products, sourceId]);
 
@@ -119,7 +119,7 @@ export default function StockTransferManager() {
         if (!product) return;
 
         // Verify stock availability
-        const currentStock = product.stocks?.[sourceId] ?? (sourceId === '1' ? product.currentStock : 0);
+        const currentStock = (product.warehouseStocks?.find((ws: any) => ws.warehouseId === sourceId)?.quantity) ?? 0;
         // Check if already added to list
         const existingItem = transferItems.find(i => i.productId === selectedProduct);
         const currentQtyInTransfer = existingItem ? existingItem.quantity : 0;
@@ -441,10 +441,10 @@ export default function StockTransferManager() {
                                 {transferItems.map((item, idx) => (
                                     <div
                                         key={idx}
-                                        className="flex items-center gap-3 p-3 bg-white dark:bg-dark-700 border border-gray-100 dark:border-dark-600 rounded-xl shadow-sm hover:shadow-md transition-all"
+                                        className="flex items-center gap-3 p-3 bg-white dark:bg-dark-700 border border-gray-100 dark:border-dark-600 rounded-lg shadow-sm hover:shadow-md transition-all"
                                     >
                                         <div className="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center flex-shrink-0 text-primary-600 dark:text-primary-400">
-                                            <span className="text-lg">📦</span>
+                                            <span className="text-lg">??</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">

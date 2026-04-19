@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import toast from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productsAPI } from '../services/api';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -92,7 +92,7 @@ export function useProducts(params?: UseProductsParams) {
                     }), {})
                 }));
 
-                toast('A usar catálogo de produtos offline', { icon: '📦' });
+                toast('A usar catlogo de produtos offline', { icon: '📦' });
 
                 return {
                     products: normalizedCached,

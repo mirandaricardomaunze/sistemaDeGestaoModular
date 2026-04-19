@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Card, Button, Input, Badge, LoadingSpinner, Modal } from '../../components/ui';
-import { useProducts, useSales } from '../../hooks/useData';
+import { Button, Input, Badge, Modal } from '../../components/ui';
+import { useProducts } from '../../hooks/useData';
 import { useRestaurantTables, useUpdateTableStatus } from '../../hooks/useRestaurant';
 import { useDebounce } from '../../hooks/useDebounce';
 import { salesAPI } from '../../services/api';
@@ -8,10 +8,15 @@ import { formatCurrency } from '../../utils/helpers';
 import { cn } from '../../utils';
 import toast from 'react-hot-toast';
 import {
-    HiOutlineShoppingCart, HiOutlineSearch, HiOutlineTrash,
-    HiOutlinePlus, HiOutlineMinus, HiOutlineX, HiOutlineRefresh,
-} from 'react-icons/hi';
-import { HiOutlineCake } from 'react-icons/hi2';
+    HiOutlineShoppingCart, 
+    HiOutlineMagnifyingGlass as HiOutlineSearch, 
+    HiOutlineTrash,
+    HiOutlinePlus, 
+    HiOutlineMinus, 
+    HiOutlineXMark as HiOutlineX, 
+    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineCake
+} from 'react-icons/hi2';
 
 // ============================================================================
 // TYPES
@@ -66,13 +71,13 @@ function CheckoutModal({ cart, tableId, tableName, onClose, onSuccess }: {
     };
 
     return (
-        <Modal isOpen onClose={onClose} title={`Checkout — ${tableName}`}>
+        <Modal isOpen onClose={onClose} title={`Checkout - ${tableName}`}>
             <div className="space-y-4">
                 {/* Order Summary */}
-                <div className="bg-gray-50 dark:bg-dark-700 rounded-xl p-4 space-y-2 max-h-52 overflow-y-auto">
+                <div className="bg-gray-50 dark:bg-dark-700 rounded-lg p-4 space-y-2 max-h-52 overflow-y-auto">
                     {cart.map((item, i) => (
                         <div key={i} className="flex justify-between text-sm">
-                            <span className="text-gray-700 dark:text-gray-300">{item.quantity}× {item.name}</span>
+                            <span className="text-gray-700 dark:text-gray-300">{item.quantity}x {item.name}</span>
                             <span className="font-medium text-gray-900 dark:text-white">{formatCurrency(item.total)}</span>
                         </div>
                     ))}
@@ -232,11 +237,11 @@ export default function RestaurantPOS() {
                                     selectedTable?.id === t.id ? 'border-red-500 bg-red-50 text-red-700' :
                                     t.status === 'occupied' ? 'border-red-300 bg-red-50/50 text-red-500' :
                                     'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300')}>
-                                M{t.number}{t.name ? ` — ${t.name}` : ''}
+                                M{t.number}{t.name ? ` "" ${t.name}` : ''}
                                 {t.status === 'occupied' && <span className="ml-1 w-2 h-2 rounded-full bg-red-500 inline-block" />}
                             </button>
                         ))}
-                        <button onClick={refetchTables} className="px-2 py-1.5 text-gray-400 hover:text-gray-600">
+                        <button onClick={() => refetchTables()} className="px-2 py-1.5 text-gray-400 hover:text-gray-600">
                             <HiOutlineRefresh className="w-4 h-4" />
                         </button>
                     </div>
@@ -246,7 +251,7 @@ export default function RestaurantPOS() {
                 <div className="flex-1 overflow-y-auto p-4">
                     {isLoading ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} className="h-28 bg-gray-200 dark:bg-dark-700 rounded-xl animate-pulse" />)}
+                            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} className="h-28 bg-gray-200 dark:bg-dark-700 rounded-lg animate-pulse" />)}
                         </div>
                     ) : (products || []).length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-gray-400 gap-3">
@@ -262,7 +267,7 @@ export default function RestaurantPOS() {
                                 return (
                                     <button key={product.id} onClick={() => addToCart(product)}
                                         className={cn(
-                                            'relative rounded-xl p-3 text-left transition-all border-2 hover:shadow-md active:scale-95',
+                                            'relative rounded-lg p-3 text-left transition-all border-2 hover:shadow-md active:scale-95',
                                             inCart ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-transparent bg-white dark:bg-dark-800 hover:border-red-200'
                                         )}>
                                         {inCart && (
@@ -311,7 +316,7 @@ export default function RestaurantPOS() {
                         </div>
                     ) : (
                         cart.map(item => (
-                            <div key={item.productId} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-dark-700">
+                            <div key={item.productId} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-dark-700">
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
                                     <p className="text-xs text-gray-500">{formatCurrency(item.price)} / un</p>

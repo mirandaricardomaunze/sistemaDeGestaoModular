@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DriverPanelPage
  * Orchestrates the Driver Panel view with i18n support.
  */
@@ -21,7 +21,7 @@ import QRScannerModal from '../../components/logistics/QRScannerModal';
 import { Button } from '../../components/ui';
 import toast from 'react-hot-toast';
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ──-Sub-components ──────────────────────────────────────────────────────────-
 
 interface KpiCardProps {
     label: string;
@@ -32,8 +32,8 @@ interface KpiCardProps {
 
 function KpiCard({ label, value, icon: Icon, colorClass }: KpiCardProps) {
     return (
-        <div className="bg-white dark:bg-dark-800 rounded-2xl p-4 sm:p-5 shadow-sm border border-gray-100 dark:border-dark-700 flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+        <div className="bg-white dark:bg-dark-800 rounded-lg p-4 sm:p-5 shadow-sm border border-gray-100 dark:border-dark-700 flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${colorClass}`}>
                 <Icon className="w-6 h-6" aria-hidden="true" />
             </div>
             <div>
@@ -45,7 +45,7 @@ function KpiCard({ label, value, icon: Icon, colorClass }: KpiCardProps) {
 }
 
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ──-Main Page ────────────────────────────────────────────────────────────────
 
 export default function DriverPanelPage() {
     const { t } = useTranslation();
@@ -83,7 +83,7 @@ export default function DriverPanelPage() {
         }
     };
 
-    // ─── Sub-components inherited from scope ───
+    // ──-Sub-components inherited from scope ──-
     
     function NotLinkedState() {
         return (
@@ -139,7 +139,7 @@ export default function DriverPanelPage() {
         <div className="space-y-6 pb-12 animate-fade-in">
 
             {/* ── Driver Identity Header ── */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-700 dark:to-primary-900 p-6 shadow-lg text-white">
+            <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-700 dark:to-primary-900 p-6 shadow-lg text-white">
                 {/* Decorative background icon */}
                 <HiOutlineTruck
                     className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 opacity-10"

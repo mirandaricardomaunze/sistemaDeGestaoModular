@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Modules Constants
  * Static definition of all available business modules.
  * This ensures the application remains functional even if the database is reset
@@ -19,7 +19,7 @@ export interface BusinessModule {
  */
 export const CORE_MODULES: BusinessModule[] = [
     {
-        code: 'POS',
+        code: 'pos',
         name: 'Ponto de Venda',
         description: 'Sistema de ponto de venda para vendas rápidas e eficientes.',
         icon: 'HiOutlineShoppingCart',
@@ -27,8 +27,8 @@ export const CORE_MODULES: BusinessModule[] = [
         isCore: true
     },
     {
-        code: 'CRM',
-        name: 'CRM',
+        code: 'crm',
+        name: 'crm',
         description: 'Gestão de relacionamento com clientes e oportunidades de vendas.',
         icon: 'HiOutlineChartPie',
         color: '#8B5CF6',
@@ -44,7 +44,7 @@ export const CORE_MODULES: BusinessModule[] = [
     },
     {
         code: 'FISCAL',
-        name: 'Fiscal',
+        name: 'fiscal',
         description: 'Gestão fiscal, impostos e retenções.',
         icon: 'HiOutlineCalculator',
         color: '#10B981',
@@ -61,7 +61,7 @@ export const CORE_MODULES: BusinessModule[] = [
     {
         code: 'FINANCIAL',
         name: 'Finanças',
-        description: 'Gestão financeira e transações.',
+        description: 'Gestão financeira e transaces.',
         icon: 'HiOutlineCurrencyDollar',
         color: '#14B8A6',
         isCore: true

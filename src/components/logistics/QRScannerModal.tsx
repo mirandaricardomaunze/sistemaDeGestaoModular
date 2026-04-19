@@ -8,6 +8,7 @@ import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { Modal, Button, Badge } from '../ui';
 import { HiOutlineQrCode, HiOutlineCamera, HiOutlineXCircle } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
+import { logger } from '../../utils/logger';
 
 interface QRScannerModalProps {
     isOpen: boolean;
@@ -56,7 +57,7 @@ export default function QRScannerModal({
                         (errorMessage) => {
                             // Silent error during scanning is normal
                             if (!errorMessage.includes("NotFoundException")) {
-                                console.debug("QR Scan effort:", errorMessage);
+                                logger.debug("QR Scan effort:", errorMessage);
                             }
                         }
                     );
@@ -65,7 +66,7 @@ export default function QRScannerModal({
                     setScannerActive(true);
                     setError(null);
                 } catch (err: any) {
-                    console.error("Scanner startup error:", err);
+                    logger.error("Scanner startup error:", err);
                     setError("Não foi possível aceder à câmara. Verifique as permissões.");
                 }
             }, 500);
@@ -73,7 +74,7 @@ export default function QRScannerModal({
             return () => {
                 clearTimeout(timer);
                 if (scannerRef.current) {
-                    scannerRef.current.clear().catch(err => console.error("Scanner cleanup error", err));
+                    scannerRef.current.clear().catch(err => logger.error("Scanner cleanup error", err));
                     scannerRef.current = null;
                 }
             };
@@ -82,7 +83,7 @@ export default function QRScannerModal({
 
     const handleClose = () => {
         if (scannerRef.current) {
-            scannerRef.current.clear().catch(err => console.error("Scanner close error", err));
+            scannerRef.current.clear().catch(err => logger.error("Scanner close error", err));
             scannerRef.current = null;
         }
         setScannerActive(false);
@@ -98,7 +99,7 @@ export default function QRScannerModal({
         >
             <div className="space-y-6 flex flex-col items-center py-4">
                 <div className="text-center">
-                    <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                    <div className="w-16 h-16 bg-primary-50 dark:bg-primary-900/20 rounded-lg flex items-center justify-center mx-auto mb-3">
                         <HiOutlineQrCode className="w-8 h-8 text-primary-600" />
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -106,7 +107,7 @@ export default function QRScannerModal({
                     </p>
                 </div>
 
-                <div className="w-full max-w-sm overflow-hidden rounded-2xl border-2 border-dashed border-primary-200 dark:border-primary-800 bg-gray-50 dark:bg-dark-900/50 relative">
+                <div className="w-full max-w-sm overflow-hidden rounded-lg border-2 border-dashed border-primary-200 dark:border-primary-800 bg-gray-50 dark:bg-dark-900/50 relative">
                     <div id={SCANNER_ID} className="w-full h-[300px]"></div>
                     
                     {error && (

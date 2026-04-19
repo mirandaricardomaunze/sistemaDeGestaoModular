@@ -103,7 +103,7 @@ export default function PaymentConfirmModal({ isOpen, onClose, record, onConfirm
             />
 
             {/* Modal */}
-            <div className="relative bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="relative bg-white dark:bg-dark-800 rounded-lg shadow-2xl w-full max-w-md mx-4 overflow-hidden">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
                     <div className="flex items-center justify-between">
@@ -128,7 +128,7 @@ export default function PaymentConfirmModal({ isOpen, onClose, record, onConfirm
                 {/* Content */}
                 <div className="p-6 space-y-5">
                     {/* Amount Summary */}
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 text-center">
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
                         <p className="text-sm text-green-600 dark:text-green-400 font-medium">Valor a Pagar</p>
                         <p className="text-3xl font-bold text-green-700 dark:text-green-300">
                             {formatCurrency(record.netSalary)}
@@ -151,7 +151,7 @@ export default function PaymentConfirmModal({ isOpen, onClose, record, onConfirm
                                         key={method.id}
                                         type="button"
                                         onClick={() => setSelectedMethod(method.id)}
-                                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${selectedMethod === method.id
+                                        className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${selectedMethod === method.id
                                                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400'
                                                 : 'border-gray-200 dark:border-dark-600 hover:border-gray-300 dark:hover:border-dark-500 text-gray-600 dark:text-gray-400'
                                             }`}

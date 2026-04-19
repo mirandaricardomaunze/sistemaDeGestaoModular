@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger';
+﻿import { logger } from '../utils/logger';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -6,29 +6,21 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlineUser,
-    HiOutlineMail,
+    HiOutlineEnvelope as HiOutlineMail,
     HiOutlineLockClosed,
-    HiOutlineEye,
-    HiOutlineEyeOff,
     HiOutlinePhone,
-    HiOutlineUserAdd,
+    HiOutlineUserPlus as HiOutlineUserAdd,
     HiOutlineExclamationCircle,
-    HiOutlineOfficeBuilding,
+    HiOutlineBuildingOffice as HiOutlineOfficeBuilding,
     HiOutlineChevronRight,
-    HiOutlineChevronLeft,
     HiOutlineCheckCircle,
     HiOutlineShoppingCart,
     HiOutlineHashtag,
-    HiOutlineMap,
-    HiOutlineLocationMarker,
-    HiOutlineViewGrid
-} from 'react-icons/hi';
-import {
+    HiOutlineMapPin as HiOutlineLocationMarker,
     HiOutlineBeaker,
     HiOutlineBuildingStorefront,
     HiOutlineHomeModern,
     HiOutlineTruck,
-    HiOutlineUsers,
     HiOutlineBriefcase,
     HiOutlineDocumentCheck,
     HiOutlineCake
@@ -46,13 +38,6 @@ const moduleIcons: Record<string, React.ComponentType<{ className?: string }>> =
     RESTAURANT: HiOutlineCake,
     LOGISTICS: HiOutlineTruck,
 };
-
-const integratedPillars = [
-    { name: 'POS', icon: HiOutlineShoppingCart, color: 'text-green-500' },
-    { name: 'CRM', icon: HiOutlineUsers, color: 'text-blue-500' },
-    { name: 'RH', icon: HiOutlineBriefcase, color: 'text-purple-500' },
-    { name: 'Fiscal', icon: HiOutlineDocumentCheck, color: 'text-emerald-500' },
-];
 
 const registerSchema = z.object({
     companyName: z.string().min(2, 'Razão Social deve ter pelo menos 2 caracteres'),
@@ -78,12 +63,12 @@ export default function Register() {
     const navigate = useNavigate();
     const { register: registerUser, isLoading } = useAuthStore();
     const [currentStep, setCurrentStep] = useState(1);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [showPassword] = useState(false);
+    const [showConfirmPassword] = useState(false);
     const [registerError, setRegisterError] = useState<string | null>(null);
     const [shakeForm, setShakeForm] = useState(false);
     const [modules, setModules] = useState<BusinessModule[]>([]);
-    const [loadingModules, setLoadingModules] = useState(true);
+    const [, setLoadingModules] = useState(true);
 
     const { register, handleSubmit, formState: { errors }, watch, setValue, trigger } = useForm<RegisterFormData>({
         resolver: zodResolver(registerSchema),
@@ -161,7 +146,7 @@ export default function Register() {
 
     const inputClass = (hasError?: boolean) =>
         `block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-dark-800/50 border ${hasError ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/60'
-        } rounded-2xl text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium`;
+        } rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium`;
 
     const stepLabels = ['Empresa', 'Solução', 'Acesso'];
 
@@ -173,7 +158,7 @@ export default function Register() {
                     {/* Header */}
                     <div className="mb-8">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
+                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
                                 <HiOutlineUserAdd className="w-7 h-7 text-white" />
                             </div>
                             <div>
@@ -220,7 +205,7 @@ export default function Register() {
 
                     {/* Error Handling */}
                     <div className={`transition-all duration-300 overflow-hidden ${registerError ? 'max-h-24 opacity-100 mb-6' : 'max-h-0 opacity-0 mb-0'}`}>
-                        <div className="rounded-2xl bg-red-50 dark:bg-red-900/20 p-4 border border-red-100 dark:border-red-900/30">
+                        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 border border-red-100 dark:border-red-900/30">
                             <div className="flex items-start gap-3">
                                 <HiOutlineExclamationCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                                 <p className="text-sm font-medium text-red-800 dark:text-red-300">{registerError}</p>
@@ -270,7 +255,7 @@ export default function Register() {
                                         </div>
                                     </div>
                                 </div>
-                                <button type="button" onClick={nextStep} className="w-full relative overflow-hidden group mt-6 py-4 px-6 rounded-2xl bg-slate-900 dark:bg-primary-600 text-white font-bold shadow-xl hover:-translate-y-0.5 transition-all">
+                                <button type="button" onClick={nextStep} className="w-full relative overflow-hidden group mt-6 py-4 px-6 rounded-lg bg-slate-900 dark:bg-primary-600 text-white font-bold shadow-xl hover:-translate-y-0.5 transition-all">
                                     <span className="relative z-10 flex items-center justify-center gap-2">PRÓXIMO PASSO <HiOutlineChevronRight className="w-4 h-4" /></span>
                                 </button>
                             </div>
@@ -280,7 +265,7 @@ export default function Register() {
                             <div className="animate-in fade-in slide-in-from-right-8 duration-500 space-y-5">
                                 <div>
                                     <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Solução Principal</h2>
-                                    <p className="text-xs text-slate-500 mb-4">Que ecossistema Multicore irá impulsionar o seu negócio?</p>
+                                    <p className="text-xs text-slate-500 mb-4">Que ecossistema Multicore ir impulsionar o seu negócio?</p>
                                 </div>
                                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                     {modules.map((mod) => {
@@ -289,12 +274,12 @@ export default function Register() {
                                         return (
                                             <label
                                                 key={mod.code}
-                                                className={`group flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300
+                                                className={`group flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-300
                                                     ${isActive ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-slate-100 dark:border-dark-800 hover:border-primary-200'}
                                                 `}
                                                 onClick={() => setValue('moduleCode', mod.code)}
                                             >
-                                                <div className={`p-3 rounded-xl mr-4 ${isActive ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30' : 'bg-slate-100 dark:bg-dark-800 text-slate-500'}`}>
+                                                <div className={`p-3 rounded-lg mr-4 ${isActive ? 'bg-primary-500 text-white shadow-md shadow-primary-500/30' : 'bg-slate-100 dark:bg-dark-800 text-slate-500'}`}>
                                                     <Icon className="w-6 h-6" />
                                                 </div>
                                                 <div className="flex-1">
@@ -310,8 +295,8 @@ export default function Register() {
                                 </div>
                                 {errors.moduleCode && <p className="text-[10px] text-red-500 font-bold">{errors.moduleCode.message}</p>}
                                 <div className="flex gap-3">
-                                    <button type="button" onClick={prevStep} className="flex-1 py-4 px-6 rounded-2xl bg-slate-100 dark:bg-dark-800 text-slate-700 dark:text-white font-bold hover:bg-slate-200 transition-all">Voltar</button>
-                                    <button type="button" onClick={nextStep} className="flex-[2] py-4 px-6 rounded-2xl bg-slate-900 dark:bg-primary-600 text-white font-bold shadow-xl hover:-translate-y-0.5 transition-all">Próximo</button>
+                                    <button type="button" onClick={prevStep} className="flex-1 py-4 px-6 rounded-lg bg-slate-100 dark:bg-dark-800 text-slate-700 dark:text-white font-bold hover:bg-slate-200 transition-all">Voltar</button>
+                                    <button type="button" onClick={nextStep} className="flex-[2] py-4 px-6 rounded-lg bg-slate-900 dark:bg-primary-600 text-white font-bold shadow-xl hover:-translate-y-0.5 transition-all">Próximo</button>
                                 </div>
                             </div>
                         )}
@@ -319,7 +304,7 @@ export default function Register() {
                         {currentStep === 3 && (
                             <div className="animate-in fade-in slide-in-from-right-8 duration-500 space-y-5">
                                 <div>
-                                    <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Acesso do Gestor</h2>
+                                    <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Acesso do Gestãor</h2>
                                     <p className="text-xs text-slate-500 mb-4">A primeira conta é sempre o Super Administrador (Master).</p>
                                 </div>
                                 <div className="space-y-4">
@@ -356,8 +341,8 @@ export default function Register() {
                                     </div>
                                 </div>
                                 <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={prevStep} disabled={isLoading} className="flex-1 py-4 px-6 rounded-2xl bg-slate-100 dark:bg-dark-800 text-slate-700 dark:text-white font-bold hover:bg-slate-200 transition-all opacity-80 disabled:opacity-50">Voltar</button>
-                                    <button type="submit" disabled={isLoading} className="flex-[2] py-4 px-6 rounded-2xl bg-slate-900 dark:bg-primary-600 text-white font-bold shadow-xl hover:-translate-y-0.5 transition-all text-sm">
+                                    <button type="button" onClick={prevStep} disabled={isLoading} className="flex-1 py-4 px-6 rounded-lg bg-slate-100 dark:bg-dark-800 text-slate-700 dark:text-white font-bold hover:bg-slate-200 transition-all opacity-80 disabled:opacity-50">Voltar</button>
+                                    <button type="submit" disabled={isLoading} className="flex-[2] py-4 px-6 rounded-lg bg-slate-900 dark:bg-primary-600 text-white font-bold shadow-xl hover:-translate-y-0.5 transition-all text-sm">
                                         {isLoading ? 'CONFIGURANDO...' : 'FINALIZAR REGISTO'}
                                     </button>
                                 </div>
@@ -399,14 +384,14 @@ export default function Register() {
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors">
+                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-colors">
                             <div className="w-10 h-10 rounded-full bg-primary-500/20 flex items-center justify-center mb-4">
                                 <HiOutlineDocumentCheck className="w-5 h-5 text-primary-300" />
                             </div>
                             <h3 className="text-white font-bold mb-2">Conformidade Fiscal</h3>
                             <p className="text-sm text-slate-400">Totalmente de acordo com as normas de tributação e certificação nacionais.</p>
                         </div>
-                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors">
+                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-colors">
                             <div className="w-10 h-10 rounded-full bg-accent-500/20 flex items-center justify-center mb-4">
                                 <HiOutlineBriefcase className="w-5 h-5 text-accent-300" />
                             </div>
@@ -426,3 +411,4 @@ export default function Register() {
         </div>
     );
 }
+

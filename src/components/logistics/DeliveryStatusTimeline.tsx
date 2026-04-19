@@ -1,8 +1,8 @@
-/**
+﻿/**
  * DeliveryStatusTimeline Component
  *
  * Responsibility: Render ONLY. Receives pre-computed timeline events via props.
- * Has zero business logic — the hook `useDeliveryStatusTimeline` owns that.
+ * Has zero business logic - the hook `useDeliveryStatusTimeline` owns that.
  *
  * Design: Vertical step-by-step timeline with:
  *   - Green checkmark for completed steps
@@ -13,7 +13,7 @@
 
 import type { DeliveryStatusEvent } from '../../services/api/logistics.api';
 
-// ─── Sub-components (Atoms) ───────────────────────────────────────────────────
+// ──-Sub-components (Atoms) ──────────────────────────────────────────────────-
 
 interface StepIconProps {
     isCompleted: boolean;
@@ -74,7 +74,7 @@ function StepConnector({ isCompleted }: StepConnectorProps) {
     );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ──-Main Component ──────────────────────────────────────────────────────────-
 
 interface DeliveryStatusTimelineProps {
     events: DeliveryStatusEvent[];

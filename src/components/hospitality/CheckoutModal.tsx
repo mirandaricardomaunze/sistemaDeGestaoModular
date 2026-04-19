@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿/**
+/**
  * CheckoutModal Component
  * Handles guest checkout with payment method selection (Cash, Card, M-Pesa, etc.)
  */
@@ -7,7 +7,7 @@ import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { Modal, Button, Select, LoadingSpinner, Card } from '../ui';
 import { hospitalityAPI } from '../../services/api';
-import { formatCurrency, cn } from '../../utils/helpers';
+import { formatCurrency } from '../../utils/helpers';
 import { HiOutlineCash, HiOutlineCheckCircle } from 'react-icons/hi';
 import MobilePaymentModal from '../pos/MobilePaymentModal';
 
@@ -106,7 +106,7 @@ export default function CheckoutModal({
                     </div>
                 ) : booking ? (
                     <div className="space-y-6">
-                        <div className="bg-gray-50 dark:bg-dark-800 p-4 rounded-xl border border-gray-100 dark:border-dark-700">
+                        <div className="bg-gray-50 dark:bg-dark-800 p-4 rounded-lg border border-gray-100 dark:border-dark-700">
                             <div className="flex justify-between items-start mb-2">
                                 <div>
                                     <p className="text-xs text-gray-500 uppercase font-bold">Hóspede</p>
@@ -171,7 +171,7 @@ export default function CheckoutModal({
                     module="hospitality"
                     moduleReferenceId={booking.id}
                     reference={`CHK-${booking.room.number}-${Date.now()}`}
-                    onConfirm={(phone) => {
+                    onConfirm={(_phone) => {
                         onSuccess();
                         onClose();
                         setShowMpesaModal(false);

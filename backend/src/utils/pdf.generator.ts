@@ -47,14 +47,14 @@ export const generateDeliveryPDF = (res: Response, delivery: any, companyInfo: a
     // Destination Box
     doc.rect(300, boxY, 245, 80).stroke('#cccccc');
     doc.font('Helvetica-Bold').text('MORADA DE DESCARGA (DESTINO)', 310, boxY + 10);
-    doc.font('Helvetica').text(`Destinatário: ${delivery.customerName || 'N/A'}`, 310, boxY + 30);
+    doc.font('Helvetica').text(`Destinatrio: ${delivery.customerName || 'N/A'}`, 310, boxY + 30);
     doc.text(`Endereço: ${delivery.destination}`, 310, boxY + 45);
 
     // ----- OBSERVATIONS -----
     doc.moveDown(5);
-    doc.font('Helvetica-Bold').fontSize(12).text('Detalhes e Observações da Entrega', 50, doc.y);
+    doc.font('Helvetica-Bold').fontSize(12).text('Detalhes e Observaces da Entrega', 50, doc.y);
     doc.moveDown(0.5);
-    doc.font('Helvetica').fontSize(10).text(delivery.notes || 'Sem observações adicionais.', 50, doc.y, { width: pageWidth - 100 });
+    doc.font('Helvetica').fontSize(10).text(delivery.notes || 'Sem observaces adicionais.', 50, doc.y, { width: pageWidth - 100 });
 
     // ----- SIGNATURES -----
     const sigY = doc.page.height - 150;

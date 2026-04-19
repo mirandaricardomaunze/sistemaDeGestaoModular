@@ -1,10 +1,10 @@
-﻿import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
     HiOutlineChevronDoubleLeft,
     HiOutlineChevronDoubleRight,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 
 interface PaginationProps {
     currentPage: number;

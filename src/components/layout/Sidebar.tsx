@@ -6,15 +6,13 @@ import { useAuthStore, roleLabels } from '../../stores/useAuthStore';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useTenant } from '../../contexts/TenantContext';
 
+
+
 import {
     HiOutlineHomeModern,
     HiOutlineCake,
     HiOutlineRectangleStack,
-    HiOutlineFire
-} from 'react-icons/hi2';
-
-
-import {
+    HiOutlineFire,
     HiOutlineCube,
     HiOutlineShoppingCart,
     HiOutlineUsers,
@@ -22,38 +20,38 @@ import {
     HiOutlineTruck,
     HiOutlineBell,
     HiOutlineDocumentText,
-    HiOutlineCog,
+    HiOutlineCog6Tooth as HiOutlineCog,
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
     HiOutlineUserGroup,
     HiOutlineTag,
-    HiOutlineLogout,
+    HiOutlineArrowRightOnRectangle as HiOutlineLogout,
     HiOutlineCalculator,
     HiOutlineShieldCheck,
     HiOutlineChartPie,
-    HiOutlineDatabase,
+    HiOutlineCircleStack,
     HiOutlineChartBar,
     HiOutlineBeaker,
     HiOutlineCalendar,
-    HiOutlineClipboardList,
-    HiOutlineViewGrid,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
+    HiOutlinePencilSquare as HiOutlinePencilAlt,
+    HiOutlineSquares2X2 as HiOutlineViewGrid,
     HiOutlineQuestionMarkCircle,
-    HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineRefresh,
     HiOutlineClock,
     HiOutlineExclamationCircle,
     HiOutlineUserCircle,
-    HiOutlineDocumentReport,
+    HiOutlineDocumentChartBar as HiOutlineDocumentReport,
     HiOutlineBookOpen,
     HiSparkles,
-    HiOutlineCurrencyDollar as HiOutlineCurrencyDollarSidebar,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 
 import { cn } from '../../utils/helpers';
 
 // Module codes from backend: pharmacy, inventory, hospitality, bottle_store, logistics
 
 // ============================================================================
-// MODULE COLOR THEMES — Each module gets a distinct sidebar accent
+// MODULE COLOR THEMES - Each module gets a distinct sidebar accent
 // ============================================================================
 interface ModuleTheme {
     // Active item background + text
@@ -186,9 +184,9 @@ const menuItems: MenuItem[] = [
     { id: 'dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/dashboard' },
 
     // ============================================================================
-    // PHARMACY Module — 7 focused items
+    // PHARMACY Module - 7 focused items
     // ============================================================================
-    { id: 'pharmacy_dashboard', labelKey: 'Dashboard', icon: HiOutlineViewGrid, path: '/pharmacy/dashboard', module: 'pharmacy' },
+    { id: 'pharmacy_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/pharmacy/dashboard', module: 'pharmacy' },
     { id: 'pharmacy_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/pharmacy/pos', module: 'pharmacy' },
     { id: 'pharmacy_shifts', labelKey: 'Turnos', icon: HiOutlineCalculator, path: '/pharmacy/shifts', module: 'pharmacy' },
     { id: 'pharmacy_history', labelKey: 'Histórico', icon: HiOutlineClock, path: '/pharmacy/history', module: 'pharmacy' },
@@ -196,7 +194,8 @@ const menuItems: MenuItem[] = [
     { id: 'pharmacy_patients', labelKey: 'Pacientes', icon: HiOutlineUserCircle, path: '/pharmacy/patients', module: 'pharmacy' },
     { id: 'pharmacy_employees', labelKey: 'Recursos Humanos', icon: HiOutlineUsers, path: '/pharmacy/employees', module: 'pharmacy' },
     { id: 'pharmacy_compliance', labelKey: 'Conformidade', icon: HiOutlineClipboardList, path: '/pharmacy/compliance', module: 'pharmacy' },
-    { id: 'pharmacy_partners', labelKey: 'Parceiros', icon: HiOutlineCurrencyDollarSidebar, path: '/pharmacy/partners', module: 'pharmacy' },
+    { id: 'pharmacy_partners', labelKey: 'Parceiros', icon: HiOutlineCurrencyDollar, path: '/pharmacy/partners', module: 'pharmacy' },
+    { id: 'pharmacy_finance', labelKey: 'Financeiro', icon: HiOutlineCurrencyDollar, path: '/pharmacy/finance', module: 'pharmacy' },
     { id: 'pharmacy_reconciliation', labelKey: 'Reconciliação', icon: HiOutlineClipboardList, path: '/pharmacy/reconciliation', module: 'pharmacy' },
     { id: 'pharmacy_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/pharmacy/reports', module: 'pharmacy' },
     { id: 'pharmacy_alerts', labelKey: 'Alertas', icon: HiOutlineExclamationCircle, path: '/pharmacy/alerts', module: 'pharmacy' },
@@ -218,25 +217,27 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     // COMMERCIAL Module - Complete commerce management (Premium)
     // ============================================================================
-    { id: 'commercial_dashboard', labelKey: 'Dashboard', icon: HiOutlineViewGrid, path: '/commercial/dashboard', module: 'commercial' },
+    { id: 'commercial_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/commercial/dashboard', module: 'commercial' },
     { id: 'commercial_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/commercial/pos', module: 'commercial' },
     { id: 'commercial_shifts', labelKey: 'nav.shifts', icon: HiOutlineCalculator, path: '/commercial/shifts', module: 'commercial' },
     { id: 'commercial_history', labelKey: 'nav.history', icon: HiOutlineClock, path: '/commercial/history', module: 'commercial' },
     { id: 'commercial_stock', labelKey: 'nav.stock_movements', icon: HiOutlineRefresh, path: '/commercial/stock', module: 'commercial' },
     { id: 'commercial_inventory', labelKey: 'Inventário', icon: HiOutlineCube, path: '/commercial/inventory', module: 'commercial' },
     { id: 'commercial_purchase_orders', labelKey: 'Ordens de Compra', icon: HiOutlineClipboardList, path: '/commercial/purchase-orders', module: 'commercial' },
-    { id: 'commercial_quotes', labelKey: 'Cotações', icon: HiOutlineClipboardList, path: '/commercial/quotes', module: 'commercial' },
-    { id: 'commercial_accounts_receivable', labelKey: 'Contas a Receber', icon: HiOutlineCurrencyDollarSidebar, path: '/commercial/accounts-receivable', module: 'commercial' },
+    { id: 'commercial_quotes', labelKey: 'Cotações', icon: HiOutlinePencilAlt, path: '/commercial/quotes', module: 'commercial' },
+    { id: 'commercial_accounts_receivable', labelKey: 'Contas a Receber', icon: HiOutlineCurrencyDollar, path: '/commercial/accounts-receivable', module: 'commercial' },
     { id: 'commercial_orders', labelKey: 'Encomendas', icon: HiOutlineDocumentReport, path: '/commercial/orders', module: 'commercial' },
     { id: 'commercial_invoices', labelKey: 'Facturas', icon: HiOutlineDocumentText, path: '/commercial/invoices', module: 'commercial' },
     { id: 'commercial_customers', labelKey: 'Clientes', icon: HiOutlineUserGroup, path: '/commercial/customers', module: 'commercial' },
     { id: 'commercial_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/commercial/suppliers', module: 'commercial' },
     { id: 'commercial_categories', labelKey: 'Categorias', icon: HiOutlineTag, path: '/commercial/categories', module: 'commercial' },
     { id: 'commercial_warehouses', labelKey: 'Armazéns', icon: HiOutlineHomeModern, path: '/warehouses', module: 'commercial' },
+    { id: 'commercial_transfers', labelKey: 'nav.transfers', icon: HiOutlineTruck, path: '/transfers', module: 'commercial' },
     { id: 'commercial_margins', labelKey: 'Análise de Margens', icon: HiOutlineChartBar, path: '/commercial/margins', module: 'commercial' },
     { id: 'commercial_audit', labelKey: 'Auditoria', icon: HiOutlineShieldCheck, path: '/commercial/audit', module: 'commercial' },
     { id: 'commercial_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentReport, path: '/commercial/reports', module: 'commercial' },
-    { id: 'commercial_settings', labelKey: 'Configurações', icon: HiOutlineCog, path: '/commercial/settings', module: 'commercial' },
+    { id: 'commercial_finance', labelKey: 'Financeiro', icon: HiOutlineCurrencyDollar, path: '/commercial/finance', module: 'commercial' },
+    { id: 'commercial_employees', labelKey: 'Recursos Humanos', icon: HiOutlineUsers, path: '/commercial/employees', module: 'commercial' },
 
     // ============================================================================
     // LOGISTICS Module - Specific pages (only for logistics businesses)
@@ -253,6 +254,7 @@ const menuItems: MenuItem[] = [
     { id: 'logistics_fuel', labelKey: 'logistics_module.fuel.title', icon: HiOutlineFire, path: '/logistics/fuel', module: 'logistics' },
     { id: 'logistics_incidents', labelKey: 'logistics_module.incidents.title', icon: HiOutlineExclamationCircle, path: '/logistics/incidents', module: 'logistics' },
     { id: 'logistics_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/logistics/reports', module: 'logistics' },
+    { id: 'logistics_finance', labelKey: 'Financeiro', icon: HiOutlineCurrencyDollar, path: '/logistics/finance', module: 'logistics' },
 
     // ============================================================================
     // BOTTLE_STORE Module - Specific page
@@ -261,7 +263,12 @@ const menuItems: MenuItem[] = [
     { id: 'bottle_store_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/bottle-store/pos', module: 'bottle_store' },
     { id: 'bottle_store_inventory', labelKey: 'nav.inventory', icon: HiOutlineCube, path: '/bottle-store/inventory', module: 'bottle_store' },
     { id: 'bottle_store_stock', labelKey: 'nav.stock_movements', icon: HiOutlineRefresh, path: '/bottle-store/stock', module: 'bottle_store' },
+    { id: 'bottle_store_returns', labelKey: 'Vasilhames', icon: HiOutlineBeaker, path: '/bottle-store/returns', module: 'bottle_store' },
+    { id: 'bottle_store_cash', labelKey: 'Caixa', icon: HiOutlineCalculator, path: '/bottle-store/cash', module: 'bottle_store' },
+    { id: 'bottle_store_credit', labelKey: 'Crédito', icon: HiOutlineBookOpen, path: '/bottle-store/credit', module: 'bottle_store' },
     { id: 'bottle_store_reports', labelKey: 'Relatórios', icon: HiOutlineDocumentText, path: '/bottle-store/reports', module: 'bottle_store' },
+    { id: 'bottle_store_finance', labelKey: 'Financeiro', icon: HiOutlineCurrencyDollar, path: '/bottle-store/finance', module: 'bottle_store' },
+    { id: 'bottle_store_employees', labelKey: 'Recursos Humanos', icon: HiOutlineUsers, path: '/bottle-store/employees', module: 'bottle_store' },
 
     // ============================================================================
     // RESTAURANT Module - Specific pages
@@ -272,6 +279,8 @@ const menuItems: MenuItem[] = [
     { id: 'restaurant_menu', labelKey: 'Cardápio / Menu', icon: HiOutlineBookOpen, path: '/restaurant/menu', module: 'restaurant' },
     { id: 'restaurant_reservations', labelKey: 'Reservas', icon: HiOutlineCalendar, path: '/restaurant/reservations', module: 'restaurant' },
     { id: 'restaurant_tables', labelKey: 'Mesas', icon: HiOutlineCake, path: '/restaurant/tables', module: 'restaurant' },
+    { id: 'restaurant_finance', labelKey: 'Financeiro', icon: HiOutlineCurrencyDollar, path: '/restaurant/finance', module: 'restaurant' },
+    { id: 'restaurant_employees', labelKey: 'Recursos Humanos', icon: HiOutlineUsers, path: '/restaurant/employees', module: 'restaurant' },
     { id: 'restaurant_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/restaurant/reports', module: 'restaurant' },
 
 
@@ -293,7 +302,7 @@ const menuItems: MenuItem[] = [
     { id: 'fiscal', labelKey: 'nav.fiscal', icon: HiOutlineCalculator, path: '/fiscal', module: 'fiscal' },
     { id: 'reports', labelKey: 'nav.reports', icon: HiOutlineDocumentText, path: '/reports' },
     { id: 'audit', labelKey: 'nav.audit', icon: HiOutlineShieldCheck, path: '/audit' },
-    { id: 'backups', labelKey: 'nav.backups', icon: HiOutlineDatabase, path: '/backups' },
+    { id: 'backups', labelKey: 'nav.backups', icon: HiOutlineCircleStack, path: '/backups' },
     { id: 'help', labelKey: 'Ajuda', icon: HiOutlineQuestionMarkCircle, path: '/help' },
     { id: 'settings', labelKey: 'nav.settings', icon: HiOutlineCog, path: '/settings' },
 
@@ -382,7 +391,7 @@ export default function Sidebar() {
             // User has a specialized module: ONLY show items for that module
             return itemModule === userSpecializedModule;
         } else {
-            // No specialized module (edge case): show generic core items only
+            // Não specialized module (edge case): show generic core items only
             return !itemModule || !SPECIALIZED_MODULES.includes(itemModule);
         }
     });
@@ -415,7 +424,7 @@ export default function Sidebar() {
             {/* Sidebar - Now an Overlay (Off-Canvas) */}
             <aside
                 className={cn(
-                    'fixed top-4 left-4 h-[calc(100vh-2rem)] bg-white dark:bg-dark-800 shadow-2xl z-50 transition-all duration-500 ease-in-out flex flex-col w-72 rounded-3xl border border-gray-100 dark:border-dark-700/50',
+                    'fixed top-4 left-4 h-[calc(100vh-2rem)] bg-white/95 dark:bg-dark-800 shadow-2xl z-50 transition-all duration-500 ease-in-out flex flex-col w-72 rounded-lg border border-slate-200/50 dark:border-dark-700/50 backdrop-blur-md',
                     sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+2rem)] opacity-0'
                 )}
             >
@@ -424,15 +433,15 @@ export default function Sidebar() {
                     <div className="flex items-center gap-3 overflow-hidden">
                         {companySettings.logo ? (
                             <div className="relative group">
-                                <div className={cn('absolute -inset-1 bg-gradient-to-r rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200', theme.brandGradient)}></div>
+                                <div className={cn('absolute -inset-1 bg-gradient-to-r rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200', theme.brandGradient)}></div>
                                 <img
                                     src={companySettings.logo}
                                     alt="Logo"
-                                    className="relative w-10 h-10 rounded-xl object-contain bg-white shadow-sm shrink-0"
+                                    className="relative w-10 h-10 rounded-lg object-contain bg-white shadow-sm shrink-0"
                                 />
                             </div>
                         ) : (
-                            <div className={cn('w-11 h-11 rounded-2xl bg-gradient-to-br flex items-center justify-center shadow-lg shrink-0 transform transition-transform hover:scale-105', theme.brandGradient, theme.brandShadow)}>
+                            <div className={cn('w-11 h-11 rounded-lg bg-gradient-to-br flex items-center justify-center shadow-lg shrink-0 transform transition-transform hover:scale-105', theme.brandGradient, theme.brandShadow)}>
                                 <span className="text-white font-black text-xl tracking-tighter">
                                     {(companySettings.tradeName || companySettings.companyName || 'S').charAt(0).toUpperCase()}
                                 </span>
@@ -482,7 +491,7 @@ export default function Sidebar() {
                                     <button
                                         onClick={() => toggleSubmenu(item.id)}
                                         className={cn(
-                                            'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group',
+                                            'w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative group',
                                             isSubmenuActive || isExpanded
                                                 ? `${theme.activeBg} ${theme.activeText} font-medium shadow-sm`
                                                 : `text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${theme.hoverText}`
@@ -519,7 +528,7 @@ export default function Sidebar() {
                                         to={item.path}
                                         state={item.state}
                                         className={cn(
-                                            'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 relative group',
+                                            'flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 relative group',
                                             isActive
                                                 ? `${theme.activeBg} ${theme.activeText} font-medium shadow-sm`
                                                 : `text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 ${theme.hoverText}`

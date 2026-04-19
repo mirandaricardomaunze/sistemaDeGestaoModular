@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, Button } from '../../components/ui';
 import {
     AreaChart,
@@ -29,7 +29,7 @@ export default function BottleStoreReports() {
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
 
-    const { companySettings } = useStore();
+    useStore();
 
     useEffect(() => {
         const fetchReports = async () => {
@@ -179,7 +179,7 @@ export default function BottleStoreReports() {
                     <p className="text-2xl font-bold">{formatCurrency(metrics.totalTax)}</p>
                 </Card>
                 <Card className="bg-purple-600 text-white p-4">
-                    <p className="text-xs uppercase font-bold opacity-80">Transações</p>
+                    <p className="text-xs uppercase font-bold opacity-80">Transaces</p>
                     <p className="text-2xl font-bold">{metrics.transactionCount}</p>
                 </Card>
                 <Card className="bg-amber-600 text-white p-4">
@@ -233,7 +233,7 @@ export default function BottleStoreReports() {
                 <div className="p-4 border-b border-gray-100 dark:border-dark-700 flex items-center justify-between">
                     <h3 className="text-lg font-bold">Listagem de Vendas</h3>
                     <div className="text-xs text-gray-500">
-                        {totalSalesItems} transações encontradas
+                        {totalSalesItems} transaces encontradas
                     </div>
                 </div>
                 <div className="overflow-x-auto">

@@ -1,14 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { 
-    HiOutlineFolderOpen, 
-    HiOutlineMagnifyingGlass, 
+import {
+    HiOutlineMagnifyingGlass,
     HiOutlineExclamationTriangle,
     HiOutlineShieldCheck,
     HiOutlineIdentification,
     HiOutlineClock,
     HiOutlineEye
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Badge, DataTable, LoadingSpinner } from '../../ui';
+import { Card, Button, Input, Select, Badge, LoadingSpinner } from '../../ui';
 import { useDrivers } from '../../../hooks/useLogistics';
 import { cn } from '../../../utils/helpers';
 import { format, differenceInDays, isPast } from 'date-fns';
@@ -97,7 +96,7 @@ export const LogisticsDocumentCenter: React.FC = () => {
                         <div className="p-5 space-y-5">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
+                                    <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
                                         <HiOutlineIdentification className="w-6 h-6 text-gray-500" />
                                     </div>
                                     <div className="min-w-0">
@@ -153,7 +152,7 @@ function DocumentRow({ label, date, status }: { label: string, date?: string, st
     };
 
     return (
-        <div className="flex items-center justify-between p-2 rounded-xl border border-gray-50 dark:border-dark-700/50">
+        <div className="flex items-center justify-between p-2 rounded-lg border border-gray-50 dark:border-dark-700/50">
             <div className="flex items-center gap-2">
                 <div className={cn("p-1.5 rounded-lg", colors[status])}>
                     {status === 'valid' ? <HiOutlineShieldCheck className="w-4 h-4" /> : 

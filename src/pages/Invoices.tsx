@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -240,7 +240,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
             discount: 0,
             tax: 0,
             notes: '',
-            terms: 'Pagamento em até 30 dias após emissão.',
+            terms: 'Pagamento em at 30 dias após emissão.',
         },
     });
 
@@ -530,7 +530,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
 
     const tabs = [
         { id: 'invoices' as const, label: 'Faturas', icon: <HiOutlineDocumentText className="w-5 h-5" /> },
-        { id: 'credit_notes' as const, label: 'Notas de Crédito', icon: <HiOutlineCash className="w-5 h-5" /> },
+        { id: 'credit_notes' as const, label: 'Notas de Crédito', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
     ];
 
     return (
@@ -590,7 +590,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 {activeTab === 'invoices' && (
                     <div className="space-y-6 animate-in fade-in duration-500">
                         {/* Period Filter for Invoices */}
-                        <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700">
+                        <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                             <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
                                 {periodOptions.map((option) => (
                                     <button
@@ -712,21 +712,21 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 emptyActionLabel="Nova Fatura"
                                 minHeight="450px"
                             >
-                                <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                                    <thead className="bg-gray-50 dark:bg-dark-800">
+                                <table className="min-w-full divide-y divide-slate-200/60 dark:divide-dark-700/50">
+                                    <thead className="bg-slate-50/50 dark:bg-dark-800">
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Número</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cliente</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Vencimento</th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Total</th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Pago</th>
-                                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Status</th>
-                                            <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Ações</th>
+                                            <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Número</th>
+                                            <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Cliente</th>
+                                            <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Vencimento</th>
+                                            <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-gray-500">Total</th>
+                                            <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-gray-500">Pago</th>
+                                            <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-widest text-gray-500">Status</th>
+                                            <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-widest text-gray-500">Ações</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
+                                    <tbody className="divide-y divide-slate-200/60 dark:divide-dark-700/50">
                                         {invoices.map((inv) => (
-                                            <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
+                                            <tr key={inv.id} className="hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors">
                                                 <td className="px-4 py-3 font-mono font-medium text-gray-900 dark:text-white">{inv.invoiceNumber}</td>
                                                 <td className="px-4 py-3">
                                                     <p className="font-medium text-gray-900 dark:text-white">{inv.customerName}</p>
@@ -742,10 +742,10 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex justify-center gap-1">
-                                                        <button onClick={() => handleViewInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Ver"><HiOutlineEye className="w-4 h-4 text-gray-500" /></button>
-                                                        <button onClick={() => handlePrintInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Imprimir"><HiOutlinePrinter className="w-4 h-4 text-primary-500" /></button>
-                                                        {inv.status === 'draft' && <button onClick={() => handleSendInvoice(inv)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Enviar"><HiOutlineMail className="w-4 h-4 text-blue-500" /></button>}
-                                                        {(inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue') && <button onClick={() => { setSelectedInvoice(inv); resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') }); setShowPaymentModal(true); }} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded transition-colors" title="Pagamento"><HiOutlineCash className="w-4 h-4 text-green-500" /></button>}
+                                                        <button onClick={() => handleViewInvoice(inv)} className="p-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors" title="Ver"><HiOutlineEye className="w-4 h-4 text-gray-500" /></button>
+                                                        <button onClick={() => handlePrintInvoice(inv)} className="p-1.5 hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-lg transition-colors" title="Imprimir"><HiOutlinePrinter className="w-4 h-4 text-primary-500" /></button>
+                                                        {inv.status === 'draft' && <button onClick={() => handleSendInvoice(inv)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Enviar"><HiOutlineEnvelope className="w-4 h-4 text-blue-500" /></button>}
+                                                        {(inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue') && <button onClick={() => { setSelectedInvoice(inv); resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') }); setShowPaymentModal(true); }} className="p-1.5 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors" title="Pagamento"><HiOutlineBanknotes className="w-4 h-4 text-green-500" /></button>}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -788,7 +788,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                         { value: '', label: 'Criação Manual (Sem vínculo)' },
                                         ...availableSources.map(source => ({
                                             value: source.id,
-                                            label: `${source.type === 'pharmacy' ? '💊 Farmácia' : '📦 Comercial'} - ${source.number} - ${source.customerName} (${formatCurrency(source.total)})`,
+                                            label: `${source.type === 'pharmacy' ? 'Farmácia' : 'Comercial'} - ${source.number} - ${source.customerName} (${formatCurrency(source.total)})`,
                                         })),
                                     ]}
                                     value={availableSources.find(s => s.number === selectedOrderNumber)?.id || ''}
@@ -841,7 +841,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         {/* Search Product Input */}
                         <div className="relative">
                             <Input
-                                placeholder="🔍 Pesquisar produto no inventário por nome ou código..."
+                                placeholder="esquisar produto no inventário por nome ou código..."
                                 value={productSearch}
                                 onChange={(e) => {
                                     setProductSearch(e.target.value);
@@ -851,7 +851,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 className="bg-white dark:bg-dark-900"
                             />
                             {showProductResults && filteredProducts.length > 0 && (
-                                <div className="absolute z-[100] w-full mt-1 bg-white dark:bg-dark-800 rounded-xl shadow-2xl border border-gray-200 dark:border-dark-700 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                <div className="absolute z-[100] w-full mt-1 bg-white dark:bg-dark-800 rounded-lg shadow-2xl border border-gray-200 dark:border-dark-700 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                     <div className="p-2 space-y-1">
                                         {filteredProducts.map((p) => (
                                             <button
@@ -876,10 +876,10 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 </div>
                             )}
                             {showProductResults && productSearch && filteredProducts.length === 0 && (
-                                <div className="absolute z-[100] w-full mt-1 bg-white dark:bg-dark-800 rounded-xl shadow-xl border border-gray-200 dark:border-dark-700 p-8 text-center animate-in fade-in duration-200">
+                                <div className="absolute z-[100] w-full mt-1 bg-white dark:bg-dark-800 rounded-lg shadow-xl border border-gray-200 dark:border-dark-700 p-8 text-center animate-in fade-in duration-200">
                                     <div className="flex flex-col items-center gap-2">
                                         <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-dark-700 flex items-center justify-center text-gray-400">
-                                            <HiOutlineSearch className="w-6 h-6" />
+                                            <HiOutlineMagnifyingGlass className="w-6 h-6" />
                                         </div>
                                         <p className="text-sm text-gray-500 font-medium">Nenhum produto encontrado "{productSearch}"</p>
                                     </div>
@@ -1005,7 +1005,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             </Button>
                             {selectedInvoice.status !== 'paid' && selectedInvoice.status !== 'cancelled' && (
                                 <Button onClick={() => { setShowDetailsModal(false); resetPayment({ amount: selectedInvoice.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') }); setShowPaymentModal(true); }}>
-                                    <HiOutlineCash className="w-4 h-4 mr-2" />Registrar Pagamento
+                                    <HiOutlineBanknotes className="w-4 h-4 mr-2" />Registrar Pagamento
                                 </Button>
                             )}
                         </div>

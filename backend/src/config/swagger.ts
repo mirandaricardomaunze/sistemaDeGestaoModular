@@ -1,4 +1,4 @@
-﻿import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerJsdoc from 'swagger-jsdoc';
 
 const swaggerOptions: swaggerJsdoc.Options = {
     definition: {
@@ -6,7 +6,7 @@ const swaggerOptions: swaggerJsdoc.Options = {
         info: {
             title: 'Multicore API',
             version: '1.0.0',
-            description: 'API completa para gestão de vendas, estoque, finanças e operações comerciais',
+            description: 'API completa para gestão de vendas, estoque, finanças e operaces comerciais',
             contact: {
                 name: 'API Support',
                 email: 'support@sistema.com',
@@ -146,22 +146,22 @@ const swaggerOptions: swaggerJsdoc.Options = {
             },
             {
                 name: 'Products',
-                description: 'Gestão de produtos e inventário',
+                description: 'Gestão de produtos e inventrio',
             },
             {
                 name: 'Sales',
-                description: 'Gestão de vendas e transações',
+                description: 'Gestão de vendas e transaces',
             },
             {
-                name: 'Customers',
+                name: 'customers',
                 description: 'Gestão de clientes e relacionamento',
             },
             {
-                name: 'Suppliers',
+                name: 'suppliers',
                 description: 'Gestão de fornecedores e compras',
             },
             {
-                name: 'Dashboard',
+                name: 'dashboard',
                 description: 'Métricas e estatísticas do negócio',
             },
         ],

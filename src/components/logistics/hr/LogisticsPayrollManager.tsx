@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
-import { 
-    HiOutlineBanknotes, 
-    HiOutlinePlus,
+import {
+    HiOutlineBanknotes,
     HiOutlineDocumentArrowDown,
     HiOutlineCheckCircle,
-    HiOutlineClock,
     HiOutlineArrowPath
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Badge, DataTable, LoadingSpinner } from '../../ui';
-import { useDrivers, useStaffPayroll, useCreateStaffPayroll, useUpdateStaffPayrollStatus } from '../../../hooks/useLogistics';
-import { formatCurrency, cn } from '../../../utils/helpers';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Card, Button, Select, Badge, LoadingSpinner } from '../../ui';
+import { useStaffPayroll, useCreateStaffPayroll, useUpdateStaffPayrollStatus } from '../../../hooks/useLogistics';
+import { formatCurrency } from '../../../utils/helpers';
 
 export const LogisticsPayrollManager: React.FC = () => {
     const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
@@ -27,7 +23,7 @@ export const LogisticsPayrollManager: React.FC = () => {
     const createMutation = useCreateStaffPayroll();
     const updateMutation = useUpdateStaffPayrollStatus();
 
-    const handleGenerate = async (staffId: string) => {
+    const _handleGenerate = async (staffId: string) => {
         await createMutation.mutateAsync({ staffId, month, year });
         refetch();
     };

@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { settingsAPI } from '../services/api';
 import type {

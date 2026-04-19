@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Validation Schemas - Invoices
  * 
  * Schemas for invoice operations.
@@ -15,7 +15,7 @@ export const invoiceItemSchema = z.object({
     productId: z.string().uuid('ID do produto inválido').optional().nullable(),
     description: z.string().min(1, 'Descrição obrigatória').max(500, 'Descrição muito longa'),
     quantity: z.number().positive('Quantidade deve ser maior que zero'),
-    unitPrice: z.number().positive('Preço unitário deve ser maior que zero'),
+    unitPrice: z.number().positive('Preço unitrio deve ser maior que zero'),
     discount: z.number().min(0, 'Desconto não pode ser negativo').optional().default(0),
     taxRate: z.number().min(0, 'Taxa de imposto não pode ser negativa').max(100, 'Taxa inválida').optional().default(16),
     total: z.number().positive('Total deve ser maior que zero')
@@ -70,7 +70,7 @@ export const creditNoteSchema = z.object({
         productId: z.string().uuid('ID do produto inválido').optional().nullable(),
         description: z.string().min(1, 'Descrição obrigatória'),
         quantity: z.number().positive('Quantidade deve ser maior que zero'),
-        unitPrice: z.number().positive('Preço unitário deve ser maior que zero'),
+        unitPrice: z.number().positive('Preço unitrio deve ser maior que zero'),
         total: z.number().positive('Total deve ser maior que zero'),
         originalInvoiceItemId: z.string().uuid('ID do item original inválido').optional().nullable()
     })).min(1, 'Deve ter pelo menos um item'),

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Hospitality Components Index
  * Exports all hospitality-related components
  */

@@ -24,11 +24,15 @@ export default function PharmacyAudit() {
     const { companySettings } = useStore();
     const [period, setPeriod] = useState({ start: '', end: '' });
 
-    // Fetch medications
-    const { medications, isLoading: isMedsLoading } = usePharmacy({ limit: 100 });
+    // Fetch controlled medications (static list, no period filter)
+    const { medications, isLoading: isMedsLoading } = usePharmacy({ isControlled: true, limit: 500 });
 
-    // Fetch sales
-    const { sales, isLoading: isSalesLoading } = usePharmacySales({ limit: 100 });
+    // Fetch sales filtered server-side by period
+    const { sales, isLoading: isSalesLoading } = usePharmacySales({
+        startDate: period.start || undefined,
+        endDate: period.end || undefined,
+        limit: 500,
+    });
 
     const [isMovementsLoading, setIsMovementsLoading] = useState(false);
     const [isProfitLoading, setIsProfitLoading] = useState(false);
@@ -38,42 +42,26 @@ export default function PharmacyAudit() {
     }, [medications]);
 
     const sarrRecords = useMemo(() => {
-        // Filter sales that contain controlled medications within period
-        const filtered = sales.filter((sale: any) => {
-            const saleDate = new Date(sale.createdAt);
-            const start = period.start ? new Date(period.start) : null;
-            const end = period.end ? new Date(period.end) : null;
-
-            if (start && saleDate < start) return false;
-            if (end && saleDate > end) return false;
-
-            return sale.items?.some((item: any) => {
+        // Sales are already date-filtered by the server; filter by controlled medications only
+        return sales.filter((sale: any) =>
+            sale.items?.some((item: any) => {
                 const med = medications.find((m: any) => m.productId === item.batch?.medication?.productId);
                 return med?.isControlled;
-            });
-        });
-        return filtered;
-    }, [sales, medications, period]);
+            })
+        );
+    }, [sales, medications]);
 
-    // Calculate total profit in period
+    // Calculate total profit - sales already date-filtered by server
     const profitabilityMetrics = useMemo(() => {
         let totalRevenue = 0;
         let totalCost = 0;
-        let totalTransactions = 0;
 
         sales.forEach((sale: any) => {
-            const saleDate = new Date(sale.createdAt);
-            const start = period.start ? new Date(period.start) : null;
-            const end = period.end ? new Date(period.end) : null;
-            if (start && saleDate < start) return;
-            if (end && saleDate > end) return;
-
-            totalTransactions++;
             sale.items?.forEach((item: any) => {
                 const med = medications.find((m: any) => m.productId === item.batch?.medication?.productId);
                 if (!med) return;
-                totalRevenue += item.quantity * (item.unitPrice || med.product.price);
-                totalCost += item.quantity * (item.batch?.costPrice || med.product.costPrice || 0);
+                totalRevenue += item.quantity * (item.unitPrice || med.product?.price || 0);
+                totalCost += item.quantity * (item.batch?.costPrice || med.product?.costPrice || 0);
             });
         });
 
@@ -82,9 +70,9 @@ export default function PharmacyAudit() {
             cost: totalCost,
             profit: totalRevenue - totalCost,
             margin: totalRevenue > 0 ? ((totalRevenue - totalCost) / totalRevenue) * 100 : 0,
-            transactions: totalTransactions
+            transactions: sales.length
         };
-    }, [sales, medications, period]);
+    }, [sales, medications]);
 
     const handleExportSARR = () => {
         const doc = new jsPDF('l', 'mm', 'a4');
@@ -109,7 +97,7 @@ export default function PharmacyAudit() {
                         med.product.name,
                         item.batch?.batchNumber || '-',
                         item.quantity.toString(),
-                        sale.prescription?.prescriptionNo || '-',
+                        sale.prescription?.prescriptionNumber || sale.prescription?.prescriptionNo || '-',
                         sale.soldBy || 'Farmacêutico Responsável'
                     ]);
                 }
@@ -146,12 +134,6 @@ export default function PharmacyAudit() {
             const profitData: any = {};
 
             sales.forEach((sale: any) => {
-                const saleDate = new Date(sale.createdAt);
-                const start = period.start ? new Date(period.start) : null;
-                const end = period.end ? new Date(period.end) : null;
-                if (start && saleDate < start) return;
-                if (end && saleDate > end) return;
-
                 sale.items?.forEach((item: any) => {
                     const med = medications.find((m: any) => m.productId === item.batch?.medication?.productId);
                     if (!med) return;
@@ -315,7 +297,7 @@ export default function PharmacyAudit() {
                             <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
                                 {isLoading ? '...' : sarrRecords.length}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">Transacções com controlados</p>
+                            <p className="text-xs text-gray-500 mt-1">Transações com controlados</p>
                         </div>
                         <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
                             <HiOutlineArchive className="w-6 h-6 text-blue-600" />
@@ -345,7 +327,7 @@ export default function PharmacyAudit() {
                             <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
                                 {isLoading ? '...' : profitabilityMetrics.transactions}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">Transacções no período</p>
+                            <p className="text-xs text-gray-500 mt-1">Transações no período</p>
                         </div>
                         <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
                             <HiOutlineTrendingUp className="w-6 h-6 text-purple-600" />
@@ -366,7 +348,7 @@ export default function PharmacyAudit() {
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                         <div className="p-6 relative z-10">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <div className="w-14 h-14 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
                                     <HiOutlineShieldCheck className="w-8 h-8 text-white" />
                                 </div>
                                 <div>
@@ -396,7 +378,7 @@ export default function PharmacyAudit() {
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                         <div className="p-6 relative z-10">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <div className="w-14 h-14 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
                                     <HiOutlineTrendingUp className="w-8 h-8 text-white" />
                                 </div>
                                 <div>
@@ -426,7 +408,7 @@ export default function PharmacyAudit() {
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                         <div className="p-6 relative z-10">
                             <div className="flex items-center gap-3 mb-4">
-                                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <div className="w-14 h-14 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
                                     <HiOutlineClipboardList className="w-8 h-8 text-white" />
                                 </div>
                                 <div>

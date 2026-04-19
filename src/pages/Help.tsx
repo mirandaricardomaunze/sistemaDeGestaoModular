@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Help Page - Professional Multi-Module Documentation
  * 
  * Comprehensive help system with:
@@ -16,10 +16,8 @@ import {
     HiOutlineBookOpen,
     HiOutlineChevronDown,
     HiOutlineChevronRight,
-    HiOutlinePlay,
     HiOutlineLightBulb,
     HiOutlineSupport,
-    HiOutlineExternalLink,
 } from 'react-icons/hi';
 import {
     HiOutlineBeaker,
@@ -30,12 +28,10 @@ import {
     HiOutlineUsers,
     HiOutlineBriefcase,
     HiOutlineDocumentText,
-    HiOutlineCurrencyDollar,
     HiOutlineChartBar,
     HiOutlineCube,
-    HiOutlineClipboardDocumentList,
 } from 'react-icons/hi2';
-import { Card, Button, Input } from '../components/ui';
+import { Card } from '../components/ui';
 import { useTenant } from '../contexts/TenantContext';
 import { cn } from '../utils/helpers';
 
@@ -431,10 +427,10 @@ const HELP_SECTIONS: HelpSection[] = [
                 title: 'Check-in e Check-out',
                 content: 'Processe entrada e saída de hóspedes.',
                 steps: [
-                    'No dia de chegada, abra a reserva',
+                    'Não dia de chegada, abra a reserva',
                     'Verifique documentos do hóspede',
                     'Clique em "Fazer Check-in"',
-                    'No dia de saída, processe o Check-out',
+                    'Não dia de saída, processe o Check-out',
                     'Gere a factura final'
                 ],
                 tips: ['Verifique consumos extras antes do check-out', 'Solicite avaliação do serviço']
@@ -476,7 +472,7 @@ const HELP_SECTIONS: HelpSection[] = [
         ]
     },
     {
-        id: 'bottle-store',
+        id: 'bottleStore',
         title: 'Módulo Garrafeira',
         icon: HiOutlineBuildingStorefront,
         color: '#8B5CF6',
@@ -526,7 +522,7 @@ const HELP_SECTIONS: HelpSection[] = [
             {
                 id: 'no-products',
                 title: 'Não aparecem produtos no POS',
-                content: 'Verifique se os produtos têm stock disponível e se estão activos. Actualize a página se necessário.',
+                content: 'Verifique se os produtos têm stock disponível e se estão ativos. Atualize a página se necessário.',
                 tips: ['Verifique filtros activos', 'Confirme que os produtos têm preço definido']
             },
             {
@@ -595,7 +591,7 @@ export default function Help() {
             <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                     <div className="flex items-center gap-4 mb-6">
-                        <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm">
+                        <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">
                             <HiOutlineBookOpen className="w-8 h-8" />
                         </div>
                         <div>
@@ -612,7 +608,7 @@ export default function Help() {
                             placeholder="Pesquisar ajuda..."
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
+                            className="w-full pl-12 pr-4 py-3 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
                         />
                     </div>
                 </div>
@@ -635,7 +631,7 @@ export default function Help() {
                                             key={section.id}
                                             onClick={() => setActiveSection(section.id)}
                                             className={cn(
-                                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all",
+                                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all",
                                                 isActive
                                                     ? "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300"
                                                     : "hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-700 dark:text-gray-300"
@@ -681,7 +677,7 @@ export default function Help() {
                                 {/* Section Header */}
                                 <div className="flex items-center gap-4">
                                     <div
-                                        className="p-3 rounded-2xl"
+                                        className="p-3 rounded-lg"
                                         style={{ backgroundColor: `${currentSection.color}20` }}
                                     >
                                         <span style={{ color: currentSection.color }}><currentSection.icon className="w-6 h-6" /></span>
@@ -744,7 +740,7 @@ export default function Help() {
                                                         )}
 
                                                         {topic.tips && topic.tips.length > 0 && (
-                                                            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl p-4">
+                                                            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-lg p-4">
                                                                 <div className="flex items-center gap-2 mb-2">
                                                                     <HiOutlineLightBulb className="w-4 h-4 text-amber-600" />
                                                                     <span className="text-xs font-black uppercase tracking-wider text-amber-600">
@@ -771,7 +767,7 @@ export default function Help() {
                                     })}
                                 </div>
 
-                                {/* No results */}
+                                {/* Não results */}
                                 {currentSection.topics.length === 0 && (
                                     <Card className="p-12 text-center">
                                         <HiOutlineSearch className="w-12 h-12 mx-auto text-gray-300 dark:text-dark-600 mb-4" />

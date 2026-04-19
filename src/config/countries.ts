@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Countries List for International Guest Support
  * Optimized for Mozambique hotel industry with common visitor countries first
  */
@@ -26,7 +26,7 @@ const PRIORITY_COUNTRIES: Country[] = [
     { code: 'DE', name: 'Alemanha', nameEn: 'Germany', dialCode: '+49', flag: '🇩🇪' },
     { code: 'FR', name: 'França', nameEn: 'France', dialCode: '+33', flag: '🇫🇷' },
     { code: 'NL', name: 'Países Baixos', nameEn: 'Netherlands', dialCode: '+31', flag: '🇳🇱' },
-    { code: 'IT', name: 'Itália', nameEn: 'Italy', dialCode: '+39', flag: '🇮🇹' },
+    { code: 'IT', name: 'Itlia', nameEn: 'Italy', dialCode: '+39', flag: '🇮🇹' },
     { code: 'ES', name: 'Espanha', nameEn: 'Spain', dialCode: '+34', flag: '🇪🇸' },
     { code: 'CN', name: 'China', nameEn: 'China', dialCode: '+86', flag: '🇨🇳' },
     { code: 'IN', name: 'Índia', nameEn: 'India', dialCode: '+91', flag: '🇮🇳' },

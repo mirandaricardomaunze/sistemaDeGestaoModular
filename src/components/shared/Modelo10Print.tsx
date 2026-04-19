@@ -1,6 +1,6 @@
-﻿import { useRef } from 'react';
+import { useRef } from 'react';
 import { format } from 'date-fns';
-import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
+import { HiOutlinePrinter, HiOutlineXMark as HiOutlineX } from 'react-icons/hi2';
 import { Modal, Button, Card } from '../ui';
 import { useStore } from '../../stores/useStore';
 import { formatCurrency } from '../../utils/helpers';
@@ -122,42 +122,42 @@ export default function Modelo10Print({ isOpen, onClose, retentions, moduleTitle
                     </div>
 
                     {/* Main Table */}
-                    <div className="mb-6 flex-1">
+                    <div className="mb-6 flex-1 overflow-x-auto">
                         <table className="w-full m10-table border-collapse">
-                            <thead className="bg-gray-100">
-                                <tr className="text-[7pt] font-bold uppercase text-center">
-                                    <th className="w-8">N.º</th>
-                                    <th className="w-32">NUIT Beneficiário</th>
-                                    <th>Nome do Hóspede / Beneficiário</th>
-                                    <th className="w-20">Cód. Rend.</th>
-                                    <th className="w-32">Rendimento Ilíquido</th>
-                                    <th className="w-16">Taxa %</th>
-                                    <th className="w-32">Imposto Retido</th>
+                            <thead>
+                                <tr className="bg-slate-50 text-[7pt] font-black uppercase text-slate-500 tracking-widest text-center">
+                                    <th className="px-3 py-4 border-b border-slate-100">N.º</th>
+                                    <th className="px-3 py-4 border-b border-slate-100">NUIT Beneficiário</th>
+                                    <th className="px-3 py-4 border-b border-slate-100 text-left">Nome do Hóspede / Beneficiário</th>
+                                    <th className="px-3 py-4 border-b border-slate-100">Cód. Rend.</th>
+                                    <th className="px-3 py-4 border-b border-slate-100 text-right">Rendimento Ilíquido</th>
+                                    <th className="px-3 py-4 border-b border-slate-100">Taxa %</th>
+                                    <th className="px-3 py-4 border-b border-slate-100 text-right">Imposto Retido</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-slate-50">
                                 {retentions.length > 0 ? (
                                     retentions.map((item, index) => (
-                                        <tr key={item.id} className="text-center">
-                                            <td>{index + 1}</td>
-                                            <td className="font-mono tracking-tighter">{item.beneficiaryNuit || '000000000'}</td>
-                                            <td className="text-left font-medium truncate max-w-[200px] uppercase">{item.beneficiary}</td>
-                                            <td className="font-bold">{item.revenueCode || '1.1'}</td>
-                                            <td className="text-right">{formatCurrency(item.grossAmount || (item.amount / 0.2))}</td>
-                                            <td className="font-medium">{item.rate || '20'}%</td>
-                                            <td className="text-right font-bold">{formatCurrency(item.amount)}</td>
+                                        <tr key={item.id} className="text-center hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-3 py-3 text-slate-400">{index + 1}</td>
+                                            <td className="px-3 py-3 font-mono tracking-tighter text-slate-600">{item.beneficiaryNuit || '000000000'}</td>
+                                            <td className="px-3 py-3 text-left font-black text-slate-900 uppercase tracking-tighter">{item.beneficiary}</td>
+                                            <td className="px-3 py-3 font-bold text-slate-600">{item.revenueCode || '1.1'}</td>
+                                            <td className="px-3 py-3 text-right text-slate-600">{formatCurrency(item.grossAmount || (item.amount / 0.2))}</td>
+                                            <td className="px-3 py-3 font-medium text-slate-600">{item.rate || '20'}%</td>
+                                            <td className="px-3 py-3 text-right font-black text-slate-900">{formatCurrency(item.amount)}</td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={7} className="py-20 text-center text-gray-400 italic">Nenhum dado de retenção encontrado para o período.</td>
+                                        <td colSpan={7} className="py-20 text-center text-slate-300 italic uppercase tracking-widest text-[8pt]">Nenhum dado de retenção encontrado</td>
                                     </tr>
                                 )}
                             </tbody>
-                            <tfoot className="bg-gray-50 font-bold">
-                                <tr>
-                                    <td colSpan={6} className="text-right p-3 text-[9pt] uppercase tracking-widest">Totais Gerais do Período</td>
-                                    <td className="text-right text-[10pt] p-3 border-l-2 border-black underline decoration-double">
+                            <tfoot>
+                                <tr className="bg-slate-50/50 font-black">
+                                    <td colSpan={6} className="text-right p-4 text-[9pt] uppercase tracking-widests text-slate-500">Totais Gerais do Período</td>
+                                    <td className="text-right text-[11pt] p-4 text-slate-900 tracking-tighter border-t-2 border-slate-900">
                                         {formatCurrency(totalRetained)}
                                     </td>
                                 </tr>
@@ -183,7 +183,7 @@ export default function Modelo10Print({ isOpen, onClose, retentions, moduleTitle
                                 </div>
                                 <div className="flex-1 text-[6pt] text-gray-500 space-y-1">
                                     <p>Este relatório é gerado automaticamente pelo Multicore.</p>
-                                    <p>Os dados aqui apresentados foram extraídos dos eventos fiscais registados nas transacções.</p>
+                                    <p>Os dados aqui apresentados foram extraídos dos eventos fiscais registados nas transações.</p>
                                     <p>Emitido em: {format(new Date(), 'dd-MM-yyyy HH:mm:ss')}</p>
                                 </div>
                             </div>

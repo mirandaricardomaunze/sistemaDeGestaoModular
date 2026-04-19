@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { commercialAPI } from '../services/api/commercial.api';
 import type {
@@ -10,6 +10,7 @@ import type {
     SalesReport,
     PurchaseOrder,
     AccountsReceivableResult,
+    WarehouseDistribution,
 } from '../services/api/commercial.api';
 import { logger } from '../utils/logger';
 
@@ -118,13 +119,16 @@ export function useSupplierPerformance() {
 export function useInventoryTurnover(period: number = 90) {
     const [data, setData] = useState<InventoryTurnoverItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetch = useCallback(async () => {
         setIsLoading(true);
+        setError(null);
         try {
             setData(await commercialAPI.getInventoryTurnover(period));
         } catch (err) {
             logger.error('Error fetching inventory turnover:', err);
+            setError('Erro ao carregar rotação de inventário');
         } finally {
             setIsLoading(false);
         }
@@ -132,7 +136,7 @@ export function useInventoryTurnover(period: number = 90) {
 
     useEffect(() => { fetch(); }, [fetch]);
 
-    return { data, isLoading, refetch: fetch };
+    return { data, isLoading, error, refetch: fetch };
 }
 
 // ── Sales Report Hook ────────────────────────────────────────────────────────
@@ -140,13 +144,16 @@ export function useInventoryTurnover(period: number = 90) {
 export function useSalesReport(period: number = 30) {
     const [data, setData] = useState<SalesReport | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetch = useCallback(async () => {
         setIsLoading(true);
+        setError(null);
         try {
             setData(await commercialAPI.getSalesReport(period));
         } catch (err) {
             logger.error('Error fetching sales report:', err);
+            setError('Erro ao carregar relatório de vendas');
         } finally {
             setIsLoading(false);
         }
@@ -154,7 +161,7 @@ export function useSalesReport(period: number = 30) {
 
     useEffect(() => { fetch(); }, [fetch]);
 
-    return { data, isLoading, refetch: fetch };
+    return { data, isLoading, error, refetch: fetch };
 }
 
 // ── Purchase Orders Hook ─────────────────────────────────────────────────────
@@ -220,6 +227,45 @@ export function usePurchaseOrders(params?: UsePurchaseOrdersParams) {
     return { orders, pagination, isLoading, error, refetch: fetch, updateStatus, deletePO };
 }
 
+// ── Quotations Hook ──────────────────────────────────────────────────────────
+
+interface UseQuotationsParams {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+}
+
+export function useQuotations(params?: UseQuotationsParams) {
+    const [quotes, setQuotes] = useState<any[]>([]);
+    const [pagination, setPagination] = useState<{ page: number; limit: number; total: number; totalPages: number } | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetch = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const res = await commercialAPI.listQuotations(params);
+            if (res?.data && res?.pagination) {
+                setQuotes(res.data);
+                setPagination(res.pagination);
+            } else {
+                setQuotes(Array.isArray(res) ? res : []);
+            }
+        } catch (err) {
+            logger.error('Error fetching quotations:', err);
+            setError('Erro ao carregar Cotações');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [params?.status, params?.search, params?.page, params?.limit]);
+
+    useEffect(() => { fetch(); }, [fetch]);
+
+    return { quotes, pagination, isLoading, error, refetch: fetch };
+}
+
 // ── Accounts Receivable Hook ─────────────────────────────────────────────────
 
 interface UseAccountsReceivableParams {
@@ -246,6 +292,29 @@ export function useAccountsReceivable(params?: UseAccountsReceivableParams) {
             setIsLoading(false);
         }
     }, [params?.filter, params?.search, params?.page, params?.limit]);
+
+    return { data, isLoading, error, refetch: fetch };
+}
+
+// ── Warehouse Distribution Hook ───────────────────────────────────────────
+
+export function useWarehouseDistribution() {
+    const [data, setData] = useState<WarehouseDistribution[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetch = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            setData(await commercialAPI.getWarehouseDistribution());
+        } catch (err) {
+            logger.error('Error fetching warehouse distribution:', err);
+            setError('Erro ao carregar distribuição por armazém');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     useEffect(() => { fetch(); }, [fetch]);
 

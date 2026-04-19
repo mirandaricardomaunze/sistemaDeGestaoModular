@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge, Modal, Select, EmptyState, LoadingSpinner } from '../../components/ui';
 import {
     HiOutlineRefresh,

@@ -1,6 +1,6 @@
 import { logger } from '../../../utils/logger';
-﻿import { useState, useEffect } from 'react';
-import { HiOutlineX, HiOutlineCheck } from 'react-icons/hi';
+import { useState, useEffect } from 'react';
+import { HiOutlineXMark, HiOutlineCheck } from 'react-icons/hi2';
 import { Input, Select, Textarea, Button } from '../../../components/ui';
 import { hospitalityAPI } from '../../../services/api';
 import { toast } from 'react-hot-toast';
@@ -140,7 +140,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
                             onClick={onClose}
                             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                         >
-                            <HiOutlineX className="w-6 h-6" />
+                            <HiOutlineXMark className="w-6 h-6" />
                         </button>
                     </div>
 
@@ -237,7 +237,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
                                 variant="ghost"
                                 onClick={onClose}
                                 disabled={isSubmitting}
-                                leftIcon={<HiOutlineX className="w-4 h-4" />}
+                                leftIcon={<HiOutlineXMark className="w-4 h-4" />}
                             >
                                 Cancelar
                             </Button>

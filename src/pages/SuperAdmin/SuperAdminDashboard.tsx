@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     HiOutlineOfficeBuilding,
@@ -88,46 +88,21 @@ const SuperAdminDashboard: React.FC = () => {
     }, []);
 
     const statCards = stats ? [
-        {
-            label: 'Total de Empresas',
-            value: stats.companies.total.toString(),
-            subtitle: `${stats.companies.active} ativas`,
-            icon: HiOutlineOfficeBuilding,
-            color: 'text-blue-600',
-            bg: 'bg-blue-100'
-        },
-        {
-            label: 'Usuários Ativos',
-            value: stats.users.active.toString(),
-            subtitle: `${stats.users.total} total`,
-            icon: HiOutlineUsers,
-            color: 'text-green-600',
-            bg: 'bg-green-100'
-        },
-        {
-            label: 'Vendas Totais',
-            value: stats.sales.total.toString(),
-            subtitle: `${stats.recentActivity.sales} últimos 7 dias`,
-            icon: HiOutlineDatabase,
-            color: 'text-purple-600',
-            bg: 'bg-purple-100'
-        },
-        {
-            label: 'Novos Usuários',
-            value: stats.recentActivity.newUsers.toString(),
-            subtitle: 'Últimos 7 dias',
-            icon: HiOutlineShieldCheck,
-            color: 'text-orange-600',
-            bg: 'bg-orange-100'
-        },
-        {
-            label: 'Tamanho do Banco',
-            value: stats.system.dbSize,
-            subtitle: 'Ocupação em disco',
-            icon: HiOutlineDatabase,
-            color: 'text-indigo-600',
-            bg: 'bg-indigo-100'
-        },
+        { label: 'Total de Empresas', value: stats.companies.total.toString(), subtitle: `${stats.companies.active} ativas`, icon: HiOutlineOfficeBuilding,
+          cardBg: 'bg-blue-50/60 dark:bg-blue-950/30', cardBorder: 'border border-blue-200/70 dark:border-blue-800/40',
+          iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', accent: 'bg-blue-500' },
+        { label: 'Usuários Ativos', value: stats.users.active.toString(), subtitle: `${stats.users.total} total`, icon: HiOutlineUsers,
+          cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30', cardBorder: 'border border-emerald-200/70 dark:border-emerald-800/40',
+          iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', accent: 'bg-emerald-500' },
+        { label: 'Vendas Totais', value: stats.sales.total.toString(), subtitle: `${stats.recentActivity.sales} últimos 7 dias`, icon: HiOutlineDatabase,
+          cardBg: 'bg-purple-50/60 dark:bg-purple-950/30', cardBorder: 'border border-purple-200/70 dark:border-purple-800/40',
+          iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', accent: 'bg-purple-500' },
+        { label: 'Novos Usuários', value: stats.recentActivity.newUsers.toString(), subtitle: 'Últimos 7 dias', icon: HiOutlineShieldCheck,
+          cardBg: 'bg-amber-50/60 dark:bg-amber-950/30', cardBorder: 'border border-amber-200/70 dark:border-amber-800/40',
+          iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400', accent: 'bg-amber-500' },
+        { label: 'Tamanho do Banco', value: stats.system.dbSize, subtitle: 'Ocupação em disco', icon: HiOutlineDatabase,
+          cardBg: 'bg-indigo-50/60 dark:bg-indigo-950/30', cardBorder: 'border border-indigo-200/70 dark:border-indigo-800/40',
+          iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', accent: 'bg-indigo-500' },
     ] : [];
 
     const getStatusBadge = (status: string) => {
@@ -146,7 +121,7 @@ const SuperAdminDashboard: React.FC = () => {
 
     const getActionLabel = (action: string) => {
         const labels: Record<string, string> = {
-            'LOGIN': 'Login',
+            'LOGIN': 'login',
             'LOGOUT': 'Logout',
             'REGISTER_WITH_COMPANY': 'Registro de Empresa',
             'COMPANY_STATUS_CHANGE': 'Alteração de Status',
@@ -212,24 +187,25 @@ const SuperAdminDashboard: React.FC = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                 {statCards.map((stat, index) => (
-                    <Card key={index} padding="md">
-                        <div className="flex items-center gap-4">
-                            <div className={`${stat.bg} p-3 rounded-xl`}>
-                                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+                    <div key={index} className={`relative group overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all duration-300 ${stat.cardBg} ${stat.cardBorder}`}>
+                        <div className="p-5 flex items-center gap-4">
+                            <div className={`p-3 rounded-xl flex-shrink-0 shadow-sm transition-transform group-hover:scale-110 duration-300 ${stat.iconBg} ${stat.iconColor}`}>
+                                <stat.icon className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
-                                <p className="text-xs text-gray-400 dark:text-gray-500">{stat.subtitle}</p>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest">{stat.label}</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{stat.value}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium italic">{stat.subtitle}</p>
                             </div>
                         </div>
-                    </Card>
+                        <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-500 group-hover:w-full w-8 ${stat.accent}`} />
+                    </div>
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Companies */}
-                <Card padding="md">
+                <Card padding="md" color="slate">
                     <h2 className="text-lg font-semibold mb-4 dark:text-white">Empresas Recentes</h2>
                     <div className="space-y-4">
                         {companies.length === 0 ? (
@@ -238,7 +214,7 @@ const SuperAdminDashboard: React.FC = () => {
                             </p>
                         ) : (
                             companies.map((company) => (
-                                <div key={company.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                                <div key={company.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400 font-bold">
                                             {company.name.charAt(0).toUpperCase()}
@@ -258,7 +234,7 @@ const SuperAdminDashboard: React.FC = () => {
                 </Card>
 
                 {/* Activity Logs */}
-                <Card padding="md">
+                <Card padding="md" color="slate">
                     <h2 className="text-lg font-semibold mb-4 dark:text-white">Logs de Auditoria Global</h2>
                     <div className="space-y-4">
                         {activities.length === 0 ? (
@@ -288,11 +264,11 @@ const SuperAdminDashboard: React.FC = () => {
 
             {/* Module Usage Stats */}
             {stats && stats.modules.length > 0 && (
-                <Card padding="md">
+                <Card padding="md" color="slate">
                     <h2 className="text-lg font-semibold mb-4 dark:text-white">Uso de Módulos</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {stats.modules.map((module, index) => (
-                            <div key={index} className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl text-center">
+                            <div key={index} className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg text-center">
                                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{module.moduleName}</p>
                                 <p className="text-2xl font-bold text-primary-600 dark:text-primary-400 mt-2">
                                     {module.companiesUsing}

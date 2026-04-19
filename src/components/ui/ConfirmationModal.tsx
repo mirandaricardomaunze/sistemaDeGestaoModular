@@ -1,6 +1,6 @@
-﻿import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { cn } from '../../utils/helpers';
-import { HiOutlineExclamation, HiOutlineInformationCircle, HiOutlineTrash, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
+import { HiOutlineExclamationTriangle, HiOutlineInformationCircle, HiOutlineTrash, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
 import { Button } from './Button';
 
 type ConfirmationVariant = 'danger' | 'warning' | 'info';
@@ -52,7 +52,7 @@ export function ConfirmationModal({
             confirmVariant: 'danger' as const,
         },
         warning: {
-            icon: HiOutlineExclamation,
+            icon: HiOutlineExclamationTriangle,
             iconBg: 'bg-yellow-100 dark:bg-yellow-900/30',
             iconColor: 'text-yellow-600 dark:text-yellow-400',
             confirmVariant: 'primary' as const,
@@ -83,7 +83,7 @@ export function ConfirmationModal({
             {/* Modal Container */}
             <div className="flex min-h-full items-center justify-center p-4">
                 <div
-                    className="relative w-full max-w-md bg-white dark:bg-dark-800 rounded-2xl shadow-xl animate-slide-up"
+                    className="relative w-full max-w-md bg-white dark:bg-dark-800 rounded-lg shadow-xl animate-slide-up"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Content */}
@@ -113,7 +113,7 @@ export function ConfirmationModal({
                                 fullWidth
                                 onClick={onClose}
                                 disabled={isLoading}
-                                leftIcon={<HiOutlineX className="w-4 h-4" />}
+                                leftIcon={<HiOutlineXMark className="w-4 h-4" />}
                             >
                                 {cancelText}
                             </Button>

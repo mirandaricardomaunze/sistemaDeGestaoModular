@@ -47,8 +47,11 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
 
     const handleConfirm = () => {
         if (mode === 'open') {
-            onOpenShift(Number(amount) || 0, warehouseId || undefined);
+            const balance = Number(amount);
+            if (isNaN(balance) || balance < 0) return;
+            onOpenShift(balance, warehouseId || undefined);
         } else {
+            if (counted < 0) return;
             onCloseShift(counted);
         }
         setAmount('');
@@ -57,7 +60,7 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-md mx-4 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="relative z-10 w-full max-w-md mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden">
                 {/* Header */}
                 <div className={`px-6 py-4 flex items-center justify-between ${mode === 'open' ? 'bg-green-600' : 'bg-slate-700'}`}>
                     <div>
@@ -78,7 +81,7 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
                 <div className="p-6 space-y-5">
                     {/* Close shift: show sales report */}
                     {mode === 'close' && shift && (
-                        <div className="bg-gray-50 dark:bg-dark-900 rounded-xl p-4 space-y-2">
+                        <div className="bg-gray-50 dark:bg-dark-900 rounded-lg p-4 space-y-2">
                             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5 mb-3">
                                 <HiOutlineDocumentReport className="w-3.5 h-3.5" />
                                 Resumo do Turno
@@ -128,7 +131,7 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
                                 onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); }}
                                 placeholder="0.00"
                                 autoFocus
-                                className="w-full pl-14 pr-4 py-4 text-right text-3xl font-black rounded-xl border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
+                                className="w-full pl-14 pr-4 py-4 text-right text-3xl font-black rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
                             />
                         </div>
 
@@ -166,7 +169,7 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
                             <select
                                 value={warehouseId}
                                 onChange={e => setWarehouseId(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white text-sm font-bold"
+                                className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white text-sm font-bold"
                             >
                                 <option value="">Seleccione o armazém...</option>
                                 {warehouses.map((w: any) => (
@@ -180,13 +183,20 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
                     <div className="flex gap-3">
                         <button
                             onClick={onClose}
-                            className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                            className="flex-1 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleConfirm}
-                            className={`flex-1 py-3 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-lg transition-all ${mode === 'open' ? 'bg-green-600 hover:bg-green-700 shadow-green-500/20' : 'bg-slate-700 hover:bg-slate-800 shadow-slate-500/20'}`}
+                            disabled={mode === 'open' ? (isNaN(Number(amount)) || Number(amount) < 0) : counted < 0}
+                            className={`flex-1 py-3 rounded-lg font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-lg transition-all ${
+                                (mode === 'open' && (isNaN(Number(amount)) || Number(amount) < 0))
+                                    ? 'bg-gray-300 dark:bg-dark-600 cursor-not-allowed shadow-none'
+                                    : mode === 'open'
+                                        ? 'bg-green-600 hover:bg-green-700 shadow-green-500/20'
+                                        : 'bg-slate-700 hover:bg-slate-800 shadow-slate-500/20'
+                            }`}
                         >
                             <HiOutlineCheck className="w-5 h-5" />
                             {mode === 'open' ? 'Abrir Turno' : 'Fechar Turno'}

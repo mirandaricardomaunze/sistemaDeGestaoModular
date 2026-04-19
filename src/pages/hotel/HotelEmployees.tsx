@@ -1,53 +1,25 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { PageHeader, Button } from '../../components/ui';
-import EmployeeList from '../../components/employees/EmployeeList';
-import EmployeeForm from '../../components/employees/EmployeeForm';
-import { HiOutlineUserGroup, HiOutlinePlus } from 'react-icons/hi2';
-import type { Employee } from '../../types';
+import { HiOutlineHomeModern } from 'react-icons/hi2';
+import { ModuleHRPage } from '../../components/employees/ModuleHRPage';
 
 export default function HotelEmployees() {
-    const { t } = useTranslation();
-    const [showForm, setShowForm] = useState(false);
-    const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
-
-    const handleEdit = (employee: Employee) => {
-        setEditingEmployee(employee);
-        setShowForm(true);
-    };
-
-    const handleAdd = () => {
-        setEditingEmployee(null);
-        setShowForm(true);
-    };
-
     return (
-        <div className="space-y-6">
-            <PageHeader
-                title={t('nav.employees')}
-                subtitle="Equipa e colaboradores afectos à hotelaria"
-                icon={<HiOutlineUserGroup />}
-                actions={
-                    <Button 
-                        variant="primary" 
-                        leftIcon={<HiOutlinePlus />}
-                        onClick={handleAdd}
-                    >
-                        Adicionar Colaborador
-                    </Button>
-                }
-            />
-            
-            <EmployeeList 
-                department="Hospitalidade"
-                onEdit={handleEdit}
-            />
-
-            <EmployeeForm
-                isOpen={showForm}
-                onClose={() => setShowForm(false)}
-                employee={editingEmployee}
-            />
-        </div>
+        <ModuleHRPage
+            config={{
+                department: 'Hospitalidade',
+                moduleName: 'Hospitalidade',
+                accentColor: 'blue',
+                icon: <HiOutlineHomeModern />,
+                showCommissions: false,
+                documentTypes: [
+                    { id: 'bi', label: 'Bilhete de Identidade', required: true },
+                    { id: 'nuit', label: 'NUIT', required: true },
+                    { id: 'inss', label: 'Cartão INSS', required: true },
+                    { id: 'contract', label: 'Contrato de Trabalho', required: true },
+                    { id: 'health', label: 'Certificado de Saúde', required: true },
+                    { id: 'hygiene', label: 'Certificado de Higiene e Manipulação' },
+                    { id: 'training', label: 'Certificado de Formação Hoteleira' },
+                ],
+            }}
+        />
     );
 }

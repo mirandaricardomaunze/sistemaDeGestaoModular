@@ -1,25 +1,25 @@
 import { logger } from '../../utils/logger';
-﻿/**
+/**
  * Audit Log Viewer Component
  * Visualizador de logs de auditoria com filtros e exportação
  */
 
 import { useState, useMemo, useEffect } from 'react';
 import {
-    HiOutlineSearch,
-    HiOutlineDownload,
-    HiOutlineFilter,
-    HiOutlineX,
+    HiOutlineMagnifyingGlass as HiOutlineSearch,
+    HiOutlineArrowDownTray as HiOutlineDownload,
+    HiOutlineFunnel as HiOutlineFilter,
+    HiOutlineXMark as HiOutlineX,
     HiOutlineDocumentText,
     HiOutlineEye,
-    HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineRefresh,
     HiOutlineChartPie,
     HiOutlineTrash,
     HiOutlineCheckCircle,
     HiOutlineExclamationCircle,
     HiOutlineInformationCircle,
-    HiOutlineExclamation,
-} from 'react-icons/hi';
+    HiOutlineExclamationTriangle as HiOutlineExclamation,
+} from 'react-icons/hi2';
 import { useAuditStore } from '../../stores/useAuditStore';
 import { useStore } from '../../stores/useStore';
 import { Button, Card, Input, Select, Modal, Badge, Pagination, usePagination } from '../ui';

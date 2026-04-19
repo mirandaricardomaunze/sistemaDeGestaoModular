@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge, Modal, Select, LoadingSpinner, EmptyState } from '../../components/ui';
 import {
     HiOutlineCreditCard,
@@ -354,7 +354,7 @@ export default function CreditSales() {
                         <EmptyState
                             icon={<HiOutlineUser className="w-12 h-12 text-gray-300" />}
                             title="Nenhum devedor"
-                            description="Não há clientes com dívidas pendentes"
+                            description="Não h clientes com dívidas pendentes"
                         />
                     ) : (
                         <div className="overflow-x-auto">

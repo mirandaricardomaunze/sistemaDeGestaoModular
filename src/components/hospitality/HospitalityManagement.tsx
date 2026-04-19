@@ -234,11 +234,11 @@ export default function HospitalityManagement() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-50 pointer-events-none">
-                    <div className="p-4 border border-dashed border-gray-200 dark:border-dark-700 rounded-xl">
+                    <div className="p-4 border border-dashed border-gray-200 dark:border-dark-700 rounded-lg">
                         <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">Checkout</p>
                         <p className="text-xs text-gray-500">10:00 AM</p>
                     </div>
-                    <div className="p-4 border border-dashed border-gray-200 dark:border-dark-700 rounded-xl">
+                    <div className="p-4 border border-dashed border-gray-200 dark:border-dark-700 rounded-lg">
                         <p className="text-sm font-bold text-gray-900 dark:text-white mb-1">IVA</p>
                         <p className="text-xs text-gray-500">16%</p>
                     </div>

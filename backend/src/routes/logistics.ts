@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { logisticsService } from '../services/logistics.service';
+import { logisticsService } from '../services/logisticsService';
 import { ApiError } from '../middleware/error.middleware';
 import { prisma } from '../lib/prisma';
+import { emitToCompany } from '../lib/socket';
 
 const router = Router();
 
@@ -138,6 +139,15 @@ router.get('/deliveries', authenticate, async (req: AuthRequest, res) => {
 router.post('/deliveries', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const delivery = await logisticsService.createDelivery(req.companyId, req.body);
+
+    // Socket Notification: New Delivery Assigned
+    emitToCompany(req.companyId, 'logistics:new_delivery', {
+        id: delivery.id,
+        driverId: delivery.driverId,
+        destination: delivery.deliveryAddress,
+        timestamp: new Date()
+    });
+
     res.status(201).json(delivery);
 });
 
@@ -272,6 +282,76 @@ router.delete('/maintenances/:id', authenticate, async (req: AuthRequest, res) =
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     await logisticsService.deleteMaintenance(req.companyId, req.params.id);
     res.json({ message: 'Manutenção eliminada com sucesso' });
+});
+
+// ============================================================================
+// FUEL SUPPLIES
+// ============================================================================
+
+router.get('/fuel', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await logisticsService.getFuelSupplies(req.companyId, req.query);
+    res.json(result);
+});
+
+router.post('/fuel', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const supply = await logisticsService.createFuelSupply(req.companyId, req.body);
+    res.status(201).json(supply);
+});
+
+router.delete('/fuel/:id', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    await logisticsService.deleteFuelSupply(req.companyId, req.params.id);
+    res.json({ message: 'Abastecimento eliminado com sucesso' });
+});
+
+// ============================================================================
+// VEHICLE INCIDENTS
+// ============================================================================
+
+router.get('/incidents', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await logisticsService.getIncidents(req.companyId, req.query);
+    res.json(result);
+});
+
+router.post('/incidents', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const incident = await logisticsService.createIncident(req.companyId, req.body);
+
+    // Socket Notification: High Priority Incident
+    emitToCompany(req.companyId, 'logistics:incident', {
+        id: incident.id,
+        type: incident.type,
+        vehicleId: incident.vehicleId,
+        message: `Novo incidente reportado: ${incident.type}`,
+        timestamp: new Date()
+    });
+
+    res.status(201).json(incident);
+});
+
+router.put('/incidents/:id', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const incident = await logisticsService.updateIncident(req.companyId, req.params.id, req.body);
+    res.json(incident);
+});
+
+router.delete('/incidents/:id', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    await logisticsService.deleteIncident(req.companyId, req.params.id);
+    res.json({ message: 'Incidente eliminado com sucesso' });
+});
+
+// ============================================================================
+// REPORTS SUMMARY
+// ============================================================================
+
+router.get('/reports/summary', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await logisticsService.getReportsSummary(req.companyId, req.query as any);
+    res.json(result);
 });
 
 export default router;

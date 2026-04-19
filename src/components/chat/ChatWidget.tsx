@@ -1,5 +1,4 @@
-import { logger } from '../../utils/logger';
-﻿import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
     HiOutlineX,
     HiOutlinePaperAirplane,
@@ -10,6 +9,7 @@ import {
 import { chatAPI } from '../../services/chatAPI';
 import type { Message } from '../../types/chat';
 import toast from 'react-hot-toast';
+import { logger } from '../../utils';
 
 export default function ChatWidget() {
     const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +86,7 @@ export default function ChatWidget() {
 
             // Notificar se PDF foi gerado
             if (response.pdfUrl) {
-                toast.success('📄 Relatório PDF gerado!');
+                toast.success('💾 Relatório PDF gerado!');
             }
         } catch (error: any) {
             logger.error('Chat error:', error);
@@ -94,7 +94,7 @@ export default function ChatWidget() {
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: '❌ Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.',
+                content: ' Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.',
                 timestamp: new Date()
             };
 
@@ -132,7 +132,7 @@ export default function ChatWidget() {
 
             {/* Janela de Chat */}
             {isOpen && (
-                <div className="fixed top-20 right-6 w-[420px] max-h-[calc(100vh-7rem)] bg-white dark:bg-dark-800 rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200 dark:border-dark-700 overflow-hidden">
+                <div className="fixed top-20 right-6 w-[420px] max-h-[calc(100vh-7rem)] bg-white dark:bg-dark-800 rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200 dark:border-dark-700 overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 text-white">
                         <div className="flex items-center gap-3">
@@ -178,7 +178,7 @@ export default function ChatWidget() {
                                         <button
                                             key={index}
                                             onClick={() => handleSuggestionClick(suggestion)}
-                                            className="w-full text-left px-4 py-3 bg-white dark:bg-dark-800 rounded-xl text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors border border-gray-200 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 group"
+                                            className="w-full text-left px-4 py-3 bg-white dark:bg-dark-800 rounded-lg text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors border border-gray-200 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 group"
                                         >
                                             <span className="text-gray-700 dark:text-gray-300 group-hover:text-primary-600 dark:group-hover:text-primary-400">
                                                 {suggestion}
@@ -195,7 +195,7 @@ export default function ChatWidget() {
                                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                             >
                                 <div
-                                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${message.role === 'user'
+                                    className={`max-w-[85%] rounded-lg px-4 py-3 ${message.role === 'user'
                                         ? 'bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30'
                                         : 'bg-white dark:bg-dark-800 text-gray-900 dark:text-white shadow-md border border-gray-200 dark:border-dark-700'
                                         }`}
@@ -230,7 +230,7 @@ export default function ChatWidget() {
 
                         {isLoading && (
                             <div className="flex justify-start">
-                                <div className="bg-white dark:bg-dark-800 rounded-2xl px-4 py-3 shadow-md border border-gray-200 dark:border-dark-700">
+                                <div className="bg-white dark:bg-dark-800 rounded-lg px-4 py-3 shadow-md border border-gray-200 dark:border-dark-700">
                                     <div className="flex gap-1.5">
                                         <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" />
                                         <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
@@ -252,14 +252,14 @@ export default function ChatWidget() {
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyPress={handleKeyPress}
                                 placeholder="Digite sua pergunta..."
-                                className="flex-1 px-4 py-3 bg-gray-100 dark:bg-dark-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all"
+                                className="flex-1 px-4 py-3 bg-gray-100 dark:bg-dark-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all"
                                 disabled={isLoading}
                                 maxLength={1000}
                             />
                             <button
                                 onClick={handleSend}
                                 disabled={!input.trim() || isLoading}
-                                className="px-4 py-3 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 disabled:shadow-none"
+                                className="px-4 py-3 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 disabled:shadow-none"
                             >
                                 <HiOutlinePaperAirplane className="w-5 h-5" />
                             </button>

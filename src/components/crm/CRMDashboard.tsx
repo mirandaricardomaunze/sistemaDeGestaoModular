@@ -1,6 +1,6 @@
-﻿/**
+/**
  * CRM Dashboard Component
- * Painel de métricas e indicadores do CRM com gráficos de performance
+ * Painel de métricas e indicadores do CRM com grficos de performance
  */
 
 import { useMemo } from 'react';
@@ -89,81 +89,34 @@ export default function CRMDashboard() {
         <div className="space-y-6">
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Pipeline Total */}
-                <Card className="relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Valor em Pipeline</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {formatCurrency(dashboardData.pipelineTotal)}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                                {dashboardData.pipelineCount} oportunidades
-                            </p>
+                {[
+                    { label: 'Valor em Pipeline', value: formatCurrency(dashboardData.pipelineTotal), sub: `${dashboardData.pipelineCount} oportunidades`, icon: HiOutlineCurrencyDollar,
+                      cardBg: 'bg-indigo-50/60 dark:bg-indigo-950/30', cardBorder: 'border border-indigo-200/70 dark:border-indigo-800/40',
+                      iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', accent: 'bg-indigo-500' },
+                    { label: 'Valor Ponderado', value: formatCurrency(dashboardData.weightedPipeline), sub: 'Ajustado por probabilidade', icon: HiOutlineTrendingUp,
+                      cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30', cardBorder: 'border border-emerald-200/70 dark:border-emerald-800/40',
+                      iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', accent: 'bg-emerald-500' },
+                    { label: 'Taxa de Conversão', value: `${dashboardData.winRate.toFixed(1)}%`, sub: 'Média histórica', icon: HiOutlineChartBar,
+                      cardBg: 'bg-blue-50/60 dark:bg-blue-950/30', cardBorder: 'border border-blue-200/70 dark:border-blue-800/40',
+                      iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', accent: 'bg-blue-500' },
+                    { label: 'Tempo Médio', value: `${dashboardData.avgTimeToClose} dias`, sub: 'Para fechar negócios', icon: HiOutlineClock,
+                      cardBg: 'bg-purple-50/60 dark:bg-purple-950/30', cardBorder: 'border border-purple-200/70 dark:border-purple-800/40',
+                      iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', accent: 'bg-purple-500' },
+                ].map((s, i) => (
+                    <div key={i} className={`relative group overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all duration-300 ${s.cardBg} ${s.cardBorder}`}>
+                        <div className="p-5 flex items-center justify-between">
+                            <div>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-black uppercase tracking-widest mb-1">{s.label}</p>
+                                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{s.value}</p>
+                                <p className="text-[10px] text-gray-400 font-medium mt-1">{s.sub}</p>
+                            </div>
+                            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 duration-300 ${s.iconBg} ${s.iconColor}`}>
+                                <s.icon className="w-5 h-5" />
+                            </div>
                         </div>
-                        <div className="w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-primary-600" />
-                        </div>
+                        <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-500 group-hover:w-full w-8 ${s.accent}`} />
                     </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 to-primary-600" />
-                </Card>
-
-                {/* Weighted Value */}
-                <Card className="relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Valor Ponderado</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {formatCurrency(dashboardData.weightedPipeline)}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                                Ajustado por probabilidade
-                            </p>
-                        </div>
-                        <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <HiOutlineTrendingUp className="w-6 h-6 text-green-600" />
-                        </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-green-600" />
-                </Card>
-
-                {/* Win Rate */}
-                <Card className="relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Taxa de Conversão</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {dashboardData.winRate.toFixed(1)}%
-                            </p>
-                            <p className="text-sm text-gray-500">
-                                Média histórica
-                            </p>
-                        </div>
-                        <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <HiOutlineChartBar className="w-6 h-6 text-blue-600" />
-                        </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600" />
-                </Card>
-
-                {/* Avg Time to Close */}
-                <Card className="relative overflow-hidden">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Tempo Médio</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                {dashboardData.avgTimeToClose} dias
-                            </p>
-                            <p className="text-sm text-gray-500">
-                                Para fechar negócios
-                            </p>
-                        </div>
-                        <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                            <HiOutlineClock className="w-6 h-6 text-purple-600" />
-                        </div>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-purple-600" />
-                </Card>
+                ))}
             </div>
 
             {/* Main Content Grid */}
@@ -314,7 +267,7 @@ export default function CRMDashboard() {
                                             </Badge>
                                         </div>
                                         <p className="text-xs mt-1 opacity-75">
-                                            📌 {alert.nextAction}
+                                            ?? {alert.nextAction}
                                         </p>
                                     </div>
                                 ))}
@@ -361,7 +314,7 @@ export default function CRMDashboard() {
                                             </Badge>
                                         </div>
                                         <div className="flex items-center justify-between mt-1 text-xs text-gray-500">
-                                            <span>Até {new Date(campaign.endDate).toLocaleDateString('pt-MZ')}</span>
+                                            <span>At {new Date(campaign.endDate).toLocaleDateString('pt-MZ')}</span>
                                             <span>{campaign.metrics.ordersGenerated} usos</span>
                                         </div>
                                     </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ExpiryAlertsPanel Component
  *
  * Responsibility: Render ONLY. Receives pre-computed `ExpiryAlert[]` via props.
@@ -23,7 +23,7 @@ import {
     HiOutlineIdentification,
 } from 'react-icons/hi2';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ──-Constants ────────────────────────────────────────────────────────────────
 
 const SEVERITY_CONFIG: Record<
     ExpiryAlertSeverity,
@@ -49,7 +49,7 @@ const SEVERITY_CONFIG: Record<
     },
 };
 
-// ─── Sub-components (Atoms) ───────────────────────────────────────────────────
+// ──-Sub-components (Atoms) ──────────────────────────────────────────────────-
 
 interface AlertRowProps {
     alert: ExpiryAlert;
@@ -62,7 +62,7 @@ function AlertRow({ alert }: AlertRowProps) {
 
     const daysText =
         alert.daysUntilExpiry <= 0
-            ? `Expirou há ${Math.abs(alert.daysUntilExpiry)} dia(s)`
+            ? `Expirou h ${Math.abs(alert.daysUntilExpiry)} dia(s)`
             : `Expira em ${alert.daysUntilExpiry} dia(s)`;
 
     const expiryFormatted = new Date(alert.expiryDate).toLocaleDateString('pt-MZ', {
@@ -86,7 +86,7 @@ function AlertRow({ alert }: AlertRowProps) {
                     </span>
                 </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {daysText} — {expiryFormatted}
+                    {daysText} "" {expiryFormatted}
                 </p>
             </div>
 
@@ -97,7 +97,7 @@ function AlertRow({ alert }: AlertRowProps) {
     );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ──-Main Component ──────────────────────────────────────────────────────────-
 
 interface ExpiryAlertsPanelProps {
     alerts: ExpiryAlert[];
@@ -121,9 +121,9 @@ export function ExpiryAlertsPanel({ alerts }: ExpiryAlertsPanelProps) {
     return (
         <section
             aria-label="Alertas de documentos a expirar"
-            className={`rounded-xl border-2 overflow-hidden shadow-sm ${headerSeverityClass}`}
+            className={`rounded-lg border-2 overflow-hidden shadow-sm ${headerSeverityClass}`}
         >
-            {/* Header — always visible */}
+            {/* Header - always visible */}
             <button
                 type="button"
                 onClick={() => setIsExpanded((prev) => !prev)}
@@ -153,7 +153,7 @@ export function ExpiryAlertsPanel({ alerts }: ExpiryAlertsPanelProps) {
                 )}
             </button>
 
-            {/* Body — collapsible */}
+            {/* Body - collapsible */}
             {isExpanded && (
                 <ul className="px-4 pb-4 space-y-2" role="list">
                     {alerts.map((alert) => (

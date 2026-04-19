@@ -1,4 +1,4 @@
-﻿import nodemailer from 'nodemailer';
+import nodemailer from 'nodemailer';
 import { logger } from './logger';
 
 const transporter = nodemailer.createTransport({
@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
 if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
     logger.info('SMTP configuration detected');
 } else {
-    logger.warn('SMTP not configured — recovery codes will be logged in development mode');
+    logger.warn('SMTP not configured -- recovery codes will be logged in development mode');
 }
 
 export const sendOTP = async (email: string, otp: string) => {
@@ -26,7 +26,7 @@ export const sendOTP = async (email: string, otp: string) => {
     // Check if SMTP is configured. If not, don't try to send but don't crash in dev.
     if (!process.env.SMTP_USER || (!process.env.SMTP_PASS && !process.env.SMTP_PASSWORD)) {
         if (process.env.NODE_ENV !== 'production') {
-            logger.warn('SMTP not configured — skipping real email send');
+            logger.warn('SMTP not configured -- skipping real email send');
             return { messageId: 'mock-id' };
         }
         throw new Error('Configuração de e-mail (SMTP) em falta');
@@ -84,7 +84,7 @@ export const sendInvoiceEmail = async (params: {
     const mailOptions: any = {
         from: `"${company.name || process.env.SMTP_FROM_NAME || 'Multicore'}" <${process.env.SMTP_USER}>`,
         to,
-        subject: `Fatura ${invoice.invoiceNumber} — ${company.name || 'Multicore'}`,
+        subject: `Fatura ${invoice.invoiceNumber} -- ${company.name || 'Multicore'}`,
         html: `
             <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:0;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">
                 <div style="background:#1e40af;padding:24px 32px;color:white">
@@ -120,7 +120,7 @@ export const sendInvoiceEmail = async (params: {
                     <p style="color:#6b7280;font-size:12px">Para qualquer dúvida, contacte-nos por ${company.email || 'email'} ou ${company.phone || 'telefone'}.</p>
                 </div>
                 <div style="background:#f3f4f6;padding:12px 32px;font-size:11px;color:#9ca3af;text-align:center">
-                    ${company.name || 'Multicore'} ${company.taxId ? `| NUIT: ${company.taxId}` : ''} — Este é um email automático.
+                    ${company.name || 'Multicore'} ${company.taxId ? `| NUIT: ${company.taxId}` : ''} -- Este é um email automático.
                 </div>
             </div>
         `,
@@ -161,7 +161,7 @@ export const sendExpirationAlert = async (data: {
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #fee2e2; border-radius: 10px;">
                 <h2 style="color: #dc2626; text-align: center;">Alerta de Validade Próxima</h2>
                 <p>Olá <strong>${data.userName}</strong>,</p>
-                <p>Este é um aviso automático de que um produto no seu inventário irá expirar em <strong>7 dias</strong>.</p>
+                <p>Este é um aviso automático de que um produto no seu inventrio irá expirar em <strong>7 dias</strong>.</p>
                 
                 <div style="background-color: #fef2f2; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #fecaca;">
                     <p style="margin: 5px 0;"><strong>Produto:</strong> ${data.productName}</p>
