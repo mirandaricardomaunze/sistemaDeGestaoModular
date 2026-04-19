@@ -69,125 +69,131 @@ export class ChatService {
             const todayStart = new Date(now.setHours(0, 0, 0, 0));
             const yesterdayStart = new Date(new Date(todayStart).setDate(todayStart.getDate() - 1));
 
-            if (intent.type === 'sales' || intent.type === 'report') {
-                const [todaySales, yesterdaySales, topProducts] = await Promise.all([
-                    prisma.sale.aggregate({ where: { companyId, createdAt: { gte: todayStart } }, _sum: { total: true }, _count: true }),
-                    prisma.sale.aggregate({ where: { companyId, createdAt: { gte: yesterdayStart, lt: todayStart } }, _sum: { total: true } }),
-                    prisma.saleItem.groupBy({
-                        by: ['productName'],
-                        where: { sale: { companyId, createdAt: { gte: todayStart } } },
-                        _sum: { quantity: true, total: true },
-                        orderBy: { _sum: { quantity: 'desc' } },
-                        take: 3
-                    })
-                ]);
+            const responseData: any = { status: 'success' };
 
-                return {
-                    today: { total: todaySales._sum.total || 0, count: todaySales._count },
-                    yesterday: { total: yesterdaySales._sum.total || 0 },
-                    top_products: topProducts.map(p => ({ name: p.productName, qty: p._sum.quantity, total: p._sum.total }))
-                };
-            }
+            // 1. Sales & Performance (Always requested)
+            const [todaySales, yesterdaySales, topProducts] = await Promise.all([
+                prisma.sale.aggregate({ where: { companyId, createdAt: { gte: todayStart } }, _sum: { total: true }, _count: true }),
+                prisma.sale.aggregate({ where: { companyId, createdAt: { gte: yesterdayStart, lt: todayStart } }, _sum: { total: true } }),
+                prisma.saleItem.groupBy({
+                    by: ['productName'],
+                    where: { sale: { companyId, createdAt: { gte: todayStart } } },
+                    _sum: { quantity: true, total: true },
+                    orderBy: { _sum: { quantity: 'desc' } },
+                    take: 5
+                })
+            ]);
+            responseData.today = { total: todaySales._sum.total || 0, count: todaySales._count };
+            responseData.yesterday = { total: yesterdaySales._sum.total || 0 };
+            responseData.top_products = topProducts.map(p => ({ name: p.productName, qty: p._sum.quantity, total: p._sum.total }));
 
-            if (intent.type === 'inventory') {
-                const totalProducts = await prisma.product.count({ where: { companyId } });
-                
-                if (totalProducts === 0) {
-                    return { 
-                        status: 'empty_inventory',
-                        message: 'Ainda não existem produtos registados para esta empresa.',
-                        suggestions: ['Registar novo produto', 'Importar ficheiro de inventrio']
-                    };
-                }
-
-                const [stockValue, allProducts] = await Promise.all([
+            // 2. Inventory & Warehouses (Deep Context)
+            const totalProducts = await prisma.product.count({ where: { companyId } });
+            
+            if (totalProducts > 0) {
+                const [stockValue, allProducts, lowStockRecords, warehouses] = await Promise.all([
                     prisma.product.aggregate({ where: { companyId }, _sum: { currentStock: true } }),
                     prisma.product.findMany({
                         where: { companyId },
-                        select: { name: true, code: true, barcode: true, currentStock: true, minStock: true, costPrice: true, price: true }
+                        select: { name: true, code: true, barcode: true, sku: true, currentStock: true, minStock: true, costPrice: true, price: true },
+                        take: 100 // Hard limit for AI tokens
+                    }),
+                    prisma.$queryRaw<{ name: string; code: string; barcode: string | null; sku: string | null; currentStock: number; minStock: number | null; price: number }[]>`
+                        SELECT name, code, barcode, sku, "currentStock", "minStock", price
+                        FROM products
+                        WHERE "companyId" = ${companyId}
+                          AND "minStock" IS NOT NULL
+                          AND "currentStock" <= "minStock"
+                        ORDER BY "currentStock" ASC
+                        LIMIT 20
+                    `,
+                    prisma.warehouse.findMany({
+                        where: { companyId, isActive: true },
+                        select: { name: true, location: true }
                     })
                 ]);
 
-                // Detect low stock and calculate valuation in memory for accuracy and stability
-                const lowStockDetails = allProducts
-                    .filter(p => p.currentStock <= p.minStock)
-                    .map(p => ({
-                        name: p.name,
-                        code: p.code,
-                        barcode: p.barcode,
-                        currentStock: p.currentStock,
-                        minStock: p.minStock,
-                        price: p.price
-                    }));
-
+                // Compute Valuation
                 const valuation = allProducts.reduce((acc, p) => ({
                     totalCost: acc.totalCost + (Number(p.currentStock) * Number(p.costPrice || 0)),
                     totalSale: acc.totalSale + (Number(p.currentStock) * Number(p.price || 0))
                 }), { totalCost: 0, totalSale: 0 });
 
-                return {
-                    status: 'success',
-                    low_stock: lowStockDetails.length,
-                    total_products: totalProducts,
-                    total_items: stockValue._sum.currentStock || 0,
-                    low_stock_details: lowStockDetails.slice(0, 20), // Detailed list of 20 products for tables
-                    all_products: allProducts.slice(0, 100).map(p => ({ name: p.name, code: p.code, barcode: p.barcode, stock: p.currentStock })), // Increased to 100 for better listings
-                    valuation: {
-                        total_cost: valuation.totalCost,
-                        total_sale: valuation.totalSale,
-                        potential_profit: valuation.totalSale - valuation.totalCost
-                    }
+                responseData.total_products = totalProducts;
+                responseData.total_items = stockValue._sum.currentStock || 0;
+                responseData.low_stock = lowStockRecords.length;
+                responseData.low_stock_details = lowStockRecords.map(p => ({
+                    name: p.name,
+                    reference: p.sku || p.barcode || 'S/Ref',
+                    stock: p.currentStock,
+                    min_stock: p.minStock,
+                    price: p.price
+                }));
+                responseData.active_warehouses = warehouses;
+                responseData.valuation = {
+                    total_cost: valuation.totalCost,
+                    total_sale: valuation.totalSale,
+                    potential_profit: valuation.totalSale - valuation.totalCost
                 };
+                
+                // 'products' alias necessary for PDF Generator (`inventory_table` / `price_list`)
+                responseData.products = allProducts.map((p: any) => ({
+                    name: p.name,
+                    code: p.code,
+                    reference: p.sku || p.barcode || 'S/Ref',
+                    stock: p.currentStock,
+                    price: p.price,
+                    category: p.category || 'Geral'
+                }));
+            } else {
+                responseData.inventory_status = 'empty_inventory';
             }
 
-            if (intent.type === 'hr') {
-                const now = new Date();
-                const [activeCount, totalCount, payrollSummary, pendingVacations] = await Promise.all([
-                    prisma.employee.count({ where: { companyId, isActive: true } }),
-                    prisma.employee.count({ where: { companyId } }),
-                    prisma.payrollRecord.aggregate({
-                        where: { employee: { companyId }, month: now.getMonth() + 1, year: now.getFullYear() },
-                        _sum: { netSalary: true, totalEarnings: true, totalDeductions: true }
-                    }),
-                    prisma.vacationRequest.count({ where: { employee: { companyId }, status: 'pending' } })
-                ]);
+            // 3. HR Metrics
+            const [activeCount, totalCount, payrollSummary, pendingVacations] = await Promise.all([
+                prisma.employee.count({ where: { companyId, isActive: true } }),
+                prisma.employee.count({ where: { companyId } }),
+                prisma.payrollRecord.aggregate({
+                    where: { employee: { companyId }, month: now.getMonth() + 1, year: now.getFullYear() },
+                    _sum: { netSalary: true, totalEarnings: true, totalDeductions: true }
+                }),
+                prisma.vacationRequest.count({ where: { employee: { companyId }, status: 'pending' } })
+            ]);
 
-                return {
-                    employees: { active: activeCount, total: totalCount },
-                    payroll: {
-                        month: now.getMonth() + 1,
-                        year: now.getFullYear(),
-                        total_net: payrollSummary._sum.netSalary || 0,
-                        total_earnings: payrollSummary._sum.totalEarnings || 0,
-                        total_deductions: payrollSummary._sum.totalDeductions || 0
-                    },
-                    vacations: { pending: pendingVacations }
-                };
-            }
+            responseData.employees = { active: activeCount, total: totalCount };
+            responseData.payroll = {
+                month: now.getMonth() + 1,
+                year: now.getFullYear(),
+                total_net: payrollSummary._sum.netSalary || 0,
+                total_earnings: payrollSummary._sum.totalEarnings || 0,
+                total_deductions: payrollSummary._sum.totalDeductions || 0
+            };
+            responseData.vacations = { pending: pendingVacations };
 
-            if (intent.type === 'inventory' || intent.type === 'price_list') {
-                // Return all products for detailed tables/price lists
-                const products = await prisma.product.findMany({
-                    where: { companyId },
-                    select: { name: true, code: true, barcode: true, currentStock: true, price: true, category: true }
-                });
-                return { products };
-            }
+            // 4. Financial Spending (Purchase Orders proxy)
+            const expenses = await prisma.purchaseOrder.aggregate({
+                where: { companyId, status: { in: ['received', 'ordered'] }, createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } },
+                _sum: { total: true }
+            });
+            responseData.financial_expenses = {
+                monthly_supplier_spend: expenses._sum.total || 0
+            };
 
+            // 5. Specific Quotes if intent triggers it
             if (intent.type === 'quotation') {
-                // Fetch the latest quotation
                 const quote = await prisma.customerOrder.findFirst({
                     where: { companyId, notes: { contains: '__QUOTE__' } },
                     include: { items: true },
                     orderBy: { createdAt: 'desc' }
                 });
-                return { quote };
+                responseData.quote = quote;
             }
 
-            return {};
+            return responseData;
         } catch (error) {
             console.error('Error fetching data for AI:', error);
-            return {};
+            // Return safe fallback containing original shapes so UI doesn't crash
+            return { today: { total: 0, count: 0 }, low_stock: 0, total_products: 0 };
         }
     }
 

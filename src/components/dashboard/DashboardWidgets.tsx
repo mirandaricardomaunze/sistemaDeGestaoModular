@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
     AreaChart,
     Area,
@@ -25,9 +26,19 @@ import {
     HiOutlineTrendingUp,
     HiOutlineTrendingDown,
     HiOutlineArrowRight,
-} from 'react-icons/hi';
+    HiOutlineArrowUp,
+    HiOutlineArrowDown,
+    HiOutlineArrowsRightLeft,
+    HiOutlineAdjustmentsHorizontal,
+    HiOutlineTrash,
+    HiOutlineReceiptRefund,
+    HiOutlineClockHistory,
+} from 'react-icons/hi2';
+import { HiOutlineClock } from 'react-icons/hi';
 import { Card, Button, Badge, ResponsiveValue } from '../ui';
 import { formatRelativeTime, cn } from '../../utils/helpers';
+import { productsAPI } from '../../services/api/products.api';
+import type { StockMovement, MovementType } from '../../types';
 
 const CHART_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#0ea5e9'];
 
@@ -342,6 +353,106 @@ export const QuickActionsWidget = () => {
                     </button>
                 </Link>
             </div>
+        </Card>
+    );
+};
+
+// ── Movement type config ──────────────────────────────────────────────────────
+const MOVEMENT_CONFIG: Record<MovementType, {
+    label: string;
+    icon: React.ElementType;
+    iconBg: string;
+    iconColor: string;
+    qtyColor: string;
+    sign: '+' | '-';
+}> = {
+    purchase:   { label: 'Compra',        icon: HiOutlineArrowDown,             iconBg: 'bg-green-100 dark:bg-green-900/30',   iconColor: 'text-green-600 dark:text-green-400',  qtyColor: 'text-green-600 dark:text-green-400',  sign: '+' },
+    sale:       { label: 'Venda',          icon: HiOutlineArrowUp,               iconBg: 'bg-red-100 dark:bg-red-900/30',       iconColor: 'text-red-600 dark:text-red-400',      qtyColor: 'text-red-600 dark:text-red-400',      sign: '-' },
+    return_in:  { label: 'Devolução In',   icon: HiOutlineReceiptRefund,         iconBg: 'bg-blue-100 dark:bg-blue-900/30',     iconColor: 'text-blue-600 dark:text-blue-400',    qtyColor: 'text-blue-600 dark:text-blue-400',    sign: '+' },
+    return_out: { label: 'Devolução Out',  icon: HiOutlineReceiptRefund,         iconBg: 'bg-orange-100 dark:bg-orange-900/30', iconColor: 'text-orange-600 dark:text-orange-400',qtyColor: 'text-orange-600 dark:text-orange-400',sign: '-' },
+    adjustment: { label: 'Ajuste',         icon: HiOutlineAdjustmentsHorizontal, iconBg: 'bg-purple-100 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400',qtyColor: 'text-purple-600 dark:text-purple-400',sign: '+' },
+    expired:    { label: 'Expirado',       icon: HiOutlineTrash,                 iconBg: 'bg-red-100 dark:bg-red-900/30',       iconColor: 'text-red-600 dark:text-red-400',      qtyColor: 'text-red-600 dark:text-red-400',      sign: '-' },
+    transfer:   { label: 'Transferência',  icon: HiOutlineArrowsRightLeft,       iconBg: 'bg-cyan-100 dark:bg-cyan-900/30',     iconColor: 'text-cyan-600 dark:text-cyan-400',    qtyColor: 'text-cyan-600 dark:text-cyan-400',    sign: '±' as '+' },
+    loss:       { label: 'Perda',          icon: HiOutlineTrash,                 iconBg: 'bg-gray-100 dark:bg-gray-800',        iconColor: 'text-gray-500 dark:text-gray-400',    qtyColor: 'text-gray-500 dark:text-gray-400',    sign: '-' },
+};
+
+export const RecentMovementsWidget = () => {
+    const { data, isLoading } = useQuery({
+        queryKey: ['dashboard', 'recent-movements'],
+        queryFn: () => productsAPI.getStockMovements({ limit: 10, sortBy: 'createdAt', sortOrder: 'desc' }),
+        staleTime: 60_000,
+    });
+
+    const movements: (StockMovement & { product?: { name: string } })[] =
+        Array.isArray(data) ? data : (data?.data ?? []);
+
+    return (
+        <Card padding="md" className="w-full">
+            <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                        <HiOutlineClock className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                    </div>
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">Últimos Movimentos</h2>
+                </div>
+                <Link to="/stock-movements">
+                    <Button variant="ghost" size="sm" className="text-xs">
+                        Ver todos <HiOutlineArrowRight className="w-3.5 h-3.5 ml-1 inline" />
+                    </Button>
+                </Link>
+            </div>
+
+            {isLoading ? (
+                <div className="space-y-3">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="flex items-center gap-3 animate-pulse">
+                            <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-dark-700 flex-shrink-0" />
+                            <div className="flex-1 space-y-1.5">
+                                <div className="h-3 bg-gray-100 dark:bg-dark-700 rounded w-2/3" />
+                                <div className="h-2.5 bg-gray-100 dark:bg-dark-700 rounded w-1/2" />
+                            </div>
+                            <div className="h-3 bg-gray-100 dark:bg-dark-700 rounded w-12" />
+                        </div>
+                    ))}
+                </div>
+            ) : movements.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                    <HiOutlineClock className="w-10 h-10 mb-2 opacity-40" />
+                    <p className="text-sm">Sem movimentos registados</p>
+                </div>
+            ) : (
+                <div className="divide-y divide-gray-100 dark:divide-dark-700">
+                    {movements.map((mov) => {
+                        const cfg = MOVEMENT_CONFIG[mov.movementType] ?? MOVEMENT_CONFIG.adjustment;
+                        const Icon = cfg.icon;
+                        const productName = (mov as any).product?.name ?? mov.reason ?? '—';
+                        return (
+                            <div key={mov.id} className="flex items-center gap-3 py-3 group hover:bg-gray-50 dark:hover:bg-dark-700/50 -mx-4 px-4 transition-colors duration-150 first:pt-0 last:pb-0">
+                                <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0', cfg.iconBg)}>
+                                    <Icon className={cn('w-4 h-4', cfg.iconColor)} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{productName}</p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-100 dark:bg-dark-700 text-gray-500 dark:text-gray-400">
+                                            {cfg.label}
+                                        </span>
+                                        {mov.warehouse?.name && (
+                                            <span className="text-[10px] text-gray-400 truncate">{mov.warehouse.name}</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
+                                    <span className={cn('text-sm font-black tabular-nums', cfg.qtyColor)}>
+                                        {cfg.sign}{Math.abs(mov.quantity)}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400">{formatRelativeTime(mov.createdAt)}</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </Card>
     );
 };
