@@ -8,7 +8,7 @@ let io: Server;
 export function initSocket(server: HttpServer) {
     io = new Server(server, {
         cors: {
-            origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
+            origin: process.env.ALLOWED_ORIGINS?.split(',').map(s => s.trim()) || false,
             methods: ['GET', 'POST'],
             credentials: true
         }
@@ -23,7 +23,7 @@ export function initSocket(server: HttpServer) {
             }
 
             const cleanToken = token.startsWith('Bearer ') ? token.slice(7) : token;
-            const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET!) as any;
+            const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET!, { algorithms: ['HS256'] }) as any;
 
             // Token payload uses 'userId' (set by auth route)
             const userId = decoded.userId || decoded.id;
@@ -57,14 +57,12 @@ export function initSocket(server: HttpServer) {
 
     io.on('connection', (socket) => {
         const companyId = socket.data.companyId;
-        console.log(`🔌 User connected: ${socket.data.userId} to company room: ${companyId}`);
+        if (process.env.NODE_ENV !== 'production') console.log(`Socket connected: user to company room`);
 
         // Join company-specific room
         socket.join(companyId);
 
-        socket.on('disconnect', () => {
-            console.log(`❌ User disconnected: ${socket.data.userId}`);
-        });
+        socket.on('disconnect', () => {});
     });
 
     return io;
