@@ -9,13 +9,17 @@ import {
     HiOutlineRefresh,
     HiOutlineExclamation,
     HiOutlineCheckCircle,
+    HiOutlineDatabase,
+    HiOutlineSparkles,
 } from 'react-icons/hi';
 import {
-    PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip
+    PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
+    BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import { Card, Badge, Button } from '../../components/ui';
 import { formatCurrency, cn } from '../../utils/helpers';
-import { useStockAging, useSupplierPerformance, useSalesReport } from '../../hooks/useCommercial';
+import { useStockAging, useSupplierPerformance, useSalesReport, useWarehouseDistribution } from '../../hooks/useCommercial';
+import { usePredictiveForecast } from '../../hooks/usePredictive';
 import { useCategories } from '../../hooks/useData';
 
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
@@ -33,7 +37,7 @@ const AGING_CONFIG = {
     critical: { label: 'Crítico (>90d)', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', bar: 'bg-red-400', badgeVariant: 'danger' as const },
 };
 
-type ReportTab = 'sales' | 'aging' | 'suppliers';
+type ReportTab = 'sales' | 'aging' | 'suppliers' | 'warehouses' | 'predictive';
 
 export default function CommercialReports() {
     const [activeTab, setActiveTab] = useState<ReportTab>('sales');
@@ -43,7 +47,11 @@ export default function CommercialReports() {
     const { data: salesData, isLoading: salesLoading, refetch: refetchSales } = useSalesReport(period);
     const { data: agingData, isLoading: agingLoading, refetch: refetchAging } = useStockAging();
     const { data: supplierData, isLoading: supplierLoading, refetch: refetchSuppliers } = useSupplierPerformance();
+    const { data: warehouseData, isLoading: warehouseLoading, refetch: refetchWarehouses } = useWarehouseDistribution();
+    const { data: predictiveData, isLoading: predictiveLoading, refetch: refetchPredictive, createOrders, isCreating } = usePredictiveForecast();
     const { categories } = useCategories();
+
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
     const categoryProductData = useMemo(() => {
         if (!categories || categories.length === 0) return [];
@@ -57,14 +65,14 @@ export default function CommercialReports() {
     const handleRefetch = () => {
         if (activeTab === 'sales') refetchSales();
         else if (activeTab === 'aging') refetchAging();
-        else refetchSuppliers();
+        else if (activeTab === 'suppliers') refetchSuppliers();
+        else if (activeTab === 'warehouses') refetchWarehouses();
+        else refetchPredictive();
     };
 
     const filteredAgingProducts = agingData?.products.filter(p =>
         !agingFilter || p.agingBucket === agingFilter
     ) || [];
-
-    const maxDailySales = Math.max(...(salesData?.dailySales.map(d => d.revenue) || [1]));
 
     return (
         <div className="space-y-6">
@@ -79,15 +87,15 @@ export default function CommercialReports() {
                 </div>
                 <div className="flex items-center gap-2">
                     {activeTab === 'sales' && (
-                        <div className="flex bg-gray-100 dark:bg-dark-700 rounded-lg p-1 gap-1">
+                        <div className="flex bg-slate-100 dark:bg-dark-700 rounded-lg p-1.5 gap-1.5 shadow-inner">
                             {PERIOD_OPTIONS.map(opt => (
                                 <button
                                     key={opt.value}
                                     onClick={() => setPeriod(opt.value)}
                                     className={cn(
-                                        'px-3 py-1 text-xs font-medium rounded-md transition-all',
+                                        'px-4 py-1.5 text-xs font-black uppercase tracking-widest rounded-md transition-all duration-300',
                                         period === opt.value
-                                            ? 'bg-white dark:bg-dark-600 text-gray-900 dark:text-white shadow-sm'
+                                            ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-primary-400 shadow-sm'
                                             : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                                     )}
                                 >
@@ -102,12 +110,13 @@ export default function CommercialReports() {
                 </div>
             </div>
 
-            {/* Tab navigation */}
-            <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-xl p-1">
+            <div className="flex gap-1 bg-slate-100/70 dark:bg-dark-700/50 rounded-lg p-1 shadow-inner">
                 {[
                     { key: 'sales', label: 'Vendas & Produtos', icon: HiOutlineChartBar },
                     { key: 'aging', label: 'Stock Envelhecido', icon: HiOutlineClock },
                     { key: 'suppliers', label: 'Fornecedores', icon: HiOutlineTruck },
+                    { key: 'warehouses', label: 'Distribuição', icon: HiOutlineDatabase },
+                    { key: 'predictive', label: 'IA Preditiva', icon: HiOutlineSparkles },
                 ].map(tab => {
                     const Icon = tab.icon;
                     return (
@@ -115,57 +124,88 @@ export default function CommercialReports() {
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key as ReportTab)}
                             className={cn(
-                                'flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-lg transition-all',
+                                'flex-1 flex items-center justify-center gap-2 py-2 text-sm font-black uppercase tracking-widest rounded-lg transition-all duration-300',
                                 activeTab === tab.key
-                                    ? 'bg-white dark:bg-dark-600 text-gray-900 dark:text-white shadow-sm'
+                                    ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-primary-400 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                             )}
                         >
                             <Icon className="w-4 h-4" />
-                            <span className="hidden sm:inline">{tab.label}</span>
+                            <span className="hidden lg:inline">{tab.label}</span>
                         </button>
                     );
                 })}
             </div>
 
-            {/* ── Sales Report ────────────────────────────────────────────── */}
+            {/* ---- Sales Report ------------------------------------------------------------------------------------------ */}
             {activeTab === 'sales' && (
                 salesLoading ? (
                     <div className="space-y-4">
-                        <div className="h-64 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />
+                        <div className="h-64 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />
-                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />
+                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
                         </div>
                     </div>
                 ) : (
                     <div className="space-y-6">
                         {/* Daily chart */}
-                        <Card padding="lg">
+                        <Card padding="lg" color="primary">
                             <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <HiOutlineTrendingUp className="text-primary-500" />
-                                Vendas Diárias — Últimos {period} dias
+                                Vendas Diárias -- Últimos {period} dias
                             </h3>
-                            <div className="h-48 flex items-end gap-1 pt-4 overflow-x-auto">
-                                {(salesData?.dailySales || []).map((day, i) => (
-                                    <div key={i} className="flex-shrink-0 flex flex-col items-center gap-1 group" style={{ minWidth: '20px' }}>
-                                        <div
-                                            className="w-full bg-primary-100 dark:bg-primary-900/20 group-hover:bg-primary-500 transition-colors rounded-t relative"
-                                            style={{ height: `${Math.max(6, (day.revenue / maxDailySales) * 160)}px` }}
-                                        >
-                                            <div className="absolute top-[-28px] left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10">
-                                                {formatCurrency(day.revenue)}
-                                            </div>
-                                        </div>
-                                        <span className="text-[9px] text-gray-400 rotate-45 origin-left">{day.date.slice(5)}</span>
-                                    </div>
-                                ))}
+                            <div className="h-56">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={salesData?.dailySales || []}
+                                        margin={{ top: 4, right: 4, left: 0, bottom: 20 }}
+                                        barCategoryGap="20%"
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.08} />
+                                        <XAxis
+                                            dataKey="date"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 9, fill: '#9ca3af', fontWeight: 600 }}
+                                            tickFormatter={(v: string) => v.slice(5)}
+                                            angle={-40}
+                                            textAnchor="end"
+                                            interval={period <= 7 ? 0 : Math.floor((salesData?.dailySales?.length ?? 1) / 10)}
+                                        />
+                                        <YAxis
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 9, fill: '#9ca3af' }}
+                                            tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)}
+                                            width={36}
+                                        />
+                                        <RechartsTooltip
+                                            cursor={{ fill: 'rgba(59,130,246,0.06)' }}
+                                            contentStyle={{
+                                                backgroundColor: 'rgba(15,23,42,0.92)',
+                                                border: '1px solid rgba(255,255,255,0.08)',
+                                                borderRadius: '10px',
+                                                fontSize: '12px',
+                                                color: '#fff',
+                                            }}
+                                            formatter={(value: any) => [formatCurrency(value), 'Receita']}
+                                            labelFormatter={(label: string) => label}
+                                        />
+                                        <Bar
+                                            dataKey="revenue"
+                                            fill="#3b82f6"
+                                            radius={[4, 4, 0, 0]}
+                                            maxBarSize={24}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
                             </div>
                         </Card>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Top products */}
-                            <Card padding="lg">
+                            <Card padding="lg" color="emerald">
                                 <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                     <HiOutlineCube className="text-primary-500" />
                                     Top Produtos por Receita
@@ -178,14 +218,14 @@ export default function CommercialReports() {
                                                 <span className="text-xs text-gray-400 w-5 text-center">{i + 1}</span>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex justify-between items-center mb-1">
-                                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-300 truncate">
                                                             {tp.product?.name || 'Produto'}
-                                                        </span>
+                                                        </p>
                                                         <span className="text-sm font-bold text-gray-900 dark:text-white ml-2">{formatCurrency(tp.revenue)}</span>
                                                     </div>
-                                                    <div className="h-1.5 bg-gray-100 dark:bg-dark-700 rounded-full overflow-hidden">
+                                                    <div className="h-2 bg-primary-100 dark:bg-primary-900/30 rounded-full overflow-hidden">
                                                         <div
-                                                            className="h-full bg-primary-400 rounded-full"
+                                                            className="h-full bg-primary-600 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)]"
                                                             style={{ width: `${(tp.revenue / maxRev) * 100}%` }}
                                                         />
                                                     </div>
@@ -199,8 +239,7 @@ export default function CommercialReports() {
                                 </div>
                             </Card>
 
-                            {/* Payment methods */}
-                            <Card padding="lg">
+                            <Card padding="lg" color="amber">
                                 <h3 className="font-bold text-gray-900 dark:text-white mb-4">Métodos de Pagamento</h3>
                                 <div className="space-y-3">
                                     {salesData?.paymentMethods.map((pm, i) => {
@@ -212,13 +251,13 @@ export default function CommercialReports() {
                                                 <div className="flex justify-between text-sm mb-1">
                                                     <span className="text-gray-700 dark:text-gray-300 capitalize">{pm.method}</span>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-xs text-gray-400">{pm.count} transacções</span>
+                                                        <span className="text-xs text-gray-400">{pm.count} transações</span>
                                                         <span className="font-bold text-gray-900 dark:text-white">{formatCurrency(pm.total)}</span>
                                                     </div>
                                                 </div>
-                                                <div className="h-2 bg-gray-100 dark:bg-dark-700 rounded-full overflow-hidden">
+                                                <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                                                     <div
-                                                        className={`h-full ${colors[i % colors.length]} rounded-full`}
+                                                        className={`h-full ${colors[i % colors.length]} rounded-full shadow-sm`}
                                                         style={{ width: `${pct}%` }}
                                                     />
                                                 </div>
@@ -232,8 +271,7 @@ export default function CommercialReports() {
                             </Card>
                         </div>
 
-                        {/* Category distribution */}
-                        <Card padding="lg">
+                        <Card padding="lg" color="indigo">
                             <h3 className="font-bold text-gray-900 dark:text-white mb-4">Produtos por Categoria</h3>
                             <div className="h-64 flex flex-col md:flex-row items-center gap-8">
                                 <div className="w-full md:w-1/2 h-full">
@@ -277,15 +315,13 @@ export default function CommercialReports() {
                 )
             )}
 
-            {/* ── Stock Aging ─────────────────────────────────────────────── */}
             {activeTab === 'aging' && (
                 agingLoading ? (
                     <div className="space-y-3">
-                        {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />)}
+                        {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {/* Summary cards */}
                         {agingData?.summary && (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {Object.entries(AGING_CONFIG).map(([key, cfg]) => {
@@ -295,7 +331,7 @@ export default function CommercialReports() {
                                             key={key}
                                             onClick={() => setAgingFilter(agingFilter === key ? '' : key)}
                                             className={cn(
-                                                'text-left p-4 rounded-xl border-2 transition-all',
+                                                'text-left p-4 rounded-lg border-2 transition-all',
                                                 agingFilter === key
                                                     ? 'border-primary-500 shadow-md'
                                                     : 'border-transparent',
@@ -313,13 +349,13 @@ export default function CommercialReports() {
 
                         {/* Value at risk */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Card padding="md" className="border-l-4 border-l-gray-400">
+                            <Card padding="md" className="bg-slate-50/50 dark:bg-dark-800/50 border-none">
                                 <p className="text-xs text-gray-500">Valor Total em Stock</p>
                                 <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                                     {formatCurrency(agingData?.summary.totalStockValue || 0)}
                                 </p>
                             </Card>
-                            <Card padding="md" className="border-l-4 border-l-red-500">
+                            <Card padding="md" className="bg-red-50/50 dark:bg-red-900/10 border-none">
                                 <p className="text-xs text-gray-500">Valor em Stock Crítico (&gt;90 dias)</p>
                                 <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
                                     {formatCurrency(agingData?.summary.criticalValue || 0)}
@@ -334,7 +370,7 @@ export default function CommercialReports() {
                                     Produtos por Envelhecimento
                                     {agingFilter && (
                                         <span className="ml-2 text-sm text-primary-500">
-                                            — {AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.label}
+                                            "" {AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.label}
                                         </span>
                                     )}
                                 </h3>
@@ -398,11 +434,11 @@ export default function CommercialReports() {
                 )
             )}
 
-            {/* ── Supplier Performance ────────────────────────────────────── */}
+            {/* ── Supplier Performance ───────────────────────────────────────── */}
             {activeTab === 'suppliers' && (
                 supplierLoading ? (
                     <div className="space-y-3">
-                        {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />)}
+                        {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}
                     </div>
                 ) : supplierData.length === 0 ? (
                     <Card padding="lg" className="text-center py-16">
@@ -484,7 +520,7 @@ export default function CommercialReports() {
                                                         >
                                                             {s.onTimeRate.toFixed(0)}%
                                                         </Badge>
-                                                    ) : <span className="text-gray-400 text-xs">—</span>}
+                                                    ) : <span className="text-gray-400 text-xs">--</span>}
                                                 </td>
                                                 <td className="py-2.5 text-right">
                                                     {s.pendingOrders > 0 ? (
@@ -493,11 +529,320 @@ export default function CommercialReports() {
                                                             s.overdueOrders > 0 ? 'text-red-500' : 'text-yellow-500'
                                                         )}>
                                                             {s.pendingOrders}
-                                                            {s.overdueOrders > 0 && ` (${s.overdueOrders} atr.)`}
+                                                            {s.overdueOrders > 0 && ` (${s.overdueOrders} atraso)`}
                                                         </span>
                                                     ) : <span className="text-gray-400">0</span>}
                                                 </td>
                                                 <td className="py-2.5 text-right hidden md:table-cell text-gray-600 dark:text-gray-400">{s.productCount}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card>
+                    </div>
+                )
+            )}
+
+            {/* ── Warehouse Distribution ─────────────────────────────────── */}
+            {activeTab === 'warehouses' && (
+                warehouseLoading ? (
+                    <div className="space-y-4">
+                        <div className="h-64 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {/* Summary Metrics */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                            <Card padding="lg" className="border-l-4 border-l-primary-500">
+                                <p className="text-xs text-gray-500 font-medium">Valoração Total em Stock</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                    {formatCurrency(warehouseData.reduce((s, w) => s + w.valuation, 0))}
+                                </p>
+                            </Card>
+                            <Card padding="lg" className="border-l-4 border-l-green-500">
+                                <p className="text-xs text-gray-500 font-medium">Volume Físico (Itens)</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                    {warehouseData.reduce((s, w) => s + w.volume, 0).toLocaleString()}
+                                </p>
+                            </Card>
+                            <Card padding="lg" className="border-l-4 border-l-blue-500">
+                                <p className="text-xs text-gray-500 font-medium">Localizaces Activas</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                    {warehouseData.length}
+                                </p>
+                            </Card>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Valuation Chart */}
+                            <Card padding="lg">
+                                <h3 className="font-bold text-gray-900 dark:text-white mb-4">Investimento por Armazém (Valoração)</h3>
+                                <div className="h-64">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={warehouseData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={60}
+                                                outerRadius={90}
+                                                paddingAngle={5}
+                                                dataKey="valuation"
+                                                nameKey="name"
+                                                animationDuration={1500}
+                                            >
+                                                {warehouseData.map((_, index) => (
+                                                    <Cell key={`cell-wh-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <RechartsTooltip
+                                                formatter={(value: any) => [formatCurrency(value), 'Valor']}
+                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 mt-2">
+                                    {warehouseData.map((w, i) => (
+                                        <div key={w.id} className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                                            <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{w.name}</span>
+                                            <span className="text-xs font-bold ml-auto">{((w.valuation / warehouseData.reduce((s, x) => s + x.valuation, 0.1)) * 100).toFixed(1)}%</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+
+                            {/* Volume Chart */}
+                            <Card padding="lg">
+                                <h3 className="font-bold text-gray-900 dark:text-white mb-4">Volume Físico por Armazém</h3>
+                                <div className="h-64">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={warehouseData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.05} />
+                                            <XAxis type="number" hide />
+                                            <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} width={80} />
+                                            <RechartsTooltip
+                                                cursor={{ fill: 'rgba(59,130,246,0.05)' }}
+                                                contentStyle={{ borderRadius: '8px', border: 'none' }}
+                                            />
+                                            <Bar dataKey="volume" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <p className="text-[10px] text-gray-400 text-center uppercase tracking-wider font-semibold">Total de unidades em stock</p>
+                            </Card>
+                        </div>
+
+                        {/* Top Products per Warehouse */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                            {warehouseData.map((w) => (
+                                <Card key={w.id} padding="md">
+                                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-50 dark:border-dark-700">
+                                        <div>
+                                            <h4 className="font-bold text-gray-900 dark:text-white text-sm">{w.name}</h4>
+                                            <p className="text-[10px] text-gray-500">{w.productCount} tipos de produtos</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-primary-500">{formatCurrency(w.valuation)}</p>
+                                            <p className="text-[10px] text-gray-400 capitalize">{w.location || 'Sem localização'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {w.topProducts.map((p) => (
+                                            <div key={p.id} className="flex items-center justify-between group">
+                                                <div className="min-w-0 pr-2">
+                                                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 truncate">{p.name}</p>
+                                                    <p className="text-[10px] text-gray-400">{p.code}</p>
+                                                </div>
+                                                <div className="text-right flex-shrink-0">
+                                                    <p className="text-xs font-bold text-gray-900 dark:text-white">{formatCurrency(p.value)}</p>
+                                                    <p className="text-[10px] text-gray-400">{p.quantity} un.</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                )
+            )}
+
+            {/* ── AI Predictive Analytics ────────────────────────────────── */}
+            {activeTab === 'predictive' && (
+                predictiveLoading ? (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}
+                        </div>
+                        <div className="h-96 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <Card padding="lg" className="border-l-4 border-l-red-500">
+                                <p className="text-xs text-gray-500 font-medium">Produtos em Risco Crítico</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                    {predictiveData.filter(p => p.status === 'critical').length}
+                                </p>
+                                <p className="text-[10px] text-red-500 mt-1">Ruptura iminente (&lt; 7 dias)</p>
+                            </Card>
+                            <Card padding="lg" className="border-l-4 border-l-orange-500">
+                                <p className="text-xs text-gray-500 font-medium">Sugestões de Recompra</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                    {predictiveData.filter(p => p.suggestedPurchase > 0).length}
+                                </p>
+                                <p className="text-[10px] text-gray-400 mt-1">Baseado na procura 30d</p>
+                            </Card>
+                            <Card padding="lg" className="border-l-4 border-l-blue-500">
+                                <p className="text-xs text-gray-500 font-medium">Precisão da IA</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                    {(predictiveData.reduce((s, p) => s + p.confidence, 0) / (predictiveData.length || 1) * 100).toFixed(0)}%
+                                </p>
+                                <p className="text-[10px] text-gray-400 mt-1">Confiança média do modelo</p>
+                            </Card>
+                            <Card padding="lg" className="border-l-4 border-l-green-500">
+                                <p className="text-xs text-gray-500 font-medium">Investimento Necessário</p>
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                                    {formatCurrency(predictiveData.reduce((s, p) => s + (p.suggestedPurchase * p.costPrice), 0))}
+                                </p>
+                                <p className="text-[10px] text-gray-400 mt-1">Para suprir 30 dias de procura</p>
+                            </Card>
+                        </div>
+
+                        {/* Forecasting & Action Table */}
+                        <Card padding="none">
+                            <div className="p-6 border-b border-gray-100 dark:border-dark-700 flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-bold text-gray-900 dark:text-white">Análise Preditiva e Reposição</h3>
+                                    <p className="text-xs text-gray-500 mt-1">Procura estimada para os próximos 30 dias com base no histórico real</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    {selectedItems.length > 0 && (
+                                        <Button 
+                                            size="sm" 
+                                            onClick={async () => {
+                                                const suggestions = predictiveData
+                                                    .filter(p => selectedItems.includes(p.productId))
+                                                    .map(p => ({ productId: p.productId, quantity: p.suggestedPurchase || p.minStock }));
+                                                await createOrders(suggestions);
+                                                setSelectedItems([]);
+                                            }}
+                                            isLoading={isCreating}
+                                            leftIcon={<HiOutlineTruck />}
+                                        >
+                                            Gerar OCs ({selectedItems.length})
+                                        </Button>
+                                    )}
+                                    <Badge variant="success" className="bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
+                                        IA Active (Gemini 1.5)
+                                    </Badge>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead>
+                                        <tr className="bg-gray-50 dark:bg-dark-800 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
+                                            <th className="px-6 py-4 w-10">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                    checked={selectedItems.length === predictiveData.length && predictiveData.length > 0}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setSelectedItems(predictiveData.map(p => p.productId));
+                                                        else setSelectedItems([]);
+                                                    }}
+                                                />
+                                            </th>
+                                            <th className="px-6 py-4">Produto</th>
+                                            <th className="px-6 py-4">Tendência 6M</th>
+                                            <th className="px-6 py-4">Stock Atual/Mín</th>
+                                            <th className="px-6 py-4">Procura 30d (IA)</th>
+                                            <th className="px-6 py-4">Sugestão</th>
+                                            <th className="px-6 py-4">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
+                                        {predictiveData.map(item => (
+                                            <tr key={item.productId} className={cn(
+                                                "hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors",
+                                                selectedItems.includes(item.productId) && "bg-primary-50/30 dark:bg-primary-900/10"
+                                            )}>
+                                                <td className="px-6 py-4">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                        checked={selectedItems.includes(item.productId)}
+                                                        onChange={() => {
+                                                            setSelectedItems(prev => 
+                                                                prev.includes(item.productId) 
+                                                                    ? prev.filter(id => id !== item.productId)
+                                                                    : [...prev, item.productId]
+                                                            );
+                                                        }}
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="font-medium text-gray-900 dark:text-white">{item.productName}</div>
+                                                    <div className="text-[10px] text-gray-400">{item.productCode}</div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-end gap-1 h-8 w-24">
+                                                        {item.history.map((h: any, i: number) => (
+                                                            <div 
+                                                                key={i} 
+                                                                className="w-full bg-gray-200 dark:bg-dark-600 rounded-t-sm transition-all hover:bg-primary-400"
+                                                                style={{ height: `${Math.min(100, (h / (Math.max(...item.history) || 1)) * 100)}%` }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={cn(
+                                                            "font-bold",
+                                                            item.currentStock <= item.minStock ? "text-red-500" : "text-gray-900 dark:text-white"
+                                                        )}>
+                                                            {item.currentStock}
+                                                        </span>
+                                                        <span className="text-gray-400">/ {item.minStock}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-primary-500">{item.forecasted30d} un.</span>
+                                                        <span className="text-[10px] text-gray-400">{(item.confidence * 100).toFixed(0)}% confiança</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {item.suggestedPurchase > 0 ? (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-bold text-green-600">Comprar {item.suggestedPurchase}</span>
+                                                            <span className="text-[10px] text-gray-400">{formatCurrency(item.suggestedPurchase * item.costPrice)}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic">Suficiente</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <Badge variant={
+                                                        item.status === 'critical' ? 'danger' :
+                                                        item.status === 'high_risk' ? 'danger' :
+                                                        item.status === 'low_risk' ? 'warning' : 'success'
+                                                    }>
+                                                        {item.status.toUpperCase()}
+                                                    </Badge>
+                                                    <p className="text-[10px] text-gray-500 mt-1 max-w-[150px] leading-tight truncate" title={item.reasoning}>
+                                                        {item.reasoning}
+                                                    </p>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>

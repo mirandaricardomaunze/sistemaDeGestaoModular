@@ -23,9 +23,11 @@ interface CardProps {
     className?: string;
     variant?: 'default' | 'glass' | 'premium';
     padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+    color?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'amber' | 'emerald' | 'cyan' | 'indigo' | 'slate';
+    onClick?: () => void;
 }
 
-export function Card({ children, className, variant = 'default', padding = 'md' }: CardProps) {
+export function Card({ children, className, variant = 'default', padding = 'md', color, onClick }: CardProps) {
     const paddingClasses = {
         none: '',
         sm: 'p-4',
@@ -35,20 +37,37 @@ export function Card({ children, className, variant = 'default', padding = 'md' 
     };
 
     const variantClasses = {
-        default: 'bg-white dark:bg-dark-800 rounded-xl shadow-card hover:shadow-card-hover',
-        glass: 'bg-white/80 dark:bg-dark-800/80 backdrop-blur-lg rounded-xl shadow-glass border border-white/20 dark:border-dark-700/50',
-        premium: 'bg-white dark:bg-dark-900 rounded-3xl border border-gray-100 dark:border-dark-700 shadow-sm relative overflow-hidden',
+        default: 'bg-white dark:bg-dark-800 rounded-lg shadow-card border border-slate-200/60 dark:border-dark-700/50 transition-all duration-300 hover:shadow-card-hover hover:border-primary-500/20',
+        glass: 'bg-white/70 dark:bg-dark-800/80 backdrop-blur-xl rounded-lg shadow-glass border border-white dark:border-dark-700/30',
+        premium: 'bg-white dark:bg-dark-900 rounded-lg border border-slate-200/50 dark:border-dark-700 shadow-premium relative overflow-hidden',
+    };
+
+    const colorClasses: Record<string, string> = {
+        primary: 'bg-primary-100/60 dark:bg-primary-900/40 border-none shadow-md shadow-primary-500/10',
+        success: 'bg-green-100/60 dark:bg-green-900/40 border-none shadow-md shadow-green-500/10',
+        warning: 'bg-yellow-100/60 dark:bg-yellow-900/40 border-none shadow-md shadow-yellow-500/10',
+        danger: 'bg-red-100/60 dark:bg-red-900/40 border-none shadow-md shadow-red-500/10',
+        info: 'bg-blue-100/60 dark:bg-blue-900/40 border-none shadow-md shadow-blue-500/10',
+        purple: 'bg-purple-100/60 dark:bg-purple-900/40 border-none shadow-md shadow-purple-500/10',
+        amber: 'bg-amber-100/60 dark:bg-amber-900/40 border-none shadow-md shadow-amber-500/10',
+        emerald: 'bg-emerald-100/60 dark:bg-emerald-900/40 border-none shadow-md shadow-emerald-500/10',
+        cyan: 'bg-cyan-100/60 dark:bg-cyan-900/40 border-none shadow-md shadow-cyan-500/10',
+        indigo: 'bg-indigo-100/60 dark:bg-indigo-900/40 border-none shadow-md shadow-indigo-500/10',
+        slate: 'bg-slate-100 dark:bg-slate-900/40 border-none shadow-md shadow-slate-500/10',
     };
 
     return (
         <div
             className={cn(
                 variantClasses[variant],
+                color && colorClasses[color],
                 paddingClasses[padding],
                 'transition-all duration-200 relative',
                 !className?.includes('overflow-') && 'overflow-hidden',
+                onClick && 'cursor-pointer hover:shadow-lg',
                 className
             )}
+            onClick={onClick}
         >
             {variant === 'premium' && (
                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
@@ -77,7 +96,7 @@ export function PageHeader({ title, subtitle, icon, actions, tabs, className }: 
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
                 <div className="flex items-center gap-4">
                     {icon && (
-                        <div className="w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center shrink-0">
+                        <div className="w-12 h-12 rounded-lg bg-primary-500/10 flex items-center justify-center shrink-0">
                             {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6 text-primary-600' } as any)}
                         </div>
                     )}
@@ -138,15 +157,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                     <input
                         ref={ref}
                         className={cn(
-                            'w-full rounded-lg border bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200 shadow-sm',
+                            'w-full rounded-lg border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 transition-all duration-300 shadow-sm',
                             size === 'sm' ? 'px-3 py-1.5 text-sm' :
-                                size === 'lg' ? 'px-6 py-3.5 text-lg' :
-                                    'px-4 py-2.5',
+                                size === 'lg' ? 'px-6 py-4 text-lg' :
+                                    'px-4 py-3',
                             error
-                                ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500'
-                                : 'border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500',
-                            leftIcon ? 'pl-10' : '',
-                            rightIcon ? 'pr-10' : '',
+                                ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500'
+                                : 'border-slate-200 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:shadow-md',
+                            leftIcon ? 'pl-11' : '',
+                            rightIcon ? 'pr-11' : '',
                             className
                         )}
                         {...props}
@@ -236,13 +255,13 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                 <select
                     ref={ref}
                     className={cn(
-                        'w-full rounded-lg border bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 transition-all duration-200 appearance-none cursor-pointer shadow-sm',
+                        'w-full rounded-lg border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 transition-all duration-300 appearance-none cursor-pointer shadow-sm',
                         size === 'sm' ? 'px-3 py-1.5 text-sm' :
-                            size === 'lg' ? 'px-6 py-3.5 text-lg' :
-                                'px-4 py-2.5',
+                            size === 'lg' ? 'px-6 py-4 text-lg' :
+                                'px-4 py-3',
                         error
-                            ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500'
-                            : 'border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500',
+                            ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500'
+                            : 'border-slate-200 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:shadow-md',
                         className
                     )}
                     {...props}
@@ -276,6 +295,8 @@ interface ModalProps {
     children: React.ReactNode;
     size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
     showCloseButton?: boolean;
+    className?: string;
+    isLight?: boolean;
 }
 
 export function Modal({
@@ -285,6 +306,8 @@ export function Modal({
     children,
     size = 'md',
     showCloseButton = true,
+    className,
+    isLight = false,
 }: ModalProps) {
     if (!isOpen) return null;
 
@@ -308,23 +331,36 @@ export function Modal({
             <div className="flex min-h-full items-center justify-center p-4">
                 <div
                     className={cn(
-                        'relative w-full bg-white dark:bg-dark-800 rounded-2xl shadow-xl animate-slide-up',
-                        sizeClasses[size]
+                        'relative w-full rounded-lg shadow-premium animate-slide-up border border-white/50 dark:border-dark-700/50',
+                        isLight ? 'bg-white text-slate-900' : 'bg-white dark:bg-dark-800',
+                        sizeClasses[size],
+                        className
                     )}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
                     {(title || showCloseButton) && (
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-dark-700">
+                        <div className={cn(
+                            "flex items-center justify-between p-6 border-b",
+                            isLight ? "border-gray-100" : "border-gray-200 dark:border-dark-700"
+                        )}>
                             {title && (
-                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                                <h2 className={cn(
+                                    "text-xl font-semibold",
+                                    isLight ? "text-slate-900" : "text-gray-900 dark:text-white"
+                                )}>
                                     {title}
                                 </h2>
                             )}
                             {showCloseButton && (
                                 <button
                                     onClick={onClose}
-                                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 dark:text-gray-400 transition-colors"
+                                    className={cn(
+                                        "p-2 rounded-lg transition-colors",
+                                        isLight 
+                                            ? "hover:bg-gray-100 text-gray-400" 
+                                            : "hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 dark:text-gray-400"
+                                    )}
                                 >
                                     <svg
                                         className="w-5 h-5"
@@ -384,7 +420,7 @@ export function Badge({ children, variant = 'primary', size = 'md', className }:
     return (
         <span
             className={cn(
-                'inline-flex items-center rounded-lg font-black uppercase tracking-widest',
+                'inline-flex items-center rounded-lg font-bold uppercase tracking-widest',
                 variants[variant],
                 sizes[size],
                 className
@@ -408,7 +444,7 @@ interface SkeletonProps {
 
 export function Skeleton({ className, variant = 'text', width, height }: SkeletonProps) {
     const variantClasses = {
-        text: 'h-4 rounded',
+        text: 'h-4 rounded-lg',
         circular: 'rounded-full',
         rectangular: 'rounded-lg',
     };

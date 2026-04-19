@@ -20,8 +20,8 @@ export default function PermissionMatrix() {
 
     // Initial permissions state
     const [permissions, setPermissions] = useState<Record<string, string[]>>({
-        admin: ['COMERCIAL', 'HOTEL', 'PHARMACY', 'LOGISTICS', 'BOTTLE_STORE', 'FISCAL', 'CRM', 'HR'],
-        manager: ['COMERCIAL', 'HOTEL', 'PHARMACY', 'LOGISTICS', 'CRM'],
+        admin: ['COMERCIAL', 'HOTEL', 'PHARMACY', 'LOGISTICS', 'BOTTLE_STORE', 'FISCAL', 'crm', 'HR'],
+        manager: ['COMERCIAL', 'HOTEL', 'PHARMACY', 'LOGISTICS', 'crm'],
         operator: ['COMERCIAL', 'PHARMACY'],
         receptionist: ['HOTEL'],
     });
@@ -122,7 +122,7 @@ export default function PermissionMatrix() {
                                                 disabled={isAdmin}
                                                 onClick={() => togglePermission(role.id, module.code)}
                                                 className={cn(
-                                                    "w-10 h-10 rounded-xl flex items-center justify-center transition-all mx-auto",
+                                                    "w-10 h-10 rounded-lg flex items-center justify-center transition-all mx-auto",
                                                     hasAccess
                                                         ? "bg-green-100 text-green-600 border-2 border-green-200"
                                                         : "bg-gray-100 text-gray-300 border-2 border-transparent",
@@ -145,7 +145,7 @@ export default function PermissionMatrix() {
                 </table>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/20">
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20">
                 <p className="text-sm text-blue-700 dark:text-blue-400 flex items-start gap-2">
                     <HiOutlineShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
                     As alterações feitas aqui afectam todos os utilizadores com a função correspondente. Utilizadores activos deverão fazer refresh para as novas permissões entrarem em vigor.

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader, TableContainer, Card, Badge, Button, Input } from '../../components/ui';
 import { GuestProfileModal } from '../../components/hospitality';
 import { hospitalityAPI } from '../../services/api';
+import { logger } from '../../utils/logger';
 import { HiOutlineUsers, HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineArrowPath } from 'react-icons/hi2';
 
 export default function HotelCustomers() {
@@ -21,7 +22,7 @@ export default function HotelCustomers() {
                 setBookings(res.data);
             }
         } catch (err) {
-            console.error('Error loading guests:', err);
+            logger.error('Error loading guests:', err);
         } finally {
             setLoading(false);
         }
@@ -91,7 +92,7 @@ export default function HotelCustomers() {
                                     <td className="px-6 py-4">
                                         <div>
                                             <p className="font-bold text-gray-900 dark:text-white">{booking.customerName}</p>
-                                            <p className="text-xs text-gray-500">{booking.guestPhone || '—'}</p>
+                                            <p className="text-xs text-gray-500">{booking.guestPhone || ''}</p>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">

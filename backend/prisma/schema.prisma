@@ -19,8 +19,9 @@ model User {
   lastLogin DateTime?
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
-  otp       String?
-  otpExpiry DateTime?
+  otp         String?
+  otpExpiry   DateTime?
+  otpAttempts Int      @default(0)
   companyId String?
   employees Employee[]
   sales     Sale[]
@@ -96,6 +97,8 @@ model Company {
   deliveryRoutes          DeliveryRoute[]
   deliveries              Delivery[]
   parcels                 Parcel[]
+  fuelSupplies            FuelSupply[]
+  vehicleIncidents        VehicleIncident[]
 
   // Bottle Store Module
   bottleReturns  BottleReturn[]
@@ -103,11 +106,15 @@ model Company {
   creditPayments CreditPayment[]
 
   // Restaurant Module
-  restaurantTables RestaurantTable[]
+  restaurantTables       RestaurantTable[]
+  restaurantMenuItems    RestaurantMenuItem[]
+  restaurantOrders       RestaurantOrder[]
+  restaurantReservations RestaurantReservation[]
 
   // IVA & Batches
   ivaRates          IvaRate[]
   productBatches    ProductBatch[]
+  commissionRules   CommissionRule[]
 
   // Pharmacy professional models
   drugInteractions  DrugInteraction[]
@@ -257,6 +264,7 @@ model Product {
   bottleReturns       BottleReturn[]
   batches             ProductBatch[]
   priceTiers          PriceTier[]
+  stockReservations   StockReservation[]
 
   @@unique([companyId, code])
   @@unique([companyId, barcode])
@@ -310,6 +318,8 @@ model Warehouse {
   code           String
   name           String
   location       String?
+  latitude       Decimal?         @db.Decimal(10, 8)
+  longitude      Decimal?         @db.Decimal(11, 8)
   responsible    String?
   isActive       Boolean          @default(true)
   isDefault      Boolean          @default(false)
@@ -319,8 +329,10 @@ model Warehouse {
   transfersFrom  StockTransfer[]  @relation("SourceWarehouse")
   transfersTo    StockTransfer[]  @relation("TargetWarehouse")
   stocks         WarehouseStock[]
+  sales          Sale[]
   parcels        Parcel[]
   productBatches ProductBatch[]
+  cashSessions   CashSession[]
   companyId      String?
   company        Company?         @relation(fields: [companyId], references: [id])
 
@@ -471,6 +483,8 @@ model PurchaseOrder {
   notes                String?
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
+  deletedAt            DateTime?           @map("deleted_at")
+  createdByUserId      String?             @map("created_by_user_id")
   items                PurchaseOrderItem[]
   supplier             Supplier            @relation(fields: [supplierId], references: [id])
   companyId            String?
@@ -478,6 +492,8 @@ model PurchaseOrder {
 
   @@unique([companyId, orderNumber])
   @@index([companyId])
+  @@index([status])
+  @@index([companyId, status])
   @@map("purchase_orders")
 }
 
@@ -533,6 +549,7 @@ model CustomerOrder {
   paymentMethod      String?
   deliveryDate       DateTime?
   notes              String?
+  orderType          String                  @default("order") @map("order_type")
   cancellationDocUrl String?
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
@@ -553,7 +570,7 @@ model CustomerOrder {
 model CustomerOrderItem {
   id          String        @id @default(uuid())
   orderId     String
-  productId   String
+  productId   String?
   productName String
   quantity    Int
   price       Decimal       @db.Decimal(15, 2)
@@ -606,6 +623,8 @@ model Sale {
   user           User            @relation(fields: [userId], references: [id])
   table          RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
   session        CashSession?    @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  warehouseId    String?
+  warehouse      Warehouse?      @relation(fields: [warehouseId], references: [id])
   companyId      String?
   company        Company?        @relation(fields: [companyId], references: [id])
 
@@ -614,6 +633,8 @@ model Sale {
   @@index([isCredit])
   @@index([tableId])
   @@index([sessionId])
+  @@index([userId])
+  @@index([createdAt])
   @@map("sales")
 }
 
@@ -628,13 +649,98 @@ model RestaurantTable {
   companyId String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  company   Company  @relation(fields: [companyId], references: [id])
-  sales     Sale[]
+  company      Company  @relation(fields: [companyId], references: [id])
+  sales        Sale[]
+  orders       RestaurantOrder[]
+  reservations RestaurantReservation[]
 
   @@unique([companyId, number])
   @@index([companyId])
   @@index([status])
   @@map("restaurant_tables")
+}
+
+model RestaurantMenuItem {
+  id          String   @id @default(uuid())
+  companyId   String
+  name        String
+  description String?
+  category    String   @default("outros")
+  price       Decimal  @db.Decimal(15, 2)
+  imageUrl    String?
+  prepTime    Int?     // minutes
+  isAvailable Boolean  @default(true)
+  allergens   String?
+  calories    Int?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id])
+  orderItems  RestaurantOrderItem[]
+
+  @@index([companyId])
+  @@index([isAvailable])
+  @@map("restaurant_menu_items")
+}
+
+model RestaurantOrder {
+  id          String      @id @default(uuid())
+  companyId   String
+  orderNumber String
+  tableId     String?
+  status      String      @default("pending") // pending | preparing | ready | served | cancelled
+  notes       String?
+  totalAmount Decimal     @default(0) @db.Decimal(15, 2)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  readyAt     DateTime?
+  servedAt    DateTime?
+  company     Company     @relation(fields: [companyId], references: [id])
+  table       RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  items       RestaurantOrderItem[]
+
+  @@index([companyId])
+  @@index([status])
+  @@index([tableId])
+  @@map("restaurant_orders")
+}
+
+model RestaurantOrderItem {
+  id         String              @id @default(uuid())
+  orderId    String
+  menuItemId String?
+  name       String
+  quantity   Int
+  unitPrice  Decimal             @db.Decimal(15, 2)
+  notes      String?
+  createdAt  DateTime            @default(now())
+  order      RestaurantOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItem   RestaurantMenuItem? @relation(fields: [menuItemId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("restaurant_order_items")
+}
+
+model RestaurantReservation {
+  id          String   @id @default(uuid())
+  companyId   String
+  guestName   String
+  guestPhone  String
+  guestEmail  String?
+  partySize   Int      @default(2)
+  tableId     String?
+  status      String   @default("pending") // pending | confirmed | cancelled | no_show | seated
+  scheduledAt DateTime
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  company     Company  @relation(fields: [companyId], references: [id])
+  table       RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
+  @@index([companyId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("restaurant_reservations")
 }
 
 model SaleItem {
@@ -654,6 +760,8 @@ model SaleItem {
   batch       ProductBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
 
   @@index([batchId])
+  @@index([saleId])
+  @@index([productId])
   @@map("sale_items")
 }
 
@@ -662,6 +770,7 @@ model Invoice {
   invoiceNumber    String
   orderId          String?          @unique
   orderNumber      String?
+  quotationId      String?          @map("quotation_id")
   customerId       String?
   customerName     String
   customerEmail    String?
@@ -781,8 +890,15 @@ model Employee {
   company              Company?                @relation(fields: [companyId], references: [id])
   payrollRecords       PayrollRecord[]
   vacationRequests     VacationRequest[]
+  commissionRate       Decimal?                @db.Decimal(5, 2)
+  performanceScore     Float                   @default(0)
+  reportsToId          String?
+  reportsTo            Employee?               @relation("Hierarchy", fields: [reportsToId], references: [id])
+  subordinates         Employee[]              @relation("Hierarchy")
+  commissionRule       CommissionRule?
 
   @@index([companyId])
+  @@index([reportsToId])
   @@map("employees")
 }
 
@@ -912,6 +1028,7 @@ model Transaction {
   @@index([module])
   @@index([type])
   @@index([date])
+  @@index([companyId, module, date])
   @@map("transactions")
 }
 
@@ -2091,6 +2208,8 @@ model Vehicle {
   company         Company?             @relation(fields: [companyId], references: [id])
   maintenances    VehicleMaintenance[]
   deliveries      Delivery[]
+  fuelSupplies    FuelSupply[]
+  incidents       VehicleIncident[]
 
   @@unique([companyId, plate])
   @@index([companyId])
@@ -2116,6 +2235,7 @@ model Driver {
   companyId        String?
   company          Company?     @relation(fields: [companyId], references: [id])
   deliveries       Delivery[]
+  incidents        VehicleIncident[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -2142,18 +2262,68 @@ model VehicleMaintenance {
   @@map("vehicle_maintenances")
 }
 
+model FuelSupply {
+  id           String   @id @default(uuid())
+  vehicleId    String
+  date         DateTime @default(now())
+  liters       Decimal  @db.Decimal(10, 2)
+  pricePerLiter Decimal? @db.Decimal(10, 2)
+  amount       Decimal  @db.Decimal(15, 2)
+  mileage      Int      @default(0)
+  provider     String?
+  notes        String?
+  companyId    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  company      Company? @relation(fields: [companyId], references: [id])
+
+  @@index([vehicleId])
+  @@index([companyId])
+  @@map("fuel_supplies")
+}
+
+model VehicleIncident {
+  id          String           @id @default(uuid())
+  vehicleId   String
+  driverId    String?
+  date        DateTime         @default(now())
+  type        IncidentType     @default(other)
+  severity    IncidentSeverity @default(low)
+  description String
+  cost        Decimal?         @db.Decimal(15, 2)
+  location    String?
+  status      IncidentStatus   @default(open)
+  notes       String?
+  companyId   String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  vehicle     Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  driver      Driver?          @relation(fields: [driverId], references: [id], onDelete: SetNull)
+  company     Company?         @relation(fields: [companyId], references: [id])
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([companyId])
+  @@map("vehicle_incidents")
+}
+
 model DeliveryRoute {
-  id            String     @id @default(uuid())
-  code          String
-  name          String
-  origin        String
-  destination   String
-  distance      Decimal?   @db.Decimal(10, 2)
-  estimatedTime Int? // em minutos
-  tollCost      Decimal?   @db.Decimal(10, 2)
-  fuelEstimate  Decimal?   @db.Decimal(10, 2)
-  isActive      Boolean    @default(true)
-  notes         String?
+  id             String     @id @default(uuid())
+  code           String
+  name           String
+  origin         String
+  destination    String
+  originLat      Decimal?   @db.Decimal(10, 8)
+  originLng      Decimal?   @db.Decimal(11, 8)
+  destinationLat Decimal?   @db.Decimal(10, 8)
+  destinationLng Decimal?   @db.Decimal(11, 8)
+  distance       Decimal?   @db.Decimal(10, 2)
+  estimatedTime  Int? // em minutos
+  tollCost       Decimal?   @db.Decimal(10, 2)
+  fuelEstimate   Decimal?   @db.Decimal(10, 2)
+  isActive       Boolean    @default(true)
+  notes          String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   companyId     String?
@@ -2334,11 +2504,13 @@ model CashSession {
   status          CashSessionStatus @default(open)
   companyId       String?
   terminalId      String?           @map("terminal_id")
+  warehouseId     String?           @map("warehouse_id")
 
   // Relations
   company         Company?          @relation(fields: [companyId], references: [id])
   openedBy        User              @relation("OpenedSessions", fields: [openedById], references: [id])
   closedBy        User?             @relation("ClosedSessions", fields: [closedById], references: [id])
+  warehouse       Warehouse?        @relation(fields: [warehouseId], references: [id])
   sales           Sale[]
   movements       CashMovement[]
 
@@ -2439,6 +2611,27 @@ enum MaintenanceStatus {
   cancelled
 }
 
+enum IncidentType {
+  accident
+  fine
+  breakdown
+  theft
+  other
+}
+
+enum IncidentSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum IncidentStatus {
+  open
+  resolved
+  closed
+}
+
 enum DeliveryStatus {
   pending
   scheduled
@@ -2471,4 +2664,44 @@ enum NotificationType {
   sms
   whatsapp
   push
+}
+
+enum CommissionType {
+  fixed
+  tiered
+  profit_based
+}
+
+model CommissionRule {
+  id          String         @id @default(uuid())
+  employeeId  String?        @unique
+  role        EmployeeRole?
+  type        CommissionType @default(fixed)
+  rate        Decimal?       @db.Decimal(5, 2)
+  tiers       Json?          // Structure: [{min: 0, rate: 2}, {min: 100000, rate: 5}]
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  companyId   String?
+  company     Company?       @relation(fields: [companyId], references: [id])
+  employee    Employee?      @relation(fields: [employeeId], references: [id])
+
+  @@index([companyId])
+  @@map("commission_rules")
+}
+
+model StockReservation {
+  id         String   @id @default(uuid())
+  productId  String
+  quantity   Int
+  sessionId  String?  // Optional: link to POS session
+  companyId  String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([companyId])
+  @@index([expiresAt])
+  @@map("stock_reservations")
 }

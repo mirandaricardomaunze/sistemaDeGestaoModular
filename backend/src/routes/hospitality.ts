@@ -1,9 +1,10 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { hospitalityService } from '../services/hospitality.service';
+import { hospitalityService } from '../services/hospitalityService';
 import { createRoomSchema, updateRoomSchema, checkInSchema } from '../validation';
 import { ApiError } from '../middleware/error.middleware';
+import { emitToCompany } from '../lib/socket';
 
 const router = Router();
 
@@ -65,6 +66,15 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const validatedData = checkInSchema.parse(req.body);
     const result = await hospitalityService.checkIn(req.companyId, validatedData);
+
+    // Socket Notification: Check-in performed
+    emitToCompany(req.companyId, 'hospitality:checkin', {
+        id: result.data.id,
+        roomNumber: result.data.room.number,
+        guestName: result.data.customerName, // Fix: field name in schema is customerName
+        timestamp: new Date()
+    });
+
     res.status(201).json(result);
 });
 
@@ -135,6 +145,13 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
 router.put('/bookings/:id/checkout', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const result = await hospitalityService.checkout(req.companyId, req.params.id, req.userId!);
+
+    // Socket Notification: Check-out performed
+    emitToCompany(req.companyId, 'hospitality:checkout', {
+        id: req.params.id,
+        timestamp: new Date()
+    });
+
     res.json(result);
 });
 

@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -8,7 +8,7 @@ import {
     type SortingState,
     type ColumnFiltersState,
 } from '@tanstack/react-table';
-import { HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, HiOutlineEye, HiOutlineOfficeBuilding, HiOutlineRefresh, HiOutlinePlusCircle, HiOutlineClock } from 'react-icons/hi';
+import { HiOutlineMagnifyingGlass, HiOutlinePencilSquare, HiOutlineTrash, HiOutlineEye, HiOutlineBuildingOffice, HiOutlineArrowPath, HiOutlinePlusCircle, HiOutlineClock, HiOutlineCube } from 'react-icons/hi2';
 import { Button, Badge, Modal, Card, Input, Select, Pagination, DataTable } from '../ui';
 import StockAdjustmentModal from './StockAdjustmentModal';
 import ProductValiditiesSection from './ProductValiditiesSection';
@@ -114,7 +114,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                                     {sku}
                                 </span>
                             ) : (
-                                <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>
+                                <span className="text-gray-300 dark:text-gray-600 text-xs">-</span>
                             )}
                             {barcode && (
                                 <p className="font-mono text-xs text-gray-400 dark:text-gray-500 mt-0.5">
@@ -129,12 +129,12 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                 header: 'Nome',
                 cell: (info) => (
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
-                            <span className="text-lg">📦</span>
+                        <div className="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
+                            <HiOutlineCube className="w-5 h-5 text-primary-500" />
                         </div>
                         <div>
-                            <p className="font-medium text-gray-900 dark:text-white">{info.getValue()}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                            <p className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-xs">{info.getValue()}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
                                 {categoryLabels[info.row.original.category]}
                             </p>
                         </div>
@@ -151,20 +151,26 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                 header: 'Estoque Atual',
                 cell: (info) => {
                     const product = info.row.original;
-                    const isLow = product.currentStock <= product.minStock;
+                    // If a specific warehouse is selected, show that warehouse's stock
+                    // Otherwise show global currentStock
+                    const displayStock = (selectedWarehouse !== 'all')
+                        ? (product.warehouseStocks?.find(ws => ws.warehouseId === selectedWarehouse)?.quantity ?? 0)
+                        : info.getValue();
+
+                    const isLow = displayStock <= product.minStock;
                     return (
                         <div className="flex items-center gap-2">
                             <span
                                 className={cn(
-                                    'font-semibold',
-                                    isLow ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'
+                                    'font-black text-sm',
+                                    isLow ? 'text-red-500' : 'text-gray-900 dark:text-white'
                                 )}
                             >
-                                {info.getValue()}
+                                {displayStock}
                             </span>
-                            <span className="text-gray-400 text-sm">{product.unit}</span>
+                            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">{product.unit}</span>
                             {isLow && (
-                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title="Estoque baixo" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" title="Estoque baixo" />
                             )}
                         </div>
                     );
@@ -184,15 +190,15 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                     const margin = price > 0 && cost > 0 ? ((price - cost) / price) * 100 : null;
                     return (
                         <div>
-                            <span className="font-semibold text-gray-900 dark:text-white">
+                            <span className="font-black text-sm text-gray-900 dark:text-white tracking-tighter">
                                 {formatCurrency(price)}
                             </span>
                             {margin !== null && (
                                 <p className={cn(
-                                    'text-xs font-medium mt-0.5',
-                                    margin >= 30 ? 'text-green-600 dark:text-green-400' :
-                                    margin >= 10 ? 'text-amber-600 dark:text-amber-400' :
-                                    'text-red-600 dark:text-red-400'
+                                    'text-[9px] font-black uppercase tracking-widest mt-0.5',
+                                    margin >= 30 ? 'text-green-500' :
+                                    margin >= 10 ? 'text-amber-500' :
+                                    'text-red-500'
                                 )}>
                                     {margin.toFixed(1)}% margem
                                 </p>
@@ -215,7 +221,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                                 setSelectedProduct(row.original);
                                 setAdjustmentModalOpen(true);
                             }}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-green-600 transition-colors"
+                            className="p-2 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-gray-500 hover:text-emerald-600 transition-colors"
                             title="Ajustar Stock"
                         >
                             <HiOutlinePlusCircle className="w-4 h-4" />
@@ -225,28 +231,28 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                                 setSelectedProduct(row.original);
                                 setHistoryModalOpen(true);
                             }}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 transition-colors"
+                            className="p-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-500 hover:text-primary-600 transition-colors"
                             title="Ver Histórico de Stock"
                         >
                             <HiOutlineClock className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => handleView(row.original)}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 transition-colors"
+                            className="p-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-500 hover:text-primary-600 transition-colors"
                             title="Ver detalhes"
                         >
                             <HiOutlineEye className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => onEdit?.(row.original)}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-blue-600 transition-colors"
+                            className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 hover:text-blue-600 transition-colors"
                             title="Editar"
                         >
-                            <HiOutlinePencil className="w-4 h-4" />
+                            <HiOutlinePencilSquare className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => handleDeleteClick(row.original)}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-red-600 transition-colors"
+                            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
                             title="Excluir"
                         >
                             <HiOutlineTrash className="w-4 h-4" />
@@ -331,7 +337,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                             placeholder="Buscar por código, nome..."
                             value={globalFilter ?? ''}
                             onChange={(e) => setGlobalFilter(e.target.value)}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                         />
                     </div>
 
@@ -370,8 +376,9 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                             onClick={() => refetch()}
                             isLoading={isLoading}
                             title="Atualizar dados"
+                            className="bg-gray-50 dark:bg-dark-800"
                         >
-                            <HiOutlineRefresh className="w-5 h-5 text-gray-500" />
+                            <HiOutlineArrowPath className="w-5 h-5 text-gray-500" />
                         </Button>
                         <ExportProductsButton data={products} />
                     </div>
@@ -443,8 +450,8 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                 {selectedProduct && (
                     <div className="space-y-6">
                         <div className="flex items-start gap-4">
-                            <div className="w-20 h-20 rounded-xl bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
-                                <span className="text-4xl">📦</span>
+                            <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
+                                <HiOutlineCube className="w-10 h-10 text-gray-400" />
                             </div>
                             <div className="flex-1">
                                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -458,25 +465,25 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Categoria</p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                                     {categoryLabels[selectedProduct.category]}
                                 </p>
                             </div>
-                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Preço de Venda</p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                                     {formatCurrency(selectedProduct.price)}
                                 </p>
                             </div>
-                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Preço de Custo</p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                                     {formatCurrency(selectedProduct.costPrice)}
                                 </p>
                             </div>
-                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Estoque Atual</p>
                                 <p className={cn(
                                     'text-sm font-medium mt-1',
@@ -487,14 +494,14 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                                     {selectedProduct.currentStock} {selectedProduct.unit}
                                 </p>
                             </div>
-                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                            <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Estoque Mínimo</p>
                                 <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                                     {selectedProduct.minStock} {selectedProduct.unit}
                                 </p>
                             </div>
                             {selectedProduct.barcode && (
-                                <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                                <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                     <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">Código de Barras</p>
                                     <p className="text-sm font-mono font-medium text-gray-900 dark:text-white mt-1">
                                         {selectedProduct.barcode}
@@ -511,14 +518,14 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                         {/* Warehouse Breakdown */}
                         <div className="border-t border-gray-100 dark:border-dark-600 pt-6">
                             <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-                                <HiOutlineOfficeBuilding className="w-5 h-5 text-primary-500" />
+                                <HiOutlineBuildingOffice className="w-5 h-5 text-primary-500" />
                                 Distribuição por Armazém
                             </h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {warehouses.map(warehouse => {
                                     const stock = selectedProduct.stocks?.[warehouse.id] ?? (warehouse.id === '1' ? selectedProduct.currentStock : 0);
                                     return (
-                                        <div key={warehouse.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-dark-700 rounded-lg border border-gray-100 dark:border-dark-600">
+                                        <div key={warehouse.id} className="flex justify-between items-center p-3 bg-slate-50/50 dark:bg-dark-700 rounded-lg border border-slate-200/60 dark:border-dark-600/50">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-medium text-gray-900 dark:text-white">{warehouse.name}</span>
                                                 <span className="text-xs text-gray-500">{warehouse.location}</span>

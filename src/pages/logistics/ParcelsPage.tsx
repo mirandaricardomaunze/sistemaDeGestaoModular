@@ -649,13 +649,13 @@ export default function ParcelsPage() {
                     <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
                         <p className="text-sm text-gray-500">Encomenda</p>
                         <p className="font-mono font-bold">{selectedParcel?.trackingNumber}</p>
-                        <p className="text-sm">Destinatário: {selectedParcel?.recipientName} ({selectedParcel?.recipientPhone})</p>
+                        <p className="text-sm">Destinatrio: {selectedParcel?.recipientName} ({selectedParcel?.recipientPhone})</p>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('common.message')} *</label>
                         <textarea
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
                             rows={4}
                              placeholder={t('logistics_module.parcels.notifyPlaceholder')}
                             value={notifyMessage}

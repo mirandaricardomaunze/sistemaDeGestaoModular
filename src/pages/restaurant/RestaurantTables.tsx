@@ -94,10 +94,10 @@ function TableCard({ table, onEdit, onDelete }: { table: RestaurantTable; onEdit
     const nextStatus = table.status === 'available' ? 'occupied' : table.status === 'occupied' ? 'available' : null;
 
     return (
-        <div className={cn('rounded-xl border-2 p-4 transition-all hover:shadow-md', cfg.bg, cfg.border)}>
+        <div className={cn('rounded-lg border-2 p-4 transition-all hover:shadow-md', cfg.bg, cfg.border)}>
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                    <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg',
+                    <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg',
                         table.status === 'available' ? 'bg-emerald-500' :
                         table.status === 'occupied'  ? 'bg-red-500'     :
                         table.status === 'reserved'  ? 'bg-amber-500'   : 'bg-gray-400'
@@ -186,7 +186,7 @@ export default function RestaurantTables() {
                     <p className="text-gray-500 dark:text-gray-400">{tables.length} mesa{tables.length !== 1 ? 's' : ''} configurada{tables.length !== 1 ? 's' : ''}</p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="ghost" onClick={refetch} leftIcon={<HiOutlineRefresh className="w-5 h-5" />}>Atualizar</Button>
+                    <Button variant="ghost" onClick={() => refetch()} leftIcon={<HiOutlineRefresh className="w-5 h-5" />}>Atualizar</Button>
                     <Button onClick={() => setModalOpen(true)} leftIcon={<HiOutlinePlus className="w-5 h-5" />} className="bg-red-600 hover:bg-red-700">Nova Mesa</Button>
                 </div>
             </div>
@@ -195,7 +195,7 @@ export default function RestaurantTables() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
                     <button key={key} onClick={() => setFilterStatus(filterStatus === key ? '' : key)}
-                        className={cn('rounded-xl p-3 text-left border-2 transition-all', cfg.bg, filterStatus === key ? cfg.border : 'border-transparent')}>
+                        className={cn('rounded-lg p-3 text-left border-2 transition-all', cfg.bg, filterStatus === key ? cfg.border : 'border-transparent')}>
                         <p className={cn('text-2xl font-bold', cfg.color)}>{statusCounts[key] || 0}</p>
                         <p className="text-xs text-gray-500 mt-0.5">{cfg.label}</p>
                     </button>
@@ -222,12 +222,12 @@ export default function RestaurantTables() {
             ) : filtered.length === 0 ? (
                 <Card padding="lg">
                     <div className="text-center py-12">
-                        <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-dark-700 flex items-center justify-center mx-auto mb-4">
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mx-auto mb-4">
                             <HiOutlineCake className="w-8 h-8 text-gray-400" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Sem mesas</h3>
                         <p className="text-gray-500 text-sm mb-6">
-                            {search ? 'Nenhuma mesa encontrada com esse critério.' : 'Adicione a primeira mesa do seu restaurante.'}
+                            {search ? 'Nenhuma mesa encontrada com esse critrio.' : 'Adicione a primeira mesa do seu restaurante.'}
                         </p>
                         {!search && (
                             <Button onClick={() => setModalOpen(true)} leftIcon={<HiOutlinePlus className="w-5 h-5" />} className="bg-red-600 hover:bg-red-700">Nova Mesa</Button>

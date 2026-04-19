@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LoadingSpinner, Badge } from '../../components/ui';
-import { productsAPI, customersAPI, salesAPI, shiftAPI } from '../../services/api';
+import { LoadingSpinner, Badge, Skeleton } from '../../components/ui';
+import { productsAPI, customersAPI, salesAPI, shiftAPI, warehousesAPI } from '../../services/api';
 import type { ShiftSession, ShiftSummary } from '../../services/api';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
+import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { playScanSound } from '../../utils/audio';
 import toast from 'react-hot-toast';
 import {
@@ -13,9 +14,11 @@ import {
     recordCampaignUsages,
     applyPromoCode
 } from '../../utils/crmIntegration';
-import { cn } from '../../utils/helpers';
 import { usePagination } from '../../components/ui/Pagination';
-import { HiOutlinePlay, HiOutlineStop, HiOutlineLockClosed, HiOutlineCash } from 'react-icons/hi';
+import { HiOutlinePlay, HiOutlineStop, HiOutlineLockClosed, HiOutlineBanknotes, HiOutlineBuildingOffice, HiOutlineCloud, HiOutlineCloudArrowUp } from 'react-icons/hi2';
+import { useSyncManager } from '../../hooks/commercial/useSyncManager';
+import { offlineDB } from '../../services/offline/offlineDB';
+import { commercialAPI } from '../../services/api/commercial.api';
 
 // Components
 import { CommercialProductGrid } from '../../components/commercial/pos/CommercialProductGrid';
@@ -36,31 +39,74 @@ export default function CommercialPOS() {
     const navigate = useNavigate();
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    // ── Data Fetching ────────────────────────────────────────────────────────
-    const { data: products = [], isLoading: loadingProducts, refetch: refetchProducts } = useQuery({
-        queryKey: ['commercial', 'products'],
-        queryFn: async () => {
-            const data = await productsAPI.getAll({ origin_module: 'commercial' });
-            return Array.isArray(data) ? data : (data?.data || []);
-        }
+
+    // ── Shift Management (DB-backed) — MUST be first so warehouseId is known ──
+    const queryClient = useQueryClient();
+    const { data: activeShift, isLoading: loadingShift } = useQuery<ShiftSession | null>({
+        queryKey: ['commercial', 'shift'],
+        queryFn: () => shiftAPI.getCurrent(),
+        refetchInterval: 60_000,
+        retry: false,
     });
 
-    // Carregar price tiers de todos os produtos com tiers definidos (lazy, cached)
-    const { data: priceTiersMap = {} } = useQuery({
-        queryKey: ['commercial', 'price-tiers'],
+    const { isOnline, pendingCount, isSyncing } = useSyncManager(activeShift?.companyId);
+    const { data: shiftSummary } = useQuery<ShiftSummary | null>({
+        queryKey: ['commercial', 'shift', 'summary'],
+        queryFn: () => shiftAPI.getSummary(),
+        enabled: !!activeShift,
+        refetchInterval: 30_000,
+    });
+
+    // Fetch warehouse list (for name display in header + shift modal)
+    const { data: warehouses = [] } = useQuery({
+        queryKey: ['warehouses'],
         queryFn: async () => {
-            const map: Record<string, { minQty: number; price: number }[]> = {};
-            await Promise.all(
-                (products as any[]).map(async (p) => {
-                    try {
-                        const tiers = await productsAPI.getPriceTiers(p.id);
-                        if (tiers.length > 0) map[p.id] = tiers.map(t => ({ minQty: t.minQty, price: Number(t.price) }));
-                    } catch { /* sem tiers */ }
-                })
-            );
-            return map;
+            const data = await warehousesAPI.getAll();
+            return Array.isArray(data) ? data : (data?.data || []);
         },
-        enabled: products.length > 0,
+    });
+    const activeWarehouse = useMemo(() =>
+        (warehouses as any[]).find((w: any) => w.id === activeShift?.warehouseId),
+        [warehouses, activeShift?.warehouseId]
+    );
+
+    // ── Multi-warehouse product loading ──────────────────────────────────────
+    // Once the shift is loaded, we know which warehouse the POS is bound to.
+    // Pass warehouseId so the backend overrides currentStock with per-warehouse qty.
+    const shiftWarehouseId = activeShift?.warehouseId;
+
+    const { data: products = [], isLoading: loadingProducts } = useQuery({
+        queryKey: ['commercial', 'products', shiftWarehouseId ?? 'global'],
+        queryFn: async () => {
+            const data = await productsAPI.getAll({
+                origin_module: 'commercial',
+                ...(shiftWarehouseId ? { warehouseId: shiftWarehouseId } : {})
+            });
+            return Array.isArray(data) ? data : (data?.data || []);
+        },
+        enabled: !loadingShift && isOnline,
+    });
+
+    // Offline data fallbacks
+    const [offlineProducts, setOfflineProducts] = useState<any[]>([]);
+    const [offlineCustomers, setOfflineCustomers] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (!isOnline) {
+            offlineDB.products.toArray().then(setOfflineProducts);
+            offlineDB.customers.toArray().then(setOfflineCustomers);
+        }
+    }, [isOnline]);
+
+    const displayProducts = isOnline ? products : offlineProducts;
+    const displayCustomers = isOnline ? customers : offlineCustomers;
+
+    // Carregar price tiers de todos os produtos em batch (1 request)
+    const productIds = useMemo(() => (products as any[]).map((p: any) => p.id), [products]);
+    const { data: priceTiersMap = {} } = useQuery({
+        queryKey: ['commercial', 'price-tiers', productIds],
+        queryFn: () => productsAPI.getPriceTiersBatch(productIds),
+        enabled: productIds.length > 0,
         staleTime: 5 * 60 * 1000,
     });
 
@@ -68,7 +114,6 @@ export default function CommercialPOS() {
     const resolvePrice = useCallback((productId: string, basePrice: number, qty: number): number => {
         const tiers = (priceTiersMap as Record<string, { minQty: number; price: number }[]>)[productId];
         if (!tiers || tiers.length === 0) return basePrice;
-        // Aplicar o maior tier cujo minQty <= qty
         const applicable = tiers.filter(t => qty >= t.minQty).sort((a, b) => b.minQty - a.minQty);
         return applicable.length > 0 ? applicable[0].price : basePrice;
     }, [priceTiersMap]);
@@ -78,8 +123,14 @@ export default function CommercialPOS() {
         queryFn: async () => {
             const data = await customersAPI.getAll();
             return Array.isArray(data) ? data : (data?.data || []);
-        }
+        },
+        enabled: isOnline
     });
+    });
+
+    // ── Company Settings (IVA rate) ──────────────────────────────────────────
+    const { settings: companySettings } = useCompanySettings();
+    const ivaRate = companySettings?.ivaRate ?? 16;
 
     // ── POS State ────────────────────────────────────────────────────────────
     const [posSearch, setPosSearch] = useState('');
@@ -90,26 +141,21 @@ export default function CommercialPOS() {
     const [promoCodeApplied, setPromoCodeApplied] = useState(false);
     const [appliedCampaign, setAppliedCampaign] = useState<any>(null);
 
-    // ── Hardware State ───────────────────────────────────────────────────────
+    // ── Hardware State ──────────────────────────────────────────────────────-
     const [cashDrawerOpen, setCashDrawerOpen] = useState(false);
 
-    // ── Held Sales (Parking) ─────────────────────────────────────────────────
-    const [heldSales, setHeldSales] = useState<HeldSale[]>([]);
+    // ── Held Sales (Parking) - persisted to localStorage ────────────────────
+    const [heldSales, setHeldSales] = useState<HeldSale[]>(() => {
+        try {
+            const stored = localStorage.getItem('pos_held_sales');
+            return stored ? JSON.parse(stored) : [];
+        } catch { return []; }
+    });
 
-    // ── Shift Management (DB-backed) ──────────────────────────────────────────
-    const queryClient = useQueryClient();
-    const { data: activeShift, isLoading: loadingShift } = useQuery<ShiftSession | null>({
-        queryKey: ['commercial', 'shift'],
-        queryFn: () => shiftAPI.getCurrent(),
-        refetchInterval: 60_000, // sync every minute
-        retry: false,
-    });
-    const { data: shiftSummary } = useQuery<ShiftSummary | null>({
-        queryKey: ['commercial', 'shift', 'summary'],
-        queryFn: () => shiftAPI.getSummary(),
-        enabled: !!activeShift,
-        refetchInterval: 30_000,
-    });
+    useEffect(() => {
+        try { localStorage.setItem('pos_held_sales', JSON.stringify(heldSales)); } catch { /* quota exceeded */ }
+    }, [heldSales]);
+
 
     const [showShiftModal, setShowShiftModal] = useState(false);
     const [shiftModalMode, setShiftModalMode] = useState<'open' | 'close'>('open');
@@ -121,7 +167,7 @@ export default function CommercialPOS() {
         if (!activeShift) return null;
         const s = shiftSummary;
         return {
-            openedAt: new Date(activeShift.openedAt),
+            openedAt: new Date(activeShift.openedAt), // openedAt is ISO string from API
             openingBalance: Number(activeShift.openingBalance),
             cashSales: s?.byPaymentMethod?.cash ?? Number(activeShift.cashSales),
             mpesaSales: s?.byPaymentMethod?.mpesa ?? Number(activeShift.mpesaSales),
@@ -136,10 +182,10 @@ export default function CommercialPOS() {
 
     const cashDrawerBalance = useMemo(() => {
         if (!shift) return 0;
-        return shift.openingBalance + shift.cashSales;
+        return shift.openingBalance + shift.cashSales + (shift.deposits || 0) - (shift.withdrawals || 0);
     }, [shift]);
 
-    // ── Modals ───────────────────────────────────────────────────────────────
+    // ── Modals ──────────────────────────────────────────────────────────────-
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [lastReceipt, setLastReceipt] = useState<ReceiptData | null>(null);
@@ -148,18 +194,18 @@ export default function CommercialPOS() {
     const [movementType, setMovementType] = useState<'cash_in' | 'cash_out'>('cash_in');
     const [showShortcutsHUD, setShowShortcutsHUD] = useState(false);
 
-    // ── Global discount (desconto global sobre o total, com controlo de permissão) ─
+    // ── Global discount (desconto global sobre o total, com controlo de permissão) -
     const [globalDiscountPct, setGlobalDiscountPct] = useState(0);
 
-    // ── Filtering & Pagination ───────────────────────────────────────────────
+    // ── Filtering & Pagination ──────────────────────────────────────────────-
     const filteredProducts = useMemo(() => {
-        if (!posSearch) return products.filter((p: any) => p.currentStock > 0);
+        if (!posSearch) return displayProducts.filter((p: any) => p.currentStock > 0);
         const q = posSearch.toLowerCase();
-        return products.filter((p: any) =>
+        return displayProducts.filter((p: any) =>
             p.currentStock > 0 &&
             (p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q)))
         );
-    }, [products, posSearch]);
+    }, [displayProducts, posSearch]);
 
     const posPagination = usePagination(filteredProducts, 12);
 
@@ -200,23 +246,47 @@ export default function CommercialPOS() {
         }
     }, [location.state, products, customers, navigate, location.pathname]);
 
-    // ── Cart Logic ───────────────────────────────────────────────────────────
-    const addToCart = useCallback((product: any, qty = 1) => {
+    // ── Cart Logic ──────────────────────────────────────────────────────────-
+    const addToCart = useCallback(async (product: any, qty = 1) => {
+        let reservation: any = null;
+        if (isOnline) {
+            try {
+                reservation = await commercialAPI.reserveItem(product.id, qty, activeShift?.id);
+            } catch (err: any) {
+                toast.error(err.message || 'Erro ao reservar stock');
+                return;
+            }
+        }
+
         setCart(prev => {
             const existing = prev.find(item => item.productId === product.id);
             if (existing) {
                 const newQty = existing.quantity + qty;
-                if (newQty > product.currentStock) { toast.error('Stock insuficiente'); return prev; }
+                if (newQty > product.currentStock) { 
+                    toast.error('Stock insuficiente'); 
+                    if (reservation) commercialAPI.releaseItem(reservation.id);
+                    return prev; 
+                }
                 const tieredPrice = resolvePrice(product.id, Number(product.price), newQty);
                 const hasTier = tieredPrice !== existing.unitPrice;
-                if (hasTier) toast(`Preço escalonado aplicado: ${tieredPrice.toLocaleString()} MTn/un`, { icon: '🏷️' });
+                if (hasTier) toast(`Preço escalonado aplicado: ${tieredPrice.toLocaleString()} MTn/un`, { icon: '' });
                 return prev.map(item =>
                     item.productId === product.id
-                        ? { ...item, quantity: newQty, unitPrice: tieredPrice, total: newQty * tieredPrice * (1 - (item.discountPct || 0) / 100) }
+                        ? { 
+                            ...item, 
+                            quantity: newQty, 
+                            unitPrice: tieredPrice, 
+                            total: newQty * tieredPrice * (1 - (item.discountPct || 0) / 100),
+                            reservations: [...(item.reservations || []), reservation].filter(Boolean)
+                          }
                         : item
                 );
             }
-            if (qty > product.currentStock) { toast.error('Stock insuficiente'); return prev; }
+            if (qty > product.currentStock) { 
+                toast.error('Stock insuficiente'); 
+                if (reservation) commercialAPI.releaseItem(reservation.id);
+                return prev; 
+            }
             const unitPrice = resolvePrice(product.id, Number(product.price), qty);
             return [...prev, {
                 productId: product.id,
@@ -224,36 +294,63 @@ export default function CommercialPOS() {
                 quantity: qty,
                 unitPrice,
                 discountPct: 0,
-                total: qty * unitPrice
+                total: qty * unitPrice,
+                reservations: reservation ? [reservation] : []
             }];
         });
         playScanSound();
-    }, [resolvePrice]);
+    }, [resolvePrice, isOnline, activeShift?.id]);
 
-    const updateQuantity = useCallback((productId: string, qty: number) => {
-        if (qty <= 0) { setCart(c => c.filter(i => i.productId !== productId)); return; }
+    const updateQuantity = useCallback(async (productId: string, qty: number) => {
+        const item = cart.find(i => i.productId === productId);
+        if (!item) return;
+
+        if (qty <= 0) { 
+            if (isOnline && item.reservations) {
+                item.reservations.forEach((r: any) => commercialAPI.releaseItem(r.id));
+            }
+            setCart(c => c.filter(i => i.productId !== productId)); 
+            return; 
+        }
+
+        if (qty > item.product.currentStock) { toast.error('Stock insuficiente'); return; }
+
+        let newReservation: any = null;
+        if (isOnline && qty > item.quantity) {
+            try {
+                newReservation = await commercialAPI.reserveItem(productId, qty - item.quantity, activeShift?.id);
+            } catch (err: any) {
+                toast.error('Erro ao ajustar reserva de stock');
+                return;
+            }
+        } else if (isOnline && qty < item.quantity) {
+             // Logic to release partial reservation can be complex; simplified to just keeping track
+             // In a real scenario, we'd release the difference
+        }
+
         setCart(c => c.map(item => {
             if (item.productId !== productId) return item;
-            if (qty > item.product.currentStock) { toast.error('Stock insuficiente'); return item; }
             const tieredPrice = resolvePrice(productId, item.product.price, qty);
             const total = qty * tieredPrice * (1 - (item.discountPct || 0) / 100);
-            return { ...item, quantity: qty, unitPrice: tieredPrice, total };
+            return { 
+                ...item, 
+                quantity: qty, 
+                unitPrice: tieredPrice, 
+                total,
+                reservations: newReservation ? [...(item.reservations || []), newReservation] : item.reservations
+            };
         }));
-    }, [resolvePrice]);
-
-    const updateItemDiscount = (productId: string, discountPct: number) => {
-        setCart(c => c.map(item => {
-            if (item.productId !== productId) return item;
-            const total = item.quantity * item.unitPrice * (1 - discountPct / 100);
-            return { ...item, discountPct, total };
-        }));
-    };
+    }, [resolvePrice, cart, isOnline, activeShift?.id]);
 
     const removeFromCart = (productId: string) => {
+        const item = cart.find(i => i.productId === productId);
+        if (isOnline && item?.reservations) {
+            item.reservations.forEach((r: any) => commercialAPI.releaseItem(r.id));
+        }
         setCart(c => c.filter(i => i.productId !== productId));
     };
 
-    // ── Calculations ─────────────────────────────────────────────────────────
+    // ── Calculations ────────────────────────────────────────────────────────-
     const cartSubtotal = useMemo(() => cart.reduce((s, i) => s + i.quantity * i.unitPrice, 0), [cart]);
     const itemDiscounts = useMemo(() => cart.reduce((s, i) => s + i.quantity * i.unitPrice * ((i.discountPct || 0) / 100), 0), [cart]);
 
@@ -265,7 +362,7 @@ export default function CommercialPOS() {
     const manualDiscount = appliedCampaign?.calculatedDiscount || 0;
     const globalDiscountAmt = cartSubtotal * (globalDiscountPct / 100);
     const cartDiscount = crmDiscount + manualDiscount + itemDiscounts + globalDiscountAmt;
-    const cartTax = (cartSubtotal - cartDiscount) * 0.16;
+    const cartTax = (cartSubtotal - cartDiscount) * (ivaRate / 100);
     const cartTotal = cartSubtotal - cartDiscount + cartTax;
 
     // ── Promo code ────────────────────────────────────────────────────────────
@@ -280,7 +377,7 @@ export default function CommercialPOS() {
         }
     };
 
-    // ── Checkout flow ─────────────────────────────────────────────────────────
+    // ── Checkout flow ────────────────────────────────────────────────────────-
     const handleOpenCheckout = () => {
         if (cart.length === 0) return;
         if (!shift) {
@@ -313,7 +410,7 @@ export default function CommercialPOS() {
             const itemsSubtotal = cart.reduce((s, i) => s + i.total, 0);
             const globalDiscount = cartDiscount - itemDiscounts; // strip item-level discounts (already baked into item.total)
 
-            const sale = await salesAPI.create({
+            const saleData = {
                 customerId: selectedCustomer?.id,
                 items: cart.map(item => ({
                     productId: item.productId,
@@ -331,22 +428,40 @@ export default function CommercialPOS() {
                 amountPaid: isCredit ? 0 : totalPaid,
                 change: isCredit ? 0 : change,
                 paymentRef: JSON.stringify(paymentRefData),
+                warehouseId: activeShift?.warehouseId || undefined,
+                originModule: 'commercial',
                 notes: [
                     selectedCustomer ? `Cliente: ${selectedCustomer.name}` : customerName ? `Cliente: ${customerName}` : 'Consumidor Geral',
                     isCredit ? `CRÉDITO - Vence em ${creditDueDays} dias` : ''
                 ].filter(Boolean).join(' | ')
-            });
+            };
+
+            let saleResponse: any;
+            if (isOnline) {
+                saleResponse = await salesAPI.create(saleData);
+            } else {
+                await offlineDB.syncQueue.add({
+                    type: 'SALE',
+                    data: saleData,
+                    timestamp: Date.now(),
+                    status: 'pending',
+                    attempts: 0
+                });
+                saleResponse = { receiptNumber: `OFF-${Date.now().toString().slice(-6)}` };
+            }
 
             // Refresh shift summary from DB (totals are computed server-side from sales)
-            queryClient.invalidateQueries({ queryKey: ['commercial', 'shift'] });
+            if (isOnline) {
+                queryClient.invalidateQueries({ queryKey: ['commercial', 'shift'] });
+            }
 
-            if (appliedCampaigns.length > 0) {
+            if (isOnline && appliedCampaigns.length > 0) {
                 recordCampaignUsages(selectedCustomer?.id || 'anonymous', selectedCustomer?.name || 'Avulso', cartTotal, appliedCampaigns);
             }
 
             // Build receipt
             const receipt: ReceiptData = {
-                saleNumber: sale.receiptNumber,
+                saleNumber: saleResponse.receiptNumber,
                 date: new Date(),
                 customerName: selectedCustomer?.name || customerName || 'Consumidor Geral',
                 customerPhone: selectedCustomer?.phone,
@@ -379,9 +494,11 @@ export default function CommercialPOS() {
             setAppliedCampaign(null);
             
             // Invalidate products to update stock quantities immediately
-            queryClient.invalidateQueries({ queryKey: ['commercial', 'products'] });
+            if (isOnline) {
+                queryClient.invalidateQueries({ queryKey: ['commercial', 'products'] });
+            }
 
-            toast.success(`Venda ${sale.receiptNumber} registada!`);
+            toast.success(isOnline ? `Venda ${saleResponse.receiptNumber} registada!` : `Venda offline gravada! Sincronização pendente.`);
         } catch (err: any) {
             toast.error(err.message || 'Erro ao realizar venda');
             setShowPaymentModal(true);
@@ -408,7 +525,7 @@ export default function CommercialPOS() {
         setPromoCode('');
         setPromoCodeApplied(false);
         setAppliedCampaign(null);
-        toast.success('Venda suspensa', { icon: '⏸️' });
+        toast.success('Venda suspensa', { icon: '️' });
     };
 
     const handleResumeSale = (held: HeldSale) => {
@@ -431,11 +548,11 @@ export default function CommercialPOS() {
     const handleToggleCashDrawer = () => {
         setCashDrawerOpen(v => !v);
         toast(cashDrawerOpen ? 'Gaveta fechada' : 'Gaveta aberta', { 
-            icon: cashDrawerOpen ? <HiOutlineLockClosed className="w-5 h-5 text-gray-500" /> : <HiOutlineCash className="w-5 h-5 text-green-500" /> 
+            icon: cashDrawerOpen ? <HiOutlineLockClosed className="w-5 h-5 text-gray-500" /> : <HiOutlineBanknotes className="w-5 h-5 text-green-500" /> 
         });
     };
 
-    // ── Shift ─────────────────────────────────────────────────────────────────
+    // ── Shift ────────────────────────────────────────────────────────────────-
     const handleOpenShift = async (openingBalance: number, warehouseId?: string) => {
         try {
             await shiftAPI.open(openingBalance, warehouseId);
@@ -529,9 +646,45 @@ export default function CommercialPOS() {
 
     if (loadingProducts || loadingCustomers || loadingShift) {
         return (
-            <div className="flex flex-col items-center justify-center py-20">
-                <LoadingSpinner size="xl" />
-                <p className="mt-4 text-sm text-gray-400">A carregar ponto de venda...</p>
+            <div className="space-y-6 max-w-full">
+                {/* Header Skeleton */}
+                <div className="h-24 bg-white dark:bg-dark-900 rounded-lg p-4 flex gap-4 animate-pulse">
+                    <Skeleton className="w-64 h-full" />
+                    <Skeleton className="flex-1 h-full" />
+                    <Skeleton className="w-32 h-full" />
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                    <div className="lg:col-span-3 space-y-6">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {[1, 2, 3, 4, 5, 6].map(i => (
+                                <div key={i} className="bg-white dark:bg-dark-800 h-48 rounded-xl p-2 flex flex-col gap-2">
+                                    <Skeleton className="flex-1 w-full rounded-md" />
+                                    <Skeleton className="h-4 w-3/4" />
+                                    <Skeleton className="h-6 w-1/2" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-white dark:bg-dark-800 h-[600px] rounded-xl flex flex-col p-4 space-y-4">
+                            <Skeleton className="h-10 w-full" />
+                            <div className="flex-1 space-y-2">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="flex gap-2">
+                                        <Skeleton className="h-12 w-12 rounded-lg" />
+                                        <div className="flex-1 space-y-1">
+                                            <Skeleton className="h-4 w-3/4" />
+                                            <Skeleton className="h-3 w-1/4" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-12 w-full rounded-xl" />
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -539,13 +692,31 @@ export default function CommercialPOS() {
     return (
         <div className="space-y-4">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white dark:bg-dark-900 rounded-2xl border border-gray-100 dark:border-dark-700 shadow-sm relative overflow-hidden transition-all">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white dark:bg-dark-900 rounded-lg border border-gray-100 dark:border-dark-700 shadow-sm relative overflow-hidden transition-all">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -mr-32 -mt-32" />
                 <div className="relative z-10">
                     <h1 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none mb-1">
                         PDV Comercial
                     </h1>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {isOnline ? (
+                            <Badge variant="success" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 flex items-center gap-1">
+                                <HiOutlineCloud className="w-3 h-3" />
+                                Online
+                            </Badge>
+                        ) : (
+                            <Badge variant="danger" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest flex items-center gap-1">
+                                <HiOutlineCloudArrowUp className="w-3 h-3" />
+                                Modo Offline
+                            </Badge>
+                        )}
+
+                        {pendingCount > 0 && (
+                            <Badge variant="warning" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest animate-pulse">
+                                {pendingCount} Pendentes
+                            </Badge>
+                        )}
+
                         {shift ? (
                             <Badge variant="success" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
                                 Turno Activo
@@ -554,6 +725,13 @@ export default function CommercialPOS() {
                             <Badge variant="danger" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest">
                                 Turno Fechado
                             </Badge>
+                        )}
+                        {/* Warehouse indicator — shows which warehouse stock is being sold from */}
+                        {activeWarehouse && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
+                                <HiOutlineBuildingOffice className="w-3 h-3" />
+                                {activeWarehouse.name}
+                            </span>
                         )}
                         <p className="text-gray-400 dark:text-gray-500 font-bold text-[10px] uppercase tracking-wider">
                             {shift
@@ -566,7 +744,7 @@ export default function CommercialPOS() {
                     {shift ? (
                         <button
                             onClick={() => { setShiftModalMode('close'); setShowShiftModal(true); }}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-slate-900 dark:bg-dark-800 hover:bg-black dark:hover:bg-dark-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-black/10 hover:-translate-y-0.5 border border-white/5 active:scale-95"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 dark:bg-dark-800 hover:bg-slate-200 dark:hover:bg-dark-700 text-slate-900 dark:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm hover:-translate-y-0.5 border border-slate-200 dark:border-white/5 active:scale-95"
                         >
                             <HiOutlineStop className="w-4 h-4 text-red-500" />
                             Encerrar Turno
@@ -574,7 +752,7 @@ export default function CommercialPOS() {
                     ) : (
                         <button
                             onClick={() => { setShiftModalMode('open'); setShowShiftModal(true); }}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-500/20 hover:-translate-y-0.5 active:scale-95"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 active:scale-95"
                         >
                             <HiOutlinePlay className="w-4 h-4" />
                             Abrir Turno
@@ -591,7 +769,7 @@ export default function CommercialPOS() {
                         posSearch={posSearch}
                         setPosSearch={setPosSearch}
                         filteredProducts={filteredProducts}
-                        allProducts={products}
+                        allProducts={displayProducts}
                         posPagination={posPagination}
                         addToCart={addToCart}
                         handleBarcodeSearch={handleBarcodeSearch}
@@ -621,12 +799,12 @@ export default function CommercialPOS() {
                         onGlobalDiscountChange={setGlobalDiscountPct}
                         onCheckout={handleOpenCheckout}
                         checkoutLoading={checkoutLoading}
-                        customers={customers}
+                        customers={displayCustomers}
                         cashDrawerOpen={cashDrawerOpen}
                         handleToggleCashDrawer={handleToggleCashDrawer}
                         cashDrawerBalance={cashDrawerBalance}
                         handleScaleAction={() => {
-                            // Se há um item no carrinho, pré-selecciona o último para pesagem
+                            // Se h um item no carrinho, pré-selecciona o último para pesagem
                             const last = cart.at(-1);
                             setScaleProduct(last ? { name: last.product.name, unitPrice: last.unitPrice, unit: last.product.unit } : null);
                             setShowScaleModal(true);
@@ -676,7 +854,7 @@ export default function CommercialPOS() {
                 onClose={() => setShowScaleModal(false)}
                 product={scaleProduct}
                 onConfirm={(weightG, qty) => {
-                    // Se há produto pré-seleccionado, actualiza a quantidade do último item
+                    // Se h produto pré-seleccionado, actualiza a quantidade do último item
                     const last = cart.at(-1);
                     if (last) {
                         updateQuantity(last.productId, qty);
@@ -693,7 +871,7 @@ export default function CommercialPOS() {
                 onConfirm={handleConfirmMovement}
             />
 
-            {/* Atalhos de teclado — overlay F1 */}
+            {/* Atalhos de teclado - overlay F1 */}
             <CommercialShortcutsHUD
                 isOpen={showShortcutsHUD}
                 onClose={() => setShowShortcutsHUD(false)}

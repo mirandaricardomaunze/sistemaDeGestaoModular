@@ -1,4 +1,4 @@
-﻿import { useRef } from 'react';
+import { useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
 import { Modal, Button, Card } from '../ui';
@@ -88,12 +88,12 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
                     className="bg-white text-gray-900 shadow-2xl w-full max-w-[800px] mx-auto relative print-table !bg-white !text-gray-900 border border-gray-100"
                     style={{ fontFamily: "'Inter', Arial, Helvetica, sans-serif", backgroundColor: '#ffffff', color: '#1a1a1a', colorScheme: 'light' }}
                 >
-                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* --------------------------------------------------- */}
                     {/* TOP HEADER: Logo left + ORDER FORM title right    */}
-                    {/* ═══════════════════════════════════════════════════ */}
-                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* --------------------------------------------------- */}
+                    {/* --------------------------------------------------- */}
                     {/* TOP HEADER: Logo left + ORDER title right         */}
-                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* --------------------------------------------------- */}
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '24px 32px 16px', borderBottom: '2px solid #1a1a1a', backgroundColor: 'white', margin: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: 'white' }}>
                             {company.logo ? (
@@ -131,15 +131,15 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════ */}
+                    {/* --------------------------- */}
                     {/* SECTION: DADOS DO CLIENTE  */}
-                    {/* ═══════════════════════════ */}
-                    {/* ═══════════════ */}
+                    {/* --------------------------- */}
+                    {/* --------------- */}
                     {/* SECTION: DADOS  */}
-                    {/* ═══════════════ */}
-                    {/* ═══════════════════════════════════════ */}
+                    {/* --------------- */}
+                    {/* --------------------------------------- */}
                     {/* SECTION: FORNECEDOR + INFO (SIDE BY SIDE) */}
-                    {/* ═══════════════════════════════════════ */}
+                    {/* --------------------------------------- */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', backgroundColor: 'white', margin: 0 }}>
                         {/* Column 1: Fornecedor */}
                         <div style={{ borderRight: '1px solid #f3f4f6' }}>
@@ -178,9 +178,9 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════════ */}
+                    {/* ------------------------------- */}
                     {/* SECTION: DETALHES DOS PRODUTOS */}
-                    {/* ═══════════════════════════════ */}
+                    {/* ------------------------------- */}
                     <div style={{ padding: '0 32px 16px' }}>
                         <table className="print-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff' }}>
                             <thead>
@@ -192,7 +192,7 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
                                         Qtd
                                     </th>
                                     <th style={{ textAlign: 'right', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '120px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
-                                        V. Unitário
+                                        V. Unitrio
                                     </th>
                                     <th style={{ textAlign: 'right', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '120px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
                                         Subtotal
@@ -220,12 +220,12 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
                         </table>
                     </div>
 
-                    {/* ═══════════════ */}
+                    {/* --------------- */}
                     {/* SECTION: TOTAIS */}
-                    {/* ═══════════════ */}
-                    {/* ═══════════════ */}
+                    {/* --------------- */}
+                    {/* --------------- */}
                     {/* SECTION: TOTAIS */}
-                    {/* ═══════════════ */}
+                    {/* --------------- */}
                     <div style={{ padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         {/* Left: Notes + Terms */}
                         <div style={{ maxWidth: '55%' }}>
@@ -239,7 +239,7 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
                                 <p className="text-[10px] font-black text-gray-800 mb-1 uppercase tracking-widest">Termos e Condições:</p>
                                 <p className="text-gray-400 leading-relaxed" style={{ fontSize: '10px' }}>
                                     Esta ordem de compra é um documento comercial vinculativo.
-                                    Os produtos devem ser entregues conforme as especificações
+                                    Os produtos devem ser entregues conforme as especificaces
                                     e prazos acordados. Qualquer divergência deve ser comunicada
                                     antes da entrega.
                                 </p>
@@ -263,9 +263,9 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
                         </div>
                     </div>
 
-                    {/* ═══════════════════ */}
+                    {/* ------------------- */}
                     {/* SIGNATURE SECTION  */}
-                    {/* ═══════════════════ */}
+                    {/* ------------------- */}
                     <div className="px-8 pt-5 pb-6" style={{ borderTop: '1px solid #f1f5f9' }}>
                         <div className="grid grid-cols-2 gap-16">
                             <div className="text-center">

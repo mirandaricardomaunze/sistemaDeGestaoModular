@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, PageHeader } from '../../components/ui';
+import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, PageHeader, Pagination } from '../../components/ui';
 import { 
     HiOutlinePlus, 
     HiOutlineArrowPath, 
@@ -18,7 +18,7 @@ export default function FuelPage() {
     const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [vehicleFilter, setVehicleFilter] = useState('');
-    const page = 1;
+    const [page, setPage] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -102,7 +102,7 @@ export default function FuelPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="p-5 border-l-4 border-cyan-500">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center text-cyan-600">
+                        <div className="w-12 h-12 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center text-cyan-600">
                             <HiOutlineCalculator className="w-6 h-6" />
                         </div>
                         <div>
@@ -115,7 +115,7 @@ export default function FuelPage() {
                 </Card>
                 <Card className="p-5 border-l-4 border-blue-500">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                        <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
                             <HiOutlineFire className="w-6 h-6" />
                         </div>
                         <div>
@@ -126,7 +126,7 @@ export default function FuelPage() {
                 </Card>
                 <Card className="p-5 border-l-4 border-indigo-500">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
+                        <div className="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
                             <HiOutlineChartBar className="w-6 h-6" />
                         </div>
                         <div>
@@ -215,6 +215,18 @@ export default function FuelPage() {
                     </table>
                 </div>
             </Card>
+
+            {/* Pagination */}
+            {data?.pagination && data.pagination.totalPages > 1 && (
+                <div className="flex justify-center pt-2">
+                    <Pagination
+                        currentPage={page}
+                        totalItems={data.pagination.total}
+                        itemsPerPage={20}
+                        onPageChange={setPage}
+                    />
+                </div>
+            )}
 
             {/* Modal de Abastecimento */}
             <Modal

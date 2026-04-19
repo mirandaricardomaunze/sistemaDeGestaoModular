@@ -49,6 +49,8 @@ export interface Product {
     packSize?: number;
     origin_module?: string;
     taxRate?: number;
+    leadTime?: number; // Days for supplier delivery
+    avgWeeklySales?: number; // Historical average
     createdAt: string;
     updatedAt: string;
     // Multi-warehouse stock mapping: WarehouseID -> Quantity
@@ -164,6 +166,21 @@ export interface AcademicQualification {
     certificateNumber?: string;
 }
 
+export type CommissionType = 'fixed' | 'tiered' | 'profit_based';
+
+export interface CommissionRule {
+    id: string;
+    employeeId?: string;
+    role?: EmployeeRole;
+    type: CommissionType;
+    rate?: number;
+    tiers?: Array<{ min: number; rate: number }>;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    employee?: Employee;
+}
+
 export interface Employee {
     id: string;
     code: string;
@@ -196,9 +213,17 @@ export interface Employee {
     maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
     dependents?: number;
     vacationDaysTotal?: number; // Total de dias de férias por ano (Ex: 22)
-    vacationDaysUsed?: number; // Dias já gozados
+    vacationDaysUsed?: number; // Dias j gozados
     contractType?: ContractType;
     contractExpiry?: string;
+    notes?: string; // Serialized compliance data (JSON)
+    // Professional/Enterprise Fields
+    commissionRate?: number;
+    performanceScore: number;
+    reportsToId?: string;
+    reportsTo?: Employee;
+    subordinates?: Employee[];
+    commissionRule?: CommissionRule;
 }
 
 export interface PayrollAuditEntry {
@@ -600,6 +625,7 @@ export interface Customer {
     totalPurchases: number;
     loyaltyPoints?: number;
     isActive: boolean;
+    lastPurchaseDate?: string; // ISO date
     createdAt: string;
     updatedAt: string;
 }

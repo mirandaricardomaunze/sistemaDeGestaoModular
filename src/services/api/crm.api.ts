@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import api from './client';
+import api from './client';
 
 // ============================================================================
 // Audit API

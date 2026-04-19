@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿/**
+/**
  * ExportButton Component
  * 
  * Reusable button with dropdown menu for exporting data to Excel or PDF
@@ -356,7 +356,7 @@ export function ExportDeliveriesButton({ data, companyName, className }: QuickEx
                 orientation: 'landscape',
                 columns: [
                     { key: 'number', header: 'Nº Entrega', width: 15 },
-                    { key: 'recipientName', header: 'Destinatário', width: 20 },
+                    { key: 'recipientName', header: 'Destinatrio', width: 20 },
                     { key: 'deliveryAddress', header: 'Endereço', width: 30 },
                     { key: 'driver.name', header: 'Motorista', width: 15 },
                     { key: 'vehicle.plate', header: 'Veículo', width: 12 },

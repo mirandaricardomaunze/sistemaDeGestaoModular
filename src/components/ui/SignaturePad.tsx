@@ -100,7 +100,7 @@ export function SignaturePad({ onSave, onClear, height = 200 }: SignaturePadProp
 
     return (
         <div className="space-y-3">
-            <div className="relative border-2 border-dashed border-gray-300 dark:border-dark-600 rounded-2xl overflow-hidden bg-gray-50 dark:bg-dark-900/50">
+            <div className="relative border-2 border-dashed border-gray-300 dark:border-dark-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-dark-900/50">
                 <canvas
                     ref={canvasRef}
                     onMouseDown={startDrawing}

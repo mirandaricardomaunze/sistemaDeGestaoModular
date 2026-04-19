@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Payments API Service
  * Frontend client for M-Pesa payment integration
  */

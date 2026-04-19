@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { db } from '../db/offlineDB';
 import { salesAPI, api } from '../services/api';
 import toast from 'react-hot-toast';

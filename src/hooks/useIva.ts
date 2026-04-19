@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { ivaAPI, type IvaRate, type CreateIvaRateDto } from '../services/api';
+import { ivaAPI, type CreateIvaRateDto } from '../services/api';
 
 // ---- shared primitives (same pattern as useLogistics.ts / useRestaurant.ts) ----
 const bus = new EventTarget();

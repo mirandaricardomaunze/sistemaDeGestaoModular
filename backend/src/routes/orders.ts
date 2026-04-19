@@ -1,12 +1,12 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import {
     createOrderSchema,
     updateOrderSchema,
     updateOrderStatusSchema
 } from '../validation';
-import { ordersService } from '../services/orders.service';
-import { invoicesService } from '../services/invoices.service';
+import { ordersService } from '../services/ordersService';
+import { invoicesService } from '../services/invoicesService';
 import { ApiError } from '../middleware/error.middleware';
 
 const router = Router();

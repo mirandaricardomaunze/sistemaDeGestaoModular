@@ -129,7 +129,7 @@ export default function DriversPage() {
                 name: driver.name,
                 phone: driver.phone,
                 email: driver.email || '',
-                licenseNumber: driver.licenseNumber,
+                licenseNumber: driver.licenseNumber || '',
                 licenseType: driver.licenseType || '',
                 licenseExpiry: driver.licenseExpiry?.split('T')[0] || '',
                 status: driver.status,

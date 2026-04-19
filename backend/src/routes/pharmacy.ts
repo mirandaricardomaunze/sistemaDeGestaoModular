@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { pharmacyService } from '../services/pharmacy.service';
+import { pharmacyService } from '../services/pharmacyService';
 import {
     createMedicationSchema,
     updateMedicationSchema,
@@ -12,12 +12,13 @@ import {
 } from '../validation';
 import { ApiError } from '../middleware/error.middleware';
 import { prisma } from '../lib/prisma';
+import { emitToCompany } from '../lib/socket';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
 // ============================================================================
-// MULTER — Prescription image uploads
+// MULTER -- Prescription image uploads
 // ============================================================================
 
 const uploadDir = path.join(process.cwd(), 'uploads', 'prescriptions');
@@ -216,7 +217,18 @@ router.get('/prescriptions/lookup', async (req: AuthRequest, res) => {
 router.post('/prescriptions', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company context required');
     const validatedData = createPrescriptionSchema.parse(req.body);
-    res.status(201).json(await pharmacyService.createPrescription(req.companyId, validatedData));
+    const result = await pharmacyService.createPrescription(req.companyId, validatedData);
+    
+    if (result.success && result.data) {
+        // Socket Notification: New Prescription
+        emitToCompany(req.companyId, 'pharmacy:new_prescription', {
+            id: result.data.id,
+            patientName: result.data.patientName,
+            timestamp: new Date()
+        });
+    }
+
+    res.status(201).json(result);
 });
 
 router.put('/prescriptions/:id/status', async (req: AuthRequest, res) => {
@@ -561,6 +573,14 @@ router.post('/narcotic-register', async (req: AuthRequest, res) => {
             notes, verifiedBy: req.userName || 'Sistema', companyId: req.companyId
         }
     });
+
+    // Socket Notification: Narcotic Alert (High sensitivity)
+    emitToCompany(req.companyId, 'pharmacy:narcotic_alert', {
+        message: `Novo registo de narcótico: ${medicationName}`,
+        dispensed: dispensed || 0,
+        timestamp: new Date()
+    });
+
     res.status(201).json(record);
 });
 
@@ -1112,12 +1132,12 @@ router.get('/alerts', async (req: AuthRequest, res) => {
 
     // CRITICAL: Active recalls
     for (const r of activeRecalls) {
-        alerts.push({ type: 'recall', severity: 'critical', title: 'Recall Activo', message: `Recall ${r.recallNumber} — ${r.medication.product.name}: ${r.reason}`, recallId: r.id, productName: r.medication.product.name });
+        alerts.push({ type: 'recall', severity: 'critical', title: 'Recall Activo', message: `Recall ${r.recallNumber} -- ${r.medication.product.name}: ${r.reason}`, recallId: r.id, productName: r.medication.product.name });
     }
 
     // CRITICAL: Narcotic discrepancies
     for (const n of narcoticDiscrepancies) {
-        alerts.push({ type: 'narcotic_discrepancy', severity: 'critical', title: 'Discrepância Narcóticos', message: `${n.medicationName} — discrepância de ${n.discrepancy} unidades em ${new Date(n.registerDate).toLocaleDateString('pt-BR')}`, registerId: n.id });
+        alerts.push({ type: 'narcotic_discrepancy', severity: 'critical', title: 'Discrepância Narcóticos', message: `${n.medicationName} -- discrepância de ${n.discrepancy} unidades em ${new Date(n.registerDate).toLocaleDateString('pt-BR')}`, registerId: n.id });
     }
 
     // WARNING: Low stock

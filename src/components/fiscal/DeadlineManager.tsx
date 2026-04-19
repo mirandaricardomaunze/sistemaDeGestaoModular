@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
     HiOutlineCalendar,
     HiOutlinePlus,
@@ -8,6 +8,7 @@ import {
     HiOutlineExclamation,
 } from 'react-icons/hi';
 import { useFiscalStore } from '../../stores/useFiscalStore';
+import { useUser } from '../../stores/useAuthStore';
 import { Button, Card, Input, Modal, Select, Badge, Pagination, usePagination } from '../ui';
 import { generateId } from '../../utils/helpers';
 import { calculateDeadlineDate, formatPeriod, getCurrentFiscalPeriod } from '../../utils/fiscalCalculations';
@@ -16,6 +17,7 @@ import toast from 'react-hot-toast';
 
 export default function DeadlineManager() {
     const { deadlines, addDeadline, deleteDeadline, completeDeadline } = useFiscalStore();
+    const user = useUser();
     const [nowTimestamp] = useState(() => Date.now());
 
     const [showModal, setShowModal] = useState(false);
@@ -90,7 +92,7 @@ export default function DeadlineManager() {
     };
 
     const handleComplete = (id: string) => {
-        completeDeadline(id, 'user'); // TODO: use actual user ID
+        completeDeadline(id, user?.id ?? 'anonymous');
         toast.success('Prazo marcado como concluído!');
     };
 
@@ -208,10 +210,10 @@ export default function DeadlineManager() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        Prazos e Obrigações Fiscais
+                        Prazos e Obrigaces Fiscais
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Gerencie os prazos de submissão de declarações fiscais
+                        Gerencie os prazos de submissão de declaraces fiscais
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -238,7 +240,7 @@ export default function DeadlineManager() {
                                 Atenção: Prazos Próximos
                             </p>
                             <p className="text-sm text-red-700 dark:text-red-400">
-                                Existem obrigações fiscais a vencer nos próximos 7 dias. Verifique a lista abaixo.
+                                Existem obrigaces fiscais a vencer nos próximos 7 dias. Verifique a lista abaixo.
                             </p>
                         </div>
                     </div>

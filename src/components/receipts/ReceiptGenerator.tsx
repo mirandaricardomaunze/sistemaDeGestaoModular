@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -176,7 +176,7 @@ export default function ReceiptGenerator() {
                         </Button>
                     </div>
                     {customer ? (
-                        <div className="p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div className="p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <p className="font-medium text-gray-900 dark:text-white">{customer.name}</p>
                             {customer.email && (
                                 <p className="text-sm text-gray-500 dark:text-gray-400">{customer.email}</p>
@@ -240,7 +240,7 @@ export default function ReceiptGenerator() {
                             {selectedProducts.map((item) => (
                                 <div
                                     key={item.productId}
-                                    className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl"
+                                    className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg"
                                 >
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -287,7 +287,7 @@ export default function ReceiptGenerator() {
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Preview do Recibo</h3>
 
                     {/* Receipt Preview */}
-                    <div className="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-600 rounded-xl p-6 font-mono text-sm">
+                    <div className="bg-white dark:bg-dark-900 border border-gray-200 dark:border-dark-600 rounded-lg p-6 font-mono text-sm">
                         {/* Header */}
                         <div className="text-center border-b border-dashed border-gray-300 dark:border-dark-600 pb-4 mb-4">
                             {companyInfo.logo && (

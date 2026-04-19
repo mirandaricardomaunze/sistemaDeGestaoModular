@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { warehousesAPI } from '../services/api';
 import type { StockTransfer } from '../types';

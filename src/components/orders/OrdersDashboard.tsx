@@ -1,17 +1,17 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
-    HiOutlineClipboardList,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
     HiOutlineClock,
-    HiOutlineExclamation,
+    HiOutlineExclamationTriangle as HiOutlineExclamation,
     HiOutlineCheck,
     HiOutlineEye,
     HiOutlinePrinter,
-    HiOutlineFilter,
+    HiOutlineFunnel as HiOutlineFilter,
     HiOutlinePlus,
     HiOutlineTrash,
     HiOutlineCube,
     HiOutlineDocumentText,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import {
     PieChart,
     Pie,
@@ -280,7 +280,7 @@ export default function OrdersDashboard({
                                 {metrics.today}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineClipboardList className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                         </div>
                     </div>
@@ -294,7 +294,7 @@ export default function OrdersDashboard({
                                 {metrics.pending}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineClock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
                         </div>
                     </div>
@@ -308,7 +308,7 @@ export default function OrdersDashboard({
                                 {metrics.urgent}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineExclamation className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                         </div>
                     </div>
@@ -322,7 +322,7 @@ export default function OrdersDashboard({
                                 {metrics.completed}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineCheck className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                         </div>
                     </div>
@@ -526,7 +526,7 @@ export default function OrdersDashboard({
                                                         <HiOutlineDocumentText className="w-5 h-5 text-blue-600" />
                                                     </button>
                                                 )}
-                                                {/* Reprint button — admin only, for orders already printed */}
+                                                {/* Reprint button - admin only, for orders already printed */}
                                                 {isAdmin && order.status !== 'created' && order.status !== 'cancelled' && (
                                                     <button
                                                         onClick={() => onPrintOrder(order)}

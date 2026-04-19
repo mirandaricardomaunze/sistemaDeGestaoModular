@@ -1,65 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { restaurantAPI } from '../services/api/restaurant.api';
+import type { 
+    RestaurantTable, 
+    RestaurantMenuItem, 
+    RestaurantOrder, 
+    RestaurantReservation,
+    RestaurantDashboard,
+    OrderStatus,
+    ReservationStatus
+} from '../types/restaurant';
 import toast from 'react-hot-toast';
-import { restaurantAPI, type RestaurantTable } from '../services/api';
 
 // ============================================================================
-// MINI QUERY / MUTATION PRIMITIVES (same pattern as useLogistics.ts)
+// HELPERS
 // ============================================================================
 
-const cacheEvents = new EventTarget();
-const invalidate = (keys: string[]) =>
-    keys.forEach(k => cacheEvents.dispatchEvent(new CustomEvent('invalidate', { detail: k })));
-
-function useQuery<T>(queryFn: () => Promise<T>, key: string, deps: any[] = [], enabled = true) {
-    const [data, setData] = useState<T | null>(null);
-    const [isLoading, setIsLoading] = useState(enabled);
-    const [error, setError] = useState<any>(null);
-
-    const fetch = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            setData(await queryFn());
-        } catch (e) {
-            setError(e);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [key, ...deps]);
-
-    useEffect(() => { if (enabled) fetch(); }, [enabled, key, ...deps]);
-
-    useEffect(() => {
-        const handler = (e: any) => { if (e.detail === key) fetch(); };
-        cacheEvents.addEventListener('invalidate', handler);
-        return () => cacheEvents.removeEventListener('invalidate', handler);
-    }, [key, fetch]);
-
-    return { data, isLoading, error, refetch: fetch };
-}
-
-function useMutation<T, V>(
-    fn: (v: V) => Promise<T>,
-    opts?: { onSuccess?: (d: T) => void; onError?: (e: any) => void; invalidates?: string[] }
-) {
-    const [isLoading, setIsLoading] = useState(false);
-
-    const mutate = async (variables: V) => {
-        setIsLoading(true);
-        try {
-            const result = await fn(variables);
-            if (opts?.invalidates) invalidate(opts.invalidates);
-            opts?.onSuccess?.(result);
-            return result;
-        } catch (e) {
-            opts?.onError?.(e);
-            throw e;
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return { mutate, mutateAsync: mutate, isLoading };
+function withIsLoading<T extends object & { isPending: boolean }>(m: T) {
+    return Object.assign(m, { isLoading: m.isPending });
 }
 
 // ============================================================================
@@ -67,7 +24,10 @@ function useMutation<T, V>(
 // ============================================================================
 
 export function useRestaurantDashboard(range: string = '1M') {
-    return useQuery(() => restaurantAPI.getDashboard(range), 'restaurant-dashboard', [range]);
+    return useQuery<RestaurantDashboard>({
+        queryKey: ['restaurant', 'dashboard', range],
+        queryFn: () => restaurantAPI.getDashboard(range),
+    });
 }
 
 // ============================================================================
@@ -75,218 +35,228 @@ export function useRestaurantDashboard(range: string = '1M') {
 // ============================================================================
 
 export function useRestaurantTables(params?: { status?: string; section?: string; page?: number; limit?: number }) {
-    return useQuery(
-        () => restaurantAPI.getTables(params),
-        'restaurant-tables',
-        [params?.status, params?.section, params?.page]
-    );
+    return useQuery({
+        queryKey: ['restaurant', 'tables', params],
+        queryFn: () => restaurantAPI.getTables(params),
+    });
 }
 
 export function useRestaurantTable(id: string) {
-    return useQuery(() => restaurantAPI.getTableById(id), 'restaurant-table', [id], !!id);
+    return useQuery<RestaurantTable>({
+        queryKey: ['restaurant', 'table', id],
+        queryFn: () => restaurantAPI.getTableById(id),
+        enabled: !!id,
+    });
 }
 
 export function useCreateRestaurantTable() {
-    return useMutation(
-        (data: { number: number; name?: string; capacity?: number; section?: string; notes?: string }) =>
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: (data: { number: number; name?: string; capacity?: number; section?: string; notes?: string }) =>
             restaurantAPI.createTable(data),
-        {
-            invalidates: ['restaurant-tables', 'restaurant-dashboard'],
-            onSuccess: () => toast.success('Mesa criada com sucesso'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao criar mesa'),
-        }
-    );
-}
-
-export function useUpdateRestaurantTable() {
-    return useMutation(
-        ({ id, data }: { id: string; data: Partial<RestaurantTable> }) =>
-            restaurantAPI.updateTable(id, data),
-        {
-            invalidates: ['restaurant-tables'],
-            onSuccess: () => toast.success('Mesa actualizada'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao actualizar mesa'),
-        }
-    );
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'tables'] });
+            toast.success('Mesa criada com sucesso');
+        },
+        onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao criar mesa'),
+    }));
 }
 
 export function useUpdateTableStatus() {
-    return useMutation(
-        ({ id, status }: { id: string; status: string }) =>
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, status }: { id: string; status: string }) =>
             restaurantAPI.updateTableStatus(id, status),
-        {
-            invalidates: ['restaurant-tables', 'restaurant-dashboard'],
-            onSuccess: () => toast.success('Estado da mesa actualizado'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao actualizar estado'),
-        }
-    );
-}
-
-export function useDeleteRestaurantTable() {
-    return useMutation(
-        (id: string) => restaurantAPI.deleteTable(id),
-        {
-            invalidates: ['restaurant-tables', 'restaurant-dashboard'],
-            onSuccess: () => toast.success('Mesa eliminada'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao eliminar mesa'),
-        }
-    );
-}
-
-// ============================================================================
-// REPORTS
-// ============================================================================
-
-export function useRestaurantReports(params: { startDate?: string; endDate?: string; page?: number; limit?: number }) {
-    return useQuery(
-        () => restaurantAPI.getReports(params),
-        'restaurant-reports',
-        [params.startDate, params.endDate, params.page]
-    );
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'tables'] });
+            qc.invalidateQueries({ queryKey: ['restaurant', 'table'] });
+        },
+    }));
 }
 
 // ============================================================================
 // MENU ITEMS
 // ============================================================================
 
-export function useRestaurantMenu(params?: { category?: string; isAvailable?: boolean; search?: string; page?: number; limit?: number }) {
-    return useQuery(
-        () => restaurantAPI.getMenuItems(params),
-        'restaurant-menu',
-        [params?.category, params?.isAvailable, params?.search, params?.page]
-    );
-}
-
-export function useCreateMenuItem() {
-    return useMutation(
-        (data: any) => restaurantAPI.createMenuItem(data),
-        {
-            invalidates: ['restaurant-menu', 'restaurant-dashboard'],
-            onSuccess: () => toast.success('Item criado com sucesso'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao criar item'),
-        }
-    );
-}
-
-export function useUpdateMenuItem() {
-    return useMutation(
-        ({ id, data }: { id: string; data: any }) => restaurantAPI.updateMenuItem(id, data),
-        {
-            invalidates: ['restaurant-menu'],
-            onSuccess: () => toast.success('Item actualizado'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao actualizar item'),
-        }
-    );
-}
-
-export function useDeleteMenuItem() {
-    return useMutation(
-        (id: string) => restaurantAPI.deleteMenuItem(id),
-        {
-            invalidates: ['restaurant-menu', 'restaurant-dashboard'],
-            onSuccess: () => toast.success('Item removido'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao remover item'),
-        }
-    );
-}
-
-export function useToggleMenuItemAvailability() {
-    return useMutation(
-        ({ id, isAvailable }: { id: string; isAvailable: boolean }) =>
-            restaurantAPI.toggleMenuItemAvailability(id, isAvailable),
-        {
-            invalidates: ['restaurant-menu'],
-            onSuccess: () => toast.success('Disponibilidade actualizada'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao actualizar disponibilidade'),
-        }
-    );
+export function useMenuItems(params?: any) {
+    return useQuery({
+        queryKey: ['restaurant', 'menu', params],
+        queryFn: () => restaurantAPI.getMenuItems(params),
+    });
 }
 
 // ============================================================================
-// KITCHEN ORDERS
+// KITCHEN / ORDERS
 // ============================================================================
 
-export function useKitchenOrders(params?: { status?: any; limit?: number }) {
-    const query = useQuery(
-        () => restaurantAPI.getKitchenOrders(params),
-        'kitchen-orders',
-        [params?.status]
-    );
-
-    // Auto-refresh for kitchen every 30s
-    useEffect(() => {
-        const interval = setInterval(() => query.refetch(), 30000);
-        return () => clearInterval(interval);
-    }, [query.refetch]);
-
-    return query;
+export function useKitchenOrders(status?: OrderStatus) {
+    return useQuery<RestaurantOrder[]>({
+        queryKey: ['restaurant', 'orders', 'kitchen', status],
+        queryFn: () => restaurantAPI.getKitchenOrders({ status }),
+        refetchInterval: 30000, // Auto-refresh kitchen every 30s
+    });
 }
 
 export function useUpdateOrderStatus() {
-    return useMutation(
-        ({ id, status, notes }: { id: string; status: any; notes?: string }) =>
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, status, notes }: { id: string; status: OrderStatus; notes?: string }) =>
             restaurantAPI.updateOrderStatus(id, status, notes),
-        {
-            invalidates: ['kitchen-orders', 'restaurant-dashboard'],
-            onSuccess: () => toast.success('Estado do pedido actualizado'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao actualizar pedido'),
-        }
-    );
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'orders'] });
+            toast.success('Estado do pedido atualizado');
+        },
+    }));
 }
 
 // ============================================================================
 // RESERVATIONS
 // ============================================================================
 
-export function useRestaurantReservations(params?: { date?: string; status?: any; search?: string; page?: number; limit?: number }) {
-    return useQuery(
-        () => restaurantAPI.getReservations(params),
-        'restaurant-reservations',
-        [params?.date, params?.status, params?.search, params?.page]
-    );
+export function useRestaurantReservations(params?: any) {
+    return useQuery({
+        queryKey: ['restaurant', 'reservations', params],
+        queryFn: () => restaurantAPI.getReservations(params),
+    });
 }
 
 export function useCreateReservation() {
-    return useMutation(
-        (data: any) => restaurantAPI.createReservation(data),
-        {
-            invalidates: ['restaurant-reservations', 'restaurant-dashboard'],
-            onSuccess: () => toast.success('Reserva criada com sucesso'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao criar reserva'),
-        }
-    );
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: (data: any) => restaurantAPI.createReservation(data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'reservations'] });
+            toast.success('Reserva registrada com sucesso');
+        },
+    }));
 }
 
 export function useUpdateReservation() {
-    return useMutation(
-        ({ id, data }: { id: string; data: any }) => restaurantAPI.updateReservation(id, data),
-        {
-            invalidates: ['restaurant-reservations'],
-            onSuccess: () => toast.success('Reserva actualizada'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao actualizar reserva'),
-        }
-    );
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<RestaurantReservation> }) =>
+            restaurantAPI.updateReservation(id, data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'reservations'] });
+            toast.success('Reserva atualizada com sucesso');
+        },
+    }));
 }
 
 export function useDeleteReservation() {
-    return useMutation(
-        (id: string) => restaurantAPI.deleteReservation(id),
-        {
-            invalidates: ['restaurant-reservations', 'restaurant-dashboard'],
-            onSuccess: () => toast.success('Reserva removida'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao remover reserva'),
-        }
-    );
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => restaurantAPI.deleteReservation(id),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'reservations'] });
+            toast.success('Reserva eliminada');
+        },
+    }));
 }
 
 export function useUpdateReservationStatus() {
-    return useMutation(
-        ({ id, status }: { id: string; status: any }) =>
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, status }: { id: string; status: ReservationStatus }) =>
             restaurantAPI.updateReservationStatus(id, status),
-        {
-            invalidates: ['restaurant-reservations', 'restaurant-dashboard'],
-            onSuccess: () => toast.success('Estado da reserva actualizado'),
-            onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao actualizar estado'),
-        }
-    );
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'reservations'] });
+        },
+    }));
+}
+
+// ============================================================================
+// MENU HOOKS
+// ============================================================================
+
+export function useRestaurantMenu(params?: any) {
+    return useQuery({
+        queryKey: ['restaurant', 'menu', params],
+        queryFn: () => restaurantAPI.getMenuItems(params),
+    });
+}
+
+export function useCreateMenuItem() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: (data: Omit<RestaurantMenuItem, 'id' | 'companyId' | 'createdAt' | 'updatedAt'>) =>
+            restaurantAPI.createMenuItem(data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'menu'] });
+            toast.success('Item criado com sucesso');
+        },
+        onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao criar item'),
+    }));
+}
+
+export function useUpdateMenuItem() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<RestaurantMenuItem> }) =>
+            restaurantAPI.updateMenuItem(id, data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'menu'] });
+            toast.success('Item atualizado');
+        },
+    }));
+}
+
+export function useDeleteMenuItem() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => restaurantAPI.deleteMenuItem(id),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'menu'] });
+            toast.success('Item eliminado');
+        },
+    }));
+}
+
+export function useToggleMenuItemAvailability() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, isAvailable }: { id: string; isAvailable: boolean }) =>
+            restaurantAPI.toggleMenuItemAvailability(id, isAvailable),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'menu'] });
+        },
+    }));
+}
+
+// ============================================================================
+// REPORTS
+// ============================================================================
+
+export function useRestaurantReports(params?: { startDate?: string; endDate?: string; page?: number; limit?: number }) {
+    return useQuery({
+        queryKey: ['restaurant', 'reports', params],
+        queryFn: () => restaurantAPI.getReports(params || {}),
+    });
+}
+
+// ============================================================================
+// TABLE MUTATION HOOKS
+// ============================================================================
+
+export function useUpdateRestaurantTable() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Partial<RestaurantTable> }) =>
+            restaurantAPI.updateTable(id, data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'tables'] });
+            toast.success('Mesa atualizada');
+        },
+    }));
+}
+
+export function useDeleteRestaurantTable() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: (id: string) => restaurantAPI.deleteTable(id),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['restaurant', 'tables'] });
+            toast.success('Mesa eliminada');
+        },
+    }));
 }

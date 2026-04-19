@@ -97,7 +97,7 @@ export default function LogisticsMap({
     center = [-25.9692, 32.5732], // Maputo default
     zoom = 13, 
     showRoutes = false,
-    className = "h-[450px] w-full rounded-xl overflow-hidden shadow-inner",
+    className = "h-[450px] w-full rounded-lg overflow-hidden shadow-inner",
     interactive = true
 }: LogisticsMapProps) {
     const [isMounted, setIsMounted] = useState(false);

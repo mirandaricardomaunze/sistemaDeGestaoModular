@@ -1,11 +1,11 @@
 /**
- * Validity Routes — delegates to BatchesService (ProductBatch table).
+ * Validity Routes -- delegates to BatchesService (ProductBatch table).
  * The old /products/:productId/validities and /validities/* URLs are kept
  * so that any existing clients continue to work without changes.
  */
 import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { batchesService } from '../services/batches.service';
+import { batchesService } from '../services/batchesService';
 import { ApiError } from '../middleware/error.middleware';
 import { z } from 'zod';
 

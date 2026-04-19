@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, PageHeader } from '../../components/ui';
+import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, PageHeader, Pagination } from '../../components/ui';
 import { 
     HiOutlinePlus, 
     HiOutlineArrowPath, 
@@ -18,7 +18,7 @@ export default function IncidentsPage() {
     const { t } = useTranslation();
     const [search, setSearch] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
-    const [page] = useState(1);
+    const [page, setPage] = useState(1);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
@@ -102,7 +102,7 @@ export default function IncidentsPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="p-5 border-l-4 border-red-500">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
+                        <div className="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600">
                             <HiOutlineExclamationTriangle className="w-6 h-6" />
                         </div>
                         <div>
@@ -113,7 +113,7 @@ export default function IncidentsPage() {
                 </Card>
                 <Card className="p-5 border-l-4 border-orange-500">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600">
+                        <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600">
                             <HiOutlineClock className="w-6 h-6" />
                         </div>
                         <div>
@@ -124,7 +124,7 @@ export default function IncidentsPage() {
                 </Card>
                 <Card className="p-5 border-l-4 border-gray-500">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-900/30 flex items-center justify-center text-gray-600">
+                        <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-900/30 flex items-center justify-center text-gray-600">
                             <HiOutlineCurrencyDollar className="w-6 h-6" />
                         </div>
                         <div>
@@ -228,6 +228,18 @@ export default function IncidentsPage() {
                     </table>
                 </div>
             </Card>
+
+            {/* Pagination */}
+            {data?.pagination && data.pagination.totalPages > 1 && (
+                <div className="flex justify-center pt-2">
+                    <Pagination
+                        currentPage={page}
+                        totalItems={data.pagination.total}
+                        itemsPerPage={20}
+                        onPageChange={setPage}
+                    />
+                </div>
+            )}
 
             {/* Report Modal */}
             <Modal

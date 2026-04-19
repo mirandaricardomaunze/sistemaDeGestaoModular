@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ReportPreviewModal - Standardized report preview with print functionality
  * Used for Sales Reports, Inventory Reports, Financial Reports, etc.
  */
@@ -167,7 +167,7 @@ export default function ReportPreviewModal({
     };
 
     const handleExportPDF = () => {
-        toast('Exportação PDF em desenvolvimento', { icon: '📄' });
+        toast('Exportação PDF em desenvolvimento', { icon: '??' });
     };
 
     return (

@@ -1,4 +1,4 @@
-﻿import { type HTMLAttributes } from 'react';
+import { type HTMLAttributes } from 'react';
 
 interface LoadingSpinnerProps extends HTMLAttributes<HTMLDivElement> {
     size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -21,9 +21,9 @@ export function LoadingSpinner({
     if (variant === 'dots') {
         return (
             <div className={`flex gap-2 ${className}`} {...props}>
-                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></div>
-                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '150ms' }}></div>
-                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '300ms' }}></div>
+                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '0mês' }}></div>
+                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '150mês' }}></div>
+                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '300mês' }}></div>
             </div>
         );
     }
@@ -67,7 +67,7 @@ interface LoadingOverlayProps {
 export function LoadingOverlay({ message = 'A carregar...' }: LoadingOverlayProps) {
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl p-8 text-center">
+            <div className="bg-white dark:bg-dark-800 rounded-lg shadow-2xl p-8 text-center">
                 <LoadingSpinner size="xl" className="mx-auto mb-4" />
                 <p className="text-gray-700 dark:text-gray-300 font-medium">{message}</p>
             </div>
@@ -77,7 +77,7 @@ export function LoadingOverlay({ message = 'A carregar...' }: LoadingOverlayProp
 
 export function LoadingCard() {
     return (
-        <div className="bg-white dark:bg-dark-800 rounded-xl p-6 animate-pulse">
+        <div className="bg-white dark:bg-dark-800 rounded-lg p-6 animate-pulse">
             <div className="h-4 bg-gray-200 dark:bg-dark-700 rounded w-3/4 mb-4"></div>
             <div className="h-4 bg-gray-200 dark:bg-dark-700 rounded w-1/2 mb-2"></div>
             <div className="h-4 bg-gray-200 dark:bg-dark-700 rounded w-5/6"></div>

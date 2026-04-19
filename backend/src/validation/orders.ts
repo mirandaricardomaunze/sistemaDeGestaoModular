@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Validation Schemas - Orders
  * 
  * Schemas for order management operations.
@@ -14,7 +14,7 @@ export const orderItemSchema = z.object({
     productId: z.string().uuid('ID do produto inválido'),
     productName: z.string().max(200, 'Nome do produto muito longo').optional(),
     quantity: z.coerce.number().int().positive('Quantidade deve ser maior que zero'),
-    unitPrice: z.coerce.number().positive('Preço unitário deve ser maior que zero').optional(),
+    unitPrice: z.coerce.number().positive('Preço unitrio deve ser maior que zero').optional(),
     price: z.coerce.number().positive('Preço deve ser maior que zero').optional(),
     notes: z.string().max(200, 'Notas muito longas').optional().nullable()
 });

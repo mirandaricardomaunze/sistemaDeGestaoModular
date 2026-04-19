@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -215,7 +215,7 @@ export default function PharmacyCategories() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card padding="md" className="border-l-4 border-l-teal-500 shadow-sm">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
                             <HiOutlineTag className="w-6 h-6 text-teal-600" />
                         </div>
                         <div>
@@ -227,7 +227,7 @@ export default function PharmacyCategories() {
 
                 <Card padding="md" className="border-l-4 border-l-green-500">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                             <HiOutlineTag className="w-6 h-6 text-green-600" />
                         </div>
                         <div>
@@ -239,7 +239,7 @@ export default function PharmacyCategories() {
 
                 <Card padding="md" className="border-l-4 border-l-blue-500">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                             <HiOutlineCube className="w-6 h-6 text-blue-600" />
                         </div>
                         <div>
@@ -444,7 +444,7 @@ export default function PharmacyCategories() {
                     {categoryToDelete && (categoryToDelete.productCount || 0) > 0 && (
                         <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                             <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                                âš ï¸ Esta categoria possui {categoryToDelete.productCount} produtos associados.
+                                ⚠️ Esta categoria possui {categoryToDelete.productCount} produtos associados.
                             </p>
                         </div>
                     )}

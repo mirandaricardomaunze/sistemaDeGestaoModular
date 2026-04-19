@@ -1,12 +1,12 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import {
     HiOutlineCalendar,
     HiOutlineUsers,
     HiOutlineChartBar,
-    HiOutlineCash,
+    HiOutlineBanknotes as HiOutlineCash,
     HiOutlineCheckCircle,
     HiOutlineShieldCheck,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import EmployeeList from '../components/employees/EmployeeList';
 import EmployeeForm from '../components/employees/EmployeeForm';
 import EmployeeAttendance from '../components/employees/EmployeeAttendance';

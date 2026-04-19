@@ -1,5 +1,5 @@
-import { logger } from '../../utils/logger';
-﻿import { useState, useMemo, useEffect, useRef } from 'react';
+﻿import { logger } from '../../utils/logger';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, Button, Input, Badge, LoadingSpinner, EmptyState, Modal, ConfirmationModal } from '../../components/ui';
 import ThermalReceiptPreview from '../../components/pos/ThermalReceiptPreview';
 import { useProducts, useSales, useCustomers } from '../../hooks/useData';
@@ -20,6 +20,7 @@ import {
     HiOutlineX
 } from 'react-icons/hi';
 import { salesAPI } from '../../services/api';
+import { bottleStoreAPI } from '../../services/api/bottle-store.api';
 import { useScale } from '../../hooks/useScale';
 import { PrinterService } from '../../services/printer.service';
 import { searchCustomersForPOS } from '../../utils/crmIntegration';
@@ -58,6 +59,34 @@ export default function BottleStorePOS() {
     const [thermalPreviewOpen, setThermalPreviewOpen] = useState(false);
     const [clearCartModalOpen, setClearCartModalOpen] = useState(false);
     const [globalDiscount, setGlobalDiscount] = useState('0');
+
+    // Price tier cache: productId -> sorted tiers[]
+    const priceTiersCache = useRef<Record<string, any[]>>({});
+
+    const getTiersForProduct = async (productId: string): Promise<any[]> => {
+        if (priceTiersCache.current[productId] !== undefined) {
+            return priceTiersCache.current[productId];
+        }
+        try {
+            const res = await bottleStoreAPI.getPriceTiers(productId);
+            const tiers = (res || []).sort((a: any, b: any) => b.minQty - a.minQty); // highest threshold first
+            priceTiersCache.current[productId] = tiers;
+            return tiers;
+        } catch {
+            priceTiersCache.current[productId] = [];
+            return [];
+        }
+    };
+
+    // Given product base price + current total units quantity, return the best price from tiers (or base price)
+    const getBestPrice = (tiers: any[], basePrice: number, totalQty: number): { price: number; tier: any | null } => {
+        for (const tier of tiers) { // already sorted highest minQty first
+            if (totalQty >= tier.minQty) {
+                return { price: tier.price, tier };
+            }
+        }
+        return { price: basePrice, tier: null };
+    };
 
     // Customer Selection State
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -152,49 +181,59 @@ export default function BottleStorePOS() {
         setGlobalDiscount('0');
     };
 
-    const addToCart = (product: any, mode: 'unit' | 'crate' = 'unit', withReturn: boolean = false) => {
-        const quantityNeeded = mode === 'crate' ? (product.packSize || 1) : 1;
-        
-        // Find if this specific variant (product + mode + withReturn) already exists
-        const existingIndex = cart.findIndex(item => 
-            item.id === product.id && 
-            item.mode === mode && 
-            item.withReturn === withReturn
+    const addToCart = async (product: any, mode: 'unit' | 'crate' = 'unit', withReturn: boolean = false) => {
+        const packSize = product.packSize || 1;
+        const existingIndex = cart.findIndex(item =>
+            item.id === product.id && item.mode === mode && item.withReturn === withReturn
         );
+
+        const tiers = await getTiersForProduct(product.id);
 
         if (existingIndex > -1) {
             const newCart = [...cart];
             const nextQuantity = newCart[existingIndex].quantity + 1;
-            const totalUnitsNeeded = nextQuantity * (mode === 'crate' ? (product.packSize || 1) : 1);
+            const totalUnitsNeeded = nextQuantity * (mode === 'crate' ? packSize : 1);
 
             if (product.currentStock < totalUnitsNeeded) {
                 toast.error(`Stock insuficiente! Disponível: ${product.currentStock} unidades`);
                 return;
             }
 
+            // Re-evaluate price tiers for new quantity
+            const baseUnitPrice = mode === 'crate' ? product.price * packSize : product.price;
+            const { price: bestPrice, tier } = getBestPrice(tiers, baseUnitPrice, nextQuantity);
+            const returnDiscount = withReturn ? (product.returnPrice * (mode === 'crate' ? packSize : 1)) : 0;
+            const prevFinalPrice = newCart[existingIndex].finalPrice;
             newCart[existingIndex].quantity = nextQuantity;
+            newCart[existingIndex].finalPrice = bestPrice - returnDiscount;
+
+            if (tier && bestPrice < prevFinalPrice) {
+                toast.success(`Desconto por volume aplicado! ${tier.label || `â‰¥${tier.minQty} un`} → ${formatCurrency(bestPrice)}/un`, { icon: '' });
+            }
             setCart(newCart);
         } else {
-            const totalUnitsNeeded = mode === 'crate' ? (product.packSize || 1) : 1;
+            const totalUnitsNeeded = mode === 'crate' ? packSize : 1;
             if (product.currentStock < totalUnitsNeeded) {
                 toast.error(`Stock insuficiente!`);
                 return;
             }
 
-            const itemPrice = mode === 'crate' 
-                ? (product.price * (product.packSize || 1)) 
-                : product.price;
-            
-            const returnDiscount = withReturn 
-                ? (product.returnPrice * (mode === 'crate' ? (product.packSize || 1) : 1)) 
-                : 0;
+            const baseUnitPrice = mode === 'crate' ? product.price * packSize : product.price;
+            const { price: bestPrice, tier } = getBestPrice(tiers, baseUnitPrice, 1);
+            const returnDiscount = withReturn ? (product.returnPrice * (mode === 'crate' ? packSize : 1)) : 0;
 
-            setCart([...cart, {
+            if (tier) {
+                toast.success(`Desconto por volume: ${tier.label || `â‰¥${tier.minQty} un`} → ${formatCurrency(bestPrice)}/un`, { icon: '' });
+            }
+
+            setCart(prev => [...prev, {
                 ...product,
                 quantity: 1,
                 mode,
                 withReturn,
-                finalPrice: itemPrice - returnDiscount
+                basePrice: baseUnitPrice,
+                finalPrice: bestPrice - returnDiscount,
+                activeTier: tier,
             }]);
         }
     };
@@ -260,7 +299,7 @@ export default function BottleStorePOS() {
     return (
         <div className="flex flex-col gap-4 p-4 h-full">
             {/* Header */}
-            <div className="flex justify-between items-center bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm">
+            <div className="flex justify-between items-center bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm">
                 <div className="flex items-center gap-4">
                     <div className="p-3 bg-amber-100 text-amber-600 rounded-lg">
                         <HiOutlineShoppingCart className="w-6 h-6" />
@@ -318,7 +357,7 @@ export default function BottleStorePOS() {
                                 <EmptyState
                                     icon={<HiOutlineCube className="w-12 h-12 text-gray-300" />}
                                     title="Nenhum produto"
-                                    description="Não encontramos bebidas com este critério."
+                                    description="Não encontramos bebidas com este critrio."
                                 />
                             </div>
                         ) : (
@@ -397,24 +436,47 @@ export default function BottleStorePOS() {
                                 </div>
                             ) : (
                                 cart.map((item, index) => (
-                                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                         <div className="w-10 h-10 rounded-lg bg-white dark:bg-dark-600 flex items-center justify-center flex-shrink-0">
-                                            <span>{item.mode === 'crate' ? '📦' : '🍾'}</span>
+                                            <span>{item.mode === 'crate' ? '🍾' : '🍺'}</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
-                                            <p className="text-xs text-primary-600">{formatCurrency(item.finalPrice)}</p>
+                                            <div className="flex items-center gap-1">
+                                                <p className="text-xs text-primary-600">{formatCurrency(item.finalPrice)}</p>
+                                                {item.basePrice && item.finalPrice < item.basePrice && (
+                                                    <span className="text-[9px] bg-purple-100 text-purple-700 px-1 py-0.5 rounded font-bold"> VOL</span>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button onClick={() => {
+                                            <button onClick={async () => {
                                                 const newCart = [...cart];
-                                                if (newCart[index].quantity > 1) { newCart[index].quantity--; setCart(newCart); }
-                                                else removeFromCart(index);
+                                                if (newCart[index].quantity > 1) {
+                                                    const nextQty = newCart[index].quantity - 1;
+                                                    const tiers = await getTiersForProduct(newCart[index].id);
+                                                    const basePrice = newCart[index].basePrice ?? newCart[index].finalPrice;
+                                                    const returnDiscount = newCart[index].withReturn ? (newCart[index].returnPrice * (newCart[index].mode === 'crate' ? (newCart[index].packSize || 1) : 1)) : 0;
+                                                    const { price: bestPrice } = getBestPrice(tiers, basePrice, nextQty);
+                                                    newCart[index].quantity = nextQty;
+                                                    newCart[index].finalPrice = bestPrice - returnDiscount;
+                                                    setCart(newCart);
+                                                } else { removeFromCart(index); }
                                             }} className="w-6 h-6 rounded bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300"><HiOutlineMinus className="w-3 h-3" /></button>
                                             <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                                            <button onClick={() => {
+                                            <button onClick={async () => {
                                                 const newCart = [...cart];
-                                                newCart[index].quantity++;
+                                                const nextQty = newCart[index].quantity + 1;
+                                                const tiers = await getTiersForProduct(newCart[index].id);
+                                                const basePrice = newCart[index].basePrice ?? newCart[index].finalPrice;
+                                                const returnDiscount = newCart[index].withReturn ? (newCart[index].returnPrice * (newCart[index].mode === 'crate' ? (newCart[index].packSize || 1) : 1)) : 0;
+                                                const { price: bestPrice, tier } = getBestPrice(tiers, basePrice, nextQty);
+                                                const prevPrice = newCart[index].finalPrice;
+                                                newCart[index].quantity = nextQty;
+                                                newCart[index].finalPrice = bestPrice - returnDiscount;
+                                                if (tier && bestPrice < prevPrice) {
+                                                    toast.success(`Desconto por volume aplicado! ${tier.label || `â‰¥${tier.minQty} un`}`, { icon: '' });
+                                                }
                                                 setCart(newCart);
                                             }} className="w-6 h-6 rounded bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300"><HiOutlinePlus className="w-3 h-3" /></button>
                                         </div>
@@ -454,7 +516,7 @@ export default function BottleStorePOS() {
 
             <Modal isOpen={isCheckoutModalOpen} onClose={() => setIsCheckoutModalOpen(false)} title="Finalizar Venda" size="md">
                 <div className="space-y-6">
-                    <div className="text-center py-6 bg-gray-50 dark:bg-dark-800 rounded-2xl border-2 border-primary-100">
+                    <div className="text-center py-6 bg-gray-50 dark:bg-dark-800 rounded-lg border-2 border-primary-100">
                         <p className="text-xs text-gray-400 uppercase font-bold mb-1">Total Final com IVA</p>
                         <p className="text-5xl font-black text-primary-600">{formatCurrency(totalWithTax)}</p>
                     </div>
@@ -463,7 +525,7 @@ export default function BottleStorePOS() {
                         <Input label="Valor Recebido (Opcional)" type="number" placeholder="0.00" value={customerMoney} onChange={(e) => setCustomerMoney(e.target.value)} className="text-lg font-bold" />
                     </div>
                     {customerMoney && parseFloat(customerMoney) >= totalWithTax && (
-                        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 text-center">
+                        <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 text-center">
                             <p className="text-xs text-green-700 font-bold uppercase mb-1">Troco a Devolver</p>
                             <p className="text-3xl font-black text-green-600">{formatCurrency(parseFloat(customerMoney) - totalWithTax)}</p>
                         </div>
@@ -493,13 +555,13 @@ function BottleProductCard({ product, onAdd }: { product: any, onAdd: (p: any, m
     const hasCrate = product.packSize > 1;
 
     return (
-        <div className={`flex flex-col rounded-xl border-2 transition-all hover:shadow-lg group overflow-hidden ${isOut
+        <div className={`flex flex-col rounded-lg border-2 transition-all hover:shadow-lg group overflow-hidden ${isOut
                 ? 'opacity-75 grayscale border-gray-200 dark:border-dark-700'
                 : 'border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800'
                 }`}>
             <div className="p-3">
                 <div className="w-full h-16 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-2 flex-shrink-0">
-                    <span className="text-2xl">{product.category === 'beverages' ? '🍾' : '📦'}</span>
+                    <span className="text-2xl">{product.category === 'beverages' ? '🍺' : '🍾'}</span>
                 </div>
                 <p className="text-[10px] text-primary-600 dark:text-primary-400 font-mono mb-0.5 truncate">{product.code}</p>
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">{product.name}</h3>

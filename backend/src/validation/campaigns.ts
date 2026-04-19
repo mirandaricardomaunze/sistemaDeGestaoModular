@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Validation Schemas - Campaigns & Alerts
  * 
  * Schemas for marketing campaigns and system alerts.

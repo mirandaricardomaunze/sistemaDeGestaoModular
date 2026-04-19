@@ -1,4 +1,4 @@
-﻿import { Redis } from 'ioredis';
+import { Redis } from 'ioredis';
 
 const redisConfig: any = {
     host: process.env.REDIS_HOST || 'localhost',
@@ -20,7 +20,7 @@ let _loggedError = false;
 
 connection.on('error', (err) => {
     if (_loggedError) return;
-    console.warn('⚠️  Redis not available:', err.message, '— features using Redis will be disabled.');
+    console.warn('⚠️  Redis not available:', err.message, '-- features using Redis will be disabled.');
     _loggedError = true;
 });
 
@@ -32,7 +32,7 @@ connection.on('connect', () => {
 // Attempt connection but don't block startup
 connection.connect().catch(() => {
     if (!_loggedError) {
-        console.warn('⚠️  Redis not available — running without cache/queues.');
+        console.warn('⚠️  Redis not available -- running without cache/queues.');
         _loggedError = true;
     }
 });

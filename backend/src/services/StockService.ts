@@ -1,6 +1,7 @@
-﻿import { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma as defaultPrisma, ExtendedPrismaClient } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
+import { emitToCompany } from '../lib/socket';
 
 export type OriginModule = 'PHARMACY' | 'COMMERCIAL' | 'BOTTLE_STORE' | 'HOTEL' | 'RESTAURANT' | 'LOGISTICS';
 export type MovementReferenceType = 'SALE' | 'PURCHASE' | 'TRANSFER' | 'ADJUSTMENT' | 'RETURN' | 'EXPIRY';
@@ -122,7 +123,7 @@ export class StockService {
             select: { id: true, name: true, currentStock: true, minStock: true, status: true, companyId: true }
         });
 
-        if (!product) return;
+        if (!product || !product.companyId) return;
 
         let newStatus: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
         if (product.currentStock <= 0) {
@@ -150,6 +151,16 @@ export class StockService {
                         companyId: product.companyId
                     }
                 });
+
+                // Real-time socket push so the dashboard reacts instantly
+                emitToCompany(product.companyId, 'stock:low_stock_alert', {
+                    productId: product.id,
+                    productName: product.name,
+                    currentStock: product.currentStock,
+                    status: newStatus,
+                    priority: newStatus === 'out_of_stock' ? 'critical' : 'high',
+                    timestamp: new Date().toISOString()
+                });
             }
         }
     }
@@ -161,7 +172,8 @@ export class StockService {
         productId: string,
         requestedQuantity: number,
         companyId: string,
-        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma
+        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma,
+        warehouseId?: string
     ) {
         const product = await tx.product.findFirst({
             where: { id: productId, companyId },
@@ -170,6 +182,18 @@ export class StockService {
 
         if (!product) {
             throw ApiError.notFound(`Produto não encontrado ou acesso negado`);
+        }
+
+        if (warehouseId) {
+            const wStock = await tx.warehouseStock.findUnique({
+                where: { warehouseId_productId: { warehouseId, productId } },
+                select: { quantity: true }
+            });
+            const warehouseQty = wStock?.quantity ?? 0;
+            if (warehouseQty < requestedQuantity) {
+                throw ApiError.badRequest(`Stock insuficiente no armazém para o produto "${product.name}". Disponível: ${warehouseQty}, Solicitado: ${requestedQuantity}`);
+            }
+            return product;
         }
 
         const availableStock = product.currentStock - product.reservedStock;

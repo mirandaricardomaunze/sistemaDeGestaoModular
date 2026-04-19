@@ -1,4 +1,4 @@
-﻿import { useRef } from 'react';
+import { useRef } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
@@ -14,7 +14,7 @@ interface TransferGuidePrintProps {
     transfer: StockTransfer;
 }
 
-/* ── Shared inline style fragments (DRY) ─────────────────────── */
+/* ── Shared inline style fragments (DRY) ──────────────────────-*/
 const sectionBar = { background: '#4a4a4a', padding: '6px 16px' } as const;
 const sectionTitle = { fontSize: '11px', fontWeight: 700, color: 'white', textTransform: 'uppercase' as const, letterSpacing: '2px', margin: 0 };
 const fieldLabel = { fontSize: '11px', fontWeight: 700, color: '#4b5563', minWidth: '100px' } as const;
@@ -48,11 +48,56 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
                     <style>
                         * { margin: 0; padding: 0; box-sizing: border-box; }
-                        body { font-family: 'Inter', Arial, sans-serif; padding: 30px; max-width: 800px; margin: 0 auto; color: #1a1a1a; }
-                        table { width: 100%; border-collapse: collapse; }
+                        body { 
+                            font-family: 'Inter', Arial, sans-serif; 
+                            padding: 30px; 
+                            max-width: 800px; 
+                            margin: 0 auto; 
+                            color: #1e293b; 
+                            background-color: white !important;
+                        }
+                        .header-row { margin-bottom: 30px; }
+                        table { 
+                            width: 100%; 
+                            border-collapse: collapse; 
+                            background-color: white !important;
+                            border: none !important;
+                        }
+                        th { 
+                            background-color: #f1f5f9 !important;
+                            color: #334155 !important;
+                            text-align: left !important;
+                            padding: 12px 10px;
+                            font-size: 9px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.1em;
+                            font-weight: 800;
+                            border: none !important;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+                        td { 
+                            padding: 12px 10px;
+                            border: none !important;
+                            vertical-align: middle;
+                            color: #334155;
+                            font-size: 11px;
+                            text-align: left !important;
+                        }
+                        .section-title {
+                            font-size: 10px;
+                            font-weight: 900;
+                            text-transform: uppercase;
+                            letter-spacing: 0.1em;
+                            color: #64748b;
+                            margin-bottom: 15px;
+                            padding-bottom: 5px;
+                            border-bottom: 2px solid #e2e8f0;
+                        }
                         @media print {
                             @page { margin: 15mm; size: A4; }
                             body { padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                            .no-print { display: none !important; }
                         }
                     </style>
                 </head>
@@ -74,27 +119,40 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Visualizar Guia" size="xl">
+        <Modal 
+            isOpen={isOpen} 
+            onClose={onClose} 
+            title="Visualizar Guia" 
+            size="xl"
+            isLight
+        >
             <div className="flex justify-end gap-2 mb-4">
-                <Button variant="outline" onClick={onClose}>
+                <Button 
+                    variant="ghost" 
+                    onClick={onClose}
+                    className="!text-slate-500 hover:!bg-slate-100"
+                >
                     <HiOutlineX className="w-4 h-4 mr-2" />
                     Fechar
                 </Button>
-                <Button onClick={handlePrint}>
+                <Button 
+                    onClick={handlePrint}
+                    className="bg-slate-900 hover:bg-slate-800 text-white border-none shadow-none"
+                >
                     <HiOutlinePrinter className="w-4 h-4 mr-2" />
                     Imprimir
                 </Button>
             </div>
 
-            <Card padding="none" className="max-h-[70vh] overflow-y-auto bg-gray-100 dark:bg-dark-900 flex justify-center p-4">
+            <Card padding="none" className="max-h-[70vh] overflow-y-auto bg-slate-100 dark:bg-slate-100 flex justify-center p-8">
                 <div
                     ref={printRef}
-                    className="bg-white text-gray-900 shadow-xl w-full max-w-[800px] mx-auto relative"
-                    style={{ fontFamily: "'Inter', Arial, Helvetica, sans-serif", position: 'relative', background: 'white', color: '#1a1a1a', maxWidth: '800px', margin: '0 auto' }}
+                    className="bg-white dark:bg-white text-gray-900 shadow-2xl w-full max-w-[800px] mx-auto relative shadow-inner border border-slate-200"
+                    style={{ fontFamily: "'Inter', Arial, Helvetica, sans-serif", position: 'relative', background: 'white', color: '#111', maxWidth: '800px', margin: '0 auto' }}
                 >
-                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* ───────────────────────────────────────────────────────────── */}
                     {/* TOP HEADER: Company + GUIA DE TRANSFERÊNCIA       */}
-                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* ───────────────────────────────────────────────────────────── */}
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '32px 32px 20px', borderBottom: '3px solid #333' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                             {company.logo ? (
@@ -133,71 +191,55 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════════ */}
+                    {/* ────────────────────────── */}
                     {/* SECTION: ARMAZÉNS              */}
-                    {/* ═══════════════════════════════ */}
-                    <div style={sectionBar}>
-                        <h3 style={sectionTitle}>Armazéns</h3>
-                    </div>
-                    <div style={{ padding: '20px 32px', borderBottom: '1px solid #e5e5e5', display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '40px' }}>
-                        {/* Origem */}
-                        <div style={{ padding: '12px 16px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Origem</p>
-                            <p style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>{source?.name || 'N/A'}</p>
-                            {source?.location && <p style={{ fontSize: '11px', color: '#4b5563' }}>{source.location}</p>}
-                        </div>
-                        {/* Destino */}
-                        <div style={{ padding: '12px 16px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                            <p style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Destino</p>
-                            <p style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>{target?.name || 'N/A'}</p>
-                            {target?.location && <p style={{ fontSize: '11px', color: '#4b5563' }}>{target.location}</p>}
+                    {/* ────────────────────────── */}
+                    <div style={{ padding: '0 32px 20px' }}>
+                        <h3 className="section-title">Armazéns</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: '40px' }}>
+                            {/* Origem */}
+                            <div>
+                                <p style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Origem</p>
+                                <p style={{ fontWeight: 800, fontSize: '14px', color: '#1e293b' }}>{source?.name || 'N/A'}</p>
+                                {source?.location && <p style={{ fontSize: '11px', color: '#64748b' }}>{source.location}</p>}
+                            </div>
+                            {/* Destino */}
+                            <div>
+                                <p style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Destino</p>
+                                <p style={{ fontWeight: 800, fontSize: '14px', color: '#1e293b' }}>{target?.name || 'N/A'}</p>
+                                {target?.location && <p style={{ fontSize: '11px', color: '#64748b' }}>{target.location}</p>}
+                            </div>
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════════ */}
+                    {/* ─────────────────────────────── */}
                     {/* SECTION: ITENS TRANSFERIDOS    */}
-                    {/* ═══════════════════════════════ */}
-                    <div style={sectionBar}>
-                        <h3 style={sectionTitle}>Itens Transferidos</h3>
+                    {/* ─────────────────────────────── */}
+                    <div style={{ padding: '0 32px 10px' }}>
+                        <h3 className="section-title">Itens Transferidos</h3>
                     </div>
                     <div style={{ padding: '16px 32px' }}>
-                        <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none' }}>
                             <thead>
                                 <tr>
-                                    <th style={{ textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#1f2937', textTransform: 'uppercase', padding: '8px 12px', background: '#e5e5e5', border: '1px solid #bbb' }}>
-                                        Cód. Barras
-                                    </th>
-                                    <th style={{ textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#1f2937', textTransform: 'uppercase', padding: '8px 12px', width: '90px', background: '#e5e5e5', border: '1px solid #bbb' }}>
-                                        REF
-                                    </th>
-                                    <th style={{ textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#1f2937', textTransform: 'uppercase', padding: '8px 12px', background: '#e5e5e5', border: '1px solid #bbb' }}>
-                                        Produto
-                                    </th>
-                                    <th style={{ textAlign: 'right', fontSize: '11px', fontWeight: 700, color: '#1f2937', textTransform: 'uppercase', padding: '8px 12px', width: '80px', background: '#e5e5e5', border: '1px solid #bbb' }}>
-                                        Qtd
-                                    </th>
+                                    <th style={{ width: '150px' }}>Cód. Barras</th>
+                                    <th style={{ width: '100px' }}>Referência</th>
+                                    <th>Produto</th>
+                                    <th style={{ textAlign: 'left', width: '80px' }}>Qtd</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {transfer.items.map((item, index) => {
                                     const productName = item.product?.name || item.productName;
-                                    const productCode = item.product?.code || item.productCode;
-                                    const productBarcode = item.product?.barcode || item.productBarcode || 'N/A';
+                                    const productCode = (item.product as any)?.sku || item.product?.code || item.productCode;
+                                    const productBarcode = item.product?.barcode || item.productBarcode || '-';
 
                                     return (
                                         <tr key={index}>
-                                            <td style={{ padding: '10px 12px', color: '#4b5563', fontFamily: 'monospace', fontSize: '10px', border: '1px solid #ccc' }}>
-                                                {productBarcode}
-                                            </td>
-                                            <td style={{ padding: '10px 12px', color: '#6b7280', fontFamily: 'monospace', fontSize: '10px', border: '1px solid #ccc' }}>
-                                                {productCode || 'N/A'}
-                                            </td>
-                                            <td style={{ padding: '10px 12px', color: '#1f2937', border: '1px solid #ccc' }}>
-                                                {productName}
-                                            </td>
-                                            <td style={{ padding: '10px 12px', textAlign: 'right', color: '#1f2937', fontWeight: 700, border: '1px solid #ccc' }}>
-                                                {item.quantity}
-                                            </td>
+                                            <td style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{productBarcode}</td>
+                                            <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{productCode}</td>
+                                            <td style={{ fontWeight: '600', color: '#1e293b' }}>{productName}</td>
+                                            <td style={{ fontWeight: '800' }}>{item.quantity}</td>
                                         </tr>
                                     );
                                 })}
@@ -205,9 +247,9 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                         </table>
                     </div>
 
-                    {/* ═══════════════════════ */}
+                    {/* ─────────────────────────── */}
                     {/* SECTION: OBSERVAÇÕES   */}
-                    {/* ═══════════════════════ */}
+                    {/* ─────────────────────────── */}
                     <div style={sectionBar}>
                         <h3 style={sectionTitle}>Informações Adicionais</h3>
                     </div>
@@ -224,9 +266,9 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                         </div>
                     </div>
 
-                    {/* ═══════════════════ */}
+                    {/* ─────────────────── */}
                     {/* SIGNATURE SECTION  */}
-                    {/* ═══════════════════ */}
+                    {/* ─────────────────── */}
                     <div style={{ padding: '24px 32px 32px', borderTop: '1px solid #e5e5e5', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '40px' }}>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ marginTop: '48px', marginBottom: '6px', borderBottom: '1px solid #333' }} />

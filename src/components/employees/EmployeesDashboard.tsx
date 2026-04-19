@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -11,18 +11,18 @@ import {
 } from '@tanstack/react-table';
 import {
     HiOutlineUsers,
-    HiOutlineUserAdd,
+    HiOutlineUserPlus,
     HiOutlineClock,
     HiOutlineCheck,
-    HiOutlineFilter,
-    HiOutlinePencil,
-    HiOutlineMail,
+    HiOutlinePencilSquare,
+    HiOutlineEnvelope,
     HiOutlinePhone,
     HiOutlineCurrencyDollar,
     HiOutlineAcademicCap,
-    HiOutlineCalendar,
-    HiOutlineExclamation,
-} from 'react-icons/hi';
+    HiOutlineCalendarDays,
+    HiOutlineExclamationTriangle,
+    HiOutlineMagnifyingGlass,
+} from 'react-icons/hi2';
 import {
     PieChart,
     Pie,
@@ -368,12 +368,12 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                 header: 'Contato',
                 cell: ({ row }) => (
                     <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                            <HiOutlineMail className="w-3.5 h-3.5 flex-shrink-0" />
+                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium tracking-tight">
+                            <HiOutlineEnvelope className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
                             <span className="truncate max-w-[150px]">{row.original.email}</span>
                         </div>
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                            <HiOutlinePhone className="w-3.5 h-3.5 flex-shrink-0" />
+                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium tracking-tight">
+                            <HiOutlinePhone className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
                             <span>{row.original.phone}</span>
                         </div>
                     </div>
@@ -399,13 +399,13 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                 id: 'actions',
                 header: 'Ações',
                 cell: ({ row }) => (
-                    <div className="flex justify-center">
+                    <div className="flex justify-start">
                         <button
                             onClick={() => onEditEmployee(row.original)}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 transition-colors"
+                            className="p-2 rounded-lg bg-slate-50 dark:bg-dark-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-400 hover:text-primary-600 transition-all border border-slate-100 dark:border-dark-600 hover:border-primary-200"
                             title="Editar funcionário"
                         >
-                            <HiOutlinePencil className="w-4 h-4" />
+                            <HiOutlinePencilSquare className="w-4 h-4" />
                         </button>
                     </div>
                 ),
@@ -455,7 +455,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
         { value: 'none', label: 'Sem Formação' },
         { value: 'has_any', label: 'Com Qualificação' },
         { value: 'higher_ed', label: 'Ensino Superior+' },
-        { value: '', label: 'â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€' },
+        { value: '', label: 'â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬' },
         ...educationLevelOrder.map(level => ({
             value: level,
             label: educationLevelLabels[level],
@@ -467,11 +467,11 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                        Dashboard de Funcionários
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
+                        Gestão de Capital Humano
                     </h2>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        Visão geral da equipe e qualificações
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
+                        Controlo de assiduidade, qualificações e folha salarial
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -492,9 +492,9 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                             </button>
                         ))}
                     </div>
-                    <Button onClick={onAddEmployee}>
-                        <HiOutlineUserAdd className="w-5 h-5 mr-2" />
-                        Novo Funcionário
+                    <Button onClick={onAddEmployee} variant="primary" className="shadow-lg shadow-primary-500/20 px-6 font-black uppercase tracking-widest text-[10px]">
+                        <HiOutlineUserPlus className="w-4 h-4 mr-2" />
+                        Admitir Funcionário
                     </Button>
                 </div>
             </div>
@@ -529,7 +529,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.total}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineUsers className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" />
                         </div>
                     </div>
@@ -543,7 +543,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.active}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineCheck className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                         </div>
                     </div>
@@ -557,7 +557,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.presentToday}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineClock className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                         </div>
                     </div>
@@ -571,7 +571,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.withQualifications}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineAcademicCap className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                         </div>
                     </div>
@@ -585,7 +585,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.withHigherEd}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineAcademicCap className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
                         </div>
                     </div>
@@ -599,7 +599,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {formatCurrency(metrics.totalSalary)}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineCurrencyDollar className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
                         </div>
                     </div>
@@ -616,7 +616,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.youngEmployees}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineUsers className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600" />
                         </div>
                     </div>
@@ -630,7 +630,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.seniorEmployees}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineUsers className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
                         </div>
                     </div>
@@ -644,8 +644,8 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.avgYearsOfService}<span className="text-sm">anos</span>
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineCalendar className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600" />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
+                            <HiOutlineCalendarDays className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600" />
                         </div>
                     </div>
                 </Card>
@@ -658,7 +658,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.punctualEmployees}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
                             <HiOutlineCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
                         </div>
                     </div>
@@ -672,8 +672,8 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 {metrics.absentEmployees}
                             </p>
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineExclamation className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center flex-shrink-0">
+                            <HiOutlineExclamationTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" />
                         </div>
                     </div>
                 </Card>
@@ -752,7 +752,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 placeholder="Buscar por nome, email ou código..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                leftIcon={<HiOutlineFilter className="w-5 h-5" />}
+                                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                             />
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -789,14 +789,14 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                     {headerGroup.headers.map((header) => (
                                         <th
                                             key={header.id}
-                                            className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-dark-800 cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+                                            className="px-6 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/80 dark:bg-dark-800/80 border-b border-slate-100 dark:border-dark-700 cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-dark-700 transition-all group"
                                             onClick={header.column.getToggleSortingHandler()}
                                         >
                                             <div className="flex items-center gap-2">
                                                 {flexRender(header.column.columnDef.header, header.getContext())}
                                                 {header.column.getIsSorted() && (
                                                     <span className="text-primary-500">
-                                                        {header.column.getIsSorted() === 'asc' ? 'â†‘' : 'â†“'}
+                                                        {header.column.getIsSorted() === 'asc' ? '▲' : '▼'}
                                                     </span>
                                                 )}
                                             </div>

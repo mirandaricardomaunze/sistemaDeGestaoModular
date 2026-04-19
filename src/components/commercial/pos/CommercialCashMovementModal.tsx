@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { formatCurrency } from '../../../utils/helpers';
+import { useState } from 'react';
 import { HiOutlineX, HiOutlineCheck, HiOutlineCash, HiOutlineLogin, HiOutlineLogout } from 'react-icons/hi';
 
 interface CommercialCashMovementModalProps {
@@ -29,7 +28,7 @@ export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose }
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-md mx-4 bg-white dark:bg-dark-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="relative z-10 w-full max-w-md mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden">
                 {/* Header */}
                 <div className={`px-6 py-4 flex items-center justify-between ${isCashIn ? 'bg-indigo-600' : 'bg-orange-600'}`}>
                     <div className="flex items-center gap-3">
@@ -58,7 +57,7 @@ export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose }
                                 onChange={e => setAmount(e.target.value)}
                                 placeholder="0.00"
                                 autoFocus
-                                className="w-full pl-14 pr-4 py-4 text-right text-3xl font-black rounded-xl border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
+                                className="w-full pl-14 pr-4 py-4 text-right text-3xl font-black rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
                             />
                         </div>
                     </div>
@@ -73,7 +72,7 @@ export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose }
                             onChange={e => setReason(e.target.value)}
                             rows={3}
                             placeholder={isCashIn ? "Ex: Fundo extra para trocos..." : "Ex: Pagamento de fornecedor secundário..."}
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white text-sm"
+                            className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white text-sm"
                         />
                     </div>
 
@@ -81,14 +80,14 @@ export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose }
                     <div className="flex gap-3 pt-2">
                         <button
                             onClick={onClose}
-                            className="flex-1 py-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                            className="flex-1 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleConfirm}
                             disabled={!amount || !reason.trim()}
-                            className={`flex-1 py-3 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${isCashIn ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20' : 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/20'}`}
+                            className={`flex-1 py-3 rounded-lg font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${isCashIn ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20' : 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/20'}`}
                         >
                             <HiOutlineCheck className="w-5 h-5" />
                             Confirmar

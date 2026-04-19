@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿/**
+/**
  * useHospitalityDashboard Hook
  * Custom hook for fetching hotel dashboard data with period filtering
  */

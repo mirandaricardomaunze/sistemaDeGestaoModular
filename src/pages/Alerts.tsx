@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AlertsPage - Full page view for managing all alerts
  * 
  * Uses the new modular notification system with filtering,
@@ -10,16 +10,16 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
     HiOutlineBell,
-    HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineRefresh,
     HiOutlineCheck,
     HiOutlineCheckCircle,
     HiOutlineTrash,
-    HiOutlineFilter,
-    HiOutlineExclamation,
+    HiOutlineFunnel as HiOutlineFilter,
+    HiOutlineExclamationTriangle as HiOutlineExclamation,
     HiOutlineExclamationCircle,
     HiOutlineInformationCircle,
     HiOutlineChevronRight
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { useAlerts } from '../hooks/useAlerts';
 import { Button, Badge, Card, Pagination, usePagination } from '../components/ui';
 import type { Alert, AlertModule, AlertPriority } from '../services/api';
@@ -33,8 +33,8 @@ const MODULE_CONFIG: Record<string, { label: string; color: string }> = {
     invoices: { label: 'Facturas', color: 'green' },
     hospitality: { label: 'Hotelaria', color: 'purple' },
     pharmacy: { label: 'Farmácia', color: 'red' },
-    crm: { label: 'CRM', color: 'orange' },
-    pos: { label: 'POS', color: 'cyan' },
+    crm: { label: 'crm', color: 'orange' },
+    pos: { label: 'pos', color: 'cyan' },
 };
 
 const PRIORITY_CONFIG: Record<AlertPriority, { label: string; color: string; icon: React.ReactNode }> = {

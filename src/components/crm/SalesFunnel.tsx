@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Sales Funnel Component
  * Visualização do funil de vendas com drag and drop
  */
@@ -504,7 +504,7 @@ export default function SalesFunnel() {
                         {/* Interactions */}
                         <div>
                             <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                                Histórico de Interações ({selectedOpportunity.interactions.length})
+                                Histórico de interações ({selectedOpportunity.interactions.length})
                             </h4>
                             <div className="space-y-2 max-h-60 overflow-y-auto">
                                 {selectedOpportunity.interactions.length === 0 ? (
@@ -708,3 +708,4 @@ export default function SalesFunnel() {
         </div>
     );
 }
+

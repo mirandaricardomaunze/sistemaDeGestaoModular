@@ -10,7 +10,7 @@ import {
     HiOutlineTicket
 } from 'react-icons/hi2';
 import { Card, Button, Input, Badge, TableContainer, Pagination, Modal, PageHeader } from '../../components/ui';
-import { useSales } from '../../hooks/useSales';
+import { usePharmacySales } from '../../hooks/usePharmacySales';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { format, parseISO } from 'date-fns';
 import { CommercialReceiptModal, type ReceiptData } from '../../components/commercial/pos/CommercialReceiptModal';
@@ -21,12 +21,14 @@ export default function PharmacyHistory() {
     const [pageSize] = useState(12);
     const [search, setSearch] = useState('');
     const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
-    const [endDate, setEndDate] = useState(''); // Empty end date means "up to now" by default
-    
-    const { sales, pagination, isLoading, error, refetch, voidSale } = useSales({
+    const [endDate, setEndDate] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+
+    const { sales, pagination, isLoading, error, refetch, voidSale } = usePharmacySales({
         search,
         startDate,
         endDate,
+        status: statusFilter || undefined,
         page,
         limit: pageSize,
     });
@@ -88,7 +90,7 @@ export default function PharmacyHistory() {
     const getPaymentMethodLabel = (method: string) => {
         const methods: Record<string, { label: string; color: string }> = {
             cash: { label: 'DINHEIRO', color: 'success' },
-            card: { label: 'CARTÃO/POS', color: 'info' },
+            card: { label: 'CARTÃO/pos', color: 'info' },
             transfer: { label: 'TRANSFERÊNCIA', color: 'primary' },
             mobile: { label: 'M-PESA/EMOLA', color: 'danger' },
             check: { label: 'CHEQUE', color: 'warning' },
@@ -126,34 +128,46 @@ export default function PharmacyHistory() {
             {/* Filters Bar - High Density */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                 <Card padding="md" className="md:col-span-12 border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                         <div className="md:col-span-2">
-                            <Input 
+                            <Input
                                 label="Filtros Rápidos"
-                                placeholder="Nº Recibo, Nome do Paciente ou Código..." 
+                                placeholder="Nº Recibo, Nome do Paciente ou Código..."
                                 value={search}
-                                onChange={e => setSearch(e.target.value)}
+                                onChange={e => { setSearch(e.target.value); setPage(1); }}
                                 leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
                                 className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
                             />
                         </div>
                         <div>
-                            <Input 
-                                type="date" 
-                                label="Início" 
+                            <Input
+                                type="date"
+                                label="Início"
                                 value={startDate}
-                                onChange={e => setStartDate(e.target.value)}
+                                onChange={e => { setStartDate(e.target.value); setPage(1); }}
                                 className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm"
                             />
                         </div>
                         <div>
-                            <Input 
-                                type="date" 
-                                label="Fim" 
+                            <Input
+                                type="date"
+                                label="Fim"
                                 value={endDate}
-                                onChange={e => setEndDate(e.target.value)}
+                                onChange={e => { setEndDate(e.target.value); setPage(1); }}
                                 className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm"
                             />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 pl-1">Estado</label>
+                            <select
+                                value={statusFilter}
+                                onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                                className="w-full h-10 px-3 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                            >
+                                <option value="">Todos</option>
+                                <option value="active">Activas</option>
+                                <option value="voided">Anuladas</option>
+                            </select>
                         </div>
                     </div>
                 </Card>
@@ -265,12 +279,12 @@ export default function PharmacyHistory() {
                 size="md"
             >
                 <div className="space-y-4">
-                    <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800 flex gap-3 text-amber-700 dark:text-amber-400">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800 flex gap-3 text-amber-700 dark:text-amber-400">
                         <HiOutlineExclamationTriangle className="w-6 h-6 flex-shrink-0" />
                         <div>
                             <p className="font-bold text-sm">Atenção!</p>
                             <p className="text-xs">
-                                Anular esta venda irá devolver os itens ao stock e estornar o valor financeiro. 
+                                Anular esta venda ir devolver os itens ao stock e estornar o valor financeiro. 
                                 Esta acção não pode ser revertida.
                             </p>
                         </div>
@@ -285,7 +299,7 @@ export default function PharmacyHistory() {
                             onChange={e => setVoidReason(e.target.value)}
                             rows={3}
                             placeholder="Explique o motivo do cancelamento..."
-                            className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 focus:border-red-500 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white text-sm"
+                            className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-red-500 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white text-sm"
                         />
                     </div>
 

@@ -6,10 +6,10 @@ import {
     HiOutlineTrash,
     HiOutlinePencil,
     HiOutlineCheck,
-    HiOutlineX,
+    HiOutlineXMark,
     HiOutlineClock,
-    HiOutlineExclamation,
-} from 'react-icons/hi';
+    HiOutlineExclamationTriangle,
+} from 'react-icons/hi2';
 import { Button, Input, Badge } from '../ui';
 import { batchesAPI, type ProductBatch } from '../../services/api/batches.api';
 import { cn } from '../../utils/helpers';
@@ -34,15 +34,15 @@ type BatchStatus = ProductBatch['status'];
 function StatusBadge({ status, daysToExpiry }: { status: BatchStatus; daysToExpiry?: number | null }) {
     if (status === 'expired') {
         return (
-            <Badge variant="danger" className="flex items-center gap-1">
-                <HiOutlineExclamation className="w-3 h-3" />
+            <Badge variant="danger" className="flex items-center gap-1 font-black uppercase tracking-widest text-[9px]">
+                <HiOutlineExclamationTriangle className="w-3 h-3" />
                 Expirado
             </Badge>
         );
     }
     if (status === 'expiring_soon') {
         return (
-            <Badge variant="warning" className="flex items-center gap-1">
+            <Badge variant="warning" className="flex items-center gap-1 font-black uppercase tracking-widest text-[9px]">
                 <HiOutlineClock className="w-3 h-3" />
                 {daysToExpiry != null ? `Expira em ${daysToExpiry}d` : 'A expirar'}
             </Badge>
@@ -162,17 +162,23 @@ export default function ProductValiditiesSection({ productId }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">
                         Lotes / Validades ({batches.length})
                     </span>
                     {totalQty > 0 && (
-                        <span className="text-xs text-gray-400">— {totalQty} unid. total</span>
+                        <span className="text-xs text-gray-400">"" {totalQty} unid. total</span>
                     )}
                     {hasExpired && <Badge variant="danger" size="sm">Expirado</Badge>}
                     {!hasExpired && hasExpiringSoon && <Badge variant="warning" size="sm">A expirar</Badge>}
                 </div>
                 {!showForm && (
-                    <Button size="sm" variant="outline" leftIcon={<HiOutlinePlus className="w-4 h-4" />} onClick={openCreate}>
+                    <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-[10px] font-black uppercase tracking-widest text-primary-600"
+                        leftIcon={<HiOutlinePlus className="w-4 h-4" />} 
+                        onClick={openCreate}
+                    >
                         Adicionar
                     </Button>
                 )}
@@ -180,9 +186,9 @@ export default function ProductValiditiesSection({ productId }: Props) {
 
             {/* Inline Form */}
             {showForm && (
-                <div className="border border-primary-200 dark:border-primary-800 rounded-xl p-4 bg-primary-50 dark:bg-primary-900/10 space-y-3">
-                    <p className="text-xs font-semibold text-primary-700 dark:text-primary-400 uppercase tracking-wider">
-                        {editingId ? 'Editar Lote' : 'Novo Lote'}
+                <div className="border border-primary-100 dark:border-primary-900/30 rounded-lg p-4 bg-primary-50 dark:bg-primary-900/10 space-y-4 shadow-sm">
+                    <p className="text-[10px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-[0.2em]">
+                        {editingId ? 'Gestão de Lote Existente' : 'Entrada de Novo Lote'}
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                         <Input
@@ -222,11 +228,11 @@ export default function ProductValiditiesSection({ productId }: Props) {
                         />
                     </div>
                     <div className="flex gap-2 justify-end">
-                        <Button size="sm" variant="ghost" leftIcon={<HiOutlineX className="w-4 h-4" />} onClick={cancelForm}>
+                        <Button size="sm" variant="ghost" className="text-[10px] font-black uppercase tracking-widest" leftIcon={<HiOutlineXMark className="w-4 h-4" />} onClick={cancelForm}>
                             Cancelar
                         </Button>
-                        <Button size="sm" leftIcon={<HiOutlineCheck className="w-4 h-4" />} onClick={handleSave} isLoading={submitting}>
-                            Guardar
+                        <Button size="sm" className="text-[10px] font-black uppercase tracking-widest" leftIcon={<HiOutlineCheck className="w-4 h-4" />} onClick={handleSave} isLoading={submitting}>
+                            Confirmar
                         </Button>
                     </div>
                 </div>
@@ -238,7 +244,7 @@ export default function ProductValiditiesSection({ productId }: Props) {
                     {[1, 2].map(i => <div key={i} className="h-12 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}
                 </div>
             ) : batches.length === 0 ? (
-                <div className="text-center py-6 text-gray-400 dark:text-gray-600 text-sm border border-dashed border-gray-200 dark:border-dark-600 rounded-xl">
+                <div className="text-center py-6 text-gray-400 dark:text-gray-600 text-sm border border-dashed border-gray-200 dark:border-dark-600 rounded-lg">
                     Nenhum lote registado
                 </div>
             ) : (
@@ -247,7 +253,7 @@ export default function ProductValiditiesSection({ productId }: Props) {
                         <div
                             key={b.id}
                             className={cn(
-                                'flex items-center justify-between px-4 py-3 rounded-xl border',
+                                'flex items-center justify-between px-4 py-3 rounded-lg border',
                                 b.status === 'expired'
                                     ? 'border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800'
                                     : b.status === 'expiring_soon'
@@ -259,10 +265,10 @@ export default function ProductValiditiesSection({ productId }: Props) {
                         >
                             <div className="flex items-center gap-4">
                                 <div>
-                                    <p className="text-xs font-mono text-gray-500 dark:text-gray-400 mb-0.5">
-                                        Lote: {b.batchNumber}
+                                    <p className="text-[10px] font-mono text-gray-400 dark:text-gray-500 mb-1 font-bold uppercase tracking-widest">
+                                        Lote: <span className="text-primary-600">{b.batchNumber}</span>
                                     </p>
-                                    <p className="text-sm font-semibold text-gray-800 dark:text-white">
+                                    <p className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
                                         {b.expiryDate
                                             ? format(parseISO(b.expiryDate), "dd 'de' MMMM yyyy", { locale: pt })
                                             : 'Sem data de validade'}
@@ -272,8 +278,8 @@ export default function ProductValiditiesSection({ productId }: Props) {
                                     )}
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-xs text-gray-400">Qtd.</p>
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white">{b.quantity}</p>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Quantidade</p>
+                                    <p className="text-sm font-black text-gray-900 dark:text-white">{b.quantity}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">

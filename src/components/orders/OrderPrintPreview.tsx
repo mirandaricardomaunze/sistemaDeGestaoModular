@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useRef } from 'react';
+import { useRef } from 'react';
 import {
     HiOutlinePrinter,
     HiOutlineCheck,
@@ -172,9 +172,9 @@ export default function OrderPrintPreview({
                     }}
                 >
 
-                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* ─────────────────────────────────────────────────────────────────── */}
                     {/* TOP HEADER: Company + ENCOMENDA                    */}
-                    {/* ═══════════════════════════════════════════════════ */}
+                    {/* ─────────────────────────────────────────────────────────────────── */}
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '24px 32px 16px', borderBottom: '2px solid #1a1a1a', backgroundColor: 'white', margin: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: 'white' }}>
                             {company.logo ? (
@@ -213,9 +213,9 @@ export default function OrderPrintPreview({
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════════════════ */}
+                    {/* ─────────────────────────────────────── */}
                     {/* SECTION: CLIENTE + INFO (SIDE BY SIDE) */}
-                    {/* ═══════════════════════════════════════ */}
+                    {/* ─────────────────────────────────────── */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', backgroundColor: 'white', margin: 0 }}>
                         {/* Column 1: Cliente */}
                         <div style={{ borderRight: '1px solid #f3f4f6' }}>
@@ -260,9 +260,9 @@ export default function OrderPrintPreview({
                         </div>
                     </div>
 
-                    {/* ═══════════════════════════════ */}
+                    {/* ─────────────────────────────── */}
                     {/* SECTION: DETALHES DOS PRODUTOS */}
-                    {/* ═══════════════════════════════ */}
+                    {/* ─────────────────────────────── */}
                     <div style={{ padding: '0 32px 16px', backgroundColor: 'white', margin: 0 }}>
                         <table className="print-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff' }}>
                             <thead>
@@ -298,9 +298,9 @@ export default function OrderPrintPreview({
                         </table>
                     </div>
 
-                    {/* ═══════════════ */}
+                    {/* ───────────────── */}
                     {/* SECTION: TOTAIS */}
-                    {/* ═══════════════ */}
+                    {/* ───────────────── */}
                     <div style={{ padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         {/* Left: Notes + Terms */}
                         <div style={{ maxWidth: '55%' }}>
@@ -337,9 +337,9 @@ export default function OrderPrintPreview({
                         </div>
                     </div>
 
-                    {/* ═══════════════════ */}
+                    {/* ─────────────────── */}
                     {/* SIGNATURE SECTION  */}
-                    {/* ═══════════════════ */}
+                    {/* ─────────────────── */}
                     <div style={{ padding: '20px 32px 24px', borderTop: '1px solid #e5e7eb', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px', backgroundColor: 'white', margin: 0 }}>
                         <div style={{ textAlign: 'center' }}>
                             <div style={{ marginTop: '36px', marginBottom: '4px', borderBottom: '1px solid #1e293b' }} />

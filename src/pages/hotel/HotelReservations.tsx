@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { PageHeader, Button } from '../../components/ui';
 import { ReservationCalendar, HospitalityHistory } from '../../components/hospitality';
 import { useHospitality } from '../../hooks/useData';
+import { logger } from '../../utils/logger';
 import { HiOutlineCalendar, HiOutlineListBullet, HiOutlineArrowPath } from 'react-icons/hi2';
 
 type ReservationView = 'calendar' | 'list';
@@ -26,7 +27,7 @@ export default function HotelReservations() {
             const res = await fetchBookings({ page: historyPage, limit: historyPageSize });
             if (res?.data) setBookingHistory(res.data);
         } catch (err) {
-            console.error('Error fetching history:', err);
+            logger.error('Error fetching history:', err);
         } finally {
             setHistoryLoading(false);
         }

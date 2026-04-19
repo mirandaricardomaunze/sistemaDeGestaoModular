@@ -1,4 +1,4 @@
-﻿import api from './client';
+import api from './client';
 
 // ============================================================================
 // Warehouses API
@@ -84,8 +84,8 @@ export const warehousesAPI = {
 // ============================================================================
 
 export const dashboardAPI = {
-    getStats: async () => {
-        const response = await api.get('/dashboard/metrics');
+    getStats: async (params?: { warehouseId?: string }) => {
+        const response = await api.get('/dashboard/metrics', { params });
         return response.data;
     },
 
@@ -99,7 +99,7 @@ export const dashboardAPI = {
         return response.data;
     },
 
-    getRecentSales: async (params?: { limit?: number }) => {
+    getRecentSales: async (params?: { limit?: number; warehouseId?: string }) => {
         const response = await api.get('/dashboard/recent-activity', { params });
         return response.data;
     },

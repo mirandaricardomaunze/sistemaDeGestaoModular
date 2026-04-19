@@ -1,4 +1,4 @@
-﻿import client from './client';
+import client from './client';
 
 export const bottleStoreAPI = {
     // Dashboard
@@ -121,6 +121,85 @@ export const bottleStoreAPI = {
         notes?: string;
     }) => {
         const response = await client.post('/bottle-store/credit-sales/pay', data);
+        return response.data;
+    },
+
+    // ========================================================================
+    // BATCHES -- lotes e validades
+    // ========================================================================
+    getBatches: async (params?: { productId?: string; status?: string; page?: number; limit?: number }) => {
+        const response = await client.get('/bottle-store/batches', { params });
+        return response.data;
+    },
+
+    getExpiringBatches: async (days = 30) => {
+        const response = await client.get('/bottle-store/batches/expiring', { params: { days } });
+        return response.data;
+    },
+
+    createBatch: async (data: {
+        productId: string;
+        batchNumber: string;
+        quantity: number;
+        expiryDate?: string;
+        manufactureDate?: string;
+        receivedDate?: string;
+        costPrice?: number;
+        supplierId?: string;
+        notes?: string;
+    }) => {
+        const response = await client.post('/bottle-store/batches', data);
+        return response.data;
+    },
+
+    // ========================================================================
+    // PRICE TIERS -- descontos por volume
+    // ========================================================================
+    getPriceTiers: async (productId?: string) => {
+        const response = await client.get('/bottle-store/price-tiers', { params: productId ? { productId } : {} });
+        return response.data;
+    },
+
+    createPriceTier: async (data: { productId: string; minQty: number; price: number; label?: string }) => {
+        const response = await client.post('/bottle-store/price-tiers', data);
+        return response.data;
+    },
+
+    deletePriceTier: async (id: string) => {
+        await client.delete(`/bottle-store/price-tiers/${id}`);
+    },
+
+    // ========================================================================
+    // Z REPORT
+    // ========================================================================
+    getZReport: async () => {
+        const response = await client.get('/bottle-store/cash-session/z-report');
+        return response.data;
+    },
+
+    // Finance
+    getFinanceDashboard: async (period?: string) => {
+        const response = await client.get('/bottle-store/finance/dashboard', { params: { period } });
+        return response.data;
+    },
+
+    getTransactions: async (params?: any) => {
+        const response = await client.get('/bottle-store/finance/transactions', { params });
+        return response.data;
+    },
+
+    createTransaction: async (data: any) => {
+        const response = await client.post('/bottle-store/finance/transactions', data);
+        return response.data;
+    },
+
+    updateTransaction: async (id: string, data: any) => {
+        const response = await client.put(`/bottle-store/finance/transactions/${id}`, data);
+        return response.data;
+    },
+
+    deleteTransaction: async (id: string) => {
+        const response = await client.delete(`/bottle-store/finance/transactions/${id}`);
         return response.data;
     }
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { batchesAPI, type ProductBatch, type CreateBatchDto } from '../services/api';
+import { batchesAPI, type CreateBatchDto } from '../services/api';
 
 const bus = new EventTarget();
 const inv = (keys: string[]) => keys.forEach(k => bus.dispatchEvent(new CustomEvent('inv', { detail: k })));

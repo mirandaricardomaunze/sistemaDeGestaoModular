@@ -126,7 +126,7 @@ export default function RestaurantReports() {
                             <HiOutlineCalendar className="w-5 h-5 text-gray-400" />
                             <input type="date" className="rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-1.5 text-sm text-gray-900 dark:text-white"
                                 value={customDates.startDate} onChange={e => setCustomDates(p => ({ ...p, startDate: e.target.value }))} />
-                            <span className="text-gray-400">—</span>
+                            <span className="text-gray-400">-</span>
                             <input type="date" className="rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-1.5 text-sm text-gray-900 dark:text-white"
                                 value={customDates.endDate} onChange={e => setCustomDates(p => ({ ...p, endDate: e.target.value }))} />
                         </div>
@@ -143,7 +143,7 @@ export default function RestaurantReports() {
                 ].map(({ label, value, icon: Icon, color }) => (
                     <Card key={label} padding="md">
                         <div className="flex items-center gap-4">
-                            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center', `bg-${color}-100 dark:bg-${color}-900/30`)}>
+                            <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center', `bg-${color}-100 dark:bg-${color}-900/30`)}>
                                 <Icon className={cn('w-6 h-6', `text-${color}-600`)} />
                             </div>
                             <div>
@@ -264,7 +264,7 @@ export default function RestaurantReports() {
                                             {sale.table ? (
                                                 <div className="flex items-center gap-1.5">
                                                     <HiOutlineCake className="w-4 h-4 text-red-500" />
-                                                    <span>Mesa {sale.table.number}{sale.table.name ? ` — ${sale.table.name}` : ''}</span>
+                                                    <span>Mesa {sale.table.number}{sale.table.name ? ` "" ${sale.table.name}` : ''}</span>
                                                 </div>
                                             ) : <span className="text-gray-400">Balcão</span>}
                                         </td>

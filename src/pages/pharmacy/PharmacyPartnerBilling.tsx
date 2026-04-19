@@ -104,17 +104,17 @@ export default function PharmacyPartnerBilling() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parceiro *</label>
-                            <select className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 value={generateForm.partnerId} onChange={e => setGenerateForm(f => ({ ...f, partnerId: e.target.value }))}>
                                 <option value="">Seleccionar parceiro...</option>
                                 {partners.map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.coveragePercentage}%)</option>)}
                             </select>
                         </div>
                         <Input label="Data de Vencimento" type="date" value={generateForm.dueDate} onChange={e => setGenerateForm(f => ({ ...f, dueDate: e.target.value }))} />
-                        <Input label="Período — Início *" type="date" value={generateForm.periodStart} onChange={e => setGenerateForm(f => ({ ...f, periodStart: e.target.value }))} />
-                        <Input label="Período — Fim *" type="date" value={generateForm.periodEnd} onChange={e => setGenerateForm(f => ({ ...f, periodEnd: e.target.value }))} />
+                        <Input label="Período de Início *" type="date" value={generateForm.periodStart} onChange={e => setGenerateForm(f => ({ ...f, periodStart: e.target.value }))} />
+                        <Input label="Período de Fim *" type="date" value={generateForm.periodEnd} onChange={e => setGenerateForm(f => ({ ...f, periodEnd: e.target.value }))} />
                     </div>
-                    <p className="text-sm text-gray-500 mb-4">O sistema irá agregar automaticamente os valores de cobertura de todas as vendas do período seleccionado para este parceiro.</p>
+                    <p className="text-sm text-gray-500 mb-4">O sistema ir agregar automaticamente os valores de cobertura de todas as vendas do período seleccionado para este parceiro.</p>
                     <div className="flex gap-2">
                         <Button onClick={() => generateMutation.mutate()} isLoading={generateMutation.isPending} leftIcon={<HiOutlineDocumentText className="w-4 h-4" />}>Gerar Fatura</Button>
                         <Button variant="outline" onClick={() => setShowGenerate(false)}>Cancelar</Button>
@@ -158,11 +158,11 @@ export default function PharmacyPartnerBilling() {
                                                     <span className="font-medium">{inv.partner?.name}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-500">{formatDate(inv.periodStart)} — {formatDate(inv.periodEnd)}</td>
+                                            <td className="px-4 py-3 text-xs text-gray-500">{formatDate(inv.periodStart)} a {formatDate(inv.periodEnd)}</td>
                                             <td className="px-4 py-3 font-semibold">{formatCurrency(Number(inv.totalAmount))}</td>
                                             <td className="px-4 py-3 text-green-600">{formatCurrency(Number(inv.paidAmount))}</td>
                                             <td className="px-4 py-3 font-bold text-amber-600">{formatCurrency(remaining)}</td>
-                                            <td className="px-4 py-3 text-xs">{inv.dueDate ? formatDate(inv.dueDate) : '—'}</td>
+                                            <td className="px-4 py-3 text-xs">{inv.dueDate ? formatDate(inv.dueDate) : ''}</td>
                                             <td className="px-4 py-3">
                                                 <Badge variant={STATUS_MAP[inv.status]?.variant || 'default'}>{STATUS_MAP[inv.status]?.label}</Badge>
                                             </td>
@@ -197,8 +197,8 @@ export default function PharmacyPartnerBilling() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
                     <Card className="w-full max-w-md p-6">
                         <h3 className="font-bold text-lg mb-1">Registar Pagamento</h3>
-                        <p className="text-sm text-gray-500 mb-4">{showPayment.partner?.name} — {showPayment.invoiceNumber}</p>
-                        <div className="flex justify-between text-sm mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <p className="text-sm text-gray-500 mb-4">{showPayment.partner?.name} a {showPayment.invoiceNumber}</p>
+                        <div className="flex justify-between text-sm mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <span>Total da Fatura:</span><span className="font-bold">{formatCurrency(Number(showPayment.totalAmount))}</span>
                         </div>
                         <Input label="Valor do Pagamento (MT)" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} min={0} className="mb-4" />

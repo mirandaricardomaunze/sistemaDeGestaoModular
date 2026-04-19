@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { pharmacyAPI } from '../../services/api/hospitality.api';
+﻿import { useState, useEffect } from 'react';
+import { pharmacyAPI } from '../../services/api';
 import { Card, Button, Input, Select } from '../../components/ui';
-import { HiOutlinePlus, HiOutlineTrash, HiOutlineExclamationCircle, HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineTrash, HiOutlineExclamationCircle, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 const SEVERITY_LABELS: Record<string, { label: string; color: string }> = {
@@ -184,8 +184,8 @@ export default function PharmacyDrugInteractions() {
                 <div className="space-y-3">
                     {filtered.map(interaction => {
                         const sev = SEVERITY_LABELS[interaction.severity] || { label: interaction.severity, color: 'bg-gray-100 text-gray-700' };
-                        const nameA = interaction.medicationA?.product?.name || '—';
-                        const nameB = interaction.medicationB?.product?.name || '—';
+                        const nameA = interaction.medicationA?.product?.name || '';
+                        const nameB = interaction.medicationB?.product?.name || '';
                         return (
                             <Card key={interaction.id} className="p-4">
                                 <div className="flex items-start justify-between gap-3">
@@ -233,3 +233,4 @@ export default function PharmacyDrugInteractions() {
         </div>
     );
 }
+

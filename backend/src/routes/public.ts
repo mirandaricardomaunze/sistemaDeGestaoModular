@@ -1,5 +1,5 @@
-﻿import { Router } from 'express';
-import { publicReservationService } from '../services/public-reservation.service';
+import { Router } from 'express';
+import { publicReservationService } from '../services/publicReservationService';
 import { ApiError } from '../middleware/error.middleware';
 
 const router = Router();

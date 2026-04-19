@@ -53,19 +53,29 @@ The system is a modular multi-tenant ERP/Management platform.
 - **Error Handling**: Use the central `error.middleware.ts`. Throw custom errors with appropriate HTTP status codes.
 - **Logging**: Use the implemented `winston` logger for all production logs.
 
-### 3. Performance & Scalability
-- **Pagination**: All list endpoints MUST implement pagination via `queryParams.ts` validation and Prisma `skip`/`take`.
-- **Caching**: Use the `cache.service.ts` (Redis) for frequently accessed, slow-changing data.
-- **Database**: Use `prisma.$transaction` for any operation involving financial records or stock movements. Avoid large nested `include` blocks; prefer targeted queries.
+### 3. Backend Response Standards (Result Pattern)
+- **Standardized Output**: All backend services and controllers SHOULD return a consistent result pattern to simplify frontend handling:
+  ```typescript
+  { success: boolean; data?: T; error?: string; message?: string }
+  ```
+- **Prisma Transactions**: Use `prisma.$transaction` for any operation involving financial records or stock movements. Avoid large nested `include` blocks; prefer targeted queries.
 
-### 4. Frontend Conventions
-- **Components**: Reusable UI primitives in `src/components/ui/`. Modular features in `src/pages/[Module]`.
-- **Hooks**: Business logic in components should be moved to custom hooks (`src/hooks/`).
+### 4. Frontend Conventions (Strict SRP)
+- **File Naming**: All files and folders MUST use camelCase (e.g., `inventoryList.tsx`).
+- **Hooks (Logic Layer)**: Custom hooks MUST handle all API interactions, data transformations, and local state.
+- **Components (UI Layer)**: Components should be "pure" UI. NO direct API calls or complex logic inside the JSX file. If a component grows too complex, extract child components (Atoms/Molecules).
 - **Optimization**: Use `Suspense` and `lazy` for page-level imports. Keep components small.
 
 ### 5. CI/CD & Automated Enforcement
 - **Linting & Formatting**: Ensure code is completely free of ESLint errors and is formatted correctly (Prettier) before considering a task "done". No `console.log` in production code.
-- **Type Safety**: The project must build without any TypeScript (`tsc`) errors. Fix any `any` types by providing proper interfaces.
+- **Strict Type Safety**: The project must build without any TypeScript (`tsc`) errors. Fixed any `any` types by providing proper interfaces. **Explicit use of `as any` is forbidden** unless documented with a `@ts-ignore` and a valid reason.
+- **Frontend State Management (TanStack Query v5)**:
+  - All server-side data fetching MUST use **TanStack Query v5** hooks.
+  - **Single Hook File per Module**: Business logic MUST be centralized in a dedicated hook file (e.g., `src/hooks/useLogistics.ts`).
+  - **No Manual Data Fetching**: `useEffect` and `useState` for API data fetching are strictly forbidden.
+  - **Centralized Types**: Every module MUST have its types defined in a dedicated file (e.g., `src/types/logistics.ts`) consumed by both the API service and the hooks.
+  - **Loading Boundaries**: Mandatory use of **Skeleton Loaders** for all initial dashboard loading states.
+  - **Integrated Refetching**: Dashboards must provide a manual "Refresh" button that triggers `queryClient.invalidateQueries` or hook-level `refetch`.
 
 ## 💊 Module Specific Rules
 

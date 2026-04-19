@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
-    HiOutlineFire, HiOutlineCheckCircle, HiOutlineClock, 
-    HiOutlineChevronRight, HiOutlineArrowPath, HiOutlineHandThumbUp,
+    HiOutlineFire, HiOutlineCheckCircle, HiOutlineClock,
+    HiOutlineArrowPath, HiOutlineHandThumbUp,
     HiOutlineInformationCircle
 } from 'react-icons/hi2';
 import { Card, Button, Badge, LoadingSpinner } from '../../components/ui';
@@ -32,8 +32,6 @@ function KitchenOrderCard({ order, onUpdateStatus, isUpdating }: {
     }, [order.createdAt]);
 
     const isUrgent = minutesElapsed >= 15 && order.status !== 'ready' && order.status !== 'served';
-    const isReady = order.status === 'ready';
-
     return (
         <Card className={cn(
             "flex flex-col h-full border-t-4 transition-all hover:shadow-lg",
@@ -59,7 +57,7 @@ function KitchenOrderCard({ order, onUpdateStatus, isUpdating }: {
                     </p>
                 </div>
                 <div className={cn(
-                    "flex flex-col items-end gap-1 px-3 py-1 rounded-xl",
+                    "flex flex-col items-end gap-1 px-3 py-1 rounded-lg",
                     isUrgent ? "bg-red-50 dark:bg-red-900/20 text-red-600" : "bg-gray-50 dark:bg-dark-700 text-gray-500"
                 )}>
                     <div className="flex items-center gap-1 font-black text-lg">
@@ -71,7 +69,7 @@ function KitchenOrderCard({ order, onUpdateStatus, isUpdating }: {
 
             {/* Items List */}
             <div className="flex-1 p-4 space-y-3">
-                {order.items.map((item, i) => (
+                {order.items.map((item: any, i: number) => (
                     <div key={i} className="flex gap-3">
                         <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center font-black text-gray-600 dark:text-gray-300 flex-shrink-0">
                             {item.quantity}
@@ -136,9 +134,9 @@ export default function RestaurantKitchenPage() {
     const [activeTab, setActiveTab] = useState<'active' | 'ready' | 'all'>('active');
     
     // Status parameters based on tab
-    const statusParam = activeTab === 'active' ? ['pending', 'preparing'] : (activeTab === 'ready' ? 'ready' : undefined);
-    
-    const { data: orders, isLoading, refetch } = useKitchenOrders({ status: statusParam });
+    const statusParam: OrderStatus | undefined = activeTab === 'ready' ? 'ready' : undefined;
+
+    const { data: orders, isLoading, refetch } = useKitchenOrders(statusParam);
     const updateStatus = useUpdateOrderStatus();
 
     const handleUpdateStatus = (id: string, status: OrderStatus) => {
@@ -152,13 +150,13 @@ export default function RestaurantKitchenPage() {
                 <div>
                     <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400 font-bold uppercase tracking-[0.2em] text-[10px] mb-1">
                         <HiOutlineFire className="w-3 h-3" />
-                        KDS — Kitchen Display System
+                        KDS - Kitchen Display System
                     </div>
                     <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Cozinha</h1>
                 </div>
                 
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 bg-white dark:bg-dark-800 p-1 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700">
+                    <div className="flex items-center gap-1 bg-white dark:bg-dark-800 p-1 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                         <button 
                             onClick={() => setActiveTab('active')}
                             className={cn(
@@ -187,7 +185,7 @@ export default function RestaurantKitchenPage() {
                             Todos
                         </button>
                     </div>
-                    <Button variant="ghost" onClick={() => refetch()} className="p-2.5">
+                    <Button variant="ghost" onClick={() => { refetch(); }} className="p-2.5">
                         <HiOutlineArrowPath className={cn("w-5 h-5", isLoading && "animate-spin")} />
                     </Button>
                 </div>
@@ -220,7 +218,7 @@ export default function RestaurantKitchenPage() {
             </div>
 
             {/* Footer / Stats bar */}
-            <div className="flex-shrink-0 bg-white dark:bg-dark-800 border border-gray-100 dark:border-dark-700 p-4 rounded-2xl flex justify-around">
+            <div className="flex-shrink-0 bg-white dark:bg-dark-800 border border-gray-100 dark:border-dark-700 p-4 rounded-lg flex justify-around">
                 <div className="text-center">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Pendentes</p>
                     <p className="text-xl font-black text-orange-600">

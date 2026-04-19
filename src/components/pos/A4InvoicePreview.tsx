@@ -1,4 +1,4 @@
-﻿/**
+/**
  * A4 Invoice Preview Component
  * Professional A4 Invoice template for Mozambican AT compliance
  */
@@ -23,7 +23,7 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
     const { companySettings: company, loadCompanySettings } = useStore();
     const navigate = useNavigate();
     const printRef = useRef<HTMLDivElement>(null);
-    // Deterministic display hash derived from sale ID — replace with AT-issued digital hash when available
+    // Deterministic display hash derived from sale ID -- replace with AT-issued digital hash when available
     const simulatedHash = useMemo(() => {
         const seed = sale.id.replace(/-/g, '');
         return `${seed.substring(0, 4).toUpperCase()}-${seed.substring(4, 8).toUpperCase()}`;
@@ -360,7 +360,7 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                                                 </p>
                                             ))
                                         ) : (
-                                            <p className="text-[8px] text-gray-400 italic text-center">Numerário / M-Pesa</p>
+                                            <p className="text-[8px] text-gray-400 italic text-center">Numerrio / M-Pesa</p>
                                         )}
                                     </div>
                                 </div>

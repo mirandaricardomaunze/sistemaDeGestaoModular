@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
     HiOutlineSearch,
@@ -20,7 +20,7 @@ import MobilePaymentModal from './MobilePaymentModal';
 import ThermalReceiptPreview from './ThermalReceiptPreview';
 import A4InvoicePreview from './A4InvoicePreview';
 import { useStore } from '../../stores/useStore';
-import { Button, Card, Input, Modal, Badge } from '../ui';
+import { Button, Card, Input, Modal, Badge, Select } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { paymentMethodLabels } from '../../utils/constants';
 import type { Product, PaymentMethod, Sale, Customer } from '../../types';
@@ -28,7 +28,7 @@ import type { Product, PaymentMethod, Sale, Customer } from '../../types';
 import toast from 'react-hot-toast';
 import { calculatePOSDiscounts, recordCampaignUsages, searchCustomersForPOS, applyPromoCode, type AppliedCampaign } from '../../utils/crmIntegration';
 import { playScanSound } from '../../utils/audio';
-import { useProducts, useCustomers, useSales, useAlerts } from '../../hooks/useData';
+import { useProducts, useCustomers, useSales, useAlerts, useWarehouses } from '../../hooks/useData';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import type { KeyboardShortcut } from '../../hooks/useKeyboardShortcuts';
@@ -48,6 +48,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
     const { customers, isLoading: isLoadingCustomers } = useCustomers();
     const { createSale } = useSales();
     const { refetch: refetchAlerts } = useAlerts();
+    const { warehouses } = useWarehouses();
 
     // Company settings for print configuration
     const { settings: companySettings } = useCompanySettings();
@@ -63,6 +64,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
     const [thermalPreviewOpen, setThermalPreviewOpen] = useState(false);
     const [a4PreviewOpen, setA4PreviewOpen] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
 
     // Customer Selection State
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -190,7 +192,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         duration: 2000,
                     });
                 } else if (product) {
-                    toast.error(`${product.name} está sem stock`);
+                    toast.error(`${product.name} est sem stock`);
                 }
             } catch (error) {
                 logger.error('Barcode scan error:', error);
@@ -199,18 +201,41 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
         enabled: !checkoutModalOpen && !receiptModalOpen && !scaleModalOpen && !cashDrawerModalOpen
     });
 
-    // Filter products by search
+    // Initialize warehouse from first active warehouse or settings
+    useEffect(() => {
+        if (warehouses && warehouses.length > 0 && !selectedWarehouseId) {
+            setSelectedWarehouseId(warehouses[0].id);
+        }
+    }, [warehouses, selectedWarehouseId]);
+
+    // Filter products by search and warehouse stock
     const filteredProducts = useMemo(() => {
-        if (!searchQuery) return products.filter(p => p.currentStock > 0);
-        const query = searchQuery.toLowerCase();
-        return products.filter(
-            (p) =>
-                p.currentStock > 0 &&
-                (p.code.toLowerCase().includes(query) ||
-                    p.name.toLowerCase().includes(query) ||
-                    p.barcode?.toLowerCase().includes(query))
-        );
-    }, [products, searchQuery]);
+        if (!products) return [];
+
+        return products.filter((p) => {
+            // Logic to hide product if it doesn't have stock in the selected warehouse
+            if (selectedWarehouseId) {
+                const stockInWarehouse = p.warehouseStocks?.find(
+                    s => s.warehouseId === selectedWarehouseId
+                )?.quantity || 0;
+                
+                // ESCONDER TOTALMENTE (per user requirement)
+                if (stockInWarehouse <= 0) return false;
+            } else {
+                // If no warehouse selected, fallback to global stock (optional)
+                if (p.currentStock <= 0) return false;
+            }
+
+            if (!searchQuery) return true;
+            
+            const query = searchQuery.toLowerCase();
+            return (
+                p.code.toLowerCase().includes(query) ||
+                p.name.toLowerCase().includes(query) ||
+                p.barcode?.toLowerCase().includes(query)
+            );
+        });
+    }, [products, searchQuery, selectedWarehouseId]);
 
     // Customer search results
     const customerSearchResults = useMemo(() => {
@@ -500,6 +525,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                 amountPaid: Number(paymentAmount),
                 change: Number(paymentAmount - cartTotal),
                 redeemPoints: pointsToRedeem,
+                warehouseId: selectedWarehouseId || undefined,
                 notes: customerPhone
                     ? `Pagamento Móvel: ${customerPhone}`
                     : selectedCustomer
@@ -665,7 +691,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     </Card>
 
                     {/* Hardware Toolbar Skeleton */}
-                    <div className="flex items-center gap-3 mb-4 p-3 bg-white dark:bg-dark-800 rounded-xl border border-gray-200 dark:border-dark-700">
+                    <div className="flex items-center gap-3 mb-4 p-3 bg-white dark:bg-dark-800 rounded-lg border border-slate-200/60 dark:border-dark-700/50">
                         <div className="h-8 w-32 bg-gray-200 dark:bg-dark-700 rounded-lg animate-pulse"></div>
                         <div className="h-8 w-32 bg-gray-200 dark:bg-dark-700 rounded-lg animate-pulse"></div>
                         <div className="flex-1"></div>
@@ -676,7 +702,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     <Card padding="md" className="flex-1">
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                             {Array.from({ length: 15 }).map((_, i) => (
-                                <div key={i} className="p-3 rounded-xl border-2 border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 animate-pulse">
+                                <div key={i} className="p-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 animate-pulse">
                                     <div className="w-full h-16 rounded-lg bg-gray-200 dark:bg-dark-700 mb-2"></div>
                                     <div className="h-3 bg-gray-200 dark:bg-dark-700 rounded mb-2 w-2/3"></div>
                                     <div className="h-4 bg-gray-200 dark:bg-dark-700 rounded mb-2"></div>
@@ -723,15 +749,29 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                 <div className="flex-1 flex flex-col min-h-0">
                     {/* Search */}
                     <Card padding="md" className="mb-4">
-                        <Input
-                            ref={searchInputRef}
-                            placeholder="Escaneie o código de barras ou busque por código/nome..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={handleBarcodeSearch}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5" />}
-                            autoFocus
-                        />
+                        <div className="flex gap-4">
+                            <div className="flex-1">
+                                <Input
+                                    ref={searchInputRef}
+                                    placeholder="Escaneie o código de barras ou busque por código/nome..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onKeyDown={handleBarcodeSearch}
+                                    leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="w-64">
+                                <Select
+                                    value={selectedWarehouseId}
+                                    onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                                    options={[
+                                        { value: '', label: 'Todos os Armazéns' },
+                                        ...(warehouses?.map(w => ({ value: w.id, label: w.name })) || [])
+                                    ]}
+                                />
+                            </div>
+                        </div>
                         <div className="flex items-center justify-between mt-2">
                             <p className="text-xs text-gray-500 dark:text-gray-400">
                                 💡 <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-700 rounded text-xs font-mono">Enter</kbd> adicionar produto
@@ -746,7 +786,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     </Card>
 
                     {/* Hardware Toolbar */}
-                    <div className="flex items-center justify-between gap-3 mb-4 p-3 bg-white dark:bg-dark-800 rounded-xl border border-gray-200 dark:border-dark-700">
+                    <div className="flex items-center justify-between gap-3 mb-4 p-3 bg-white dark:bg-dark-800 rounded-lg border border-slate-200/60 dark:border-dark-700/50">
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Hardware:</span>
                             {/* Scale Button */}
@@ -809,10 +849,10 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                     <button
                                         key={product.id}
                                         onClick={() => handleAddProduct(product)}
-                                        className="p-4 rounded-2xl border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 bg-white dark:bg-dark-800 text-left transition-all hover:shadow-xl group overflow-hidden flex flex-col min-h-[180px]"
+                                        className="p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 bg-white dark:bg-dark-800 text-left transition-all hover:shadow-xl group overflow-hidden flex flex-col min-h-[180px]"
                                     >
-                                        <div className="w-full h-24 rounded-xl bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-3 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors flex-shrink-0">
-                                            <span className="text-3xl">📦</span>
+                                        <div className="w-full h-24 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-3 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors flex-shrink-0">
+                                            <span className="text-3xl">{product.category === 'food' ? '🍔' : '📦'}</span>
                                         </div>
                                         <div className="flex-1">
                                             <p className="text-[10px] text-primary-600 dark:text-primary-400 font-bold uppercase tracking-widest mb-1 truncate">
@@ -978,7 +1018,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                         leftIcon={<HiOutlineUserCircle className="w-5 h-5 text-gray-400" />}
                                     />
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                        Este nome aparecerá no recibo
+                                        Este nome aparecer no recibo
                                     </p>
                                 </div>
                             )}
@@ -1011,14 +1051,14 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                                     setPromoCodeApplied(true);
                                                     toast.success(result.message);
                                                 } else {
-                                                    toast.error('Este código já foi aplicado');
+                                                    toast.error('Este código j foi aplicado');
                                                 }
                                             } else {
                                                 toast.error(result.message);
                                             }
                                         }}
                                     >
-                                        {promoCodeApplied ? '✓' : 'Aplicar'}
+                                        {promoCodeApplied ? '✅' : 'Aplicar'}
                                     </Button>
                                 </div>
                                 {promoCodeApplied && (
@@ -1073,10 +1113,10 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                 cart.map((item) => (
                                     <div
                                         key={item.productId}
-                                        className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-xl"
+                                        className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg"
                                     >
                                         <div className="w-12 h-12 rounded-lg bg-white dark:bg-dark-600 flex items-center justify-center flex-shrink-0">
-                                            <span className="text-xl">📦</span>
+                                            <span className="text-xl">{'📦'}</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -1135,7 +1175,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                 <span className="text-primary-600 dark:text-primary-400">{formatCurrency(cartTotal)}</span>
                             </div>
 
-                            {/* 🔒 MELHORIA 3: Feedback visual aprimorado no botão de checkout */}
+                            {/* ELHORIA 3: Feedback visual aprimorado no botão de checkout */}
                             <Button
                                 onClick={handleCheckout}
                                 disabled={cart.length === 0 || isProcessing}
@@ -1181,7 +1221,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                     key={method.id}
                                     onClick={() => handlePaymentMethodSelect(method.id)}
                                     className={`
-                                        flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all
+                                        flex flex-col items-center justify-center p-4 rounded-lg border-2 transition-all
                                         ${selectedPayment === method.id
                                             ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
                                             : 'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300 hover:border-primary-200 dark:hover:border-primary-800'
@@ -1207,7 +1247,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                 leftIcon={<span className="text-gray-400">MT</span>}
                             />
                             {change > 0 && (
-                                <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                                <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
                                     <p className="text-sm text-green-600 dark:text-green-400">
                                         Troco: <strong className="text-lg">{formatCurrency(change)}</strong>
                                     </p>
@@ -1217,7 +1257,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     )}
 
                     {/* Total */}
-                    <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                    <div className="p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600 dark:text-gray-300">Total a Pagar</span>
                             <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">
@@ -1261,7 +1301,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                             </p>
                         </div>
 
-                        <div className="space-y-2 p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div className="space-y-2 p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <div className="flex justify-between text-sm">
                                 <span className="text-gray-500">Forma de pagamento</span>
                                 <span className="text-gray-900 dark:text-white">
@@ -1367,7 +1407,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                 {scaleProduct && (
                     <div className="space-y-6">
                         {/* Product Info */}
-                        <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-dark-700 rounded-xl">
+                        <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <div className="w-16 h-16 rounded-lg bg-white dark:bg-dark-600 flex items-center justify-center">
                                 <HiOutlineScale className="w-8 h-8 text-primary-600" />
                             </div>
@@ -1382,7 +1422,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         </div>
 
                         {/* Weight Display */}
-                        <div className="text-center py-6 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-xl border-2 border-dashed border-primary-300 dark:border-primary-700">
+                        <div className="text-center py-6 bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-lg border-2 border-dashed border-primary-300 dark:border-primary-700">
                             <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Peso (kg)</p>
                             <p className="text-5xl font-bold text-primary-600 dark:text-primary-400 font-mono">
                                 {scaleWeight || '0.000'}
@@ -1438,7 +1478,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             >
                 <div className="space-y-6">
                     {/* Current Balance */}
-                    <div className="text-center py-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl">
+                    <div className="text-center py-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg">
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Saldo Actual</p>
                         <p className="text-4xl font-bold text-green-600 dark:text-green-400">
                             {formatCurrency(cashDrawerBalance)}
@@ -1449,7 +1489,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     <div className="grid grid-cols-2 gap-3">
                         <button
                             onClick={() => setCashOperation('add')}
-                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${cashOperation === 'add'
+                            className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${cashOperation === 'add'
                                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600'
                                 : 'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300'
                                 }`}
@@ -1459,7 +1499,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         </button>
                         <button
                             onClick={() => setCashOperation('remove')}
-                            className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${cashOperation === 'remove'
+                            className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${cashOperation === 'remove'
                                 ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-600'
                                 : 'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300'
                                 }`}

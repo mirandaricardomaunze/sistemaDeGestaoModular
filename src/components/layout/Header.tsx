@@ -1,22 +1,22 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../../stores/useStore';
 import { useAuthStore, roleLabels } from '../../stores/useAuthStore';
 import {
-    HiOutlineMenu,
-    HiOutlineSearch,
+    HiOutlineBars3,
+    HiOutlineMagnifyingGlass,
     HiOutlineMoon,
     HiOutlineSun,
-    HiOutlineLogout,
+    HiOutlineArrowRightOnRectangle,
     HiOutlineUser,
-    HiOutlineCog,
-    HiRefresh,
+    HiOutlineCog6Tooth,
+    HiArrowPath,
     HiOutlineTruck,
     HiOutlineTag,
     HiChevronRight,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import LanguageSelector from '../common/LanguageSelector';
 import { NotificationBadge } from '../notifications';
 import {
@@ -40,7 +40,7 @@ import { useTenant } from '../../contexts/TenantContext';
 export default function Header() {
     const location = useLocation();
     const navigate = useNavigate();
-    const { theme, toggleTheme, sidebarOpen, toggleSidebar, setSidebarOpen } = useStore();
+    const { theme, toggleTheme, toggleSidebar } = useStore();
     const { user, logout } = useAuthStore();
     const { isOnline, isSyncing, pendingCount, syncAll } = useOfflineSync();
     const [showUserMenu, setShowUserMenu] = useState(false);
@@ -240,12 +240,12 @@ export default function Header() {
                         className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300 transition-colors"
                         title="Menu"
                     >
-                        <HiOutlineMenu className="w-6 h-6" />
+                        <HiOutlineBars3 className="w-6 h-6" />
                     </button>
 
                     {/* Search Bar */}
                     <div className="hidden md:flex items-center relative">
-                        <HiOutlineSearch className={`absolute left-3 w-5 h-5 ${isSearching ? 'text-primary-500 animate-pulse' : 'text-gray-400'}`} />
+                        <HiOutlineMagnifyingGlass className={`absolute left-3 w-5 h-5 ${isSearching ? 'text-primary-500 animate-pulse' : 'text-gray-400'}`} />
                         <input
                             type="text"
                             placeholder={t('common.search') + '...'}
@@ -256,12 +256,12 @@ export default function Header() {
                             }}
                             onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)}
                             onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
-                            className="w-80 pl-10 pr-4 py-2 rounded-xl bg-gray-100 dark:bg-dark-700 border-none focus:ring-2 focus:ring-primary-500 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500"
+                            className="w-80 pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-dark-700 border-none focus:ring-2 focus:ring-primary-500 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500"
                         />
 
                         {/* Search Results Dropdown */}
                         {showSearchResults && searchQuery.trim().length > 0 && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-dark-800 rounded-xl shadow-xl border border-gray-200 dark:border-dark-700 overflow-hidden max-h-96 overflow-y-auto animate-slide-up">
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-dark-800 rounded-lg shadow-xl border border-gray-200 dark:border-dark-700 overflow-hidden max-h-96 overflow-y-auto animate-slide-up">
                                 {isSearching ? (
                                     <div className="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">
                                         Pesquisando...
@@ -623,7 +623,7 @@ export default function Header() {
                     {/* Theme Toggle */}
                     <button
                         onClick={toggleTheme}
-                        className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300 transition-colors"
+                        className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300 transition-colors"
                         title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}
                     >
                         {theme === 'light' ? (
@@ -647,12 +647,12 @@ export default function Header() {
                                     }`}
                                 title={isOnline ? 'Sincronizar dados pendentes' : 'Aguardando internet para sincronizar'}
                             >
-                                <HiRefresh className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                                <HiArrowPath className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                                 <span className="hidden sm:inline">{pendingCount} Pendentes</span>
                             </button>
                         ) : (
                             <div
-                                className={`p-2 rounded-xl transition-all ${isOnline
+                                className={`p-2 rounded-lg transition-all ${isOnline
                                     ? 'text-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/10'
                                     : 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
                                     }`}
@@ -681,7 +681,7 @@ export default function Header() {
                     <div className="relative">
                         <button
                             onClick={() => setShowUserMenu(!showUserMenu)}
-                            className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+                            className="flex items-center gap-2 p-1.5 pr-3 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
                         >
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
                                 <span className="text-white font-semibold text-sm">
@@ -695,7 +695,7 @@ export default function Header() {
 
                         {/* User Dropdown */}
                         {showUserMenu && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-dark-800 rounded-xl shadow-xl border border-gray-200 dark:border-dark-700 overflow-hidden animate-slide-up z-50">
+                            <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-dark-800 rounded-lg shadow-xl border border-gray-200 dark:border-dark-700 overflow-hidden animate-slide-up z-50">
                                 <div className="p-3 border-b border-gray-200 dark:border-dark-700">
                                     <p className="text-sm font-medium text-gray-900 dark:text-white">
                                         {user?.name || 'Utilizador'}
@@ -723,7 +723,7 @@ export default function Header() {
                                         onClick={() => setShowUserMenu(false)}
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors"
                                     >
-                                        <HiOutlineCog className="w-4 h-4" />
+                                        <HiOutlineCog6Tooth className="w-4 h-4" />
                                         {t('nav.settings')}
                                     </Link>
                                     <hr className="my-1 border-gray-200 dark:border-dark-700" />
@@ -731,7 +731,7 @@ export default function Header() {
                                         onClick={handleLogout}
                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
                                     >
-                                        <HiOutlineLogout className="w-4 h-4" />
+                                        <HiOutlineArrowRightOnRectangle className="w-4 h-4" />
                                         {t('auth.logout')}
                                     </button>
                                 </div>

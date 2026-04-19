@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
     HiOutlineCheck,
     HiOutlineExclamation,
@@ -93,7 +93,7 @@ export default function OrderCompletionModal({
             {step === 'verification' && (
                 <div className="space-y-6">
                     {/* Header */}
-                    <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                    <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                                 <HiOutlineCube className="w-5 h-5 text-blue-600" />
@@ -124,7 +124,7 @@ export default function OrderCompletionModal({
                                     key={item.product.id}
                                     onClick={() => toggleItem(item.product.id)}
                                     className={cn(
-                                        'w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left',
+                                        'w-full flex items-center gap-4 p-4 rounded-lg border-2 transition-all text-left',
                                         isChecked
                                             ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                                             : 'border-gray-200 dark:border-dark-600 hover:border-gray-300'
@@ -222,7 +222,7 @@ export default function OrderCompletionModal({
             {step === 'confirmation' && (
                 <div className="space-y-6">
                     {/* Info Banner */}
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <div className="flex items-start gap-3">
                             <HiOutlineExclamation className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
                             <div>
@@ -231,7 +231,7 @@ export default function OrderCompletionModal({
                                 </p>
                                 <p className="text-sm text-blue-700 dark:text-blue-500 mt-1">
                                     O estoque foi <strong>reservado</strong> no momento da criação da encomenda.
-                                    A dedução efetiva do estoque ocorrerá apenas na facturação.
+                                    A dedução efetiva do estoque ocorrer apenas na facturação.
                                 </p>
                             </div>
                         </div>

@@ -1,4 +1,4 @@
-﻿// Module Constants - Static definition of all available modules
+// Module Constants - Static definition of all available modules
 // These are defined in code so they persist even if database is reset
 
 export interface ModuleDefinition {
@@ -13,7 +13,7 @@ export interface ModuleDefinition {
 // Core modules - Always available with every company registration
 export const CORE_MODULES: ModuleDefinition[] = [
     {
-        code: 'POS',
+        code: 'pos',
         name: 'Ponto de Venda',
         description: 'Sistema de ponto de venda para vendas rápidas e eficientes.',
         icon: 'HiOutlineShoppingCart',
@@ -21,8 +21,8 @@ export const CORE_MODULES: ModuleDefinition[] = [
         isCore: true
     },
     {
-        code: 'CRM',
-        name: 'CRM',
+        code: 'crm',
+        name: 'crm',
         description: 'Gestão de relacionamento com clientes e oportunidades de vendas.',
         icon: 'HiOutlineChartPie',
         color: '#8B5CF6',
@@ -38,7 +38,7 @@ export const CORE_MODULES: ModuleDefinition[] = [
     },
     {
         code: 'FISCAL',
-        name: 'Fiscal',
+        name: 'fiscal',
         description: 'Gestão fiscal, impostos e retenções.',
         icon: 'HiOutlineCalculator',
         color: '#10B981',
@@ -55,7 +55,7 @@ export const CORE_MODULES: ModuleDefinition[] = [
     {
         code: 'FINANCIAL',
         name: 'Finanças',
-        description: 'Gestão financeira e transações.',
+        description: 'Gestão financeira e transaces.',
         icon: 'HiOutlineCurrencyDollar',
         color: '#14B8A6',
         isCore: true
@@ -75,7 +75,7 @@ export const OPTIONAL_MODULES: ModuleDefinition[] = [
     {
         code: 'COMMERCIAL',
         name: 'Comércio',
-        description: 'Gestão de inventário, pedidos e produtos para comércio.',
+        description: 'Gestão de inventrio, pedidos e produtos para comércio.',
         icon: 'HiOutlineShoppingCart',
         color: '#3B82F6',
         isCore: false

@@ -1,5 +1,6 @@
-﻿import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { HiOutlineExclamationCircle } from 'react-icons/hi';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { HiOutlineExclamationCircle } from 'react-icons/hi2';
+import { logger } from '../utils/logger';
 
 interface Props {
     children: ReactNode;
@@ -34,11 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        // Log error details to console
-        console.error('ErrorBoundary caught an error:', error, errorInfo);
-
-        // You can also log the error to an error reporting service
-        // logErrorToService(error, errorInfo);
+        logger.error('ErrorBoundary caught an error:', error, errorInfo);
     }
 
     handleReset = () => {
@@ -58,7 +55,7 @@ export class ErrorBoundary extends Component<Props, State> {
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900 px-4">
                     <div className="max-w-md w-full">
-                        <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-xl p-8 text-center">
+                        <div className="bg-white dark:bg-dark-800 rounded-lg shadow-xl p-8 text-center">
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                                 <HiOutlineExclamationCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
                             </div>

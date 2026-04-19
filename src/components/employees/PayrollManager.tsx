@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
     HiOutlineSave,
     HiOutlineRefresh,
@@ -370,7 +370,7 @@ export default function PayrollManager() {
                             <p className="text-sm text-primary-600 dark:text-primary-400 font-medium">Total Líquido a Pagar</p>
                             <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{formatCurrency(totals.totalNet)}</p>
                         </div>
-                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-xl backdrop-blur-sm">
+                        <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm">
                             <HiOutlineCash className="w-8 h-8 text-primary-500" />
                         </div>
                     </div>
@@ -381,7 +381,7 @@ export default function PayrollManager() {
                             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total INSS Retido ({inssEmployeeRate}%)</p>
                             <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{formatCurrency(totals.totalINSS)}</p>
                         </div>
-                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-xl">
+                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-lg">
                             <HiOutlineLibrary className="w-8 h-8 text-gray-500" />
                         </div>
                     </div>
@@ -392,7 +392,7 @@ export default function PayrollManager() {
                             <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">Total IRPS Retido</p>
                             <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{formatCurrency(totals.totalIRPS)}</p>
                         </div>
-                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-xl">
+                        <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-lg">
                             <HiOutlineDocumentText className="w-8 h-8 text-gray-500" />
                         </div>
                     </div>

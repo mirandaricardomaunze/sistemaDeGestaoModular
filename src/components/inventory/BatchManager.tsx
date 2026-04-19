@@ -1,10 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Card, Button, Input, Modal, Badge, Skeleton } from '../ui';
 import {
-    HiOutlinePlus, HiOutlineRefresh, HiOutlinePencil, HiOutlineTrash,
-    HiOutlineSearch, HiOutlineExclamation, HiOutlineCalendar,
-    HiOutlineClock, HiOutlineCheckCircle, HiOutlineCube,
-} from 'react-icons/hi';
+    HiOutlinePlus, 
+    HiOutlineArrowPath, 
+    HiOutlinePencil, 
+    HiOutlineTrash,
+    HiOutlineMagnifyingGlass, 
+    HiOutlineExclamationTriangle,
+    HiOutlineClock, 
+    HiOutlineCheckCircle, 
+    HiOutlineCube,
+} from 'react-icons/hi2';
 import { cn, formatCurrency } from '../../utils';
 import {
     useBatchesDashboard, useBatches, useExpBatches,
@@ -21,9 +27,9 @@ import { differenceInDays } from 'date-fns';
 const STATUS_CFG = {
     active:        { label: 'Activo',        color: 'success' as const, icon: HiOutlineCheckCircle, bg: 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' },
     expiring_soon: { label: 'A Expirar',     color: 'warning' as const, icon: HiOutlineClock,        bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' },
-    expired:       { label: 'Expirado',      color: 'danger'  as const, icon: HiOutlineExclamation,  bg: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' },
+    expired:       { label: 'Expirado',      color: 'danger'  as const, icon: HiOutlineExclamationTriangle,  bg: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' },
     depleted:      { label: 'Esgotado',      color: 'gray'    as const, icon: HiOutlineCube,         bg: 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700' },
-    quarantine:    { label: 'Quarentena',    color: 'info'    as const, icon: HiOutlineExclamation,  bg: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800' },
+    quarantine:    { label: 'Quarentena',    color: 'info'    as const, icon: HiOutlineExclamationTriangle,  bg: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800' },
 };
 
 // ============================================================================
@@ -31,15 +37,15 @@ const STATUS_CFG = {
 // ============================================================================
 
 function ExpiryBadge({ expiryDate, daysToExpiry }: { expiryDate?: string | null; daysToExpiry?: number | null }) {
-    if (!expiryDate) return <span className="text-xs text-gray-400">—</span>;
+    if (!expiryDate) return <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">-</span>;
 
     const days = daysToExpiry ?? differenceInDays(new Date(expiryDate), new Date());
     const label = new Date(expiryDate).toLocaleDateString('pt-MZ');
 
-    if (days < 0) return <span className="inline-flex items-center gap-1 text-xs text-red-600 font-semibold"><HiOutlineExclamation className="w-3.5 h-3.5" />{label} (expirado)</span>;
-    if (days <= 7) return <span className="inline-flex items-center gap-1 text-xs text-red-500 font-semibold"><HiOutlineClock className="w-3.5 h-3.5" />{label} ({days}d)</span>;
-    if (days <= 30) return <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-semibold"><HiOutlineClock className="w-3.5 h-3.5" />{label} ({days}d)</span>;
-    return <span className="text-xs text-gray-600 dark:text-gray-400">{label}</span>;
+    if (days < 0) return <span className="inline-flex items-center gap-1 text-[10px] text-red-600 font-black uppercase tracking-widest"><HiOutlineExclamationTriangle className="w-3.5 h-3.5" />{label} (expirado)</span>;
+    if (days <= 7) return <span className="inline-flex items-center gap-1 text-[10px] text-red-500 font-black uppercase tracking-widest"><HiOutlineClock className="w-3.5 h-3.5" />{label} ({days}d)</span>;
+    if (days <= 30) return <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-black uppercase tracking-widest"><HiOutlineClock className="w-3.5 h-3.5" />{label} ({days}d)</span>;
+    return <span className="text-[10px] text-gray-600 dark:text-gray-400 font-black uppercase tracking-widest">{label}</span>;
 }
 
 // ============================================================================
@@ -111,14 +117,14 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                             className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60">
                             <option value="">Seleccionar produto...</option>
                             {(products || []).map((p: any) => (
-                                <option key={p.id} value={p.id}>{p.code} — {p.name}</option>
+                                <option key={p.id} value={p.id}>{p.code} "" {p.name}</option>
                             ))}
                         </select>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <Input label="Quantidade *" type="number" min={0} value={form.quantity || ''} onChange={e => setForm(p => ({ ...p, quantity: parseInt(e.target.value) || 0 }))} required />
-                    <Input label="Custo Unitário (MZN)" type="number" min={0} step={0.01} value={form.costPrice || ''} onChange={e => setForm(p => ({ ...p, costPrice: parseFloat(e.target.value) || 0 }))} />
+                    <Input label="Custo Unitrio (MZN)" type="number" min={0} step={0.01} value={form.costPrice || ''} onChange={e => setForm(p => ({ ...p, costPrice: parseFloat(e.target.value) || 0 }))} />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                     <Input label="Data de Fabricação" type="date" value={form.manufactureDate || ''} onChange={e => setForm(p => ({ ...p, manufactureDate: e.target.value }))} />
@@ -181,23 +187,36 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Lotes & Validade</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Rastreio de lotes, datas de expiração e alertas</p>
+                    <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Lotes & Validade</h2>
+                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mt-0.5">Rastreio de lotes, datas de expiração e alertas</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => { refetch(); refetchDash(); }} leftIcon={<HiOutlineRefresh className="w-4 h-4" />}>Atualizar</Button>
-                    <Button onClick={() => setModalOpen(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />}>Novo Lote</Button>
+                    <Button 
+                        variant="ghost" 
+                        className="text-[10px] font-black uppercase tracking-widest"
+                        onClick={() => { refetch(); refetchDash(); }} 
+                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
+                    >
+                        Atualizar
+                    </Button>
+                    <Button 
+                        className="text-[10px] font-black uppercase tracking-widest"
+                        onClick={() => setModalOpen(true)} 
+                        leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                    >
+                        Novo Lote
+                    </Button>
                 </div>
             </div>
 
             {/* Sub-tabs */}
-            <div className="flex gap-1 border-b border-gray-200 dark:border-dark-700 pb-px">
+            <div className="flex gap-4 border-b border-gray-100 dark:border-dark-700">
                 {TABS.map(t => (
                     <button key={t.id} onClick={() => setTab(t.id)}
-                        className={cn('px-4 py-2 text-sm font-medium rounded-t-lg transition-all flex items-center gap-1.5',
-                            tab === t.id ? 'border-b-2 border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/10' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400')}>
+                        className={cn('group px-2 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-b-2',
+                            tab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-600')}>
                         {t.label}
-                        {t.urgent && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />}
+                        {t.urgent && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
                     </button>
                 ))}
             </div>
@@ -211,37 +230,37 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                         <>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                                 {[
-                                    { label: 'Total Lotes', value: summary.total, color: 'blue' },
-                                    { label: 'Activos', value: summary.active, color: 'emerald' },
-                                    { label: 'Expiram (30d)', value: summary.expiring30, color: 'amber' },
-                                    { label: 'Expiram (7d)', value: summary.expiring7, color: 'orange' },
-                                    { label: 'Expirados', value: summary.expiredCount, color: 'red' },
-                                    { label: 'Esgotados', value: summary.depleted, color: 'gray' },
+                                    { label: 'Total Lotes', value: summary.total, color: 'text-blue-600' },
+                                    { label: 'Activos', value: summary.active, color: 'text-emerald-600' },
+                                    { label: 'Expiram (30d)', value: summary.expiring30, color: 'text-amber-600' },
+                                    { label: 'Expiram (7d)', value: summary.expiring7, color: 'text-orange-600' },
+                                    { label: 'Expirados', value: summary.expiredCount, color: 'text-red-600' },
+                                    { label: 'Esgotados', value: summary.depleted, color: 'text-gray-500' },
                                 ].map(({ label, value, color }) => (
-                                    <Card key={label} padding="sm">
-                                        <p className={cn('text-2xl font-bold', `text-${color}-600`)}>{value}</p>
-                                        <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                                    <Card key={label} variant="premium" padding="sm" className="hover:shadow-lg transition-all">
+                                        <p className={cn('text-2xl font-black tracking-tighter', color)}>{value}</p>
+                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{label}</p>
                                     </Card>
                                 ))}
                             </div>
                             {summary.valueAtRisk > 0 && (
-                                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-center gap-3">
-                                    <HiOutlineExclamation className="w-6 h-6 text-red-600 flex-shrink-0" />
+                                <div className="p-4 rounded-lg bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-900/50 flex items-center gap-3 animate-pulse">
+                                    <HiOutlineExclamationTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
                                     <div>
-                                        <p className="font-semibold text-red-700 dark:text-red-400">Valor em Risco (Stock Expirado)</p>
-                                        <p className="text-sm text-red-600">{formatCurrency(summary.valueAtRisk)} em stock expirado</p>
+                                        <p className="text-xs font-black text-red-700 dark:text-red-400 uppercase tracking-widest">Valor em Risco (Stock Expirado)</p>
+                                        <p className="text-[10px] text-red-600 font-bold uppercase tracking-tight">{formatCurrency(summary.valueAtRisk)} em stock sem validade comercial</p>
                                     </div>
                                 </div>
                             )}
                             {(dashboard?.upcoming || []).length > 0 && (
-                                <Card padding="md">
-                                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Próximas Expirações (30 dias)</h3>
-                                    <div className="space-y-2">
+                                <Card variant="premium" padding="md">
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Próximas Expiraces (30 dias)</h3>
+                                    <div className="space-y-1">
                                         {(dashboard.upcoming || []).map((b: any) => (
-                                            <div key={b.id} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-dark-700 last:border-0">
+                                            <div key={b.id} className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-dark-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-dark-900/30 transition-colors px-2 rounded-lg">
                                                 <div>
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-white">{b.product?.name} — Lote {b.batchNumber}</p>
-                                                    <p className="text-xs text-gray-500">{b.quantity} {b.product?.unit}</p>
+                                                    <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight">{b.product?.name} "" LT {b.batchNumber}</p>
+                                                    <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">{b.quantity} {b.product?.unit}</p>
                                                 </div>
                                                 <ExpiryBadge expiryDate={b.expiryDate} daysToExpiry={b.daysToExpiry} />
                                             </div>
@@ -263,7 +282,7 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                         const cfg = STATUS_CFG[b.status] || STATUS_CFG.active;
                         const Icon = cfg.icon;
                         return (
-                            <div key={b.id} className={cn('rounded-xl border-2 p-4 flex items-center justify-between gap-4', cfg.bg)}>
+                            <div key={b.id} className={cn('rounded-lg border-2 p-4 flex items-center justify-between gap-4', cfg.bg)}>
                                 <div className="flex items-center gap-3">
                                     <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', b.isExpired ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600')}>
                                         <Icon className="w-5 h-5" />
@@ -290,12 +309,12 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
             {tab === 'list' && (
                 <>
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <Input className="flex-1" placeholder="Pesquisar lote, produto..." leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                        <Input className="flex-1" placeholder="Pesquisar lote, produto..." leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                             value={search} onChange={e => setSearch(e.target.value)} />
                         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                            className="rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
-                            <option value="">Todos os estados</option>
-                            {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                            className="rounded-lg border border-gray-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 py-2 text-xs font-black uppercase tracking-widest text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm appearance-none cursor-pointer">
+                            <option value="">FILTRO: TODOS</option>
+                            {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label.toUpperCase()}</option>)}
                         </select>
                     </div>
 
@@ -314,9 +333,9 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-gray-200 dark:border-dark-700">
+                                        <tr className="border-b border-gray-100 dark:border-dark-700">
                                             {['Nº Lote', 'Produto', 'Qty', 'Custo/Un', 'Validade', 'Entrada', 'Armazém', 'Estado', ''].map(h => (
-                                                <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3 pr-4">{h}</th>
+                                                <th key={h} className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] pb-4 pr-4">{h}</th>
                                             ))}
                                         </tr>
                                     </thead>
@@ -325,17 +344,17 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                                             const cfg = STATUS_CFG[b.status] || STATUS_CFG.active;
                                             return (
                                                 <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
-                                                    <td className="py-3 pr-4 font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">{b.batchNumber}</td>
-                                                    <td className="py-3 pr-4">
-                                                        <p className="font-medium text-gray-900 dark:text-white">{b.product?.name || '—'}</p>
-                                                        <p className="text-xs text-gray-400">{b.product?.code} · {b.product?.category}</p>
+                                                    <td className="py-4 pr-4 font-mono text-xs font-black text-primary-600">{b.batchNumber}</td>
+                                                    <td className="py-4 pr-4">
+                                                        <p className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">{b.product?.name || ''}</p>
+                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{b.product?.code} · {b.product?.category}</p>
                                                     </td>
-                                                    <td className="py-3 pr-4 font-semibold text-gray-900 dark:text-white">{b.quantity} <span className="text-xs text-gray-400">{b.product?.unit}</span></td>
-                                                    <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">{formatCurrency(Number(b.costPrice))}</td>
-                                                    <td className="py-3 pr-4"><ExpiryBadge expiryDate={b.expiryDate} /></td>
-                                                    <td className="py-3 pr-4 text-xs text-gray-400">{b.receivedDate ? new Date(b.receivedDate).toLocaleDateString('pt-MZ') : '—'}</td>
-                                                    <td className="py-3 pr-4 text-xs text-gray-500">{b.warehouse?.name || '—'}</td>
-                                                    <td className="py-3 pr-4"><Badge variant={cfg.color}>{cfg.label}</Badge></td>
+                                                    <td className="py-4 pr-4 font-black text-gray-900 dark:text-white">{b.quantity} <span className="text-[10px] text-gray-400 uppercase font-black">{b.product?.unit}</span></td>
+                                                    <td className="py-4 pr-4 font-black text-gray-900 dark:text-white tracking-tighter">{formatCurrency(Number(b.costPrice))}</td>
+                                                    <td className="py-4 pr-4"><ExpiryBadge expiryDate={b.expiryDate} /></td>
+                                                    <td className="py-4 pr-4 text-[11px] text-gray-400 font-bold uppercase">{b.receivedDate ? new Date(b.receivedDate).toLocaleDateString('pt-MZ') : ''}</td>
+                                                    <td className="py-4 pr-4 text-[11px] text-gray-500 font-bold uppercase">{b.warehouse?.name || ''}</td>
+                                                    <td className="py-4 pr-4"><Badge variant={cfg.color}>{cfg.label}</Badge></td>
                                                     <td className="py-3">
                                                         <div className="flex items-center gap-1">
                                                             <button onClick={() => handleEdit(b)} className="p-1.5 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"><HiOutlinePencil className="w-4 h-4" /></button>

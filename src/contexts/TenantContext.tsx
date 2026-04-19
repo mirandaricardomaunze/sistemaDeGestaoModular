@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useMemo, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, useEffect, type ReactNode } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useStore, MODULE_TO_BUSINESS_TYPE } from '../stores/useStore';
 import type { Company } from '../types';
@@ -41,7 +41,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             // Find the first optional (non-core) module that has a business type mapping
             // Core modules (POS, CRM, HR, FISCAL, INVOICES, FINANCIAL) have no mapping,
             // so skip them and find the first optional module like PHARMACY, COMMERCIAL, etc.
-            const coreModuleCodes = ['POS', 'CRM', 'HR', 'FISCAL', 'INVOICES', 'FINANCIAL'];
+            const coreModuleCodes = ['pos', 'crm', 'HR', 'FISCAL', 'INVOICES', 'FINANCIAL'];
             const primaryModule = activeModules.find(m =>
                 !coreModuleCodes.includes(m.toUpperCase()) && MODULE_TO_BUSINESS_TYPE[m]
             ) || activeModules.find(m => MODULE_TO_BUSINESS_TYPE[m]);

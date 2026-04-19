@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CRM Page
  * Página principal do CRM com funil de vendas e campanhas
  */
@@ -12,7 +12,6 @@ import {
     HiOutlineHome,
     HiOutlineArrowPath,
     HiOutlinePlus,
-    HiOutlineUsers,
     HiOutlinePresentationChartBar
 } from 'react-icons/hi2';
 import SalesFunnel from '../components/crm/SalesFunnel';
@@ -139,7 +138,7 @@ export default function CRM() {
                             Configure segmentos de clientes baseados em comportamento, compras e dados demográficos.
                         </p>
                         <p className="text-sm text-gray-400">
-                            Esta funcionalidade está disponível nas campanhas promocionais.
+                            Esta funcionalidade est disponível nas campanhas promocionais.
                         </p>
                     </Card>
                 )}
@@ -214,3 +213,4 @@ export default function CRM() {
         </div>
     );
 }
+

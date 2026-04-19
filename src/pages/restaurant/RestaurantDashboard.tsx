@@ -1,63 +1,53 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
     ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    HiOutlineRefresh, HiOutlinePlus,
-    HiOutlineShoppingCart, HiOutlineCash, HiOutlineChartBar,
+    HiOutlineRefresh,
+    HiOutlineShoppingCart, HiOutlineCash,
     HiOutlineTrendingUp, HiOutlineArrowRight,
     HiOutlineBookOpen,
 } from 'react-icons/hi';
 
 
 import { HiOutlineCake } from 'react-icons/hi2';
-import { Card, Button, Skeleton, Badge, ResponsiveValue } from '../../components/ui';
-import { restaurantAPI } from '../../services/api';
+import { Card, Button, Skeleton } from '../../components/ui';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { SmartInsightCard } from '../../components/common/SmartInsightCard';
-import { HiOutlineLightBulb, HiOutlineQueueList, HiOutlineUserGroup, HiOutlineFire } from 'react-icons/hi2';
+import { useRestaurantDashboard } from '../../hooks/useRestaurant';
+import { HiOutlineLightBulb, HiOutlineUserGroup, HiOutlineFire } from 'react-icons/hi2';
 
 
 import { cn, formatCurrency } from '../../utils';
 
-const CHART_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#6366f1', '#8b5cf6'];
+const CHART_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#0ea5e9'];
 type TimeRange = '1M' | '2M' | '3M' | '6M' | '1Y';
 
 export default function RestaurantDashboard() {
     const [range, setRange] = useState<TimeRange>('1M');
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any>(null);
+    const { data, isLoading: loading, refetch: refetchStats } = useRestaurantDashboard(range);
     const { insights } = useSmartInsights();
 
-    const fetchStats = async () => {
-        setLoading(true);
-        try {
-            const stats = await restaurantAPI.getDashboard(range);
-            setData(stats);
-        } catch {
-            // handled by axios interceptor
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { fetchStats(); }, [range]);
-
-    const summary = data?.summary || { 
-        totalSales: 0, 
-        totalOrders: 0, 
-        avgTicket: 0, 
-        totalTables: 0, 
-        occupiedTables: 0, 
+    const summary = (data?.summary || {
+        totalRevenue: 0,
+        activeTables: 0,
+        pendingOrders: 0,
+        avgPrepTime: 0,
+        estimatedRevenue: 0,
+        totalSales: 0,
+        totalOrders: 0,
+        avgTicket: 0,
+        totalTables: 0,
+        occupiedTables: 0,
         availableTables: 0,
-        pendingReservations: 0 // New KPI
-    };
-    const chartData = data?.chartData || [];
+        pendingReservations: 0
+    }) as any;
+    const stats_evol = data?.stats?.ordersOverTime || [];
 
     const categoryData = useMemo(() =>
-        (data?.categoryData || []).map((e: any, i: number) => ({ ...e, color: CHART_COLORS[i % CHART_COLORS.length] })),
+        (data?.stats?.categoryDistribution || []).map((e: any, i: number) => ({ ...e, color: CHART_COLORS[i % CHART_COLORS.length] })),
         [data]
     );
 
@@ -80,9 +70,9 @@ export default function RestaurantDashboard() {
 
     return (
         <div className="space-y-6 pb-12 animate-fade-in px-2">
-            {/* ── Premium Header ── */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-600 to-red-800 dark:from-red-700 dark:to-red-900 p-8 shadow-xl text-white">
-                <HiOutlineCake className="absolute right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-10 rotate-12" aria-hidden="true" />
+            {/* ── Soft Premium Header ── */}
+            <div className="relative overflow-hidden rounded-lg bg-red-100 dark:bg-red-900/30 p-8 shadow-md shadow-red-500/5 border-none text-red-950 dark:text-red-50">
+                <HiOutlineCake className="absolute right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-10 rotate-12 text-red-600" aria-hidden="true" />
                 
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-1">
@@ -95,18 +85,18 @@ export default function RestaurantDashboard() {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                        <div className="flex items-center gap-1 bg-black/20 backdrop-blur-md rounded-2xl p-1 border border-white/10">
+                        <div className="flex items-center gap-1 bg-white/50 dark:bg-black/20 backdrop-blur-md rounded-lg p-1 border border-red-200/50 dark:border-white/10">
                             {(['1M', '2M', '3M', '6M', '1Y'] as TimeRange[]).map(r => (
                                 <button key={r} onClick={() => setRange(r)}
-                                    className={cn('px-4 py-2 rounded-xl text-xs font-bold transition-all',
-                                        range === r ? 'bg-white text-red-700 shadow-lg' : 'text-white/60 hover:text-white hover:bg-white/10'
+                                    className={cn('px-4 py-2 rounded-lg text-xs font-bold transition-all',
+                                        range === r ? 'bg-white text-red-700 shadow-md' : 'text-red-900/60 dark:text-white/60 hover:text-red-700 dark:hover:text-white hover:bg-white/20'
                                     )}>{r}</button>
                             ))}
                         </div>
                         <Button 
                             variant="ghost" 
-                            onClick={fetchStats} 
-                            className="text-white hover:bg-white/10"
+                            onClick={() => refetchStats()} 
+                            className="text-red-600 dark:text-white hover:bg-white/20"
                             leftIcon={<HiOutlineRefresh className={cn("w-5 h-5", loading && "animate-spin")} />}
                         >
                             Atualizar
@@ -133,34 +123,39 @@ export default function RestaurantDashboard() {
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Receita Líquida', value: summary.totalSales, type: 'currency', icon: HiOutlineCash, color: 'red' },
-                    { label: 'Fluxo de Pedidos', value: summary.totalOrders, type: 'number', icon: HiOutlineShoppingCart, color: 'orange' },
-                    { label: 'Reservas Pendentes', value: summary.pendingReservations, type: 'number', icon: HiOutlineUserGroup, color: 'indigo' },
-                    { label: 'Ticket Médio', value: summary.avgTicket, type: 'currency', icon: HiOutlineChartBar, color: 'emerald' },
-                ].map(({ label, value, type, icon: Icon, color }) => (
-                    <Card key={label} padding="md" className="relative overflow-hidden">
-                        <div className={cn('absolute top-0 right-0 w-32 h-32 transform translate-x-8 -translate-y-8')}>
-                            <div className={cn('w-full h-full rounded-full', `bg-${color}-500/10`)} />
-                        </div>
-                        <div className="relative">
-                            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center mb-4', `bg-${color}-100 dark:bg-${color}-900/30`)}>
-                                <Icon className={cn('w-6 h-6', `text-${color}-600`)} />
+                    { label: 'Receita Líquida', value: summary.totalRevenue || summary.totalSales, type: 'currency', icon: HiOutlineCash,
+                      cardBg: 'bg-red-50/60 dark:bg-red-950/30', cardBorder: 'border border-red-200/70 dark:border-red-800/40',
+                      iconBg: 'bg-red-100 dark:bg-red-900/40', iconColor: 'text-red-600 dark:text-red-400', accent: 'bg-red-500' },
+                    { label: 'Fluxo de Pedidos', value: summary.pendingOrders || summary.totalOrders, type: 'number', icon: HiOutlineShoppingCart,
+                      cardBg: 'bg-orange-50/60 dark:bg-orange-950/30', cardBorder: 'border border-orange-200/70 dark:border-orange-800/40',
+                      iconBg: 'bg-orange-100 dark:bg-orange-900/40', iconColor: 'text-orange-600 dark:text-orange-400', accent: 'bg-orange-500' },
+                    { label: 'Mesas Ativas', value: summary.activeTables || summary.occupiedTables, type: 'number', icon: HiOutlineFire,
+                      cardBg: 'bg-indigo-50/60 dark:bg-indigo-950/30', cardBorder: 'border border-indigo-200/70 dark:border-indigo-800/40',
+                      iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', accent: 'bg-indigo-500' },
+                    { label: 'Prep. Médio (min)', value: summary.avgPrepTime, type: 'number', icon: HiOutlineCake,
+                      cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30', cardBorder: 'border border-emerald-200/70 dark:border-emerald-800/40',
+                      iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', accent: 'bg-emerald-500' },
+                ].map(({ label, value, type, icon: Icon, cardBg, cardBorder, iconBg, iconColor, accent }) => (
+                    <div key={label} className={`relative group overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all duration-300 ${cardBg} ${cardBorder}`}>
+                        <div className="p-5">
+                            <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center mb-4 shadow-sm transition-transform group-hover:scale-110 duration-300', iconBg, iconColor)}>
+                                <Icon className="w-6 h-6" />
                             </div>
-                            <div className="flex items-baseline gap-1">
-                                <ResponsiveValue value={value} type={type as any} size="lg" />
+                            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                                {type === 'currency' ? formatCurrency(value) : value}
                             </div>
-
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{label}</p>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest mt-1">{label}</p>
                         </div>
-                    </Card>
+                        <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-500 group-hover:w-full w-8 ${accent}`} />
+                    </div>
                 ))}
             </div>
 
             {/* Table Status Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card padding="md" className="border-l-4 border-l-emerald-500">
+                <Card padding="md" color="emerald">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-lg bg-white/50 dark:bg-black/20 flex items-center justify-center shadow-sm">
                             <HiOutlineCake className="w-6 h-6 text-emerald-600" />
                         </div>
                         <div>
@@ -169,9 +164,9 @@ export default function RestaurantDashboard() {
                         </div>
                     </div>
                 </Card>
-                <Card padding="md" className="border-l-4 border-l-red-500">
+                <Card padding="md" color="danger">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-lg bg-white/50 dark:bg-black/20 flex items-center justify-center shadow-sm">
                             <HiOutlineShoppingCart className="w-6 h-6 text-red-600" />
                         </div>
                         <div>
@@ -180,9 +175,9 @@ export default function RestaurantDashboard() {
                         </div>
                     </div>
                 </Card>
-                <Card padding="md" className="border-l-4 border-l-blue-500">
+                <Card padding="md" color="info">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-lg bg-white/50 dark:bg-black/20 flex items-center justify-center shadow-sm">
                             <HiOutlineTrendingUp className="w-6 h-6 text-blue-600" />
                         </div>
                         <div>
@@ -195,7 +190,7 @@ export default function RestaurantDashboard() {
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card padding="md" className="lg:col-span-2">
+                <Card padding="md" color="slate" className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Evolução de Receita</h2>
                         <Link to="/restaurant/reports">
@@ -204,9 +199,9 @@ export default function RestaurantDashboard() {
                     </div>
                     <div className="h-72">
                         <ResponsiveContainer width="100%" height={288}>
-                            <AreaChart data={chartData}>
+                            <AreaChart data={stats_evol}>
                                 <defs>
-                                    <linearGradient id="colorRest" x1="0" y1="0" x2="0" y2="1">
+                                    <linearGradient id="colorRestá" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
                                         <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                                     </linearGradient>
@@ -215,13 +210,13 @@ export default function RestaurantDashboard() {
                                 <XAxis dataKey="date" stroke="#94a3b8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
                                 <YAxis stroke="#94a3b8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={v => `${v / 1000}k`} />
                                 <Tooltip contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }} />
-                                <Area type="monotone" dataKey="amount" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorRest)" />
+                                <Area type="monotone" dataKey="amount" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorRestá)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
 
-                <Card padding="md">
+                <Card padding="md" color="slate">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Mix por Categoria</h2>
                     {categoryData.length > 0 ? (
                         <>
@@ -258,10 +253,10 @@ export default function RestaurantDashboard() {
                         <Link to="/restaurant/reports"><Button variant="ghost" size="sm">Ver Tudo</Button></Link>
                     </div>
                     <div className="divide-y divide-gray-100 dark:divide-dark-700">
-                        {(data?.recentActivity || []).length === 0 ? (
+                        {((data as any)?.recentActivity || []).length === 0 ? (
                             <p className="text-center py-8 text-gray-500 text-sm">Sem pedidos recentes</p>
                         ) : (
-                            (data?.recentActivity || []).slice(0, 6).map((sale: any, idx: number) => (
+                            ((data as any)?.recentActivity || []).slice(0, 6).map((sale: any, idx: number) => (
                                 <div key={idx} className="flex items-center justify-between py-3">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
@@ -269,7 +264,7 @@ export default function RestaurantDashboard() {
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                {sale.table ? `Mesa ${sale.table.number}${sale.table.name ? ` — ${sale.table.name}` : ''}` : 'Balcão'}
+                                                {sale.table ? `Mesa ${sale.table.number}${sale.table.name ? ` "" ${sale.table.name}` : ''}` : 'Balcão'}
                                             </p>
                                             <p className="text-xs text-gray-500">{sale.receiptNumber}</p>
                                         </div>
@@ -296,7 +291,7 @@ export default function RestaurantDashboard() {
                         ].map(({ to, icon: Icon, color, label, desc }) => (
                             <Link key={to} to={to}>
                                 <button className={cn(
-                                    'w-full flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-dark-700 transition-all group text-left',
+                                    'w-full flex items-center gap-4 p-4 rounded-lg border border-gray-100 dark:border-dark-700 transition-all group text-left',
                                     `hover:border-${color}-500 hover:bg-${color}-50 dark:hover:bg-${color}-900/10`
                                 )}>
                                     <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110', `bg-${color}-100 dark:bg-${color}-900/30 text-${color}-600`)}>

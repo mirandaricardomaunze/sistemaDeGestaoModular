@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿/**
+/**
  * useMpesaPayment Hook
  * Reusable hook for M-Pesa payment integration across modules
  */
@@ -170,7 +170,7 @@ export function useMpesaPayment(options: UseMpesaPaymentOptions): UseMpesaPaymen
             await paymentsAPI.cancelTransaction(transactionId);
             setStatus('cancelled');
             setIsProcessing(false);
-            toast('Pagamento cancelado', { icon: 'âŒ' });
+            toast('Pagamento cancelado', { icon: 'âŒ' });
         } catch (err) {
             logger.error('Error cancelling payment:', err);
         }

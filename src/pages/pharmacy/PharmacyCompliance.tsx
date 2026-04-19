@@ -3,12 +3,12 @@ import { cn } from '../../utils/helpers';
 import PharmacyNarcoticRegister from './PharmacyNarcoticRegister';
 import PharmacyRecalls from './PharmacyRecalls';
 import PharmacyDrugInteractions from './PharmacyDrugInteractions';
-import { HiOutlineClipboardList, HiOutlineExclamationCircle, HiOutlineLightningBolt } from 'react-icons/hi';
+import { HiOutlineClipboardDocumentList, HiOutlineExclamationCircle, HiOutlineBolt } from 'react-icons/hi2';
 
 const TABS = [
-    { id: 'narcotics', label: 'Registo de Narcóticos', icon: HiOutlineClipboardList },
+    { id: 'narcotics', label: 'Registo de Narcóticos', icon: HiOutlineClipboardDocumentList },
     { id: 'recalls', label: 'Recalls', icon: HiOutlineExclamationCircle },
-    { id: 'interactions', label: 'Interações', icon: HiOutlineLightningBolt },
+    { id: 'interactions', label: 'Interações', icon: HiOutlineBolt },
 ];
 
 export default function PharmacyCompliance() {
@@ -25,7 +25,7 @@ export default function PharmacyCompliance() {
             </div>
 
             {/* Tab switcher */}
-            <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-xl p-1 w-fit">
+            <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1 w-fit">
                 {TABS.map(t => {
                     const Icon = t.icon;
                     return (

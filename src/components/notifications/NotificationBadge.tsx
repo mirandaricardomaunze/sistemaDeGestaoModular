@@ -1,4 +1,4 @@
-﻿/**
+/**
  * NotificationBadge Component
  * 
  * Header badge showing unread notification count with
@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { HiOutlineBell } from 'react-icons/hi';
+import { HiOutlineBell } from 'react-icons/hi2';
 import { useUnreadCount } from '../../hooks/useAlerts';
 import NotificationCenter from './NotificationCenter';
 

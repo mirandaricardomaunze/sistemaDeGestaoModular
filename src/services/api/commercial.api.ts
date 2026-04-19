@@ -132,6 +132,40 @@ export interface SalesReport {
     paymentMethods: Array<{ method: string; total: number; count: number }>;
 }
 
+export interface WarehouseDistribution {
+    id: string;
+    name: string;
+    location: string | null;
+    valuation: number;
+    volume: number;
+    productCount: number;
+    topProducts: Array<{
+        id: string;
+        name: string;
+        code: string;
+        quantity: number;
+        value: number;
+    }>;
+    [key: string]: any;
+}
+
+export interface InventoryForecast {
+    productId: string;
+    productName: string;
+    productCode: string;
+    currentStock: number;
+    minStock: number;
+    history: number[];
+    forecasted30d: number;
+    confidence: number;
+    status: 'stable' | 'low_risk' | 'high_risk' | 'critical';
+    suggestedPurchase: number;
+    reasoning: string;
+    supplierId?: string;
+    costPrice: number;
+    [key: string]: any;
+}
+
 // ── Accounts Receivable ───────────────────────────────────────────────────────
 
 export interface ReceivableInvoice {
@@ -236,6 +270,21 @@ export const commercialAPI = {
         return res.data;
     },
 
+    getWarehouseDistribution: async (): Promise<WarehouseDistribution[]> => {
+        const res = await api.get('/commercial/warehouse-distribution');
+        return res.data;
+    },
+
+    getPredictiveForecast: async (): Promise<InventoryForecast[]> => {
+        const res = await api.get('/commercial/predictive/forecast');
+        return res.data;
+    },
+
+    generateOrdersFromForecast: async (suggestions: Array<{ productId: string; quantity: number }>) => {
+        const res = await api.post('/commercial/predictive/create-orders', { suggestions });
+        return res.data;
+    },
+
     // Purchase Orders
     listPurchaseOrders: async (params?: {
         status?: string;
@@ -292,9 +341,59 @@ export const commercialAPI = {
         const res = await api.post('/commercial/quotations', payload);
         return res.data;
     },
+
+    convertQuotationToInvoice: async (quotationId: string, taxRate?: number) => {
+        const res = await api.post(`/commercial/quotations/${quotationId}/convert-to-invoice`, { taxRate });
+        return res.data;
+    },
+
+    // ── Finance ────────────────────────────────────────────────────────────────
+    getFinanceDashboard: async (period?: string) => {
+        const response = await api.get('/commercial/finance/dashboard', { params: { period } });
+        return response.data;
+    },
+    getTransactions: async (params?: any) => {
+        const response = await api.get('/commercial/finance/transactions', { params });
+        return response.data;
+    },
+    createTransaction: async (data: any) => {
+        const response = await api.post('/commercial/finance/transactions', data);
+        return response.data;
+    },
+    updateTransaction: async (id: string, data: any) => {
+        const response = await api.put(`/commercial/finance/transactions/${id}`, data);
+        return response.data;
+    },
+    deleteTransaction: async (id: string) => {
+        const response = await api.delete(`/commercial/finance/transactions/${id}`);
+        return response.data;
+    },
+
+    // ── Real-time Stock Reservations ──────────────────────────────────────────
+    reserveItem: async (productId: string, quantity: number, sessionId?: string) => {
+        const res = await api.post('/commercial/reserve', { productId, quantity, sessionId });
+        return res.data;
+    },
+
+    releaseItem: async (reservationId: string) => {
+        const res = await api.post(`/commercial/release/${reservationId}`);
+        return res.data;
+    }
 };
 
 // ── Shift (Turno de Caixa) API ────────────────────────────────────────────────
+
+export interface ShiftSummary {
+    totalSales: number;
+    salesCount: number;
+    byPaymentMethod: {
+        cash: number;
+        mpesa: number;
+        emola: number;
+        card: number;
+        credit: number;
+    };
+}
 
 export interface ShiftSession {
     id: string;
@@ -318,6 +417,7 @@ export interface ShiftSession {
     status: 'open' | 'closed' | 'suspended';
     companyId?: string;
     terminalId?: string;
+    warehouseId?: string;
     openedBy?: { id: string; name: string };
     closedBy?: { id: string; name: string };
     _count?: { sales: number };
@@ -334,8 +434,8 @@ export const shiftAPI = {
         return res.data;
     },
 
-    open: async (openingBalance: number, terminalId?: string): Promise<ShiftSession> => {
-        const res = await api.post('/commercial/shift/open', { openingBalance, terminalId });
+    open: async (openingBalance: number, warehouseId?: string): Promise<ShiftSession> => {
+        const res = await api.post('/commercial/shift/open', { openingBalance, warehouseId });
         return res.data;
     },
 

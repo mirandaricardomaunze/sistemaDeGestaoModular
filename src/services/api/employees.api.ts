@@ -76,6 +76,8 @@ export const employeesAPI = {
         birthDate: string;
         contractType: string;
         contractExpiry: string;
+        commissionRate: number;
+        reportsToId: string;
     }>) => {
         const response = await api.put(`/employees/${id}`, data);
         return response.data;
@@ -213,6 +215,22 @@ export const employeesAPI = {
 
     recordRosterTime: async (id: string, data: { type: 'checkIn' | 'checkOut'; timestamp?: string }) => {
         const response = await api.post(`/employees/roster/record/${id}`, data);
+        return response.data;
+    },
+
+    // Commission Rules
+    getCommissionRules: async () => {
+        const response = await api.get('/employees/commissions/rules');
+        return response.data;
+    },
+
+    saveCommissionRule: async (data: any) => {
+        const response = await api.post('/employees/commissions/rules', data);
+        return response.data;
+    },
+
+    deleteCommissionRule: async (id: string) => {
+        const response = await api.delete(`/employees/commissions/rules/${id}`);
         return response.data;
     },
 };

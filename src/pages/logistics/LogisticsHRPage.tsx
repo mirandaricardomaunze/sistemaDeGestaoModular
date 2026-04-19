@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     HiOutlineUsers,
@@ -38,6 +38,7 @@ import {
 import { LogisticsAttendanceControl } from '../../components/logistics/hr/LogisticsAttendanceControl';
 import { LogisticsPayrollManager } from '../../components/logistics/hr/LogisticsPayrollManager';
 import { LogisticsDocumentCenter } from '../../components/logistics/hr/LogisticsDocumentCenter';
+import { VacationsPanel, BonusConfigPanel } from '../../components/employees/ModuleHRPage';
 import type { Driver, StaffCategory } from '../../services/api/logistics.api';
 import { cn } from '../../utils/helpers';
 import { 
@@ -50,7 +51,25 @@ import {
 
 const columnHelper = createColumnHelper<Driver>();
 
-type HRTab = 'dashboard' | 'staff' | 'attendance' | 'payroll' | 'compliance';
+const LOGISTICS_CONFIG = {
+    department: 'Logística',
+    moduleName: 'Logística',
+    accentColor: 'violet',
+    icon: null,
+    showCommissions: false,
+    documentTypes: [
+        { id: 'bi', label: 'Bilhete de Identidade', required: true },
+        { id: 'nuit', label: 'NUIT', required: true },
+        { id: 'inss', label: 'Cartão INSS', required: true },
+        { id: 'contract', label: 'Contrato de Trabalho', required: true },
+        { id: 'license', label: 'Carta de Condução', required: true },
+        { id: 'medical', label: 'Exame Médico / Aptidão', required: true },
+        { id: 'safety', label: 'Certificado de Segurança Rodoviária' },
+        { id: 'criminal', label: 'Registo Criminal' },
+    ],
+};
+
+type HRTab = 'dashboard' | 'staff' | 'attendance' | 'payroll' | 'compliance' | 'vacations' | 'config';
 
 export default function LogisticsHRPage() {
     const { t } = useTranslation();
@@ -239,7 +258,7 @@ export default function LogisticsHRPage() {
     if (isLoading && !data) return <LoadingSpinner size="xl" className="h-96" />;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in pb-10">
             <PageHeader
                 title={t('logistics_module.hr.title')}
                 subtitle={t('logistics_module.hr.subtitle')}
@@ -257,29 +276,37 @@ export default function LogisticsHRPage() {
             />
 
             {/* Tabs Navigation */}
-            <div className="flex gap-1 p-1 bg-white dark:bg-dark-800 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700/50 overflow-x-auto">
-                {(['dashboard', 'staff', 'attendance', 'payroll', 'compliance'] as HRTab[]).map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={cn(
-                            "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap",
-                            activeTab === tab
-                                ? "bg-primary-500 text-white shadow-lg shadow-primary-500/20"
-                                : "text-gray-500 hover:bg-gray-50 dark:hover:bg-dark-700 hover:text-gray-700 dark:hover:text-gray-300"
-                        )}
-                    >
-                        {tab === 'dashboard' && <HiOutlineChartBar />}
-                        {tab === 'staff' && <HiOutlineUsers />}
-                        {tab === 'attendance' && <HiOutlineFingerPrint />}
-                        {tab === 'payroll' && <HiOutlineBanknotes />}
-                        {tab === 'compliance' && <HiOutlineFolderOpen />}
-                        {t(`logistics_module.hr.tabs.${tab}`)}
-                    </button>
-                ))}
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-dark-800 rounded-lg overflow-x-auto scroller-hidden">
+                {([
+                    { id: 'dashboard', label: t('logistics_module.hr.tabs.dashboard'), icon: HiOutlineChartBar },
+                    { id: 'staff', label: t('logistics_module.hr.tabs.staff'), icon: HiOutlineUsers },
+                    { id: 'attendance', label: t('logistics_module.hr.tabs.attendance'), icon: HiOutlineFingerPrint },
+                    { id: 'payroll', label: t('logistics_module.hr.tabs.payroll'), icon: HiOutlineBanknotes },
+                    { id: 'compliance', label: t('logistics_module.hr.tabs.compliance'), icon: HiOutlineFolderOpen },
+                    { id: 'vacations', label: t('logistics_module.hr.tabs.vacations'), icon: HiOutlineCalendar },
+                    { id: 'config', label: t('logistics_module.hr.tabs.config'), icon: HiOutlineChartBar },
+                ] as { id: HRTab; label: string; icon: React.ElementType }[]).map((tab) => {
+                    const Icon = tab.icon;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 flex-1 justify-center",
+                                activeTab === tab.id
+                                    ? "bg-white dark:bg-dark-700 text-primary-600 shadow-sm border border-primary-50 dark:border-primary-900/30"
+                                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            )}
+                        >
+                            <Icon className="w-4 h-4" />
+                            <span className="hidden sm:inline">{tab.label}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Tab Content */}
+            <div className="min-h-[600px] animate-fade-in transition-all duration-300">
             {activeTab === 'dashboard' && (
                 <div className="space-y-6 animate-fade-in">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -300,7 +327,7 @@ export default function LogisticsHRPage() {
                         <StatCard
                             title={t('logistics_module.hr.stats.safety')}
                             value="98/100"
-                            trend="Estável"
+                            trend="Estvel"
                             trendColor="gray"
                             icon={<HiOutlineShieldCheck className="text-purple-500" />}
                             color="purple"
@@ -320,8 +347,8 @@ export default function LogisticsHRPage() {
                                 <HiOutlineUsers className="w-5 h-5 text-primary-500" />
                                 Distribuição de Equipe
                             </h3>
-                            <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-dark-700 rounded-2xl">
-                                <p className="text-gray-400">Gráfico de distribuição (Drivers, Mechanics, etc.)</p>
+                            <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-dark-700 rounded-lg">
+                                <p className="text-gray-400">Grfico de distribuição (Drivers, Mechanics, etc.)</p>
                             </div>
                         </Card>
                         <Card variant="glass" className="p-6">
@@ -331,7 +358,7 @@ export default function LogisticsHRPage() {
                             </h3>
                             <div className="space-y-4">
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-dark-700/50 rounded-xl border border-gray-100 dark:border-dark-700/30">
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-dark-700/50 rounded-lg border border-gray-100 dark:border-dark-700/30">
                                         <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600">
                                             <HiOutlineIdentification className="w-6 h-6" />
                                         </div>
@@ -398,6 +425,9 @@ export default function LogisticsHRPage() {
             {activeTab === 'attendance' && <LogisticsAttendanceControl />}
             {activeTab === 'payroll' && <LogisticsPayrollManager />}
             {activeTab === 'compliance' && <LogisticsDocumentCenter />}
+            {activeTab === 'vacations' && <VacationsPanel config={LOGISTICS_CONFIG as any} employees={[]} />}
+            {activeTab === 'config' && <BonusConfigPanel config={LOGISTICS_CONFIG as any} />}
+            </div>
 
             {/* Staff Form Modal */}
             <Modal
@@ -451,7 +481,7 @@ export default function LogisticsHRPage() {
                         />
                     </div>
 
-                    <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-2xl space-y-4">
+                    <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-lg space-y-4">
                         <h4 className="font-bold text-sm flex items-center gap-2">
                             <HiOutlineIdentification className="w-4 h-4 text-primary-500" />
                             Conformidade e Documentos
@@ -472,7 +502,7 @@ export default function LogisticsHRPage() {
                         </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-2xl space-y-4">
+                    <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-lg space-y-4">
                         <h4 className="font-bold text-sm flex items-center gap-2">
                             <HiOutlineBanknotes className="w-4 h-4 text-green-500" />
                             Dados Bancários e Fiscais
@@ -512,7 +542,7 @@ export default function LogisticsHRPage() {
                         </div>
                     </div>
 
-                    <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-2xl space-y-4">
+                    <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-lg space-y-4">
                         <h4 className="font-bold text-sm flex items-center gap-2">
                             <HiOutlineCurrencyDollar className="w-4 h-4 text-indigo-500" />
                             Remuneração Base
@@ -581,7 +611,7 @@ function StatCard({ title, value, trend, trendColor = 'green', icon, color }: an
     return (
         <Card variant="glass" className="p-6">
             <div className="flex items-center justify-between mb-4">
-                <div className={cn("p-3 rounded-2xl", bgColors[color])}>
+                <div className={cn("p-3 rounded-lg", bgColors[color])}>
                     {icon}
                 </div>
                 <Badge variant={trendColor === 'green' ? 'success' : 'gray'} size="sm">

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { 
     HiOutlineMagnifyingGlass, 
     HiOutlineClock,
@@ -87,7 +87,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
             {/* Quick Status Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card variant="glass" className="p-4 border-l-4 border-l-teal-500 flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-600">
+                    <div className="p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-600">
                         <HiOutlineLogin className="w-6 h-6" />
                     </div>
                     <div>
@@ -96,7 +96,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                     </div>
                 </Card>
                 <Card variant="glass" className="p-4 border-l-4 border-l-blue-500 flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600">
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600">
                         <HiOutlineLogout className="w-6 h-6" />
                     </div>
                     <div>
@@ -105,7 +105,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                     </div>
                 </Card>
                 <Card variant="glass" className="p-4 border-l-4 border-l-amber-500 flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600">
+                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600">
                         <HiOutlineClock className="w-6 h-6" />
                     </div>
                     <div>
@@ -123,7 +123,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                         <Card key={person.id} variant="glass" className="relative group overflow-hidden border-t-2 border-t-primary-500/10 hover:border-t-primary-500 transition-all duration-300">
                             <div className="p-5 space-y-4">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 font-black text-lg">
+                                    <div className="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 font-black text-lg">
                                         {person.name.charAt(0)}
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -160,7 +160,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                                     <Button
                                         variant={record?.checkIn ? "outline" : "primary"}
                                         size="sm"
-                                        className={`flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest h-10`}
+                                        className={`flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10`}
                                         disabled={!!record?.checkIn}
                                         leftIcon={<HiOutlineLogin className="w-4 h-4" />}
                                         onClick={() => handleRecord(person.id, 'checkIn')}
@@ -170,7 +170,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        className="flex-1 rounded-xl font-black text-[10px] uppercase tracking-widest h-10 border-orange-200 text-orange-600 hover:bg-orange-50"
+                                        className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10 border-orange-200 text-orange-600 hover:bg-orange-50"
                                         disabled={!record?.checkIn || !!record?.checkOut}
                                         leftIcon={<HiOutlineLogout className="w-4 h-4" />}
                                         onClick={() => handleRecord(person.id, 'checkOut')}
@@ -194,15 +194,15 @@ export const PharmacyAttendanceControl: React.FC = () => {
                 <div className="space-y-6">
                     {/* Monthly Summary */}
                     <div className="grid grid-cols-3 gap-4">
-                        <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-900/20">
+                        <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-900/20">
                             <p className="text-[10px] font-black uppercase text-teal-600 mb-1">Presenças</p>
                             <p className="text-xl font-black text-teal-700">{statsSummary.present}</p>
                         </div>
-                        <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
+                        <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
                             <p className="text-[10px] font-black uppercase text-amber-600 mb-1">Atrasos</p>
                             <p className="text-xl font-black text-amber-700">{statsSummary.late}</p>
                         </div>
-                        <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20">
+                        <div className="p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20">
                             <p className="text-[10px] font-black uppercase text-indigo-600 mb-1">Horas Total</p>
                             <p className="text-xl font-black text-indigo-700">{statsSummary.hours.toFixed(1)}h</p>
                         </div>
@@ -217,7 +217,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                         ) : (
                             <div className="max-h-64 overflow-y-auto pr-2 space-y-2">
                                 {history.sort((a, b) => b.date.localeCompare(a.date)).map((h, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-dark-700/50 border border-gray-100 dark:border-dark-700">
+                                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-dark-700/50 border border-gray-100 dark:border-dark-700">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-lg bg-white dark:bg-dark-800 flex items-center justify-center text-[10px] font-black">
                                                 {format(new Date(h.date), 'dd')}

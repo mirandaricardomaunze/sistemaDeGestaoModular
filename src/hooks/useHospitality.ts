@@ -1,168 +1,154 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { hospitalityAPI } from '../services/api';
-import type { Room } from '../types';
+import { hospitalityAPI } from '../services/api/hospitality.api';
+import type {
+    HotelBooking,
+    HousekeepingTask,
+} from '../types/hotel';
 
-interface PaginationMeta {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasMore: boolean;
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function withIsLoading<T extends object & { isPending: boolean }>(m: T) {
+    return Object.assign(m, { isLoading: m.isPending });
 }
 
-interface UseHospitalityParams {
-    status?: string;
-    type?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-}
+// ============================================================================
+// QUERIES
+// ============================================================================
 
-export function useHospitality(params?: UseHospitalityParams) {
-    const queryClient = useQueryClient();
-
-    // ============================================================================
-    // Queries
-    // ============================================================================
-
-    // Fetch rooms with pagination, metrics, etc.
-    const { 
-        data: roomsData, 
-        isLoading, 
-        error: queryError, 
-        refetch 
-    } = useQuery({
+export function useHotelRooms(params?: any) {
+    return useQuery({
         queryKey: ['hospitality', 'rooms', params],
-        queryFn: async () => {
-            const response = await hospitalityAPI.getRooms(params);
-            
-            // Normalize shape
-            let rooms: Room[] = [];
-            let pagination: PaginationMeta | null = null;
-            let metrics = { available: 0, occupied: 0, dirty: 0, maintenance: 0, total: 0 };
-            
-            if (response.data && response.pagination) {
-                rooms = response.data;
-                pagination = response.pagination;
-                if (response.metrics) metrics = response.metrics;
-            } else {
-                rooms = Array.isArray(response) ? response : (response.data || []);
-            }
-            
-            return { rooms, pagination, metrics };
-        },
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+        queryFn: () => hospitalityAPI.getRooms(params),
     });
+}
 
-    const error = queryError ? (queryError as any).message || 'Erro ao carregar quartos' : null;
-
-    // We can also define fetchBookings directly (since it's typically called ad-hoc for a specific room or context)
-    // Or wire it into useQuery if it was meant to be reactive.
-    const fetchBookings = async (bookingParams?: { page?: number; limit?: number; status?: string }) => {
-        try {
-            const response = await hospitalityAPI.getBookings(bookingParams);
-            return response.data && response.pagination 
-                 ? response 
-                 : { data: Array.isArray(response) ? response : (response.data || []) };
-        } catch (err: any) {
-            toast.error(err.message || 'Erro ao carregar reservas');
-            throw err;
-        }
-    };
-
-    // ============================================================================
-    // Mutations
-    // ============================================================================
-
-    const handleMutationError = (err: any, fallbackMessage: string) => {
-        toast.error(err?.response?.data?.message || err?.message || fallbackMessage);
-        throw err;
-    };
-
-    const invalidateRooms = () => queryClient.invalidateQueries({ queryKey: ['hospitality', 'rooms'] });
-
-    const seedRoomsMutation = useMutation({
-        mutationFn: () => hospitalityAPI.seedRooms(),
-        onSuccess: () => {
-            toast.success('Quartos inicializados com sucesso!');
-            invalidateRooms();
-        },
-        onError: (err) => handleMutationError(err, 'Erro ao inicializar quartos')
+export function useHotelDashboardSummary() {
+    return useQuery<any>({
+        queryKey: ['hospitality', 'dashboard', 'summary'],
+        queryFn: () => hospitalityAPI.getDashboardSummary(),
     });
+}
 
-    const createBookingMutation = useMutation({
+export function useRecentBookings(limit: number = 5) {
+    return useQuery<HotelBooking[]>({
+        queryKey: ['hospitality', 'bookings', 'recent', limit],
+        queryFn: () => hospitalityAPI.getRecentBookings(limit),
+    });
+}
+
+export function useHotelBookings(params?: any) {
+    return useQuery({
+        queryKey: ['hospitality', 'bookings', params],
+        queryFn: () => hospitalityAPI.getBookings(params),
+    });
+}
+
+export function useTodayCheckouts() {
+    return useQuery<HotelBooking[]>({
+        queryKey: ['hospitality', 'bookings', 'today-checkouts'],
+        queryFn: () => hospitalityAPI.getTodayCheckouts(),
+    });
+}
+
+// ============================================================================
+// MUTATIONS
+// ============================================================================
+
+export function useCreateBooking() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
         mutationFn: (data: any) => hospitalityAPI.createBooking(data),
         onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['hospitality'] });
             toast.success('Check-in realizado com sucesso!');
-            invalidateRooms();
         },
-        onError: (err) => handleMutationError(err, 'Erro ao realizar check-in')
-    });
+        onError: (err: any) => toast.error(err.message || 'Erro ao realizar check-in'),
+    }));
+}
 
-    const checkoutMutation = useMutation({
-        mutationFn: (bookingId: string) => hospitalityAPI.checkout(bookingId),
+export function useCheckout() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data?: any }) => hospitalityAPI.checkout(id, data),
         onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['hospitality'] });
             toast.success('Check-out realizado com sucesso!');
-            invalidateRooms();
         },
-        onError: (err) => handleMutationError(err, 'Erro ao realizar check-out')
+    }));
+}
+
+export function useUpdateRoomStatus() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, status }: { id: string; status: string }) => hospitalityAPI.updateRoom(id, { status }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['hospitality', 'rooms'] });
+        },
+    }));
+}
+
+// ============================================================================
+// HOUSEKEEPING
+// ============================================================================
+
+export function useHousekeepingTasks(params?: any) {
+    return useQuery<HousekeepingTask[]>({
+        queryKey: ['hospitality', 'housekeeping', params],
+        queryFn: () => hospitalityAPI.getHousekeepingTasks(params),
+    });
+}
+
+export function useUpdateHousekeepingTask() {
+    const qc = useQueryClient();
+    return withIsLoading(useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) => hospitalityAPI.updateHousekeepingTask(id, data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ['hospitality', 'housekeeping'] });
+            toast.success('Tarefa de limpeza atualizada');
+        },
+    }));
+}
+
+// ============================================================================
+// COMPOSITE HOOK (backward compat)
+// ============================================================================
+
+export function useHospitality(_params?: { search?: string; status?: string; page?: number; limit?: number }) {
+    const qc = useQueryClient();
+    const roomsQuery = useQuery({
+        queryKey: ['hospitality', 'rooms'],
+        queryFn: () => hospitalityAPI.getRooms(),
     });
 
     const addRoomMutation = useMutation({
         mutationFn: (data: any) => hospitalityAPI.createRoom(data),
-        onSuccess: () => {
-            toast.success('Quarto adicionado com sucesso!');
-            invalidateRooms();
-        },
-        onError: (err) => handleMutationError(err, 'Erro ao adicionar quarto')
+        onSuccess: () => qc.invalidateQueries({ queryKey: ['hospitality', 'rooms'] }),
     });
 
     const updateRoomMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string, data: any }) => hospitalityAPI.updateRoom(id, data),
-        onSuccess: () => {
-            toast.success('Quarto actualizado com sucesso!');
-            invalidateRooms();
-        },
-        onError: (err) => handleMutationError(err, 'Erro ao actualizar quarto')
+        mutationFn: ({ id, data }: { id: string; data: any }) => hospitalityAPI.updateRoom(id, data),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ['hospitality', 'rooms'] }),
     });
 
     const deleteRoomMutation = useMutation({
         mutationFn: (id: string) => hospitalityAPI.deleteRoom(id),
-        onSuccess: () => {
-            toast.success('Quarto removido com sucesso!');
-            invalidateRooms();
-        },
-        onError: (err) => handleMutationError(err, 'Erro ao remover quarto')
-    });
-
-    const addConsumptionMutation = useMutation({
-        mutationFn: ({ bookingId, data }: { bookingId: string, data: any }) => hospitalityAPI.addConsumption(bookingId, data),
-        onSuccess: () => {
-            toast.success('Consumo registrado com sucesso!');
-            invalidateRooms();
-        },
-        onError: (err) => handleMutationError(err, 'Erro ao registrar consumo')
+        onSuccess: () => qc.invalidateQueries({ queryKey: ['hospitality', 'rooms'] }),
     });
 
     return {
-        rooms: roomsData?.rooms || [],
-        pagination: roomsData?.pagination || null,
-        metrics: roomsData?.metrics || { available: 0, occupied: 0, dirty: 0, maintenance: 0, total: 0 },
-        isLoading,
-        error,
-        refetch,
-        
-        // Functions matching exactly the previous signature
-        fetchBookings,
-        seedRooms: seedRoomsMutation.mutateAsync,
-        createBooking: createBookingMutation.mutateAsync,
-        checkout: checkoutMutation.mutateAsync,
-        addRoom: addRoomMutation.mutateAsync,
+        rooms: (roomsQuery.data as any[]) || [],
+        isLoading: roomsQuery.isLoading,
+        refetch: roomsQuery.refetch,
+        addRoom: (data: any) => addRoomMutation.mutateAsync(data),
         updateRoom: (id: string, data: any) => updateRoomMutation.mutateAsync({ id, data }),
-        deleteRoom: deleteRoomMutation.mutateAsync,
-        addConsumption: (bookingId: string, data: any) => addConsumptionMutation.mutateAsync({ bookingId, data }),
+        deleteRoom: (id: string) => deleteRoomMutation.mutateAsync(id),
+        pagination: { total: 0, page: 1, pageSize: 20 },
+        metrics: null as any,
+        fetchBookings: (params?: { page?: number; limit?: number; status?: string }) => hospitalityAPI.getBookings(params),
+        createBooking: (_data: any) => hospitalityAPI.createBooking(_data),
+        addConsumption: (_id: string, _data?: any) => hospitalityAPI.addConsumption(_id, _data),
     };
 }

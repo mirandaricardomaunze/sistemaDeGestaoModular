@@ -1,6 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +10,7 @@ import {
     HiOutlineTrash,
     HiOutlineTruck,
     HiOutlinePhone,
-    HiOutlineMail,
+    HiOutlineEnvelope,
     HiOutlineCurrencyDollar,
     HiOutlineUserCircle,
     HiOutlineCheck,
@@ -98,7 +97,6 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
     const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
     const [activeTab, setActiveTab] = useState<'directory' | 'orders'>('directory');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { t } = useTranslation();
 
     const {
         register,
@@ -273,6 +271,7 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                         </div>
                     }
                 />
+            )}
                 {activeTab === 'directory' ? (
                 <>
                     {/* Metrics Layer - Standardized */}
@@ -379,7 +378,7 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                                                         </div>
                                                         {supplier.email && (
                                                             <div className="flex items-center gap-1 text-sm text-gray-500">
-                                                                <HiOutlineMail className="w-4 h-4" />
+                                                                <HiOutlineEnvelope className="w-4 h-4" />
                                                                 <span className="truncate max-w-[150px]">{supplier.email}</span>
                                                             </div>
                                                         )}
@@ -538,7 +537,7 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                             variant="ghost"
                             onClick={closeFormModal}
                             disabled={isSubmitting}
-                            leftIcon={<HiOutlineX className="w-4 h-4" />}
+                            leftIcon={<HiOutlineXMark className="w-4 h-4" />}
                         >
                             Cancelar
                         </Button>
@@ -569,7 +568,7 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                             variant="ghost"
                             onClick={() => setDeleteModalOpen(false)}
                             disabled={isSubmitting}
-                            leftIcon={<HiOutlineX className="w-4 h-4" />}
+                            leftIcon={<HiOutlineXMark className="w-4 h-4" />}
                         >
                             Cancelar
                         </Button>

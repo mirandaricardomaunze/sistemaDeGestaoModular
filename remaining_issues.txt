@@ -1,0 +1,6 @@
+components\employees\VacationManager.tsx  L409  [BROKEN_ID:será]  message="Tem certeza que deseja cancelar estas férias? O saldo de dias será devo
+components\inventory\ProductForm.tsx  L340  [BROKEN_ID:será]  O stock inicial será **zero**. Após cadastrar o produto, adicione quantidades re
+components\inventory\StockTransferManager.tsx  L187  [BROKEN_ID:será]  if (!window.confirm(`Cancelar transferência ${transfer.number}?\nO stock será re
+components\invoices\InvoicePrintPreview.tsx  L191  [BROKEN_ID:será]  A fatura <strong>{invoice.invoiceNumber}</strong> será enviada em PDF para o ema
+components\pos\ThermalReceiptPreview.tsx  L358  [BROKEN_ID:será]  O recibo será impresso no formato optimizado para impressora térmica ({company.t
+pages\Settings.tsx  L640  [BROKEN_ID:será]  A imagem será exibida na barra lateral e em documentos gerados (PDF)

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../components/ui';
-import Suppliers from '../Suppliers';
+import Suppliers from '../suppliers';
 import { HiOutlineTruck } from 'react-icons/hi2';
 
 export default function HotelSuppliers() {

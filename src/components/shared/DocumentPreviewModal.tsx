@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DocumentPreviewModal - Reusable document preview wrapper
  * Provides consistent A4 paper preview with print functionality
  */

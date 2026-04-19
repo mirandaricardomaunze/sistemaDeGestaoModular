@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿/**
+/**
  * CheckoutNotifications Component
  * Shows alerts for today's expected checkouts with quick actions
  */

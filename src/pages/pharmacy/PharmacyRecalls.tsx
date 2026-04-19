@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Button, Input, Badge, LoadingSpinner } from '../../components/ui';
 import {
     HiOutlineExclamationCircle, HiOutlinePlus, HiOutlineCheckCircle,
-    HiOutlineSearch, HiOutlineUsers, HiOutlinePhone
+    HiOutlineUsers, HiOutlinePhone
 } from 'react-icons/hi';
 import { pharmacyAPI } from '../../services/api';
 import { usePharmacy } from '../../hooks/usePharmacy';
@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import { formatDate } from '../../utils/helpers';
 
 const SEVERITY_LABELS: Record<string, { label: string; variant: any }> = {
-    voluntary: { label: 'Voluntária', variant: 'warning' },
+    voluntary: { label: 'Voluntria', variant: 'warning' },
     mandatory: { label: 'Obrigatória', variant: 'danger' },
     urgent: { label: 'URGENTE', variant: 'danger' }
 };
@@ -95,7 +95,7 @@ export default function PharmacyRecalls() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Medicamento *</label>
-                            <select className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 value={form.medicationId} onChange={e => setForm(f => ({ ...f, medicationId: e.target.value }))}>
                                 <option value="">Seleccionar medicamento...</option>
                                 {medications.map((m: any) => (
@@ -105,9 +105,9 @@ export default function PharmacyRecalls() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gravidade *</label>
-                            <select className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}>
-                                <option value="voluntary">Voluntária</option>
+                                <option value="voluntary">Voluntria</option>
                                 <option value="mandatory">Obrigatória</option>
                                 <option value="urgent">Urgente</option>
                             </select>
@@ -121,7 +121,7 @@ export default function PharmacyRecalls() {
                             <div className="flex flex-wrap gap-1">
                                 {form.batchNumbers.map(b => (
                                     <span key={b} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-mono">
-                                        {b} <button onClick={() => setForm(f => ({ ...f, batchNumbers: f.batchNumbers.filter(x => x !== b) }))} className="ml-1">×</button>
+                                        {b} <button onClick={() => setForm(f => ({ ...f, batchNumbers: f.batchNumbers.filter(x => x !== b) }))} className="ml-1">x</button>
                                     </span>
                                 ))}
                             </div>
@@ -131,7 +131,7 @@ export default function PharmacyRecalls() {
                     </div>
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo do Recall *</label>
-                        <textarea className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" rows={3}
+                        <textarea className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" rows={3}
                             value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} placeholder="Descreva o motivo do recall..." />
                     </div>
                     <div className="flex gap-2">
@@ -205,7 +205,7 @@ export default function PharmacyRecalls() {
                         <>
                             <h3 className="font-bold mb-4 flex items-center gap-2">
                                 <HiOutlineUsers className="w-5 h-5 text-primary-600" />
-                                Pacientes Afectados — {selectedRecall.recallNumber}
+                                Pacientes Afectados - {selectedRecall.recallNumber}
                             </h3>
                             {loadingAffected ? <LoadingSpinner /> : (
                                 <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -215,7 +215,7 @@ export default function PharmacyRecalls() {
                                             <p>Nenhuma venda afectada encontrada</p>
                                         </div>
                                     ) : (affectedSales || []).map((sale: any) => (
-                                        <div key={sale.id} className="border border-gray-200 dark:border-dark-700 rounded-xl p-3">
+                                        <div key={sale.id} className="border border-gray-200 dark:border-dark-700 rounded-lg p-3">
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <p className="font-semibold text-sm">{sale.customer?.name || sale.customerName || 'Cliente Balcão'}</p>
@@ -229,7 +229,7 @@ export default function PharmacyRecalls() {
                                             </div>
                                             <div className="mt-2 space-y-0.5">
                                                 {sale.items.map((item: any) => (
-                                                    <p key={item.id} className="text-xs text-gray-600">{item.quantity}× {item.productName}</p>
+                                                    <p key={item.id} className="text-xs text-gray-600">{item.quantity}x {item.productName}</p>
                                                 ))}
                                             </div>
                                         </div>
@@ -249,7 +249,7 @@ export default function PharmacyRecalls() {
                         <Input label="Unidades Recuperadas" type="number" value={resolveForm.recoveredUnits} onChange={e => setResolveForm(f => ({ ...f, recoveredUnits: Number(e.target.value) }))} min={0} className="mb-4" />
                         <div className="mb-4">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Acção Tomada</label>
-                            <textarea className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" rows={3}
+                            <textarea className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" rows={3}
                                 value={resolveForm.actionTaken} onChange={e => setResolveForm(f => ({ ...f, actionTaken: e.target.value }))} placeholder="Descreva as acções tomadas..." />
                         </div>
                         <div className="flex gap-2">

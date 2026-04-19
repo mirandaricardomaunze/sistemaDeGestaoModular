@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Card, Button, Input, Modal, Badge } from '../ui';
 import {
     HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineRefresh,
@@ -101,7 +101,7 @@ function IvaRateModal({ open, onClose, editing }: { open: boolean; onClose: () =
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     <Input label="Vigência: De" type="date" value={form.effectiveFrom || ''} onChange={e => setForm(p => ({ ...p, effectiveFrom: e.target.value }))} />
-                    <Input label="Vigência: Até" type="date" value={form.effectiveTo || ''} onChange={e => setForm(p => ({ ...p, effectiveTo: e.target.value }))} />
+                    <Input label="Vigência: At" type="date" value={form.effectiveTo || ''} onChange={e => setForm(p => ({ ...p, effectiveTo: e.target.value }))} />
                 </div>
 
                 {/* Categories */}
@@ -122,7 +122,7 @@ function IvaRateModal({ open, onClose, editing }: { open: boolean; onClose: () =
                             {(form.applicableCategories || []).map(cat => (
                                 <span key={cat} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
                                     {cat}
-                                    <button type="button" onClick={() => removeCat(cat)} className="hover:text-red-500">×</button>
+                                    <button type="button" onClick={() => removeCat(cat)} className="hover:text-red-500">x</button>
                                 </span>
                             ))}
                         </div>
@@ -161,7 +161,7 @@ export default function IvaManager() {
     const [editing, setEditing] = useState<IvaRate | null>(null);
     const [deleting, setDeleting] = useState<IvaRate | null>(null);
 
-    const { data: dashboard, isLoading: dashLoading, refetch: refetchDash } = useIvaDashboard();
+    const { data: dashboard, isLoading: _dashLoading, refetch: refetchDash } = useIvaDashboard();
     const { data: ratesData, isLoading, refetch } = useIvaRates();
     const deleteRate = useDeleteIvaRate();
 
@@ -196,7 +196,7 @@ export default function IvaManager() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Card padding="md">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
                                 <HiOutlineChartBar className="w-5 h-5 text-primary-600" />
                             </div>
                             <div>
@@ -207,7 +207,7 @@ export default function IvaManager() {
                     </Card>
                     <Card padding="md">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                                 <HiOutlineCheckCircle className="w-5 h-5 text-emerald-600" />
                             </div>
                             <div>
@@ -218,7 +218,7 @@ export default function IvaManager() {
                     </Card>
                     <Card padding="md">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                                 <HiOutlineCurrencyDollar className="w-5 h-5 text-blue-600" />
                             </div>
                             <div>
@@ -229,13 +229,13 @@ export default function IvaManager() {
                     </Card>
                     <Card padding="md">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
                                 <HiOutlineStar className="w-5 h-5 text-amber-600" />
                             </div>
                             <div>
                                 <p className="text-xs text-gray-500">Taxa Padrão</p>
                                 <p className="text-lg font-bold text-gray-900 dark:text-white">
-                                    {summary.defaultRate ? `${Number(summary.defaultRate.rate)}%` : '—'}
+                                    {summary.defaultRate ? `${Number(summary.defaultRate.rate)}%` : ''}
                                 </p>
                             </div>
                         </div>
@@ -275,7 +275,7 @@ export default function IvaManager() {
             <Card padding="md">
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Taxas Configuradas</h3>
                 {isLoading ? (
-                    <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-xl animate-pulse" />)}</div>
+                    <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}</div>
                 ) : rates.length === 0 ? (
                     <div className="text-center py-10">
                         <HiOutlineInformationCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />

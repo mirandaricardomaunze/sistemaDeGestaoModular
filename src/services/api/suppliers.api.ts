@@ -1,4 +1,4 @@
-﻿import api from './client';
+import api from './client';
 
 // ============================================================================
 // Suppliers API
@@ -72,8 +72,8 @@ export const suppliersAPI = {
         return response.data;
     },
 
-    receivePurchaseOrder: async (orderId: string, items: Array<{ itemId: string; receivedQty: number }>) => {
-        const response = await api.post(`/suppliers/orders/${orderId}/receive`, { items });
+    receivePurchaseOrder: async (orderId: string, items: Array<{ itemId: string; receivedQty: number }>, warehouseId?: string) => {
+        const response = await api.post(`/suppliers/orders/${orderId}/receive`, { items, warehouseId });
         return response.data;
     },
 };

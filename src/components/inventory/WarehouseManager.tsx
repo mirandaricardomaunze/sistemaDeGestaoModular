@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Button, Card, Input, Modal, Badge, Pagination, usePagination } from '../ui';
 import { HiOutlinePencil, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
 import toast from 'react-hot-toast';
@@ -61,7 +61,7 @@ export default function WarehouseManager() {
 
     const handleToggleActive = async (warehouse: { id: string; isActive: boolean }) => {
         try {
-            await updateWarehouse(warehouse.id, { isActive: !warehouse.isActive });
+            await updateWarehouse({ id: warehouse.id, data: { isActive: !warehouse.isActive } });
         } catch (err) {
             toast.error('Erro ao alterar status do armazém');
         }
@@ -72,7 +72,7 @@ export default function WarehouseManager() {
 
         try {
             if (editingWarehouse) {
-                await updateWarehouse(editingWarehouse.id, formData);
+                await updateWarehouse({ id: editingWarehouse.id, data: formData });
             } else {
                 await addWarehouse({
                     ...formData,

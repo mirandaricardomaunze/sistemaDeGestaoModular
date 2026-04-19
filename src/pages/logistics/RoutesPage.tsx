@@ -134,13 +134,16 @@ export default function RoutesPage() {
         return `${mins}min`;
     };
 
-    /** Mock coordinates for visualization demo */
-    const getMockCoords = (name: string) => {
-        const hash = name.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0);
-        return {
-            lat: -25.9692 + (hash % 100) / 1000,
-            lng: 32.5732 + (hash % 80) / 1000
-        };
+    const getRouteMapLocations = (route: any) => {
+        const originLat = Number(route.originLat);
+        const originLng = Number(route.originLng);
+        const destLat = Number(route.destinationLat);
+        const destLng = Number(route.destinationLng);
+        if (!originLat || !originLng || !destLat || !destLng) return null;
+        return [
+            { lat: originLat, lng: originLng, label: `Origem: ${route.origin}`, type: 'warehouse' as const },
+            { lat: destLat, lng: destLng, label: `Destino: ${route.destination}`, type: 'delivery' as const, status: 'scheduled' }
+        ];
     };
 
     if (isLoading) {
@@ -443,39 +446,36 @@ export default function RoutesPage() {
                 {previewRoute && (
                     <div className="space-y-4">
                         <div className="grid grid-cols-3 gap-4 mb-4">
-                            <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-xl border border-gray-100 dark:border-dark-700">
+                            <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-lg border border-gray-100 dark:border-dark-700">
                                 <p className="text-[10px] font-bold text-gray-500 uppercase">{t('logistics_module.routes.distance')}</p>
                                 <p className="text-lg font-black text-primary-600">{previewRoute.distance || '--'} km</p>
                             </div>
-                            <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-xl border border-gray-100 dark:border-dark-700">
+                            <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-lg border border-gray-100 dark:border-dark-700">
                                 <p className="text-[10px] font-bold text-gray-500 uppercase">{t('logistics_module.routes.estimatedTime')}</p>
                                 <p className="text-lg font-black text-primary-600">{formatDuration(previewRoute.estimatedTime)}</p>
                             </div>
-                            <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-xl border border-gray-100 dark:border-dark-700">
+                            <div className="bg-gray-50 dark:bg-dark-800 p-3 rounded-lg border border-gray-100 dark:border-dark-700">
                                 <p className="text-[10px] font-bold text-gray-500 uppercase">Eficiência AI</p>
                                 <Badge variant="success" size="sm" className="mt-1">94% Óptimo</Badge>
                             </div>
                         </div>
 
-                        <LogisticsMap 
-                            className="h-[400px] w-full border-none shadow-none"
-                            showRoutes
-                            locations={[
-                                { 
-                                    ...getMockCoords(previewRoute.origin), 
-                                    label: `Origem: ${previewRoute.origin}`,
-                                    type: 'warehouse'
-                                },
-                                { 
-                                    ...getMockCoords(previewRoute.destination), 
-                                    label: `Destino: ${previewRoute.destination}`,
-                                    type: 'delivery',
-                                    status: 'scheduled'
-                                }
-                            ]}
-                        />
+                        {(() => {
+                            const locs = getRouteMapLocations(previewRoute);
+                            return locs ? (
+                                <LogisticsMap
+                                    className="h-[400px] w-full border-none shadow-none"
+                                    showRoutes
+                                    locations={locs}
+                                />
+                            ) : (
+                                <div className="h-32 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-dark-800 border border-gray-100 dark:border-dark-700 text-sm text-gray-500">
+                                    Sem coordenadas GPS - defina origem e destino com coordenadas para ver o mapa.
+                                </div>
+                            );
+                        })()}
 
-                        <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-xl border border-amber-100 dark:border-amber-900/30 flex gap-3">
+                        <div className="p-4 bg-amber-50 dark:bg-amber-900/10 rounded-lg border border-amber-100 dark:border-amber-900/30 flex gap-3">
                             <HiOutlineExclamationCircle className="w-6 h-6 text-amber-600 shrink-0" />
                             <div>
                                 <h4 className="text-sm font-bold text-amber-800 dark:text-amber-400">Sugestão de Optimização</h4>

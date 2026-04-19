@@ -39,6 +39,10 @@ export const salesAPI = {
         change?: number;
         paymentRef?: string;
         notes?: string;
+        warehouseId?: string;
+        originModule?: string;
+        redeemPoints?: number;
+        tableId?: string;
     }) => {
         const response = await api.post('/sales', data);
         return response.data;

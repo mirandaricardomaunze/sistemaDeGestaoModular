@@ -1,6 +1,6 @@
 ﻿import { useRef } from 'react';
 import { format } from 'date-fns';
-import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
+import { HiOutlinePrinter, HiOutlineXMark as HiOutlineX } from 'react-icons/hi2';
 import { Modal, Button, Card } from '../ui';
 import { useStore } from '../../stores/useStore';
 import { formatCurrency } from '../../utils/helpers';
@@ -132,37 +132,41 @@ export default function PaymentGuidePrint({ isOpen, onClose, metrics, moduleTitl
                     </div>
 
                     {/* Tax Specification Table */}
-                    <div className="mb-6">
+                    <div className="mb-6 overflow-x-auto">
                         <table className="w-full gnr-table border-collapse">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="w-20 text-center font-bold uppercase text-[7pt]">Código Rec.</th>
-                                    <th className="text-left font-bold uppercase text-[7pt]">Designação do Imposto / Taxa</th>
-                                    <th className="w-32 text-right font-bold uppercase text-[7pt]">Valor do Imposto</th>
+                            <thead>
+                                <tr className="bg-slate-50 text-[7pt] font-black uppercase text-slate-500 tracking-widest text-center">
+                                    <th className="px-4 py-4 border-b border-slate-100 w-20">Código Rec.</th>
+                                    <th className="px-4 py-4 border-b border-slate-100 text-left">Designação do Imposto / Taxa</th>
+                                    <th className="px-4 py-4 border-b border-slate-100 text-right w-32">Valor do Imposto</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td className="text-center font-medium">101</td>
-                                    <td>
-                                        <p className="font-bold">IVA - Imposto Sobre Valor Acrescentado</p>
-                                        <p className="text-[7pt] text-gray-500 italic">Operações Internas / Mercado Local</p>
+                            <tbody className="divide-y divide-slate-50">
+                                <tr className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="px-4 py-4 text-center font-bold text-slate-600">101</td>
+                                    <td className="px-4 py-4">
+                                        <p className="font-black text-slate-900 uppercase tracking-tighter">IVA - Imposto Sobre Valor Acrescentado</p>
+                                        <p className="text-[7pt] text-slate-400 italic">Operações Internas / Mercado Local</p>
                                     </td>
-                                    <td className="text-right font-bold">{formatCurrency(metrics.ivaPayable)}</td>
+                                    <td className="px-4 py-4 text-right font-black text-slate-900">{formatCurrency(metrics.ivaPayable)}</td>
                                 </tr>
-                                <tr>
-                                    <td className="text-center font-medium">104</td>
-                                    <td>
-                                        <p className="font-bold">Retenção na Fonte (IRPS/IRPC)</p>
-                                        <p className="text-[7pt] text-gray-500 italic">Serviços e Outros Rendimentos</p>
+                                <tr className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="px-4 py-4 text-center font-bold text-slate-600">104</td>
+                                    <td className="px-4 py-4">
+                                        <p className="font-black text-slate-900 uppercase tracking-tighter">Retenção na Fonte (IRPS/IRPC)</p>
+                                        <p className="text-[7pt] text-slate-400 italic">Serviços e Outros Rendimentos</p>
                                     </td>
-                                    <td className="text-right font-bold">{formatCurrency(metrics.retentions)}</td>
-                                </tr>
-                                <tr className="bg-gray-50 font-bold">
-                                    <td colSpan={2} className="text-right uppercase tracking-wider">Montante Total a Pagar</td>
-                                    <td className="text-right text-[11pt] underline decoration-double">{formatCurrency(totalToPay)}</td>
+                                    <td className="px-4 py-4 text-right font-black text-slate-900">{formatCurrency(metrics.retentions)}</td>
                                 </tr>
                             </tbody>
+                            <tfoot>
+                                <tr className="bg-slate-50/50 font-black">
+                                    <td colSpan={2} className="px-4 py-5 text-right uppercase tracking-[0.2em] text-slate-500 text-[8pt]">Montante Total a Pagar</td>
+                                    <td className="px-4 py-5 text-right text-[12pt] text-slate-900 tracking-tighter border-t-2 border-slate-900">
+                                        {formatCurrency(totalToPay)}
+                                    </td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
 
@@ -170,7 +174,7 @@ export default function PaymentGuidePrint({ isOpen, onClose, metrics, moduleTitl
                     <div className="border p-4 bg-gray-50 mb-6">
                         <div className="flex justify-between items-start">
                             <div className="space-y-3">
-                                <h4 className="text-[8pt] font-black uppercase text-gray-900 border-b pb-1">DADOS PARA PAGAMENTO BANCÁRIO (SIMPLIFICADO)</h4>
+                                <h4 className="text-[8pt] font-black uppercase text-gray-900 border-b pb-1">DADOS PARA PAGAMENTO BANCÃRIO (SIMPLIFICADO)</h4>
                                 <div className="grid grid-cols-2 gap-x-12 gap-y-2">
                                     <div>
                                         <p className="gnr-label">Referência de Pagamento</p>
@@ -231,3 +235,4 @@ export default function PaymentGuidePrint({ isOpen, onClose, metrics, moduleTitl
         </Modal>
     );
 }
+

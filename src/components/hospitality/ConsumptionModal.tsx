@@ -35,7 +35,7 @@ export default function ConsumptionModal({ isOpen, onClose, onConfirm }: Consump
             size="md"
         >
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-                <div className="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl flex items-center gap-3 mb-2">
+                <div className="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-lg flex items-center gap-3 mb-2">
                     <HiOutlineShoppingCart className="w-6 h-6 text-primary-600" />
                     <p className="text-sm text-primary-700 dark:text-primary-400 font-medium">
                         O consumo será adicionado à conta corrente do quarto e facturado no check-out.

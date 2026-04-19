@@ -1,15 +1,15 @@
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
-    HiOutlineDocumentDownload,
-    HiOutlineCalendar,
+    HiOutlineDocumentArrowDown as HiOutlineDocumentDownload,
+    HiOutlineCalendarDays as HiOutlineCalendar,
     HiOutlineChartBar,
     HiOutlineCurrencyDollar,
     HiOutlineShoppingCart,
-    HiOutlineFilter,
-    HiOutlineRefresh,
+    HiOutlineFunnel as HiOutlineFilter,
+    HiOutlineArrowPath as HiOutlineRefresh,
     HiOutlineCube,
-    HiOutlineDownload,
-} from 'react-icons/hi';
+    HiOutlineArrowDownTray as HiOutlineDownload,
+} from 'react-icons/hi2';
 
 import {
     AreaChart,

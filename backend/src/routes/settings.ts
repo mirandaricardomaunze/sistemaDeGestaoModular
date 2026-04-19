@@ -1,4 +1,4 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth';
 import { ApiError } from '../middleware/error.middleware';

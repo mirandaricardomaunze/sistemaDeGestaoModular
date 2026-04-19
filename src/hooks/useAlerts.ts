@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { alertsAPI, type Alert, type AlertModule, type AlertsSummary, type UnreadCount } from '../services/api';
 

@@ -1,4 +1,4 @@
-﻿import api from './api';
+import api from './api';
 import type{ ChatResponse } from '../types/chat';
 
 export const chatAPI = {

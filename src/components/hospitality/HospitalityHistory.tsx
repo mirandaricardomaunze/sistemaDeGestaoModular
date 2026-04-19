@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Card, Badge, TableContainer } from '../ui';
-import { HiOutlineClock, HiOutlineUser } from 'react-icons/hi2';
+import { HiOutlineUser } from 'react-icons/hi2';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 
 interface HospitalityHistoryProps {

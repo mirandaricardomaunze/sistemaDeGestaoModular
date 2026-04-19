@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Button, Badge, EmptyState } from '../../components/ui';
 import { HiOutlineRefresh, HiOutlineClipboardList } from 'react-icons/hi';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
@@ -31,7 +31,7 @@ export default function BottleStoreStock() {
                 startDate: start || undefined,
                 endDate: end || undefined
             });
-            setMovements(data.items);
+            setMovements(data.data);
             setPagination(data.pagination);
         } catch (error) {
             toast.error('Erro ao carregar movimentos');
@@ -55,7 +55,7 @@ export default function BottleStoreStock() {
 
     const handleExportExcel = () => {
         const period = startDate && endDate ? `${startDate}_a_${endDate}` : startDate ? `desde_${startDate}` : endDate ? `ate_${endDate}` : 'todos';
-        const periodTitle = startDate && endDate ? `Período: ${startDate} a ${endDate}` : startDate ? `Desde: ${startDate}` : endDate ? `Até: ${endDate}` : 'Todos os Registos';
+        const periodTitle = startDate && endDate ? `Período: ${startDate} a ${endDate}` : startDate ? `Desde: ${startDate}` : endDate ? `At: ${endDate}` : 'Todos os Registos';
 
         exportToExcel({
             filename: `movimentacao_stock_garrafeira_${period}`,
@@ -85,7 +85,7 @@ export default function BottleStoreStock() {
 
     const handleExportPDF = () => {
         const period = startDate && endDate ? `${startDate}_a_${endDate}` : startDate ? `desde_${startDate}` : endDate ? `ate_${endDate}` : 'todos';
-        const periodTitle = startDate && endDate ? `Período: ${startDate} a ${endDate}` : startDate ? `Desde: ${startDate}` : endDate ? `Até: ${endDate}` : 'Todos os Registos';
+        const periodTitle = startDate && endDate ? `Período: ${startDate} a ${endDate}` : startDate ? `Desde: ${startDate}` : endDate ? `At: ${endDate}` : 'Todos os Registos';
 
         exportToPDF({
             filename: `movimentacao_stock_garrafeira_${period}`,

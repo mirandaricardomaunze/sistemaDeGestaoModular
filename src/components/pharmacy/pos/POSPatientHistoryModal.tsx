@@ -31,7 +31,7 @@ export function POSPatientHistoryModal({
                         <p className="text-center py-8 text-gray-500">Nenhum registo encontrado para este paciente.</p>
                     ) : (
                         patientHistory.map((sale: any) => (
-                            <div key={sale.id} className="p-4 border rounded-xl dark:border-dark-700 bg-gray-50 dark:bg-dark-800">
+                            <div key={sale.id} className="p-4 border rounded-lg dark:border-dark-700 bg-gray-50 dark:bg-dark-800">
                                 <div className="flex justify-between items-start mb-3 border-b dark:border-dark-700 pb-2">
                                     <div>
                                         <p className="font-semibold">{new Date(sale.date).toLocaleDateString()} - {sale.number}</p>

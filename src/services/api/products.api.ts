@@ -13,6 +13,7 @@ export const productsAPI = {
         maxPrice?: number;
         supplierId?: string;
         origin_module?: string;
+        warehouseId?: string;
         page?: number;
         limit?: number;
     }) => {
@@ -157,6 +158,12 @@ export const productsAPI = {
     getPriceTiers: async (productId: string) => {
         const response = await api.get(`/products/${productId}/price-tiers`);
         return response.data as PriceTier[];
+    },
+
+    getPriceTiersBatch: async (productIds: string[]): Promise<Record<string, { minQty: number; price: number }[]>> => {
+        if (productIds.length === 0) return {};
+        const response = await api.get('/products/price-tiers/batch', { params: { ids: productIds.join(',') } });
+        return response.data;
     },
 
     setPriceTiers: async (productId: string, tiers: Omit<PriceTier, 'id' | 'productId' | 'companyId' | 'createdAt'>[]) => {

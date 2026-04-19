@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     DndContext,
@@ -17,10 +17,10 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 
 import {
-    HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineRefresh,
     HiOutlinePlus,
     HiOutlineLightBulb
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
 
 import { Button, Skeleton } from '../components/ui';
@@ -30,7 +30,8 @@ import {
     useProducts,
     useAlerts,
     useEmployees,
-    useCategories
+    useCategories,
+    useWarehouses
 } from '../hooks/useData';
 import { useSmartInsights } from '../hooks/useSmartInsights';
 import { SmartInsightCard } from '../components/common/SmartInsightCard';
@@ -64,6 +65,7 @@ const DEFAULT_WIDGET_ORDER = ['stats', 'insights', 'revenue', 'categories', 'ale
 export default function Dashboard() {
     const { t } = useTranslation();
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
+    const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
     const [widgetOrder, setWidgetOrder] = useState<string[]>(() => {
         const saved = localStorage.getItem('dashboard-widget-order');
         return saved ? JSON.parse(saved) : DEFAULT_WIDGET_ORDER;
@@ -78,12 +80,13 @@ export default function Dashboard() {
     );
 
     // Fetch data
-    const { stats, salesChart, weeklyChart, recentActivity, isLoading: isLoadingDashboard, refetch: refetchDashboard } = useDashboard();
-    const { products, isLoading: isLoadingProducts } = useProducts();
+    const { stats, salesChart, weeklyChart, recentActivity, isLoading: isLoadingDashboard, refetch: refetchDashboard } = useDashboard(selectedWarehouseId);
+    const { products, isLoading: isLoadingProducts } = useProducts(selectedWarehouseId ? { warehouseId: selectedWarehouseId } : undefined);
     const { alerts, isLoading: isLoadingAlerts } = useAlerts();
     const { employees, isLoading: isLoadingEmployees } = useEmployees();
     const { categories, isLoading: isLoadingCategories } = useCategories();
     const { insights, isLoading: isLoadingInsights } = useSmartInsights();
+    const { warehouses } = useWarehouses();
 
     const isLoading = isLoadingDashboard || isLoadingProducts || isLoadingAlerts || isLoadingEmployees || isLoadingCategories || isLoadingInsights;
 
@@ -135,18 +138,15 @@ export default function Dashboard() {
     }, [categories]);
 
     const recentActivities = useMemo(() => {
-        if (!recentActivity) return [];
-        const activities: any[] = [];
-        recentActivity.recentSales?.forEach((sale: any) => {
-            activities.push({
-                id: `sale-${sale.id}`,
-                action: 'Venda realizada',
-                detail: `Pedido #${sale.saleNumber || sale.id.slice(-6)}`,
-                time: formatRelativeTime(sale.createdAt),
-                icon: '💰'
-            });
-        });
-        return activities.slice(0, 5);
+        if (!recentActivity || !Array.isArray(recentActivity)) return [];
+        
+        return recentActivity.map((item: any) => ({
+            id: item.id,
+            action: item.title,
+            detail: item.description,
+            time: formatRelativeTime(item.timestamp),
+            icon: item.type === 'sale' ? '💰' : '🔔'
+        })).slice(0, 5);
     }, [recentActivity]);
 
     const handleDragEnd = (event: any) => {
@@ -209,6 +209,18 @@ export default function Dashboard() {
                     <p className="text-gray-500">{t('dashboard.overview')}</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
+                    <div className="w-56">
+                        <select
+                            value={selectedWarehouseId}
+                            onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                            className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 text-sm focus:ring-2 focus:ring-primary-500 transition-all outline-none"
+                        >
+                            <option value="">Todos os Armazéns</option>
+                            {warehouses?.map(w => (
+                                <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                        </select>
+                    </div>
                     <Button variant="ghost" onClick={() => refetchDashboard()} leftIcon={<HiOutlineRefresh />}>
                         {t('common.refresh')}
                     </Button>

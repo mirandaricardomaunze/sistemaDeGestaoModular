@@ -1,9 +1,11 @@
-# Sensitive files
+# Sensitive files — never commit real secrets
 .env
 *.env
 *.db
 *.db-journal
 backend/.env
+backend/.env.production
+# NOTE: backend/.env.example is intentionally NOT ignored — it must stay in git
 
 # Logs
 logs

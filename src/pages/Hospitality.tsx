@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
@@ -10,7 +10,6 @@ import {
     EmptyState,
     Input,
     Badge,
-    useStepper,
     ConfirmationModal,
     ResponsiveValue,
     PageHeader
@@ -34,7 +33,6 @@ import { generatePOSReceipt } from '../utils/documentGenerator';
 import { useStore } from '../stores/useStore';
 import { cn } from '../utils/helpers';
 import {
-    HiOutlineCheck,
     HiOutlineMagnifyingGlass,
     HiOutlineHome,
     HiOutlineCalendar,
@@ -122,26 +120,10 @@ export default function Hospitality() {
     const [selectedRoom, setSelectedRoom] = useState<any>(null);
     const [editingRoom, setEditingRoom] = useState<any>(null);
 
-    // Check-in multi-step state
-    const checkInSteps = [
-        ...(!selectedRoom ? [{ id: 'room-select', label: 'Quarto', icon: <HiOutlineHome className="w-4 h-4" /> }] : []),
-        { id: 'form', label: 'Hóspede', icon: <HiOutlineClipboardList className="w-4 h-4" /> },
-        { id: 'confirm', label: 'Confirmação', icon: <HiOutlineCheck className="w-4 h-4" /> }
-    ];
-
-    const checkInStepper = useStepper(checkInSteps.length);
-
-    const [checkInData, setCheckInData] = useState({
-        customerName: '',
-        guestCount: '1',
-        guestDocumentType: 'BI',
-        guestDocumentNumber: '',
-        guestNationality: 'Moçambicana',
-        guestPhone: '',
-        checkOutDate: '',
-        totalPrice: '',
-        mealPlan: 'none' as 'none' | 'breakfast' | 'half_board' | 'full_board',
-        notes: ''
+    const [, setCheckInData] = useState({
+        customerName: '', guestCount: '1', guestDocumentType: 'BI',
+        guestDocumentNumber: '', guestNationality: 'Moçambicana', guestPhone: '',
+        checkOutDate: '', totalPrice: '', mealPlan: 'none' as 'none' | 'breakfast' | 'half_board' | 'full_board', notes: ''
     });
 
     const [roomFormData, setRoomFormData] = useState({
@@ -155,10 +137,6 @@ export default function Hospitality() {
         notes: ''
     });
 
-    const [consumptionData, setConsumptionData] = useState({
-        productId: '',
-        quantity: 1
-    });
     const fetchHistory = useCallback(async (p = historyPage) => {
         setHistoryLoading(true);
         try {
@@ -351,7 +329,7 @@ export default function Hospitality() {
                 )}>
                     <div className="flex items-center gap-3">
                         <div className={cn(
-                            "w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg",
+                            "w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg",
                             room.status === 'available' ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400" :
                                 room.status === 'occupied' ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" :
                                     room.status === 'dirty' ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400" :
@@ -485,7 +463,7 @@ export default function Hospitality() {
 
             {/* Quick Actions (only on rooms tab) */}
             {activeMainTab === 'rooms' && (
-                <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-100/50 dark:bg-dark-800/50 p-3 rounded-2xl border-none">
+                <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-100/50 dark:bg-dark-800/50 p-3 rounded-lg border-none">
                     <div className="flex flex-wrap items-center gap-2">
                         <Button
                             variant={filter === 'all' ? 'primary' : 'ghost'}

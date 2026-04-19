@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { employeesAPI } from '../services/api';
 import type { VacationRequest } from '../types';
@@ -19,7 +19,16 @@ export function useVacations(params?: UseVacationsParams) {
         setError(null);
         try {
             const result = await employeesAPI.getVacations(params);
-            setVacations(result);
+            
+            let vacationsData: VacationRequest[] = [];
+            if (result.success && result.data) {
+                const payload = result.data;
+                vacationsData = payload.data || (Array.isArray(payload) ? payload : []);
+            } else {
+                vacationsData = Array.isArray(result) ? result : (result.records || []);
+            }
+            
+            setVacations(vacationsData);
         } catch (err) {
             setError('Erro ao carregar férias');
             logger.error('Error fetching vacations:', err);
@@ -34,7 +43,8 @@ export function useVacations(params?: UseVacationsParams) {
 
     const requestVacation = async (data: Parameters<typeof employeesAPI.requestVacation>[0]) => {
         try {
-            const vacation = await employeesAPI.requestVacation(data);
+            const result = await employeesAPI.requestVacation(data);
+            const vacation = result.success ? result.data : result;
             setVacations((prev) => [...prev, vacation]);
             toast.success('Pedido de férias submetido com sucesso!');
             return vacation;
@@ -49,7 +59,8 @@ export function useVacations(params?: UseVacationsParams) {
         data: Parameters<typeof employeesAPI.updateVacation>[1]
     ) => {
         try {
-            const updated = await employeesAPI.updateVacation(id, data);
+            const result = await employeesAPI.updateVacation(id, data);
+            const updated = result.success ? result.data : result;
             setVacations((prev) => prev.map((v) => (v.id === id ? updated : v)));
             toast.success('Pedido de férias actualizado com sucesso!');
             return updated;

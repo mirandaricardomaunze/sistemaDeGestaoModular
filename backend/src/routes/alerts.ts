@@ -1,7 +1,8 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { ApiError } from '../middleware/error.middleware';
-import { alertsService } from '../services/alert.service';
+import { alertsService } from '../services/alertService';
+import { emitToCompany } from '../lib/socket';
 
 const router = Router();
 
@@ -14,6 +15,23 @@ router.get('/', authenticate, async (req: AuthRequest, res) => {
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const alert = await alertsService.create(req.companyId, req.body);
+    
+    // Emit socket event based on module
+    if (alert.priority === 'high' || alert.priority === 'critical') {
+        const eventMap: Record<string, string> = {
+            'restaurant': 'restaurant:new_order',
+            'inventory': 'inventory:low_stock',
+            'logistics': 'logistics:incident'
+        };
+        const event = (alert.module ? eventMap[alert.module] : null) || 'notification:new';
+        emitToCompany(req.companyId, event, {
+            message: alert.message,
+            priority: alert.priority,
+            module: alert.module,
+            timestamp: new Date()
+        });
+    }
+
     res.status(201).json(alert);
 });
 

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { 
-    HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, 
-    HiOutlineChevronRight, HiOutlineFilter, HiOutlineCamera, HiOutlineCheck, HiOutlineXMark
+import {
+    HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash,
+    HiOutlineChevronRight, HiOutlineFunnel, HiOutlineCamera
 } from 'react-icons/hi2';
 import { Card, Button, Input, Modal, Badge, LoadingSpinner, Select } from '../../components/ui';
 import { 
@@ -72,7 +72,7 @@ function MenuItemModal({ open, onClose, editing }: { open: boolean; onClose: () 
                     {/* Left: Image Upload Placeholder */}
                     <div className="w-1/3">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Imagem do Prato</label>
-                        <div className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 dark:border-dark-600 flex flex-col items-center justify-center text-gray-400 gap-2 hover:border-primary-500 hover:text-primary-500 transition-colors cursor-pointer group">
+                        <div className="aspect-square rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 flex flex-col items-center justify-center text-gray-400 gap-2 hover:border-primary-500 hover:text-primary-500 transition-colors cursor-pointer group">
                              <HiOutlineCamera className="w-8 h-8 group-hover:scale-110 transition-transform" />
                              <span className="text-xs">Clique para enviar</span>
                         </div>
@@ -129,7 +129,7 @@ function MenuItemModal({ open, onClose, editing }: { open: boolean; onClose: () 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição / Ingredientes</label>
                     <textarea 
-                        className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
+                        className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
                         rows={3}
                         value={form.description}
                         onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
@@ -273,11 +273,11 @@ export default function RestaurantMenuPage() {
             </div>
 
             {/* Filters bar */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center bg-white dark:bg-dark-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700">
+            <div className="flex flex-col sm:flex-row gap-4 items-center bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                 <div className="flex-1 w-full">
                     <Input 
                         placeholder="Pesquisar no menu..." 
-                        leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                        leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         className="bg-gray-50 dark:bg-dark-700 border-none"
@@ -287,7 +287,7 @@ export default function RestaurantMenuPage() {
                     <button 
                         onClick={() => setCategory('')}
                         className={cn(
-                            "px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
+                            "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
                             !category ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : "bg-gray-50 dark:bg-dark-700 text-gray-500 hover:bg-gray-100"
                         )}
                     >
@@ -298,7 +298,7 @@ export default function RestaurantMenuPage() {
                             key={cat}
                             onClick={() => setCategory(cat)}
                             className={cn(
-                                "px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
+                                "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
                                 category === cat ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : "bg-gray-50 dark:bg-dark-700 text-gray-500 hover:bg-gray-100"
                             )}
                         >
@@ -316,7 +316,7 @@ export default function RestaurantMenuPage() {
             ) : items.length === 0 ? (
                 <div className="py-24 text-center">
                     <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-dark-700 flex items-center justify-center mx-auto mb-4">
-                        <HiOutlineFilter className="w-10 h-10 text-gray-300" />
+                        <HiOutlineFunnel className="w-10 h-10 text-gray-300" />
                     </div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Cardápio Vazio</h2>
                     <p className="text-gray-500 dark:text-gray-400 mt-2">Nenhum item encontrado com estes filtros.</p>

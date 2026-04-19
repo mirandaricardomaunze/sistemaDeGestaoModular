@@ -1,4 +1,4 @@
-﻿import { useMemo } from 'react';
+import { useMemo } from 'react';
 import {
     HiOutlineDocumentText,
     HiOutlineClock,
@@ -88,7 +88,7 @@ export default function FiscalAuditLog() {
     };
 
     const actionOptions = [
-        { value: 'all', label: 'Todas as ações' },
+        { value: 'all', label: 'Todas as aces' },
         { value: 'created', label: 'Criação' },
         { value: 'updated', label: 'Atualização' },
         { value: 'deleted', label: 'Eliminação' },

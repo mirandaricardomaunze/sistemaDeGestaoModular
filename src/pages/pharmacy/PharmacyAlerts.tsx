@@ -7,20 +7,20 @@
  * - Recalls activos
  * - Discrepâncias de narcóticos
  * - Receitas pendentes
- * - Sugestões de reposição (reorder)
+ * - Sugestáões de reposição (reorder)
  */
 
 import { useState, useEffect } from 'react';
 import {
     HiOutlineExclamationCircle,
-    HiOutlineExclamation,
+    HiOutlineExclamationTriangle as HiOutlineExclamation,
     HiOutlineInformationCircle,
-    HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineRefresh,
     HiOutlineShoppingCart,
-    HiOutlineClipboardList,
-    HiOutlineFilter,
-} from 'react-icons/hi';
-import { Card, Button, Badge, LoadingSpinner } from '../../components/ui';
+    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
+    HiOutlineFunnel as HiOutlineFilter,
+} from 'react-icons/hi2';
+import { Card, Button, LoadingSpinner } from '../../components/ui';
 import { cn, formatCurrency } from '../../utils/helpers';
 import { pharmacyAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -198,7 +198,7 @@ export default function PharmacyAlerts() {
                             const cfg = SEVERITY_CONFIG[alert.severity];
                             const Icon = cfg.icon;
                             return (
-                                <div key={idx} className={cn('flex items-start gap-3 p-4 rounded-xl border-l-4', cfg.bg, cfg.border)}>
+                                <div key={idx} className={cn('flex items-start gap-3 p-4 rounded-lg border-l-4', cfg.bg, cfg.border)}>
                                     <Icon className={cn('w-5 h-5 mt-0.5 flex-shrink-0', cfg.text)} />
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
@@ -251,7 +251,7 @@ export default function PharmacyAlerts() {
                         <Card className="p-12 text-center">
                             <HiOutlineShoppingCart className="w-12 h-12 mx-auto text-gray-300 mb-3" />
                             <p className="text-gray-500 font-medium">Nenhuma sugestão de reposição</p>
-                            <p className="text-gray-400 text-sm mt-1">Todos os medicamentos estão acima do ponto de reposição</p>
+                            <p className="text-gray-400 text-sm mt-1">Todos os medicamentos estáão acima do ponto de reposição</p>
                         </Card>
                     )}
 

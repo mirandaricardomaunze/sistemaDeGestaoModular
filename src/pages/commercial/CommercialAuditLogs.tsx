@@ -1,16 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Card, Badge, Input, Select, Button } from '../../components/ui';
+﻿import { useState, useEffect } from 'react';
+import { Card, Badge, Select, Button } from '../../components/ui';
 import { auditAPI } from '../../services/api/audit.api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
     HiOutlineShieldCheck, 
-    HiOutlineSearch, 
-    HiOutlineFilter,
-    HiOutlineEye,
     HiOutlineChevronLeft,
     HiOutlineChevronRight
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 export default function CommercialAuditLogs() {
@@ -168,7 +165,7 @@ export default function CommercialAuditLogs() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-[10px] text-gray-400 font-mono">
-                                            {log.ipAddress || '—'}
+                                            {log.ipAddress || ''}
                                         </td>
                                     </tr>
                                 ))

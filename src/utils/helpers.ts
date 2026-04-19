@@ -1,5 +1,5 @@
-import { logger } from '../utils/logger';
-﻿import { format, parseISO, differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+﻿import { logger } from '../utils/logger';
+import { format, parseISO, differenceInDays, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // ============================================================================
@@ -19,7 +19,7 @@ export function formatDate(date: string | Date, formatStr: string = 'dd/MM/yyyy'
 }
 
 export function formatDateTime(date: string | Date): string {
-    return formatDate(date, "dd/MM/yyyy 'á s' HH:mm");
+    return formatDate(date, "dd/MM/yyyy 'às' HH:mm");
 }
 
 export function formatTime(date: string | Date): string {
@@ -35,9 +35,9 @@ export function formatRelativeTime(date: string | Date): string {
     const diffDays = Math.floor(diffMs / 86400000);
 
     if (diffMins < 1) return 'agora';
-    if (diffMins < 60) return `há¡ ${diffMins} min`;
-    if (diffHours < 24) return `há¡ ${diffHours}h`;
-    if (diffDays < 7) return `há¡ ${diffDays} dias`;
+    if (diffMins < 60) return `há ${diffMins} min`;
+    if (diffHours < 24) return `há ${diffHours}h`;
+    if (diffDays < 7) return `há ${diffDays} dias`;
     return formatDate(dateObj);
 }
 
@@ -136,8 +136,11 @@ export function getStockPercentage(current: number, max: number): number {
 // CSS Class Utilities
 // ============================================================================
 
-export function cn(...classes: (string | boolean | undefined | null)[]): string {
-    return classes.filter(Boolean).join(' ');
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
 }
 
 // ============================================================================
@@ -253,4 +256,5 @@ export function debounce<T extends (...args: unknown[]) => unknown>(
         timeout = setTimeout(() => func(...args), wait);
     };
 }
+
 

@@ -31,7 +31,8 @@ export { settingsAPI, campaignsAPI, alertsAPI, ordersAPI, type Alert, type Alert
 
 // Specialized Modules
 export { auditAPI, crmAPI, fiscalAPI } from './crm.api';
-export { hospitalityAPI, pharmacyAPI, backupsAPI, gdriveAPI } from './hospitality.api';
+export { hospitalityAPI, backupsAPI, gdriveAPI } from './hospitality.api';
+export { pharmacyAPI } from './pharmacy.api';
 export { bottleStoreAPI } from './bottle-store.api';
 export { exportAPI } from './export.api';
 
@@ -44,10 +45,13 @@ export { validitiesAPI, type ProductValidity } from './validities.api';
 // Restaurant Module
 export { restaurantAPI, type RestaurantTable, type RestaurantMenuItem, type RestaurantOrder, type RestaurantReservation, type OrderStatus, type ReservationStatus, type RestaurantOrderItem } from './restaurant.api';
 
+// Logistics Module
+export { logisticsAPI } from './logistics.api';
+
 
 // IVA & Batches
 export { ivaAPI, type IvaRate, type CreateIvaRateDto } from './iva.api';
 export { batchesAPI, type ProductBatch, type CreateBatchDto } from './batches.api';
 
 // Commercial Module Analytics
-export { commercialAPI, shiftAPI, type CommercialAnalytics, type MarginAnalysis, type MarginByCategory, type MarginByProduct, type StockAgingReport, type StockAgingProduct, type SupplierPerformance, type PurchaseOrder, type InventoryTurnoverItem, type SalesReport, type ShiftSession, type ShiftSummary } from './commercial.api';
+export { commercialAPI, shiftAPI, type CommercialAnalytics, type MarginAnalysis, type MarginByCategory, type MarginByProduct, type StockAgingReport, type StockAgingProduct, type SupplierPerformance, type PurchaseOrder, type InventoryTurnoverItem, type SalesReport, type ShiftSession, type ShiftSummary, type InventoryForecast } from './commercial.api';

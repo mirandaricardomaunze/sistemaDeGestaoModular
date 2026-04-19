@@ -1,4 +1,4 @@
-﻿import type { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { cn } from '../../utils/helpers';
 import { Button } from './Button';
 
@@ -55,7 +55,7 @@ export function NoDataFound({ onAction, actionLabel = 'Tentar Novamente', classN
                 </svg>
             }
             title="Nenhum dado encontrado"
-            description="Não há informações para exibir no momento."
+            description="Não h informações para exibir no momento."
             action={onAction ? { label: actionLabel, onClick: onAction } : undefined}
             className={className}
         />
@@ -103,7 +103,7 @@ export function ComingSoon({ className }: { className?: string }) {
                 </svg>
             }
             title="Em breve"
-            description="Esta funcionalidade estará disponível em breve. Fique atento!"
+            description="Esta funcionalidade estar disponível em breve. Fique atento!"
             className={className}
         />
     );

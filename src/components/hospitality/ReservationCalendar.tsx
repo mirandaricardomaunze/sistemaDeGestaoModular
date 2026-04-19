@@ -12,10 +12,9 @@ import {
     HiOutlineArrowPath,
     HiOutlineHome,
     HiOutlineUser,
-    HiOutlineEnvelope,
     HiOutlineGlobeAmericas
 } from 'react-icons/hi2';
-import { COUNTRIES, getCountryByCode, type Country } from '../../config/countries';
+import { COUNTRIES, getCountryByCode } from '../../config/countries';
 
 interface Room {
     id: string;
@@ -211,7 +210,7 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
     return (
         <div className="space-y-6">
             {/* Toolbar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-lg">
                         <HiOutlineCalendar className="w-5 h-5" />

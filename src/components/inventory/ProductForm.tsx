@@ -1,5 +1,5 @@
 import { logger } from '../../utils/logger';
-﻿import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,8 +11,7 @@ import ProductValiditiesSection from './ProductValiditiesSection';
 import { useSuppliers } from '../../hooks/useData';
 import { productsAPI } from '../../services/api';
 import toast from 'react-hot-toast';
-import { useStore } from '../../stores/useStore';
-import { getBusinessConfig } from '../../config/businessFeatures';
+
 
 // Validation Schema
 const productSchema = z.object({
@@ -46,8 +45,6 @@ interface ProductFormProps {
 export default function ProductForm({ isOpen, onClose, product, onSuccess }: ProductFormProps) {
     const { suppliers } = useSuppliers();
     const { categories, isLoading: categoriesLoading } = useCategories();
-    const { companySettings } = useStore();
-    const businessConfig = getBusinessConfig(companySettings.businessType);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [margin, setMargin] = useState(0);
     const isEditing = !!product;
@@ -215,7 +212,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
             <form onSubmit={handleSubmit(onSubmit as never)} className="space-y-6">
                 {/* Identification */}
                 <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Identificação</p>
+                    <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4">Informação de Identidade</p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <Input
                             label="Código Interno *"
@@ -254,7 +251,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                     <Select
                         label="Categoria *"
                         options={[
-                            { value: '', label: categoriesLoading ? 'A carregar...' : categoryOptions.length === 0 ? 'Sem categorias — crie primeiro' : 'Selecione uma categoria' },
+                            { value: '', label: categoriesLoading ? 'A carregar...' : categoryOptions.length === 0 ? 'Sem categorias - crie primeiro' : 'Selecione uma categoria' },
                             ...categoryOptions,
                         ]}
                         {...register('category')}
@@ -271,7 +268,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
 
                 {/* Prices + Margin */}
                 <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Preços</p>
+                    <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4">Estrutura de Preços & Margens</p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                         <Input
                             label="Preço de Venda *"
@@ -289,20 +286,20 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                             error={errors.costPrice?.message}
                             placeholder="0.00"
                         />
-                        <div className={`flex flex-col items-center justify-center h-[72px] rounded-xl border-2 ${
-                            margin >= 30 ? 'border-green-400 bg-green-50 dark:bg-green-900/20' :
-                            margin >= 10 ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/20' :
-                            margin > 0  ? 'border-red-400 bg-red-50 dark:bg-red-900/20' :
+                        <div className={`flex flex-col items-center justify-center h-[72px] rounded-lg border-2 transition-all duration-300 ${
+                            margin >= 30 ? 'border-primary-400 bg-primary-50 dark:bg-primary-900/10' :
+                            margin >= 10 ? 'border-amber-400 bg-amber-50 dark:bg-amber-900/10' :
+                            margin > 0  ? 'border-red-400 bg-red-50 dark:bg-red-900/10' :
                             'border-gray-200 bg-gray-50 dark:bg-dark-700'
                         }`}>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Margem de Lucro</span>
-                            <span className={`text-2xl font-bold ${
-                                margin >= 30 ? 'text-green-600 dark:text-green-400' :
-                                margin >= 10 ? 'text-amber-600 dark:text-amber-400' :
-                                margin > 0  ? 'text-red-600 dark:text-red-400' :
+                            <span className="text-[9px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest">Margem Lucro</span>
+                            <span className={`text-2xl font-black tracking-tighter ${
+                                margin >= 30 ? 'text-primary-600' :
+                                margin >= 10 ? 'text-amber-600' :
+                                margin > 0  ? 'text-red-600' :
                                 'text-gray-400'
                             }`}>
-                                {margin > 0 ? `${margin.toFixed(1)}%` : '—'}
+                                {margin > 0 ? `${margin.toFixed(1)}%` : ''}
                             </span>
                         </div>
                     </div>
@@ -330,7 +327,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                             </div>
                         </div>
                     ) : (
-                        <div className="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-xl border border-primary-100 dark:border-primary-900/30 flex items-start gap-3">
+                        <div className="p-4 bg-primary-50 dark:bg-primary-900/10 rounded-lg border border-primary-100 dark:border-primary-900/30 flex items-start gap-3">
                             <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center shrink-0">
                                 <span className="text-primary-600 font-bold">i</span>
                             </div>
@@ -365,15 +362,15 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                     />
                 </div>
 
-                {/* Validades — only shown when editing an existing product */}
+                {/* Validades - only shown when editing an existing product */}
                 {isEditing && product && (
-                    <div className="p-4 bg-gray-50 dark:bg-dark-700/50 rounded-xl border border-gray-200 dark:border-dark-600">
+                    <div className="p-4 bg-gray-50 dark:bg-dark-700/50 rounded-lg border border-gray-200 dark:border-dark-600">
                         <ProductValiditiesSection productId={product.id} />
                     </div>
                 )}
                 {!isEditing && (
                     <p className="text-xs text-gray-400 italic">
-                        Após criar o produto poderá adicionar as suas validades (lotes com datas de expiração).
+                        Após criar o produto poder adicionar as suas validades (lotes com datas de expiração).
                     </p>
                 )}
 

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { suppliersService } from '../services/suppliers.service';
+import { suppliersService } from '../services/suppliersService';
 import { ApiError } from '../middleware/error.middleware';
 import {
     createSupplierSchema,
@@ -59,7 +59,8 @@ router.post('/orders/:orderId/receive', authenticate, async (req: AuthRequest, r
         req.companyId, 
         req.userName || 'Sistema',
         req.userId,
-        req.userName
+        req.userName,
+        validatedData.warehouseId
     );
     res.json({ message: 'Itens recebidos com sucesso' });
 });

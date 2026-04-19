@@ -11,12 +11,10 @@
 
 import { useMemo } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
-import type { User } from '../types';
 import {
     useDrivers,
     useDeliveries,
     useUpdateDeliveryStatus,
-    useDeliveryStatusTimeline,
 } from './useLogistics';
 import type { Delivery, Driver } from '../services/api/logistics.api';
 
@@ -101,7 +99,7 @@ export function useDriverPanel(): UseDriverPanelResult {
         );
     }, [driversData, user]);
 
-    // Fetch ALL active deliveries for this driver (not paginated — drivers rarely have >100).
+    // Fetch ALL active deliveries for this driver (not paginated -- drivers rarely have >100).
     const { data: deliveriesData, isLoading: loadingDeliveries } = useDeliveries(
         currentDriver
             ? { driverId: currentDriver.id, limit: 100 }

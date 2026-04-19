@@ -18,8 +18,7 @@ import {
     HiOutlineCalendarDays,
     HiOutlineChartBar
 } from 'react-icons/hi2';
-import { useDeliveries, useDrivers, useDeliveryRoutes, useLogisticsDashboard } from '../../hooks/useLogistics';
-import { exportAPI } from '../../services/api';
+import { useLogisticsReportsSummary, useLogisticsDashboard } from '../../hooks/useLogistics';
 import { PageHeader } from '../../components/ui';
 import {
     BarChart,
@@ -33,7 +32,7 @@ import {
     Pie,
     Cell
 } from 'recharts';
-import { format, subDays, startOfMonth, parseISO } from 'date-fns';
+import { format, subDays, startOfMonth } from 'date-fns';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 
@@ -60,64 +59,18 @@ export default function LogisticsReportsPage() {
     }, [period]);
 
     const { data: dashboard, isLoading: loadingDashboard, refetch: refetchDashboard } = useLogisticsDashboard();
-    const { data: deliveriesData, isLoading: loadingDeliveries } = useDeliveries({
+    const { data: reportData, isLoading: loadingReport } = useLogisticsReportsSummary({
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        limit: 1000
     });
-    const { data: drivers } = useDrivers();
-    const { data: routes } = useDeliveryRoutes();
 
-    const isLoading = loadingDashboard || loadingDeliveries;
+    const isLoading = loadingDashboard || loadingReport;
 
-    // Calculate delivery statistics
-    const deliveryStats = useMemo(() => {
-        if (!deliveriesData?.deliveries) return null;
+    const deliveryStats = reportData?.summary ?? null;
 
-        const deliveries = deliveriesData.deliveries;
-        const total = deliveries.length;
-        const delivered = deliveries.filter(d => d.status === 'delivered').length;
-        const failed = deliveries.filter(d => d.status === 'failed').length;
-        const pending = deliveries.filter(d => d.status === 'pending').length;
-        const inTransit = deliveries.filter(d => d.status === 'in_transit').length;
-
-        const totalRevenue = deliveries
-            .filter(d => d.isPaid)
-            .reduce((sum, d) => sum + Number(d.shippingCost || 0), 0);
-
-        const avgDeliveryTime = deliveries
-            .filter(d => d.status === 'delivered' && d.deliveredDate && d.createdAt)
-            .map(d => {
-                const created = new Date(d.createdAt);
-                const delivered = new Date(d.deliveredDate!);
-                return (delivered.getTime() - created.getTime()) / (1000 * 60 * 60); // hours
-            });
-
-        const avgHours = avgDeliveryTime.length > 0
-            ? avgDeliveryTime.reduce((a, b) => a + b, 0) / avgDeliveryTime.length
-            : 0;
-
-        return {
-            total,
-            delivered,
-            failed,
-            pending,
-            inTransit,
-            successRate: total > 0 ? (delivered / total) * 100 : 0,
-            totalRevenue,
-            avgDeliveryHours: avgHours
-        };
-    }, [deliveriesData]);
-
-    // Status distribution for pie chart
+    // Status distribution labels
     const statusDistribution = useMemo(() => {
-        if (!deliveriesData?.deliveries) return [];
-
-        const counts: Record<string, number> = {};
-        deliveriesData.deliveries.forEach(d => {
-            counts[d.status] = (counts[d.status] || 0) + 1;
-        });
-
+        if (!reportData?.statusDistribution) return [];
         const statusLabels: Record<string, string> = {
             pending: t('logistics_module.deliveries.status.pending'),
             scheduled: t('logistics_module.deliveries.status.scheduled'),
@@ -128,72 +81,14 @@ export default function LogisticsReportsPage() {
             returned: t('logistics_module.deliveries.status.returned'),
             cancelled: t('logistics_module.deliveries.status.cancelled')
         };
-
-        return Object.entries(counts).map(([status, count]) => ({
+        return reportData.statusDistribution.map(({ status, count }) => ({
             name: statusLabels[status] || status,
             value: count
         }));
-    }, [deliveriesData]);
+    }, [reportData, t]);
 
-    // Driver performance
-    const driverPerformance = useMemo(() => {
-        if (!deliveriesData?.deliveries || !drivers) return [];
-
-        const driverStats: Record<string, { name: string; total: number; delivered: number; failed: number }> = {};
-
-        deliveriesData.deliveries
-            .filter(d => d.driverId && d.driver)
-            .forEach(d => {
-                const driverId = d.driverId!;
-                if (!driverStats[driverId]) {
-                    driverStats[driverId] = {
-                        name: d.driver!.name,
-                        total: 0,
-                        delivered: 0,
-                        failed: 0
-                    };
-                }
-                driverStats[driverId].total++;
-                if (d.status === 'delivered') driverStats[driverId].delivered++;
-                if (d.status === 'failed') driverStats[driverId].failed++;
-            });
-
-        return Object.values(driverStats)
-            .map(ds => ({
-                ...ds,
-                successRate: ds.total > 0 ? (ds.delivered / ds.total) * 100 : 0
-            }))
-            .sort((a, b) => b.total - a.total)
-            .slice(0, 10);
-    }, [deliveriesData, drivers]);
-
-    // Route usage
-    const routeUsage = useMemo(() => {
-        if (!deliveriesData?.deliveries || !routes) return [];
-
-        const routeStats: Record<string, { name: string; count: number; revenue: number }> = {};
-
-        deliveriesData.deliveries
-            .filter(d => d.routeId && d.route)
-            .forEach(d => {
-                const routeId = d.routeId!;
-                if (!routeStats[routeId]) {
-                    routeStats[routeId] = {
-                        name: d.route!.name,
-                        count: 0,
-                        revenue: 0
-                    };
-                }
-                routeStats[routeId].count++;
-                if (d.isPaid) {
-                    routeStats[routeId].revenue += Number(d.shippingCost || 0);
-                }
-            });
-
-        return Object.values(routeStats)
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 10);
-    }, [deliveriesData, routes]);
+    const driverPerformance = reportData?.driverPerformance ?? [];
+    const routeUsage = reportData?.routeUsage ?? [];
 
     // Province distribution
     const provinceData = useMemo(() => {
@@ -203,36 +98,29 @@ export default function LogisticsReportsPage() {
             .sort((a, b) => b.count - a.count);
     }, [dashboard]);
 
-    // Unified Export Handler
+    // Export handler using summary data
     const handleExport = async (type: 'pdf' | 'excel') => {
-        if (!deliveriesData?.deliveries) return;
-
-        const periodLabel = period === 'month' ? t('logistics_module.dashboard.periods.month') : t('logistics_module.dashboard.periods.2months'); // Simplification or expansion needed
-
+        if (!reportData) return;
+        const { exportAPI } = await import('../../services/api');
+        const periodLabel = period === 'month' ? t('logistics_module.dashboard.periods.month') : `${period} dias`;
         const columns = [
-            { header: t('logistics_module.deliveries.number'), key: 'number', width: 100 },
-            { header: t('logistics_module.deliveries.recipient'), key: 'recipient', width: 150 },
-            { header: t('logistics_module.deliveries.address'), key: 'address', width: 200 },
-            { header: t('logistics_module.deliveries.driver'), key: 'driver', width: 120 },
-            { header: t('common.status'), key: 'status', width: 100 },
-            { header: t('common.date'), key: 'date', width: 100 },
-            { header: t('common.total'), key: 'value', width: 80 }
+            { header: t('logistics_module.deliveries.driver'), key: 'driver', width: 150 },
+            { header: t('common.total'), key: 'total', width: 80 },
+            { header: t('logistics_module.deliveries.status.delivered'), key: 'delivered', width: 80 },
+            { header: t('logistics_module.deliveries.status.failed'), key: 'failed', width: 80 },
+            { header: t('logistics_module.dashboard.kpis.conversion'), key: 'rate', width: 80 }
         ];
-
-        const data = deliveriesData.deliveries.map(d => ({
-            number: d.number,
-            recipient: d.recipientName || '-',
-            address: d.deliveryAddress,
-            driver: d.driver?.name || '-',
-            status: d.status,
-            date: format(parseISO(d.createdAt), 'dd/MM/yyyy'),
-            value: formatCurrency(Number(d.shippingCost || 0))
+        const data = driverPerformance.map(d => ({
+            driver: d.name,
+            total: d.total,
+            delivered: d.delivered,
+            failed: d.failed,
+            rate: `${d.successRate.toFixed(1)}%`
         }));
-
         await exportAPI.export({
             type,
             title: `${t('businessType.logistics').toUpperCase()}: ${t('logistics_module.dashboard.reports.logisticsReport')}`,
-            subtitle: `${t('common.report')}: ${periodLabel} | ${t('logistics_module.dashboard.kpis.conversion')}: ${deliveryStats?.successRate.toFixed(1)}%`,
+            subtitle: `${t('common.report')}: ${periodLabel} | ${t('logistics_module.dashboard.kpis.conversion')}: ${deliveryStats?.successRate.toFixed(1) ?? 0}%`,
             columns,
             data,
             filename: `Relatorio_Logistica_${new Date().getTime()}`
@@ -292,7 +180,7 @@ export default function LogisticsReportsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card variant="glass" className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary-100 dark:bg-primary-900/30">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-primary-100 dark:bg-primary-900/30">
                             <HiOutlineTruck className="w-6 h-6 text-primary-600" />
                         </div>
                         <div>
@@ -303,7 +191,7 @@ export default function LogisticsReportsPage() {
                 </Card>
                 <Card variant="glass" className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-success-100 dark:bg-success-900/30">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-success-100 dark:bg-success-900/30">
                             <HiOutlineCheckCircle className="w-6 h-6 text-success-600" />
                         </div>
                         <div>
@@ -314,7 +202,7 @@ export default function LogisticsReportsPage() {
                 </Card>
                 <Card variant="glass" className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-warning-100 dark:bg-warning-900/30">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-warning-100 dark:bg-warning-900/30">
                             <HiOutlineCurrencyDollar className="w-6 h-6 text-warning-600" />
                         </div>
                         <div>
@@ -325,7 +213,7 @@ export default function LogisticsReportsPage() {
                 </Card>
                 <Card variant="glass" className="p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-info-100 dark:bg-info-900/30">
+                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-info-100 dark:bg-info-900/30">
                             <HiOutlineCalendarDays className="w-6 h-6 text-info-600" />
                         </div>
                         <div>

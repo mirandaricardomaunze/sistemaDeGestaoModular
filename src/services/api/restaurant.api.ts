@@ -1,92 +1,14 @@
-/**
- * Restaurant API Service
- * Types and methods for: Tables, Menu, Orders/Kitchen, Reservations, Reports
- */
-
 import client from './client';
+import type {
+    RestaurantTable,
+    RestaurantMenuItem,
+    RestaurantOrder,
+    RestaurantReservation,
+    OrderStatus,
+    ReservationStatus
+} from '../../types/restaurant';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-export interface RestaurantTable {
-    id: string;
-    number: number;
-    name?: string;
-    capacity: number;
-    status: 'available' | 'occupied' | 'reserved' | 'maintenance';
-    section?: string;
-    notes?: string;
-    companyId: string;
-    createdAt: string;
-    updatedAt: string;
-    sales?: any[];
-}
-
-export interface RestaurantMenuItem {
-    id: string;
-    name: string;
-    description?: string;
-    price: number;
-    category: string;
-    imageUrl?: string;
-    /** Minutes to prepare */
-    prepTime?: number;
-    isAvailable: boolean;
-    allergens?: string;
-    calories?: number;
-    companyId: string;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'served' | 'cancelled';
-
-export interface RestaurantOrderItem {
-    id: string;
-    menuItemId?: string;
-    productId?: string;
-    name: string;
-    quantity: number;
-    unitPrice: number;
-    notes?: string;
-}
-
-export interface RestaurantOrder {
-    id: string;
-    orderNumber: string;
-    tableId?: string;
-    table?: Pick<RestaurantTable, 'id' | 'number' | 'name'>;
-    status: OrderStatus;
-    items: RestaurantOrderItem[];
-    notes?: string;
-    /** ISO timestamp when order was placed */
-    createdAt: string;
-    updatedAt: string;
-    /** ISO timestamp when status changed to 'ready' */
-    readyAt?: string;
-    /** ISO timestamp when status changed to 'served' */
-    servedAt?: string;
-}
-
-export type ReservationStatus = 'pending' | 'confirmed' | 'cancelled' | 'no_show' | 'seated';
-
-export interface RestaurantReservation {
-    id: string;
-    guestName: string;
-    guestPhone: string;
-    guestEmail?: string;
-    partySize: number;
-    tableId?: string;
-    table?: Pick<RestaurantTable, 'id' | 'number' | 'name'>;
-    status: ReservationStatus;
-    /** ISO datetime string */
-    scheduledAt: string;
-    notes?: string;
-    companyId: string;
-    createdAt: string;
-    updatedAt: string;
-}
+export type { RestaurantTable, RestaurantMenuItem, RestaurantOrder, RestaurantReservation, OrderStatus, ReservationStatus, RestaurantOrderItem, RestaurantDashboard } from '../../types/restaurant';
 
 // ============================================================================
 // API METHODS
@@ -202,4 +124,26 @@ export const restaurantAPI = {
         const res = await client.get('/restaurant/reports', { params });
         return res.data;
     },
+
+    // ── Finance ────────────────────────────────────────────────────────────────
+    getFinanceDashboard: async (period?: string) => {
+        const response = await client.get('/restaurant/finance/dashboard', { params: { period } });
+        return response.data;
+    },
+    getTransactions: async (params?: any) => {
+        const response = await client.get('/restaurant/finance/transactions', { params });
+        return response.data;
+    },
+    createTransaction: async (data: any) => {
+        const response = await client.post('/restaurant/finance/transactions', data);
+        return response.data;
+    },
+    updateTransaction: async (id: string, data: any) => {
+        const response = await client.put(`/restaurant/finance/transactions/${id}`, data);
+        return response.data;
+    },
+    deleteTransaction: async (id: string) => {
+        const response = await client.delete(`/restaurant/finance/transactions/${id}`);
+        return response.data;
+    }
 };

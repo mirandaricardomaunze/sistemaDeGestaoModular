@@ -82,7 +82,7 @@ export function useSmartInsights() {
                             module: 'hospitality',
                             type: 'opportunity',
                             title: 'Alta Ocupação Detetada',
-                            description: 'A ocupação está acima de 80%. Considere ajustar tarifas dinâmicas.',
+                            description: 'A ocupação est acima de 80%. Considere ajustar tarifas dinâmicas.',
                             priority: 7,
                             actionText: 'Gerir Reservas',
                             actionPath: '/hospitality/ops'

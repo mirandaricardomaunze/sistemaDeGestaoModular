@@ -1,13 +1,13 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     HiOutlinePlus,
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass as HiOutlineSearch,
     HiOutlineCheck,
-    HiOutlineX,
+    HiOutlineXMark as HiOutlineX,
     HiOutlineTruck,
     HiOutlineEye
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { Card, Button, Input, Select, Badge, Pagination, usePagination, Modal, LoadingOverlay, ConfirmationModal } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { format, parseISO } from 'date-fns';

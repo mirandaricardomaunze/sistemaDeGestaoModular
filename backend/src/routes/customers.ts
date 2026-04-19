@@ -1,6 +1,6 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { customersService } from '../services/customers.service';
+import { customersService } from '../services/customersService';
 import {
     createCustomerSchema,
     updateCustomerSchema,

@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { prisma } from '../lib/prisma';
-import { alertsService, checkExpiringBatches } from '../services/alert.service';
+import { alertsService, checkExpiringBatches } from '../services/alertService';
+import { commercialService } from '../services/commercialService';
 import { logger } from '../utils/logger';
 
 const runAlertGeneration = async () => {
@@ -15,7 +16,7 @@ const runAlertGeneration = async () => {
 };
 
 export const startCronJobs = () => {
-    // Run daily at midnight — full check + email notifications
+    // Run daily at midnight -- full check + email notifications
     cron.schedule('0 0 * * *', async () => {
         logger.info('Running daily automated tasks...');
         try {
@@ -26,7 +27,7 @@ export const startCronJobs = () => {
         }
     });
 
-    // Run every 6 hours — stock and expiry alert refresh
+    // Run every 6 hours -- stock and expiry alert refresh
     cron.schedule('0 */6 * * *', async () => {
         logger.info('Running 6-hour alert refresh...');
         try {
@@ -36,5 +37,14 @@ export const startCronJobs = () => {
         }
     });
 
-    logger.info('Cron jobs scheduled: Daily (00:00) + 6-hour alert refresh');
+    // Run every minute -- Stock Reservation Cleanup
+    cron.schedule('* * * * *', async () => {
+        try {
+            await commercialService.cleanupExpiredReservations();
+        } catch (error) {
+            logger.error('Error running stock reservation cleanup:', error);
+        }
+    });
+
+    logger.info('Cron jobs scheduled: Daily (00:00) + 6-hour refresh + 1-min reservation cleanup');
 };

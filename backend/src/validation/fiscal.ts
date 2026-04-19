@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Validation Schemas - Fiscal & Pharmacy
  * 
  * Schemas for fiscal documents and pharmacy operations.
@@ -19,7 +19,7 @@ export const createFiscalDocumentSchema = z.object({
     items: z.array(z.object({
         description: z.string().min(1, 'Descrição obrigatória').max(500, 'Descrição muito longa'),
         quantity: z.number().positive('Quantidade deve ser maior que zero'),
-        unitPrice: z.number().positive('Preço unitário deve ser maior que zero'),
+        unitPrice: z.number().positive('Preço unitrio deve ser maior que zero'),
         taxRate: z.number().min(0).max(100).optional().default(16),
         total: z.number().positive('Total deve ser maior que zero')
     })).min(1, 'Documento deve ter pelo menos um item'),
@@ -49,7 +49,7 @@ export const createMedicationSchema = z.object({
     requiresPrescription: z.boolean().optional().default(false),
     controlled: z.boolean().optional().default(false),
     storageConditions: z.string().max(200, 'Condições de armazenamento muito longas').optional().nullable(),
-    contraindications: z.string().max(1000, 'Contraindicações muito longas').optional().nullable(),
+    contraindications: z.string().max(1000, 'Contraindicaces muito longas').optional().nullable(),
     sideEffects: z.string().max(1000, 'Efeitos secundários muito longos').optional().nullable(),
     isActive: z.boolean().optional().default(true)
 });

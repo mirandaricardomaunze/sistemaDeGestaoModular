@@ -1,4 +1,4 @@
-﻿import rateLimit from 'express-rate-limit';
+import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 import Redis from 'ioredis';
 import { logger } from '../utils/logger';
@@ -23,27 +23,27 @@ if (process.env.REDIS_URL || process.env.REDIS_HOST) {
             }
         });
 
-        redisClient.on('error', () => {
+        redisClient.on('error', (err) => {
             if (useRedis) {
-                logger.warn('Redis connection lost — falling back to in-memory rate limiting');
+                logger.warn(`Redis rate-limit store lost (${err?.message || 'connection failed'}) -- falling back to in-memory`);
                 useRedis = false;
             }
         });
 
         redisClient.on('ready', () => {
-            logger.info('Redis connected — rate limiting active');
+            logger.info('Redis connected -- rate limiting active');
             useRedis = true;
         });
 
         // Initially assume it's NOT usable until 'ready'
         useRedis = false;
     } catch (error) {
-        logger.warn('Redis setup error — using in-memory rate limiting');
+        logger.warn('Redis setup error -- using in-memory rate limiting');
         redisClient = null;
         useRedis = false;
     }
 } else {
-    logger.warn('Redis not configured — using in-memory rate limiting');
+    logger.warn('Redis not configured -- using in-memory rate limiting');
 }
 
 /**
@@ -105,7 +105,21 @@ export const rateLimiters = {
     write: createRateLimiter(
         60 * 1000, // 1 minute
         30,
-        'Limite de operações de escrita excedido.'
+        'Limite de operaces de escrita excedido.'
+    ),
+
+    // Strict limit for financial mutations (sales, payments, invoices)
+    financial: createRateLimiter(
+        60 * 1000, // 1 minute
+        20,
+        'Limite de operaces financeiras excedido. Aguarde um momento.'
+    ),
+
+    // Very strict for data export (prevents bulk data exfiltration)
+    export: createRateLimiter(
+        60 * 60 * 1000, // 1 hour
+        10,
+        'Limite de exportação de dados excedido. Tente novamente em 1 hora.'
     ),
 };
 

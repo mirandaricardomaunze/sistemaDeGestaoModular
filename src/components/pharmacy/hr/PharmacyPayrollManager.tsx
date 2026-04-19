@@ -12,7 +12,7 @@ import { useEmployees, usePayroll } from '../../../hooks/useData';
 import { formatCurrency, formatDate } from '../../../utils/helpers';
 import toast from 'react-hot-toast';
 
-// IRT Mozambique 2024 — matches backend calculateIRT()
+// IRT Mozambique 2024 - matches backend calculateIRT()
 const calculateIRT = (income: number): number => {
     if (income <= 42500) return 0;
     if (income <= 100000) return (income - 42500) * 0.10;
@@ -57,7 +57,7 @@ export const PharmacyPayrollManager: React.FC = () => {
         if (!window.confirm('Processar todos os rascunhos deste mês?')) return;
         const draftIds = payrollData?.filter(p => p.status === 'draft').map(p => p.id) || [];
         if (draftIds.length === 0) {
-            toast('Não há rascunhos por processar');
+            toast('Não h rascunhos por processar');
             return;
         }
         setProcessingAll(true);
@@ -148,7 +148,7 @@ export const PharmacyPayrollManager: React.FC = () => {
                             disabled={processingAll}
                             className="h-11 font-black text-[10px] uppercase tracking-widest"
                         >
-                            {processingAll ? 'A processar…' : 'Processar Todos'}
+                            {processingAll ? 'A processar...' : 'Processar Todos'}
                         </Button>
                     </div>
                 </div>
@@ -211,11 +211,11 @@ export const PharmacyPayrollManager: React.FC = () => {
                                         <tr key={p.id} className="hover:bg-gray-50/30 dark:hover:bg-dark-700/20 transition-all group">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-9 h-9 rounded-xl bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-600 font-black text-xs shadow-inner">
+                                                    <div className="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center text-primary-600 font-black text-xs shadow-inner">
                                                         {employee?.name?.charAt(0) ?? '?'}
                                                     </div>
                                                     <div>
-                                                        <p className="font-black text-gray-900 dark:text-white uppercase text-xs">{employee?.name ?? '—'}</p>
+                                                        <p className="font-black text-gray-900 dark:text-white uppercase text-xs">{employee?.name ?? ''}</p>
                                                         <p className="text-[10px] text-gray-400 font-medium">{employee?.department || 'Farmácia'} • {employee?.code ?? ''}</p>
                                                     </div>
                                                 </div>
@@ -305,13 +305,13 @@ export const PharmacyPayrollManager: React.FC = () => {
                                 </div>
                                 <div className="space-y-1 text-right">
                                     <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Detalhes do Contrato</p>
-                                    <p className="font-bold text-gray-700">NUIT: {selectedPayroll.employee?.nuit || '—'}</p>
-                                    <p className="text-xs text-gray-500">INSS: {selectedPayroll.employee?.socialSecurityNumber || '—'}</p>
+                                    <p className="font-bold text-gray-700">NUIT: {selectedPayroll.employee?.nuit || ''}</p>
+                                    <p className="text-xs text-gray-500">INSS: {selectedPayroll.employee?.socialSecurityNumber || ''}</p>
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <div className="bg-gray-50 rounded-2xl p-4 space-y-3">
+                                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                     <div className="flex justify-between text-xs font-bold border-b border-gray-100 pb-2">
                                         <span>DESCRIÇÃO</span>
                                         <span>VALOR (MT)</span>
@@ -354,7 +354,7 @@ export const PharmacyPayrollManager: React.FC = () => {
                                     )}
                                 </div>
 
-                                <div className="flex justify-between items-center p-6 bg-primary-600 rounded-3xl text-white shadow-xl shadow-primary-500/20">
+                                <div className="flex justify-between items-center p-6 bg-primary-600 rounded-lg text-white shadow-xl shadow-primary-500/20">
                                     <div>
                                         <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Líquido a Receber</p>
                                         <p className="text-xs italic opacity-80">
@@ -374,7 +374,7 @@ export const PharmacyPayrollManager: React.FC = () => {
                             <div className="flex justify-between gap-4 pt-4">
                                 <Button
                                     variant="outline"
-                                    className="flex-1 rounded-xl uppercase font-black text-[10px] tracking-widest"
+                                    className="flex-1 rounded-lg uppercase font-black text-[10px] tracking-widest"
                                     onClick={() => window.print()}
                                     leftIcon={<HiOutlinePrinter className="w-5 h-5" />}
                                 >
@@ -382,7 +382,7 @@ export const PharmacyPayrollManager: React.FC = () => {
                                 </Button>
                                 <Button
                                     variant="ghost"
-                                    className="flex-1 rounded-xl uppercase font-black text-[10px] tracking-widest"
+                                    className="flex-1 rounded-lg uppercase font-black text-[10px] tracking-widest"
                                     onClick={() => setIsPayslipOpen(false)}
                                 >
                                     Fechar

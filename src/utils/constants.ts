@@ -1,4 +1,4 @@
-﻿/**
+/**
  * System Constants and Labels
  * Centralized display names for various system types and statuses.
  */

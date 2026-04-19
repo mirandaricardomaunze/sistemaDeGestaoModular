@@ -1,0 +1,35 @@
+================================================================================
+TAILWIND CLASS & UI TEXT CHARACTER AUDIT
+================================================================================
+
+
+┌─ components\pharmacy\hr\PharmacyHRDashboard.tsx (1 issue(s))
+│  L 198  [CAPS_CORRUPT]  "ATENÇÃO"
+│         → {idx === 3 && metrics.pendingCompliance > 0 ? 'ATENÇÃO' : 'ESTÁVEL'}
+└──────────────────────────────────────────────────────────────────────────────
+
+┌─ utils\documentGenerator.ts (6 issue(s))
+│  L 169  [CAPS_CORRUPT]  "CONFIRMAÇÃO"
+│         → doc.text('CONFIRMAÇÃO DE RECEPÇÃO (DESTINO)', pageWidth - 80, finalY + 5);
+│  L 296  [CAPS_CORRUPT]  "OCUPAÇÃO"
+│         → doc.text('OCUPAÇÃO ATUAL', pageWidth / 2 + 10, 55);
+│  L 505  [CAPS_CORRUPT]  "AÇÃO"
+│         → doc.text('⚠️ AÇÃO URGENTE NECESSÁRIA', 20, 60);
+│  L 767  [CAPS_CORRUPT]  "DISTRIBUIÇÃO"
+│         → doc.text('DISTRIBUIÇÃO POR CATEGORIA', 15, nextY);
+│  L1079  [CAPS_CORRUPT]  "CONFIRMAÇÃO"
+│         → addProfessionalHeader(doc, 'CONFIRMAÇÃO DE PAGAMENTO', companyInfo, period);
+│  L1121  [CAPS_CORRUPT]  "COMPOSIÇÃO"
+│         → doc.text('COMPOSIÇÃO SALARIAL', 15, y);
+└──────────────────────────────────────────────────────────────────────────────
+
+
+================================================================================
+SUMMARY
+================================================================================
+Files with issues        : 2
+Total issues             : 7
+  TAILWIND class issues  : 0
+  MOJIBAKE sequences     : 0
+  CAPS corrupted         : 7
+  OTHER (double accent)  : 0

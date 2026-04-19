@@ -1,6 +1,6 @@
-﻿/**
+/**
  * Thermal Receipt Print Preview
- * Preview moderno no ecrã + formato térmico optimizado para impressão
+ * Preview moderno no ecr + formato térmico optimizado para impressão
  */
 
 import { HiOutlinePrinter, HiOutlineX, HiOutlineCheck, HiOutlineCash, HiOutlineCreditCard, HiOutlineReceiptTax, HiOutlineDownload } from 'react-icons/hi';
@@ -301,7 +301,7 @@ export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale 
                     {/* Payment Info */}
                     <div className="p-4 border-t border-gray-200 dark:border-dark-600">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
+                            <div className="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
                                 {getPaymentIcon()}
                             </div>
                             <div className="flex-1">

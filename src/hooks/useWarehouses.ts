@@ -1,69 +1,51 @@
-import { logger } from '../utils/logger';
-﻿import { useState, useEffect, useCallback } from 'react';
-import toast from 'react-hot-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { warehousesAPI } from '../services/api';
+import toast from 'react-hot-toast';
+
+export interface Warehouse {
+    id: string;
+    code: string;
+    name: string;
+    location?: string;
+    responsible?: string;
+    isActive: boolean;
+    isDefault: boolean;
+    latitude?: number | string;
+    longitude?: number | string;
+    totalItems?: number;
+}
 
 export function useWarehouses() {
-    const [warehouses, setWarehouses] = useState<Array<{
-        id: string;
-        code: string;
-        name: string;
-        location?: string;
-        responsible?: string;
-        isActive: boolean;
-        isDefault: boolean;
-    }>>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
 
-    const fetchWarehouses = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const result = await warehousesAPI.getAll();
-            setWarehouses(result);
-        } catch (err) {
-            setError('Erro ao carregar armazéns');
-            logger.error('Error fetching warehouses:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+    const query = useQuery<Warehouse[]>({
+        queryKey: ['warehouses'],
+        queryFn: () => warehousesAPI.getAll(),
+    });
 
-    useEffect(() => {
-        fetchWarehouses();
-    }, [fetchWarehouses]);
-
-    const addWarehouse = async (data: Parameters<typeof warehousesAPI.create>[0]) => {
-        try {
-            const newWarehouse = await warehousesAPI.create(data);
-            setWarehouses((prev) => [...prev, newWarehouse]);
+    const addMutation = useMutation({
+        mutationFn: (data: Parameters<typeof warehousesAPI.create>[0]) => warehousesAPI.create(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             toast.success('Armazém criado com sucesso!');
-            return newWarehouse;
-        } catch (err) {
-            logger.error('Error creating warehouse:', err);
-            throw err;
-        }
-    };
+        },
+    });
 
-    const updateWarehouse = async (id: string, data: Parameters<typeof warehousesAPI.update>[1]) => {
-        try {
-            const updated = await warehousesAPI.update(id, data);
-            setWarehouses((prev) => prev.map((w) => (w.id === id ? updated : w)));
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Parameters<typeof warehousesAPI.update>[1] }) => 
+            warehousesAPI.update(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['warehouses'] });
             toast.success('Armazém actualizado com sucesso!');
-            return updated;
-        } catch (err) {
-            logger.error('Error updating warehouse:', err);
-            throw err;
-        }
-    };
+        },
+    });
 
     return {
-        warehouses,
-        isLoading,
-        error,
-        refetch: fetchWarehouses,
-        addWarehouse,
-        updateWarehouse,
+        warehouses: query.data ?? [],
+        isLoading: query.isLoading,
+        error: query.error ? 'Erro ao carregar armazéns' : null,
+        refetch: query.refetch,
+        addWarehouse: addMutation.mutateAsync,
+        updateWarehouse: updateMutation.mutateAsync,
     };
 }

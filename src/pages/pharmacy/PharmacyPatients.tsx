@@ -104,7 +104,7 @@ export default function PharmacyPatients() {
                                 <button
                                     key={c.id}
                                     onClick={() => { setSelectedPatient(c); setEditMode(false); setActiveTab('profile'); }}
-                                    className={`w-full text-left p-3 rounded-xl border-2 transition-all ${selectedPatient?.id === c.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' : 'border-gray-100 dark:border-dark-700 hover:border-gray-300'}`}
+                                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${selectedPatient?.id === c.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' : 'border-gray-100 dark:border-dark-700 hover:border-gray-300'}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className="w-9 h-9 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
@@ -112,7 +112,7 @@ export default function PharmacyPatients() {
                                         </div>
                                         <div className="min-w-0">
                                             <p className="font-semibold text-sm truncate">{c.name}</p>
-                                            <p className="text-xs text-gray-500 flex items-center gap-1"><HiOutlinePhone className="w-3 h-3" /> {c.phone || '—'}</p>
+                                            <p className="text-xs text-gray-500 flex items-center gap-1"><HiOutlinePhone className="w-3 h-3" /> {c.phone || ''}</p>
                                         </div>
                                     </div>
                                 </button>
@@ -182,7 +182,7 @@ export default function PharmacyPatients() {
 
                                             {/* Allergies */}
                                             <div>
-                                                <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">⚠ Alergias Conhecidas</p>
+                                                <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">⚠️ Alergias Conhecidas</p>
                                                 {editMode ? (
                                                     <div className="space-y-2">
                                                         <div className="flex flex-wrap gap-2 mb-2">
@@ -254,7 +254,7 @@ export default function PharmacyPatients() {
                                                     <Input label="Contacto de Emergência" value={profileForm.emergencyContact} onChange={e => setProfileForm((f: any) => ({ ...f, emergencyContact: e.target.value }))} placeholder="Nome e telefone..." />
                                                     <div>
                                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações Clínicas</label>
-                                                        <textarea className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none" rows={3}
+                                                        <textarea className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none" rows={3}
                                                             value={profileForm.patientNotes} onChange={e => setProfileForm((f: any) => ({ ...f, patientNotes: e.target.value }))} placeholder="Notas sobre o paciente..." />
                                                     </div>
                                                 </div>
@@ -262,7 +262,7 @@ export default function PharmacyPatients() {
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div>
                                                         <p className="text-xs text-gray-500">Contacto de Emergência</p>
-                                                        <p className="text-sm font-medium">{profile?.emergencyContact || '—'}</p>
+                                                        <p className="text-sm font-medium">{profile?.emergencyContact || ''}</p>
                                                     </div>
                                                     {profile?.patientNotes && (
                                                         <div className="col-span-2">
@@ -287,12 +287,12 @@ export default function PharmacyPatients() {
                                                 <p className="text-center text-gray-400 py-8">Nenhuma compra registada</p>
                                             ) : (
                                                 historyData.data.map((sale: any) => (
-                                                    <div key={sale.id} className="border border-gray-200 dark:border-dark-700 rounded-xl p-4">
+                                                    <div key={sale.id} className="border border-gray-200 dark:border-dark-700 rounded-lg p-4">
                                                         <div className="flex justify-between items-start mb-2">
                                                             <div>
-                                                                <p className="font-semibold text-sm">{sale.saleNumber} — {formatDate(sale.createdAt)}</p>
+                                                                <p className="font-semibold text-sm">{sale.saleNumber} - {formatDate(sale.createdAt)}</p>
                                                                 {sale.prescription && (
-                                                                    <p className="text-xs text-blue-600">Receita: {sale.prescription.prescriptionNo} (Dr. {sale.prescription.prescriberName})</p>
+                                                                    <div className="text-xs text-blue-600" dangerouslySetInnerHTML={{ __html: `<strong>Receita:</strong> ${sale.prescription.prescriptionNumber || sale.prescription.prescriptionNo || ''} - Dr. ${sale.prescription.prescriberName}` }} />
                                                                 )}
                                                             </div>
                                                             <span className="font-bold text-teal-600">{formatCurrency(Number(sale.total))}</span>
@@ -300,7 +300,7 @@ export default function PharmacyPatients() {
                                                         <div className="space-y-1">
                                                             {sale.items.map((item: any) => (
                                                                 <div key={item.id} className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
-                                                                    <span>{item.quantity}× {item.productName}</span>
+                                                                    <span>{item.quantity}x {item.productName}</span>
                                                                     <span>{formatCurrency(Number(item.unitPrice))}</span>
                                                                 </div>
                                                             ))}

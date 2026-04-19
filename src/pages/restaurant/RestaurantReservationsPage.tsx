@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
-import { 
-    HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash, 
-    HiOutlineCalendar, HiOutlineUsers, HiOutlinePhone, HiOutlineEnvelope,
-    HiOutlineChevronRight, HiOutlineClock, HiOutlineMapPin, HiOutlineCheck
+import { useState } from 'react';
+import {
+    HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash,
+    HiOutlineCalendar, HiOutlinePhone,
+    HiOutlineClock, HiOutlineMapPin, HiOutlineCheck
 } from 'react-icons/hi2';
 import { Card, Button, Input, Modal, Badge, LoadingSpinner, Select } from '../../components/ui';
 import { 
@@ -118,7 +118,7 @@ function ReservationModal({ open, onClose, editing }: { open: boolean; onClose: 
                             onChange={e => setForm(p => ({ ...p, tableId: e.target.value }))}
                             options={[
                                 { value: '', label: 'Seleccionar Mesa' },
-                                ...tables.map(t => ({ value: t.id, label: `Mesa ${t.number} — ${t.capacity} Lugares` }))
+                                ...tables.map((t: any) => ({ value: t.id, label: `Mesa ${t.number} "" ${t.capacity} Lugares` }))
                             ]}
                         />
                     </div>
@@ -127,7 +127,7 @@ function ReservationModal({ open, onClose, editing }: { open: boolean; onClose: 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações</label>
                     <textarea 
-                        className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
+                        className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
                         rows={3}
                         value={form.notes}
                         onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
@@ -155,7 +155,7 @@ const STATUS_CONFIG: Record<ReservationStatus, { label: string; variant: any; ic
     confirmed: { label: 'Confirmada', variant: 'primary', icon: HiOutlineCheck },
     seated:    { label: 'Sentado',    variant: 'success', icon: HiOutlineMapPin },
     cancelled: { label: 'Cancelada',  variant: 'danger',  icon: HiOutlineCalendar },
-    no_show:   { label: 'No Show',    variant: 'gray',    icon: HiOutlineCalendar }
+    no_show:   { label: 'Não Show',    variant: 'gray',    icon: HiOutlineCalendar }
 };
 
 function ReservationCard({ res, onEdit, onDelete }: { res: RestaurantReservation; onEdit: () => void; onDelete: () => void }) {
@@ -280,11 +280,11 @@ export default function RestaurantReservationsPage() {
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center bg-white dark:bg-dark-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-700">
+            <div className="flex flex-col sm:flex-row gap-4 items-center bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                 <div className="flex-1 w-full">
                     <Input 
                         placeholder="Pesquisar cliente ou telefone..." 
-                        leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                        leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         className="bg-gray-50 dark:bg-dark-700 border-none"
@@ -294,7 +294,7 @@ export default function RestaurantReservationsPage() {
                     <button 
                         onClick={() => setStatus('')}
                         className={cn(
-                            "px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                            "px-4 py-2 rounded-lg text-sm font-bold transition-all",
                             !status ? "bg-primary-600 text-white" : "bg-gray-50 dark:bg-dark-700 text-gray-500"
                         )}
                     >
@@ -303,7 +303,7 @@ export default function RestaurantReservationsPage() {
                     <button 
                         onClick={() => setStatus('pending')}
                         className={cn(
-                            "px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                            "px-4 py-2 rounded-lg text-sm font-bold transition-all",
                             status === 'pending' ? "bg-orange-600 text-white" : "bg-gray-50 dark:bg-dark-700 text-gray-500"
                         )}
                     >
@@ -312,7 +312,7 @@ export default function RestaurantReservationsPage() {
                     <button 
                         onClick={() => setStatus('confirmed')}
                         className={cn(
-                            "px-4 py-2 rounded-xl text-sm font-bold transition-all",
+                            "px-4 py-2 rounded-lg text-sm font-bold transition-all",
                             status === 'confirmed' ? "bg-primary-600 text-white" : "bg-gray-50 dark:bg-dark-700 text-gray-500"
                         )}
                     >

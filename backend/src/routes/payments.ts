@@ -1,4 +1,4 @@
-﻿/**
+/**
  * M-Pesa Payment Routes
  * API endpoints for M-Pesa payment integration
  */
@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { mpesaService } from '../services/mpesa.service';
+import { mpesaService } from '../services/mpesaService';
 import { z } from 'zod';
 import { ApiError } from '../middleware/error.middleware';
 import { buildPaginationMeta } from '../utils/pagination';

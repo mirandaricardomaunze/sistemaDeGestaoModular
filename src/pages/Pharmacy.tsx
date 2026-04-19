@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, Button, Badge, Input, Select, Modal, ConfirmationModal, Pagination, LoadingSpinner } from '../components/ui';
+import { Card, Button, Badge, Input, Select, Modal, ConfirmationModal, Pagination, LoadingSpinner, Skeleton } from '../components/ui';
 import { pharmacyAPI } from '../services/api';
 import { useProducts, useSuppliers, useCategories } from '../hooks/useData';
 import toast from 'react-hot-toast';
@@ -19,14 +19,14 @@ import autoTable from 'jspdf-autotable';
 
 type View = 'medications' | 'stock' | 'prescriptions';
 
-// ─── Helper: Alert colour ──────────────────────────────────────────────────────
+// ──-Helper: Alert colour ──────────────────────────────────────────────────────
 function alertColour(level: string) {
     if (level === 'critical') return 'text-red-600 bg-red-50 dark:bg-red-900/20';
     if (level === 'warning') return 'text-amber-600 bg-amber-50 dark:bg-amber-900/20';
     return 'text-green-600 bg-green-50 dark:bg-green-900/20';
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+// ──-Main Page ────────────────────────────────────────────────────────────────-
 export default function Pharmacy() {
     const { companySettings } = useStore();
     const [view, setView] = useState<View>('medications');
@@ -104,9 +104,13 @@ export default function Pharmacy() {
             startY: 28,
             head: [['Código', 'Medicamento', 'DCI', 'Forma', 'Stock', 'Preço', 'Validade']],
             body: medications.map(m => [
-                m.product?.code || '', m.product?.name || '', m.dci || '',
-                m.pharmaceuticalForm || '', m.totalStock, formatCurrency(m.product?.price || 0),
-                m.nearestExpiry ? formatDate(m.nearestExpiry) : '—',
+                m.product?.code || '',
+                m.product?.name || '',
+                m.dci || '',
+                m.pharmaceuticalForm || '',
+                m.totalStock ?? 0,
+                formatCurrency(m.product?.price || 0),
+                m.nearestExpiry ? formatDate(m.nearestExpiry) : '',
             ]),
             styles: { fontSize: 8 },
             headStyles: { fillColor: [99, 102, 241] },
@@ -183,7 +187,7 @@ export default function Pharmacy() {
 
     return (
         <div className="space-y-5">
-            {/* ── Header ─────────────────────────────────────────────────────── */}
+            {/* ── Header ──────────────────────────────────────────────────────-*/}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -203,14 +207,14 @@ export default function Pharmacy() {
                 </div>
             </div>
 
-            {/* ── KPIs ───────────────────────────────────────────────────────── */}
+            {/* ── KPIs ────────────────────────────────────────────────────────-*/}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {kpis.map(k => {
                     const Icon = k.icon;
                     return (
                         <Card key={k.label} padding="md">
                             <div className="flex items-center gap-3">
-                                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0', k.colour)}>
+                                <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', k.colour)}>
                                     <Icon className="w-5 h-5" />
                                 </div>
                                 <div>
@@ -224,7 +228,7 @@ export default function Pharmacy() {
             </div>
 
             {/* ── View toggle ────────────────────────────────────────────────── */}
-            <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-xl p-1 w-fit">
+            <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1 w-fit">
                 {([
                     { id: 'medications', label: 'Medicamentos', icon: HiOutlineBeaker },
                     { id: 'stock', label: 'Stock / Lotes', icon: HiOutlineCube },
@@ -240,9 +244,9 @@ export default function Pharmacy() {
                 })}
             </div>
 
-            {/* ═══════════════════════════════════════════════════════════════════
+            {/* ─────────────────────────────────────────────────────────────────────────
                 VIEW: MEDICATIONS
-            ═══════════════════════════════════════════════════════════════════ */}
+            ───────────────────────────────────────────────────────────────────────── */}
             {view === 'medications' && (
                 <div className="space-y-4">
                     {/* Search + filters */}
@@ -254,7 +258,7 @@ export default function Pharmacy() {
                             leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
                             className="bg-white dark:bg-dark-800"
                         />
-                        <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-xl p-1">
+                        <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
                             {FILTER_TABS.map(f => (
                                 <button key={f.id} onClick={() => { setFilter(f.id as any); setPage(1); }}
                                     className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap', filter === f.id ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm' : 'text-gray-500')}>
@@ -267,7 +271,19 @@ export default function Pharmacy() {
                     {/* Table */}
                     <Card padding="none">
                         {isLoading ? (
-                            <div className="p-10 flex justify-center"><LoadingSpinner /></div>
+                            <div className="p-4 space-y-4 animate-pulse">
+                                {[1, 2, 3, 4, 5].map(i => (
+                                    <div key={i} className="flex gap-4 items-center">
+                                        <div className="flex-1 space-y-2">
+                                            <Skeleton className="h-4 w-1/4" />
+                                            <Skeleton className="h-3 w-1/6" />
+                                        </div>
+                                        <Skeleton className="h-4 w-24" />
+                                        <Skeleton className="h-4 w-20" />
+                                        <Skeleton className="h-8 w-8 rounded-lg" />
+                                    </div>
+                                ))}
+                            </div>
                         ) : (
                             <>
                                 <div className="overflow-x-auto">
@@ -300,10 +316,10 @@ export default function Pharmacy() {
                                                         <div className="text-xs text-gray-500 font-mono">{med.product?.code}</div>
                                                     </td>
                                                     <td className="px-4 py-3 hidden md:table-cell">
-                                                        <div className="text-gray-700 dark:text-gray-300">{med.dci || '—'}</div>
+                                                        <div className="text-gray-700 dark:text-gray-300">{med.dci || ''}</div>
                                                         <div className="text-xs text-gray-400">{med.pharmaceuticalForm} {med.dosage}</div>
                                                     </td>
-                                                    <td className="px-4 py-3 hidden lg:table-cell text-gray-500 text-xs">{med.laboratory || '—'}</td>
+                                                    <td className="px-4 py-3 hidden lg:table-cell text-gray-500 text-xs">{med.laboratory || ''}</td>
                                                     <td className="px-4 py-3 text-center">
                                                         <span className={cn('inline-flex items-center justify-center w-10 h-7 rounded-lg text-xs font-bold', alertColour(med.alertLevel))}>
                                                             {med.totalStock}
@@ -317,7 +333,7 @@ export default function Pharmacy() {
                                                                     <span className="ml-1 text-[10px]">({med.daysToExpiry}d)</span>
                                                                 )}
                                                             </span>
-                                                        ) : <span className="text-gray-400 text-xs">—</span>}
+                                                        ) : <span className="text-gray-400 text-xs">-</span>}
                                                     </td>
                                                     <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
                                                         {formatCurrency(med.product?.price || 0)}
@@ -361,12 +377,19 @@ export default function Pharmacy() {
                 </div>
             )}
 
-            {/* ═══════════════════════════════════════════════════════════════════
+            {/* ─────────────────────────────────────────────────────────────────────────
                 VIEW: STOCK / LOTES
-            ═══════════════════════════════════════════════════════════════════ */}
+            ───────────────────────────────────────────────────────────────────────── */}
             {view === 'stock' && (
                 <Card padding="none">
-                    {movLoading ? <div className="p-10 flex justify-center"><LoadingSpinner /></div> : (
+                    {movLoading ? (
+                        <div className="p-4 space-y-4">
+                            <Skeleton className="h-10 w-full" />
+                            <div className="space-y-2">
+                                {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                            </div>
+                        </div>
+                    ) : (
                         <>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm">
@@ -387,15 +410,15 @@ export default function Pharmacy() {
                                         ) : movements.map((m: any) => (
                                             <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50">
                                                 <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(m.createdAt)}</td>
-                                                <td className="px-4 py-3 font-medium">{m.product?.name || m.productName || '—'}</td>
+                                                <td className="px-4 py-3 font-medium">{m.product?.name || m.productName || ''}</td>
                                                 <td className="px-4 py-3">
                                                     <Badge variant={m.type === 'IN' || m.movementType === 'IN' ? 'success' : 'danger'}>
                                                         {m.type === 'IN' || m.movementType === 'IN' ? 'Entrada' : 'Saída'}
                                                     </Badge>
                                                 </td>
                                                 <td className="px-4 py-3 font-bold">{m.quantity}</td>
-                                                <td className="px-4 py-3 font-mono text-xs text-gray-500">{m.batchNumber || '—'}</td>
-                                                <td className="px-4 py-3 text-xs text-gray-400">{m.reference || m.reason || '—'}</td>
+                                                <td className="px-4 py-3 font-mono text-xs text-gray-500">{m.batchNumber || ''}</td>
+                                                <td className="px-4 py-3 text-xs text-gray-400">{m.reference || m.reason || ''}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -412,9 +435,9 @@ export default function Pharmacy() {
                 </Card>
             )}
 
-            {/* ═══════════════════════════════════════════════════════════════════
+            {/* ─────────────────────────────────────────────────────────────────────────
                 VIEW: PRESCRIPTIONS
-            ═══════════════════════════════════════════════════════════════════ */}
+            ───────────────────────────────────────────────────────────────────────── */}
             {view === 'prescriptions' && (
                 <div className="space-y-4">
                     <div className="flex items-center gap-3">
@@ -427,7 +450,14 @@ export default function Pharmacy() {
                         />
                     </div>
                     <Card padding="none">
-                        {prescLoading ? <div className="p-10 flex justify-center"><LoadingSpinner /></div> : (
+                        {prescLoading ? (
+                            <div className="p-4 space-y-4">
+                                <Skeleton className="h-10 w-full" />
+                                <div className="space-y-2">
+                                    {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full" />)}
+                                </div>
+                            </div>
+                        ) : (
                             <>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
@@ -451,7 +481,7 @@ export default function Pharmacy() {
                                                         <div className="font-medium">{p.patientName}</div>
                                                         {p.patientPhone && <div className="text-xs text-gray-400">{p.patientPhone}</div>}
                                                     </td>
-                                                    <td className="px-4 py-3 text-gray-500">{p.prescriberName || '—'}</td>
+                                                    <td className="px-4 py-3 text-gray-500">{p.prescriberName || ''}</td>
                                                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(p.prescriptionDate)}</td>
                                                     <td className="px-4 py-3">
                                                         <Badge variant={p.status === 'dispensed' ? 'success' : p.status === 'expired' ? 'danger' : 'warning'}>
@@ -477,13 +507,13 @@ export default function Pharmacy() {
                 </div>
             )}
 
-            {/* ═══════════════════════════════════════════════════════════════
+            {/* ─────────────────────────────────────────────────────────────────────────
                 MODAL: Novo/Editar Medicamento
-            ═══════════════════════════════════════════════════════════════ */}
+            ───────────────────────────────────────────────────────────────────────── */}
             <Modal isOpen={medModal} onClose={() => { setMedModal(false); resetMedForm(); }} title={isEditing ? 'Editar Medicamento' : 'Novo Medicamento'} size="xl">
                 <div className="space-y-5">
                     {!isEditing && (
-                        <div className="bg-primary-50 dark:bg-primary-900/20 rounded-xl p-4 border border-primary-200 dark:border-primary-800">
+                        <div className="bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4 border border-primary-200 dark:border-primary-800">
                             <p className="text-xs font-bold text-primary-700 dark:text-primary-300 uppercase mb-3">Dados do Produto</p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div className="sm:col-span-2">
@@ -509,7 +539,7 @@ export default function Pharmacy() {
                         <Input label="Concentração" value={medForm.concentration} onChange={e => setMedForm(f => ({ ...f, concentration: e.target.value }))} />
                         <Select label="Armazenamento" value={medForm.storageTemp} onChange={e => setMedForm(f => ({ ...f, storageTemp: e.target.value }))} options={[
                             { value: 'Ambiente', label: 'Temperatura Ambiente' },
-                            { value: 'Refrigerado', label: 'Refrigerado (2–8°C)' },
+                            { value: 'Refrigerado', label: 'Refrigerado (2 - 8°C)' },
                             { value: 'Congelado', label: 'Congelado' },
                             { value: 'Protegido da Luz', label: 'Protegido da Luz' },
                         ]} />
@@ -539,15 +569,15 @@ export default function Pharmacy() {
                 </div>
             </Modal>
 
-            {/* ═══════════════════════════════════════════════════════════════
+            {/* ─────────────────────────────────────────────────────────────────────────
                 MODAL: Entrada de Lote
-            ═══════════════════════════════════════════════════════════════ */}
+            ───────────────────────────────────────────────────────────────────────── */}
             <Modal isOpen={batchModal} onClose={() => setBatchModal(false)} title="Entrada de Lote" size="md">
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Medicamento *</label>
                         <select value={batchForm.medicationId} onChange={e => setBatchForm(f => ({ ...f, medicationId: e.target.value }))}
-                            className="w-full rounded-xl border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
                             <option value="">Seleccionar medicamento...</option>
                             {medications.map((m: any) => <option key={m.id} value={m.id}>{m.product?.name} ({m.dosage})</option>)}
                         </select>
@@ -567,9 +597,9 @@ export default function Pharmacy() {
                 </div>
             </Modal>
 
-            {/* ═══════════════════════════════════════════════════════════════
+            {/* ─────────────────────────────────────────────────────────────────────────
                 MODAL: Confirmar Eliminação
-            ═══════════════════════════════════════════════════════════════ */}
+            ───────────────────────────────────────────────────────────────────────── */}
             <ConfirmationModal
                 isOpen={deleteModal}
                 onClose={() => { setDeleteModal(false); setSelected(null); }}

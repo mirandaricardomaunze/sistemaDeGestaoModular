@@ -1,7 +1,7 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiOutlineTrash } from 'react-icons/hi';
+import { HiOutlineTrash } from 'react-icons/hi2';
 import { format } from 'date-fns';
 import { useOrders } from '../hooks/useData';
 import { useAuthStore } from '../stores/useAuthStore';
@@ -270,7 +270,7 @@ export default function Orders({ originModule }: OrdersProps) {
         }
     };
 
-    // Handle generate invoice — call backend directly to convert order to invoice
+    // Handle generate invoice - call backend directly to convert order to invoice
     const handleGenerateInvoice = async (order: { id: string; orderNumber: string }) => {
         try {
             const invoice = await ordersAPI.convertToInvoice(order.id);
@@ -468,7 +468,7 @@ export default function Orders({ originModule }: OrdersProps) {
                                     <div className="flex items-baseline gap-2">
                                         <span className="text-[10px] font-bold text-gray-500 uppercase w-20">Pagamento:</span>
                                         <span className="flex-1 text-sm text-gray-900 font-semibold border-b border-gray-100 pb-0.5">
-                                            {(selectedOrder.paymentMethod || '—').toUpperCase()}
+                                            {(selectedOrder.paymentMethod || '').toUpperCase()}
                                         </span>
                                     </div>
                                     {selectedOrder.customerAddress && (
@@ -546,7 +546,7 @@ export default function Orders({ originModule }: OrdersProps) {
                                     </div>
 
                                     {/* Right side: Totals table */}
-                                    <div className="w-56 bg-white p-4 rounded-xl border border-gray-200">
+                                    <div className="w-56 bg-white p-4 rounded-lg border border-gray-200">
                                         {(() => {
                                             const total = selectedOrder.total;
                                             // total already includes IVA: subtotal = total / (1 + ivaRate)

@@ -53,7 +53,7 @@ export const PharmacyHRDashboard: React.FC = () => {
 
         const now = new Date();
         const pendingCompliance = employees?.filter(e => {
-            if (!e.contractExpiry) return true; // No expiry set = needs attention
+            if (!e.contractExpiry) return true; // Não expiry set = needs attention
             const expiry = new Date(e.contractExpiry);
             const diffInDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 3600 * 24));
             return diffInDays < 30;
@@ -151,7 +151,7 @@ export const PharmacyHRDashboard: React.FC = () => {
         },
         {
             label: 'Taxa de Assiduidade',
-            value: metrics.attendanceRate > 0 ? `${metrics.attendanceRate.toFixed(1)}%` : '—',
+            value: metrics.attendanceRate > 0 ? `${metrics.attendanceRate.toFixed(1)}%` : '',
             trend: `${attendance?.filter(a => a.date === format(new Date(), 'yyyy-MM-dd') && a.status === 'present').length || 0} presentes hoje`,
             icon: HiOutlineClock,
             color: 'text-green-600',
@@ -159,7 +159,7 @@ export const PharmacyHRDashboard: React.FC = () => {
         },
         {
             label: 'Custo Salarial Mensal',
-            value: metrics.monthlyCost > 0 ? formatCurrency(metrics.monthlyCost) : '—',
+            value: metrics.monthlyCost > 0 ? formatCurrency(metrics.monthlyCost) : '',
             trend: `${payroll?.length || 0} registos`,
             icon: HiOutlineBanknotes,
             color: 'text-indigo-600',
@@ -168,7 +168,7 @@ export const PharmacyHRDashboard: React.FC = () => {
         {
             label: 'Doc. Requerem Atenção',
             value: metrics.pendingCompliance.toString(),
-            trend: 'Expirações próximas',
+            trend: 'Expiraces próximas',
             icon: HiOutlineShieldCheck,
             color: 'text-amber-600',
             bg: 'bg-amber-50 dark:bg-amber-900/20'
@@ -191,7 +191,7 @@ export const PharmacyHRDashboard: React.FC = () => {
                     <Card key={idx} variant="glass" className="relative group overflow-hidden">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <div className={`p-3 rounded-2xl ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 duration-300`}>
+                                <div className={`p-3 rounded-lg ${stat.bg} ${stat.color} transition-transform group-hover:scale-110 duration-300`}>
                                     <stat.icon className="w-6 h-6" />
                                 </div>
                                 <Badge variant={idx === 3 && metrics.pendingCompliance > 0 ? 'danger' : 'success'} size="sm">
@@ -299,7 +299,7 @@ export const PharmacyHRDashboard: React.FC = () => {
                             <p className="text-center py-8 text-gray-400 text-xs italic">Nenhuma actividade recente registada</p>
                         ) : (
                             recentActivity.map((item, idx) => (
-                                <div key={idx} className="flex items-center gap-4 group cursor-pointer p-2 rounded-xl hover:bg-white/50 dark:hover:bg-dark-700/30 transition-all">
+                                <div key={idx} className="flex items-center gap-4 group cursor-pointer p-2 rounded-lg hover:bg-white/50 dark:hover:bg-dark-700/30 transition-all">
                                     <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center font-bold text-primary-600 group-hover:scale-110 transition-transform">
                                         {item.user.charAt(0)}
                                     </div>

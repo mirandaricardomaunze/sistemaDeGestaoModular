@@ -1,6 +1,6 @@
-﻿/**
+/**
  * Audit Log Types
- * Sistema de auditoria para rastrear todas as ações dos utilizadores
+ * Sistema de auditoria para rastrear todas as aces dos utilizadores
  */
 
 // Modules that can be audited
@@ -161,7 +161,7 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
     view: 'Visualização',
     export: 'Exportação',
     import: 'Importação',
-    login: 'Login',
+    login: 'login',
     logout: 'Logout',
     login_failed: 'Login Falhado',
     approve: 'Aprovação',
@@ -179,7 +179,7 @@ export const ACTION_LABELS: Record<AuditAction, string> = {
     CREATE: 'Criação',
     UPDATE: 'Atualização',
     DELETE: 'Eliminação',
-    LOGIN: 'Login',
+    LOGIN: 'login',
     REGISTER: 'Registo',
     PASSWORD_CHANGE: 'Alteração de Senha',
 };

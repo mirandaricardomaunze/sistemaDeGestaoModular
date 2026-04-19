@@ -1,6 +1,6 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { warehousesService } from '../services/warehouses.service';
+import { warehousesService } from '../services/warehousesService';
 import { ApiError } from '../middleware/error.middleware';
 
 const router = Router();

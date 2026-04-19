@@ -6,7 +6,7 @@ import {
     addPaymentSchema,
     creditNoteSchema
 } from '../validation';
-import { invoicesService } from '../services/invoices.service';
+import { invoicesService } from '../services/invoicesService';
 import { ApiError } from '../middleware/error.middleware';
 import { prisma } from '../lib/prisma';
 import { pdfService } from '../services/pdfService';
@@ -75,6 +75,13 @@ router.post('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
     res.json({ message: 'Fatura cancelada com sucesso' });
 });
 
+// Alias: frontend calls PUT /:id/cancel
+router.put('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    await invoicesService.cancel(req.params.id, req.companyId);
+    res.json({ message: 'Fatura cancelada com sucesso' });
+});
+
 router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const validatedData = creditNoteSchema.parse(req.body);
@@ -115,7 +122,7 @@ router.post('/:id/send-email', authenticate, async (req: AuthRequest, res) => {
 
     const invoice = await invoicesService.getById(req.params.id, req.companyId);
     const recipientEmail = email || invoice.customerEmail;
-    if (!recipientEmail) throw ApiError.badRequest('Email do destinatário não fornecido');
+    if (!recipientEmail) throw ApiError.badRequest('Email do destinatrio não fornecido');
 
     const company = await prisma.companySettings.findFirst({ where: { companyId: req.companyId } });
     const companyInfo = {

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+﻿import { useState, useRef, useEffect, useCallback } from 'react';
 import { HiOutlineSearch, HiOutlineX, HiOutlineUserCircle } from 'react-icons/hi';
 import { Input, Badge } from '../ui';
 import { cn } from '../../utils/helpers';
@@ -6,7 +6,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { customersAPI } from '../../services/api';
 
 // ============================================================================
-// CustomerSearchInput — Reusable customer picker with live search
+// CustomerSearchInput - Reusable customer picker with live search
 //
 // Usage:
 //   <CustomerSearchInput onSelect={(c) => setCustomer(c)} />
@@ -99,7 +99,7 @@ export function CustomerSearchInput({
         return () => { cancelled = true; };
     }, [debouncedQuery]);
 
-    // ── Keyboard ─────────────────────────────────────────────────────────────
+    // ── Keyboard ────────────────────────────────────────────────────────────-
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (!isOpen || !results.length) return;
         if (e.key === 'ArrowDown')  { e.preventDefault(); setHighlight(i => Math.min(i + 1, results.length - 1)); }
@@ -197,7 +197,7 @@ export function CustomerSearchInput({
 
             {/* Dropdown */}
             {isOpen && results.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-xl shadow-xl overflow-hidden">
+                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg shadow-xl overflow-hidden">
                     <ul className="max-h-56 overflow-y-auto py-1">
                         {results.map((customer, idx) => (
                             <li
@@ -234,13 +234,13 @@ export function CustomerSearchInput({
                         ))}
                     </ul>
                     <div className="px-3 py-2 border-t border-gray-100 dark:border-dark-700 bg-gray-50 dark:bg-dark-900/50">
-                        <p className="text-xs text-gray-400">↑↓ navegar · Enter seleccionar</p>
+                        <p className="text-xs text-gray-400">→↔ navegar · Enter seleccionar</p>
                     </div>
                 </div>
             )}
 
             {isOpen && !isLoading && results.length === 0 && query.trim() && (
-                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-xl shadow-xl px-4 py-6 text-center">
+                <div className="absolute z-50 w-full mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg shadow-xl px-4 py-6 text-center">
                     <HiOutlineUserCircle className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                     <p className="text-sm text-gray-500">Nenhum cliente encontrado</p>
                 </div>

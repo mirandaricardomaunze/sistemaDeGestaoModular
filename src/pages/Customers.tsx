@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
@@ -98,7 +98,7 @@ export default function Customers({ originModule }: CustomersProps) {
         limit: pageSize,
         originModule,
     });
-    const { t } = useTranslation();
+    useTranslation();
 
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -371,7 +371,7 @@ export default function Customers({ originModule }: CustomersProps) {
                                                 </div>
                                                 {customer.email && (
                                                     <div className="flex items-center gap-1 text-sm text-gray-500">
-                                                        <HiOutlineMail className="w-4 h-4" />
+                                                        <HiOutlineEnvelope className="w-4 h-4" />
                                                         <span className="truncate max-w-[150px]">{customer.email}</span>
                                                     </div>
                                                 )}
@@ -456,7 +456,7 @@ export default function Customers({ originModule }: CustomersProps) {
                     <div className="grid grid-cols-2 gap-4">
                         <label
                             className={cn(
-                                'flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
+                                'flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
                                 selectedType === 'individual'
                                     ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
                                     : 'border-gray-200 dark:border-dark-600'
@@ -476,14 +476,14 @@ export default function Customers({ originModule }: CustomersProps) {
                         </label>
                         <label
                             className={cn(
-                                'flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all',
+                                'flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all',
                                 selectedType === 'company'
                                     ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                                     : 'border-gray-200 dark:border-dark-600'
                             )}
                         >
                             <input type="radio" value="company" {...register('type')} className="hidden" />
-                            <HiOutlineOfficeBuilding className={cn(
+                            <HiOutlineBuildingOffice className={cn(
                                 'w-6 h-6',
                                 selectedType === 'company' ? 'text-purple-600' : 'text-gray-400'
                             )} />

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Card, Button, Input, PageHeader } from '../../components/ui';
-import { pharmacyAPI } from '../../services/api/hospitality.api';
+import { pharmacyAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
     HiOutlineClipboardDocumentCheck as HiOutlineClipboardCheck, HiOutlineArrowPath as HiOutlineRefresh, HiOutlineExclamationCircle,
-    HiOutlineCheckCircle, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineArrowsRightLeft
+    HiOutlineCheckCircle, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineArrowsRightLeft, HiOutlineMagnifyingGlass
 } from 'react-icons/hi2';
 
 interface SnapshotItem {
@@ -56,11 +56,11 @@ export default function PharmacyStockReconciliation() {
 
     const handleSubmit = async () => {
         if (variances.length === 0) {
-            toast('Nenhuma variação detectada — contagem igual ao sistema.', { icon: 'ℹ️' });
+            toast('Nenhuma variação detectada - contagem igual ao sistema.', { icon: 'â„¹️' });
             return;
         }
         const confirmed = window.confirm(
-            `Vai ajustar ${variances.length} produto(s) com variações. Esta acção é irreversível. Continuar?`
+            `Vai ajustar ${variances.length} produto(s) com variaces. Esta acção é irreversível. Continuar?`
         );
         if (!confirmed) return;
         setIsSubmitting(true);
@@ -124,7 +124,7 @@ export default function PharmacyStockReconciliation() {
 
             {/* Result banner */}
             {result && (
-                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 flex items-start gap-3">
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-start gap-3">
                     <HiOutlineCheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
                         <p className="font-semibold text-green-700 dark:text-green-400">Reconciliação concluída</p>

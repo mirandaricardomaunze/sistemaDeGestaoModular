@@ -1,8 +1,9 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
-import { crmService } from '../services/crm.service';
+import { crmService } from '../services/crmService';
 import { ApiError } from '../middleware/error.middleware';
+import { emitToCompany } from '../lib/socket';
 
 const router = Router();
 
@@ -34,7 +35,7 @@ router.put('/stages/:id', authenticate, authorize('admin', 'manager'), async (re
         data: req.body
     });
     if (result.count === 0) {
-        throw ApiError.notFound('Estágio não encontrado ou acesso negado');
+        throw ApiError.notFound('Estgio não encontrado ou acesso negado');
     }
     const stage = await prisma.funnelStage.findUnique({ where: { id: req.params.id } });
     res.json(stage);
@@ -45,9 +46,9 @@ router.delete('/stages/:id', authenticate, authorize('admin'), async (req: AuthR
         where: { id: req.params.id, companyId: req.companyId }
     });
     if (result.count === 0) {
-        throw ApiError.notFound('Estágio não encontrado');
+        throw ApiError.notFound('Estgio não encontrado');
     }
-    res.json({ message: 'Estágio removido' });
+    res.json({ message: 'Estgio removido' });
 });
 
 // ============================================================================
@@ -78,6 +79,7 @@ router.get('/opportunities/:id', authenticate, async (req: AuthRequest, res) => 
 });
 
 router.post('/opportunities', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const opportunity = await prisma.opportunity.create({
         data: {
             ...req.body,
@@ -90,6 +92,15 @@ router.post('/opportunities', authenticate, async (req: AuthRequest, res) => {
             stageHistory: true
         }
     });
+
+    // Socket Notification: New CRM Opportunity
+    emitToCompany(req.companyId, 'crm:new_opportunity', {
+        id: opportunity.id,
+        title: opportunity.title,
+        value: opportunity.value,
+        timestamp: new Date()
+    });
+
     res.status(201).json(opportunity);
 });
 
@@ -140,7 +151,7 @@ router.post('/opportunities/:id/move', authenticate, async (req: AuthRequest, re
     });
 
     if (!newStage) {
-        throw ApiError.notFound('Estágio não encontrado');
+        throw ApiError.notFound('Estgio não encontrado');
     }
 
     // Calculate time in previous stage (days)
@@ -148,10 +159,10 @@ router.post('/opportunities/:id/move', authenticate, async (req: AuthRequest, re
         (Date.now() - new Date(opp.stageChangedAt).getTime()) / (1000 * 60 * 60 * 24)
     );
 
-    // Update opportunity and create history
+    // Update opportunity and create history -- where clause includes companyId for defence in depth
     const [updatedOpp] = await prisma.$transaction([
         prisma.opportunity.update({
-            where: { id: oppId }, // Filtered by findFirst above, but could be more explicit
+            where: { id: oppId, companyId: req.companyId },
             data: {
                 stageId: newStageId,
                 stageType: newStage.type,

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Deliveries Management Page
  * List, create, track, and manage deliveries
  */
@@ -229,7 +229,7 @@ export default function DeliveriesPage() {
         const driver = driversData?.data.find((d: Driver) => d.id === manifestDriverId);
         
         const doc = new jsPDF();
-        addProfessionalHeader(doc, t('logistics_module.deliveries.manifest').toUpperCase(), companySettings, `${t('common.date')}: ${new Date().toLocaleDateString()}`);
+        addProfessionalHeader(doc, t('logistics_module.deliveries.manifesto').toUpperCase(), companySettings, `${t('common.date')}: ${new Date().toLocaleDateString()}`);
 
         doc.setFontSize(10);
         doc.setTextColor(50, 50, 50);
@@ -269,7 +269,7 @@ export default function DeliveriesPage() {
     };
 
     // Derives the status timeline for the currently selected delivery.
-    // Re-computed on every render — pure derivation, no side effects.
+    // Re-computed on every render - pure derivation, no side effects.
     const selectedDeliveryTimeline = useDeliveryStatusTimeline(selectedDelivery ?? null);
 
     const addItem = () => {
@@ -334,7 +334,7 @@ export default function DeliveriesPage() {
                     return (
                         <Card key={status.value} variant="glass" className={`p-4 cursor-pointer hover:shadow-lg transition-shadow ${status.value === statusFilter ? 'ring-2 ring-primary-500' : ''}`}>
                             <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-${status.color}-100 dark:bg-${status.color}-900/30`}>
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${status.color}-100 dark:bg-${status.color}-900/30`}>
                                     <Icon className={`w-5 h-5 text-${status.color}-600`} />
                                 </div>
                                 <div>
@@ -599,7 +599,7 @@ export default function DeliveriesPage() {
                                 />
                                 {formData.items.length > 1 && (
                                     <Button variant="outline" className="text-red-500" onClick={() => removeItem(index)}>
-                                        ×
+                                        x
                                     </Button>
                                 )}
                             </div>
@@ -676,7 +676,7 @@ export default function DeliveriesPage() {
             >
                 {selectedDelivery && (
                     <div className="space-y-4">
-                        <div className="flex items-start justify-between bg-primary-50 dark:bg-primary-900/10 p-4 rounded-2xl border border-primary-100 dark:border-primary-900/50">
+                        <div className="flex items-start justify-between bg-primary-50 dark:bg-primary-900/10 p-4 rounded-lg border border-primary-100 dark:border-primary-900/50">
                             <div>
                                 <label className="text-[10px] font-bold text-primary-600 uppercase tracking-widest">{t('logistics_module.deliveries.number')}</label>
                                 <h3 className="text-2xl font-black text-gray-900 dark:text-white font-mono">{selectedDelivery.number}</h3>
@@ -685,7 +685,7 @@ export default function DeliveriesPage() {
                                     {getPriorityBadge(selectedDelivery.priority, t)}
                                 </div>
                             </div>
-                            <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700">
+                            <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                                 <QRCodeSVG 
                                     value={selectedDelivery.number} 
                                     size={80} 
@@ -753,7 +753,7 @@ export default function DeliveriesPage() {
                         </div>
 
                         {/* Status Timeline */}
-                        <div className="p-4 bg-gray-50 dark:bg-dark-800 rounded-xl">
+                        <div className="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg">
                             <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">
                                 {t('logistics_module.deliveries.timeline')}
                             </h4>

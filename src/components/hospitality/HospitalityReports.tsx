@@ -1,4 +1,4 @@
-﻿/**
+/**
  * HospitalityReports Component
  * Reports section with summary, insights, data tables, and export functionality (PDF/Excel)
  */
@@ -77,7 +77,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
 
     // Format date
     const formatDate = (dateStr: string | null) => {
-        if (!dateStr) return 'â€”';
+        if (!dateStr) return '';
         return new Date(dateStr).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
@@ -274,7 +274,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
     return (
         <div className={`space-y-8 ${className}`}>
             {/* Toolbar: Actions & Period Selector */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-lg">
                         <HiOutlineDocumentReport className="w-5 h-5" />
@@ -385,7 +385,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
 
                         {/* Insights Section */}
                         <Card className="p-6">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">📊 Insights do Período</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">?? Insights do Período</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-4">
                                     <p className="text-sm text-gray-500 mb-1">Taxa de Ocupação Média</p>
@@ -404,7 +404,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
 
                         {/* Room Status Summary */}
                         <Card className="p-6">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">🛠️ Status dos Quartos (Actual)</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">??? Status dos Quartos (Actual)</h3>
                             <div className="flex flex-wrap gap-3">
                                 <Badge variant="success" className="text-base px-3 py-1">{reportData.roomStats.available} Disponíveis</Badge>
                                 <Badge variant="info" className="text-base px-3 py-1">{reportData.roomStats.occupied} Ocupados</Badge>
@@ -416,7 +416,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                         {/* Bookings Table with Search/Filter */}
                         <Card className="p-6">
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">📋 Detalhes das Reservas</h3>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">?? Detalhes das Reservas</h3>
 
                                 <div className="flex flex-wrap items-center gap-3 print:hidden">
                                     <Input

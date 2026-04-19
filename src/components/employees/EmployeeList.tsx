@@ -1,24 +1,21 @@
 import { logger } from '../../utils/logger';
-﻿import { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
-    flexRender,
     createColumnHelper,
     type SortingState,
 } from '@tanstack/react-table';
 import {
-    HiOutlineSearch,
-    HiOutlinePencil,
+    HiOutlineMagnifyingGlass,
+    HiOutlinePencilSquare,
     HiOutlineTrash,
     HiOutlinePlus,
-    HiOutlineMail,
+    HiOutlineEnvelope,
     HiOutlinePhone,
-    HiOutlineRefresh,
-} from 'react-icons/hi';
+    HiOutlineArrowPath,
+} from 'react-icons/hi2';
 import { useEmployees } from '../../hooks/useData';
 import { Button, Card, Input, Select, Modal, Badge, Pagination, DataTable } from '../ui';
 import { ExportEmployeesButton } from '../common/ExportButton';
@@ -37,7 +34,7 @@ interface EmployeeListProps {
     hideHeader?: boolean;
 }
 
-export default function EmployeeList({ onEdit, onAddEmployee, department, hideHeader }: EmployeeListProps) {
+export default function EmployeeList({ onEdit, onAddEmployee, department, hideHeader: _hideHeader }: EmployeeListProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -137,13 +134,13 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
                 header: 'Contacto',
                 cell: ({ row }) => (
                     <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 overflow-hidden">
-                            <HiOutlineMail className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="truncate max-w-[150px]">{row.original.email}</span>
+                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium tracking-tight">
+                            <HiOutlineEnvelope className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
+                            <span className="truncate max-w-[150px] font-medium">{row.original.email}</span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <HiOutlinePhone className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span>{row.original.phone}</span>
+                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium tracking-tight">
+                            <HiOutlinePhone className="w-3.5 h-3.5 flex-shrink-0 text-slate-400" />
+                            <span className="font-medium">{row.original.phone}</span>
                         </div>
                     </div>
                 ),
@@ -168,19 +165,21 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
                 id: 'actions',
                 header: 'Ações',
                 cell: ({ row }) => (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={() => onEdit?.(row.original)}
-                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 transition-colors"
+                            className="p-2 rounded-lg bg-slate-50 dark:bg-dark-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-400 hover:text-primary-600 transition-all border border-slate-100 dark:border-dark-600 hover:border-primary-200"
                             title="Editar"
                         >
-                            <HiOutlinePencil className="w-4 h-4" />
+                            <HiOutlinePencilSquare className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => handleToggleStatus(row.original)}
                             className={cn(
-                                "p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors",
-                                row.original.isActive ? "text-gray-500 hover:text-red-600" : "text-gray-500 hover:text-green-600"
+                                "p-2 rounded-lg transition-all border",
+                                row.original.isActive 
+                                    ? "bg-red-50/50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30 text-red-400 hover:text-red-600 hover:bg-red-50" 
+                                    : "bg-green-50/50 dark:bg-green-900/10 border-green-100 dark:border-green-900/30 text-green-400 hover:text-green-600 hover:bg-green-50"
                             )}
                             title={row.original.isActive ? 'Desativar' : 'Ativar'}
                         >
@@ -232,7 +231,7 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
                             placeholder="Buscar colaboradores..."
                             value={globalFilter ?? ''}
                             onChange={(e) => setGlobalFilter(e.target.value)}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                         />
                     </div>
                     <div className="w-full lg:w-48">
@@ -252,19 +251,24 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
                     <Button
                         variant="ghost"
                         onClick={() => refetch()}
-                        leftIcon={<HiOutlineRefresh className="w-5 h-5" />}
+                        leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                        className="font-bold text-[11px] uppercase tracking-widest"
                     >
                         Atualizar
                     </Button>
                     <ExportEmployeesButton data={employees} />
-                    <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />} onClick={onAddEmployee}>
-                        Adicionar Colaborador
+                    <Button 
+                        leftIcon={<HiOutlinePlus className="w-5 h-5" />} 
+                        onClick={onAddEmployee}
+                        className="shadow-lg shadow-primary-500/20 font-black text-[11px] uppercase tracking-widest px-6"
+                    >
+                        Admitir Colaborador
                     </Button>
                 </div>
             </Card>
 
             {/* Table */}
-            <Card padding="none">
+            <Card padding="none" className="overflow-hidden border border-slate-100 dark:border-dark-700">
                 <DataTable
                     table={table}
                     isLoading={isLoading}

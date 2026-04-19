@@ -152,9 +152,9 @@ export default function GuestProfileModal({
             ) : booking ? (
                 <div className="space-y-6">
                     {/* Guest Header */}
-                    <div className="flex items-start justify-between bg-gray-50 dark:bg-dark-800 rounded-xl p-5 border border-gray-200 dark:border-dark-700">
+                    <div className="flex items-start justify-between bg-gray-50 dark:bg-dark-800 rounded-lg p-5 border border-gray-200 dark:border-dark-700">
                         <div className="flex items-start gap-4">
-                            <div className="p-3 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-xl">
+                            <div className="p-3 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-lg">
                                 <HiOutlineUser className="w-8 h-8" />
                             </div>
                             <div>

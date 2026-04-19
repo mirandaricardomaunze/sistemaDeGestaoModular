@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, LoadingSpinner, EmptyState, ConfirmationModal } from '../ui';
@@ -136,7 +136,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
     };
 
     const formatTime = (dateStr: string | null) => {
-        if (!dateStr) return '—';
+        if (!dateStr) return '';
         return new Date(dateStr).toLocaleTimeString(t('common.locale') === 'pt' ? 'pt-PT' : 'en-US', { hour: '2-digit', minute: '2-digit' });
     };
 
@@ -155,7 +155,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
     return (
         <div className="space-y-6">
             {/* Toolbar */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-lg">
                         <HiOutlineHome className="w-5 h-5" />
@@ -299,7 +299,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                                 )}
                                 {task.status === 'completed' && (
                                     <div className="flex-1 text-center text-xs text-green-600 font-bold py-2">
-                                        ✓ {t('common.finished')} {formatTime(task.completedAt)}
+                                        ✅ {t('common.finished')} {formatTime(task.completedAt)}
                                     </div>
                                 )}
                             </div>

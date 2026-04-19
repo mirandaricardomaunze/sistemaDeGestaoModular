@@ -1,18 +1,18 @@
 import { logger } from '../utils/logger';
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
-    HiOutlineDownload,
-    HiOutlineRefresh,
+    HiOutlineArrowDownTray,
+    HiOutlineArrowPath,
     HiOutlineTrash,
-    HiOutlineDatabase,
+    HiOutlineCircleStack,
     HiOutlineClock,
     HiOutlineCheckCircle,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { Card, Button, Modal, Pagination, usePagination } from '../components/ui';
 import toast from 'react-hot-toast';
 import { backupsAPI, gdriveAPI } from '../services/api';
-import { HiOutlineCloudUpload as HiOutlineCloud } from 'react-icons/hi';
-import { HiOutlineCloudUpload } from 'react-icons/hi';
+import { HiOutlineCloudArrowUp as HiOutlineCloud } from 'react-icons/hi2';
+import { HiOutlineCloudArrowUp } from 'react-icons/hi2';
 
 interface Backup {
     filename: string;
@@ -219,11 +219,11 @@ export default function BackupManagement() {
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={loadBackups} disabled={isLoading}>
-                        <HiOutlineRefresh className={`w-5 h-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                        <HiOutlineArrowPath className={`w-5 h-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                         Atualizar
                     </Button>
                     <Button onClick={handleCreateBackup} disabled={isCreatingBackup}>
-                        <HiOutlineDatabase className="w-5 h-5 mr-2" />
+                        <HiOutlineCircleStack className="w-5 h-5 mr-2" />
                         {isCreatingBackup ? 'Criando...' : 'Criar Backup'}
                     </Button>
                 </div>
@@ -231,7 +231,7 @@ export default function BackupManagement() {
 
             {/* Google Drive Status Alert */}
             {gdriveStatus && !gdriveStatus.configured && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3 text-blue-700 dark:text-blue-300">
                         <HiOutlineCloud className="w-6 h-6 flex-shrink-0" />
                         <div>
@@ -258,8 +258,8 @@ export default function BackupManagement() {
                                     {stats.totalBackups}
                                 </p>
                             </div>
-                            <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                <HiOutlineDatabase className="w-6 h-6 text-primary-600" />
+                            <div className="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                                <HiOutlineCircleStack className="w-6 h-6 text-primary-600" />
                             </div>
                         </div>
                     </Card>
@@ -272,8 +272,8 @@ export default function BackupManagement() {
                                     {stats.totalSize}
                                 </p>
                             </div>
-                            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                <HiOutlineDownload className="w-6 h-6 text-blue-600" />
+                            <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                <HiOutlineArrowDownTray className="w-6 h-6 text-blue-600" />
                             </div>
                         </div>
                     </Card>
@@ -286,7 +286,7 @@ export default function BackupManagement() {
                                     {stats.newestBackup ? formatDate(stats.newestBackup) : 'N/A'}
                                 </p>
                             </div>
-                            <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
                                 <HiOutlineCheckCircle className="w-6 h-6 text-green-600" />
                             </div>
                         </div>
@@ -300,7 +300,7 @@ export default function BackupManagement() {
                                     Diariamente 2h
                                 </p>
                             </div>
-                            <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
                                 <HiOutlineClock className="w-6 h-6 text-orange-600" />
                             </div>
                         </div>
@@ -313,8 +313,8 @@ export default function BackupManagement() {
                                     {stats.databaseSize || 'N/A'}
                                 </p>
                             </div>
-                            <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                                <HiOutlineDatabase className="w-6 h-6 text-purple-600" />
+                            <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                <HiOutlineCircleStack className="w-6 h-6 text-purple-600" />
                             </div>
                         </div>
                     </Card>
@@ -327,7 +327,7 @@ export default function BackupManagement() {
                                     {gdriveStatus?.configured ? 'Conectado' : 'Não configurado'}
                                 </p>
                             </div>
-                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${gdriveStatus?.configured ? 'bg-green-100 dark:bg-green-900/30 shadow-sm' : 'bg-gray-100 dark:bg-dark-800'}`}>
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${gdriveStatus?.configured ? 'bg-green-100 dark:bg-green-900/30 shadow-sm' : 'bg-gray-100 dark:bg-dark-800'}`}>
                                 <HiOutlineCloud className={`w-6 h-6 ${gdriveStatus?.configured ? 'text-green-600' : 'text-gray-400'}`} />
                             </div>
                         </div>
@@ -376,7 +376,7 @@ export default function BackupManagement() {
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
-                                                <HiOutlineDatabase className="w-5 h-5 text-gray-400 mr-3" />
+                                                <HiOutlineCircleStack className="w-5 h-5 text-gray-400 mr-3" />
                                                 <span className="text-sm font-medium text-gray-900 dark:text-white">
                                                     {backup.filename}
                                                 </span>
@@ -400,7 +400,7 @@ export default function BackupManagement() {
                                                             }`}
                                                         title="Enviar para nuvem"
                                                     >
-                                                        <HiOutlineCloudUpload className={`w-5 h-5 ${isUploadingToDrive === backup.filename ? 'animate-bounce' : ''}`} />
+                                                        <HiOutlineCloudArrowUp className={`w-5 h-5 ${isUploadingToDrive === backup.filename ? 'animate-bounce' : ''}`} />
                                                     </button>
                                                 )}
                                                 <button
@@ -408,14 +408,14 @@ export default function BackupManagement() {
                                                     className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 transition-colors"
                                                     title="Download"
                                                 >
-                                                    <HiOutlineDownload className="w-5 h-5" />
+                                                    <HiOutlineArrowDownTray className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={() => confirmRestore(backup.filename)}
                                                     className="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 transition-colors"
                                                     title="Restaurar"
                                                 >
-                                                    <HiOutlineRefresh className="w-5 h-5" />
+                                                    <HiOutlineArrowPath className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={() => confirmDelete(backup.filename)}

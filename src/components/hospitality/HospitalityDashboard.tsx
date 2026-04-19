@@ -107,7 +107,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
 
         return {
             avgDailyRevenue: Math.round(avgDailyRevenue),
-            bestDay: bestDay?.date || 'â€”',
+            bestDay: bestDay?.date || '-',
             bestDayRevenue: bestDay?.total || 0,
             consumptionPercent: metrics.totalRevenue > 0
                 ? Math.round((metrics.consumptionRevenue / metrics.totalRevenue) * 100)
@@ -187,7 +187,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Sem dados para este período</h3>
                     <p className="text-gray-500 max-w-sm mb-8">
-                        Não foram encontradas reservas ou facturação no período seleccionado para gerar as visualizações.
+                        Não foram encontradas reservas ou facturação no período seleccionado para gerar as visualizaces.
                     </p>
                     <Button onClick={() => setPeriod('1m')} variant="primary">Ver Último Mês</Button>
                 </Card>
@@ -199,7 +199,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
     return (
         <div className={`space-y-8 ${className}`}>
             {/* Toolbar: Actions & Period Selector */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-dark-700">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-lg">
                         <HiOutlineChartBar className="w-5 h-5" />
@@ -330,7 +330,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
 
             {/* Insights Bar */}
             {insights && (
-                <div className="bg-primary-50/50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 rounded-xl p-4">
+                <div className="bg-primary-50/50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 rounded-lg p-4">
                     <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
                         <div className="flex items-center gap-2">
                             <span className="text-primary-600 dark:text-primary-400 font-semibold">Média Diária:</span>

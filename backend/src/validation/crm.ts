@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Validation Schemas - CRM
  * 
  * Schemas for CRM contacts, opportunities, and pipeline operations.
@@ -31,7 +31,7 @@ export const updateContactSchema = createContactSchema.partial();
 export const createOpportunitySchema = z.object({
     title: z.string().min(2, 'Título deve ter pelo menos 2 caracteres').max(200, 'Título muito longo'),
     contactId: z.string().uuid('ID do contacto inválido').optional().nullable(),
-    stageId: z.string().uuid('ID do estágio inválido').optional().nullable(),
+    stageId: z.string().uuid('ID do estgio inválido').optional().nullable(),
     value: z.number().min(0, 'Valor não pode ser negativo').optional().default(0),
     currency: z.string().max(10, 'Moeda inválida').optional().default('MZN'),
     probability: z.number().min(0, 'Probabilidade mínima é 0').max(100, 'Probabilidade máxima é 100').optional().default(50),
@@ -45,7 +45,7 @@ export const createOpportunitySchema = z.object({
 export const updateOpportunitySchema = createOpportunitySchema.partial();
 
 export const moveOpportunityStageSchema = z.object({
-    newStageId: z.string().uuid('ID do novo estágio inválido'),
+    newStageId: z.string().uuid('ID do novo estgio inválido'),
     reason: z.string().max(500, 'Motivo muito longo').optional().nullable()
 });
 

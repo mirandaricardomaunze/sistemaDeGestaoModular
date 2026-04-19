@@ -1,9 +1,9 @@
-﻿import React, { type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { flexRender, type Table as TanStackTable } from '@tanstack/react-table';
 import { LoadingSpinner, Button } from './index';
 import { EmptyState } from './EmptyState';
 import { cn } from '../../utils/helpers';
-import { HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 
 interface TableContainerProps {
     children: ReactNode;
@@ -59,9 +59,9 @@ export function TableContainer({
                     )}
                 </div>
             ) : isEmpty ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-white dark:bg-dark-900 rounded-xl">
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-white dark:bg-dark-900 rounded-lg">
                     <EmptyState
-                        icon={emptyIcon || <HiOutlineSearch className="w-12 h-12 text-gray-300" />}
+                        icon={emptyIcon || <HiOutlineMagnifyingGlass className="w-12 h-12 text-gray-300" />}
                         title={emptyTitle || "Nenhum resultado encontrado"}
                         description={emptyDescription || "Tente ajustar seus filtros ou termos de busca."}
                         action={onEmptyAction ? {
@@ -92,14 +92,14 @@ export function DataTable<TData>({
 
     return (
         <TableContainer isLoading={isLoading} isEmpty={isDataEmpty} {...props}>
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
+            <table className="min-w-full divide-y divide-slate-200/60 dark:divide-dark-700/50">
                 <thead>
                     {table.getHeaderGroups().map((headerGroup) => (
                         <tr key={headerGroup.id}>
                             {headerGroup.headers.map((header) => (
                                 <th
                                     key={header.id}
-                                    className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50 dark:bg-dark-800 cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+                                    className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-slate-50/50 dark:bg-dark-800 cursor-pointer select-none hover:bg-slate-100/50 dark:hover:bg-dark-700 transition-colors"
                                     style={{ minHeight: '48px' }}
                                     onClick={header.column.getToggleSortingHandler()}
                                 >
@@ -107,7 +107,7 @@ export function DataTable<TData>({
                                         {flexRender(header.column.columnDef.header, header.getContext())}
                                         {header.column.getIsSorted() && (
                                             <span className="text-primary-500">
-                                                {header.column.getIsSorted() === 'asc' ? 'â†‘' : 'â†“'}
+                                                {header.column.getIsSorted() === 'asc' ? ' ↑' : ' ↓'}
                                             </span>
                                         )}
                                     </div>
@@ -116,11 +116,11 @@ export function DataTable<TData>({
                         </tr>
                     ))}
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
+                <tbody className="divide-y divide-slate-200/60 dark:divide-dark-700/50">
                     {table.getRowModel().rows.map((row) => (
                         <tr
                             key={row.id}
-                            className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors"
+                            className="bg-white dark:bg-dark-900 hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors"
                         >
                             {row.getVisibleCells().map((cell) => (
                                 <td key={cell.id} className="px-6 py-4 whitespace-nowrap">

@@ -1,5 +1,5 @@
-import { logger } from '../utils/logger';
-﻿import { jsPDF } from 'jspdf';
+﻿import { logger } from '../utils/logger';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 
@@ -382,7 +382,7 @@ export const generatePharmacyStockReport = (data: { items: any[]; summary: any }
         item.productName.substring(0, 30),
         item.dci || '-',
         item.totalStock.toString(),
-        item.isLowStock ? 'âš ï¸' : '✓',
+        item.isLowStock ? '⚠️' : '✓',
         `${Number(item.totalValue).toLocaleString()} MT`
     ]);
 
