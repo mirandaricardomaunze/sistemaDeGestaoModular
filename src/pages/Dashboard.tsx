@@ -44,7 +44,8 @@ import {
     RecentAlertsWidget,
     RecentActivityWidget,
     QuickActionsWidget,
-    WeeklySalesWidget
+    WeeklySalesWidget,
+    RecentMovementsWidget
 } from '../components/dashboard/DashboardWidgets';
 import { DraggableWidget } from '../components/dashboard/DraggableWidget';
 
@@ -60,7 +61,7 @@ const dayNames: Record<string, string> = {
     '0': 'Dom', '1': 'Seg', '2': 'Ter', '3': 'Qua', '4': 'Qui', '5': 'Sex', '6': 'Sab'
 };
 
-const DEFAULT_WIDGET_ORDER = ['stats', 'insights', 'revenue', 'categories', 'alerts', 'activity', 'actions'];
+const DEFAULT_WIDGET_ORDER = ['stats', 'insights', 'revenue', 'categories', 'alerts', 'movements', 'activity', 'actions'];
 
 export default function Dashboard() {
     const { t } = useTranslation();
@@ -195,7 +196,8 @@ export default function Dashboard() {
                     <QuickActionsWidget />
                 </div>
             );
-            case 'activity': return null; // Already in alerts for now to keep layout tight, or we can separate them
+            case 'movements': return <RecentMovementsWidget />;
+            case 'activity': return null;
             case 'actions': return null;
             default: return null;
         }

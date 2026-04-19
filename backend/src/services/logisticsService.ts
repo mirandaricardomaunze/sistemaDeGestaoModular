@@ -1,15 +1,62 @@
+import { randomBytes } from 'crypto';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { cacheService } from './cacheService';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { ResultHandler } from '../utils/result';
 
+const DASHBOARD_CACHE_TTL = 120;
+const DEFAULT_LIMIT = 20;
+
+function paginationParams(query: any) {
+    return getPaginationParams({ limit: DEFAULT_LIMIT, ...query });
+}
+
 export class LogisticsService {
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private formatCode(prefix: string, count: number): string {
+        return `${prefix}-${String(count + 1).padStart(4, '0')}`;
+    }
+
+    private async generateDriverCode(companyId: string): Promise<string> {
+        const count = await prisma.driver.count({ where: { companyId } });
+        return this.formatCode('DRV', count);
+    }
+
+    private async generateRouteCode(companyId: string): Promise<string> {
+        const count = await prisma.deliveryRoute.count({ where: { companyId } });
+        return this.formatCode('RTE', count);
+    }
+
+    private async generateDeliveryNumber(companyId: string): Promise<string> {
+        const today = new Date();
+        const prefix = `DEL-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
+        const count = await prisma.delivery.count({ where: { companyId, number: { startsWith: prefix } } });
+        return `${prefix}-${String(count + 1).padStart(4, '0')}`;
+    }
+
+    private generateTrackingNumber(): string {
+        return 'PKG' + randomBytes(5).toString('hex').toUpperCase().slice(0, 9);
+    }
+
+    // ── Dashboard ─────────────────────────────────────────────────────────────
+
     async getDashboard(companyId: string) {
         const cacheKey = `logistics:dashboard:${companyId}`;
         const cached = cacheService.get(cacheKey);
-        if (cached) return cached;
+        if (cached) return ResultHandler.success(cached);
 
-        const [vehicles, drivers, routes, deliveries, parcels, recentDeliveries] = await Promise.all([
+        const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
+
+        // All independent queries in a single parallel batch
+        const [
+            vehicles, drivers, routes, deliveries, parcels, recentDeliveries,
+            pendingDeliveries, inTransitDeliveries, deliveredToday,
+            availableVehicles, availableDrivers,
+            pickupRevenue, deliveryRevenue, deliveriesByProvince, pendingParcels
+        ] = await Promise.all([
             prisma.vehicle.count({ where: { companyId } }),
             prisma.driver.count({ where: { companyId } }),
             prisma.deliveryRoute.count({ where: { companyId } }),
@@ -18,34 +65,23 @@ export class LogisticsService {
             prisma.delivery.findMany({
                 where: { companyId }, take: 5, orderBy: { createdAt: 'desc' },
                 include: { driver: true, vehicle: true, route: true }
-            })
-        ]);
-
-        const [pendingDeliveries, inTransitDeliveries, deliveredToday] = await Promise.all([
+            }),
             prisma.delivery.count({ where: { companyId, status: 'pending' } }),
             prisma.delivery.count({ where: { companyId, status: 'in_transit' } }),
-            prisma.delivery.count({ where: { companyId, status: 'delivered', deliveredDate: { gte: new Date(new Date().setHours(0, 0, 0, 0)) } } })
-        ]);
-
-        const [availableVehicles, availableDrivers] = await Promise.all([
+            prisma.delivery.count({ where: { companyId, status: 'delivered', deliveredDate: { gte: todayStart } } }),
             prisma.vehicle.count({ where: { companyId, status: 'available' } }),
-            prisma.driver.count({ where: { companyId, status: 'available' } })
-        ]);
-
-        const [pickupRevenue, deliveryRevenue] = await Promise.all([
+            prisma.driver.count({ where: { companyId, status: 'available' } }),
             prisma.transaction.aggregate({ where: { companyId, module: 'logistics', type: 'income', parcelId: { not: null } }, _sum: { amount: true } }),
-            prisma.transaction.aggregate({ where: { companyId, module: 'logistics', type: 'income', deliveryId: { not: null } }, _sum: { amount: true } })
+            prisma.transaction.aggregate({ where: { companyId, module: 'logistics', type: 'income', deliveryId: { not: null } }, _sum: { amount: true } }),
+            prisma.delivery.groupBy({ by: ['province'], where: { companyId, province: { not: null } }, _count: { id: true } }),
+            prisma.parcel.count({ where: { companyId, status: { in: ['received', 'awaiting_pickup'] } } }),
         ]);
-
-        const deliveriesByProvince = await prisma.delivery.groupBy({
-            by: ['province'], where: { companyId, province: { not: null } }, _count: { id: true }
-        });
 
         const result = {
             totals: { vehicles, drivers, routes, deliveries, parcels },
             stats: {
-                pendingDeliveries, inTransitDeliveries, deliveredToday, availableVehicles, availableDrivers,
-                pendingParcels: await prisma.parcel.count({ where: { companyId, status: { in: ['received', 'awaiting_pickup'] } } }),
+                pendingDeliveries, inTransitDeliveries, deliveredToday,
+                availableVehicles, availableDrivers, pendingParcels,
                 pickupRevenue: Number(pickupRevenue._sum?.amount || 0),
                 deliveryRevenue: Number(deliveryRevenue._sum?.amount || 0),
                 deliveriesByProvince: deliveriesByProvince.map(p => ({ province: p.province, count: (p as any)._count.id }))
@@ -53,18 +89,15 @@ export class LogisticsService {
             recentDeliveries
         };
 
-        const finalResult = ResultHandler.success(result);
-        cacheService.set(cacheKey, result, 120);
-        return finalResult;
+        cacheService.set(cacheKey, result, DASHBOARD_CACHE_TTL);
+        return ResultHandler.success(result);
     }
 
-    // ============================================================================
-    // VEHICLES
-    // ============================================================================
+    // ── Vehicles ──────────────────────────────────────────────────────────────
 
     async getVehicles(companyId: string, query: any) {
-        const { status, type, search, page = 1, limit = 20 } = query;
-        const skip = (Number(page) - 1) * Number(limit);
+        const { page, limit, skip } = paginationParams(query);
+        const { status, type, search } = query;
         const where: any = { companyId };
         if (status) where.status = status;
         if (type) where.type = type;
@@ -75,13 +108,11 @@ export class LogisticsService {
                 { model: { contains: search as string, mode: 'insensitive' } }
             ];
         }
-
         const [vehicles, total] = await Promise.all([
-            prisma.vehicle.findMany({ where, skip, take: Number(limit), orderBy: { createdAt: 'desc' }, include: { _count: { select: { deliveries: true } } } }),
+            prisma.vehicle.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { _count: { select: { deliveries: true } } } }),
             prisma.vehicle.count({ where })
         ]);
-
-        return ResultHandler.success({ data: vehicles, pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } });
+        return ResultHandler.success(createPaginatedResponse(vehicles, page, limit, total));
     }
 
     async createVehicle(companyId: string, data: any) {
@@ -94,30 +125,28 @@ export class LogisticsService {
     async updateVehicle(companyId: string, id: string, data: any) {
         const vehicle = await prisma.vehicle.findFirst({ where: { id, companyId } });
         if (!vehicle) throw ApiError.notFound('Veículo não encontrado');
-        if (data.plate && data.plate !== vehicle.plate) {
-            const dup = await prisma.vehicle.findFirst({ where: { companyId, plate: data.plate, id: { not: id } } });
-            if (dup) throw ApiError.badRequest('Já existe um veículo com esta matrícula');
+        try {
+            return ResultHandler.success(await prisma.vehicle.update({ where: { id }, data }));
+        } catch (e: any) {
+            if (e.code === 'P2002') throw ApiError.badRequest('Já existe um veículo com esta matrícula');
+            throw e;
         }
-        return prisma.vehicle.update({ where: { id }, data });
     }
 
     async deleteVehicle(companyId: string, id: string) {
         const vehicle = await prisma.vehicle.findFirst({
-            where: { id, companyId },
-            include: { _count: { select: { deliveries: true } } }
+            where: { id, companyId }, include: { _count: { select: { deliveries: true } } }
         });
         if (!vehicle) throw ApiError.notFound('Veículo não encontrado');
-        if ((vehicle._count as any).deliveries > 0) throw ApiError.badRequest('Não é possível eliminar um veículo com entregas associadas');
+        if (vehicle._count.deliveries > 0) throw ApiError.badRequest('Não é possível eliminar um veículo com entregas associadas');
         return prisma.vehicle.delete({ where: { id } });
     }
 
-    // ============================================================================
-    // DRIVERS
-    // ============================================================================
+    // ── Drivers ───────────────────────────────────────────────────────────────
 
     async getDrivers(companyId: string, query: any) {
-        const { status, search, page = 1, limit = 20 } = query;
-        const skip = (Number(page) - 1) * Number(limit);
+        const { page, limit, skip } = paginationParams(query);
+        const { status, search } = query;
         const where: any = { companyId };
         if (status) where.status = status;
         if (search) {
@@ -127,10 +156,10 @@ export class LogisticsService {
             ];
         }
         const [drivers, total] = await Promise.all([
-            prisma.driver.findMany({ where, skip, take: Number(limit), orderBy: { name: 'asc' }, include: { _count: { select: { deliveries: true } } } }),
+            prisma.driver.findMany({ where, skip, take: limit, orderBy: { name: 'asc' }, include: { _count: { select: { deliveries: true } } } }),
             prisma.driver.count({ where })
         ]);
-        return { data: drivers, pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } };
+        return ResultHandler.success(createPaginatedResponse(drivers, page, limit, total));
     }
 
     async getDriver(companyId: string, id: string) {
@@ -142,42 +171,34 @@ export class LogisticsService {
             }
         });
         if (!driver) throw ApiError.notFound('Motorista não encontrado');
-        return driver;
+        return ResultHandler.success(driver);
     }
 
     async createDriver(companyId: string, data: any) {
         const code = await this.generateDriverCode(companyId);
-        return prisma.driver.create({ data: { ...data, code, companyId } });
+        return ResultHandler.success(await prisma.driver.create({ data: { ...data, code, companyId } }));
     }
 
     async updateDriver(companyId: string, id: string, data: any) {
         const driver = await prisma.driver.findFirst({ where: { id, companyId } });
         if (!driver) throw ApiError.notFound('Motorista não encontrado');
-        return prisma.driver.update({ where: { id }, data });
+        return ResultHandler.success(await prisma.driver.update({ where: { id }, data }));
     }
 
     async deleteDriver(companyId: string, id: string) {
         const driver = await prisma.driver.findFirst({
-            where: { id, companyId },
-            include: { _count: { select: { deliveries: true } } }
+            where: { id, companyId }, include: { _count: { select: { deliveries: true } } }
         });
         if (!driver) throw ApiError.notFound('Motorista não encontrado');
-        if ((driver._count as any).deliveries > 0) throw ApiError.badRequest('Não é possível eliminar um motorista com entregas associadas');
+        if (driver._count.deliveries > 0) throw ApiError.badRequest('Não é possível eliminar um motorista com entregas associadas');
         return prisma.driver.delete({ where: { id } });
     }
 
-    private async generateDriverCode(companyId: string): Promise<string> {
-        const count = await prisma.driver.count({ where: { companyId } });
-        return `DRV-${String(count + 1).padStart(4, '0')}`;
-    }
-
-    // ============================================================================
-    // DELIVERY ROUTES
-    // ============================================================================
+    // ── Routes ────────────────────────────────────────────────────────────────
 
     async getRoutes(companyId: string, query: any) {
-        const { active, search, page = 1, limit = 20 } = query;
-        const skip = (Number(page) - 1) * Number(limit);
+        const { page, limit, skip } = paginationParams(query);
+        const { active, search } = query;
         const where: any = { companyId };
         if (active !== undefined) where.isActive = active === 'true';
         if (search) {
@@ -189,54 +210,45 @@ export class LogisticsService {
             ];
         }
         const [data, total] = await Promise.all([
-            prisma.deliveryRoute.findMany({ where, skip, take: Number(limit), orderBy: { name: 'asc' }, include: { _count: { select: { deliveries: true } } } }),
+            prisma.deliveryRoute.findMany({ where, skip, take: limit, orderBy: { name: 'asc' }, include: { _count: { select: { deliveries: true } } } }),
             prisma.deliveryRoute.count({ where })
         ]);
-        return { data, pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } };
+        return ResultHandler.success(createPaginatedResponse(data, page, limit, total));
     }
 
     async getRoute(companyId: string, id: string) {
         const route = await prisma.deliveryRoute.findFirst({
-            where: { id, companyId },
-            include: { _count: { select: { deliveries: true } } }
+            where: { id, companyId }, include: { _count: { select: { deliveries: true } } }
         });
         if (!route) throw ApiError.notFound('Rota não encontrada');
-        return route;
+        return ResultHandler.success(route);
     }
 
     async createRoute(companyId: string, data: any) {
         const code = await this.generateRouteCode(companyId);
-        return prisma.deliveryRoute.create({ data: { ...data, code, companyId, isActive: data.isActive ?? true } });
+        return ResultHandler.success(await prisma.deliveryRoute.create({ data: { ...data, code, companyId, isActive: data.isActive ?? true } }));
     }
 
     async updateRoute(companyId: string, id: string, data: any) {
         const route = await prisma.deliveryRoute.findFirst({ where: { id, companyId } });
         if (!route) throw ApiError.notFound('Rota não encontrada');
-        return prisma.deliveryRoute.update({ where: { id }, data });
+        return ResultHandler.success(await prisma.deliveryRoute.update({ where: { id }, data }));
     }
 
     async deleteRoute(companyId: string, id: string) {
         const route = await prisma.deliveryRoute.findFirst({
-            where: { id, companyId },
-            include: { _count: { select: { deliveries: true } } }
+            where: { id, companyId }, include: { _count: { select: { deliveries: true } } }
         });
         if (!route) throw ApiError.notFound('Rota não encontrada');
-        if ((route._count as any).deliveries > 0) throw ApiError.badRequest('Não é possível eliminar uma rota com entregas associadas');
+        if (route._count.deliveries > 0) throw ApiError.badRequest('Não é possível eliminar uma rota com entregas associadas');
         return prisma.deliveryRoute.delete({ where: { id } });
     }
 
-    private async generateRouteCode(companyId: string): Promise<string> {
-        const count = await prisma.deliveryRoute.count({ where: { companyId } });
-        return `RTE-${String(count + 1).padStart(4, '0')}`;
-    }
-
-    // ============================================================================
-    // DELIVERIES
-    // ============================================================================
+    // ── Deliveries ────────────────────────────────────────────────────────────
 
     async getDeliveries(companyId: string, query: any) {
-        const { status, priority, driverId, vehicleId, search, startDate, endDate, page = 1, limit = 20 } = query;
-        const skip = (Number(page) - 1) * Number(limit);
+        const { page, limit, skip } = paginationParams(query);
+        const { status, priority, driverId, vehicleId, search, startDate, endDate } = query;
         const where: any = { companyId };
         if (status) where.status = status;
         if (priority) where.priority = priority;
@@ -254,35 +266,37 @@ export class LogisticsService {
             ];
         }
         const [deliveries, total] = await Promise.all([
-            prisma.delivery.findMany({ where, skip, take: Number(limit), orderBy: { createdAt: 'desc' }, include: { driver: true, vehicle: true, route: true, items: true } }),
+            prisma.delivery.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { driver: true, vehicle: true, route: true, items: true } }),
             prisma.delivery.count({ where })
         ]);
-        return { deliveries, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
+        return ResultHandler.success({ deliveries, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
     }
 
     async getDelivery(companyId: string, id: string) {
         const delivery = await prisma.delivery.findFirst({
-            where: { id, companyId },
-            include: { driver: true, vehicle: true, route: true, items: true }
+            where: { id, companyId }, include: { driver: true, vehicle: true, route: true, items: true }
         });
         if (!delivery) throw ApiError.notFound('Entrega não encontrada');
-        return delivery;
+        return ResultHandler.success(delivery);
     }
 
     async createDelivery(companyId: string, data: any) {
         const number = await this.generateDeliveryNumber(companyId);
         return prisma.$transaction(async (tx) => {
             const delivery = await tx.delivery.create({
-                data: { ...data, number, companyId, items: data.items ? { create: data.items } : undefined },
+                data: {
+                    ...data, number, companyId,
+                    items: data.items?.length ? { create: data.items } : undefined
+                },
                 include: { driver: true, vehicle: true, route: true }
             });
-
             if (data.driverId && data.status === 'in_transit') {
                 await tx.driver.update({ where: { id: data.driverId }, data: { status: 'on_delivery' } });
             }
             if (data.vehicleId && data.status === 'in_transit') {
                 await tx.vehicle.update({ where: { id: data.vehicleId }, data: { status: 'in_use' } });
             }
+            // Return raw entity — route accesses .driverId for socket emission before res.json
             return delivery;
         });
     }
@@ -290,8 +304,8 @@ export class LogisticsService {
     async updateDelivery(companyId: string, id: string, data: any) {
         const existing = await prisma.delivery.findFirst({ where: { id, companyId } });
         if (!existing) throw ApiError.notFound('Entrega não encontrada');
-        const { items, ...rest } = data;
-        return prisma.delivery.update({ where: { id }, data: rest, include: { driver: true, vehicle: true, route: true, items: true } });
+        const { items: _items, ...rest } = data;
+        return ResultHandler.success(await prisma.delivery.update({ where: { id }, data: rest, include: { driver: true, vehicle: true, route: true, items: true } }));
     }
 
     async deleteDelivery(companyId: string, id: string) {
@@ -302,13 +316,6 @@ export class LogisticsService {
         }
         await prisma.deliveryItem.deleteMany({ where: { deliveryId: id } });
         return prisma.delivery.delete({ where: { id } });
-    }
-
-    private async generateDeliveryNumber(companyId: string): Promise<string> {
-        const today = new Date();
-        const prefix = `DEL-${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}`;
-        const count = await prisma.delivery.count({ where: { companyId, number: { startsWith: prefix } } });
-        return `${prefix}-${String(count + 1).padStart(4, '0')}`;
     }
 
     async updateDeliveryStatus(companyId: string, id: string, status: string, extra: any) {
@@ -332,7 +339,7 @@ export class LogisticsService {
                 if (existing.driverId) await tx.driver.update({ where: { id: existing.driverId }, data: { status: 'available' } });
                 if (existing.vehicleId) await tx.vehicle.update({ where: { id: existing.vehicleId }, data: { status: 'available' } });
             }
-            return delivery;
+            return ResultHandler.success(delivery);
         });
     }
 
@@ -345,27 +352,22 @@ export class LogisticsService {
             const updated = await tx.delivery.update({ where: { id }, data: { isPaid: true } });
             await tx.transaction.create({
                 data: {
-                    companyId,
-                    module: 'logistics',
-                    category: 'payment',
-                    type: 'income',
+                    companyId, module: 'logistics', category: 'payment', type: 'income',
                     amount: data.amount ?? delivery.shippingCost ?? 0,
                     paymentMethod: data.paymentMethod as any,
                     deliveryId: id,
                     description: `Pagamento da entrega ${delivery.number}`
                 }
             });
-            return updated;
+            return ResultHandler.success(updated);
         });
     }
 
-    // ============================================================================
-    // PARCELS
-    // ============================================================================
+    // ── Parcels ───────────────────────────────────────────────────────────────
 
     async getParcels(companyId: string, query: any) {
-        const { status, warehouseId, search, page = 1, limit = 20 } = query;
-        const skip = (Number(page) - 1) * Number(limit);
+        const { page, limit, skip } = paginationParams(query);
+        const { status, warehouseId, search } = query;
         const where: any = { companyId };
         if (status) where.status = status;
         if (warehouseId) where.warehouseId = warehouseId;
@@ -377,10 +379,10 @@ export class LogisticsService {
             ];
         }
         const [parcels, total] = await Promise.all([
-            prisma.parcel.findMany({ where, skip, take: Number(limit), orderBy: { createdAt: 'desc' }, include: { warehouse: true } }),
+            prisma.parcel.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' }, include: { warehouse: true } }),
             prisma.parcel.count({ where })
         ]);
-        return { parcels, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
+        return ResultHandler.success({ parcels, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
     }
 
     async getParcel(companyId: string, id: string) {
@@ -389,7 +391,7 @@ export class LogisticsService {
             include: { warehouse: true, notifications: { orderBy: { sentAt: 'desc' } } }
         });
         if (!parcel) throw ApiError.notFound('Encomenda não encontrada');
-        return parcel;
+        return ResultHandler.success(parcel);
     }
 
     async trackParcel(companyId: string, trackingNumber: string) {
@@ -398,21 +400,21 @@ export class LogisticsService {
             include: { warehouse: true, notifications: { orderBy: { sentAt: 'desc' } } }
         });
         if (!parcel) throw ApiError.notFound('Encomenda não encontrada');
-        return parcel;
+        return ResultHandler.success(parcel);
     }
 
     async createParcel(companyId: string, data: any) {
-        const trackingNumber = this.generateTrackingNumber();
-        return prisma.parcel.create({
-            data: { ...data, trackingNumber, status: 'received', companyId },
+        const parcel = await prisma.parcel.create({
+            data: { ...data, trackingNumber: this.generateTrackingNumber(), status: 'received', companyId },
             include: { warehouse: true }
         });
+        return ResultHandler.success(parcel);
     }
 
     async updateParcel(companyId: string, id: string, data: any) {
         const parcel = await prisma.parcel.findFirst({ where: { id, companyId } });
         if (!parcel) throw ApiError.notFound('Encomenda não encontrada');
-        return prisma.parcel.update({ where: { id }, data, include: { warehouse: true } });
+        return ResultHandler.success(await prisma.parcel.update({ where: { id }, data, include: { warehouse: true } }));
     }
 
     async deleteParcel(companyId: string, id: string) {
@@ -424,11 +426,8 @@ export class LogisticsService {
     }
 
     async registerParcelPickup(companyId: string, id: string, data: {
-        pickedUpBy: string;
-        pickedUpDocument?: string;
-        pickupSignature?: string;
-        paymentMethod?: string;
-        isPaid?: boolean;
+        pickedUpBy: string; pickedUpDocument?: string; pickupSignature?: string;
+        paymentMethod?: string; isPaid?: boolean;
     }) {
         const parcel = await prisma.parcel.findFirst({ where: { id, companyId } });
         if (!parcel) throw ApiError.notFound('Encomenda não encontrada');
@@ -438,24 +437,18 @@ export class LogisticsService {
             const updated = await tx.parcel.update({
                 where: { id },
                 data: {
-                    status: 'picked_up',
-                    pickedUpAt: new Date(),
-                    pickedUpBy: data.pickedUpBy,
-                    pickedUpDocument: data.pickedUpDocument,
+                    status: 'picked_up', pickedUpAt: new Date(),
+                    pickedUpBy: data.pickedUpBy, pickedUpDocument: data.pickedUpDocument,
                     pickupSignature: data.pickupSignature,
                     isPaid: data.isPaid ?? parcel.isPaid,
                     paymentMethod: data.paymentMethod ?? parcel.paymentMethod
                 },
                 include: { warehouse: true }
             });
-
             if (data.isPaid && !parcel.isPaid && Number(parcel.fees) > 0) {
                 await tx.transaction.create({
                     data: {
-                        companyId,
-                        module: 'logistics',
-                        category: 'payment',
-                        type: 'income',
+                        companyId, module: 'logistics', category: 'payment', type: 'income',
                         amount: parcel.fees,
                         paymentMethod: (data.paymentMethod || 'cash') as any,
                         parcelId: id,
@@ -463,20 +456,20 @@ export class LogisticsService {
                     }
                 });
             }
-            return updated;
+            return ResultHandler.success(updated);
         });
     }
 
     async updateParcelStatus(companyId: string, id: string, status: string) {
         const parcel = await prisma.parcel.findFirst({ where: { id, companyId } });
         if (!parcel) throw ApiError.notFound('Encomenda não encontrada');
-        return prisma.parcel.update({ where: { id }, data: { status: status as any } });
+        return ResultHandler.success(await prisma.parcel.update({ where: { id }, data: { status: status as any } }));
     }
 
     async sendParcelNotification(companyId: string, id: string, data: { type?: string; recipient?: string; message: string }) {
         const parcel = await prisma.parcel.findFirst({ where: { id, companyId } });
         if (!parcel) throw ApiError.notFound('Encomenda não encontrada');
-        return prisma.parcelNotification.create({
+        return ResultHandler.success(await prisma.parcelNotification.create({
             data: {
                 parcelId: id,
                 type: (data.type || 'sms') as any,
@@ -485,88 +478,61 @@ export class LogisticsService {
                 sentAt: new Date(),
                 status: 'sent'
             }
-        });
+        }));
     }
 
-    private generateTrackingNumber(): string {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let result = 'PKG';
-        for (let i = 0; i < 9; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-        return result;
-    }
-
-    // ============================================================================
-    // VEHICLE MAINTENANCE
-    // ============================================================================
+    // ── Maintenance ───────────────────────────────────────────────────────────
 
     async getMaintenances(companyId: string, query: any) {
-        const { vehicleId, status, page = 1, limit = 20 } = query;
-        const skip = (Number(page) - 1) * Number(limit);
+        const { page, limit, skip } = paginationParams(query);
+        const { vehicleId, status } = query;
         const where: any = { vehicle: { companyId } };
         if (vehicleId) where.vehicleId = vehicleId;
         if (status) where.status = status;
         const [data, total] = await Promise.all([
-            prisma.vehicleMaintenance.findMany({ where, skip, take: Number(limit), orderBy: { date: 'desc' }, include: { vehicle: true } }),
+            prisma.vehicleMaintenance.findMany({ where, skip, take: limit, orderBy: { date: 'desc' }, include: { vehicle: true } }),
             prisma.vehicleMaintenance.count({ where })
         ]);
-        return { data, pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } };
+        return ResultHandler.success(createPaginatedResponse(data, page, limit, total));
     }
 
     async createMaintenance(companyId: string, data: any) {
         const vehicle = await prisma.vehicle.findFirst({ where: { id: data.vehicleId, companyId } });
         if (!vehicle) throw ApiError.notFound('Veículo não encontrado');
-
         return prisma.$transaction(async (tx) => {
-            const maintenance = await tx.vehicleMaintenance.create({
-                data: { ...data, date: new Date(data.date) },
-                include: { vehicle: true }
-            });
-            // Update vehicle last/next maintenance dates
-            const updateVehicle: any = { lastMaintenance: new Date(data.date) };
-            if (data.nextDate) updateVehicle.nextMaintenance = new Date(data.nextDate);
-            if (data.mileageAt) updateVehicle.mileage = data.mileageAt;
-            if (data.status === 'in_progress') updateVehicle.status = 'maintenance';
-            await tx.vehicle.update({ where: { id: data.vehicleId }, data: updateVehicle });
-            return maintenance;
+            const maintenance = await tx.vehicleMaintenance.create({ data: { ...data, date: new Date(data.date) }, include: { vehicle: true } });
+            const vehicleUpdate: any = { lastMaintenance: new Date(data.date) };
+            if (data.nextDate) vehicleUpdate.nextMaintenance = new Date(data.nextDate);
+            if (data.mileageAt) vehicleUpdate.mileage = data.mileageAt;
+            if (data.status === 'in_progress') vehicleUpdate.status = 'maintenance';
+            await tx.vehicle.update({ where: { id: data.vehicleId }, data: vehicleUpdate });
+            return ResultHandler.success(maintenance);
         });
     }
 
     async updateMaintenance(companyId: string, id: string, data: any) {
-        const maintenance = await prisma.vehicleMaintenance.findFirst({
-            where: { id, vehicle: { companyId } }
-        });
+        const maintenance = await prisma.vehicleMaintenance.findFirst({ where: { id, vehicle: { companyId } } });
         if (!maintenance) throw ApiError.notFound('Manutenção não encontrada');
-
         return prisma.$transaction(async (tx) => {
-            const updated = await tx.vehicleMaintenance.update({
-                where: { id },
-                data,
-                include: { vehicle: true }
-            });
-            // If completed, set vehicle back to available
+            const updated = await tx.vehicleMaintenance.update({ where: { id }, data, include: { vehicle: true } });
             if (data.status === 'completed') {
                 await tx.vehicle.update({ where: { id: maintenance.vehicleId }, data: { status: 'available' } });
             }
-            return updated;
+            return ResultHandler.success(updated);
         });
     }
 
     async deleteMaintenance(companyId: string, id: string) {
-        const maintenance = await prisma.vehicleMaintenance.findFirst({
-            where: { id, vehicle: { companyId } }
-        });
+        const maintenance = await prisma.vehicleMaintenance.findFirst({ where: { id, vehicle: { companyId } } });
         if (!maintenance) throw ApiError.notFound('Manutenção não encontrada');
         return prisma.vehicleMaintenance.delete({ where: { id } });
     }
 
-    // ============================================================================
-    // FUEL SUPPLIES
-    // ============================================================================
+    // ── Fuel ──────────────────────────────────────────────────────────────────
 
     async getFuelSupplies(companyId: string, params: any) {
-        const { vehicleId, startDate, endDate, page = 1, limit = 20 } = params;
-        const skip = (Number(page) - 1) * Number(limit);
-
+        const { page, limit, skip } = paginationParams(params);
+        const { vehicleId, startDate, endDate } = params;
         const where: any = { companyId };
         if (vehicleId) where.vehicleId = vehicleId;
         if (startDate || endDate) {
@@ -574,50 +540,31 @@ export class LogisticsService {
             if (startDate) where.date.gte = new Date(startDate);
             if (endDate) where.date.lte = new Date(new Date(endDate).setHours(23, 59, 59, 999));
         }
-
         const [data, total] = await Promise.all([
-            (prisma as any).fuelSupply.findMany({
-                where,
-                include: { vehicle: { select: { id: true, plate: true, brand: true, model: true } } },
-                orderBy: { date: 'desc' },
-                skip,
-                take: Number(limit),
-            }),
+            (prisma as any).fuelSupply.findMany({ where, include: { vehicle: { select: { id: true, plate: true, brand: true, model: true } } }, orderBy: { date: 'desc' }, skip, take: limit }),
             (prisma as any).fuelSupply.count({ where }),
         ]);
-
-        return {
-            data,
-            pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) },
-        };
+        return ResultHandler.success(createPaginatedResponse(data, page, limit, total));
     }
 
     async createFuelSupply(companyId: string, data: any) {
         const vehicle = await prisma.vehicle.findFirst({ where: { id: data.vehicleId, companyId } });
         if (!vehicle) throw ApiError.notFound('Veículo não encontrado');
-
         const supply = await (prisma as any).fuelSupply.create({
             data: {
-                vehicleId: data.vehicleId,
-                companyId,
+                vehicleId: data.vehicleId, companyId,
                 date: data.date ? new Date(data.date) : new Date(),
-                liters: data.liters,
-                pricePerLiter: data.pricePerLiter ?? null,
-                amount: data.amount,
-                mileage: data.mileage ?? 0,
-                provider: data.provider ?? null,
-                notes: data.notes ?? null,
+                liters: data.liters, pricePerLiter: data.pricePerLiter ?? null,
+                amount: data.amount, mileage: data.mileage ?? 0,
+                provider: data.provider ?? null, notes: data.notes ?? null,
             },
             include: { vehicle: { select: { id: true, plate: true, brand: true, model: true } } },
         });
-
-        // Update vehicle mileage if higher than current
         if (data.mileage && data.mileage > vehicle.mileage) {
             await prisma.vehicle.update({ where: { id: data.vehicleId }, data: { mileage: data.mileage } });
         }
-
         cacheService.del(`logistics:dashboard:${companyId}`);
-        return supply;
+        return ResultHandler.success(supply);
     }
 
     async deleteFuelSupply(companyId: string, id: string) {
@@ -626,19 +573,15 @@ export class LogisticsService {
         return (prisma as any).fuelSupply.delete({ where: { id } });
     }
 
-    // ============================================================================
-    // VEHICLE INCIDENTS
-    // ============================================================================
+    // ── Incidents ─────────────────────────────────────────────────────────────
 
     async getIncidents(companyId: string, params: any) {
-        const { vehicleId, driverId, type, page = 1, limit = 20 } = params;
-        const skip = (Number(page) - 1) * Number(limit);
-
+        const { page, limit, skip } = paginationParams(params);
+        const { vehicleId, driverId, type } = params;
         const where: any = { companyId };
         if (vehicleId) where.vehicleId = vehicleId;
         if (driverId) where.driverId = driverId;
         if (type) where.type = type;
-
         const [data, total] = await Promise.all([
             (prisma as any).vehicleIncident.findMany({
                 where,
@@ -646,40 +589,27 @@ export class LogisticsService {
                     vehicle: { select: { id: true, plate: true, brand: true, model: true } },
                     driver: { select: { id: true, name: true, code: true } },
                 },
-                orderBy: { date: 'desc' },
-                skip,
-                take: Number(limit),
+                orderBy: { date: 'desc' }, skip, take: limit,
             }),
             (prisma as any).vehicleIncident.count({ where }),
         ]);
-
-        return {
-            data,
-            pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) },
-        };
+        return ResultHandler.success(createPaginatedResponse(data, page, limit, total));
     }
 
     async createIncident(companyId: string, data: any) {
         const vehicle = await prisma.vehicle.findFirst({ where: { id: data.vehicleId, companyId } });
         if (!vehicle) throw ApiError.notFound('Veículo não encontrado');
-
         if (data.driverId) {
             const driver = await prisma.driver.findFirst({ where: { id: data.driverId, companyId } });
             if (!driver) throw ApiError.notFound('Motorista não encontrado');
         }
-
         const incident = await (prisma as any).vehicleIncident.create({
             data: {
-                vehicleId: data.vehicleId,
-                driverId: data.driverId ?? null,
-                companyId,
+                vehicleId: data.vehicleId, driverId: data.driverId ?? null, companyId,
                 date: data.date ? new Date(data.date) : new Date(),
-                type: data.type ?? 'other',
-                severity: data.severity ?? 'low',
-                description: data.description,
-                cost: data.cost ?? null,
-                location: data.location ?? null,
-                status: data.status ?? 'open',
+                type: data.type ?? 'other', severity: data.severity ?? 'low',
+                description: data.description, cost: data.cost ?? null,
+                location: data.location ?? null, status: data.status ?? 'open',
                 notes: data.notes ?? null,
             },
             include: {
@@ -687,13 +617,11 @@ export class LogisticsService {
                 driver: { select: { id: true, name: true, code: true } },
             },
         });
-
-        // If breakdown or accident, set vehicle to maintenance/inactive
         if (data.type === 'breakdown' && data.severity !== 'low') {
             await prisma.vehicle.update({ where: { id: data.vehicleId }, data: { status: 'maintenance' } });
         }
-
         cacheService.del(`logistics:dashboard:${companyId}`);
+        // Return raw entity — route accesses .id/.type for socket emission before res.json
         return incident;
     }
 
@@ -701,34 +629,29 @@ export class LogisticsService {
         const incident = await (prisma as any).vehicleIncident.findFirst({ where: { id, companyId } });
         if (!incident) throw ApiError.notFound('Incidente não encontrado');
 
+        const updateData = Object.fromEntries(
+            Object.entries({
+                type: data.type, severity: data.severity, description: data.description,
+                cost: data.cost, location: data.location, status: data.status, notes: data.notes,
+                date: data.date ? new Date(data.date) : undefined,
+            }).filter(([, v]) => v !== undefined)
+        );
+
         const updated = await (prisma as any).vehicleIncident.update({
-            where: { id },
-            data: {
-                ...(data.type && { type: data.type }),
-                ...(data.severity && { severity: data.severity }),
-                ...(data.description && { description: data.description }),
-                ...(data.cost !== undefined && { cost: data.cost }),
-                ...(data.location !== undefined && { location: data.location }),
-                ...(data.status && { status: data.status }),
-                ...(data.notes !== undefined && { notes: data.notes }),
-                ...(data.date && { date: new Date(data.date) }),
-            },
+            where: { id }, data: updateData,
             include: {
                 vehicle: { select: { id: true, plate: true, brand: true, model: true } },
                 driver: { select: { id: true, name: true, code: true } },
             },
         });
 
-        // If resolved/closed, restore vehicle if it was in maintenance due to incident
         if ((data.status === 'resolved' || data.status === 'closed') && incident.type === 'breakdown') {
-            const vehicle = await prisma.vehicle.findFirst({ where: { id: incident.vehicleId, status: 'maintenance' } });
-            if (vehicle) {
-                await prisma.vehicle.update({ where: { id: incident.vehicleId }, data: { status: 'available' } });
-            }
+            const v = await prisma.vehicle.findFirst({ where: { id: incident.vehicleId, status: 'maintenance' } });
+            if (v) await prisma.vehicle.update({ where: { id: incident.vehicleId }, data: { status: 'available' } });
         }
 
         cacheService.del(`logistics:dashboard:${companyId}`);
-        return updated;
+        return ResultHandler.success(updated);
     }
 
     async deleteIncident(companyId: string, id: string) {
@@ -737,9 +660,7 @@ export class LogisticsService {
         return (prisma as any).vehicleIncident.delete({ where: { id } });
     }
 
-    // ============================================================================
-    // REPORTS SUMMARY
-    // ============================================================================
+    // ── Reports ───────────────────────────────────────────────────────────────
 
     async getReportsSummary(companyId: string, query: { startDate?: string; endDate?: string }) {
         const { startDate, endDate } = query;
@@ -750,7 +671,8 @@ export class LogisticsService {
             if (endDate) where.createdAt.lte = new Date(endDate + 'T23:59:59.999Z');
         }
 
-        const [total, delivered, failed, pending, inTransit, revenueAgg, avgTimeData, statusGroups] = await Promise.all([
+        const [total, delivered, failed, pending, inTransit, revenueAgg, avgTimeData, statusGroups,
+               driverGroups, routeCountGroups, routeRevenueGroups] = await Promise.all([
             prisma.delivery.count({ where }),
             prisma.delivery.count({ where: { ...where, status: 'delivered' } }),
             prisma.delivery.count({ where: { ...where, status: 'failed' } }),
@@ -761,65 +683,59 @@ export class LogisticsService {
                 where: { ...where, status: 'delivered', deliveredDate: { not: null } },
                 select: { createdAt: true, deliveredDate: true }
             }),
-            prisma.delivery.groupBy({ by: ['status'], where, _count: { id: true } })
+            prisma.delivery.groupBy({ by: ['status'], where, _count: { id: true } }),
+            // DB-level aggregation for driver performance — avoids loading all delivery rows
+            prisma.delivery.groupBy({
+                by: ['driverId', 'status'],
+                where: { ...where, driverId: { not: null } },
+                _count: { id: true }
+            }),
+            prisma.delivery.groupBy({
+                by: ['routeId'],
+                where: { ...where, routeId: { not: null } },
+                _count: { id: true }
+            }),
+            prisma.delivery.groupBy({
+                by: ['routeId'],
+                where: { ...where, routeId: { not: null }, isPaid: true },
+                _sum: { shippingCost: true }
+            }),
         ]);
 
         const avgDeliveryHours = avgTimeData.length > 0
-            ? avgTimeData.reduce((sum, d) => {
-                const diff = new Date(d.deliveredDate!).getTime() - new Date(d.createdAt).getTime();
-                return sum + diff / (1000 * 60 * 60);
-              }, 0) / avgTimeData.length
+            ? avgTimeData.reduce((sum, d) => sum + (new Date(d.deliveredDate!).getTime() - new Date(d.createdAt).getTime()) / 3600000, 0) / avgTimeData.length
             : 0;
 
-        // Driver performance (top 10)
-        const driverDeliveries = await prisma.delivery.findMany({
-            where: { ...where, driverId: { not: null } },
-            select: { driverId: true, status: true, driver: { select: { name: true } } }
-        });
+        // Resolve driver names for top results
+        const driverIds = [...new Set(driverGroups.map(g => g.driverId).filter(Boolean))] as string[];
+        const driverNames = await prisma.driver.findMany({ where: { id: { in: driverIds } }, select: { id: true, name: true } });
+        const driverNameMap = new Map(driverNames.map(d => [d.id, d.name]));
 
-        const driverStats: Record<string, { name: string; total: number; delivered: number; failed: number }> = {};
-        driverDeliveries.forEach((d: any) => {
-            if (!d.driverId || !d.driver) return;
-            if (!driverStats[d.driverId]) {
-                driverStats[d.driverId] = { name: d.driver.name, total: 0, delivered: 0, failed: 0 };
-            }
-            driverStats[d.driverId].total++;
-            if (d.status === 'delivered') driverStats[d.driverId].delivered++;
-            if (d.status === 'failed') driverStats[d.driverId].failed++;
-        });
-
-        const driverPerformance = Object.values(driverStats)
+        const driverStatsMap: Record<string, { name: string; total: number; delivered: number; failed: number }> = {};
+        for (const g of driverGroups) {
+            if (!g.driverId) continue;
+            if (!driverStatsMap[g.driverId]) driverStatsMap[g.driverId] = { name: driverNameMap.get(g.driverId) || '', total: 0, delivered: 0, failed: 0 };
+            driverStatsMap[g.driverId].total += (g as any)._count.id;
+            if (g.status === 'delivered') driverStatsMap[g.driverId].delivered += (g as any)._count.id;
+            if (g.status === 'failed') driverStatsMap[g.driverId].failed += (g as any)._count.id;
+        }
+        const driverPerformance = Object.values(driverStatsMap)
             .map(ds => ({ ...ds, successRate: ds.total > 0 ? (ds.delivered / ds.total) * 100 : 0 }))
-            .sort((a, b) => b.total - a.total)
-            .slice(0, 10);
+            .sort((a, b) => b.total - a.total).slice(0, 10);
 
-        // Route usage (top 10)
-        const routeDeliveries = await prisma.delivery.findMany({
-            where: { ...where, routeId: { not: null } },
-            select: { routeId: true, isPaid: true, shippingCost: true, route: { select: { name: true } } }
-        });
+        // Resolve route names for top results
+        const routeIds = [...new Set(routeCountGroups.map(g => g.routeId).filter(Boolean))] as string[];
+        const routeNames = await prisma.deliveryRoute.findMany({ where: { id: { in: routeIds } }, select: { id: true, name: true } });
+        const routeNameMap = new Map(routeNames.map(r => [r.id, r.name]));
+        const revenueMap = new Map(routeRevenueGroups.map(g => [g.routeId, Number((g as any)._sum?.shippingCost || 0)]));
 
-        const routeStats: Record<string, { name: string; count: number; revenue: number }> = {};
-        routeDeliveries.forEach((d: any) => {
-            if (!d.routeId || !d.route) return;
-            if (!routeStats[d.routeId]) {
-                routeStats[d.routeId] = { name: d.route.name, count: 0, revenue: 0 };
-            }
-            routeStats[d.routeId].count++;
-            if (d.isPaid) routeStats[d.routeId].revenue += Number(d.shippingCost || 0);
-        });
+        const routeUsage = routeCountGroups
+            .map(g => ({ name: routeNameMap.get(g.routeId!) || '', count: (g as any)._count.id, revenue: revenueMap.get(g.routeId!) || 0 }))
+            .sort((a, b) => b.count - a.count).slice(0, 10);
 
-        const routeUsage = Object.values(routeStats)
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 10);
-
-        return {
+        return ResultHandler.success({
             summary: {
-                total,
-                delivered,
-                failed,
-                pending,
-                inTransit,
+                total, delivered, failed, pending, inTransit,
                 successRate: total > 0 ? (delivered / total) * 100 : 0,
                 totalRevenue: Number(revenueAgg._sum?.shippingCost || 0),
                 avgDeliveryHours
@@ -827,7 +743,7 @@ export class LogisticsService {
             statusDistribution: statusGroups.map((g: any) => ({ status: g.status, count: g._count.id })),
             driverPerformance,
             routeUsage
-        };
+        });
     }
 }
 
