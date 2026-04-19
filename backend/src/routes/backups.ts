@@ -1,3 +1,4 @@
+import path from 'path';
 import { Router } from 'express';
 import { backupService } from '../services/backupService';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
@@ -30,14 +31,12 @@ router.get('/stats', asyncHandler(async (req: AuthRequest, res) => {
 router.get('/download/:filename', asyncHandler(async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const { filename } = req.params;
+    const basePath = path.resolve(backupService.getCompanyBackupPath(req.companyId));
+    const filepath = path.resolve(path.join(basePath, filename));
 
-    // Basic security check to prevent directory traversal
-    if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    if (!filepath.startsWith(basePath + path.sep) && filepath !== basePath) {
         throw ApiError.badRequest('Nome de arquivo inválido');
     }
-
-    const path = require('path');
-    const filepath = path.join(backupService.getCompanyBackupPath(req.companyId), filename);
 
     res.download(filepath);
 }));

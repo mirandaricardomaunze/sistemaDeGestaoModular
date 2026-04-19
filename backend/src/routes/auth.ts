@@ -135,7 +135,7 @@ router.post('/register', rateLimiters.auth, async (req, res) => {
         }
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     try {
         const result = await prisma.$transaction(async (tx) => {
@@ -261,7 +261,7 @@ router.post('/reset-password', rateLimiters.passwordReset, async (req, res) => {
         throw ApiError.badRequest('Código inválido ou expirado');
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     await prisma.user.update({
         where: { id: user.id },
@@ -362,7 +362,7 @@ router.put('/change-password', authenticate, async (req: AuthRequest, res) => {
     const valid = await bcrypt.compare(currentPassword, user.password);
     if (!valid) throw ApiError.badRequest('Palavra-passe atual incorreta');
 
-    const hashed = await bcrypt.hash(newPassword, 10);
+    const hashed = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({ where: { id: req.userId }, data: { password: hashed } });
     res.json({ message: 'Palavra-passe alterada com sucesso' });
 });
@@ -370,7 +370,7 @@ router.put('/change-password', authenticate, async (req: AuthRequest, res) => {
 // ---------------------------------------------------------------------------
 // POST /auth/verify-otp -- verify OTP code only (step 1 of 2-step reset)
 // ---------------------------------------------------------------------------
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', rateLimiters.passwordReset, async (req, res) => {
     const { email, otp } = req.body;
     if (!email || !otp) throw ApiError.badRequest('email e otp são obrigatórios');
 

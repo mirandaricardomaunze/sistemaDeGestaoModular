@@ -18,10 +18,15 @@ router.get('/company', authenticate, async (req: AuthRequest, res) => {
 
 router.put('/company', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const ALLOWED_FIELDS = ['companyName', 'country', 'currency', 'phone', 'email', 'address', 'taxRate', 'invoicePrefix', 'timezone', 'language', 'logo'];
+    const data: Record<string, any> = {};
+    for (const key of ALLOWED_FIELDS) {
+        if (key in req.body) data[key] = req.body[key];
+    }
     const settings = await prisma.companySettings.upsert({
         where: { companyId: req.companyId },
-        update: req.body,
-        create: { ...req.body, companyId: req.companyId }
+        update: data,
+        create: { companyName: data.companyName ?? 'Minha Empresa', ...data, companyId: req.companyId }
     });
     res.json(settings);
 });
@@ -56,9 +61,10 @@ router.post('/categories', authenticate, async (req: AuthRequest, res) => {
 
 router.put('/categories/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const { name, description, code, color, parentId } = req.body;
     const category = await prisma.category.updateMany({
         where: { id: req.params.id, companyId: req.companyId },
-        data: req.body
+        data: { name, description, code, color, parentId }
     });
     if (category.count === 0) throw ApiError.notFound('Categoria não encontrada');
     res.json({ message: 'Categoria atualizada' });
