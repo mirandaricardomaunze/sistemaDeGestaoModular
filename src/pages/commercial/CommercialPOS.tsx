@@ -80,11 +80,21 @@ export default function CommercialPOS() {
         queryFn: async () => {
             const data = await productsAPI.getAll({
                 origin_module: 'commercial',
+                limit: 999,
                 ...(shiftWarehouseId ? { warehouseId: shiftWarehouseId } : {})
             });
             return Array.isArray(data) ? data : (data?.data || []);
         },
         enabled: !loadingShift && isOnline,
+    });
+
+    const { data: customers = [], isLoading: loadingCustomers } = useQuery({
+        queryKey: ['commercial', 'customers'],
+        queryFn: async () => {
+            const data = await customersAPI.getAll();
+            return Array.isArray(data) ? data : (data?.data || []);
+        },
+        enabled: isOnline
     });
 
     // Offline data fallbacks
@@ -117,16 +127,6 @@ export default function CommercialPOS() {
         const applicable = tiers.filter(t => qty >= t.minQty).sort((a, b) => b.minQty - a.minQty);
         return applicable.length > 0 ? applicable[0].price : basePrice;
     }, [priceTiersMap]);
-
-    const { data: customers = [], isLoading: loadingCustomers } = useQuery({
-        queryKey: ['commercial', 'customers'],
-        queryFn: async () => {
-            const data = await customersAPI.getAll();
-            return Array.isArray(data) ? data : (data?.data || []);
-        },
-        enabled: isOnline
-    });
-    });
 
     // ── Company Settings (IVA rate) ──────────────────────────────────────────
     const { settings: companySettings } = useCompanySettings();
@@ -199,13 +199,22 @@ export default function CommercialPOS() {
 
     // ── Filtering & Pagination ──────────────────────────────────────────────-
     const filteredProducts = useMemo(() => {
-        if (!posSearch) return displayProducts.filter((p: any) => p.currentStock > 0);
+        const available = displayProducts.filter((p: any) => {
+            // When bound to a warehouse, prefer per-warehouse stock; fall back to
+            // global currentStock so products without a warehouse entry stay visible.
+            const stock = shiftWarehouseId
+                ? (p.warehouseStocks?.find((ws: any) => ws.warehouseId === shiftWarehouseId)?.quantity ?? p.currentStock)
+                : p.currentStock;
+            return Number(stock) > 0;
+        });
+        if (!posSearch) return available;
         const q = posSearch.toLowerCase();
-        return displayProducts.filter((p: any) =>
-            p.currentStock > 0 &&
-            (p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q)))
+        return available.filter((p: any) =>
+            p.name.toLowerCase().includes(q) ||
+            p.code.toLowerCase().includes(q) ||
+            (p.barcode && p.barcode.toLowerCase().includes(q))
         );
-    }, [displayProducts, posSearch]);
+    }, [displayProducts, posSearch, shiftWarehouseId]);
 
     const posPagination = usePagination(filteredProducts, 12);
 
@@ -252,9 +261,9 @@ export default function CommercialPOS() {
         if (isOnline) {
             try {
                 reservation = await commercialAPI.reserveItem(product.id, qty, activeShift?.id);
-            } catch (err: any) {
-                toast.error(err.message || 'Erro ao reservar stock');
-                return;
+            } catch {
+                // Reservation is best-effort — stock is validated again at checkout.
+                // A failed reservation must NOT prevent the product from being added.
             }
         }
 
@@ -341,6 +350,19 @@ export default function CommercialPOS() {
             };
         }));
     }, [resolvePrice, cart, isOnline, activeShift?.id]);
+
+    const updateItemDiscount = useCallback((productId: string, discountPct: number) => {
+        setCart(c => c.map(item => {
+            if (item.productId !== productId) return item;
+            const validDiscount = Math.min(Math.max(discountPct || 0, 0), 100);
+            const total = item.quantity * item.unitPrice * (1 - validDiscount / 100);
+            return {
+                ...item,
+                discountPct: validDiscount,
+                total
+            };
+        }));
+    }, []);
 
     const removeFromCart = (productId: string) => {
         const item = cart.find(i => i.productId === productId);
@@ -447,6 +469,20 @@ export default function CommercialPOS() {
                     status: 'pending',
                     attempts: 0
                 });
+                
+                // Deduct stock locally immediately to prevent offline overselling
+                for (const item of cart) {
+                    const productToUpdate = await offlineDB.products.get(item.productId);
+                    if (productToUpdate) {
+                        await offlineDB.products.update(item.productId, {
+                            currentStock: Math.max(0, productToUpdate.currentStock - item.quantity)
+                        });
+                    }
+                }
+                
+                // Immediately synchronize the UI list with the DB reflection
+                offlineDB.products.toArray().then(setOfflineProducts);
+
                 saleResponse = { receiptNumber: `OFF-${Date.now().toString().slice(-6)}` };
             }
 
