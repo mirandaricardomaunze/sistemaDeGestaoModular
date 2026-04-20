@@ -41,9 +41,9 @@ interface POSInterfaceProps {
 }
 
 export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
-    // API hooks for data
+    // API hooks for data — limit:999 to fetch all products for POS grid
     const { products, isLoading: isLoadingProducts, refetch: refetchProducts } = useProducts(
-        originModule ? { origin_module: originModule } : undefined
+        originModule ? { origin_module: originModule, limit: 999 } : { limit: 999 }
     );
     const { customers, isLoading: isLoadingCustomers } = useCustomers();
     const { createSale } = useSales();
@@ -201,38 +201,36 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
         enabled: !checkoutModalOpen && !receiptModalOpen && !scaleModalOpen && !cashDrawerModalOpen
     });
 
-    // Initialize warehouse from first active warehouse or settings
-    useEffect(() => {
-        if (warehouses && warehouses.length > 0 && !selectedWarehouseId) {
-            setSelectedWarehouseId(warehouses[0].id);
-        }
-    }, [warehouses, selectedWarehouseId]);
+    // Do not auto-select a warehouse — default to "Todos os Armazéns" so all
+    // products are visible regardless of per-warehouse stock entries.
+    // Users can manually pick a warehouse to filter if needed.
 
-    // Filter products by search and warehouse stock
+    // Filter products by search and available stock
     const filteredProducts = useMemo(() => {
         if (!products) return [];
 
         return products.filter((p) => {
-            // Logic to hide product if it doesn't have stock in the selected warehouse
+            // Determine available stock: prefer warehouse-specific entry when a
+            // warehouse is selected AND the product has a record there; otherwise
+            // fall back to the global currentStock so products are never hidden
+            // just because they have no per-warehouse stock entry.
+            let availableStock: number;
             if (selectedWarehouseId) {
-                const stockInWarehouse = p.warehouseStocks?.find(
-                    s => s.warehouseId === selectedWarehouseId
-                )?.quantity || 0;
-                
-                // ESCONDER TOTALMENTE (per user requirement)
-                if (stockInWarehouse <= 0) return false;
+                const wsEntry = p.warehouseStocks?.find(s => s.warehouseId === selectedWarehouseId);
+                availableStock = wsEntry != null ? Number(wsEntry.quantity) : Number(p.currentStock);
             } else {
-                // If no warehouse selected, fallback to global stock (optional)
-                if (p.currentStock <= 0) return false;
+                availableStock = Number(p.currentStock);
             }
 
+            if (availableStock <= 0) return false;
+
             if (!searchQuery) return true;
-            
+
             const query = searchQuery.toLowerCase();
             return (
                 p.code.toLowerCase().includes(query) ||
                 p.name.toLowerCase().includes(query) ||
-                p.barcode?.toLowerCase().includes(query)
+                (p.barcode?.toLowerCase().includes(query) ?? false)
             );
         });
     }, [products, searchQuery, selectedWarehouseId]);
