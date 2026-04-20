@@ -10,6 +10,7 @@ import {
 } from '../validation';
 import { productsService } from '../services/productsService';
 import { ApiError } from '../middleware/error.middleware';
+import { emitToCompany } from '../lib/socket';
 
 const router = Router();
 
@@ -68,33 +69,27 @@ router.get('/:id/movements', authenticate, async (req: AuthRequest, res) => {
 // Create product
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
-
-    // Validate request body
     const validatedData = createProductSchema.parse(req.body);
-
     const product = await productsService.create(validatedData, req.companyId);
+    emitToCompany(req.companyId, 'product:created', product);
     res.status(201).json(product);
 });
 
 // Update product
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
-
-    // Validate request body
     const validatedData = updateProductSchema.parse(req.body);
-
     const product = await productsService.update(req.params.id, validatedData, req.companyId, req.userId);
+    emitToCompany(req.companyId, 'product:updated', product);
     res.json(product);
 });
 
 // Update stock
 router.patch('/:id/stock', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
-
-    // Validate request body
     const validatedData = adjustStockSchema.parse(req.body);
-
     const result = await productsService.updateStock(req.params.id, validatedData, req.companyId, req.userName || 'Sistema');
+    emitToCompany(req.companyId, 'product:stock-updated', result);
     res.json(result);
 });
 
@@ -102,6 +97,7 @@ router.patch('/:id/stock', authenticate, async (req: AuthRequest, res) => {
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     await productsService.delete(req.params.id, req.companyId);
+    emitToCompany(req.companyId, 'product:deleted', { id: req.params.id });
     res.json({ message: 'Produto removido com sucesso' });
 });
 

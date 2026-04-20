@@ -7,6 +7,7 @@ import {
     updateCustomerBalanceSchema
 } from '../utils/validation';
 import { ApiError } from '../middleware/error.middleware';
+import { emitToCompany } from '../lib/socket';
 
 const router = Router();
 
@@ -29,6 +30,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const validatedData = createCustomerSchema.parse(req.body);
     const customer = await customersService.create(validatedData, req.companyId);
+    emitToCompany(req.companyId, 'customer:created', customer);
     res.status(201).json(customer);
 });
 
@@ -37,6 +39,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const validatedData = updateCustomerSchema.parse(req.body);
     const updated = await customersService.update(req.params.id, validatedData, req.companyId);
+    emitToCompany(req.companyId, 'customer:updated', updated);
     res.json(updated);
 });
 
@@ -44,6 +47,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     await customersService.delete(req.params.id, req.companyId);
+    emitToCompany(req.companyId, 'customer:deleted', { id: req.params.id });
     res.json({ message: 'Cliente removido com sucesso' });
 });
 

@@ -16,10 +16,12 @@ import { SocketProvider } from './contexts/SocketContext';
 import { useNotifications } from './hooks/useNotifications';
 import { LoadingOverlay } from './components/ui/Loading';
 import { useIdleLogout } from './hooks/useIdleLogout';
+import { useRealtimeSync } from './hooks/useRealtimeSync';
 
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   useIdleLogout(15); // Auto-logout after 15 minutes of inactivity
   useNotifications(); // Initialize real-time notification listeners
+  useRealtimeSync();  // Invalidate query cache on any backend data change
   return <>{children}</>;
 };
 
