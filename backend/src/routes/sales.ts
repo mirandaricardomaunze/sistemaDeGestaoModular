@@ -67,12 +67,13 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         (req as any).ip || req.socket.remoteAddress || ''
     ) as any;
 
-    // Emit Real-time Notification if it's a Restaurant Order
+    emitToCompany(req.companyId, 'sale:created', { id: sale.id, total: sale.total, receiptNumber: sale.receiptNumber });
+
     if (validatedData.originModule === 'restaurant') {
         emitToCompany(req.companyId, 'restaurant:new_order', {
             id: sale.id,
             total: sale.total,
-            table: sale.tableId, // We could fetch the table number for a better message
+            table: sale.tableId,
             timestamp: new Date()
         });
     }

@@ -11,6 +11,7 @@ import { ApiError } from '../middleware/error.middleware';
 import { prisma } from '../lib/prisma';
 import { pdfService } from '../services/pdfService';
 import { sendInvoiceEmail } from '../utils/mail';
+import { emitToCompany } from '../lib/socket';
 
 const router = Router();
 
@@ -46,6 +47,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const validatedData = createInvoiceSchema.parse(req.body);
     const invoice = await invoicesService.create(validatedData, req.companyId);
+    emitToCompany(req.companyId, 'invoice:created', invoice);
     res.status(201).json(invoice);
 });
 
@@ -53,6 +55,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Company not identified');
     const validatedData = updateInvoiceSchema.parse(req.body);
     const result = await invoicesService.update(req.params.id, validatedData, req.companyId);
+    emitToCompany(req.companyId, 'invoice:updated', result);
     res.json(result);
 });
 

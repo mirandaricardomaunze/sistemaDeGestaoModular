@@ -22,6 +22,9 @@ const listeners: {
     onDisconnect: [],
 };
 
+// Generic event listener registry (for real-time data sync)
+const eventListeners: Map<string, Set<(data: unknown) => void>> = new Map();
+
 export const socketService = {
     /**
      * Connect to the WebSocket server
@@ -46,6 +49,10 @@ export const socketService = {
         socket.on('connect', () => {
             logger.info('[Socket] Connected:', socket?.id);
             listeners.onConnect.forEach(handler => handler());
+            // Re-register all generic event listeners after reconnect
+            eventListeners.forEach((handlers, event) => {
+                handlers.forEach(handler => socket!.on(event, handler));
+            });
         });
 
         socket.on('disconnect', (reason: string) => {
@@ -129,6 +136,29 @@ export const socketService = {
         } else {
             logger.warn('[Socket] Cannot emit, not connected');
         }
+    },
+
+    /**
+     * Subscribe to any server-emitted event (data sync events).
+     * Returns an unsubscribe function.
+     */
+    on(event: string, handler: (data: unknown) => void): () => void {
+        if (!eventListeners.has(event)) {
+            eventListeners.set(event, new Set());
+        }
+        eventListeners.get(event)!.add(handler);
+        if (socket?.connected) {
+            socket.on(event, handler);
+        }
+        return () => this.off(event, handler);
+    },
+
+    /**
+     * Unsubscribe a previously registered handler.
+     */
+    off(event: string, handler: (data: unknown) => void) {
+        eventListeners.get(event)?.delete(handler);
+        socket?.off(event, handler);
     },
 
     /**
