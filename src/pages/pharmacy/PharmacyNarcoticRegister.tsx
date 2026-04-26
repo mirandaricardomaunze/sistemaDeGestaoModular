@@ -1,6 +1,6 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Button, Input, Badge, LoadingSpinner, Pagination, PageHeader } from '../../components/ui';
+import { Card, Button, Input, Select, Badge, LoadingSpinner, Pagination, PageHeader } from '../../components/ui';
 import {
     HiOutlineClipboardDocumentList, HiOutlinePlus, HiOutlineExclamationCircle,
     HiOutlineShieldCheck, HiOutlineArrowDownTray as HiOutlineDownload, HiOutlineClipboardDocumentCheck
@@ -101,24 +101,24 @@ export default function PharmacyNarcoticRegister() {
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <Input label="Data do Registo" type="date" value={form.registerDate} onChange={e => setForm(f => ({ ...f, registerDate: e.target.value }))} />
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Medicamento Controlado *</label>
-                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                value={form.medicationId} onChange={e => setForm(f => ({ ...f, medicationId: e.target.value }))}>
-                                <option value="">Seleccionar...</option>
-                                {medications.filter((m: any) => m.isControlled).map((m: any) => (
-                                    <option key={m.id} value={m.id}>{m.product.name} ({m.controlLevel || 'Controlado'})</option>
-                                ))}
-                            </select>
-                        </div>
+                        <Select
+                            label="Medicamento Controlado *"
+                            value={form.medicationId}
+                            onChange={e => setForm(f => ({ ...f, medicationId: e.target.value }))}
+                            options={medications.filter((m: any) => m.isControlled).map((m: any) => ({
+                                value: m.id,
+                                label: `${m.product.name} (${m.controlLevel || 'Controlado'})`
+                            }))}
+                            placeholder="Seleccionar..."
+                        />
                         <Input label="Nº Lote" value={form.batchNumber} onChange={e => setForm(f => ({ ...f, batchNumber: e.target.value }))} placeholder="Ex: LT-2024-001" />
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
                         <Input label="Saldo Inicial" type="number" value={form.openingBalance} onChange={e => setForm(f => ({ ...f, openingBalance: Number(e.target.value) }))} min={0} />
                         <Input label="Entradas (+)" type="number" value={form.received} onChange={e => setForm(f => ({ ...f, received: Number(e.target.value) }))} min={0} />
-                        <Input label="Saídas (âˆ')" type="number" value={form.dispensed} onChange={e => setForm(f => ({ ...f, dispensed: Number(e.target.value) }))} min={0} />
+                        <Input label="Saídas (-)" type="number" value={form.dispensed} onChange={e => setForm(f => ({ ...f, dispensed: Number(e.target.value) }))} min={0} />
                         <Input label="Devoluções (+)" type="number" value={form.returned} onChange={e => setForm(f => ({ ...f, returned: Number(e.target.value) }))} min={0} />
-                        <Input label="Destruídos (âˆ')" type="number" value={form.destroyed} onChange={e => setForm(f => ({ ...f, destroyed: Number(e.target.value) }))} min={0} />
+                        <Input label="Destruídos (-)" type="number" value={form.destroyed} onChange={e => setForm(f => ({ ...f, destroyed: Number(e.target.value) }))} min={0} />
                     </div>
                     <div className="flex items-center gap-4 mb-4 p-3 rounded-lg bg-gray-50 dark:bg-dark-700">
                         <div className="text-center">
@@ -143,14 +143,20 @@ export default function PharmacyNarcoticRegister() {
             {/* Filters */}
             <Card padding="md">
                 <div className="flex gap-4 items-end flex-wrap">
-                    <div>
-                        <label className="block text-sm text-gray-600 mb-1">De</label>
-                        <Input type="date" value={dateRange.start} onChange={e => setDateRange(d => ({ ...d, start: e.target.value }))} />
-                    </div>
-                    <div>
-                        <label className="block text-sm text-gray-600 mb-1">At</label>
-                        <Input type="date" value={dateRange.end} onChange={e => setDateRange(d => ({ ...d, end: e.target.value }))} />
-                    </div>
+                    <Input
+                        label="De"
+                        type="date"
+                        size="md"
+                        value={dateRange.start}
+                        onChange={e => setDateRange(d => ({ ...d, start: e.target.value }))}
+                    />
+                    <Input
+                        label="Até"
+                        type="date"
+                        size="md"
+                        value={dateRange.end}
+                        onChange={e => setDateRange(d => ({ ...d, end: e.target.value }))}
+                    />
                     <Button variant="outline" onClick={() => setDateRange({ start: '', end: '' })}>Limpar</Button>
                 </div>
             </Card>

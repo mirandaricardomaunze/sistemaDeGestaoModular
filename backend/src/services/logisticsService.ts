@@ -745,6 +745,163 @@ export class LogisticsService {
             routeUsage
         });
     }
+
+    // ── Staff HR (Attendance & Payroll) ───────────────────────────────────────
+
+    private async findEmployeeForStaff(companyId: string, staffId: string) {
+        // First check if staffId IS an employeeId
+        const emp = await prisma.employee.findFirst({ where: { id: staffId, companyId } });
+        if (emp) return emp;
+
+        // Otherwise check if it's a Driver ID and find linked Employee
+        const driver = await prisma.driver.findFirst({ where: { id: staffId, companyId } });
+        if (!driver) return null;
+
+        return prisma.employee.findFirst({
+            where: {
+                companyId,
+                OR: [
+                    { code: driver.code },
+                    { email: driver.email || undefined }
+                ]
+            }
+        });
+    }
+
+    async getStaffAttendance(companyId: string, query: { staffId?: string; startDate?: string; endDate?: string }) {
+        const where: any = { companyId };
+        if (query.staffId) {
+            const employee = await this.findEmployeeForStaff(companyId, query.staffId);
+            if (!employee) return ResultHandler.success([]);
+            where.employeeId = employee.id;
+        }
+        if (query.startDate || query.endDate) {
+            where.date = {};
+            if (query.startDate) where.date.gte = new Date(query.startDate);
+            if (query.endDate) where.date.lte = new Date(query.endDate + 'T23:59:59.999Z');
+        }
+
+        const attendance = await prisma.attendanceRecord.findMany({
+            where,
+            orderBy: { date: 'desc' },
+            include: { employee: { select: { id: true, name: true, code: true } } }
+        });
+
+        // Map employeeId back to "staffId" expected by frontend if it was a driver
+        return ResultHandler.success(attendance.map(a => ({
+            ...a,
+            staffId: query.staffId || a.employeeId
+        })));
+    }
+
+    async recordStaffTime(companyId: string, data: { staffId: string; type: 'checkIn' | 'checkOut'; timestamp?: string; notes?: string }) {
+        const employee = await this.findEmployeeForStaff(companyId, data.staffId);
+        if (!employee) throw ApiError.notFound('Funcionário não encontrado no sistema de RH');
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const existing = await prisma.attendanceRecord.findUnique({
+            where: { employeeId_date: { employeeId: employee.id, date: today } }
+        });
+
+        const time = data.timestamp ? new Date(data.timestamp) : new Date();
+
+        if (data.type === 'checkIn') {
+            if (existing && existing.checkIn) throw ApiError.badRequest('Check-in já realizado hoje');
+            const record = await prisma.attendanceRecord.upsert({
+                where: { employeeId_date: { employeeId: employee.id, date: today } },
+                create: {
+                    companyId,
+                    employeeId: employee.id,
+                    date: today,
+                    checkIn: time,
+                    status: 'present'
+                },
+                update: { checkIn: time, status: 'present' }
+            });
+            return ResultHandler.success(record);
+        } else {
+            if (!existing || !existing.checkIn) throw ApiError.badRequest('Check-in não encontrado para hoje');
+            if (existing.checkOut) throw ApiError.badRequest('Check-out já realizado hoje');
+            
+            const hoursWorked = existing.checkIn 
+                ? (time.getTime() - existing.checkIn.getTime()) / 3600000 
+                : 0;
+
+            const record = await prisma.attendanceRecord.update({
+                where: { id: existing.id },
+                data: {
+                    checkOut: time,
+                    hoursWorked: Number(hoursWorked.toFixed(2))
+                }
+            });
+            return ResultHandler.success(record);
+        }
+    }
+
+    async getStaffPayroll(companyId: string, query: { staffId?: string; month?: number; year?: number; status?: string }) {
+        const where: any = { companyId };
+        if (query.staffId) {
+            const employee = await this.findEmployeeForStaff(companyId, query.staffId);
+            if (!employee) return ResultHandler.success([]);
+            where.employeeId = employee.id;
+        }
+        if (query.month) where.month = Number(query.month);
+        if (query.year) where.year = Number(query.year);
+        if (query.status) where.status = query.status;
+
+        const payroll = await prisma.payrollRecord.findMany({
+            where,
+            orderBy: [{ year: 'desc' }, { month: 'desc' }],
+            include: { employee: { select: { id: true, name: true, code: true } } }
+        });
+
+        return ResultHandler.success(payroll);
+    }
+
+    async createStaffPayroll(companyId: string, data: { staffId: string; month: number; year: number }) {
+        const employee = await this.findEmployeeForStaff(companyId, data.staffId);
+        if (!employee) throw ApiError.notFound('Funcionário não encontrado');
+
+        const existing = await prisma.payrollRecord.findUnique({
+            where: { employeeId_month_year: { employeeId: employee.id, month: data.month, year: data.year } }
+        });
+        if (existing) throw ApiError.badRequest('Folha de salário já existe para este período');
+
+        // Basic calculation (real system would be more complex)
+        const baseSalary = Number(employee.baseSalary);
+        const totalEarnings = baseSalary; // + bonuses, etc.
+        const totalDeductions = baseSalary * 0.03; // Simple 3% INSS
+        const netSalary = totalEarnings - totalDeductions;
+
+        const record = await prisma.payrollRecord.create({
+            data: {
+                companyId,
+                employeeId: employee.id,
+                month: data.month,
+                year: data.year,
+                baseSalary,
+                totalEarnings,
+                totalDeductions,
+                netSalary,
+                status: 'draft'
+            }
+        });
+
+        return ResultHandler.success(record);
+    }
+
+    async updateStaffPayrollStatus(companyId: string, id: string, status: string) {
+        const record = await prisma.payrollRecord.findFirst({ where: { id, companyId } });
+        if (!record) throw ApiError.notFound('Folha de salário não encontrada');
+
+        const updateData: any = { status };
+        if (status === 'processed') updateData.processedAt = new Date();
+        if (status === 'paid') updateData.paidAt = new Date();
+
+        return ResultHandler.success(await prisma.payrollRecord.update({ where: { id }, data: updateData }));
+    }
 }
 
 export const logisticsService = new LogisticsService();

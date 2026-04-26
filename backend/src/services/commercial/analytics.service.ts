@@ -15,7 +15,7 @@ interface SaleFilter {
 export class CommercialAnalyticsService {
 
     async getAnalytics(companyId: string, userId?: string) {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         const cacheKey = `commercial:analytics:${companyId}${userId ? `:${userId}` : ''}`;
 
         return cacheService.getOrSet(cacheKey, async () => {
@@ -86,7 +86,9 @@ export class CommercialAnalyticsService {
     }
 
     async getMarginAnalysis(companyId: string, periodDays = 30, userId?: string) {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+        const cacheKey = `commercial:margins:${companyId}:${periodDays}${userId ? `:${userId}` : ''}`;
+        return cacheService.getOrSet(cacheKey, async () => {
 
         const startDate = daysAgo(periodDays);
         const sixMonthsAgo = monthStart(-5);
@@ -167,10 +169,13 @@ export class CommercialAnalyticsService {
         });
 
         return ResultHandler.success({ byCategory, byProduct, monthlyTrend });
+        }, ANALYTICS_CACHE_TTL);
     }
 
     async getStockAging(companyId: string) {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+        const cacheKey = `commercial:stock-aging:${companyId}`;
+        return cacheService.getOrSet(cacheKey, async () => {
 
         const products = await prisma.product.findMany({
             where: { companyId, isActive: true, currentStock: { gt: 0 } },
@@ -225,10 +230,13 @@ export class CommercialAnalyticsService {
                 criticalValue: critical.reduce((s, p) => s + p.stockValue, 0),
             }
         });
+        }, ANALYTICS_CACHE_TTL);
     }
 
     async getInventoryTurnover(companyId: string, periodDays = 90) {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+        const cacheKey = `commercial:inventory-turnover:${companyId}:${periodDays}`;
+        return cacheService.getOrSet(cacheKey, async () => {
 
         const startDate = daysAgo(periodDays);
 
@@ -261,19 +269,25 @@ export class CommercialAnalyticsService {
             const cogs = cogsByCategory[cat] || 0;
             const inv = inventoryByCategory[cat] || 0;
             const annualisedCogs = cogs * (365 / periodDays);
-            const turnover = inv > 0 ? round2(annualisedCogs / inv) : 0;
+            // turnover = 0 when no sales OR no inventory
+            const turnover = (inv > 0 && cogs > 0) ? round2(annualisedCogs / inv) : 0;
+            // Cap daysOnHand at 999 to avoid absurd values (e.g. 36500)
+            const rawDays = turnover > 0 ? Math.round(365 / turnover) : 0;
             return {
                 category: cat,
                 cogs: Math.round(cogs),
                 inventoryValue: Math.round(inv),
                 turnover,
-                daysOnHand: turnover > 0 ? Math.round(365 / turnover) : 0
+                daysOnHand: rawDays > 0 ? Math.min(rawDays, 999) : 0
             };
         }).sort((a, b) => b.turnover - a.turnover);
+        }, ANALYTICS_CACHE_TTL);
     }
 
     async getSalesReport(companyId: string, periodDays = 30, userId?: string) {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+        const cacheKey = `commercial:sales-report:${companyId}:${periodDays}${userId ? `:${userId}` : ''}`;
+        return cacheService.getOrSet(cacheKey, async () => {
 
         const startDate = daysAgo(periodDays);
         const saleFilter: SaleFilter = { companyId, createdAt: { gte: startDate } };
@@ -330,10 +344,13 @@ export class CommercialAnalyticsService {
                 count: pm._count.id
             }))
         });
+        }, ANALYTICS_CACHE_TTL);
     }
 
     async getSupplierPerformance(companyId: string) {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+        const cacheKey = `commercial:supplier-performance:${companyId}`;
+        return cacheService.getOrSet(cacheKey, async () => {
 
         const suppliers = await prisma.supplier.findMany({
             where: { companyId, isActive: true },
@@ -379,10 +396,13 @@ export class CommercialAnalyticsService {
                 lastOrderDate
             };
         }).sort((a, b) => b.totalSpend - a.totalSpend));
+        }, ANALYTICS_CACHE_TTL);
     }
 
     async getWarehouseDistribution(companyId: string) {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+        const cacheKey = `commercial:warehouse-distribution:${companyId}`;
+        return cacheService.getOrSet(cacheKey, async () => {
 
         const warehouses = await prisma.warehouse.findMany({
             where: { companyId, isActive: true },
@@ -393,7 +413,7 @@ export class CommercialAnalyticsService {
             }
         });
 
-        return warehouses.map(w => {
+        const data = warehouses.map(w => {
             const totalValue = w.stocks.reduce((sum, ws) => sum + Number(ws.product.costPrice || 0) * ws.quantity, 0);
             const topProducts = w.stocks
                 .map(ws => ({
@@ -412,6 +432,9 @@ export class CommercialAnalyticsService {
                 topProducts
             };
         }).sort((a, b) => b.valuation - a.valuation);
+
+        return ResultHandler.success(data);
+        }, ANALYTICS_CACHE_TTL);
     }
 }
 

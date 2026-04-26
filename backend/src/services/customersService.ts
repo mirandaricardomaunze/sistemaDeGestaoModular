@@ -55,7 +55,7 @@ export class CustomersService {
 
     async create(data: any, companyId: string) {
         const customerCode = data.code || `CLI-${Date.now().toString().slice(-6)}`;
-        const { code, ...customerData } = data;
+        const { code, companyId: _dataCompanyId, ...customerData } = data;
 
         return prisma.customer.create({
             data: {

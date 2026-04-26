@@ -35,6 +35,7 @@ import toast from 'react-hot-toast';
 import { SmartInsightCard } from '../../components/common/SmartInsightCard';
 import { MetricCard, StatCard, CHART_COLORS } from '../../components/common/ModuleMetricCard';
 import { ModulePeriodFilter } from '../../components/common/ModulePeriodFilter';
+import { QuickActionCard } from '../../components/common/QuickActionCard';
 import { formatCurrency, cn } from '../../utils';
 
 type TimeRange = '1M' | '2M' | '3M' | '6M' | '1Y';
@@ -119,13 +120,13 @@ export default function BottleStoreDashboard() {
             <PageHeader
                 title="Painel Garrafeira"
                 subtitle="Visão geral de desempenho e vendas"
-                icon={<HiOutlineShoppingCart className="text-secondary-500" />}
+                icon={<HiOutlineShoppingCart className="text-secondary-600 dark:text-secondary-400" />}
                 actions={
                     <div className="flex flex-wrap items-center gap-3">
                         <Button
                             variant="ghost"
                             onClick={() => refetchStats()}
-                            leftIcon={<HiOutlineRefresh className="w-5 h-5" />}
+                            leftIcon={<HiOutlineRefresh className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                         >
                             Atualizar
                         </Button>
@@ -235,20 +236,24 @@ export default function BottleStoreDashboard() {
             {expiryAlerts && (expiryAlerts.counts.expired > 0 || expiryAlerts.counts.expiringSoon > 0) && (
                 <div className="space-y-3">
                     <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineExclamationCircle className="w-5 h-5 text-red-500" />
+                        <HiOutlineExclamationCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
                         Alertas de Validade
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {expiryAlerts.expired.slice(0, 4).map((b: any) => (
-                            <div key={b.id} className="flex items-center gap-3 p-3 rounded-lg bg-red-100 dark:bg-red-900/40 border-none shadow-sm shadow-red-500/10">
-                                <div className="p-2 rounded-lg bg-red-200 dark:bg-red-900/60 text-red-700 dark:text-red-300 shadow-inner">
-                                    <HiOutlineExclamationCircle className="w-4 h-4" />
+                            <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl bg-red-100/40 dark:bg-red-900/40 border border-red-200/50 dark:border-red-500/20 shadow-sm shadow-red-500/10">
+                                <div className="p-2 rounded-lg bg-red-200/60 text-red-700 dark:bg-red-900/60 dark:text-red-300 shadow-inner">
+                                    <HiOutlineExclamationCircle className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-black text-red-800 dark:text-red-400 truncate tracking-tight">{b.product?.name}</p>
-                                    <p className="text-[10px] text-red-600 font-bold italic">Lote {b.batchNumber} "" {b.quantity} un. EXPIRADO</p>
+                                    <p className="text-xs font-black text-red-900 dark:text-red-400 truncate tracking-tight uppercase">
+                                        {b.product?.name}
+                                    </p>
+                                    <p className="text-[10px] text-red-600 font-bold italic uppercase">
+                                        Lote {b.batchNumber} • {b.quantity} un. EXPIRADO
+                                    </p>
                                 </div>
-                                <span className="text-[10px] font-black text-red-700 whitespace-nowrap bg-red-200 px-2 py-0.5 rounded-full">
+                                <span className="text-[10px] font-black text-red-700 whitespace-nowrap bg-red-200/60 px-2 py-0.5 rounded-full border border-red-300/30">
                                     {new Date(b.expiryDate).toLocaleDateString('pt-MZ')}
                                 </span>
                             </div>
@@ -384,10 +389,10 @@ export default function BottleStoreDashboard() {
                                         <div key={idx} className="flex items-center justify-between py-3">
                                             <div className="flex items-center gap-3">
                                                 <div className={cn(
-                                                    "w-10 h-10 rounded-full flex items-center justify-center",
+                                                    "w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-sm border border-transparent shadow-sm transition-all duration-300",
                                                     item.type === 'sale'
-                                                        ? "bg-green-100 dark:bg-green-900/30 text-green-600"
-                                                        : "bg-blue-100 dark:bg-blue-900/30 text-blue-600"
+                                                        ? "bg-green-100 text-green-600 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30"
+                                                        : "bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30"
                                                 )}>
                                                     {item.type === 'sale' ? <HiOutlineShoppingCart className="w-5 h-5" /> : <HiOutlineCube className="w-5 h-5" />}
                                                 </div>
@@ -426,50 +431,34 @@ export default function BottleStoreDashboard() {
                         Ações Rápidas
                     </h2>
                     <div className="grid grid-cols-1 gap-3">
-                        <Link to="/bottle-store/pos">
-                            <button className="w-full flex items-center gap-4 p-4 rounded-lg border border-gray-100 dark:border-dark-700 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group text-left">
-                                <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 group-hover:scale-110 transition-transform">
-                                    <HiOutlineShoppingCart className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white">Nova Venda</p>
-                                    <p className="text-xs text-gray-500">Iniciar nova transação no POS</p>
-                                </div>
-                            </button>
-                        </Link>
-                        <Link to="/bottle-store/inventory">
-                            <button className="w-full flex items-center gap-4 p-4 rounded-lg border border-gray-100 dark:border-dark-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all group text-left">
-                                <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                                    <HiOutlineCube className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white">Gestão de Inventário</p>
-                                    <p className="text-xs text-gray-500">Ver e editar produtos e stocks</p>
-                                </div>
-                            </button>
-                        </Link>
-                        <Link to="/bottle-store/stock">
-                            <button className="w-full flex items-center gap-4 p-4 rounded-lg border border-gray-100 dark:border-dark-700 hover:border-amber-500 dark:hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-all group text-left">
-                                <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
-                                    <HiOutlineRefresh className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white">Movimentos</p>
-                                    <p className="text-xs text-gray-500">Registar entradas e saídas</p>
-                                </div>
-                            </button>
-                        </Link>
-                        <Link to="/bottle-store/reports">
-                            <button className="w-full flex items-center gap-4 p-4 rounded-lg border border-gray-100 dark:border-dark-700 hover:border-purple-500 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all group text-left">
-                                <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
-                                    <HiOutlineDocumentReport className="w-6 h-6" />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white">Relatórios</p>
-                                    <p className="text-xs text-gray-500">Análise completa de desempenho</p>
-                                </div>
-                            </button>
-                        </Link>
+                        <QuickActionCard
+                            icon={HiOutlineShoppingCart}
+                            label="Nova Venda"
+                            description="Iniciar nova transação no POS"
+                            path="/bottle-store/pos"
+                            color="primary"
+                        />
+                        <QuickActionCard
+                            icon={HiOutlineCube}
+                            label="Gestão de Inventário"
+                            description="Ver e editar produtos e stocks"
+                            path="/bottle-store/inventory"
+                            color="blue"
+                        />
+                        <QuickActionCard
+                            icon={HiOutlineRefresh}
+                            label="Movimentos"
+                            description="Registar entradas e saídas"
+                            path="/bottle-store/stock"
+                            color="amber"
+                        />
+                        <QuickActionCard
+                            icon={HiOutlineDocumentReport}
+                            label="Relatórios"
+                            description="Análise completa de desempenho"
+                            path="/bottle-store/reports"
+                            color="purple"
+                        />
                     </div>
                 </Card>
             </div>

@@ -3,7 +3,7 @@ import { cn } from '../../utils/helpers';
 import { HiOutlineExclamationTriangle, HiOutlineInformationCircle, HiOutlineTrash, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
 import { Button } from './Button';
 
-type ConfirmationVariant = 'danger' | 'warning' | 'info';
+type ConfirmationVariant = 'danger' | 'warning' | 'info' | 'success' | 'primary';
 
 interface ConfirmationModalProps {
     isOpen: boolean;
@@ -15,6 +15,7 @@ interface ConfirmationModalProps {
     cancelText?: string;
     variant?: ConfirmationVariant;
     isLoading?: boolean;
+    children?: React.ReactNode;
 }
 
 export function ConfirmationModal({
@@ -27,6 +28,7 @@ export function ConfirmationModal({
     cancelText = 'Cancelar',
     variant = 'danger',
     isLoading = false,
+    children,
 }: ConfirmationModalProps) {
     // Handle ESC key to close modal
     useEffect(() => {
@@ -63,6 +65,18 @@ export function ConfirmationModal({
             iconColor: 'text-blue-600 dark:text-blue-400',
             confirmVariant: 'primary' as const,
         },
+        success: {
+            icon: HiOutlineCheck,
+            iconBg: 'bg-green-100 dark:bg-green-900/30',
+            iconColor: 'text-green-600 dark:text-green-400',
+            confirmVariant: 'success' as const,
+        },
+        primary: {
+            icon: HiOutlineInformationCircle,
+            iconBg: 'bg-primary-100 dark:bg-primary-900/30',
+            iconColor: 'text-primary-600 dark:text-primary-400',
+            confirmVariant: 'primary' as const,
+        },
     };
 
     const config = variantConfig[variant];
@@ -73,7 +87,7 @@ export function ConfirmationModal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto">
             {/* Overlay */}
             <div
                 className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
@@ -106,20 +120,24 @@ export function ConfirmationModal({
                             {message}
                         </p>
 
+                        {children}
+
                         {/* Actions */}
-                        <div className="flex gap-3">
-                            <Button
-                                variant="ghost"
-                                fullWidth
-                                onClick={onClose}
-                                disabled={isLoading}
-                                leftIcon={<HiOutlineXMark className="w-4 h-4" />}
-                            >
-                                {cancelText}
-                            </Button>
+                        <div className="flex flex-col-reverse sm:flex-row gap-3 mt-8">
+                            {cancelText && (
+                                <Button
+                                    variant="ghost"
+                                    className="w-full sm:flex-1"
+                                    onClick={onClose}
+                                    disabled={isLoading}
+                                    leftIcon={<HiOutlineXMark className="w-4 h-4" />}
+                                >
+                                    {cancelText}
+                                </Button>
+                            )}
                             <Button
                                 variant={config.confirmVariant}
-                                fullWidth
+                                className="w-full sm:flex-1"
                                 onClick={handleConfirm}
                                 isLoading={isLoading}
                                 disabled={isLoading}

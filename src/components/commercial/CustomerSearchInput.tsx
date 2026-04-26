@@ -75,7 +75,7 @@ export function CustomerSearchInput({
         setIsLoading(true);
 
         customersAPI
-            .getAll({ search: debouncedQuery, limit: 10 })
+            .getAll({ search: debouncedQuery })
             .then((res: any) => {
                 if (cancelled) return;
                 const items: CustomerOption[] = (res.data ?? res ?? []).map((c: any) => ({

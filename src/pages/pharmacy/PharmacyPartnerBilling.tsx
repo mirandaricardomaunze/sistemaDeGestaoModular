@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Button, Input, Badge, LoadingSpinner, Pagination } from '../../components/ui';
+import { Card, Button, Input, Badge, LoadingSpinner, Pagination, Select } from '../../components/ui';
 import {
     HiOutlineDocumentText, HiOutlinePlus, HiOutlineCurrencyDollar,
     HiOutlineCheck, HiOutlineOfficeBuilding
 } from 'react-icons/hi';
 import { pharmacyAPI } from '../../services/api';
 import toast from 'react-hot-toast';
-import { formatDate, formatCurrency } from '../../utils/helpers';
+import { formatDate, formatCurrency, cn } from '../../utils/helpers';
 
 const STATUS_MAP: Record<string, { label: string; variant: any }> = {
     pending: { label: 'Pendente', variant: 'warning' },
@@ -78,7 +78,7 @@ export default function PharmacyPartnerBilling() {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Faturação a Parceiros</h1>
                     <p className="text-gray-500 dark:text-gray-400">Faturas a seguradoras e convénios pela cobertura de medicamentos</p>
                 </div>
-                <Button onClick={() => setShowGenerate(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />}>Gerar Fatura</Button>
+                <Button onClick={() => setShowGenerate(true)} leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}>Gerar Fatura</Button>
             </div>
 
             {/* Summary */}
@@ -103,12 +103,18 @@ export default function PharmacyPartnerBilling() {
                     <h3 className="font-bold mb-4">Gerar Fatura para Parceiro</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parceiro *</label>
-                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                value={generateForm.partnerId} onChange={e => setGenerateForm(f => ({ ...f, partnerId: e.target.value }))}>
-                                <option value="">Seleccionar parceiro...</option>
-                                {partners.map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.coveragePercentage}%)</option>)}
-                            </select>
+                            <Select
+                                label="Parceiro *"
+                                value={generateForm.partnerId}
+                                onChange={e => setGenerateForm(f => ({ ...f, partnerId: e.target.value }))}
+                                options={[
+                                    { value: '', label: 'Seleccionar parceiro...' },
+                                    ...partners.map((p: any) => ({
+                                        value: p.id,
+                                        label: `${p.name} (${p.coveragePercentage}%)`
+                                    }))
+                                ]}
+                            />
                         </div>
                         <Input label="Data de Vencimento" type="date" value={generateForm.dueDate} onChange={e => setGenerateForm(f => ({ ...f, dueDate: e.target.value }))} />
                         <Input label="Período de Início *" type="date" value={generateForm.periodStart} onChange={e => setGenerateForm(f => ({ ...f, periodStart: e.target.value }))} />
@@ -116,7 +122,7 @@ export default function PharmacyPartnerBilling() {
                     </div>
                     <p className="text-sm text-gray-500 mb-4">O sistema ir agregar automaticamente os valores de cobertura de todas as vendas do período seleccionado para este parceiro.</p>
                     <div className="flex gap-2">
-                        <Button onClick={() => generateMutation.mutate()} isLoading={generateMutation.isPending} leftIcon={<HiOutlineDocumentText className="w-4 h-4" />}>Gerar Fatura</Button>
+                        <Button onClick={() => generateMutation.mutate()} isLoading={generateMutation.isPending} leftIcon={<HiOutlineDocumentText className="w-4 h-4 text-white" />}>Gerar Fatura</Button>
                         <Button variant="outline" onClick={() => setShowGenerate(false)}>Cancelar</Button>
                     </div>
                 </Card>
@@ -125,10 +131,18 @@ export default function PharmacyPartnerBilling() {
             {/* Status Filter */}
             <div className="flex gap-2 flex-wrap">
                 {['', 'pending', 'sent', 'partial', 'paid', 'overdue'].map(s => (
-                    <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === s ? 'bg-primary-600 text-white' : 'bg-white dark:bg-dark-800 border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                    <Button 
+                        key={s} 
+                        onClick={() => { setStatusFilter(s); setPage(1); }}
+                        variant={statusFilter === s ? 'primary' : 'ghost'}
+                        size="sm"
+                        className={cn(
+                            'font-medium transition-colors',
+                            statusFilter !== s && 'bg-white dark:bg-dark-800 border border-gray-200 text-gray-600 hover:bg-gray-50'
+                        )}
+                    >
                         {s === '' ? 'Todas' : STATUS_MAP[s]?.label}
-                    </button>
+                    </Button>
                 ))}
             </div>
 
@@ -154,7 +168,7 @@ export default function PharmacyPartnerBilling() {
                                             <td className="px-4 py-3 font-mono text-xs font-bold">{inv.invoiceNumber}</td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    <HiOutlineOfficeBuilding className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                    <HiOutlineOfficeBuilding className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0" />
                                                     <span className="font-medium">{inv.partner?.name}</span>
                                                 </div>
                                             </td>
@@ -168,7 +182,7 @@ export default function PharmacyPartnerBilling() {
                                             </td>
                                             <td className="px-4 py-3">
                                                 {inv.status !== 'paid' && inv.status !== 'cancelled' && (
-                                                    <Button size="sm" variant="outline" onClick={() => { setShowPayment(inv); setPaymentAmount(remaining.toFixed(2)); }} leftIcon={<HiOutlineCurrencyDollar className="w-3 h-3" />}>
+                                                    <Button size="sm" variant="outline" onClick={() => { setShowPayment(inv); setPaymentAmount(remaining.toFixed(2)); }} leftIcon={<HiOutlineCurrencyDollar className="w-3 h-3 text-primary-600 dark:text-primary-400" />}>
                                                         Pagar
                                                     </Button>
                                                 )}
@@ -203,7 +217,7 @@ export default function PharmacyPartnerBilling() {
                         </div>
                         <Input label="Valor do Pagamento (MT)" type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} min={0} className="mb-4" />
                         <div className="flex gap-2">
-                            <Button onClick={() => paymentMutation.mutate()} isLoading={paymentMutation.isPending} leftIcon={<HiOutlineCheck className="w-4 h-4" />}>Confirmar Pagamento</Button>
+                            <Button onClick={() => paymentMutation.mutate()} isLoading={paymentMutation.isPending} leftIcon={<HiOutlineCheck className="w-4 h-4 text-white" />}>Confirmar Pagamento</Button>
                             <Button variant="outline" onClick={() => setShowPayment(null)}>Cancelar</Button>
                         </div>
                     </Card>

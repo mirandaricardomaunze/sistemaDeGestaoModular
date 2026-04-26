@@ -1,7 +1,7 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
-import { useStore } from '../../stores/useStore';
+import { useStore, MODULE_TO_BUSINESS_TYPE } from '../../stores/useStore';
 import { useAuthStore, roleLabels } from '../../stores/useAuthStore';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useTenant } from '../../contexts/TenantContext';
@@ -75,8 +75,8 @@ interface ModuleTheme {
 
 const MODULE_THEMES: Record<string, ModuleTheme> = {
     pharmacy: {
-        activeBg: 'bg-teal-50 dark:bg-teal-900/20',
-        activeText: 'text-teal-600 dark:text-teal-400',
+        activeBg: 'bg-teal-100/60 dark:bg-teal-900/20',
+        activeText: 'text-teal-700 dark:text-teal-400',
         activeIconText: 'text-teal-600 dark:text-teal-400',
         hoverText: 'hover:text-teal-600 dark:hover:text-teal-400',
         brandGradient: 'from-teal-600 via-teal-500 to-emerald-500',
@@ -84,12 +84,12 @@ const MODULE_THEMES: Record<string, ModuleTheme> = {
         subActiveBg: 'bg-teal-100 dark:bg-teal-900/30',
         subActiveText: 'text-teal-700 dark:text-teal-300',
         dotColor: 'bg-teal-500',
-        labelBg: 'bg-teal-50 dark:bg-teal-900/20',
-        labelText: 'text-teal-600 dark:text-teal-400',
+        labelBg: 'bg-teal-100/50 dark:bg-teal-900/20',
+        labelText: 'text-teal-700 dark:text-teal-400',
     },
     commercial: {
-        activeBg: 'bg-blue-50 dark:bg-blue-900/20',
-        activeText: 'text-blue-600 dark:text-blue-400',
+        activeBg: 'bg-blue-100/60 dark:bg-blue-900/20',
+        activeText: 'text-blue-700 dark:text-blue-400',
         activeIconText: 'text-blue-600 dark:text-blue-400',
         hoverText: 'hover:text-blue-600 dark:hover:text-blue-400',
         brandGradient: 'from-blue-600 via-blue-500 to-indigo-500',
@@ -97,12 +97,12 @@ const MODULE_THEMES: Record<string, ModuleTheme> = {
         subActiveBg: 'bg-blue-100 dark:bg-blue-900/30',
         subActiveText: 'text-blue-700 dark:text-blue-300',
         dotColor: 'bg-blue-500',
-        labelBg: 'bg-blue-50 dark:bg-blue-900/20',
-        labelText: 'text-blue-600 dark:text-blue-400',
+        labelBg: 'bg-blue-100/50 dark:bg-blue-900/20',
+        labelText: 'text-blue-700 dark:text-blue-400',
     },
     hospitality: {
-        activeBg: 'bg-amber-50 dark:bg-amber-900/20',
-        activeText: 'text-amber-600 dark:text-amber-400',
+        activeBg: 'bg-amber-100/60 dark:bg-amber-900/20',
+        activeText: 'text-amber-700 dark:text-amber-400',
         activeIconText: 'text-amber-600 dark:text-amber-400',
         hoverText: 'hover:text-amber-600 dark:hover:text-amber-400',
         brandGradient: 'from-amber-600 via-amber-500 to-yellow-500',
@@ -110,12 +110,12 @@ const MODULE_THEMES: Record<string, ModuleTheme> = {
         subActiveBg: 'bg-amber-100 dark:bg-amber-900/30',
         subActiveText: 'text-amber-700 dark:text-amber-300',
         dotColor: 'bg-amber-500',
-        labelBg: 'bg-amber-50 dark:bg-amber-900/20',
-        labelText: 'text-amber-600 dark:text-amber-400',
+        labelBg: 'bg-amber-100/50 dark:bg-amber-900/20',
+        labelText: 'text-amber-700 dark:text-amber-400',
     },
     bottle_store: {
-        activeBg: 'bg-orange-50 dark:bg-orange-900/20',
-        activeText: 'text-orange-600 dark:text-orange-400',
+        activeBg: 'bg-orange-100/60 dark:bg-orange-900/20',
+        activeText: 'text-orange-700 dark:text-orange-400',
         activeIconText: 'text-orange-600 dark:text-orange-400',
         hoverText: 'hover:text-orange-600 dark:hover:text-orange-400',
         brandGradient: 'from-orange-600 via-orange-500 to-amber-500',
@@ -123,12 +123,12 @@ const MODULE_THEMES: Record<string, ModuleTheme> = {
         subActiveBg: 'bg-orange-100 dark:bg-orange-900/30',
         subActiveText: 'text-orange-700 dark:text-orange-300',
         dotColor: 'bg-orange-500',
-        labelBg: 'bg-orange-50 dark:bg-orange-900/20',
-        labelText: 'text-orange-600 dark:text-orange-400',
+        labelBg: 'bg-orange-100/50 dark:bg-orange-900/20',
+        labelText: 'text-orange-700 dark:text-orange-400',
     },
     logistics: {
-        activeBg: 'bg-cyan-50 dark:bg-cyan-900/20',
-        activeText: 'text-cyan-600 dark:text-cyan-400',
+        activeBg: 'bg-cyan-100/60 dark:bg-cyan-900/20',
+        activeText: 'text-cyan-700 dark:text-cyan-400',
         activeIconText: 'text-cyan-600 dark:text-cyan-400',
         hoverText: 'hover:text-cyan-600 dark:hover:text-cyan-400',
         brandGradient: 'from-cyan-600 via-cyan-500 to-sky-500',
@@ -136,8 +136,8 @@ const MODULE_THEMES: Record<string, ModuleTheme> = {
         subActiveBg: 'bg-cyan-100 dark:bg-cyan-900/30',
         subActiveText: 'text-cyan-700 dark:text-cyan-300',
         dotColor: 'bg-cyan-500',
-        labelBg: 'bg-cyan-50 dark:bg-cyan-900/20',
-        labelText: 'text-cyan-600 dark:text-cyan-400',
+        labelBg: 'bg-cyan-100/50 dark:bg-cyan-900/20',
+        labelText: 'text-cyan-700 dark:text-cyan-400',
     },
     restaurant: {
         activeBg: 'bg-rose-50 dark:bg-rose-900/20',
@@ -298,6 +298,7 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     // Common items - System features (always visible)
     // ============================================================================
+    { id: 'calendar', labelKey: 'Calendário', icon: HiOutlineCalendar, path: '/calendar' },
     { id: 'alerts', labelKey: 'nav.alerts', icon: HiOutlineBell, path: '/alerts' },
     { id: 'fiscal', labelKey: 'nav.fiscal', icon: HiOutlineCalculator, path: '/fiscal', module: 'fiscal' },
     { id: 'reports', labelKey: 'nav.reports', icon: HiOutlineDocumentText, path: '/reports' },
@@ -315,8 +316,11 @@ export default function Sidebar() {
     const navigate = useNavigate();
     const { sidebarOpen, toggleSidebar, setSidebarOpen, alerts, companySettings } = useStore();
     const { user, logout } = useAuthStore();
-    const { canViewPage } = usePermissions();
     const location = useLocation();
+
+    // Determine current module based on URL path
+    const currentModule = location.pathname.split('/')[1];
+    const { canViewPage } = usePermissions();
     const { t } = useTranslation();
     const { hasModule } = useTenant();
     const unreadAlerts = alerts.filter((a) => !a.isRead).length;
@@ -361,7 +365,7 @@ export default function Sidebar() {
     // Modules that each have their own dedicated sidebar section
     const SPECIALIZED_MODULES = ['pharmacy', 'commercial', 'hospitality', 'bottle_store', 'logistics', 'restaurant'];
     // Items that are always visible regardless of module (system-level)
-    const ALWAYS_VISIBLE_IDS = ['alerts', 'fiscal', 'audit', 'backups', 'help', 'settings', 'super_admin'];
+    const ALWAYS_VISIBLE_IDS = ['calendar', 'alerts', 'fiscal', 'audit', 'backups', 'help', 'settings', 'super_admin'];
 
     const isSuperAdmin = user?.role === 'super_admin';
     // Determine which specialized module this user belongs to
@@ -369,8 +373,13 @@ export default function Sidebar() {
         ? SPECIALIZED_MODULES.find(m => hasModule(m))
         : undefined;
 
+    // The active module for UI display and theme (current path takes priority)
+    const activeModuleCode = SPECIALIZED_MODULES.includes(currentModule)
+        ? currentModule
+        : (userSpecializedModule || 'commercial');
+
     // Resolve sidebar color theme for current user's module
-    const theme = userSpecializedModule ? (MODULE_THEMES[userSpecializedModule] || DEFAULT_THEME) : DEFAULT_THEME;
+    const theme = MODULE_THEMES[activeModuleCode] || DEFAULT_THEME;
 
     const filteredMenuItems = menuItems.filter(item => {
         // Super admin exclusive items
@@ -416,7 +425,7 @@ export default function Sidebar() {
             {/* Global Overlay (dim background when sidebar is open) */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40"
+                    className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[9989]"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
@@ -424,12 +433,12 @@ export default function Sidebar() {
             {/* Sidebar - Now an Overlay (Off-Canvas) */}
             <aside
                 className={cn(
-                    'fixed top-4 left-4 h-[calc(100vh-2rem)] bg-white/95 dark:bg-dark-800 shadow-2xl z-50 transition-all duration-500 ease-in-out flex flex-col w-72 rounded-lg border border-slate-200/50 dark:border-dark-700/50 backdrop-blur-md',
+                    'fixed top-4 left-4 h-[calc(100vh-2rem)] bg-white/95 dark:bg-dark-800 shadow-2xl z-[9990] transition-all duration-500 ease-in-out flex flex-col w-72 rounded-lg border border-slate-200/50 dark:border-dark-700/50 backdrop-blur-md',
                     sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+2rem)] opacity-0'
                 )}
             >
                 {/* Logo / Brand */}
-                <div className="flex items-center justify-between h-18 px-4 border-b border-gray-100 dark:border-dark-700/50 flex-shrink-0 bg-white/50 dark:bg-dark-800/50 backdrop-blur-md">
+                <div className="flex items-center justify-between min-h-[80px] p-5 border-b border-gray-100 dark:border-dark-700/50 flex-shrink-0 bg-white/50 dark:bg-dark-800/50 backdrop-blur-md rounded-t-lg">
                     <div className="flex items-center gap-3 overflow-hidden">
                         {companySettings.logo ? (
                             <div className="relative group">
@@ -456,7 +465,7 @@ export default function Sidebar() {
                                 <div className="flex items-center gap-1.5">
                                     <div className={cn('w-2 h-2 rounded-full animate-pulse', theme.dotColor)}></div>
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 truncate">
-                                        {companySettings.businessType ? t(`businessType.${companySettings.businessType}`) : 'Modular ERP'}
+                                        {t(`businessType.${MODULE_TO_BUSINESS_TYPE[activeModuleCode] || companySettings.businessType || 'retail'}`)}
                                     </p>
                                 </div>
                             </div>
@@ -595,7 +604,7 @@ export default function Sidebar() {
                 </nav>
 
                 {/* Footer - User Card with Logout */}
-                <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800">
+                <div className="flex-shrink-0 p-4 border-t border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 rounded-b-lg">
                     {sidebarOpen ? (
                         <div className="space-y-3">
                             <div className="flex items-center gap-3 px-2">

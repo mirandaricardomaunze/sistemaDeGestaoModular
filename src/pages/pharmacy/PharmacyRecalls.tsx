@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Button, Input, Badge, LoadingSpinner } from '../../components/ui';
+import { Card, Button, Input, Badge, LoadingSpinner, Select, Textarea } from '../../components/ui';
 import {
     HiOutlineExclamationCircle, HiOutlinePlus, HiOutlineCheckCircle,
     HiOutlineUsers, HiOutlinePhone
@@ -8,7 +8,7 @@ import {
 import { pharmacyAPI } from '../../services/api';
 import { usePharmacy } from '../../hooks/usePharmacy';
 import toast from 'react-hot-toast';
-import { formatDate } from '../../utils/helpers';
+import { formatDate, cn } from '../../utils/helpers';
 
 const SEVERITY_LABELS: Record<string, { label: string; variant: any }> = {
     voluntary: { label: 'Voluntria', variant: 'warning' },
@@ -93,25 +93,26 @@ export default function PharmacyRecalls() {
                         Registar Novo Recall
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Medicamento *</label>
-                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                value={form.medicationId} onChange={e => setForm(f => ({ ...f, medicationId: e.target.value }))}>
-                                <option value="">Seleccionar medicamento...</option>
-                                {medications.map((m: any) => (
-                                    <option key={m.id} value={m.id}>{m.product?.name}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gravidade *</label>
-                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                value={form.severity} onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}>
-                                <option value="voluntary">Voluntria</option>
-                                <option value="mandatory">Obrigatória</option>
-                                <option value="urgent">Urgente</option>
-                            </select>
-                        </div>
+                        <Select
+                            label="Medicamento *"
+                            value={form.medicationId}
+                            onChange={e => setForm(f => ({ ...f, medicationId: e.target.value }))}
+                            options={medications.map((m: any) => ({
+                                value: m.id,
+                                label: m.product?.name || 'S/ N'
+                            }))}
+                            placeholder="Seleccionar medicamento..."
+                        />
+                        <Select
+                            label="Gravidade *"
+                            value={form.severity}
+                            onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}
+                            options={[
+                                { value: 'voluntary', label: 'Voluntária' },
+                                { value: 'mandatory', label: 'Obrigatória' },
+                                { value: 'urgent', label: 'Urgente' }
+                            ]}
+                        />
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Números de Lote Afectados *</label>
                             <div className="flex gap-2 mb-2">
@@ -130,9 +131,13 @@ export default function PharmacyRecalls() {
                         <Input label="Data do Recall" type="date" value={form.recallDate} onChange={e => setForm(f => ({ ...f, recallDate: e.target.value }))} />
                     </div>
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Motivo do Recall *</label>
-                        <textarea className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" rows={3}
-                            value={form.reason} onChange={e => setForm(f => ({ ...f, reason: e.target.value }))} placeholder="Descreva o motivo do recall..." />
+                        <Textarea 
+                            label="Motivo do Recall *"
+                            rows={3}
+                            value={form.reason}
+                            onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
+                            placeholder="Descreva o motivo do recall..."
+                        />
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={() => createMutation.mutate()} isLoading={createMutation.isPending} variant="danger">Registar Recall</Button>
@@ -144,10 +149,15 @@ export default function PharmacyRecalls() {
             {/* Filters */}
             <div className="flex gap-2">
                 {['', 'active', 'monitoring', 'resolved'].map(s => (
-                    <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === s ? 'bg-primary-600 text-white' : 'bg-white dark:bg-dark-800 border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                    <Button 
+                        key={s} 
+                        variant={statusFilter === s ? 'primary' : 'secondary'}
+                        onClick={() => { setStatusFilter(s); setPage(1); }}
+                        size="sm"
+                        className={cn("rounded-lg", statusFilter === s ? "shadow-md" : "")}
+                    >
                         {s === '' ? 'Todos' : s === 'active' ? 'Activos' : s === 'monitoring' ? 'Monitorização' : 'Resolvidos'}
-                    </button>
+                    </Button>
                 ))}
             </div>
 
@@ -248,9 +258,13 @@ export default function PharmacyRecalls() {
                         <h3 className="font-bold text-lg mb-4">Resolver Recall {resolveModal.recallNumber}</h3>
                         <Input label="Unidades Recuperadas" type="number" value={resolveForm.recoveredUnits} onChange={e => setResolveForm(f => ({ ...f, recoveredUnits: Number(e.target.value) }))} min={0} className="mb-4" />
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Acção Tomada</label>
-                            <textarea className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" rows={3}
-                                value={resolveForm.actionTaken} onChange={e => setResolveForm(f => ({ ...f, actionTaken: e.target.value }))} placeholder="Descreva as acções tomadas..." />
+                            <Textarea 
+                                label="Acção Tomada"
+                                rows={3}
+                                value={resolveForm.actionTaken}
+                                onChange={e => setResolveForm(f => ({ ...f, actionTaken: e.target.value }))}
+                                placeholder="Descreva as acções tomadas..."
+                            />
                         </div>
                         <div className="flex gap-2">
                             <Button onClick={() => resolveMutation.mutate()} isLoading={resolveMutation.isPending} leftIcon={<HiOutlineCheckCircle className="w-4 h-4" />}>Confirmar Resolução</Button>

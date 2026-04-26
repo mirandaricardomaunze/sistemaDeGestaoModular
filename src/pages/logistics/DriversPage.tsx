@@ -49,12 +49,14 @@ function getLicenseExpiryAlert(
     );
 
     if (daysLeft <= 0) {
-        return { label: t('logistics_module.drivers.licenseExpired'), className: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' };
+        return { label: t('logistics_module.drivers.licenseExpired'), className: 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 backdrop-blur-sm' };
     }
     if (daysLeft <= 30) {
         return { 
             label: t('logistics_module.drivers.licenseDays', { days: daysLeft }), 
-            className: daysLeft <= 14 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' 
+            className: daysLeft <= 14 
+                ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30 backdrop-blur-sm' 
+                : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 backdrop-blur-sm' 
         };
     }
     return null;
@@ -236,7 +238,7 @@ export default function DriversPage() {
                     <Card key={driver.id} variant="glass" className="p-6 hover:shadow-lg transition-shadow">
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold text-lg">
+                                <div className="w-12 h-12 rounded-xl bg-primary-500/15 border border-primary-500/20 flex items-center justify-center text-primary-600 dark:text-primary-300 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
                                     {driver.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
@@ -249,8 +251,8 @@ export default function DriversPage() {
                                 {(() => {
                                     const alert = getLicenseExpiryAlert(driver.licenseExpiry, t);
                                     return alert ? (
-                                        <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${alert.className}`}>
-                                            <HiOutlineExclamationTriangle className="w-3 h-3" aria-hidden="true" />
+                                        <span className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg ${alert.className}`}>
+                                            <HiOutlineExclamationTriangle className="w-3.5 h-3.5" aria-hidden="true" />
                                             {alert.label}
                                         </span>
                                     ) : null;
@@ -285,10 +287,20 @@ export default function DriversPage() {
                         </div>
 
                         <div className="flex gap-2 pt-4 border-t dark:border-dark-700">
-                            <Button variant="outline" size="sm" className="flex-1" onClick={() => openModal(driver)}>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex-1 p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest"
+                                onClick={() => openModal(driver)}
+                            >
                                 <HiOutlinePencil className="w-4 h-4 mr-1" /> {t('common.edit')}
                             </Button>
-                            <Button variant="outline" size="sm" className="text-red-500 border-red-500 hover:bg-red-50" onClick={() => setDeleteConfirm(driver.id)}>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
+                                onClick={() => setDeleteConfirm(driver.id)}
+                            >
                                 <HiOutlineTrash className="w-4 h-4" />
                             </Button>
                         </div>
@@ -314,9 +326,11 @@ export default function DriversPage() {
             )}
 
             {data?.data.length === 0 && (
-                <Card variant="glass" className="p-12 text-center">
-                    <HiOutlineUser className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('logistics_module.drivers.noDrivers')}</h3>
+                <Card variant="default" className="p-12 text-center bg-white dark:bg-dark-900 border-none shadow-premium group">
+                    <div className="w-20 h-20 rounded-full bg-gray-500/10 flex items-center justify-center mx-auto mb-6 backdrop-blur-sm border border-gray-500/20">
+                        <HiOutlineUser className="w-10 h-10 text-gray-400 group-hover:scale-110 transition-transform" />
+                    </div>
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2 tracking-tight">{t('logistics_module.drivers.noDrivers')}</h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-4">{t('logistics_module.drivers.startAdding')}</p>
                     <Button onClick={() => openModal()}>
                         <HiOutlinePlus className="w-5 h-5 mr-2" /> {t('logistics_module.drivers.add')}
@@ -387,11 +401,11 @@ export default function DriversPage() {
                             label={t('logistics_module.drivers.category')}
                             options={[
                                 { value: '', label: t('common.select') },
-                                { value: 'A', label: 'A - Motociclos' },
-                                { value: 'B', label: 'B - Ligeiros' },
-                                { value: 'C', label: 'C - Pesados Mercadorias' },
-                                { value: 'D', label: 'D - Pesados Passageiros' },
-                                { value: 'E', label: 'E - Reboque' }
+                                { value: 'A', label: t('logistics_module.drivers.license_categories.A') },
+                                { value: 'B', label: t('logistics_module.drivers.license_categories.B') },
+                                { value: 'C', label: t('logistics_module.drivers.license_categories.C') },
+                                { value: 'D', label: t('logistics_module.drivers.license_categories.D') },
+                                { value: 'E', label: t('logistics_module.drivers.license_categories.E') }
                             ]}
                             value={formData.licenseType}
                             onChange={(e) => setFormData({ ...formData, licenseType: e.target.value })}
@@ -427,8 +441,8 @@ export default function DriversPage() {
                     />
 
                     <Input
-                        label={t('logistics_module.vehicles.notes')}
-                        placeholder="Notas adicionais sobre o motorista..."
+                        label={t('common.notes')}
+                        placeholder={`${t('common.notes')}...`}
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     />

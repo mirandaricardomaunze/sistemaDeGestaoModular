@@ -234,11 +234,11 @@ const DocumentsModal: React.FC<DocumentsModalProps> = ({ employee, isOpen, onClo
                                 <Badge variant={STATUS_BADGE[status]} size="sm" className="font-black text-[9px]">
                                     {STATUS_LABELS[status]}
                                 </Badge>
-                                {doc.expiry && (
+                                {doc.expiry != null && (
                                     <p className={cn('text-[10px] font-mono block', STATUS_COLORS[status])}>
                                         {doc.type === 'expiry'
-                                            ? `Expira: ${format(new Date(doc.expiry), 'dd/MM/yyyy')}`
-                                            : doc.expiry}
+                                            ? `Expira: ${format(new Date(doc.expiry as string), 'dd/MM/yyyy')}`
+                                            : String((doc as any).expiry)}
                                     </p>
                                 )}
                             </div>
@@ -321,7 +321,7 @@ const EditDocumentsModal: React.FC<EditDocumentsModalProps> = ({ employee, isOpe
                 nuit: nuit || undefined,
                 socialSecurityNumber: inss || undefined,
                 contractExpiry: contractExpiry || undefined,
-                contractType: contractType || undefined,
+                contractType: (contractType as any) || undefined,
                 notes: updatedNotes,
             });
 

@@ -235,9 +235,9 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-6">
                 {/* Total Revenue */}
-                <Card className="p-5 bg-white dark:bg-dark-800 shadow-sm border border-gray-100 dark:border-dark-700 hover:border-primary-500 transition-all">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-lg">
+                <Card className="p-5 bg-white dark:bg-dark-900 shadow-sm border border-gray-100 dark:border-indigo-500/20 hover:border-indigo-500/40 transition-all group overflow-hidden group">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-xl border border-transparent dark:border-indigo-500/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
                             <HiOutlineCurrencyDollar className="w-5 h-5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Receita Total</span>
@@ -247,9 +247,9 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 </Card>
 
                 {/* Today Revenue */}
-                <Card className="p-5 bg-white dark:bg-dark-800 shadow-sm border border-gray-100 dark:border-dark-700 hover:border-primary-500 transition-all">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-green-50 dark:bg-green-900/30 text-green-600 rounded-lg">
+                <Card className="p-5 bg-white dark:bg-dark-900 shadow-sm border border-gray-100 dark:border-green-500/20 hover:border-green-500/40 transition-all group overflow-hidden group">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2.5 bg-green-50 dark:bg-green-500/15 text-green-600 dark:text-green-400 rounded-xl border border-transparent dark:border-green-500/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
                             <HiOutlineCalendar className="w-5 h-5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Receita Hoje</span>
@@ -261,9 +261,9 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 </Card>
 
                 {/* Occupancy Rate */}
-                <Card className="p-5 bg-white dark:bg-dark-800 shadow-sm border border-gray-100 dark:border-dark-700 hover:border-primary-500 transition-all">
+                <Card className="p-5 bg-white dark:bg-dark-900 shadow-sm border border-gray-100 dark:border-blue-500/20 hover:border-blue-500/40 transition-all group overflow-hidden group">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-lg">
+                        <div className="p-2.5 bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 rounded-xl border border-transparent dark:border-blue-500/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
                             <HiOutlineHome className="w-5 h-5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Ocupação</span>
@@ -278,9 +278,9 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 </Card>
 
                 {/* Total Bookings */}
-                <Card className="p-5 bg-white dark:bg-dark-800 shadow-sm border border-gray-100 dark:border-dark-700 hover:border-primary-500 transition-all">
+                <Card className="p-5 bg-white dark:bg-dark-900 shadow-sm border border-gray-100 dark:border-amber-500/20 hover:border-amber-500/40 transition-all group overflow-hidden group">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-lg">
+                        <div className="p-2.5 bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-xl border border-transparent dark:border-amber-500/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
                             <HiOutlineUsers className="w-5 h-5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Reservas</span>
@@ -292,9 +292,9 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 </Card>
 
                 {/* Avg Daily Rate */}
-                <Card className="p-5 bg-white dark:bg-dark-800 shadow-sm border border-gray-100 dark:border-dark-700 hover:border-primary-500 transition-all">
+                <Card className="p-5 bg-white dark:bg-dark-900 shadow-sm border border-gray-100 dark:border-purple-500/20 hover:border-purple-500/40 transition-all group overflow-hidden group">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-purple-50 dark:bg-purple-900/30 text-purple-600 rounded-lg">
+                        <div className="p-2.5 bg-purple-50 dark:bg-purple-500/15 text-purple-600 dark:text-purple-400 rounded-xl border border-transparent dark:border-purple-500/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
                             <HiOutlineChartPie className="w-5 h-5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">ADR</span>
@@ -304,9 +304,9 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 </Card>
 
                 {/* RevPAR */}
-                <Card className="p-5 bg-white dark:bg-dark-800 shadow-sm border border-gray-100 dark:border-dark-700 hover:border-primary-500 transition-all">
+                <Card className="p-5 bg-white dark:bg-dark-900 shadow-sm border border-gray-100 dark:border-emerald-500/20 hover:border-emerald-500/40 transition-all group overflow-hidden group">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-lg">
+                        <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl border border-transparent dark:border-emerald-500/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
                             <HiOutlineCurrencyDollar className="w-5 h-5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">RevPAR</span>
@@ -316,9 +316,9 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 </Card>
 
                 {/* Active Guests */}
-                <Card className="p-5 bg-white dark:bg-dark-800 shadow-sm border border-gray-100 dark:border-dark-700 hover:border-primary-500 transition-all">
+                <Card className="p-5 bg-white dark:bg-dark-900 shadow-sm border border-gray-100 dark:border-rose-500/20 hover:border-rose-500/40 transition-all group overflow-hidden group">
                     <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-lg">
+                        <div className="p-2.5 bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 rounded-xl border border-transparent dark:border-rose-500/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
                             <HiOutlineUsers className="w-5 h-5" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Hóspedes</span>

@@ -234,13 +234,13 @@ export default function Customers({ originModule }: CustomersProps) {
             <PageHeader 
                 title="Gestão de Clientes"
                 subtitle="Controlo de Entidades, Histórico de Vendas e CRM"
-                icon={<HiOutlineUsers />}
+                icon={<HiOutlineUsers className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            className="font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
                             leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} 
                             onClick={() => refetch()}
                         >
@@ -264,25 +264,25 @@ export default function Customers({ originModule }: CustomersProps) {
                 <StatCard 
                     label="Total Clientes"
                     value={metrics.total}
-                    icon={<HiOutlineUsers className="w-6 h-6" />}
+                    icon={<HiOutlineUsers className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
                     color="primary"
                 />
                 <StatCard 
                     label="Pessoas Físicas"
                     value={metrics.individuals}
-                    icon={<HiOutlineUser className="w-6 h-6" />}
+                    icon={<HiOutlineUser className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
                     color="blue"
                 />
                 <StatCard 
                     label="Empresas"
                     value={metrics.companies}
-                    icon={<HiOutlineBuildingOffice className="w-6 h-6" />}
+                    icon={<HiOutlineBuildingOffice className="w-6 h-6 text-purple-600 dark:text-purple-400" />}
                     color="purple"
                 />
                 <StatCard 
                     label="Total Compras"
                     value={formatCurrency(metrics.totalPurchases)}
-                    icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                    icon={<HiOutlineCurrencyDollar className="w-6 h-6 text-green-600 dark:text-green-400" />}
                     color="green"
                     sublabel="Volume total transacionado"
                 />
@@ -293,7 +293,7 @@ export default function Customers({ originModule }: CustomersProps) {
                 <Card padding="md" className="md:col-span-12 bg-gray-100/50 dark:bg-dark-800/50 border-none shadow-none">
                     <div className="flex flex-col lg:flex-row gap-4">
                         <div className="flex-1 relative">
-                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-400 w-5 h-5 z-10" />
                             <Input
                                 placeholder="Buscar clientes por nome, NUIT or contacto..."
                                 value={search}
@@ -350,7 +350,7 @@ export default function Customers({ originModule }: CustomersProps) {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                                    <TypeIcon className="w-5 h-5 text-primary-600" />
+                                                    <TypeIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-gray-900 dark:text-white">{customer.name}</p>
@@ -366,12 +366,12 @@ export default function Customers({ originModule }: CustomersProps) {
                                         <td className="px-6 py-4">
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                                                    <HiOutlinePhone className="w-4 h-4" />
+                                                    <HiOutlinePhone className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                                                     <span>{customer.phone}</span>
                                                 </div>
                                                 {customer.email && (
                                                     <div className="flex items-center gap-1 text-sm text-gray-500">
-                                                        <HiOutlineEnvelope className="w-4 h-4" />
+                                                        <HiOutlineEnvelope className="w-4 h-4 text-primary-500/70" />
                                                         <span className="truncate max-w-[150px]">{customer.email}</span>
                                                     </div>
                                                 )}
@@ -391,34 +391,40 @@ export default function Customers({ originModule }: CustomersProps) {
                                             {formatCurrency(customer.totalPurchases)}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex justify-center gap-1">
-                                                <button
+                                            <div className="flex justify-center gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => {
                                                         setCustomer360(customer);
                                                         setShow360Modal(true);
                                                     }}
-                                                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-blue-600 transition-colors"
+                                                    className="p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm"
                                                     title="Perfil 360º"
                                                 >
                                                     <HiOutlineEye className="w-4 h-4" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => handleEdit(customer)}
-                                                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 transition-colors"
+                                                    className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
                                                     title="Editar"
                                                 >
                                                     <HiOutlinePencil className="w-4 h-4" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => {
                                                         setCustomerToDelete(customer);
                                                         setDeleteModalOpen(true);
                                                     }}
-                                                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-red-600 transition-colors"
+                                                    className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
                                                     title="Excluir"
                                                 >
                                                     <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>

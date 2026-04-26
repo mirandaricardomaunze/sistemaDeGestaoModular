@@ -23,8 +23,8 @@ import {
     HiOutlineCube,
     HiOutlineUsers,
     HiOutlineExclamationCircle,
-    HiOutlineTrendingUp,
-    HiOutlineTrendingDown,
+    HiOutlineArrowTrendingUp,
+    HiOutlineArrowTrendingDown,
     HiOutlineArrowRight,
     HiOutlineArrowUp,
     HiOutlineArrowDown,
@@ -32,9 +32,8 @@ import {
     HiOutlineAdjustmentsHorizontal,
     HiOutlineTrash,
     HiOutlineReceiptRefund,
-    HiOutlineClockHistory,
+    HiOutlineClock,
 } from 'react-icons/hi2';
-import { HiOutlineClock } from 'react-icons/hi';
 import { Card, Button, Badge, ResponsiveValue } from '../ui';
 import { formatRelativeTime, cn } from '../../utils/helpers';
 import { productsAPI } from '../../services/api/products.api';
@@ -52,7 +51,7 @@ export const StatsWidget = ({ metrics, stats }: any) => {
                         <HiOutlineCurrencyDollar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <div className={cn('flex items-center gap-1 text-xs font-black', metrics.salesGrowth >= 0 ? 'text-emerald-600' : 'text-red-600')}>
-                        {metrics.salesGrowth >= 0 ? <HiOutlineTrendingUp className="w-3.5 h-3.5" /> : <HiOutlineTrendingDown className="w-3.5 h-3.5" />}
+                        {metrics.salesGrowth >= 0 ? <HiOutlineArrowTrendingUp className="w-3.5 h-3.5" /> : <HiOutlineArrowTrendingDown className="w-3.5 h-3.5" />}
                         {Math.abs(metrics.salesGrowth)}%
                     </div>
                 </div>

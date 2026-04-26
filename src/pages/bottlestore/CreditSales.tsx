@@ -159,7 +159,7 @@ export default function CreditSales() {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white">
+                <Card className="bg-red-600 text-white">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-red-100 text-sm">Total a Receber</p>
@@ -169,7 +169,7 @@ export default function CreditSales() {
                         <HiOutlineExclamation className="w-12 h-12 text-red-200 opacity-75" />
                     </div>
                 </Card>
-                <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white">
+                <Card className="bg-amber-600 text-white">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-amber-100 text-sm">Vendas Pendentes</p>
@@ -179,7 +179,7 @@ export default function CreditSales() {
                         <HiOutlineDocumentText className="w-12 h-12 text-amber-200 opacity-75" />
                     </div>
                 </Card>
-                <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <Card className="bg-green-600 text-white">
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-green-100 text-sm">Total em Crédito</p>

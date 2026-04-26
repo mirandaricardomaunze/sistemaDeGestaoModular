@@ -305,11 +305,11 @@ export default function Reports() {
                     />
                     <ExportSalesButton data={filteredSales} />
                     <Button variant="outline" onClick={() => handleExport('excel')}>
-                        <HiOutlineDownload className="w-5 h-5 mr-2" />
+                        <HiOutlineDownload className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
                         Gerar XLSX
                     </Button>
                     <Button onClick={() => handleExport('pdf')}>
-                        <HiOutlineDocumentDownload className="w-5 h-5 mr-2" />
+                        <HiOutlineDocumentDownload className="w-5 h-5 mr-2 text-white" />
                         Exportar PDF Profissional
                     </Button>
                 </div>
@@ -384,70 +384,78 @@ export default function Reports() {
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-                <Card padding="sm" className="bg-gradient-to-br from-primary-500 to-primary-600 text-white overflow-hidden">
+                <Card padding="sm" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-primary-500/20 shadow-sm overflow-hidden group">
                     <div className="flex flex-col h-full justify-between">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-[10px] sm:text-xs text-white/80 uppercase font-bold tracking-wider">Recolha Total</p>
-                            <HiOutlineCurrencyDollar className="w-4 h-4 text-white/40" />
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-500/15 flex items-center justify-center backdrop-blur-sm border border-transparent dark:border-primary-500/20 transition-transform group-hover:scale-110">
+                                <HiOutlineCurrencyDollar className="w-5 h-5 text-primary-600 dark:text-primary-300" />
+                            </div>
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Recolha Total</p>
                         </div>
-                        <p className="text-lg sm:text-xl font-bold truncate">{formatCurrency(metrics.totalSales)}</p>
+                        <p className="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">{formatCurrency(metrics.totalSales)}</p>
                     </div>
                 </Card>
 
-                <Card padding="sm" className="bg-gradient-to-br from-green-500 to-green-600 text-white overflow-hidden">
+                <Card padding="sm" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-green-500/20 shadow-sm overflow-hidden group">
                     <div className="flex flex-col h-full justify-between">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-[10px] sm:text-xs text-white/80 uppercase font-bold tracking-wider">Lucro Estimado</p>
-                            <HiOutlineChartBar className="w-4 h-4 text-white/40" />
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-500/15 flex items-center justify-center backdrop-blur-sm border border-transparent dark:border-green-500/20 transition-transform group-hover:scale-110">
+                                <HiOutlineChartBar className="w-5 h-5 text-green-600 dark:text-green-300" />
+                            </div>
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Lucro Estimado</p>
                         </div>
                         <div>
-                            <p className="text-lg sm:text-xl font-bold truncate">{formatCurrency(metrics.profit)}</p>
-                            <p className="text-[10px] text-white/70">{metrics.profitMargin.toFixed(1)}% margem</p>
+                            <p className="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">{formatCurrency(metrics.profit)}</p>
+                            <p className="text-[10px] text-green-600 dark:text-green-400 font-bold">{metrics.profitMargin.toFixed(1)}% margem</p>
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="sm" className="bg-gradient-to-br from-amber-500 to-amber-600 text-white overflow-hidden">
+                <Card padding="sm" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-amber-500/20 shadow-sm overflow-hidden group">
                     <div className="flex flex-col h-full justify-between">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-[10px] sm:text-xs text-white/80 uppercase font-bold tracking-wider">Transações</p>
-                            <HiOutlineShoppingCart className="w-4 h-4 text-white/40" />
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center backdrop-blur-sm border border-transparent dark:border-amber-500/20 transition-transform group-hover:scale-110">
+                                <HiOutlineShoppingCart className="w-5 h-5 text-amber-600 dark:text-amber-300" />
+                            </div>
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Transações</p>
                         </div>
-                        <p className="text-lg sm:text-xl font-bold truncate">{metrics.transactionCount}</p>
+                        <p className="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">{metrics.transactionCount}</p>
                     </div>
                 </Card>
 
-                <Card padding="sm" className="bg-gradient-to-br from-purple-500 to-purple-600 text-white overflow-hidden">
+                <Card padding="sm" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-purple-500/20 shadow-sm overflow-hidden group">
                     <div className="flex flex-col h-full justify-between">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-[10px] sm:text-xs text-white/80 uppercase font-bold tracking-wider">Ticket Médio</p>
-                            <HiOutlineChartBar className="w-4 h-4 text-white/40" />
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-500/15 flex items-center justify-center backdrop-blur-sm border border-transparent dark:border-purple-500/20 transition-transform group-hover:scale-110">
+                                <HiOutlineChartBar className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+                            </div>
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Ticket Médio</p>
                         </div>
-                        <p className="text-lg sm:text-xl font-bold truncate">{formatCurrency(metrics.avgTicket)}</p>
+                        <p className="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">{formatCurrency(metrics.avgTicket)}</p>
                     </div>
                 </Card>
 
-                <Card padding="sm" className="bg-gray-800 text-white overflow-hidden">
+                <Card padding="sm" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-slate-500/20 shadow-sm overflow-hidden group">
                     <div className="flex flex-col h-full justify-between">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-[10px] sm:text-xs text-white/80 uppercase font-bold tracking-wider">Valor Stock (C)</p>
-                            <HiOutlineCube className="w-4 h-4 text-white/40" />
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-500/15 flex items-center justify-center backdrop-blur-sm border border-transparent dark:border-slate-500/20 transition-transform group-hover:scale-110">
+                                <HiOutlineCube className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                            </div>
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Valor Stock (C)</p>
                         </div>
-                        <p className="text-lg sm:text-xl font-bold truncate" title={formatCurrency(metrics.stockValuationCost)}>
-                            {formatCurrency(metrics.stockValuationCost)}
-                        </p>
+                        <p className="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">{formatCurrency(metrics.stockValuationCost)}</p>
                     </div>
                 </Card>
 
-                <Card padding="sm" className="bg-indigo-700 text-white overflow-hidden">
+                <Card padding="sm" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-indigo-500/20 shadow-sm overflow-hidden group">
                     <div className="flex flex-col h-full justify-between">
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-[10px] sm:text-xs text-white/80 uppercase font-bold tracking-wider">Valor Stock (V)</p>
-                            <HiOutlineCube className="w-4 h-4 text-white/40" />
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/15 flex items-center justify-center backdrop-blur-sm border border-transparent dark:border-indigo-500/20 transition-transform group-hover:scale-110">
+                                <HiOutlineCube className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
+                            </div>
+                            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase font-bold tracking-wider">Valor Stock (V)</p>
                         </div>
-                        <p className="text-lg sm:text-xl font-bold truncate" title={formatCurrency(metrics.stockValuationRetail)}>
-                            {formatCurrency(metrics.stockValuationRetail)}
-                        </p>
+                        <p className="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">{formatCurrency(metrics.stockValuationRetail)}</p>
                     </div>
                 </Card>
             </div>

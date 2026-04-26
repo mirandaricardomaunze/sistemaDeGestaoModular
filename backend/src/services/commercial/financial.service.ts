@@ -7,7 +7,7 @@ import { round2 } from './shared';
 export class CommercialFinancialService {
 
     async getAccountsReceivable(companyId: string, params: any = {}): Promise<Result<any>> {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
         const { page, limit, skip } = getPaginationParams(params);
         const { status, search } = params;

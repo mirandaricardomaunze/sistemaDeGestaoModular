@@ -140,24 +140,28 @@ const PharmacyShiftHistory: React.FC = () => {
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">Início</label>
-                        <input 
-                            type="date" 
-                            className="w-full px-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                        <Input
+                            label="Início"
+                            type="date"
+                            size="md"
                             value={dateRange.start}
                             onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
                         />
                     </div>
                     <div>
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">Fim</label>
-                        <input 
-                            type="date" 
-                            className="w-full px-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
+                        <Input
+                            label="Fim"
+                            type="date"
+                            size="md"
                             value={dateRange.end}
                             onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
                         />
                     </div>
-                    <Button onClick={loadHistory} className="bg-teal-600 hover:bg-teal-700 text-white rounded-lg h-10 font-black uppercase text-[10px] tracking-widest border-none">
+                    <Button 
+                        onClick={loadHistory} 
+                        size="md"
+                        className="bg-teal-600 hover:bg-teal-700 text-white font-black uppercase text-[10px] tracking-widest border-none"
+                    >
                         Processar Filtros
                     </Button>
                 </div>
@@ -269,20 +273,24 @@ const PharmacyShiftHistory: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 pr-10">
                                             <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                                                <button 
+                                                <Button 
+                                                    variant="ghost"
+                                                    size="xs"
                                                     onClick={() => handleViewDetails(session)}
                                                     className="p-2 text-teal-600 hover:bg-teal-600 hover:text-white rounded-lg transition-all shadow-sm active:scale-95"
                                                     title="Ver Detalhes do Turno"
                                                 >
                                                     <HiOutlineEye className="w-5 h-5" />
-                                                </button>
-                                                <button 
+                                                </Button>
+                                                <Button 
+                                                    variant="ghost"
+                                                    size="xs"
                                                     onClick={() => handlePrintZReport(session)}
                                                     className="p-2 text-gray-500 hover:bg-gray-800 hover:text-white rounded-lg transition-all shadow-sm active:scale-95"
                                                     title="Re-imprimir Relatório Z"
                                                 >
                                                     <HiOutlinePrinter className="w-5 h-5" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>

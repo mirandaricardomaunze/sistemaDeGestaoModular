@@ -105,7 +105,7 @@ export function CommercialShiftDetailsModal({ isOpen, session, onClose, onPrint 
                                 </div>
                                 <div className="flex justify-between items-center text-red-500">
                                     <span className="text-xs font-medium italic">Sangrias</span>
-                                    <span className="text-sm font-black">âˆ' {formatCurrency(session.withdrawals)}</span>
+                                    <span className="text-sm font-black">- {formatCurrency(session.withdrawals)}</span>
                                 </div>
                                 <div className="pt-3 border-t border-gray-200 dark:border-dark-700 flex justify-between items-center">
                                     <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">Esperado em Caixa</span>

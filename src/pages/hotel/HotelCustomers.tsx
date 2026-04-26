@@ -48,11 +48,11 @@ export default function HotelCustomers() {
             <PageHeader
                 title={t('hotel_module.guests.title')}
                 subtitle={t('hotel_module.guests.profile')}
-                icon={<HiOutlineUsers />}
+                icon={<HiOutlineUsers className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <Button
                         variant="outline"
-                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
+                        leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                         onClick={loadGuests}
                     >
                         {t('common.refresh')}

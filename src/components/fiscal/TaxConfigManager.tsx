@@ -9,7 +9,7 @@ import {
     HiOutlineInformationCircle,
 } from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
-import { Button, Card, Input, Modal, Select, Badge, Pagination, usePagination } from '../ui';
+import { Button, Card, Input, Modal, Select, Badge, Pagination, usePagination, ConfirmationModal } from '../ui';
 import { formatCurrency, generateId } from '../../utils/helpers';
 import type { TaxConfig, IRPSBracket, TaxType, TaxApplicableTo } from '../../types/fiscal';
 import toast from 'react-hot-toast';
@@ -470,29 +470,16 @@ export default function TaxConfigManager() {
             </Modal>
 
             {/* Delete Confirmation Modal */}
-            <Modal
+            <ConfirmationModal
                 isOpen={!!showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(null)}
+                onConfirm={() => { if (showDeleteConfirm) handleDelete(showDeleteConfirm); }}
                 title="Confirmar Eliminação"
-                size="sm"
-            >
-                <div className="space-y-4">
-                    <p className="text-gray-600 dark:text-gray-300">
-                        Tem certeza que deseja eliminar esta configuração de imposto?
-                    </p>
-                    <p className="text-sm text-red-600 dark:text-red-400">
-                        Esta ação não pode ser desfeita.
-                    </p>
-                    <div className="flex justify-end gap-2 pt-4">
-                        <Button variant="ghost" onClick={() => setShowDeleteConfirm(null)}>
-                            Cancelar
-                        </Button>
-                        <Button variant="danger" onClick={() => showDeleteConfirm && handleDelete(showDeleteConfirm)}>
-                            Eliminar
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+                message="Tem certeza que deseja eliminar esta configuração de imposto? Esta ação não pode ser desfeita."
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                variant="danger"
+            />
         </div>
     );
 }

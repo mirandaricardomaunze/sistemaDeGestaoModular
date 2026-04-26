@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'async_hooks';
 
 export interface TenantContext {
-    companyId: string;
+    companyId?: string;
     userId?: string;
     userName?: string;
 }

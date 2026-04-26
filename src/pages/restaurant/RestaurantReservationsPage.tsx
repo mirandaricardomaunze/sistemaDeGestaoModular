@@ -4,7 +4,7 @@ import {
     HiOutlineCalendar, HiOutlinePhone,
     HiOutlineClock, HiOutlineMapPin, HiOutlineCheck
 } from 'react-icons/hi2';
-import { Card, Button, Input, Modal, Badge, LoadingSpinner, Select } from '../../components/ui';
+import { Card, Button, Input, Modal, Badge, LoadingSpinner, Select, Textarea } from '../../components/ui';
 import { 
     useRestaurantReservations, useCreateReservation, useUpdateReservation, 
     useDeleteReservation, useUpdateReservationStatus, useRestaurantTables
@@ -126,8 +126,7 @@ function ReservationModal({ open, onClose, editing }: { open: boolean; onClose: 
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações</label>
-                    <textarea 
-                        className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
+                    <Textarea 
                         rows={3}
                         value={form.notes}
                         onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
@@ -216,12 +215,22 @@ function ReservationCard({ res, onEdit, onDelete }: { res: RestaurantReservation
                     </Button>
                 )}
                 
-                <button onClick={onEdit} className="p-2 rounded-lg text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-700">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={onEdit} 
+                    className="text-gray-400 hover:text-primary-600"
+                >
                     <HiOutlinePencil className="w-4 h-4" />
-                </button>
-                <button onClick={onDelete} className="p-2 rounded-lg text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                </Button>
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={onDelete} 
+                    className="text-red-400 hover:text-red-600"
+                >
                     <HiOutlineTrash className="w-4 h-4" />
-                </button>
+                </Button>
             </div>
         </Card>
     );
@@ -291,33 +300,39 @@ export default function RestaurantReservationsPage() {
                     />
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                    <button 
+                    <Button 
+                        size="sm"
                         onClick={() => setStatus('')}
+                        variant={!status ? "primary" : "ghost"}
                         className={cn(
-                            "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                            !status ? "bg-primary-600 text-white" : "bg-gray-50 dark:bg-dark-700 text-gray-500"
+                            "font-bold",
+                            !status ? "" : "text-gray-500"
                         )}
                     >
                         Todas
-                    </button>
-                    <button 
+                    </Button>
+                    <Button 
+                        size="sm"
                         onClick={() => setStatus('pending')}
+                        variant={status === 'pending' ? "primary" : "ghost"}
                         className={cn(
-                            "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                            status === 'pending' ? "bg-orange-600 text-white" : "bg-gray-50 dark:bg-dark-700 text-gray-500"
+                            "font-bold",
+                            status === 'pending' ? "bg-orange-600 hover:bg-orange-700" : "text-gray-500"
                         )}
                     >
                         Pendentes
-                    </button>
-                    <button 
+                    </Button>
+                    <Button 
+                        size="sm"
                         onClick={() => setStatus('confirmed')}
+                        variant={status === 'confirmed' ? "primary" : "ghost"}
                         className={cn(
-                            "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                            status === 'confirmed' ? "bg-primary-600 text-white" : "bg-gray-50 dark:bg-dark-700 text-gray-500"
+                            "font-bold",
+                            status === 'confirmed' ? "" : "text-gray-500"
                         )}
                     >
                         Confirmadas
-                    </button>
+                    </Button>
                 </div>
             </div>
 

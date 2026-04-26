@@ -41,7 +41,7 @@ const Invoices = lazy(() => import('./pages/invoices'));
 const Orders = lazy(() => import('./pages/orders'));
 const Alerts = lazy(() => import('./pages/alerts'));
 const Reports = lazy(() => import('./pages/reports'));
-const Settings = lazy(() => import('./pages/settings'));
+const Settings = lazy(() => import('./pages/UserSettings'));
 const Customers = lazy(() => import('./pages/customers'));
 const Suppliers = lazy(() => import('./pages/suppliers'));
 const Categories = lazy(() => import('./pages/categories'));
@@ -143,6 +143,7 @@ const CommercialFinance = lazy(() => import('./pages/commercial/CommercialFinanc
 const CommercialEmployees = lazy(() => import('./pages/commercial/CommercialEmployees'));
 const RestaurantEmployees = lazy(() => import('./pages/restaurant/RestaurantEmployees'));
 const BottleStoreEmployees = lazy(() => import('./pages/bottlestore/BottleStoreEmployees'));
+const CalendarPage = lazy(() => import('./pages/calendar'));
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -262,6 +263,8 @@ createRoot(document.getElementById('root')!).render(
                     {/* Hospitality Module */}
                     <Route path="hospitality" element={<Navigate to="/hospitality/dashboard" replace />} />
                     <Route path="hospitality/dashboard" element={<HotelDashboard />} />
+                    <Route path="hotel" element={<Navigate to="/hospitality/dashboard" replace />} />
+                    <Route path="hotel/*" element={<Navigate to="/hospitality/dashboard" replace />} />
                     <Route path="hospitality/ops" element={<Hospitality />} />
                     <Route path="hospitality/finance" element={<HotelFinance />} />
                     <Route path="hospitality/rooms" element={<HotelRooms />} />
@@ -286,6 +289,7 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="bottle-store/cash" element={<CashRegister />} />
                     <Route path="bottle-store/credit" element={<CreditSales />} />
 
+                    <Route path="calendar" element={<CalendarPage />} />
                     <Route path="super-admin" element={<SuperAdminDashboard />} />
                     <Route path="help" element={<Help />} />
                     <Route path="settings" element={<Settings />} />

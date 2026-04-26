@@ -141,8 +141,8 @@ export default function RoutesPage() {
         const destLng = Number(route.destinationLng);
         if (!originLat || !originLng || !destLat || !destLng) return null;
         return [
-            { lat: originLat, lng: originLng, label: `Origem: ${route.origin}`, type: 'warehouse' as const },
-            { lat: destLat, lng: destLng, label: `Destino: ${route.destination}`, type: 'delivery' as const, status: 'scheduled' }
+            { lat: originLat, lng: originLng, label: `${t('common.origin')}: ${route.origin}`, type: 'warehouse' as const },
+            { lat: destLat, lng: destLng, label: `${t('common.destination')}: ${route.destination}`, type: 'delivery' as const, status: 'scheduled' }
         ];
     };
 
@@ -244,8 +244,8 @@ export default function RoutesPage() {
                                     <td className="p-4 text-center text-sm">
                                         {(route.tollCost || route.fuelEstimate) ? (
                                             <div className="space-y-1">
-                                                {route.tollCost && <div>Portagem: {route.tollCost} MZN</div>}
-                                                {route.fuelEstimate && <div>Combustível: {route.fuelEstimate} MZN</div>}
+                                                {route.tollCost && <div>{t('common.toll')}: {route.tollCost} MZN</div>}
+                                                {route.fuelEstimate && <div>{t('common.fuel')}: {route.fuelEstimate} MZN</div>}
                                             </div>
                                         ) : '-'}
                                     </td>
@@ -333,14 +333,14 @@ export default function RoutesPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label={`${t('logistics_module.routes.origin')} *`}
+                            label={`${t('common.origin')} *`}
                             placeholder="Cidade/Local de partida"
                             value={formData.origin}
                             onChange={(e) => setFormData({ ...formData, origin: e.target.value })}
                             required
                         />
                         <Input
-                            label={`${t('logistics_module.routes.destination')} *`}
+                            label={`${t('common.destination')} *`}
                             placeholder="Cidade/Local de chegada"
                             value={formData.destination}
                             onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
@@ -396,8 +396,8 @@ export default function RoutesPage() {
                     </label>
 
                     <Input
-                        label="Observações"
-                        placeholder="Notas adicionais sobre a rota..."
+                        label={t('common.notes')}
+                        placeholder={`${t('common.notes')}...`}
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     />
@@ -440,7 +440,7 @@ export default function RoutesPage() {
             <Modal
                 isOpen={!!previewRoute}
                 onClose={() => setPreviewRoute(null)}
-                title={previewRoute ? `Visualização: ${previewRoute.name}` : ''}
+                title={previewRoute ? `${t('common.view')}: ${previewRoute.name}` : ''}
                 size="lg"
             >
                 {previewRoute && (

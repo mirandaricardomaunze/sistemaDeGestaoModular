@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { addDays, isAfter, isBefore, differenceInDays } from 'date-fns';
+import { stockService } from './stockService';
 
 export type BatchStatus = 'active' | 'expiring_soon' | 'expired' | 'depleted' | 'quarantine';
 
@@ -158,9 +159,26 @@ export class BatchesService {
 
         batchData.status = this.computeStatus({ quantity: batchData.quantity, expiryDate: batchData.expiryDate });
 
-        const batch = await prisma.productBatch.create({ data: batchData });
+        const batch = await prisma.$transaction(async (tx) => {
+            const b = await tx.productBatch.create({ data: batchData });
 
-        // Update product expiry date to the nearest non-expired batch
+            // Update Stock Balances (Global and Warehouse)
+            await stockService.recordMovement({
+                productId: data.productId,
+                warehouseId: data.warehouseId,
+                productBatchId: b.id,
+                quantity: data.quantity,
+                movementType: 'purchase', // Batches are usually inventory entries/purchases
+                originModule: 'COMMERCIAL',
+                reason: `Entrada de lote: ${data.batchNumber}`,
+                performedBy: 'Sistema (Lote)',
+                companyId
+            }, tx as any);
+
+            return b;
+        });
+
+        // Update product expiry date logic (now outside transaction if needed, or inside)
         await this.syncProductExpiryDate(data.productId, companyId);
 
         // Create expiry alert if needed
@@ -211,7 +229,25 @@ export class BatchesService {
         const usageCount = await prisma.saleItem.count({ where: { batchId: id } });
         if (usageCount > 0) throw ApiError.badRequest('Lote em uso em vendas. Não pode ser eliminado.');
 
-        await prisma.productBatch.delete({ where: { id } });
+        await prisma.$transaction(async (tx) => {
+            // Reverter o stock antes de eliminar o lote
+            if (batch.quantity > 0) {
+                await stockService.recordMovement({
+                    productId: batch.productId,
+                    warehouseId: batch.warehouseId || undefined,
+                    batchId: batch.id,
+                    quantity: -batch.quantity, // Subtract remaining quantity
+                    movementType: 'adjustment',
+                    originModule: 'COMMERCIAL',
+                    reason: `Eliminação do lote: ${batch.batchNumber}`,
+                    performedBy: 'Sistema (Lote)',
+                    companyId
+                }, tx as any);
+            }
+
+            await tx.productBatch.delete({ where: { id } });
+        });
+
         await this.syncProductExpiryDate(batch.productId, companyId);
         return { success: true };
     }
@@ -280,7 +316,7 @@ export class BatchesService {
                 type: isExpired ? 'expired_product' : 'expiring_soon',
                 priority: isExpired ? 'critical' : 'high',
                 title: isExpired ? `Lote expirado: ${product.name}` : `Lote a expirar em breve: ${product.name}`,
-                message: `Lote ${batch.batchNumber} de "${product.name}" ${isExpired ? 'est expirado' : 'expira em breve'}. Quantidade: ${batch.quantity} ${product.unit}`,
+                message: `Lote ${batch.batchNumber} de "${product.name}" ${isExpired ? 'está expirado' : 'expira em breve'}. Quantidade: ${batch.quantity} ${product.unit}`,
                 relatedId: batch.id,
                 relatedType: 'product_batch',
                 companyId,

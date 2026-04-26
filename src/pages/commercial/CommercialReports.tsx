@@ -1,17 +1,17 @@
 import { useState, useMemo } from 'react';
 import {
-    HiOutlineDocumentReport,
+    HiOutlineDocumentChartBar,
     HiOutlineChartBar,
-    HiOutlineTrendingUp,
+    HiOutlineArrowTrendingUp,
     HiOutlineCube,
     HiOutlineTruck,
     HiOutlineClock,
-    HiOutlineRefresh,
-    HiOutlineExclamation,
+    HiOutlineArrowPath,
+    HiOutlineExclamationTriangle,
     HiOutlineCheckCircle,
-    HiOutlineDatabase,
+    HiOutlineCircleStack,
     HiOutlineSparkles,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import {
     PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -31,10 +31,10 @@ const PERIOD_OPTIONS = [
 ];
 
 const AGING_CONFIG = {
-    fresh: { label: 'Fresco', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', bar: 'bg-green-400', badgeVariant: 'success' as const },
-    slow: { label: 'Lento (31-60d)', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400', bar: 'bg-yellow-400', badgeVariant: 'warning' as const },
-    aging: { label: 'A Envelhecer (61-90d)', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', bar: 'bg-orange-400', badgeVariant: 'warning' as const },
-    critical: { label: 'Crítico (>90d)', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400', bar: 'bg-red-400', badgeVariant: 'danger' as const },
+    fresh: { label: 'Fresco', color: 'bg-green-600 text-white', bar: 'bg-green-400', badgeVariant: 'success' as const },
+    slow: { label: 'Lento (31-60d)', color: 'bg-yellow-500 text-white', bar: 'bg-yellow-300', badgeVariant: 'warning' as const },
+    aging: { label: 'A Envelhecer (61-90d)', color: 'bg-orange-500 text-white', bar: 'bg-orange-300', badgeVariant: 'warning' as const },
+    critical: { label: 'Crítico (>90d)', color: 'bg-red-600 text-white', bar: 'bg-red-400', badgeVariant: 'danger' as const },
 };
 
 type ReportTab = 'sales' | 'aging' | 'suppliers' | 'warehouses' | 'predictive';
@@ -75,12 +75,12 @@ export default function CommercialReports() {
     ) || [];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-10">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineDocumentReport className="text-primary-500" />
+                        <HiOutlineDocumentChartBar className="text-primary-600 dark:text-primary-400" />
                         Relatórios Comerciais
                     </h2>
                     <p className="text-sm text-gray-500 mt-0.5">Análise detalhada de vendas, stock envelhecido e fornecedores</p>
@@ -104,19 +104,19 @@ export default function CommercialReports() {
                             ))}
                         </div>
                     )}
-                    <button onClick={handleRefetch} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-                        <HiOutlineRefresh className="w-4 h-4" />
+                    <button onClick={handleRefetch} className="p-2 text-gray-400 hover:text-primary-600 transition-colors">
+                        <HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                     </button>
                 </div>
             </div>
 
             <div className="flex gap-1 bg-slate-100/70 dark:bg-dark-700/50 rounded-lg p-1 shadow-inner">
                 {[
-                    { key: 'sales', label: 'Vendas & Produtos', icon: HiOutlineChartBar },
-                    { key: 'aging', label: 'Stock Envelhecido', icon: HiOutlineClock },
-                    { key: 'suppliers', label: 'Fornecedores', icon: HiOutlineTruck },
-                    { key: 'warehouses', label: 'Distribuição', icon: HiOutlineDatabase },
-                    { key: 'predictive', label: 'IA Preditiva', icon: HiOutlineSparkles },
+                    { key: 'sales', label: 'Vendas & Produtos', icon: HiOutlineChartBar, color: 'text-blue-500' },
+                    { key: 'aging', label: 'Stock Envelhecido', icon: HiOutlineClock, color: 'text-amber-500' },
+                    { key: 'suppliers', label: 'Fornecedores', icon: HiOutlineTruck, color: 'text-indigo-500' },
+                    { key: 'warehouses', label: 'Distribuição', icon: HiOutlineCircleStack, color: 'text-emerald-500' },
+                    { key: 'predictive', label: 'IA Preditiva', icon: HiOutlineSparkles, color: 'text-purple-500' },
                 ].map(tab => {
                     const Icon = tab.icon;
                     return (
@@ -130,7 +130,7 @@ export default function CommercialReports() {
                                     : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                             )}
                         >
-                            <Icon className="w-4 h-4" />
+                            <Icon className={cn("w-4 h-4", activeTab === tab.key ? "" : tab.color + " opacity-50")} />
                             <span className="hidden lg:inline">{tab.label}</span>
                         </button>
                     );
@@ -150,9 +150,9 @@ export default function CommercialReports() {
                 ) : (
                     <div className="space-y-6">
                         {/* Daily chart */}
-                        <Card padding="lg" color="primary">
+                        <Card padding="lg">
                             <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <HiOutlineTrendingUp className="text-primary-500" />
+                                <HiOutlineArrowTrendingUp className="text-primary-600 dark:text-primary-400" />
                                 Vendas Diárias -- Últimos {period} dias
                             </h3>
                             <div className="h-56">
@@ -183,12 +183,17 @@ export default function CommercialReports() {
                                         <RechartsTooltip
                                             cursor={{ fill: 'rgba(59,130,246,0.06)' }}
                                             contentStyle={{
-                                                backgroundColor: 'rgba(15,23,42,0.92)',
-                                                border: '1px solid rgba(255,255,255,0.08)',
-                                                borderRadius: '10px',
+                                                backgroundColor: 'rgba(15,23,42,0.95)',
+                                                backdropFilter: 'blur(12px)',
+                                                border: '1px solid rgba(255,255,255,0.2)',
+                                                borderRadius: '12px',
                                                 fontSize: '12px',
                                                 color: '#fff',
+                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                                                padding: '10px'
                                             }}
+                                            itemStyle={{ color: '#fff', fontWeight: '600' }}
+                                            labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '4px' }}
                                             formatter={(value: any) => [formatCurrency(value), 'Receita']}
                                             labelFormatter={(label: string) => label}
                                         />
@@ -205,9 +210,9 @@ export default function CommercialReports() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Top products */}
-                            <Card padding="lg" color="emerald">
+                            <Card padding="lg">
                                 <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                    <HiOutlineCube className="text-primary-500" />
+                                    <HiOutlineCube className="text-primary-600 dark:text-primary-400" />
                                     Top Produtos por Receita
                                 </h3>
                                 <div className="space-y-3">
@@ -239,7 +244,7 @@ export default function CommercialReports() {
                                 </div>
                             </Card>
 
-                            <Card padding="lg" color="amber">
+                            <Card padding="lg">
                                 <h3 className="font-bold text-gray-900 dark:text-white mb-4">Métodos de Pagamento</h3>
                                 <div className="space-y-3">
                                     {salesData?.paymentMethods.map((pm, i) => {
@@ -271,7 +276,7 @@ export default function CommercialReports() {
                             </Card>
                         </div>
 
-                        <Card padding="lg" color="indigo">
+                        <Card padding="lg">
                             <h3 className="font-bold text-gray-900 dark:text-white mb-4">Produtos por Categoria</h3>
                             <div className="h-64 flex flex-col md:flex-row items-center gap-8">
                                 <div className="w-full md:w-1/2 h-full">
@@ -292,7 +297,18 @@ export default function CommercialReports() {
                                                 ))}
                                             </Pie>
                                             <RechartsTooltip
-                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                contentStyle={{
+                                                    backgroundColor: 'rgba(15,23,42,0.95)',
+                                                    backdropFilter: 'blur(12px)',
+                                                    border: '1px solid rgba(255,255,255,0.2)',
+                                                    borderRadius: '12px',
+                                                    fontSize: '12px',
+                                                    color: '#fff',
+                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                                                    padding: '10px'
+                                                }}
+                                                itemStyle={{ color: '#fff', fontWeight: '600' }}
+                                                labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '4px' }}
                                             />
                                         </PieChart>
                                     </ResponsiveContainer>
@@ -326,21 +342,34 @@ export default function CommercialReports() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {Object.entries(AGING_CONFIG).map(([key, cfg]) => {
                                     const count = agingData.summary[key as keyof typeof agingData.summary] as number;
+                                    const bgClass = key === 'fresh' ? 'bg-green-100/40 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/30' :
+                                                    key === 'slow' ? 'bg-yellow-100/40 dark:bg-yellow-900/20 border-yellow-200/50 dark:border-yellow-800/30' :
+                                                    key === 'aging' ? 'bg-orange-100/40 dark:bg-orange-900/20 border-orange-200/50 dark:border-orange-800/30' :
+                                                    'bg-red-100/40 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/30';
+                                    
+                                    const textClass = key === 'fresh' ? 'text-green-700 dark:text-green-300' :
+                                                      key === 'slow' ? 'text-yellow-700 dark:text-yellow-300' :
+                                                      key === 'aging' ? 'text-orange-700 dark:text-orange-300' :
+                                                      'text-red-700 dark:text-red-300';
+
+                                    const labelClass = key === 'fresh' ? 'text-green-600/70 dark:text-green-400/60' :
+                                                       key === 'slow' ? 'text-yellow-600/70 dark:text-yellow-400/60' :
+                                                       key === 'aging' ? 'text-orange-600/70 dark:text-orange-400/60' :
+                                                       'text-red-600/70 dark:text-red-400/60';
+
                                     return (
                                         <button
                                             key={key}
                                             onClick={() => setAgingFilter(agingFilter === key ? '' : key)}
                                             className={cn(
-                                                'text-left p-4 rounded-lg border-2 transition-all',
-                                                agingFilter === key
-                                                    ? 'border-primary-500 shadow-md'
-                                                    : 'border-transparent',
-                                                cfg.color
+                                                'text-left p-4 rounded-xl border shadow-card-strong transition-all backdrop-blur-sm group flex flex-col justify-between h-full hover:scale-[1.02]',
+                                                bgClass,
+                                                agingFilter === key ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-dark-900' : ''
                                             )}
                                         >
-                                            <p className="text-xs font-medium opacity-80">{cfg.label}</p>
-                                            <p className="text-2xl font-bold mt-1">{count}</p>
-                                            <p className="text-xs opacity-70">produtos</p>
+                                            <p className={cn("text-[10px] font-black uppercase tracking-widest", labelClass)}>{cfg.label}</p>
+                                            <p className={cn("text-3xl font-black mt-1 tracking-tighter", textClass)}>{count}</p>
+                                            <p className={cn("text-[10px] uppercase font-black opacity-60", textClass)}>produtos</p>
                                         </button>
                                     );
                                 })}
@@ -424,7 +453,7 @@ export default function CommercialReports() {
                                 </table>
                                 {filteredAgingProducts.length === 0 && (
                                     <div className="text-center py-12">
-                                        <HiOutlineCheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
+                                        <HiOutlineCheckCircle className="w-10 h-10 text-green-600 dark:text-green-400 mx-auto mb-2" />
                                         <p className="text-gray-500">Nenhum produto nesta categoria de envelhecimento</p>
                                     </div>
                                 )}
@@ -442,7 +471,7 @@ export default function CommercialReports() {
                     </div>
                 ) : supplierData.length === 0 ? (
                     <Card padding="lg" className="text-center py-16">
-                        <HiOutlineTruck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <HiOutlineTruck className="w-12 h-12 text-primary-600 dark:text-primary-400 mx-auto mb-3 opacity-50" />
                         <p className="text-gray-500">Nenhum fornecedor com dados de performance</p>
                     </Card>
                 ) : (
@@ -458,7 +487,7 @@ export default function CommercialReports() {
                                         <span className="text-xs text-gray-400">#{i + 1} Fornecedor</span>
                                         {s.overdueOrders > 0 && (
                                             <Badge variant="danger" size="sm" className="flex items-center gap-1">
-                                                <HiOutlineExclamation className="w-2.5 h-2.5" /> {s.overdueOrders} atraso
+                                                <HiOutlineExclamationTriangle className="w-2.5 h-2.5" /> {s.overdueOrders} atraso
                                             </Badge>
                                         )}
                                     </div>
@@ -602,7 +631,18 @@ export default function CommercialReports() {
                                             </Pie>
                                             <RechartsTooltip
                                                 formatter={(value: any) => [formatCurrency(value), 'Valor']}
-                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                                                contentStyle={{
+                                                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                                    backdropFilter: 'blur(12px)',
+                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                    borderRadius: '12px',
+                                                    fontSize: '12px',
+                                                    color: '#fff',
+                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                                                    padding: '10px'
+                                                }}
+                                                itemStyle={{ color: '#fff', fontWeight: '600' }}
+                                                labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '4px' }}
                                             />
                                         </PieChart>
                                     </ResponsiveContainer>
@@ -629,7 +669,18 @@ export default function CommercialReports() {
                                             <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} width={80} />
                                             <RechartsTooltip
                                                 cursor={{ fill: 'rgba(59,130,246,0.05)' }}
-                                                contentStyle={{ borderRadius: '8px', border: 'none' }}
+                                                contentStyle={{
+                                                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                                    backdropFilter: 'blur(12px)',
+                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                    borderRadius: '12px',
+                                                    fontSize: '12px',
+                                                    color: '#fff',
+                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                                                    padding: '10px'
+                                                }}
+                                                itemStyle={{ color: '#fff', fontWeight: '600' }}
+                                                labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '4px' }}
                                             />
                                             <Bar dataKey="volume" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={20} />
                                         </BarChart>
@@ -736,7 +787,7 @@ export default function CommercialReports() {
                                                 setSelectedItems([]);
                                             }}
                                             isLoading={isCreating}
-                                            leftIcon={<HiOutlineTruck />}
+                                            leftIcon={<HiOutlineTruck className="text-white" />}
                                         >
                                             Gerar OCs ({selectedItems.length})
                                         </Button>

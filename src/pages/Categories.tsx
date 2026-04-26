@@ -5,14 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlinePlus,
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineTag,
-    HiOutlineColorSwatch,
+    HiOutlineSwatch,
     HiOutlineCube,
-    HiOutlineRefresh,
-} from 'react-icons/hi';
+    HiOutlineArrowPath,
+} from 'react-icons/hi2';
 import { Card, Button, Input, Modal, Pagination, usePagination, LoadingSpinner } from '../components/ui';
 import { cn } from '../utils/helpers';
 import type { Category } from '../types';
@@ -182,7 +182,7 @@ export default function Categories({ hideHeader = false }: CategoriesProps) {
             <div className="flex flex-col items-center justify-center h-96 gap-4">
                 <p className="text-red-500">{error}</p>
                 <Button onClick={() => refetch()}>
-                    <HiOutlineRefresh className="w-5 h-5 mr-2" />
+                    <HiOutlineArrowPath className="w-5 h-5 mr-2" />
                     Tentar Novamente
                 </Button>
             </div>
@@ -197,8 +197,7 @@ export default function Categories({ hideHeader = false }: CategoriesProps) {
                         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Categorias</h1>
                         <p className="text-gray-500 dark:text-gray-400">Gestão de categorias de produtos</p>
                     </div>
-                    <Button onClick={() => setShowFormModal(true)}>
-                        <HiOutlinePlus className="w-5 h-5 mr-2" />
+                    <Button onClick={() => setShowFormModal(true)} leftIcon={<HiOutlinePlus className="w-5 h-5" />} className="font-black text-[10px] uppercase tracking-widest">
                         Nova Categoria
                     </Button>
                 </div>
@@ -249,7 +248,8 @@ export default function Categories({ hideHeader = false }: CategoriesProps) {
                     placeholder="Buscar categorias..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                    leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-500/70" />}
+                    className="bg-white dark:bg-dark-900 border-none shadow-sm"
                 />
             </Card>
 
@@ -329,10 +329,10 @@ export default function Categories({ hideHeader = false }: CategoriesProps) {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex gap-1 justify-end">
+                                        <div className="flex gap-2 justify-end">
                                             <button
                                                 onClick={() => handleEdit(category)}
-                                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-600 text-gray-500 hover:text-primary-600 transition-colors"
+                                                className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
                                                 title="Editar"
                                             >
                                                 <HiOutlinePencil className="w-4 h-4" />
@@ -342,7 +342,7 @@ export default function Categories({ hideHeader = false }: CategoriesProps) {
                                                     setCategoryToDelete(category);
                                                     setDeleteModalOpen(true);
                                                 }}
-                                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-600 text-gray-500 hover:text-red-600 transition-colors"
+                                                className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
                                                 title="Excluir"
                                             >
                                                 <HiOutlineTrash className="w-4 h-4" />
@@ -390,7 +390,7 @@ export default function Categories({ hideHeader = false }: CategoriesProps) {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            <HiOutlineColorSwatch className="w-4 h-4 inline mr-1" />
+                            <HiOutlineSwatch className="w-4 h-4 inline mr-1 text-primary-500" />
                             Cor da Categoria
                         </label>
                         <div className="flex flex-wrap gap-2">

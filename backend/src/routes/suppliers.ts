@@ -12,46 +12,46 @@ import {
 const router = Router();
 
 router.get('/', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await suppliersService.list(req.query, req.companyId));
 });
 
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await suppliersService.getById(req.params.id, req.companyId));
 });
 
 router.post('/', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = createSupplierSchema.parse(req.body);
     res.status(201).json(await suppliersService.create(validatedData, req.companyId));
 });
 
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = updateSupplierSchema.parse(req.body);
     res.json(await suppliersService.update(req.params.id, validatedData, req.companyId));
 });
 
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await suppliersService.delete(req.params.id, req.companyId);
     res.json({ message: 'Fornecedor removido com sucesso' });
 });
 
 router.post('/:id/orders', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = createPurchaseOrderSchema.parse(req.body);
     res.status(201).json(await suppliersService.createOrder(req.params.id, validatedData, req.companyId));
 });
 
 router.get('/:id/orders', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await suppliersService.listOrders(req.params.id, req.query, req.companyId));
 });
 
 router.post('/orders/:orderId/receive', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = receivePurchaseOrderSchema.parse(req.body);
     await suppliersService.receiveOrder(
         req.params.orderId, 

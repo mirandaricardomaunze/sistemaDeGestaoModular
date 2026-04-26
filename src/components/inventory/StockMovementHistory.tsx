@@ -1,4 +1,4 @@
-﻿import { logger } from '../../utils/logger';
+import { logger } from '../../utils/logger';
 import { useState, useEffect, useCallback } from 'react';
 import { Card, Input, Select, Badge, LoadingSpinner, Button, Modal } from '../ui';
 import Pagination from '../ui/Pagination';
@@ -116,10 +116,11 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
-                        Controlo de Movimentaces
+                    <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">
+                        Controlo de Movimentações
                     </h1>
-                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
+                        <span className="w-8 h-[1px] bg-emerald-500"></span>
                         Registo completo de todas as entradas e saídas de stock
                     </p>
                 </div>
@@ -208,11 +209,11 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                                     <th className="px-6 py-4 text-left">Data</th>
                                     <th className="px-6 py-4 text-left">Tipo</th>
                                     <th className="px-6 py-4 text-left">Produto</th>
-                                    <th className="px-6 py-4 text-left">Armazém</th>
+                                    <th className="px-6 py-4 text-left text-emerald-500">Armazém</th>
                                     <th className="px-6 py-4 text-left">Qtd</th>
                                     <th className="px-6 py-4 text-left">Saldo</th>
                                     <th className="px-6 py-4 text-left">Motivo</th>
-                                    <th className="px-6 py-4 text-left">Responsável</th>
+                                    <th className="px-6 py-4 text-left text-emerald-500">Responsável</th>
                                     <th className="px-6 py-4 text-right">Ações</th>
                                 </tr>
                             </thead>
@@ -275,12 +276,17 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-[10px] font-bold text-primary-600 dark:text-primary-400">
+                                                    <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-[10px] font-black text-emerald-700 dark:text-emerald-400 shadow-sm border border-emerald-200/50 dark:border-emerald-500/20">
                                                         {(mov.performedBy || 'S').charAt(0).toUpperCase()}
                                                     </div>
-                                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                        {mov.performedBy || 'Sistema'}
-                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[11px] font-black text-slate-700 dark:text-gray-300 uppercase tracking-tight">
+                                                            {mov.performedBy || 'Sistema'}
+                                                        </span>
+                                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                                                            {mov.performedBy ? 'Operador' : 'Automático'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="px-5 py-3 whitespace-nowrap">

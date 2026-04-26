@@ -191,14 +191,14 @@ export default function RestaurantFinance() {
             <PageHeader 
                 title="Gestão Financeira Restaurante"
                 subtitle="Controle de CMV, custos de insumos e receitas operacionais"
-                icon={<HiOutlineCurrencyDollar />}
+                icon={<HiOutlineCurrencyDollar className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
                         <Button 
                             variant="ghost" 
                             size="sm" 
                             onClick={fetchData}
-                            leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4', loading && 'animate-spin')} />}
+                            leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4 text-primary-600 dark:text-primary-400', loading && 'animate-spin')} />}
                         >
                             Actualizar
                         </Button>
@@ -220,50 +220,50 @@ export default function RestaurantFinance() {
 
             {/* Quick Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card padding="md" className="border-l-4 border-l-rose-500 shadow-sm transition-all hover:shadow-md">
+                <Card padding="md" className="bg-rose-100/40 dark:bg-rose-900/20 border border-rose-200/50 dark:border-rose-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
-                            <HiOutlineArrowTrendingUp className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                        <div className="w-12 h-12 rounded-xl bg-rose-200/60 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 flex items-center justify-center shadow-inner">
+                            <HiOutlineArrowTrendingUp className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-1 italic">Total Receitas</p>
-                            <ResponsiveValue value={summary.totalRevenue} size="md" className="text-rose-600 font-black" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-600/70 dark:text-rose-400/60 mb-1">Total Receitas</p>
+                            <ResponsiveValue value={summary.totalRevenue} size="md" className="text-rose-900 dark:text-white font-black" />
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="md" className="border-l-4 border-l-orange-500 shadow-sm transition-all hover:shadow-md">
+                <Card padding="md" className="bg-orange-100/40 dark:bg-orange-900/20 border border-orange-200/50 dark:border-orange-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                            <HiOutlineArrowTrendingDown className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                        <div className="w-12 h-12 rounded-xl bg-orange-200/60 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 flex items-center justify-center shadow-inner">
+                            <HiOutlineArrowTrendingDown className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-1 italic">Custos Totais</p>
-                            <ResponsiveValue value={summary.totalExpenses} size="md" className="text-orange-600 font-black" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/70 dark:text-orange-400/60 mb-1">Custos Totais</p>
+                            <ResponsiveValue value={summary.totalExpenses} size="md" className="text-orange-900 dark:text-white font-black" />
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="md" className="border-l-4 border-l-primary-500 shadow-sm transition-all hover:shadow-md">
+                <Card padding="md" className="bg-primary-100/40 dark:bg-primary-900/20 border border-primary-200/50 dark:border-primary-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                        <div className="w-12 h-12 rounded-xl bg-primary-200/60 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center shadow-inner">
+                            <HiOutlineCurrencyDollar className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-1 italic">Resultado Líquido</p>
-                            <ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-600' : 'text-rose-600')} />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60 mb-1">Resultado Líquido</p>
+                            <ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-rose-700 dark:text-rose-400')} />
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="md" className="border-l-4 border-l-amber-500 shadow-sm transition-all hover:shadow-md">
+                <Card padding="md" className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                            <HiOutlineClipboardDocumentList className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                        <div className="w-12 h-12 rounded-xl bg-amber-200/60 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shadow-inner">
+                            <HiOutlineClipboardDocumentList className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-1 italic">Margem Operacional</p>
-                            <span className="text-lg md:text-xl font-black text-amber-600">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60 mb-1">Margem Operacional</p>
+                            <span className="text-lg md:text-xl font-black text-amber-900 dark:text-white">
                                 {summary.profitMargin.toFixed(1)}%
                             </span>
                         </div>

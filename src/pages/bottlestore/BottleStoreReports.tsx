@@ -145,8 +145,8 @@ export default function BottleStoreReports() {
                     <p className="text-gray-500">Análise de vendas e produtos</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleExportExcel} leftIcon={<HiOutlineDocumentDownload className="w-4 h-4" />}>Gerar XLSX</Button>
-                    <Button onClick={handleExportPDF} leftIcon={<HiOutlineDocumentDownload className="w-4 h-4" />}>PDF Profissional</Button>
+                    <Button variant="outline" onClick={handleExportExcel} leftIcon={<HiOutlineDocumentDownload className="w-4 h-4 text-primary-600 dark:text-primary-400" />}>Gerar XLSX</Button>
+                    <Button onClick={handleExportPDF} leftIcon={<HiOutlineDocumentDownload className="w-4 h-4 text-white" />}>PDF Profissional</Button>
                 </div>
             </div>
 
@@ -170,21 +170,21 @@ export default function BottleStoreReports() {
             </Card>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="bg-blue-600 text-white p-4">
-                    <p className="text-xs uppercase font-bold opacity-80">Total Vendas</p>
-                    <p className="text-2xl font-bold">{formatCurrency(metrics.totalSales)}</p>
+                <Card className="bg-blue-100/40 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group p-4">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-blue-600/70 dark:text-blue-400/60">Total Vendas</p>
+                    <p className="text-2xl font-black text-blue-900 dark:text-white leading-none mt-2">{formatCurrency(metrics.totalSales)}</p>
                 </Card>
-                <Card className="bg-green-600 text-white p-4">
-                    <p className="text-xs uppercase font-bold opacity-80">IVA (16%)</p>
-                    <p className="text-2xl font-bold">{formatCurrency(metrics.totalTax)}</p>
+                <Card className="bg-emerald-100/40 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group p-4">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-emerald-600/70 dark:text-emerald-400/60">IVA (16%)</p>
+                    <p className="text-2xl font-black text-emerald-900 dark:text-white leading-none mt-2">{formatCurrency(metrics.totalTax)}</p>
                 </Card>
-                <Card className="bg-purple-600 text-white p-4">
-                    <p className="text-xs uppercase font-bold opacity-80">Transaces</p>
-                    <p className="text-2xl font-bold">{metrics.transactionCount}</p>
+                <Card className="bg-purple-100/40 dark:bg-purple-900/20 border border-purple-200/50 dark:border-purple-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group p-4">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-purple-600/70 dark:text-purple-400/60">Transaces</p>
+                    <p className="text-2xl font-black text-purple-900 dark:text-white leading-none mt-2">{metrics.transactionCount}</p>
                 </Card>
-                <Card className="bg-amber-600 text-white p-4">
-                    <p className="text-xs uppercase font-bold opacity-80">Ticket Médio</p>
-                    <p className="text-2xl font-bold">{formatCurrency(metrics.avgTicket)}</p>
+                <Card className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group p-4">
+                    <p className="text-[10px] uppercase font-black tracking-widest text-amber-600/70 dark:text-amber-400/60">Ticket Médio</p>
+                    <p className="text-2xl font-black text-amber-900 dark:text-white leading-none mt-2">{formatCurrency(metrics.avgTicket)}</p>
                 </Card>
             </div>
 

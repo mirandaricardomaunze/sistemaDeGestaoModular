@@ -588,7 +588,7 @@ export default function Help() {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900">
             {/* Header */}
-            <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 text-white">
+            <div className="bg-primary-600 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                     <div className="flex items-center gap-4 mb-6">
                         <div className="p-3 bg-white/20 rounded-lg backdrop-blur-sm">

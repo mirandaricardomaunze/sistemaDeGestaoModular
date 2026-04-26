@@ -172,7 +172,7 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
                     <div className="flex items-center gap-2">
                         <HiOutlineBell className="w-5 h-5 text-primary-600" />
                         <h3 className="font-semibold text-gray-900 dark:text-white">
-                            Notificaces
+                            Notificações
                         </h3>
                         {unreadCount > 0 && (
                             <Badge variant="primary" size="sm">{unreadCount}</Badge>
@@ -276,7 +276,7 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
                             Sem notificações
                         </p>
                         <p className="text-sm text-gray-500 mt-1">
-                            Est tudo em ordem!
+                            Está tudo em ordem!
                         </p>
                     </div>
                 ) : (

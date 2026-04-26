@@ -8,7 +8,7 @@ import { round2 } from './shared';
 export class CommercialQuotationService {
 
     async listQuotations(companyId: string, params: any): Promise<Result<any>> {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         const { page, limit, skip } = getPaginationParams(params);
         const { status, search } = params;
 
@@ -35,7 +35,7 @@ export class CommercialQuotationService {
     }
 
     async createQuotation(data: any, companyId: string): Promise<Result<any>> {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         if (!data.customerName?.trim()) throw ApiError.badRequest('Nome do cliente é obrigatório');
         if (!Array.isArray(data.items) || data.items.length === 0) throw ApiError.badRequest('A cotação deve ter pelo menos um item');
         for (const item of data.items) {
@@ -59,8 +59,14 @@ export class CommercialQuotationService {
         const year = new Date().getFullYear();
 
         const result = await prisma.$transaction(async (tx) => {
-            const count = await tx.customerOrder.count({ where: { companyId } });
-            const orderNumber = `COT-${year}-${String(count + 1).padStart(4, '0')}`;
+            // Use MAX of existing numbers (safer than COUNT — handles deletions/gaps)
+            const lastQuote = await tx.customerOrder.findFirst({
+                where: { companyId, orderType: 'quotation', orderNumber: { startsWith: `COT-${year}-` } },
+                orderBy: { orderNumber: 'desc' },
+                select: { orderNumber: true }
+            });
+            const lastNum = lastQuote ? parseInt(lastQuote.orderNumber.split('-')[2] || '0', 10) : 0;
+            const orderNumber = `COT-${year}-${String(lastNum + 1).padStart(4, '0')}`;
 
             for (const item of data.items) {
                 if (item.productId) {
@@ -101,7 +107,7 @@ export class CommercialQuotationService {
     }
 
     async convertQuotationToInvoice(quotationId: string, data: any, companyId: string): Promise<Result<any>> {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
         const quotation = await prisma.customerOrder.findFirst({
             where: { id: quotationId, companyId, orderType: 'quotation' },
@@ -109,6 +115,7 @@ export class CommercialQuotationService {
         });
         if (!quotation) throw ApiError.notFound('Cotação não encontrada');
         if (quotation.status === 'cancelled') throw ApiError.badRequest('Não é possível converter uma cotação cancelada');
+        if (quotation.status === 'completed') throw ApiError.badRequest('Esta cotação já foi convertida em fatura');
 
         const dueDays = Number(data.dueDays ?? 30);
         if (dueDays < 1) throw ApiError.badRequest('Prazo de vencimento inválido');
@@ -117,11 +124,26 @@ export class CommercialQuotationService {
         dueDate.setDate(dueDate.getDate() + dueDays);
         const year = new Date().getFullYear();
 
+        // Resolve IVA: use provided rate, fall back to company default, then 16%
+        let resolvedTaxRate = data.taxRate !== undefined ? Number(data.taxRate) : null;
+        if (resolvedTaxRate === null) {
+            const defaultIva = await prisma.ivaRate.findFirst({
+                where: { companyId, isDefault: true, isActive: true },
+                select: { rate: true }
+            });
+            resolvedTaxRate = defaultIva ? Number(defaultIva.rate) / 100 : 0.16;
+        }
+
         const result = await prisma.$transaction(async (tx) => {
-            const invCount = await tx.invoice.count({ where: { companyId } });
-            const invoiceNumber = `INV-${year}-${String(invCount + 1).padStart(5, '0')}`;
+            const lastInvoice = await tx.invoice.findFirst({
+                where: { companyId, invoiceNumber: { startsWith: `INV-${year}-` } },
+                orderBy: { invoiceNumber: 'desc' },
+                select: { invoiceNumber: true }
+            });
+            const lastInvNum = lastInvoice ? parseInt(lastInvoice.invoiceNumber.split('-')[2] || '0', 10) : 0;
+            const invoiceNumber = `INV-${year}-${String(lastInvNum + 1).padStart(5, '0')}`;
             const subtotal = Number(quotation.total);
-            const taxRate = Number(data.taxRate ?? 0.16);
+            const taxRate = resolvedTaxRate as number;
             const tax = round2(subtotal * taxRate);
             const total = round2(subtotal + tax);
 

@@ -1,10 +1,10 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-    HiOutlineDocumentText, HiOutlinePlus, HiOutlineRefresh,
+    HiOutlineDocumentText, HiOutlinePlus, HiOutlineArrowPath,
     HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock,
     HiOutlineChevronDown, HiOutlinePaperAirplane, HiOutlineArrowRight,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { Card, Badge, Button, Input, Select, Textarea, Modal } from '../../components/ui';
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { CustomerSearchInput, type CustomerOption } from '../../components/commercial/CustomerSearchInput';
@@ -18,11 +18,11 @@ import toast from 'react-hot-toast';
 // ── Status display ────────────────────────────────────────────────────────────
 
 const QUOTE_STATUS = {
-    created:   { label: 'Rascunho',   variant: 'gray'    as const, icon: HiOutlineDocumentText,  color: 'text-gray-500',   bg: 'bg-gray-100   dark:bg-dark-700' },
-    printed:   { label: 'Enviada',    variant: 'info'    as const, icon: HiOutlinePaperAirplane,  color: 'text-blue-500',   bg: 'bg-blue-100   dark:bg-blue-900/30' },
-    separated: { label: 'Aceite',     variant: 'success' as const, icon: HiOutlineCheckCircle,    color: 'text-green-500',  bg: 'bg-green-100  dark:bg-green-900/30' },
-    completed: { label: 'Facturada',  variant: 'primary' as const, icon: HiOutlineArrowRight,     color: 'text-primary-500',bg: 'bg-primary-100 dark:bg-primary-900/30' },
-    cancelled: { label: 'Cancelada',  variant: 'danger'  as const, icon: HiOutlineXCircle,        color: 'text-red-500',    bg: 'bg-red-100    dark:bg-red-900/30' },
+    created:   { label: 'Rascunho',   variant: 'gray'    as const, icon: HiOutlineDocumentText,  color: 'text-gray-600 dark:text-gray-400',   bg: 'bg-gray-50/50   dark:bg-gray-500/10' },
+    printed:   { label: 'Enviada',    variant: 'info'    as const, icon: HiOutlinePaperAirplane,  color: 'text-blue-600 dark:text-blue-400',   bg: 'bg-blue-50/50   dark:bg-blue-500/10' },
+    separated: { label: 'Aceite',     variant: 'success' as const, icon: HiOutlineCheckCircle,    color: 'text-emerald-600 dark:text-emerald-400',  bg: 'bg-emerald-50/50  dark:bg-emerald-500/10' },
+    completed: { label: 'Facturada',  variant: 'primary' as const, icon: HiOutlineArrowRight,     color: 'text-primary-600 dark:text-primary-400',bg: 'bg-primary-50/50 dark:bg-primary-500/10' },
+    cancelled: { label: 'Cancelada',  variant: 'danger'  as const, icon: HiOutlineXCircle,        color: 'text-red-600 dark:text-red-400',    bg: 'bg-red-50/50    dark:bg-red-500/10' },
 } as const;
 
 type QuoteStatus = keyof typeof QUOTE_STATUS;
@@ -77,7 +77,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!customer) return toast.error('Seleccione um cliente');
+        if (!customer && !manualName.trim()) return toast.error('Preencha o nome do cliente ou seleccione um cliente registado');
         const valid = lines.filter(l => l.product && l.quantity > 0);
         if (!valid.length) return toast.error('Adicione pelo menos um produto');
 
@@ -115,30 +115,35 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
             <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Customer + validity */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         <CustomerSearchInput
-                            label="Pesquisar Cliente"
+                            label="Cliente Registado (opcional)"
                             onSelect={setCustomer}
                             selectedCustomer={customer}
                             clearable
                             size="sm"
                         />
                         {!customer && (
-                            <div className="grid grid-cols-2 gap-2">
-                                <Input
-                                    label="Nome do Cliente"
-                                    placeholder="Ex: Manuel Silva"
-                                    size="sm"
-                                    value={manualName}
-                                    onChange={e => setManualName(e.target.value)}
-                                />
-                                <Input
-                                    label="Telefone"
-                                    placeholder="840000000"
-                                    size="sm"
-                                    value={manualPhone}
-                                    onChange={e => setManualPhone(e.target.value)}
-                                />
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+                                    — ou preencha manualmente —
+                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input
+                                        label="Nome do Cliente *"
+                                        placeholder="Ex: Manuel Silva"
+                                        size="sm"
+                                        value={manualName}
+                                        onChange={e => setManualName(e.target.value)}
+                                    />
+                                    <Input
+                                        label="Telefone"
+                                        placeholder="840000000"
+                                        size="sm"
+                                        value={manualPhone}
+                                        onChange={e => setManualPhone(e.target.value)}
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>
@@ -330,15 +335,15 @@ export default function CommercialQuotes() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineDocumentText className="text-primary-500" />
+                        <HiOutlineDocumentText className="text-primary-600 dark:text-primary-400" />
                         Cotações / Orçamentos
                     </h2>
                     <p className="text-sm text-gray-500 mt-0.5">
                         Fluxo: Rascunho → Enviada → Aceite → Factura
                     </p>
                 </div>
-                <Button variant="primary" onClick={() => setShowCreateModal(true)} className="flex items-center gap-2">
-                    <HiOutlinePlus className="w-4 h-4" /> Nova Cotação
+                <Button variant="primary" onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                    <HiOutlinePlus className="w-4 h-4 text-white" /> Nova Cotação
                 </Button>
             </div>
 
@@ -363,7 +368,7 @@ export default function CommercialQuotes() {
                     <div className="flex-1">
                         <Input placeholder="Pesquisar por número ou cliente..."
                             value={search} onChange={e => handleSearchChange(e.target.value)}
-                            leftIcon={<HiOutlineDocumentText className="w-4 h-4" />} />
+                            leftIcon={<HiOutlineDocumentText className="w-4 h-4 text-primary-600 dark:text-primary-400" />} />
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="w-44">
@@ -371,8 +376,8 @@ export default function CommercialQuotes() {
                                 onChange={e => handleFilterChange(e.target.value)} />
                         </div>
                         <button onClick={refetch} title="Actualizar"
-                            className="p-2.5 rounded-lg border border-gray-300 dark:border-dark-600 text-gray-500 hover:text-gray-700 transition-colors">
-                            <HiOutlineRefresh className="w-4 h-4" />
+                            className="p-2.5 rounded-lg border border-primary-100/50 dark:border-primary-500/20 bg-primary-50/50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 transition-colors">
+                            <HiOutlineArrowPath className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
@@ -386,7 +391,7 @@ export default function CommercialQuotes() {
                     ))
                 ) : quotes.length === 0 ? (
                     <Card padding="lg" className="text-center py-16">
-                        <HiOutlineDocumentText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <HiOutlineDocumentText className="w-12 h-12 text-primary-600 dark:text-primary-400 mx-auto mb-3 opacity-50" />
                         <p className="text-gray-500 font-medium">Nenhuma cotação encontrada</p>
                         <Button variant="primary" className="mt-4" onClick={() => setShowCreateModal(true)}>
                             <HiOutlinePlus className="w-4 h-4 mr-1" /> Nova Cotação

@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 import {
     Card,
     Button,
-    LoadingSpinner,
     EmptyState,
     Input,
     Badge,
@@ -30,7 +29,8 @@ import {
     HiOutlineBuildingOffice2,
     HiOutlineUsers,
     HiOutlineSparkles,
-    HiOutlineBanknotes
+    HiOutlineBanknotes,
+    HiOutlineCalendar
 } from 'react-icons/hi2';
 import { useHospitality } from '../../hooks/useData';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -178,7 +178,7 @@ export default function HotelRooms() {
                             variant="primary"
                             size="sm"
                             fullWidth
-                            leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                            leftIcon={<HiOutlinePlus className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                             onClick={() => { setSelectedRoom(room); setIsCheckInModalOpen(true); }}
                         >
                             {t('hotel_module.reservations.checkIn')}
@@ -198,7 +198,7 @@ export default function HotelRooms() {
                                 variant="danger"
                                 size="sm"
                                 fullWidth
-                                leftIcon={<HiOutlineBanknotes className="w-4 h-4" />}
+                                leftIcon={<HiOutlineBanknotes className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                                 onClick={() => handleCheckout(activeBooking.id)}
                             >
                                 {t('hotel_module.reservations.checkOut')}
@@ -226,7 +226,7 @@ export default function HotelRooms() {
             <PageHeader
                 title={t('hotel_module.rooms.title')}
                 subtitle={t('hotel_module.rooms.subtitle')}
-                icon={<HiOutlineBuildingOffice2 />}
+                icon={<HiOutlineBuildingOffice2 className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex gap-3">
                         <Button
@@ -241,7 +241,7 @@ export default function HotelRooms() {
                         >
                             Gestão
                         </Button>
-                        <Button variant="outline" leftIcon={<HiOutlineArrowPath />} onClick={() => refetch()} />
+                        <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={() => refetch()} />
                     </div>
                 }
             />
@@ -320,7 +320,7 @@ export default function HotelRooms() {
                         <EmptyState
                             title={t('common.noData')}
                             description={t('hotel_module.rooms.searchPlaceholder')}
-                            icon={<HiOutlineHome className="w-16 h-16" />}
+                            icon={<HiOutlineCalendar className="w-16 h-16 text-primary-600 dark:text-primary-400" />}
                         />
                     )}
 

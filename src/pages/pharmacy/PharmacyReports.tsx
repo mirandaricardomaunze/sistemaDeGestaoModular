@@ -10,10 +10,10 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import {
-    HiOutlineDocumentReport, HiOutlineDownload, HiOutlineTrendingUp,
+    HiOutlineDocumentChartBar as HiOutlineDocumentReport, HiOutlineArrowDownTray as HiOutlineDownload, HiOutlineArrowTrendingUp as HiOutlineTrendingUp,
     HiOutlineCurrencyDollar, HiOutlineCube, HiOutlinePrinter,
-    HiOutlineChartBar, HiOutlineTable, HiOutlineUsers, HiOutlineTruck,
-} from 'react-icons/hi';
+    HiOutlineChartBar, HiOutlineTableCells as HiOutlineTable, HiOutlineUsers, HiOutlineTruck,
+} from 'react-icons/hi2';
 import { Card, Button, Input, LoadingSpinner, TableContainer, PageHeader } from '../../components/ui';
 import Pagination from '../../components/ui/Pagination';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
@@ -234,9 +234,9 @@ export default function PharmacyReports() {
                     className="mb-4"
                     actions={
                         <>
-                            <Button variant="outline" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => window.print()}>Imprimir</Button>
-                            <Button variant="outline" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={() => handleExport('excel')}>Excel</Button>
-                            <Button variant="primary" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={() => handleExport('pdf')}>PDF</Button>
+                            <Button variant="ghost" className="bg-gray-50/50 dark:bg-dark-700 text-gray-500 hover:text-teal-600 font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => window.print()}>Imprimir</Button>
+                            <Button variant="ghost" className="bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={() => handleExport('excel')}>Excel</Button>
+                            <Button variant="primary" className="bg-teal-500 hover:bg-teal-600 shadow-lg shadow-teal-500/20 font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={() => handleExport('pdf')}>PDF</Button>
                         </>
                     }
                 />
@@ -258,10 +258,10 @@ export default function PharmacyReports() {
                                     key={opt.value}
                                     onClick={() => { setReportType(opt.value as ReportType); setIsReportGenerated(false); }}
                                     className={cn(
-                                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border',
+                                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm',
                                         reportType === opt.value
-                                            ? 'bg-teal-600 text-white border-teal-600'
-                                            : 'bg-white dark:bg-dark-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-dark-600 hover:border-teal-400'
+                                            ? 'bg-teal-500 text-white border-teal-500 shadow-teal-500/20 scale-105'
+                                            : 'bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-dark-700 hover:border-teal-400'
                                     )}
                                 >
                                     <Icon className="w-4 h-4" />
@@ -304,21 +304,49 @@ export default function PharmacyReports() {
                 <>
                     {/* KPI Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Card className="p-5 border-l-4 border-teal-500">
-                            <p className="text-xs font-bold uppercase text-teal-600">Receita Total</p>
-                            <p className="text-2xl font-black">{formatCurrency(summary.totalRevenue || 0)}</p>
+                        <Card padding="md" className="bg-teal-100/40 dark:bg-teal-900/20 border border-teal-200/50 dark:border-teal-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-10 h-10 rounded-xl bg-teal-200/60 dark:bg-teal-900/40 border border-teal-500/20 flex items-center justify-center text-teal-700 dark:text-teal-300 font-black shadow-inner group-hover:scale-110 transition-transform">
+                                    <HiOutlineCurrencyDollar className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-teal-600/70 dark:text-teal-400/60">Receita Total</p>
+                                    <p className="text-xl font-black text-teal-900 dark:text-white leading-none mt-1">{formatCurrency(summary.totalRevenue || 0)}</p>
+                                </div>
+                            </div>
                         </Card>
-                        <Card className="p-5 border-l-4 border-emerald-500">
-                            <p className="text-xs font-bold uppercase text-emerald-600">Lucro Bruto</p>
-                            <p className="text-2xl font-black">{formatCurrency(summary.totalProfit || 0)}</p>
+                        <Card padding="md" className="bg-emerald-100/40 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-10 h-10 rounded-xl bg-emerald-200/60 dark:bg-emerald-900/40 border border-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-black shadow-inner group-hover:scale-110 transition-transform">
+                                    <HiOutlineTrendingUp className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70 dark:text-emerald-400/60">Lucro Bruto</p>
+                                    <p className="text-xl font-black text-emerald-700 dark:text-white leading-none mt-1">{formatCurrency(summary.totalProfit || 0)}</p>
+                                </div>
+                            </div>
                         </Card>
-                        <Card className="p-5 border-l-4 border-blue-500">
-                            <p className="text-xs font-bold uppercase text-blue-600">Margem Média</p>
-                            <p className="text-2xl font-black">{(summary.margin || 0).toFixed(1)}%</p>
+                        <Card padding="md" className="bg-blue-100/40 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-10 h-10 rounded-xl bg-blue-200/60 dark:bg-blue-900/40 border border-blue-500/20 flex items-center justify-center text-blue-700 dark:text-blue-300 font-black shadow-inner group-hover:scale-110 transition-transform">
+                                    <HiOutlineChartBar className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-600/70 dark:text-blue-400/60">Margem Média</p>
+                                    <p className="text-xl font-black text-blue-900 dark:text-white leading-none mt-1">{(summary.margin || 0).toFixed(1)}%</p>
+                                </div>
+                            </div>
                         </Card>
-                        <Card className="p-5 border-l-4 border-purple-500">
-                            <p className="text-xs font-bold uppercase text-purple-600">Ticket Médio</p>
-                            <p className="text-2xl font-black">{formatCurrency(summary.avgTicket || 0)}</p>
+                        <Card padding="md" className="bg-purple-100/40 dark:bg-purple-900/20 border border-purple-200/50 dark:border-purple-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                            <div className="flex items-center gap-4 relative z-10">
+                                <div className="w-10 h-10 rounded-xl bg-purple-200/60 dark:bg-purple-900/40 border border-purple-500/20 flex items-center justify-center text-purple-700 dark:text-purple-300 font-black shadow-inner group-hover:scale-110 transition-transform">
+                                    <HiOutlineTable className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-purple-600/70 dark:text-purple-400/60">Ticket Médio</p>
+                                    <p className="text-xl font-black text-purple-900 dark:text-white leading-none mt-1">{formatCurrency(summary.avgTicket || 0)}</p>
+                                </div>
+                            </div>
                         </Card>
                     </div>
 

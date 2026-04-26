@@ -134,14 +134,14 @@ export default function HotelFinance() {
             <PageHeader
                 title={t('hotel_module.finance.title')}
                 subtitle="Receitas, despesas e balanço financeiro do hotel"
-                icon={<HiOutlineBanknotes />}
+                icon={<HiOutlineBanknotes className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex gap-2">
-                        <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-4 h-4" />} onClick={loadFinanceData}>
+                        <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={loadFinanceData}>
                             {t('common.refresh')}
                         </Button>
                         <Button variant="outline" className="text-green-600 border-green-300 hover:bg-green-50"
-                            leftIcon={<HiOutlinePlus className="w-4 h-4" />} onClick={() => openModal('revenue')}>
+                            leftIcon={<HiOutlinePlus className="w-4 h-4 text-green-600 dark:text-green-400" />} onClick={() => openModal('revenue')}>
                             Nova Receita
                         </Button>
                         <Button variant="primary" leftIcon={<HiOutlinePlus className="w-4 h-4" />} onClick={() => openModal('expense')}>
@@ -153,38 +153,38 @@ export default function HotelFinance() {
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="p-6 border-l-4 border-l-green-500">
+                <Card className="bg-green-100/40 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-lg">
+                        <div className="p-3 bg-green-200/60 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-xl shadow-inner">
                             <HiOutlineArrowUpCircle className="w-8 h-8" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-gray-500">Total Receitas</p>
-                            <h3 className="text-2xl font-black text-green-600">{formatCurrency(financeData?.totalRevenue || 0)}</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-green-600/70 dark:text-green-400/60 mb-1">Total Receitas</p>
+                            <h3 className="text-2xl font-black text-green-900 dark:text-white">{formatCurrency(financeData?.totalRevenue || 0)}</h3>
                         </div>
                     </div>
                 </Card>
 
-                <Card className="p-6 border-l-4 border-l-red-500">
+                <Card className="bg-red-100/40 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg">
+                        <div className="p-3 bg-red-200/60 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-xl shadow-inner">
                             <HiOutlineArrowDownCircle className="w-8 h-8" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-gray-500">Total Despesas</p>
-                            <h3 className="text-2xl font-black text-red-600">{formatCurrency(financeData?.totalExpenses || 0)}</h3>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-red-600/70 dark:text-red-400/60 mb-1">Total Despesas</p>
+                            <h3 className="text-2xl font-black text-red-900 dark:text-white">{formatCurrency(financeData?.totalExpenses || 0)}</h3>
                         </div>
                     </div>
                 </Card>
 
-                <Card className="p-6 border-l-4 border-l-primary-500">
+                <Card className="bg-primary-100/40 dark:bg-primary-900/20 border border-primary-200/50 dark:border-primary-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-primary-50 dark:bg-primary-900/20 text-primary-600 rounded-lg">
+                        <div className="p-3 bg-primary-200/60 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 rounded-xl shadow-inner">
                             <HiOutlineBanknotes className="w-8 h-8" />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-gray-500">Lucro Líquido</p>
-                            <h3 className={`text-2xl font-black ${profit >= 0 ? 'text-primary-600' : 'text-red-600'}`}>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60 mb-1">Lucro Líquido</p>
+                            <h3 className={`text-2xl font-black ${profit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-red-700 dark:text-red-400'}`}>
                                 {formatCurrency(profit)}
                             </h3>
                         </div>

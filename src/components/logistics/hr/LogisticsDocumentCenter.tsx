@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     HiOutlineMagnifyingGlass,
     HiOutlineExclamationTriangle,
@@ -13,6 +14,7 @@ import { cn } from '../../../utils/helpers';
 import { format, differenceInDays, isPast } from 'date-fns';
 
 export const LogisticsDocumentCenter: React.FC = () => {
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'expired' | 'expiring' | 'valid'>('all');
     
@@ -62,7 +64,7 @@ export const LogisticsDocumentCenter: React.FC = () => {
                     <div className="relative">
                         <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <Input
-                            placeholder="Pesquisar por colaborador..."
+                            placeholder={t('logistics_module.hr.compliance.searchPlaceholder')}
                             className="pl-10"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -70,17 +72,17 @@ export const LogisticsDocumentCenter: React.FC = () => {
                     </div>
                     <Select
                         options={[
-                            { value: 'all', label: 'Todos os Estados' },
-                            { value: 'expired', label: 'Documentos Expirados' },
-                            { value: 'expiring', label: 'A Expirar (15 dias)' },
-                            { value: 'valid', label: 'Documentação em Dia' }
+                            { value: 'all', label: t('logistics_module.hr.compliance.allStatuses') },
+                            { value: 'expired', label: t('logistics_module.hr.compliance.expiredDocs') },
+                            { value: 'expiring', label: t('logistics_module.hr.compliance.expiringDocs') },
+                            { value: 'valid', label: t('logistics_module.hr.compliance.validDocs') }
                         ]}
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value as any)}
                     />
                     <div className="flex items-center justify-end gap-2">
-                        <Badge variant="danger">{staffWithDocStatus.filter(s => s.overallStatus === 'expired').length} Críticos</Badge>
-                        <Badge variant="warning">{staffWithDocStatus.filter(s => s.overallStatus === 'expiring').length} Alertas</Badge>
+                        <Badge variant="danger">{staffWithDocStatus.filter(s => s.overallStatus === 'expired').length} {t('logistics_module.hr.compliance.critical')}</Badge>
+                        <Badge variant="warning">{staffWithDocStatus.filter(s => s.overallStatus === 'expiring').length} {t('logistics_module.hr.compliance.alerts')}</Badge>
                     </div>
                 </div>
             </Card>
@@ -111,17 +113,17 @@ export const LogisticsDocumentCenter: React.FC = () => {
 
                             <div className="space-y-3">
                                 <DocumentRow 
-                                    label="Carta de Condução"
+                                    label={t('logistics_module.drivers.license')}
                                     date={person.licenseExpiry}
                                     status={person.licenseStatus as any}
                                 />
                                 <DocumentRow 
-                                    label="Exame Médico"
+                                    label={t('logistics_module.drivers.medicalExam')}
                                     date={person.medicalExamExpiry}
                                     status={person.medicalStatus as any}
                                 />
                                 <DocumentRow 
-                                    label="Treino de Segurança"
+                                    label={t('logistics_module.drivers.safetyTraining')}
                                     date={person.safetyTrainingDate}
                                     status="valid" // Just for visual consistency
                                 />
@@ -129,10 +131,10 @@ export const LogisticsDocumentCenter: React.FC = () => {
 
                             <div className="flex gap-2 pt-2">
                                 <Button variant="outline" size="sm" className="flex-1 text-xs" leftIcon={<HiOutlineEye />}>
-                                    Ver Detalhes
+                                    {t('logistics_module.hr.compliance.details')}
                                 </Button>
                                 <Button variant="ghost" size="sm" className="text-primary-500">
-                                    Actualizar
+                                    {t('logistics_module.hr.compliance.update')}
                                 </Button>
                             </div>
                         </div>

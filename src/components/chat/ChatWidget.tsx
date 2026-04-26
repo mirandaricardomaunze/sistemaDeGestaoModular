@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
     HiOutlineX,
     HiOutlinePaperAirplane,
@@ -132,34 +134,41 @@ export default function ChatWidget() {
 
             {/* Janela de Chat */}
             {isOpen && (
-                <div className="fixed top-20 right-6 w-[420px] max-h-[calc(100vh-7rem)] bg-white dark:bg-dark-800 rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200 dark:border-dark-700 overflow-hidden">
-                    {/* Header */}
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 text-white">
-                        <div className="flex items-center gap-3">
-                            <div className="relative">
-                                <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                    <HiOutlineLightningBolt className="w-6 h-6" />
-                                </div>
-                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-primary-600 animate-pulse" />
-                            </div>
-                            <div>
-                                <h3 className="font-bold text-lg">Assistente IA</h3>
-                                <p className="text-xs text-primary-100">Sempre pronto para ajudar</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleClose}
-                            className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors relative z-10 cursor-pointer"
-                            style={{ pointerEvents: 'auto' }}
-                            type="button"
-                            aria-label="Fechar chat"
+                <div className="fixed top-20 right-6 z-50 flex justify-end items-start pointer-events-none">
+                    <div 
+                        className="w-[420px] min-w-[320px] max-w-[80vw] h-[calc(100vh-7rem)] resize-x overflow-hidden shadow-2xl rounded-lg pointer-events-auto"
+                        style={{ direction: 'rtl' }}
+                    >
+                        <div 
+                            className="bg-white dark:bg-dark-800 flex flex-col border border-gray-200 dark:border-dark-700 w-full h-full"
+                            style={{ direction: 'ltr' }}
                         >
-                            <HiOutlineX className="w-5 h-5" />
-                        </button>
-                    </div>
+                            {/* Header */}
+                            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 text-white shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="relative">
+                                        <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                            <HiOutlineLightningBolt className="w-6 h-6" />
+                                        </div>
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-primary-600 animate-pulse" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg whitespace-nowrap">Assistente IA</h3>
+                                        <p className="text-xs text-primary-100 whitespace-nowrap">Sempre pronto para ajudar</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleClose}
+                                    className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors relative z-10 cursor-pointer shrink-0"
+                                    type="button"
+                                    aria-label="Fechar chat"
+                                >
+                                    <HiOutlineX className="w-5 h-5" />
+                                </button>
+                            </div>
 
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-dark-900">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4 bg-gray-50 dark:bg-dark-900">
                         {messages.length === 0 && (
                             <div className="text-center py-8">
                                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900/30 dark:to-primary-800/30 flex items-center justify-center">
@@ -200,7 +209,46 @@ export default function ChatWidget() {
                                         : 'bg-white dark:bg-dark-800 text-gray-900 dark:text-white shadow-md border border-gray-200 dark:border-dark-700'
                                         }`}
                                 >
-                                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                                    <div className="text-sm markdown-body">
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                table: ({ node, ...props }) => (
+                                                    <div className="overflow-x-auto custom-scrollbar my-4 rounded-lg border border-gray-200 dark:border-dark-700 shadow-sm">
+                                                        <table className="w-full text-left border-collapse text-sm" {...props} />
+                                                    </div>
+                                                ),
+                                                thead: ({ node, ...props }) => (
+                                                    <thead className="bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold" {...props} />
+                                                ),
+                                                th: ({ node, ...props }) => (
+                                                    <th className="px-4 py-3 border-b border-gray-200 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-800/50" {...props} />
+                                                ),
+                                                td: ({ node, ...props }) => (
+                                                    <td className="px-4 py-3 border-b border-gray-100 dark:border-dark-700 last:border-0" {...props} />
+                                                ),
+                                                tr: ({ node, ...props }) => (
+                                                    <tr className="hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors" {...props} />
+                                                ),
+                                                p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                                                strong: ({ node, ...props }) => <strong className="font-bold text-primary-600 dark:text-primary-400" {...props} />,
+                                                ul: ({ node, ...props }) => <ul className="list-disc pl-5 my-2 space-y-1" {...props} />,
+                                                ol: ({ node, ...props }) => <ol className="list-decimal pl-5 my-2 space-y-1" {...props} />,
+                                                h3: ({ node, ...props }) => <h3 className="text-lg font-bold mt-4 mb-2 text-gray-900 dark:text-white" {...props} />,
+                                                h4: ({ node, ...props }) => <h4 className="text-base font-bold mt-3 mb-2 text-gray-800 dark:text-gray-100" {...props} />,
+                                                code: ({ node, inline, ...props }: any) => 
+                                                    inline ? (
+                                                        <code className="bg-gray-100 dark:bg-dark-700 px-1.5 py-0.5 rounded text-xs text-primary-600 dark:text-primary-400 font-mono" {...props} />
+                                                    ) : (
+                                                        <div className="bg-gray-900 rounded-lg p-3 my-3 overflow-x-auto custom-scrollbar">
+                                                            <code className="text-gray-100 text-xs font-mono" {...props} />
+                                                        </div>
+                                                    )
+                                            }}
+                                        >
+                                            {message.content}
+                                        </ReactMarkdown>
+                                    </div>
 
                                     {message.pdfUrl && (
                                         <a
@@ -269,6 +317,8 @@ export default function ChatWidget() {
                         </p>
                     </div>
                 </div>
+              </div>
+            </div>
             )}
         </>
     );

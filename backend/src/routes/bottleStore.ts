@@ -5,9 +5,12 @@ import { bottleReturnsService } from '../services/bottleReturnsService';
 import { cashSessionService } from '../services/cashSessionService';
 import { creditSalesService } from '../services/creditSalesService';
 import { ApiError } from '../middleware/error.middleware';
-import { emitToCompany } from '../lib/socket';
+import { emitToCompany, emitToModule } from '../lib/socket';
+import { requireModule } from '../middleware/module';
+import { openSessionSchema, closeSessionSchema, cashMovementSchema } from '../validation/cashSession';
 
 const router = Router();
+router.use(authenticate, requireModule('BOTTLE_STORE'));
 
 // ============================================================================
 // DASHBOARD & REPORTS
@@ -65,7 +68,7 @@ router.post('/bottle-returns/deposit', authenticate, async (req: AuthRequest, re
     const data = await bottleReturnsService.recordDeposit(req.companyId, userName, req.body);
 
     // Socket Notification: Bottle Deposit
-    emitToCompany(req.companyId, 'bottlestore:bottle_update', {
+    emitToModule(req.companyId, 'bottle_store', 'bottlestore:bottle_update', {
         type: 'deposit',
         customer: req.body.customerId,
         timestamp: new Date()
@@ -108,14 +111,19 @@ router.get('/cash-session/summary', authenticate, async (req: AuthRequest, res) 
 router.post('/cash-session/open', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     if (!req.userId) throw ApiError.unauthorized('Utilizador não autenticado');
-    const session = await cashSessionService.openSession(req.companyId, req.userId, req.body.openingBalance);
+    const validated = openSessionSchema.parse(req.body);
+    const session = await cashSessionService.openSession(req.companyId, req.userId, validated.openingBalance, validated.warehouseId || undefined, validated.terminalId || undefined);
     res.status(201).json(session);
 });
 
 router.post('/cash-session/close', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const userName = req.userName || 'Sistema';
-    const session = await cashSessionService.closeSession(req.companyId, userName, req.body);
+    const userId = req.userId || '';
+    const { closingBalance, notes } = closeSessionSchema.parse(req.body);
+    const session = await cashSessionService.closeSession(req.companyId, userId, { 
+        closingBalance, 
+        notes: notes || undefined 
+    });
     res.json(session);
 });
 
@@ -127,15 +135,17 @@ router.get('/cash-session/history', authenticate, async (req: AuthRequest, res) 
 
 router.post('/cash-session/withdrawal', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const userId = req.userName || 'Sistema';
-    const movement = await cashSessionService.registerMovement(req.companyId, userId, { ...req.body, type: 'sangria' });
+    const userId = req.userId || '';
+    const validated = cashMovementSchema.parse({ ...req.body, type: 'sangria' });
+    const movement = await cashSessionService.registerMovement(req.companyId, userId, validated);
     res.status(201).json(movement);
 });
 
 router.post('/cash-session/deposit', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const userId = req.userName || 'Sistema';
-    const movement = await cashSessionService.registerMovement(req.companyId, userId, { ...req.body, type: 'suprimento' });
+    const userId = req.userId || '';
+    const validated = cashMovementSchema.parse({ ...req.body, type: 'suprimento' });
+    const movement = await cashSessionService.registerMovement(req.companyId, userId, validated);
     res.status(201).json(movement);
 });
 

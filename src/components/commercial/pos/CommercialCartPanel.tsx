@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Card, Button, Input } from '../../ui';
+import { Card, Button, Input, Select } from '../../ui';
 import {
     HiOutlineShoppingCart, HiOutlineTrash, HiOutlineCheck,
     HiOutlineTag, HiOutlinePlus, HiOutlineMinus,
-    HiOutlineScale, HiOutlineLockOpen, HiOutlineLockClosed, HiOutlineCash,
-    HiOutlinePause, HiOutlinePlay, HiOutlineDotsHorizontal,
-} from 'react-icons/hi';
+    HiOutlineScale, HiOutlineLockOpen, HiOutlineLockClosed, HiOutlineBanknotes,
+    HiOutlinePause, HiOutlinePlay, HiOutlineEllipsisHorizontal,
+} from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../../utils/helpers';
 import { usePermissions } from '../../../hooks/usePermissions';
 
@@ -117,7 +117,7 @@ export function CommercialCartPanel({
                                     className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-all border border-white/5"
                                     title="Suspender venda"
                                 >
-                                    <HiOutlineDotsHorizontal className="w-3 h-3" />
+                                    <HiOutlineEllipsisHorizontal className="w-3 h-3" />
                                 </button>
                                 <button
                                     onClick={() => setCart([])}
@@ -148,14 +148,14 @@ export function CommercialCartPanel({
                                         <div className="flex items-center gap-1">
                                             <button
                                                 onClick={() => { onResumeSale(held); setShowHeld(false); }}
-                                                className="p-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded hover:bg-blue-200 transition-colors"
+                                                className="p-1 bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300 border border-transparent dark:border-blue-500/30 rounded backdrop-blur-sm transition-all"
                                                 title="Retomar"
                                             >
                                                 <HiOutlinePlay className="w-3 h-3" />
                                             </button>
                                             <button
                                                 onClick={() => onDeleteHeld(held.id)}
-                                                className="p-1 bg-red-50 dark:bg-red-900/20 text-red-400 rounded hover:bg-red-100 transition-colors"
+                                                className="p-1 bg-red-50 text-red-500 dark:bg-red-500/15 dark:text-red-300 border border-transparent dark:border-red-500/30 rounded backdrop-blur-sm transition-all"
                                                 title="Remover"
                                             >
                                                 <HiOutlineTrash className="w-3 h-3" />
@@ -172,34 +172,36 @@ export function CommercialCartPanel({
                 <div className="flex-shrink-0 bg-white dark:bg-dark-900 border-b border-gray-100 dark:border-dark-800 p-2 space-y-2 relative z-10">
                     <div className="grid grid-cols-1 gap-2">
                         <div className="flex gap-1.5 items-center">
-                            <select
+                            <Select
                                 value={selectedCustomer?.id || ''}
                                 onChange={(e: any) => {
                                     const found = customers.find((c: any) => c.id === e.target.value);
                                     setSelectedCustomer(found || null);
                                 }}
-                                className="w-1/2 rounded-lg bg-gray-50 dark:bg-dark-800 border-gray-200 dark:border-dark-700 h-7 text-[10px] font-bold shadow-sm text-gray-900 dark:text-gray-100 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500/50 px-2"
-                            >
-                                <option value="">Consumidor Geral</option>
-                                {customers.map((c: any) => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                            </select>
+                                size="xs"
+                                className="w-1/2 rounded-lg bg-gray-50 dark:bg-dark-800 border-gray-200 dark:border-dark-700 font-bold shadow-sm text-gray-900 dark:text-gray-100 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                options={[
+                                    { value: '', label: 'Consumidor Geral' },
+                                    ...customers.map((c: any) => ({ value: c.id, label: c.name }))
+                                ]}
+                            />
                             <Input
                                 placeholder="Nome avulso..."
                                 value={customerName}
                                 onChange={(e) => setCustomerName(e.target.value)}
-                                className="w-1/2 rounded-lg bg-gray-50 dark:bg-dark-800 border-gray-200 dark:border-dark-700 h-7 text-[10px] font-medium"
+                                size="xs"
+                                className="w-1/2 rounded-lg bg-gray-50 dark:bg-dark-800 border-gray-200 dark:border-dark-700 font-medium"
                             />
                         </div>
                         <div className="flex gap-1.5 items-center">
                             <div className="relative flex-1">
-                                <HiOutlineTag className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                <HiOutlineTag className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-primary-500/60" />
                                 <Input
                                     placeholder="PROMO"
                                     value={promoCode}
                                     onChange={(e) => setPromoCode(e.target.value)}
-                                    className="rounded-lg bg-gray-50 dark:bg-dark-800 border-gray-200 dark:border-dark-700 h-7 text-[10px] pl-7 shadow-sm font-black tracking-widest uppercase"
+                                    size="xs"
+                                    className="rounded-lg bg-gray-50 dark:bg-dark-800 border-gray-200 dark:border-dark-700 pl-7 shadow-sm font-black tracking-widest uppercase"
                                     disabled={promoCodeApplied}
                                 />
                             </div>
@@ -207,7 +209,8 @@ export function CommercialCartPanel({
                                 variant={promoCodeApplied ? 'success' : 'primary'}
                                 onClick={handleApplyPromoCode}
                                 disabled={!promoCode.trim()}
-                                className="rounded-lg px-3 h-7 text-[9px] font-black uppercase tracking-widest"
+                                size="xs"
+                                className="rounded-lg px-3 font-black uppercase tracking-widest"
                             >
                                 {promoCodeApplied ? <HiOutlineCheck className="w-3 h-3" /> : 'OK'}
                             </Button>
@@ -302,22 +305,22 @@ export function CommercialCartPanel({
                             {cashDrawerOpen ? <HiOutlineLockOpen className="w-3 h-3" /> : <HiOutlineLockClosed className="w-3 h-3" />}
                         </button>
                     </div>
-                    <div className="flex bg-green-500/5 dark:bg-green-500/10 border border-green-500/10 rounded overflow-hidden shadow-sm">
-                        <div className="px-1.5 py-0.5 text-green-600 dark:text-green-400 text-[8px] font-black uppercase flex items-center gap-1">
-                            <HiOutlineCash className="w-2.5 h-2.5" />
+                    <div className="flex bg-green-500/5 dark:bg-emerald-500/15 border border-green-500/10 dark:border-emerald-500/30 rounded overflow-hidden shadow-sm backdrop-blur-sm">
+                        <div className="px-1.5 py-0.5 text-green-600 dark:text-emerald-300 text-[8px] font-black uppercase flex items-center gap-1">
+                            <HiOutlineBanknotes className="w-2.5 h-2.5" />
                             {formatCurrency(cashDrawerBalance)}
                         </div>
-                        <div className="flex border-l border-green-500/10">
+                        <div className="flex border-l border-green-500/10 dark:border-emerald-500/30">
                             <button
                                 onClick={() => onCashMovement('cash_in')}
-                                className="p-1 hover:bg-green-500/10 text-green-600 dark:text-green-400 transition-colors"
+                                className="p-1 hover:bg-green-500/10 dark:hover:bg-emerald-500/20 text-green-600 dark:text-emerald-300 transition-colors"
                                 title="Suprimento (Entrada)"
                             >
                                 <HiOutlinePlus className="w-2.5 h-2.5" />
                             </button>
                             <button
                                 onClick={() => onCashMovement('cash_out')}
-                                className="p-1 hover:bg-orange-500/10 text-orange-600 dark:text-orange-400 transition-colors"
+                                className="p-1 hover:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-300 transition-colors"
                                 title="Sangria (Saída)"
                             >
                                 <HiOutlineMinus className="w-2.5 h-2.5" />

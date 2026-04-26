@@ -33,6 +33,7 @@ import { formatCurrency, formatDate } from '../../utils/helpers';
 import { useHotelDashboardSummary, useRecentBookings } from '../../hooks/useHospitality';
 import { MetricCard, CHART_COLORS } from '../../components/common/ModuleMetricCard';
 import { ModulePeriodFilter } from '../../components/common/ModulePeriodFilter';
+import { QuickActionCard } from '../../components/common/QuickActionCard';
 import type { TimePeriod } from '../../components/common/ModulePeriodFilter';
 
 
@@ -112,13 +113,13 @@ export default function HotelDashboard() {
             <PageHeader
                 title={t('hotel_module.dashboard.title')}
                 subtitle={t('hotel_module.dashboard.subtitle')}
-                icon={<HiOutlineBuildingOffice2 />}
+                icon={<HiOutlineBuildingOffice2 className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
                         <Button
                             variant="ghost"
                             onClick={() => refetchDashboard()}
-                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                         >
                             {t('common.refresh')}
                         </Button>
@@ -140,28 +141,28 @@ export default function HotelDashboard() {
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
-                    icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                    icon={<HiOutlineCurrencyDollar className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
                     color="primary"
                     value={formatCurrency(metrics.monthRevenue)}
                     label={t('hotel_module.dashboard.metrics.monthlyRevenue')}
                     growth={metrics.monthlyGrowth}
                 />
                 <MetricCard
-                    icon={<HiOutlineChartBar className="w-6 h-6" />}
+                    icon={<HiOutlineChartBar className="w-6 h-6 text-secondary-600 dark:text-secondary-400" />}
                     color="secondary"
                     value={`${metrics.occupancyRate}%`}
                     label={t('hotel_module.dashboard.metrics.occupancyRate')}
                     badge={<Badge variant="success">Rate</Badge>}
                 />
                 <MetricCard
-                    icon={<HiOutlineUsers className="w-6 h-6" />}
+                    icon={<HiOutlineUsers className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
                     color="blue"
                     value={`${metrics.occupiedRooms}/${metrics.totalRooms}`}
                     label={t('hotel_module.dashboard.metrics.occupiedRooms')}
                     badge={<Badge variant="info">Live</Badge>}
                 />
                 <MetricCard
-                    icon={<HiOutlineCalendar className="w-6 h-6" />}
+                    icon={<HiOutlineCalendar className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />}
                     color="yellow"
                     value={metrics.pendingCheckouts}
                     label={t('hotel_module.dashboard.metrics.pendingCheckouts')}
@@ -301,17 +302,13 @@ export default function HotelDashboard() {
                     </div>
                     <div className="space-y-3">
                         {metrics.pendingCheckouts > 0 && (
-                            <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600">
-                                    <HiOutlineExclamationCircle className="w-4 h-4" />
+                            <div className="flex items-start gap-4 p-4 bg-amber-100/40 dark:bg-amber-500/10 rounded-xl border border-amber-200/50 dark:border-amber-500/20 transition-all hover:scale-[1.01]">
+                                <div className="w-12 h-12 rounded-xl bg-amber-200/60 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                    <HiOutlineExclamationCircle className="w-6 h-6" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                                        Check-outs Pendentes
-                                    </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {metrics.pendingCheckouts} hóspedes para check-out hoje
-                                    </p>
+                                    <p className="text-sm font-black text-amber-900 dark:text-amber-400 uppercase tracking-tight">Check-outs Pendentes</p>
+                                    <p className="text-xs font-bold text-amber-800/70 dark:text-amber-400/60 uppercase mt-0.5">{metrics.pendingCheckouts} hóspedes para check-out hoje</p>
                                 </div>
                             </div>
                         )}
@@ -335,42 +332,42 @@ export default function HotelDashboard() {
                         {t('dashboard.quickActions')}
                     </h2>
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                    <HiOutlineHome className="w-4 h-4 text-green-600" />
+                        <div className="flex items-center justify-between p-4 bg-emerald-100/40 dark:bg-emerald-500/10 rounded-xl border border-emerald-200/50 dark:border-emerald-500/20">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-emerald-200/60 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 flex items-center justify-center shadow-inner">
+                                    <HiOutlineHome className="w-6 h-6" />
                                 </div>
-                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                <span className="text-sm font-black text-emerald-900 dark:text-emerald-400 uppercase tracking-tight">
                                     {t('hotel_module.dashboard.metrics.availableRooms')}
                                 </span>
                             </div>
-                            <span className="text-sm font-bold text-green-600">
+                            <span className="text-2xl font-black text-emerald-600">
                                 {metrics.availableRooms}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                    <HiOutlineUsers className="w-4 h-4 text-blue-600" />
+                        <div className="flex items-center justify-between p-4 bg-blue-100/40 dark:bg-blue-500/10 rounded-xl border border-blue-200/50 dark:border-blue-500/20">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-blue-200/60 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 flex items-center justify-center shadow-inner">
+                                    <HiOutlineUsers className="w-6 h-6" />
                                 </div>
-                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                <span className="text-sm font-black text-blue-900 dark:text-blue-400 uppercase tracking-tight">
                                     {t('hotel_module.dashboard.metrics.todayCheckIns')}
                                 </span>
                             </div>
-                            <span className="text-sm font-bold text-blue-600">
+                            <span className="text-2xl font-black text-blue-600">
                                 {metrics.todayCheckIns}
                             </span>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                                    <HiOutlineCurrencyDollar className="w-4 h-4 text-purple-600" />
+                        <div className="flex items-center justify-between p-4 bg-purple-100/40 dark:bg-purple-500/10 rounded-xl border border-purple-200/50 dark:border-purple-500/20">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-purple-200/60 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300 flex items-center justify-center shadow-inner">
+                                    <HiOutlineCurrencyDollar className="w-6 h-6" />
                                 </div>
-                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                <span className="text-sm font-black text-purple-900 dark:text-purple-400 uppercase tracking-tight">
                                     {t('hotel_module.dashboard.metrics.todayRevenue')}
                                 </span>
                             </div>
-                            <span className="text-sm font-bold text-purple-600">
+                            <span className="text-lg font-black text-purple-600">
                                 {formatCurrency(metrics.todayRevenue)}
                             </span>
                         </div>
@@ -460,38 +457,34 @@ export default function HotelDashboard() {
                     {t('hotel_module.dashboard.quickActions')}
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Link to="/hospitality/rooms">
-                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlinePlus className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                {t('hotel_module.reservations.checkIn')}
-                            </p>
-                        </button>
-                    </Link>
-                    <Link to="/hospitality/reservations">
-                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineCalendar className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                {t('hotel_module.reservations.calendar')}
-                            </p>
-                        </button>
-                    </Link>
-                    <Link to="/hospitality/customers">
-                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineUsers className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                {t('hotel_module.guests.title')}
-                            </p>
-                        </button>
-                    </Link>
-                    <Link to="/hospitality/reports">
-                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineChartBar className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                {t('nav.reports')}
-                            </p>
-                        </button>
-                    </Link>
+                    <QuickActionCard
+                        icon={HiOutlinePlus}
+                        label={t('hotel_module.reservations.checkIn')}
+                        description="Registo de entrada"
+                        path="/hospitality/rooms"
+                        color="primary"
+                    />
+                    <QuickActionCard
+                        icon={HiOutlineCalendar}
+                        label={t('hotel_module.reservations.calendar')}
+                        description="Mapa de reservas"
+                        path="/hospitality/reservations"
+                        color="emerald"
+                    />
+                    <QuickActionCard
+                        icon={HiOutlineUsers}
+                        label={t('hotel_module.guests.title')}
+                        description="Base de dados de hóspedes"
+                        path="/hospitality/customers"
+                        color="indigo"
+                    />
+                    <QuickActionCard
+                        icon={HiOutlineChartBar}
+                        label={t('nav.reports')}
+                        description="Análise de ocupação"
+                        path="/hospitality/reports"
+                        color="purple"
+                    />
                 </div>
             </Card>
         </div>

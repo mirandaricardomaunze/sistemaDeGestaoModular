@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, Pagination } from '../../components/ui';
+import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, Pagination, Textarea } from '../../components/ui';
 import {
     HiOutlineCube,
     HiOutlinePlus,
@@ -193,7 +193,7 @@ export default function ParcelsPage() {
             <PageHeader
                 title={t('logistics_module.parcels.title')}
                 subtitle={t('logistics_module.parcels.subtitle')}
-                icon={<HiOutlineCube />}
+                icon={<HiOutlineCube className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex gap-2 items-center">
                         <Button
@@ -205,7 +205,7 @@ export default function ParcelsPage() {
                         </Button>
                         <Button
                             variant="primary"
-                            leftIcon={<HiOutlinePlus className="w-5 h-5" />}
+                            leftIcon={<HiOutlinePlus className="w-5 h-5 text-white" />}
                             onClick={() => setIsModalOpen(true)}
                         >
                             {t('logistics_module.parcels.newParcel')}
@@ -245,7 +245,7 @@ export default function ParcelsPage() {
             <Card variant="glass" className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="relative">
-                        <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-400 w-5 h-5" />
                         <Input
                             placeholder={t('logistics_module.parcels.searchPlaceholder')}
                             className="pl-10"
@@ -284,7 +284,7 @@ export default function ParcelsPage() {
                         <div className="flex items-start justify-between mb-4">
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
-                                    <HiOutlineQrCode className="w-5 h-5 text-primary-600" />
+                                    <HiOutlineQrCode className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                                     <span
                                         className="font-mono font-bold text-lg cursor-pointer hover:text-primary-600"
                                         onClick={() => copyTrackingNumber(parcel.trackingNumber)}
@@ -305,7 +305,7 @@ export default function ParcelsPage() {
                                 <p className="text-xs text-gray-500 uppercase mb-1">{t('logistics_module.parcels.recipient')}</p>
                                 <p className="font-medium">{parcel.recipientName}</p>
                                 <div className="flex items-center gap-1 text-sm text-gray-500">
-                                    <HiOutlinePhone className="w-4 h-4" />
+                                    <HiOutlinePhone className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                                     {parcel.recipientPhone}
                                 </div>
                             </div>
@@ -334,15 +334,15 @@ export default function ParcelsPage() {
 
                         <div className="flex gap-2 pt-4 border-t dark:border-dark-700">
                             <Button variant="outline" size="sm" className="flex-1" onClick={() => setSelectedParcel(parcel)}>
-                                <HiOutlineEye className="w-4 h-4 mr-1" /> {t('common.view')}
+                                <HiOutlineEye className="w-4 h-4 mr-1 text-primary-600 dark:text-primary-400" /> {t('common.view')}
                             </Button>
                             {parcel.status !== 'picked_up' && (
                                 <>
                                     <Button variant="outline" size="sm" onClick={() => { setSelectedParcel(parcel); setIsNotifyModalOpen(true); }}>
-                                        <HiOutlineBell className="w-4 h-4" />
+                                        <HiOutlineBell className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                                     </Button>
                                     <Button size="sm" onClick={() => { setSelectedParcel(parcel); setIsPickupModalOpen(true); }}>
-                                        <HiOutlineCheckCircle className="w-4 h-4 mr-1" /> {t('logistics_module.parcels.pickup')}
+                                        <HiOutlineCheckCircle className="w-4 h-4 mr-1 text-white" /> {t('logistics_module.parcels.pickup')}
                                     </Button>
                                 </>
                             )}
@@ -353,7 +353,7 @@ export default function ParcelsPage() {
 
             {data?.parcels.length === 0 && (
                 <Card variant="glass" className="p-12 text-center">
-                    <HiOutlineCube className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                    <HiOutlineCube className="w-16 h-16 mx-auto text-primary-600 dark:text-primary-400 mb-4 opacity-50" />
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('logistics_module.parcels.notFound')}</h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-4">{t('logistics_module.parcels.startRegister')}</p>
                     <Button onClick={() => setIsModalOpen(true)}>
@@ -394,7 +394,7 @@ export default function ParcelsPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <Input
                                 label={`${t('logistics_module.parcels.senderName')} *`}
-                                placeholder="Nome completo"
+                                placeholder={t('common.fullName')}
                                 value={formData.senderName}
                                 onChange={(e) => setFormData({ ...formData, senderName: e.target.value })}
                                 required
@@ -409,15 +409,15 @@ export default function ParcelsPage() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="Email"
+                                label={t('common.email')}
                                 type="email"
                                 placeholder="email@exemplo.com"
                                 value={formData.senderEmail}
                                 onChange={(e) => setFormData({ ...formData, senderEmail: e.target.value })}
                             />
                             <Input
-                                label={t('common.morada')}
-                                placeholder="Endereço do remetente"
+                                label={t('common.address')}
+                                placeholder={t('logistics_module.parcels.sender')}
                                 value={formData.senderAddress}
                                 onChange={(e) => setFormData({ ...formData, senderAddress: e.target.value })}
                             />
@@ -430,7 +430,7 @@ export default function ParcelsPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <Input
                                 label={`${t('logistics_module.parcels.recipientName')} *`}
-                                placeholder="Nome completo"
+                                placeholder={t('common.fullName')}
                                 value={formData.recipientName}
                                 onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
                                 required
@@ -654,10 +654,9 @@ export default function ParcelsPage() {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('common.message')} *</label>
-                        <textarea
-                            className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-dark-700 bg-white dark:bg-dark-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        <Textarea
                             rows={4}
-                             placeholder={t('logistics_module.parcels.notifyPlaceholder')}
+                            placeholder={t('logistics_module.parcels.notifyPlaceholder')}
                             value={notifyMessage}
                             onChange={(e) => setNotifyMessage(e.target.value)}
                         />
@@ -748,7 +747,7 @@ export default function ParcelsPage() {
                             </Button>
                             {selectedParcel.status !== 'picked_up' && (
                                 <Button className="flex-1" onClick={() => setIsPickupModalOpen(true)}>
-                                    <HiOutlineCheckCircle className="w-4 h-4 mr-1" /> {t('logistics_module.parcels.pickup')}
+                                    <HiOutlineCheckCircle className="w-4 h-4 mr-1 text-white" /> {t('logistics_module.parcels.pickup')}
                                 </Button>
                             )}
                         </div>

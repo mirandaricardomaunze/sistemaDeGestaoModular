@@ -143,7 +143,6 @@ export default function CheckInModal({
                 )}
 
                 {currentStepId === 'form' && (() => {
-                    const _selectedCountry = getCountryByCode(data.guestCountry) || COUNTRIES[0];
                     const documentTypes = getDocumentTypesForCountry(data.guestCountry || 'MZ');
 
                     return (

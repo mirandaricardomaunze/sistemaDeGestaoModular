@@ -1,13 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api/client';
 
-// PaginationParams kept for documentation purposes
-interface _PaginationParams {
-    page?: number;
-    limit?: number;
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-}
 
 interface PaginationMeta {
     page: number;

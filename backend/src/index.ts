@@ -1,12 +1,13 @@
 import 'dotenv/config';
 import 'express-async-errors';
 import express from 'express';
-// ... we need to see index.ts first before replacing
 import cors from 'cors';
 import { createServer } from 'http';
 import { prisma } from './lib/prisma';
 import { initSocket } from './lib/socket';
 import { errorHandler } from './middleware/error.middleware';
+import { authenticate, AuthRequest } from './middleware/auth';
+import { ApiError } from './middleware/error.middleware';
 
 // Import Routes (Selection of main ones for brevity in this refactor)
 import authRoutes from './routes/auth';
@@ -51,6 +52,7 @@ import restaurantFinanceRoutes from './routes/restaurantFinance';
 import batchesRoutes from './routes/batches';
 import validitiesRoutes from './routes/validities';
 import hospitalityChannelsRoutes from './routes/hospitalityChannels';
+import calendarRoutes from './routes/calendar';
 
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -108,8 +110,18 @@ app.use(cors({
 app.use(express.json({ limit: '50kb' })); // Protection against large payloads
 app.use(express.urlencoded({ extended: true, limit: '50kb' }));
 
-// Serve uploaded files (prescription images, etc.)
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Authenticated endpoint for prescription images (medical PII — must not be public)
+app.get('/uploads/prescriptions/:filename', authenticate, async (req: AuthRequest, res) => {
+    const filename = path.basename(req.params.filename); // strip any path traversal
+    const filePath = path.join(process.cwd(), 'uploads', 'prescriptions', filename);
+
+    const prescription = await prisma.prescription.findFirst({
+        where: { imageUrl: { contains: filename }, companyId: req.companyId }
+    });
+    if (!prescription) throw ApiError.forbidden('Acesso negado');
+
+    res.sendFile(filePath);
+});
 
 // HTTP request/response logging
 app.use((req, res, next) => {
@@ -159,8 +171,15 @@ app.use('/api/products', productsRoutes);
 app.use('/api/commercial', commercialRoutes);
 app.use('/api/commercial/finance', commercialFinanceRoutes);
 app.use('/api/customers', customersRoutes);
-app.use('/api/hospitality', hospitalityRoutes);
+
+// Specific Hospitality Routes First
+app.use('/api/hospitality/dashboard', hospitalityDashboardRoutes);
+app.use('/api/hospitality/finance', hospitalityFinanceRoutes);
 app.use('/api/hospitality/channels', hospitalityChannelsRoutes);
+
+// General Hospitality Route Last
+app.use('/api/hospitality', hospitalityRoutes);
+
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/logistics/finance', logisticsFinanceRoutes);
 app.use('/api/bottleStore', bottleStoreRoutes);
@@ -186,8 +205,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/hospitalityDashboard', hospitalityDashboardRoutes);
 app.use('/api/hospitalityFinance', hospitalityFinanceRoutes);
-app.use('/api/hospitality/dashboard', hospitalityDashboardRoutes);
-app.use('/api/hospitality/finance', hospitalityFinanceRoutes);
 app.use('/api/pharmacy/finance', pharmacyFinanceRoutes);
 app.use('/api/migration', migrationRoutes);
 app.use('/api/modules', modulesRoutes);
@@ -196,6 +213,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api/restaurant', restaurantRoutes);
 app.use('/api/restaurant/finance', restaurantFinanceRoutes);
 app.use('/api/batches', batchesRoutes);
+app.use('/api/calendar', calendarRoutes);
 app.use('/api', validitiesRoutes);
 
 app.get('/api/health', async (req, res) => {
@@ -209,17 +227,32 @@ app.get('/api/health', async (req, res) => {
 app.use(errorHandler);
 
 import { startCronJobs } from './cron/automation';
+import { initRedis } from './config/redis';
+import { createEmailWorker } from './workers/emailWorker';
 
 const PORT = process.env.PORT || 3001;
 const httpServer = createServer(app);
 const io = initSocket(httpServer);
 
+let emailWorker: ReturnType<typeof createEmailWorker> = null;
+
 const start = async () => {
     try {
         await prisma.$connect();
-        
+
+        // Initialize Redis (probes port first — no noise if Redis is down)
+        await initRedis();
+
         // Start background tasks
         startCronJobs();
+
+        // BullMQ email worker (only when Redis is available)
+        emailWorker = createEmailWorker();
+        if (emailWorker) {
+            logger.info('Email worker started (Redis connected)');
+        } else {
+            logger.warn('Email worker disabled (Redis not available)');
+        }
 
         httpServer.listen(PORT, () => console.log(`🚀 MultiCore ERP running on port ${PORT} (with WebSockets)`));
     } catch (error) {
@@ -237,6 +270,7 @@ const shutdown = async (signal: string) => {
     console.log(`\n${signal} received -- shutting down gracefully...`);
     httpServer.close(async () => {
         try {
+            if (emailWorker) await emailWorker.close();
             await prisma.$disconnect();
             console.log('Database disconnected. Goodbye.');
             process.exit(0);

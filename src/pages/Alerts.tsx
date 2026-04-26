@@ -20,8 +20,9 @@ import {
     HiOutlineInformationCircle,
     HiOutlineChevronRight
 } from 'react-icons/hi2';
+import { cn } from '../utils/helpers';
 import { useAlerts } from '../hooks/useAlerts';
-import { Button, Badge, Card, Pagination, usePagination } from '../components/ui';
+import { Button, Badge, Card, Pagination, usePagination, Select } from '../components/ui';
 import type { Alert, AlertModule, AlertPriority } from '../services/api';
 
 // ============================================================================
@@ -102,10 +103,10 @@ export default function AlertsPage() {
 
     const getPriorityClasses = (priority: AlertPriority): string => {
         const classes: Record<AlertPriority, string> = {
-            critical: 'border-l-red-500 bg-red-50 dark:bg-red-900/10',
-            high: 'border-l-orange-500 bg-orange-50 dark:bg-orange-900/10',
-            medium: 'border-l-yellow-500 bg-yellow-50 dark:bg-yellow-900/10',
-            low: 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/10'
+            critical: 'border-l-red-500 bg-red-50 dark:bg-red-500/10 dark:backdrop-blur-sm',
+            high: 'border-l-orange-500 bg-orange-50 dark:bg-orange-500/10 dark:backdrop-blur-sm',
+            medium: 'border-l-yellow-500 bg-yellow-50 dark:bg-amber-500/10 dark:backdrop-blur-sm',
+            low: 'border-l-blue-500 bg-blue-50 dark:bg-blue-500/10 dark:backdrop-blur-sm'
         };
         return classes[priority];
     };
@@ -116,7 +117,7 @@ export default function AlertsPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <HiOutlineBell className="w-7 h-7 text-primary-600" />
+                        <HiOutlineBell className="w-7 h-7 text-primary-600 dark:text-primary-400" />
                         {t('alerts.title')}
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">
@@ -155,7 +156,9 @@ export default function AlertsPage() {
                             <p className="text-sm text-gray-500 dark:text-gray-400">Total</p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalItems}</p>
                         </div>
-                        <HiOutlineBell className="w-8 h-8 text-gray-400" />
+                        <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/15 border border-transparent dark:border-blue-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
+                            <HiOutlineBell className="w-6 h-6 text-blue-600 dark:text-blue-300" />
+                        </div>
                     </div>
                 </Card>
                 <Card className="p-4">
@@ -173,7 +176,9 @@ export default function AlertsPage() {
                             <p className="text-sm text-gray-500 dark:text-gray-400">Críticos</p>
                             <p className="text-2xl font-bold text-red-600">{criticalCount}</p>
                         </div>
-                        <HiOutlineExclamationCircle className="w-8 h-8 text-red-400" />
+                        <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-500/15 border border-transparent dark:border-red-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
+                            <HiOutlineExclamationCircle className="w-6 h-6 text-red-600 dark:text-red-300" />
+                        </div>
                     </div>
                 </Card>
                 <Card className="p-4 border-l-4 border-l-orange-500">
@@ -182,7 +187,9 @@ export default function AlertsPage() {
                             <p className="text-sm text-gray-500 dark:text-gray-400">Alta Prioridade</p>
                             <p className="text-2xl font-bold text-orange-600">{highCount}</p>
                         </div>
-                        <HiOutlineExclamation className="w-8 h-8 text-orange-400" />
+                        <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/15 border border-transparent dark:border-orange-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
+                            <HiOutlineExclamation className="w-6 h-6 text-orange-600 dark:text-orange-300" />
+                        </div>
                     </div>
                 </Card>
             </div>
@@ -197,46 +204,48 @@ export default function AlertsPage() {
                             Módulo
                         </label>
                         <div className="flex flex-wrap gap-2">
-                            <button
+                            <Button
+                                size="sm"
+                                variant={selectedModule === 'all' ? 'primary' : 'ghost'}
                                 onClick={() => setSelectedModule('all')}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
-                                    ${selectedModule === 'all'
-                                        ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400'}`}
+                                className={cn(
+                                    'font-medium transition-colors',
+                                    selectedModule !== 'all' && 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400'
+                                )}
                             >
                                 Todos
-                            </button>
+                            </Button>
                             {Object.entries(MODULE_CONFIG).map(([key, config]) => (
-                                <button
+                                <Button
                                     key={key}
+                                    size="sm"
+                                    variant={selectedModule === key ? 'primary' : 'ghost'}
                                     onClick={() => setSelectedModule(key as AlertModule)}
-                                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
-                                        ${selectedModule === key
-                                            ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400'}`}
+                                    className={cn(
+                                        'font-medium transition-colors',
+                                        selectedModule !== key && 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400'
+                                    )}
                                 >
                                     {config.label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
 
                     {/* Priority Filter */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Prioridade
-                        </label>
-                        <select
+                        <Select
+                            label="Prioridade"
                             value={selectedPriority}
                             onChange={(e) => setSelectedPriority(e.target.value as AlertPriority | 'all')}
-                            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-sm"
-                        >
-                            <option value="all">Todas</option>
-                            <option value="critical">Crítico</option>
-                            <option value="high">Alto</option>
-                            <option value="medium">Médio</option>
-                            <option value="low">Baixo</option>
-                        </select>
+                            options={[
+                                { value: 'all', label: 'Todas' },
+                                { value: 'critical', label: 'Crítico' },
+                                { value: 'high', label: 'Alto' },
+                                { value: 'medium', label: 'Médio' },
+                                { value: 'low', label: 'Baixo' }
+                            ]}
+                        />
                     </div>
 
                     {/* Show Resolved Toggle */}
@@ -245,24 +254,28 @@ export default function AlertsPage() {
                             Estado
                         </label>
                         <div className="flex items-center gap-2">
-                            <button
+                            <Button
+                                size="sm"
+                                variant={!showResolved ? 'primary' : 'ghost'}
                                 onClick={() => setShowResolved(false)}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
-                                    ${!showResolved
-                                        ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30'
-                                        : 'bg-gray-100 text-gray-600 dark:bg-dark-700'}`}
+                                className={cn(
+                                    'font-medium transition-colors',
+                                    showResolved && 'bg-gray-100 text-gray-600 dark:bg-dark-700'
+                                )}
                             >
                                 Activos
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant={showResolved ? 'primary' : 'ghost'}
                                 onClick={() => setShowResolved(true)}
-                                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors
-                                    ${showResolved
-                                        ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30'
-                                        : 'bg-gray-100 text-gray-600 dark:bg-dark-700'}`}
+                                className={cn(
+                                    'font-medium transition-colors',
+                                    !showResolved && 'bg-gray-100 text-gray-600 dark:bg-dark-700'
+                                )}
                             >
                                 Todos
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -313,10 +326,12 @@ export default function AlertsPage() {
                             >
                                 <div className="flex items-start gap-4">
                                     {/* Priority Icon */}
-                                    <div className={`flex-shrink-0 mt-1 ${alert.priority === 'critical' ? 'text-red-500' :
-                                        alert.priority === 'high' ? 'text-orange-500' :
-                                            alert.priority === 'medium' ? 'text-yellow-600' : 'text-blue-500'
-                                        }`}>
+                                    <div className={cn(
+                                        'flex-shrink-0 mt-1',
+                                        alert.priority === 'critical' ? 'text-red-600 dark:text-red-400' :
+                                        alert.priority === 'high' ? 'text-orange-600 dark:text-orange-400' :
+                                        alert.priority === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'
+                                    )}>
                                         {PRIORITY_CONFIG[alert.priority].icon}
                                     </div>
 

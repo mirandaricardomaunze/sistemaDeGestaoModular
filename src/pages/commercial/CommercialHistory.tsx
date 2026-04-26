@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import { 
-    HiOutlineMagnifyingGlass, 
-    HiOutlineEye, 
-    HiOutlineTrash, 
+import {
+    HiOutlineMagnifyingGlass,
+    HiOutlineEye,
+    HiOutlineTrash,
     HiOutlineArrowPath,
     HiOutlineTicket,
-    HiOutlineExclamationTriangle
 } from 'react-icons/hi2';
-import { Card, Button, Input, Badge, TableContainer, Pagination, Modal, PageHeader } from '../../components/ui';
+import { Card, Button, Input, Badge, TableContainer, Pagination, PageHeader, Textarea, ConfirmationModal } from '../../components/ui';
 import { useSales } from '../../hooks/useSales';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { format, parseISO } from 'date-fns';
@@ -107,14 +106,14 @@ export default function CommercialHistory() {
             <PageHeader 
                 title="Vendas Realizadas"
                 subtitle="Consulte, reimprima recibos ou anule transações comerciais"
-                icon={<HiOutlineTicket />}
+                icon={<HiOutlineTicket className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => refetch()} 
                         className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
-                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
+                        leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                     >
                         Actualizar
                     </Button>
@@ -131,7 +130,7 @@ export default function CommercialHistory() {
                                 placeholder="Nº Recibo, Nome do Cliente ou Código..." 
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
+                                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                                 className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
                             />
                         </div>
@@ -235,21 +234,25 @@ export default function CommercialHistory() {
                                     </td>
                                     <td className="px-6 py-4 pr-10">
                                         <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                                            <button 
+                                            <Button 
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={() => handleViewReceipt(sale)}
-                                                className="p-2 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg transition-all shadow-sm hover:shadow-blue-500/20 shadow-transparent active:scale-90"
+                                                className="text-blue-600 hover:bg-blue-600 hover:text-white"
                                                 title="Reimprimir Recibo"
                                             >
-                                                <HiOutlineEye className="w-4 h-4" />
-                                            </button>
+                                                <HiOutlineEye className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                                            </Button>
                                             {sale.status !== 'voided' && (
-                                                <button 
+                                                <Button 
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => handleOpenVoidModal(sale)}
-                                                    className="p-2 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all shadow-sm hover:shadow-red-500/20 shadow-transparent active:scale-95"
+                                                    className="text-red-500 hover:bg-red-500 hover:text-white"
                                                     title="Anular Venda"
                                                 >
-                                                    <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
+                                                    <HiOutlineTrash className="w-4 h-4 text-red-500 dark:text-red-400" />
+                                                </Button>
                                             )}
                                         </div>
                                     </td>
@@ -271,60 +274,28 @@ export default function CommercialHistory() {
                 )}
             </Card>
 
-            {/* Void Modal - Premium Redesign */}
-            <Modal
+            {/* Void Confirmation Modal */}
+            <ConfirmationModal
                 isOpen={showVoidModal}
                 onClose={() => !isVoiding && setShowVoidModal(false)}
+                onConfirm={handleConfirmVoid}
                 title="Protocolo de Anulação"
-                size="md"
+                message={`Tem certeza que deseja anular a venda "${selectedSale?.receiptNumber || selectedSale?.id?.slice(-6)}"? Esta ação devolverá os itens ao stock.`}
+                confirmText="Confirmar Anulação"
+                cancelText="Abortar"
+                variant="danger"
+                isLoading={isVoiding}
             >
-                <div className="space-y-6">
-                    <div className="bg-red-50 dark:bg-red-900/10 p-5 rounded-lg border border-red-100 dark:border-red-800/30 flex gap-4 text-red-700 dark:text-red-400">
-                        <div className="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/20 flex items-center justify-center shrink-0">
-                            <HiOutlineExclamationTriangle className="w-6 h-6 text-red-600" />
-                        </div>
-                        <div>
-                            <p className="font-black text-sm uppercase tracking-tighter mb-1">Acção Crítica e Irreversível</p>
-                            <p className="text-xs leading-relaxed opacity-80">
-                                Ao confirmar, o sistema ir **devolver automaticamente os itens ao stock** e estornar o valor financeiro do historial de caixa. Este registo ficar marcado como anulado para fins de auditoria.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="relative group">
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-2 uppercase tracking-widest pl-1">
-                            Motivo Justificativo
-                        </label>
-                        <textarea
-                            value={voidReason}
-                            onChange={e => setVoidReason(e.target.value)}
-                            rows={3}
-                            placeholder="Descreva detalhadamente o motivo (ex: Erro de digitação, Devolução do cliente...)"
-                            className="w-full px-5 py-4 rounded-lg border-2 border-gray-100 dark:border-dark-700 focus:border-red-500 focus:ring-4 focus:ring-red-500/10 focus:outline-none bg-gray-50 dark:bg-dark-800 text-gray-900 dark:text-white text-sm transition-all resize-none font-medium"
-                        />
-                    </div>
-
-                    <div className="flex gap-3">
-                        <Button 
-                            variant="ghost" 
-                            className="flex-1 rounded-lg font-black uppercase text-[10px] tracking-widest" 
-                            onClick={() => setShowVoidModal(false)}
-                            disabled={isVoiding}
-                        >
-                            Abortar
-                        </Button>
-                        <Button 
-                            variant="danger" 
-                            className="flex-1 rounded-lg font-black uppercase text-[10px] tracking-widest shadow-lg shadow-red-500/20"
-                            onClick={handleConfirmVoid}
-                            isLoading={isVoiding}
-                            disabled={!voidReason.trim()}
-                        >
-                            Confirmar Anulação
-                        </Button>
-                    </div>
+                <div className="mt-4">
+                    <Textarea
+                        label="Motivo Justificativo"
+                        value={voidReason}
+                        onChange={e => setVoidReason(e.target.value)}
+                        rows={3}
+                        placeholder="Descreva detalhadamente o motivo (ex: Erro de digitação, Devolução do cliente...)"
+                    />
                 </div>
-            </Modal>
+            </ConfirmationModal>
 
             {/* Receipt Modal */}
             <CommercialReceiptModal 

@@ -199,7 +199,7 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
                             {receipt.discount > 0 && (
                                 <div className="flex justify-between text-[10px] text-red-600">
                                     <span>Desconto</span>
-                                    <span>âˆ' {formatCurrency(receipt.discount)}</span>
+                                    <span>- {formatCurrency(receipt.discount)}</span>
                                 </div>
                             )}
                             <div className="flex justify-between text-[10px] text-gray-500">

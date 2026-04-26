@@ -1,4 +1,4 @@
-﻿import { logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -20,11 +20,11 @@ export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: an
             doc.text(companyInfo?.companyName || 'Multicore', 45, y);
 
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
-            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(10);
+            doc.setTextColor(60, 60, 60);
             doc.text(companyInfo?.address || 'Endereço não configurado', 45, y + 6);
             doc.text(`NUIT: ${companyInfo?.taxId || 'N/A'}`, 45, y + 11);
-            doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 45, y + 16);
+            doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 45, y + 17);
         } catch (e) {
             logger.warn('Failed to add logo to PDF', e);
             // Fallback to no logo layout below
@@ -37,11 +37,11 @@ export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: an
         doc.text(companyInfo?.companyName || 'Multicore', 15, y);
 
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(9);
-        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
         doc.text(companyInfo?.address || 'Endereço não configurado', 15, y + 6);
         doc.text(`NUIT: ${companyInfo?.taxId || 'N/A'}`, 15, y + 11);
-        doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 15, y + 16);
+        doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 15, y + 17);
     }
 
     // Document Titles (Right Aligned)
@@ -51,8 +51,8 @@ export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: an
     doc.text(title.toUpperCase(), pageWidth - 15, 20, { align: 'right' });
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(11);
+    doc.setTextColor(60, 60, 60);
     if (period) {
         doc.text(`Período: ${period}`, pageWidth - 15, 28, { align: 'right' });
     }
@@ -79,9 +79,9 @@ export const addProfessionalFooter = (doc: jsPDF, companyInfo: any) => {
         doc.line(15, pageHeight - 28, pageWidth - 15, pageHeight - 28);
 
         // Company info line (left aligned)
-        doc.setFontSize(7);
+        doc.setFontSize(8);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(120, 120, 120);
+        doc.setTextColor(80, 80, 80);
         const companyName = companyInfo?.companyName || 'Multicore';
         const companyPhone = companyInfo?.phone ? ` | Tel: ${companyInfo.phone}` : '';
         const companyEmail = companyInfo?.email ? ` | ${companyInfo.email}` : '';
@@ -95,12 +95,12 @@ export const addProfessionalFooter = (doc: jsPDF, companyInfo: any) => {
 
         // Timestamp and legal text (center)
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(6);
-        doc.setTextColor(150, 150, 150);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
         doc.text(`Documento gerado automaticamente em ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
 
         // Page number (right aligned)
-        doc.setFontSize(7);
+        doc.setFontSize(8);
         doc.text(`Página ${i} de ${pageCount}`, pageWidth - 15, pageHeight - 15, { align: 'right' });
 
         // Year (right aligned)
@@ -115,7 +115,7 @@ export const generateGuiaRemessa = (transfer: any, companyInfo?: any) => {
     addProfessionalHeader(doc, 'GUIA DE REMESSA', companyInfo);
 
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.text(`Guia Nº: ${transfer.number}`, 15, 52);
     doc.text(`Data da Operação: ${new Date(transfer.createdAt).toLocaleDateString()}`, 15, 57);
@@ -390,8 +390,8 @@ export const generatePharmacyStockReport = (data: { items: any[]; summary: any }
         startY: 110,
         head: [['Código', 'Medicamento', 'DCI', 'Stock', 'Status', 'Valor']],
         body: tableData,
-        headStyles: { fillColor: [16, 185, 129] as [number, number, number], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-        bodyStyles: { fontSize: 8 },
+        headStyles: { fillColor: [16, 185, 129] as [number, number, number], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
         alternateRowStyles: { fillColor: [240, 253, 244] },
         columnStyles: {
             0: { cellWidth: 22 },
@@ -460,8 +460,8 @@ export const generatePharmacySalesReport = (sales: any[], period: string, compan
         startY: 90,
         head: [['Nº Venda', 'Data', 'Cliente', 'Pagamento', 'Itens', 'Total']],
         body: tableData,
-        headStyles: { fillColor: [59, 130, 246] as [number, number, number], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-        bodyStyles: { fontSize: 8 },
+        headStyles: { fillColor: [59, 130, 246] as [number, number, number], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
         alternateRowStyles: { fillColor: [239, 246, 255] },
         columnStyles: {
             0: { cellWidth: 28 },
@@ -529,8 +529,8 @@ export const generatePharmacyExpiringReport = (data: { items: any[]; summary: an
         startY: 90,
         head: [['Código', 'Medicamento', 'Lote', 'Expira', 'Status', 'Qtd', 'Valor']],
         body: tableData,
-        headStyles: { fillColor: [220, 38, 38] as [number, number, number], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-        bodyStyles: { fontSize: 8 },
+        headStyles: { fillColor: [220, 38, 38] as [number, number, number], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
         alternateRowStyles: { fillColor: [254, 242, 242] },
         didParseCell: (data: any) => {
             if (data.column.index === 4 && data.cell.raw === 'EXPIRADO') {
@@ -974,9 +974,9 @@ export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyI
             fillColor: [51, 65, 85] as [number, number, number],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
-            fontSize: 7
+            fontSize: 8
         },
-        bodyStyles: { fontSize: 7 },
+        bodyStyles: { fontSize: 8 },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         columnStyles: {
             0: { cellWidth: 35 },

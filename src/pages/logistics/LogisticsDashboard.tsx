@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Button, Badge, LoadingSpinner, Modal, Select, Input, PageHeader, Skeleton } from '../../components/ui';
+import { Card, Button, Badge, Modal, Select, Input, PageHeader, Skeleton } from '../../components/ui';
 import { useWarehouses } from '../../hooks/useWarehouses';
 import { useProducts } from '../../hooks/useProducts';
 import {
@@ -21,11 +21,12 @@ import {
     HiOutlineArrowPath
 } from 'react-icons/hi2';
 import { 
-    useLogisticsDashboard, 
-    useExpiryAlerts, 
+    useLogisticsDashboard,
+    useExpiryAlerts,
     useTransfers, 
     useCreateTransfer 
 } from '../../hooks/useLogistics';
+import type { StockTransfer } from '../../types';
 import { ExpiryAlertsPanel } from '../../components/logistics/ExpiryAlertsPanel';
 import LogisticsMap from '../../components/logistics/LogisticsMap';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
@@ -50,8 +51,7 @@ import {
     Legend
 } from 'recharts';
 import { subMonths, isAfter, startOfDay } from 'date-fns';
-import { CHART_COLORS } from '../../components/common/ModuleMetricCard';
-import { cn } from '../../utils/helpers';
+import { CHART_COLORS, MetricCard } from '../../components/common/ModuleMetricCard';
 
 type TimePeriod = 'today' | 'month' | '2months' | '3months' | 'year' | 'all';
 
@@ -79,8 +79,9 @@ export default function LogisticsDashboard() {
     });
 
     const filteredTransfers = useMemo(() => {
-        if (!allTransfers) return [];
-        if (period === 'all') return allTransfers;
+        const transfersArray = Array.isArray(allTransfers) ? allTransfers : (allTransfers as any)?.data || [];
+        if (transfersArray.length === 0) return [];
+        if (period === 'all') return transfersArray;
 
         const now = new Date();
         let startDate: Date;
@@ -105,7 +106,7 @@ export default function LogisticsDashboard() {
                 startDate = new Date(0);
         }
 
-        return allTransfers.filter(tr => {
+        return transfersArray.filter((tr: StockTransfer) => {
             const trDate = new Date(tr.date || tr.createdAt);
             return isAfter(trDate, startDate);
         });
@@ -156,7 +157,10 @@ export default function LogisticsDashboard() {
     };
 
     const exportToExcel = () => {
-        const data = filteredTransfers.map(tr => ({
+        if (!Array.isArray(filteredTransfers) || filteredTransfers.length === 0) {
+            return toast.error('Nenhum dado para exportar');
+        }
+        const data = filteredTransfers.map((tr: StockTransfer) => ({
             'Guia': tr.number,
             'Origem': tr.sourceWarehouse?.name,
             'Destino': tr.targetWarehouse?.name,
@@ -186,7 +190,9 @@ export default function LogisticsDashboard() {
         doc.text(`${t('common.period')}: ${periodLabel}`, 15, 52);
         doc.text(`${t('logistics_module.dashboard.reports.totalTransfers')}: ${filteredTransfers.length}`, 15, 57);
 
-        const tableData = filteredTransfers.map(tr => [
+        if (!Array.isArray(filteredTransfers)) return;
+
+        const tableData = filteredTransfers.map((tr: StockTransfer) => [
             tr.number,
             tr.sourceWarehouse?.name || '-',
             tr.targetWarehouse?.name || '-',
@@ -314,36 +320,36 @@ export default function LogisticsDashboard() {
             <PageHeader
                 title={t('logistics_module.dashboard.title')}
                 subtitle={t('logistics_module.dashboard.subtitle')}
-                icon={<HiOutlineTruck />}
+                icon={<HiOutlineTruck className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex flex-wrap items-center gap-3">
                         <Button
                             variant="ghost"
                             onClick={handleRefresh}
-                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                         >
                             {t('common.refresh')}
                         </Button>
 
-                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-dark-900/50 p-1.5 rounded-lg border border-gray-100 dark:border-dark-700 mx-2">
-                            <HiOutlineFunnel className="w-4 h-4 text-gray-400 ml-2" />
-                            <select
+                        <div className="w-48">
+                            <Select
                                 value={period}
                                 onChange={(e) => setPeriod(e.target.value as TimePeriod)}
-                                className="bg-transparent border-none text-xs font-bold text-gray-600 dark:text-gray-400 focus:ring-0 cursor-pointer outline-none"
-                            >
-                                <option value="today">{t('logistics_module.dashboard.periods.today')}</option>
-                                <option value="month">{t('logistics_module.dashboard.periods.month')}</option>
-                                <option value="2months">{t('logistics_module.dashboard.periods.2months')}</option>
-                                <option value="3months">{t('logistics_module.dashboard.periods.3months')}</option>
-                                <option value="year">{t('logistics_module.dashboard.periods.year')}</option>
-                                <option value="all">{t('logistics_module.dashboard.periods.all')}</option>
-                            </select>
+                                leftIcon={<HiOutlineFunnel className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
+                                className="bg-gray-50 dark:bg-dark-900/50 text-xs font-bold"
+                                options={[
+                                    { value: 'today', label: t('logistics_module.dashboard.periods.today') },
+                                    { value: 'month', label: t('logistics_module.dashboard.periods.month') },
+                                    { value: '2months', label: t('logistics_module.dashboard.periods.2months') },
+                                    { value: '3months', label: t('logistics_module.dashboard.periods.3months') },
+                                    { value: 'year', label: t('logistics_module.dashboard.periods.year') },
+                                    { value: 'all', label: t('logistics_module.dashboard.periods.all') }
+                                ]}
+                            />
                         </div>
 
                         <Button
                             variant="outline"
-                            className="bg-white/50 backdrop-blur-sm border-gray-200 dark:border-dark-700 rounded-lg"
                             leftIcon={<HiOutlinePrinter className="w-5 h-5" />}
                             onClick={exportToPDF}
                         >
@@ -351,8 +357,7 @@ export default function LogisticsDashboard() {
                         </Button>
                         <Button
                             variant="outline"
-                            className="bg-white/50 backdrop-blur-sm border-gray-200 dark:border-dark-700 rounded-lg"
-                            leftIcon={<HiOutlineTableCells className="w-5 h-5" />}
+                            leftIcon={<HiOutlineTableCells className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
                             onClick={exportToExcel}
                         >
                             Excel
@@ -360,7 +365,7 @@ export default function LogisticsDashboard() {
                         <Button
                             variant="primary"
                             className="rounded-lg shadow-lg shadow-primary-500/25"
-                            leftIcon={<HiOutlinePlus className="w-5 h-5" />}
+                            leftIcon={<HiOutlinePlus className="w-5 h-5 text-white" />}
                             onClick={() => setIsTransferModalOpen(true)}
                         >
                             {t('logistics_module.dashboard.newTransfer')}
@@ -393,7 +398,7 @@ export default function LogisticsDashboard() {
             <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
                     <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <HiOutlineMapPin className="text-primary-600 w-6 h-6" />
+                        <HiOutlineMapPin className="text-primary-600 dark:text-primary-400 w-6 h-6" />
                         {t('logistics_module.dashboard.visualTracking')}
                     </h2>
                     <Badge variant="success" className="animate-pulse">Live Tracking</Badge>
@@ -407,27 +412,35 @@ export default function LogisticsDashboard() {
             </div>
 
             {/* KPI Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                    { label: t('logistics_module.dashboard.kpis.totalStock'), value: totalStock.toLocaleString(), icon: HiOutlineCube, color: 'blue', detail: t('logistics_module.dashboard.kpis.itemsInNetwork') },
-                    { label: t('logistics_module.dashboard.kpis.pickupRevenue'), value: `${(dashboard?.stats?.pickupRevenue || 0).toLocaleString()} MZN`, icon: HiOutlineBanknotes, color: 'emerald', detail: t('logistics_module.dashboard.kpis.totalPickups') },
-                    { label: t('logistics_module.dashboard.kpis.deliveryRevenue'), value: `${(dashboard?.stats?.deliveryRevenue || 0).toLocaleString()} MZN`, icon: HiOutlineTruck, color: 'indigo', detail: t('logistics_module.dashboard.kpis.totalShipments') },
-                    { label: t('logistics_module.dashboard.kpis.regions'), value: dashboard?.stats?.deliveriesByProvince?.length || 0, icon: HiOutlineFlag, color: 'amber', detail: t('common.provinces') }
-                ].map((kpi, i) => (
-                    <Card key={i} color={kpi.color === 'blue' ? 'info' : kpi.color as any} className="relative group overflow-hidden transition-all h-full">
-                        <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full bg-primary-500/5 group-hover:bg-primary-500/10 transition-colors`}></div>
-                        <div className="flex items-start justify-between">
-                            <div className="min-w-0 flex-1">
-                                <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-1 truncate">{kpi.label}</p>
-                                <h3 className="text-2xl font-bold text-gray-900 dark:text-white truncate">{kpi.value}</h3>
-                                <p className="text-[10px] uppercase font-bold tracking-wider text-gray-400 mt-2 truncate">{kpi.detail}</p>
-                            </div>
-                            <div className="w-12 h-12 rounded-lg bg-white/50 dark:bg-black/20 flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-110 transition-transform">
-                                <kpi.icon className={cn("w-6 h-6", `text-${kpi.color}-600 dark:text-${kpi.color}-400`)} />
-                            </div>
-                        </div>
-                    </Card>
-                ))}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                    icon={<HiOutlineCube className="w-5 h-5" />}
+                    color="info"
+                    value={totalStock.toLocaleString()}
+                    label={t('logistics_module.dashboard.kpis.totalStock')}
+                    badge={<span className="text-[9px] font-black text-blue-500 dark:text-blue-400 uppercase">{t('logistics_module.dashboard.kpis.itemsInNetwork')}</span>}
+                />
+                <MetricCard
+                    icon={<HiOutlineBanknotes className="w-5 h-5" />}
+                    color="success"
+                    value={`${(dashboard?.stats?.pickupRevenue || 0).toLocaleString()} MZN`}
+                    label={t('logistics_module.dashboard.kpis.pickupRevenue')}
+                    badge={<span className="text-[9px] font-black text-emerald-500 dark:text-emerald-400 uppercase">{t('logistics_module.dashboard.kpis.totalPickups')}</span>}
+                />
+                <MetricCard
+                    icon={<HiOutlineTruck className="w-5 h-5" />}
+                    color="indigo"
+                    value={`${(dashboard?.stats?.deliveryRevenue || 0).toLocaleString()} MZN`}
+                    label={t('logistics_module.dashboard.kpis.deliveryRevenue')}
+                    badge={<span className="text-[9px] font-black text-indigo-500 dark:text-indigo-400 uppercase">{t('logistics_module.dashboard.kpis.totalShipments')}</span>}
+                />
+                <MetricCard
+                    icon={<HiOutlineFlag className="w-5 h-5" />}
+                    color="amber"
+                    value={dashboard?.stats?.deliveriesByProvince?.length || 0}
+                    label={t('logistics_module.dashboard.kpis.regions')}
+                    badge={<span className="text-[9px] font-black text-amber-500 dark:text-amber-400 uppercase">{t('common.provinces')}</span>}
+                />
             </div>
 
             {/* Data Visualization Section */}
@@ -435,7 +448,7 @@ export default function LogisticsDashboard() {
                 <Card color="slate" className="p-6 h-[400px] flex flex-col">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                            <HiOutlineChartBar className="text-primary-600 w-5 h-5" />
+                            <HiOutlineChartBar className="text-primary-600 dark:text-primary-400 w-5 h-5" />
                             {t('logistics_module.dashboard.charts.flow')}
                         </h3>
                         <Badge variant="primary" size="sm">{t('logistics_module.dashboard.charts.transferVolume')}</Badge>
@@ -464,7 +477,7 @@ export default function LogisticsDashboard() {
                 <Card color="slate" className="p-6 h-[400px] flex flex-col">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                            <HiOutlineSquares2X2 className="text-indigo-600 w-5 h-5" />
+                            <HiOutlineSquares2X2 className="text-indigo-600 dark:text-indigo-400 w-5 h-5" />
                             {t('logistics_module.dashboard.charts.distribution')}
                         </h3>
                     </div>
@@ -497,7 +510,7 @@ export default function LogisticsDashboard() {
                 <div className="lg:col-span-2 space-y-6">
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                            <HiOutlineMapPin className="text-primary-600 w-6 h-6" />
+                            <HiOutlineMapPin className="text-primary-600 dark:text-primary-400 w-6 h-6" />
                             {t('logistics_module.dashboard.warehouseNetwork')}
                         </h2>
                     </div>
@@ -507,7 +520,7 @@ export default function LogisticsDashboard() {
                             <Card key={w.id} className="group hover:border-primary-500/30 transition-all cursor-pointer">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-lg bg-gray-50 dark:bg-dark-900/50 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all">
+                                        <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-500/15 border border-primary-200/50 dark:border-primary-500/30 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all shadow-sm backdrop-blur-sm">
                                             <HiOutlineMapPin className="w-6 h-6" />
                                         </div>
                                         <div>
@@ -552,14 +565,14 @@ export default function LogisticsDashboard() {
                 <div className="space-y-6">
                     <div className="flex items-center justify-between px-2">
                         <h2 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                            <HiOutlineChartBar className="text-indigo-600 w-6 h-6" />
+                            <HiOutlineChartBar className="text-indigo-600 dark:text-indigo-400 w-6 h-6" />
                             {t('logistics_module.dashboard.recentActivity')}
                         </h2>
                     </div>
 
                     <Card className="p-0 overflow-hidden border-none shadow-xl">
-                        <div className="p-4 bg-gray-50 dark:bg-dark-900/50 border-b dark:border-dark-700 flex items-center justify-between">
-                            <span className="text-xs font-bold text-gray-500 tracking-widest">{t('logistics_module.dashboard.liveTransfers')}</span>
+                        <div className="p-4 bg-indigo-50/80 dark:bg-dark-900/50 border-b border-indigo-100 dark:border-dark-700 flex items-center justify-between">
+                            <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">{t('logistics_module.dashboard.liveTransfers')}</span>
                             <Badge variant="primary" size="sm">{filteredTransfers.length}</Badge>
                         </div>
                         <div className="max-h-[500px] overflow-y-auto scrollbar-hidden">
@@ -584,7 +597,7 @@ export default function LogisticsDashboard() {
                                 </div>
                             ) : filteredTransfers.length > 0 ? (
                                 <div className="divide-y dark:divide-dark-700">
-                                    {filteredTransfers.slice(0, 8).map((tr) => (
+                                    {filteredTransfers.slice(0, 8).map((tr: StockTransfer) => (
                                         <div key={tr.id} className="p-4 hover:bg-white dark:hover:bg-dark-700/50 transition-all group">
                                             <div className="flex items-start gap-3">
                                                 <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${tr.status === 'completed' ? 'bg-green-500' : 'bg-amber-400'}`}></div>
@@ -600,7 +613,7 @@ export default function LogisticsDashboard() {
                                                     </div>
                                                     <div className="flex items-center justify-between mt-3">
                                                         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter flex items-center gap-1">
-                                                            <HiOutlineSquares2X2 className="w-3 h-3" /> {tr.items?.length || 0} {t('common.items')}
+                                                            <HiOutlineSquares2X2 className="w-3 h-3 text-primary-600 dark:text-primary-400" /> {tr.items?.length || 0} {t('common.items')}
                                                         </span>
                                                         <Button
                                                             variant="ghost"
@@ -608,7 +621,7 @@ export default function LogisticsDashboard() {
                                                             className="h-8 w-8 p-0"
                                                             onClick={() => generateGuiaRemessa(tr, companySettings)}
                                                         >
-                                                            <HiOutlinePrinter className="w-4 h-4 text-primary-500" />
+                                                            <HiOutlinePrinter className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                                                         </Button>
                                                     </div>
                                                 </div>
@@ -692,7 +705,7 @@ export default function LogisticsDashboard() {
                             variant="outline"
                             size="sm"
                             className="w-full border-dashed"
-                            leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                            leftIcon={<HiOutlinePlus className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                             onClick={addItem}
                         >
                             Adicionar Produto

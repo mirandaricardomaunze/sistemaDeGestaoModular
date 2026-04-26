@@ -1,5 +1,5 @@
-﻿import { useState, useEffect } from 'react';
-import { Card, Button, Input, PageHeader } from '../../components/ui';
+import { useState, useEffect } from 'react';
+import { Card, Button, Input, PageHeader, ConfirmationModal } from '../../components/ui';
 import { pharmacyAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -22,6 +22,7 @@ export default function PharmacyStockReconciliation() {
     const [notes, setNotes] = useState('');
     const [result, setResult] = useState<any>(null);
     const [search, setSearch] = useState('');
+    const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
 
     const loadSnapshot = async () => {
         setIsLoading(true);
@@ -56,13 +57,14 @@ export default function PharmacyStockReconciliation() {
 
     const handleSubmit = async () => {
         if (variances.length === 0) {
-            toast('Nenhuma variação detectada - contagem igual ao sistema.', { icon: 'â„¹️' });
+            toast('Nenhuma variação detectada - contagem igual ao sistema.', { icon: 'ℹ️' });
             return;
         }
-        const confirmed = window.confirm(
-            `Vai ajustar ${variances.length} produto(s) com variaces. Esta acção é irreversível. Continuar?`
-        );
-        if (!confirmed) return;
+        setShowConfirmSubmit(true);
+    };
+
+    const confirmSubmit = async () => {
+        setShowConfirmSubmit(false);
         setIsSubmitting(true);
         try {
             const counts = snapshot.map(item => ({
@@ -94,7 +96,8 @@ export default function PharmacyStockReconciliation() {
                 icon={<HiOutlineArrowsRightLeft />}
                 actions={
                     <Button
-                        variant="outline"
+                        variant="ghost"
+                        className="bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest"
                         leftIcon={<HiOutlineRefresh className="w-4 h-4" />}
                         onClick={loadSnapshot}
                         disabled={isLoading}
@@ -105,22 +108,46 @@ export default function PharmacyStockReconciliation() {
             />
 
             {/* Summary stats */}
-            {snapshot.length > 0 && (
-                <div className="grid grid-cols-3 gap-4">
-                    <Card className="p-4 text-center">
-                        <p className="text-2xl font-black text-gray-900 dark:text-white">{snapshot.length}</p>
-                        <p className="text-sm text-gray-500">Total Medicamentos</p>
-                    </Card>
-                    <Card className="p-4 text-center border-amber-200 dark:border-amber-800">
-                        <p className="text-2xl font-black text-amber-600">{variances.length}</p>
-                        <p className="text-sm text-gray-500">Com Variação</p>
-                    </Card>
-                    <Card className="p-4 text-center border-green-200 dark:border-green-800">
-                        <p className="text-2xl font-black text-green-600">{snapshot.length - variances.length}</p>
-                        <p className="text-sm text-gray-500">Sem Variação</p>
-                    </Card>
-                </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card padding="md" className="border-none shadow-premium bg-white dark:bg-dark-900 overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-blue-500/10 transition-colors" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
+                            <HiOutlineClipboardCheck className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total Itens</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white leading-none mt-1">{snapshot.length}</p>
+                        </div>
+                    </div>
+                </Card>
+
+                <Card padding="md" className="border-none shadow-premium bg-white dark:bg-dark-900 overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-amber-500/10 transition-colors" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
+                            <HiOutlineExclamationCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Com Variação</p>
+                            <p className="text-2xl font-black text-amber-600 leading-none mt-1">{variances.length}</p>
+                        </div>
+                    </div>
+                </Card>
+
+                <Card padding="md" className="border-none shadow-premium bg-white dark:bg-dark-900 overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-green-500/10 transition-colors" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-green-500/15 border border-green-500/20 flex items-center justify-center text-green-600 dark:text-green-400 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
+                            <HiOutlineCheckCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sem Variação</p>
+                            <p className="text-2xl font-black text-green-600 leading-none mt-1">{snapshot.length - variances.length}</p>
+                        </div>
+                    </div>
+                </Card>
+            </div>
 
             {/* Result banner */}
             {result && (
@@ -170,7 +197,7 @@ export default function PharmacyStockReconciliation() {
                         placeholder="Pesquisar medicamento..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4 text-gray-400" />}
+                        leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4 text-emerald-600" />}
                         className="flex-1 bg-white dark:bg-dark-800"
                     />
                     <span className="text-xs text-gray-400 whitespace-nowrap">{filtered.length} itens</span>
@@ -251,9 +278,9 @@ export default function PharmacyStockReconciliation() {
                     <Button
                         onClick={handleSubmit}
                         disabled={isSubmitting || variances.length === 0}
-                        leftIcon={<HiOutlineClipboardCheck className="w-4 h-4" />}
+                        leftIcon={<HiOutlineClipboardCheck className="w-6 h-6" />}
                         size="lg"
-                        className="w-full"
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest py-6"
                     >
                         {isSubmitting
                             ? 'A submeter...'
@@ -264,6 +291,18 @@ export default function PharmacyStockReconciliation() {
                     </Button>
                 </Card>
             )}
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showConfirmSubmit}
+                onClose={() => setShowConfirmSubmit(false)}
+                onConfirm={confirmSubmit}
+                title="Confirmar Reconciliação"
+                message={`Vai ajustar ${variances.length} produto(s) com variações. Esta acção irá actualizar o stock do sistema para corresponder à contagem física e é irreversível. Continuar?`}
+                confirmText="Sim, Ajustar Stock"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isSubmitting}
+            />
         </div>
     );
 }

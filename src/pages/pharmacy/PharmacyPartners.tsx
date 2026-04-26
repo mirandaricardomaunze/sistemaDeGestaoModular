@@ -1,11 +1,11 @@
-﻿import { useState, useMemo } from 'react';
-import { Card, Button, Input, Modal, Badge, Pagination } from '../../components/ui';
+import { useState, useMemo } from 'react';
+import { Card, Button, Input, Modal, Badge, Pagination, Select } from '../../components/ui';
 import {
-    HiOutlinePlus, HiOutlineSearch, HiOutlinePencil, HiOutlineTrash,
-    HiOutlineShieldCheck, HiOutlineMail, HiOutlinePhone,
+    HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash,
+    HiOutlineShieldCheck, HiOutlineEnvelope, HiOutlinePhone,
     HiOutlineTruck, HiOutlineCurrencyDollar, HiOutlineCheck,
-    HiOutlineOfficeBuilding
-} from 'react-icons/hi';
+    HiOutlineBuildingOffice
+} from 'react-icons/hi2';
 import { cn, formatCurrency, formatDate } from '../../utils/helpers';
 import { usePharmacyPartners, type Partner } from '../../hooks/usePharmacyPartners';
 import { usePharmacySuppliers } from '../../hooks/usePharmacySuppliers';
@@ -50,7 +50,7 @@ export default function PharmacyPartners() {
                                     ? 'bg-white dark:bg-dark-800 text-primary-600 dark:text-primary-400 shadow-sm'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                             )}>
-                            <Icon className="w-4 h-4" />{t.label}
+                            <Icon className={cn("w-4 h-4", tab === t.id ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />{t.label}
                         </button>
                     );
                 })}
@@ -96,7 +96,7 @@ function InsurersTab() {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <Input placeholder="Pesquisar seguradora..." value={search} onChange={e => setSearch(e.target.value)}
-                    leftIcon={<HiOutlineSearch className="w-4 h-4" />} className="max-w-xs" />
+                    leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4 text-primary-600 dark:text-primary-400" />} className="max-w-xs" />
                 <Button onClick={() => setIsModalOpen(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />}>Nova Seguradora</Button>
             </div>
 
@@ -111,7 +111,7 @@ function InsurersTab() {
                             <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center">
-                                        <HiOutlineShieldCheck className="w-5 h-5 text-primary-600" />
+                                        <HiOutlineShieldCheck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                                     </div>
                                     <div>
                                         <p className="font-bold text-gray-900 dark:text-white text-sm">{partner.name}</p>
@@ -119,16 +119,26 @@ function InsurersTab() {
                                     </div>
                                 </div>
                                 <div className="flex gap-1">
-                                    <button onClick={() => { setEditingPartner(partner); setIsModalOpen(true); }} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-400 hover:text-primary-600 transition-colors">
-                                        <HiOutlinePencil className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button onClick={() => { if (confirm('Remover parceiro?')) deletePartner(partner.id); }} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 text-gray-400 hover:text-red-600 transition-colors">
-                                        <HiOutlineTrash className="w-3.5 h-3.5" />
-                                    </button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => { setEditingPartner(partner); setIsModalOpen(true); }} 
+                                        className="p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm"
+                                    >
+                                        <HiOutlinePencil className="w-4 h-4" />
+                                    </Button>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => { if (confirm('Remover parceiro?')) deletePartner(partner.id); }} 
+                                        className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
+                                    >
+                                        <HiOutlineTrash className="w-4 h-4" />
+                                    </Button>
                                 </div>
                             </div>
-                            {partner.phone && <p className="text-xs text-gray-500 flex items-center gap-1 mb-1"><HiOutlinePhone className="w-3 h-3" />{partner.phone}</p>}
-                            {partner.email && <p className="text-xs text-gray-500 flex items-center gap-1 mb-3"><HiOutlineMail className="w-3 h-3" />{partner.email}</p>}
+                            {partner.phone && <p className="text-xs text-gray-500 flex items-center gap-1 mb-1 font-bold"><HiOutlinePhone className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />{partner.phone}</p>}
+                            {partner.email && <p className="text-xs text-gray-500 flex items-center gap-1 mb-3 font-bold"><HiOutlineEnvelope className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />{partner.email}</p>}
                             <div className="pt-3 border-t border-gray-100 dark:border-dark-700 flex items-center justify-between">
                                 <span className="text-xs text-gray-500">Cobertura</span>
                                 <Badge variant="success" className="font-bold text-sm">{partner.coveragePercentage}%</Badge>
@@ -194,8 +204,8 @@ function SuppliersTab() {
         <div className="space-y-4">
             <div className="flex items-center justify-between">
                 <Input placeholder="Pesquisar fornecedor..." value={search} onChange={e => setSearch(e.target.value)}
-                    leftIcon={<HiOutlineSearch className="w-4 h-4" />} className="max-w-xs" />
-                <Button onClick={() => setIsModalOpen(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />}>Novo Fornecedor</Button>
+                    leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4 text-primary-600 dark:text-primary-400" />} className="max-w-xs" />
+                <Button onClick={() => setIsModalOpen(true)} leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}>Novo Fornecedor</Button>
             </div>
 
             <Card padding="none">
@@ -219,7 +229,7 @@ function SuppliersTab() {
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
-                                                    <HiOutlineTruck className="w-4 h-4 text-blue-600" />
+                                                    <HiOutlineTruck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                                 </div>
                                                 <span className="font-medium">{s.name}</span>
                                             </div>
@@ -232,12 +242,22 @@ function SuppliersTab() {
                                         <td className="px-4 py-3 font-mono text-xs text-gray-500">{s.nuit || ''}</td>
                                         <td className="px-4 py-3">
                                             <div className="flex gap-1">
-                                                <button onClick={() => { setEditing(s); setIsModalOpen(true); }} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-dark-600 text-gray-400 hover:text-primary-600">
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => { setEditing(s); setIsModalOpen(true); }} 
+                                                    className="p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm"
+                                                >
                                                     <HiOutlinePencil className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => { if (confirm('Remover fornecedor?')) deleteSupplier(s.id); }} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-600">
+                                                </Button>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => { if (confirm('Remover fornecedor?')) deleteSupplier(s.id); }} 
+                                                    className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
+                                                >
                                                     <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -326,10 +346,18 @@ function BillingTab() {
             <div className="flex items-center justify-between">
                 <div className="flex gap-2 flex-wrap">
                     {['', 'pending', 'sent', 'partial', 'paid', 'overdue'].map(s => (
-                        <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
-                            className={cn('px-3 py-1.5 rounded-lg text-sm font-medium transition-colors', statusFilter === s ? 'bg-primary-600 text-white' : 'bg-white dark:bg-dark-800 border border-gray-200 text-gray-600 hover:bg-gray-50')}>
+                        <Button 
+                            key={s} 
+                            onClick={() => { setStatusFilter(s); setPage(1); }}
+                            variant={statusFilter === s ? 'primary' : 'ghost'}
+                            size="sm"
+                            className={cn(
+                                'font-medium transition-colors',
+                                statusFilter !== s && 'bg-white dark:bg-dark-800 border border-gray-200 text-gray-600 hover:bg-gray-50'
+                            )}
+                        >
                             {s === '' ? 'Todas' : STATUS_MAP[s]?.label}
-                        </button>
+                        </Button>
                     ))}
                 </div>
                 <Button onClick={() => setShowGenerate(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />}>Gerar Fatura</Button>
@@ -356,12 +384,18 @@ function BillingTab() {
                     <h3 className="font-bold mb-4">Gerar Fatura para Seguradora</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div className="col-span-2 md:col-span-1">
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Parceiro *</label>
-                            <select className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                value={generateForm.partnerId} onChange={e => setGenerateForm(f => ({ ...f, partnerId: e.target.value }))}>
-                                <option value="">Seleccionar...</option>
-                                {partners.map((p: any) => <option key={p.id} value={p.id}>{p.name} ({p.coveragePercentage}%)</option>)}
-                            </select>
+                            <Select
+                                label="Parceiro *"
+                                value={generateForm.partnerId}
+                                onChange={e => setGenerateForm(f => ({ ...f, partnerId: e.target.value }))}
+                                options={[
+                                    { value: '', label: 'Seleccionar...' },
+                                    ...partners.map((p: any) => ({
+                                        value: p.id,
+                                        label: `${p.name} (${p.coveragePercentage}%)`
+                                    }))
+                                ]}
+                            />
                         </div>
                         <Input label="Período de Início" type="date" value={generateForm.periodStart} onChange={e => setGenerateForm(f => ({ ...f, periodStart: e.target.value }))} />
                         <Input label="Período de Fim" type="date" value={generateForm.periodEnd} onChange={e => setGenerateForm(f => ({ ...f, periodEnd: e.target.value }))} />
@@ -395,7 +429,7 @@ function BillingTab() {
                                             <td className="px-4 py-3 font-mono text-xs font-bold">{inv.invoiceNumber}</td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    <HiOutlineOfficeBuilding className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                                    <HiOutlineBuildingOffice className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                                     <span className="font-medium">{inv.partner?.name}</span>
                                                 </div>
                                             </td>

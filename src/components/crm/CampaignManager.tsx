@@ -19,7 +19,7 @@ import {
     HiOutlineStop,
 } from 'react-icons/hi';
 import { useCampaigns } from '../../hooks/useData';
-import { Button, Card, Modal, Input, Select, Badge, Textarea, Pagination, usePagination } from '../ui';
+import { Button, Card, Modal, Input, Select, Badge, Textarea, Pagination, usePagination, ConfirmationModal } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import {
     CAMPAIGN_STATUS_LABELS,
@@ -778,22 +778,16 @@ export default function CampaignManager() {
                 )}
             </Modal>
             {/* Delete Modal */}
-            <Modal
+            <ConfirmationModal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
+                onConfirm={performDelete}
                 title="Eliminar Campanha"
-                size="sm"
-            >
-                <div className="space-y-4">
-                    <p className="text-gray-600 dark:text-gray-400">
-                        Tem certeza que deseja eliminar esta campanha? Esta ação não pode ser desfeita.
-                    </p>
-                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-dark-700">
-                        <Button variant="ghost" onClick={() => setShowDeleteModal(false)}>Cancelar</Button>
-                        <Button variant="danger" onClick={performDelete}>Eliminar</Button>
-                    </div>
-                </div>
-            </Modal>
+                message={`Tem certeza que deseja eliminar a campanha "${selectedCampaign?.name}"? Esta ação não pode ser desfeita.`}
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                variant="danger"
+            />
         </div>
     );
 }

@@ -12,8 +12,12 @@ import {
 } from 'react-icons/hi2';
 import { Button, Input, Badge } from '../ui';
 import { batchesAPI, type ProductBatch } from '../../services/api/batches.api';
+import { productsAPI } from '../../services/api';
+import { useWarehouses } from '../../hooks/useWarehouses';
 import { cn } from '../../utils/helpers';
 import toast from 'react-hot-toast';
+import { Select } from '../ui';
+import type { Product } from '../../types';
 
 interface Props {
     productId: string;
@@ -25,9 +29,21 @@ interface BatchForm {
     expiryDate: string;
     costPrice: string;
     notes: string;
+    warehouseId: string;
+    boxes: string;
+    unitsPerBox: string;
 }
 
-const emptyForm: BatchForm = { batchNumber: '', quantity: '0', expiryDate: '', costPrice: '0', notes: '' };
+const emptyForm: BatchForm = { 
+    batchNumber: '', 
+    quantity: '0', 
+    expiryDate: '', 
+    costPrice: '0', 
+    notes: '', 
+    warehouseId: '',
+    boxes: '0',
+    unitsPerBox: '1'
+};
 
 type BatchStatus = ProductBatch['status'];
 
@@ -53,7 +69,6 @@ function StatusBadge({ status, daysToExpiry }: { status: BatchStatus; daysToExpi
     }
     return <Badge variant="success">Válido</Badge>;
 }
-
 export default function ProductValiditiesSection({ productId }: Props) {
     const [batches, setBatches] = useState<(ProductBatch & { daysToExpiry?: number | null })[]>([]);
     const [loading, setLoading] = useState(true);
@@ -61,6 +76,37 @@ export default function ProductValiditiesSection({ productId }: Props) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState<BatchForm>(emptyForm);
     const [submitting, setSubmitting] = useState(false);
+
+    const [product, setProduct] = useState<Product | null>(null);
+    const { warehouses } = useWarehouses();
+    const [isBoxEntry, setIsBoxEntry] = useState(false);
+
+    useEffect(() => {
+        const fetchProduct = async () => {
+            try {
+                const res = await productsAPI.getById(productId);
+                const data = res.data ?? res;
+                setProduct(data);
+                if (data.packSize && data.packSize > 1) {
+                    setIsBoxEntry(true);
+                    setForm(f => ({ ...f, unitsPerBox: String(data.packSize || 1) }));
+                }
+            } catch (err) {
+                console.error("Error fetching product:", err);
+            }
+        };
+        fetchProduct();
+    }, [productId]);
+
+    // Handle box calculation
+    useEffect(() => {
+        if (isBoxEntry) {
+            const boxes = parseFloat(form.boxes) || 0;
+            const upb = parseFloat(form.unitsPerBox) || 1;
+            const total = Math.round(boxes * upb);
+            setForm(f => ({ ...f, quantity: String(total) }));
+        }
+    }, [form.boxes, form.unitsPerBox, isBoxEntry]);
 
     const load = async () => {
         try {
@@ -99,6 +145,9 @@ export default function ProductValiditiesSection({ productId }: Props) {
             expiryDate: b.expiryDate ? b.expiryDate.slice(0, 10) : '',
             costPrice: String(b.costPrice ?? 0),
             notes: b.notes || '',
+            warehouseId: b.warehouseId || '',
+            boxes: product?.packSize && product.packSize > 1 ? String(Math.floor(b.quantity / product.packSize)) : '0',
+            unitsPerBox: String(product?.packSize || 1)
         });
         setShowForm(true);
     };
@@ -112,6 +161,8 @@ export default function ProductValiditiesSection({ productId }: Props) {
     const handleSave = async () => {
         if (!form.batchNumber.trim()) { toast.error('Número de lote obrigatório'); return; }
         if (!form.expiryDate) { toast.error('Data de validade obrigatória'); return; }
+        if (!form.warehouseId && !editingId) { toast.error('Armazém é obrigatório para novos lotes'); return; }
+        
         setSubmitting(true);
         try {
             if (editingId) {
@@ -120,6 +171,7 @@ export default function ProductValiditiesSection({ productId }: Props) {
                     expiryDate: form.expiryDate,
                     costPrice: parseFloat(form.costPrice) || 0,
                     notes: form.notes || undefined,
+                    warehouseId: form.warehouseId || undefined,
                 });
                 toast.success('Lote actualizado');
             } else {
@@ -130,6 +182,7 @@ export default function ProductValiditiesSection({ productId }: Props) {
                     expiryDate: form.expiryDate,
                     costPrice: parseFloat(form.costPrice) || 0,
                     notes: form.notes || undefined,
+                    warehouseId: form.warehouseId,
                 });
                 toast.success('Lote adicionado');
             }
@@ -198,13 +251,66 @@ export default function ProductValiditiesSection({ productId }: Props) {
                             placeholder="LOTE-001"
                             disabled={!!editingId}
                         />
-                        <Input
-                            label="Quantidade *"
-                            type="number"
-                            min={0}
-                            value={form.quantity}
-                            onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
+                        <Select
+                            label="Armazém de Destino *"
+                            options={[
+                                { value: '', label: 'Seleccionar armazém...' },
+                                ...warehouses.map(w => ({ value: w.id, label: w.name }))
+                            ]}
+                            value={form.warehouseId}
+                            onChange={e => setForm(f => ({ ...f, warehouseId: e.target.value }))}
+                            disabled={!!editingId}
                         />
+                        
+                        <div className="col-span-2 p-3 bg-white/50 dark:bg-dark-800/50 rounded-lg border border-primary-100 dark:border-primary-900/20">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Entrada de Stock</span>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={isBoxEntry} 
+                                        onChange={e => setIsBoxEntry(e.target.checked)}
+                                        className="w-3 h-3 text-primary-600 rounded border-gray-300"
+                                    />
+                                    <span className="text-[10px] font-bold text-primary-600 uppercase">Usar Caixas</span>
+                                </label>
+                            </div>
+                            
+                            <div className="grid grid-cols-3 gap-3 items-end">
+                                {isBoxEntry ? (
+                                    <>
+                                        <Input
+                                            label="Caixas"
+                                            type="number"
+                                            value={form.boxes}
+                                            onChange={e => setForm(f => ({ ...f, boxes: e.target.value }))}
+                                        />
+                                        <Input
+                                            label="Unid/Cx"
+                                            type="number"
+                                            value={form.unitsPerBox}
+                                            onChange={e => setForm(f => ({ ...f, unitsPerBox: e.target.value }))}
+                                        />
+                                        <div className="flex flex-col gap-1.5 translate-y-[-8px]">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">Total Unid.</span>
+                                            <div className="h-10 flex items-center px-4 bg-primary-100 dark:bg-primary-900/30 rounded border border-primary-200 dark:border-primary-800 text-sm font-black text-primary-700 dark:text-primary-400">
+                                                {form.quantity}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <Input
+                                        label="Quantidade Total *"
+                                        type="number"
+                                        min={0}
+                                        value={form.quantity}
+                                        onChange={e => setForm(f => ({ ...f, quantity: e.target.value }))}
+                                        className="col-span-3"
+                                    />
+                                )}
+                            </div>
+                        </div>
+
                         <Input
                             label="Data de Validade *"
                             type="date"
@@ -278,8 +384,22 @@ export default function ProductValiditiesSection({ productId }: Props) {
                                     )}
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Quantidade</p>
-                                    <p className="text-sm font-black text-gray-900 dark:text-white">{b.quantity}</p>
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Stock</p>
+                                    <div className="flex flex-col items-end">
+                                        <p className="text-sm font-black text-gray-900 dark:text-white leading-none">
+                                            {b.quantity} {product?.unit || 'un'}
+                                        </p>
+                                        {product?.packSize && product.packSize > 1 && (
+                                            <p className="text-[10px] font-bold text-primary-600 mt-0.5">
+                                                {Math.floor(b.quantity / product.packSize)} cx {b.quantity % product.packSize > 0 ? `+ ${b.quantity % product.packSize} unid` : ''}
+                                            </p>
+                                        )}
+                                        {b.warehouse && (
+                                            <Badge variant="outline" size="sm" className="mt-1 text-[8px] font-black uppercase text-gray-400 dark:text-gray-500">
+                                                {b.warehouse.name}
+                                            </Badge>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">

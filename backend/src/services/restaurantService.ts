@@ -293,9 +293,9 @@ export class RestaurantService {
 
         const order = await prisma.restaurantOrder.create({
             data: {
-                companyId,
+                company: { connect: { id: companyId } },
                 orderNumber,
-                tableId: data.tableId || null,
+                table: data.tableId ? { connect: { id: data.tableId } } : undefined,
                 notes: data.notes,
                 totalAmount: total,
                 status: 'pending',

@@ -2,8 +2,10 @@ import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { hospitalityFinanceService } from '../services/hospitalityFinanceService';
 import { ApiError } from '../middleware/error.middleware';
+import { requireModule } from '../middleware/module';
 
 const router = Router();
+router.use(authenticate, requireModule('HOSPITALITY'));
 
 // ============================================================================
 // Dashboard & Trends

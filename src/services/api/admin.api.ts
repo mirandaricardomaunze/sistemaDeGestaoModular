@@ -24,8 +24,8 @@ export const adminAPI = {
         return response.data;
     },
 
-    getCompanies: async () => {
-        const response = await api.get('/admin/companies', { skipErrorToast: true } as any);
+    getCompanies: async (params?: { page?: number; limit?: number; search?: string; status?: string }) => {
+        const response = await api.get('/admin/companies', { params, skipErrorToast: true } as any);
         return response.data;
     },
 
@@ -39,16 +39,33 @@ export const adminAPI = {
         return response.data;
     },
 
-    getAllUsers: async () => {
-        const response = await api.get('/admin/users', { skipErrorToast: true } as any);
+    toggleCompanyModule: async (companyId: string, moduleCode: string, isActive: boolean) => {
+        const response = await api.patch(`/admin/companies/${companyId}/modules`, { moduleCode, isActive });
         return response.data;
     },
 
-    getActivity: async (limit?: number) => {
-        const response = await api.get('/admin/activity', {
-            params: { limit },
-            skipErrorToast: true
-        } as any);
+    getAllUsers: async (params?: { page?: number; limit?: number; search?: string; companyId?: string }) => {
+        const response = await api.get('/admin/users', { params, skipErrorToast: true } as any);
+        return response.data;
+    },
+
+    toggleUserStatus: async (id: string, isActive: boolean) => {
+        const response = await api.patch(`/admin/users/${id}/status`, { isActive });
+        return response.data;
+    },
+
+    getActivity: async (params?: { page?: number; limit?: number; companyId?: string; action?: string; startDate?: string; endDate?: string }) => {
+        const response = await api.get('/admin/activity', { params, skipErrorToast: true } as any);
+        return response.data;
+    },
+
+    getSystemHealth: async () => {
+        const response = await api.get('/admin/system/health', { skipErrorToast: true } as any);
+        return response.data;
+    },
+
+    getRevenue: async (days?: number) => {
+        const response = await api.get('/admin/revenue', { params: { days }, skipErrorToast: true } as any);
         return response.data;
     },
 };

@@ -51,12 +51,14 @@ function getInsuranceExpiryAlert(
     );
 
     if (daysLeft <= 0) {
-        return { label: t('logistics_module.vehicles.insuranceExpiry'), className: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' };
+        return { label: t('logistics_module.vehicles.insuranceExpiry'), className: 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30 backdrop-blur-sm' };
     }
     if (daysLeft <= 30) {
         return { 
             label: t('logistics_module.vehicles.insuranceDays', { days: daysLeft }), 
-            className: daysLeft <= 14 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' 
+            className: daysLeft <= 14 
+                ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-500/30 backdrop-blur-sm' 
+                : 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 backdrop-blur-sm' 
         };
     }
     return null;
@@ -252,72 +254,81 @@ export default function VehiclesPage() {
             {/* Vehicles Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {data?.data.map((vehicle: Vehicle) => (
-                    <Card key={vehicle.id} variant="glass" className="hover:shadow-lg transition-shadow">
-                        <div className="flex items-start justify-between mb-3 sm:mb-4">
-                            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
-                                    <HiOutlineTruck className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" />
+                    <Card key={vehicle.id} className="bg-white/80 dark:bg-dark-900/40 border border-gray-200/50 dark:border-dark-700/50 shadow-card-strong hover:scale-[1.01] transition-all group overflow-hidden">
+                        <div className="p-5 relative">
+                            {/* Decorative background element */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary-500/10 transition-colors" />
+
+                            <div className="flex items-start justify-between mb-4 relative z-10">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-12 h-12 rounded-xl bg-primary-200/60 dark:bg-primary-900/40 border border-primary-500/20 flex items-center justify-center flex-shrink-0 shadow-inner group-hover:scale-110 transition-transform">
+                                        <HiOutlineTruck className="w-6 h-6 text-primary-700 dark:text-primary-300" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="font-black text-lg text-gray-900 dark:text-white truncate leading-tight">{vehicle.plate}</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500/80 dark:text-gray-400/60 truncate">{vehicle.brand} {vehicle.model}</p>
+                                    </div>
                                 </div>
-                                <div className="min-w-0">
-                                    <h3 className="font-bold text-base sm:text-lg truncate">{vehicle.plate}</h3>
-                                    <p className="text-xs sm:text-sm text-gray-500 truncate">{vehicle.brand} {vehicle.model}</p>
+                                <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                    {getStatusBadge(vehicle.status, t)}
+                                    {(() => {
+                                        const alert = getInsuranceExpiryAlert(vehicle.insuranceExpiry, t);
+                                        return alert ? (
+                                            <span className={cn("flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shadow-sm", alert.className)}>
+                                                <HiOutlineExclamationTriangle className="w-3 h-3" aria-hidden="true" />
+                                                {alert.label}
+                                            </span>
+                                        ) : null;
+                                    })()}
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                                {getStatusBadge(vehicle.status, t)}
-                                {(() => {
-                                    const alert = getInsuranceExpiryAlert(vehicle.insuranceExpiry, t);
-                                    return alert ? (
-                                        <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${alert.className}`}>
-                                            <HiOutlineExclamationTriangle className="w-3 h-3" aria-hidden="true" />
-                                            {alert.label}
+
+                            <div className="space-y-2 text-xs mb-5 relative z-10">
+                                <div className="flex justify-between items-center py-1 border-b border-gray-100/50 dark:border-dark-700/50">
+                                    <span className="text-gray-500 font-bold">{t('logistics_module.vehicles.type')}</span>
+                                    <span className="font-black text-gray-900 dark:text-white truncate ml-2 bg-gray-100 dark:bg-dark-800 px-2 py-0.5 rounded uppercase text-[10px]">{t(`logistics_module.vehicles.types.${vehicle.type}`)}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-1 border-b border-gray-100/50 dark:border-dark-700/50">
+                                    <span className="text-gray-500 font-bold">Km</span>
+                                    <span className="font-black text-gray-900 dark:text-white">{vehicle.mileage.toLocaleString()}</span>
+                                </div>
+                                {vehicle.capacity && (
+                                    <div className="flex justify-between items-center py-1 border-b border-gray-100/50 dark:border-dark-700/50">
+                                        <span className="text-gray-500 font-bold">{t('logistics_module.vehicles.capacity')}</span>
+                                        <span className="font-black text-gray-900 dark:text-white">{vehicle.capacity} {vehicle.capacityUnit}</span>
+                                    </div>
+                                )}
+                                {vehicle.nextMaintenance && (
+                                    <div className="flex justify-between items-center py-1 border-b border-gray-100/50 dark:border-dark-700/50">
+                                        <span className="text-gray-500 flex items-center gap-1 font-bold">
+                                            <HiOutlineWrenchScrewdriver className="w-3.5 h-3.5" />
+                                            <span>Manutenção</span>
                                         </span>
-                                    ) : null;
-                                })()}
+                                        <span className={cn("font-black", new Date(vehicle.nextMaintenance) < new Date() ? 'text-red-600' : 'text-amber-600')}>
+                                            {new Date(vehicle.nextMaintenance).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                        </div>
 
-                        <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm mb-3 sm:mb-4">
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">{t('logistics_module.vehicles.type')}</span>
-                                <span className="font-medium truncate ml-2">{t(`logistics_module.vehicles.types.${vehicle.type}`)}</span>
+                            <div className="flex gap-2 relative z-10 pt-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1 p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest"
+                                    onClick={() => openModal(vehicle)}
+                                >
+                                    <HiOutlinePencil className="w-4 h-4 mr-1" /> {t('common.edit')}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
+                                    onClick={() => setDeleteConfirm(vehicle.id)}
+                                >
+                                    <HiOutlineTrash className="w-4 h-4" />
+                                </Button>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">Km</span>
-                                <span className="font-medium">{vehicle.mileage.toLocaleString()}</span>
-                            </div>
-                            {vehicle.capacity && (
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">{t('logistics_module.vehicles.capacity')}</span>
-                                    <span className="font-medium">{vehicle.capacity} {vehicle.capacityUnit}</span>
-                                </div>
-                            )}
-                            {vehicle._count?.deliveries !== undefined && (
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">{t('logistics_module.deliveries.title')}</span>
-                                    <span className="font-medium">{vehicle._count.deliveries}</span>
-                                </div>
-                            )}
-                            {vehicle.nextMaintenance && (
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-500 flex items-center gap-1">
-                                        <HiOutlineWrenchScrewdriver className="w-3 h-3 sm:w-4 sm:h-4" />
-                                        <span className="hidden sm:inline">Manutenção</span>
-                                    </span>
-                                    <span className={`font-medium ${new Date(vehicle.nextMaintenance) < new Date() ? 'text-red-500' : ''}`}>
-                                        {new Date(vehicle.nextMaintenance).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="flex gap-2 pt-4 border-t dark:border-dark-700">
-                            <Button variant="outline" size="sm" className="flex-1" onClick={() => openModal(vehicle)}>
-                                <HiOutlinePencil className="w-4 h-4 mr-1" /> {t('common.edit')}
-                            </Button>
-                            <Button variant="outline" size="sm" className="text-red-500 border-red-500 hover:bg-red-50" onClick={() => setDeleteConfirm(vehicle.id)}>
-                                <HiOutlineTrash className="w-4 h-4" />
-                            </Button>
                         </div>
                     </Card>
                 ))}
@@ -341,8 +352,10 @@ export default function VehiclesPage() {
             )}
 
             {data?.data.length === 0 && (
-                <Card variant="glass" className="p-12 text-center">
-                    <HiOutlineTruck className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                <Card variant="default" className="p-12 text-center bg-white dark:bg-dark-900 border-none shadow-premium">
+                    <div className="w-20 h-20 rounded-full bg-gray-500/10 flex items-center justify-center mx-auto mb-6 backdrop-blur-sm border border-gray-500/20">
+                        <HiOutlineTruck className="w-10 h-10 text-gray-400 group-hover:scale-110 transition-transform" />
+                    </div>
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('logistics_module.vehicles.noVehicles')}</h3>
                     <p className="text-gray-500 dark:text-gray-400 mb-4">{t('logistics_module.vehicles.startAdding')}</p>
                     <Button onClick={() => openModal()}>
@@ -411,9 +424,9 @@ export default function VehiclesPage() {
                         <Select
                             label={t('logistics_module.vehicles.unit')}
                             options={[
-                                { value: 'kg', label: 'Quilogramas (kg)' },
-                                { value: 'ton', label: 'Toneladas (ton)' },
-                                { value: 'm3', label: 'Metros Cúbicos (m³)' }
+                                { value: 'kg', label: t('logistics_module.vehicles.units.kg') },
+                                { value: 'ton', label: t('logistics_module.vehicles.units.ton') },
+                                { value: 'm3', label: t('logistics_module.vehicles.units.m3') }
                             ]}
                             value={formData.capacityUnit}
                             onChange={(e) => setFormData({ ...formData, capacityUnit: e.target.value })}
@@ -450,8 +463,8 @@ export default function VehiclesPage() {
                     </div>
 
                     <Input
-                        label={t('logistics_module.vehicles.notes')}
-                        placeholder="Notas adicionais sobre o veículo..."
+                        label={t('common.notes')}
+                        placeholder={`${t('common.notes')}...`}
                         value={formData.notes}
                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                     />

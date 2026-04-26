@@ -4,7 +4,7 @@ import { ApiError } from '../middleware/error.middleware';
 export class PublicReservationService {
     async listAvailableRooms(params: any) {
         const { checkIn, checkOut, guests, type, companyId } = params;
-        if (!companyId) throw ApiError.badRequest('companyId is required');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         if (!checkIn || !checkOut) throw ApiError.badRequest('Datas de check-in e check-out são obrigatórias');
 
         const checkInDate = new Date(checkIn + 'T12:00:00');

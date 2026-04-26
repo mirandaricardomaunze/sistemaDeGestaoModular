@@ -219,7 +219,7 @@ export default function BackupManagement() {
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={loadBackups} disabled={isLoading}>
-                        <HiOutlineArrowPath className={`w-5 h-5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                        <HiOutlineArrowPath className={`w-5 h-5 mr-2 text-primary-600 dark:text-primary-400 ${isLoading ? 'animate-spin' : ''}`} />
                         Atualizar
                     </Button>
                     <Button onClick={handleCreateBackup} disabled={isCreatingBackup}>
@@ -259,7 +259,7 @@ export default function BackupManagement() {
                                 </p>
                             </div>
                             <div className="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                <HiOutlineCircleStack className="w-6 h-6 text-primary-600" />
+                                <HiOutlineCircleStack className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                             </div>
                         </div>
                     </Card>
@@ -273,7 +273,7 @@ export default function BackupManagement() {
                                 </p>
                             </div>
                             <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                <HiOutlineArrowDownTray className="w-6 h-6 text-blue-600" />
+                                <HiOutlineArrowDownTray className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                             </div>
                         </div>
                     </Card>
@@ -287,7 +287,7 @@ export default function BackupManagement() {
                                 </p>
                             </div>
                             <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                <HiOutlineCheckCircle className="w-6 h-6 text-green-600" />
+                                <HiOutlineCheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                             </div>
                         </div>
                     </Card>
@@ -301,7 +301,7 @@ export default function BackupManagement() {
                                 </p>
                             </div>
                             <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                                <HiOutlineClock className="w-6 h-6 text-orange-600" />
+                                <HiOutlineClock className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                             </div>
                         </div>
                     </Card>
@@ -314,7 +314,7 @@ export default function BackupManagement() {
                                 </p>
                             </div>
                             <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                                <HiOutlineCircleStack className="w-6 h-6 text-purple-600" />
+                                <HiOutlineCircleStack className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                             </div>
                         </div>
                     </Card>

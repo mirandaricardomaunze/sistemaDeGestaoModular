@@ -36,10 +36,18 @@ router.get('/categories', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const categories = await prisma.category.findMany({
         where: { companyId: req.companyId },
-        include: { _count: { select: { children: true } } },
+        include: { _count: { select: { children: true, products: true } } },
         orderBy: { name: 'asc' }
     });
-    res.json(categories);
+    
+    // Map _count.products to productCount for frontend compatibility
+    const mappedCategories = categories.map(cat => ({
+        ...cat,
+        productCount: cat._count.products,
+        _count: undefined // Clean up internal Prisma count if not needed, or keep it
+    }));
+
+    res.json(mappedCategories);
 });
 
 router.post('/categories', authenticate, async (req: AuthRequest, res) => {
@@ -93,10 +101,18 @@ router.get('/alert-config', authenticate, async (req: AuthRequest, res) => {
 
 router.put('/alert-config', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const {
+        lowStockEnabled, expiryEnabled, lowStockThreshold, expiryDays,
+        alertEmail, smsEnabled, telegramEnabled, emailEnabled
+    } = req.body;
+    const safeData = {
+        lowStockEnabled, expiryEnabled, lowStockThreshold, expiryDays,
+        alertEmail, smsEnabled, telegramEnabled, emailEnabled
+    };
     const config = await prisma.alertConfig.upsert({
         where: { companyId: req.companyId },
-        update: req.body,
-        create: { ...req.body, companyId: req.companyId }
+        update: safeData,
+        create: { ...safeData, companyId: req.companyId }
     });
     res.json(config);
 });

@@ -229,47 +229,47 @@ export default function MaintenancePage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card variant="glass" className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-primary-100 dark:bg-primary-900/30">
-                            <HiOutlineWrenchScrewdriver className="w-6 h-6 text-primary-600" />
+                <Card className="p-4 bg-primary-100/40 dark:bg-primary-900/20 border border-primary-200/50 dark:border-primary-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary-200/60 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 shadow-inner group-hover:scale-110 transition-transform">
+                            <HiOutlineWrenchScrewdriver className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">{stats.total}</p>
-                            <p className="text-xs text-gray-500">{t('logistics_module.maintenance.totalRecords')}</p>
+                            <p className="text-2xl font-black text-primary-900 dark:text-white leading-none">{stats.total}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60 mt-1">{t('logistics_module.maintenance.totalRecords')}</p>
                         </div>
                     </div>
                 </Card>
-                <Card variant="glass" className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-warning-100 dark:bg-warning-900/30">
-                            <HiOutlineClock className="w-6 h-6 text-warning-600" />
+                <Card className="p-4 bg-warning-100/40 dark:bg-warning-900/20 border border-warning-200/50 dark:border-warning-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-warning-200/60 dark:bg-warning-900/40 text-warning-700 dark:text-warning-300 shadow-inner group-hover:scale-110 transition-transform">
+                            <HiOutlineClock className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">{stats.scheduled}</p>
-                            <p className="text-xs text-gray-500">{t('logistics_module.maintenance.scheduled')}</p>
+                            <p className="text-2xl font-black text-warning-900 dark:text-white leading-none">{stats.scheduled}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-warning-600/70 dark:text-warning-400/60 mt-1">{t('logistics_module.maintenance.scheduled')}</p>
                         </div>
                     </div>
                 </Card>
-                <Card variant="glass" className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-success-100 dark:bg-success-900/30">
-                            <HiOutlineCheckCircle className="w-6 h-6 text-success-600" />
+                <Card className="p-4 bg-success-100/40 dark:bg-success-900/20 border border-success-200/50 dark:border-success-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-success-200/60 dark:bg-success-900/40 text-success-700 dark:text-success-300 shadow-inner group-hover:scale-110 transition-transform">
+                            <HiOutlineCheckCircle className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">{stats.completed}</p>
-                            <p className="text-xs text-gray-500">{t('logistics_module.maintenance.completed')}</p>
+                            <p className="text-2xl font-black text-success-900 dark:text-white leading-none">{stats.completed}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-success-600/70 dark:text-success-400/60 mt-1">{t('logistics_module.maintenance.completed')}</p>
                         </div>
                     </div>
                 </Card>
-                <Card variant="glass" className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-danger-100 dark:bg-danger-900/30">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-danger-600" />
+                <Card className="p-4 bg-danger-100/40 dark:bg-danger-900/20 border border-danger-200/50 dark:border-danger-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-danger-200/60 dark:bg-danger-900/40 text-danger-700 dark:text-danger-300 shadow-inner group-hover:scale-110 transition-transform">
+                            <HiOutlineCurrencyDollar className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">{formatCurrency(stats.totalCost)}</p>
-                            <p className="text-xs text-gray-500">{t('logistics_module.maintenance.totalCost')}</p>
+                            <p className="text-2xl font-black text-danger-900 dark:text-white leading-none">{formatCurrency(stats.totalCost)}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-danger-600/70 dark:text-danger-400/60 mt-1">{t('logistics_module.maintenance.totalCost')}</p>
                         </div>
                     </div>
                 </Card>

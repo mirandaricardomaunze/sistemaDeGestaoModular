@@ -29,6 +29,10 @@ export interface ExportOptions {
     columns: ExportColumn[];
     data: Record<string, any>[];
     companyName?: string;
+    companyNUIT?: string;
+    companyAddress?: string;
+    companyPhone?: string;
+    companyEmail?: string;
     companyLogo?: string;
     currency?: string;
     locale?: string;
@@ -173,10 +177,13 @@ export const exportToPDF = (options: ExportOptions): void => {
     const {
         filename,
         title,
-        subtitle,
         columns,
         data,
         companyName,
+        companyNUIT,
+        companyAddress,
+        companyPhone,
+        companyEmail,
         currency = 'MZN',
         locale = 'pt-MZ',
         orientation = 'portrait',
@@ -194,37 +201,51 @@ export const exportToPDF = (options: ExportOptions): void => {
     const pageWidth = doc.internal.pageSize.getWidth();
     let yPosition = 15;
 
-    // Add company name
+    // Add professional lateral header
     if (companyName) {
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.text(companyName, pageWidth / 2, yPosition, { align: 'center' });
-        yPosition += 8;
-    }
-
-    // Add title
-    if (title) {
         doc.setFontSize(14);
         doc.setFont('helvetica', 'bold');
-        doc.text(title, pageWidth / 2, yPosition, { align: 'center' });
+        doc.text(companyName, 10, yPosition);
         yPosition += 6;
-    }
 
-    // Add subtitle
-    if (subtitle) {
-        doc.setFontSize(10);
+        doc.setFontSize(9);
         doc.setFont('helvetica', 'normal');
-        doc.text(subtitle, pageWidth / 2, yPosition, { align: 'center' });
-        yPosition += 5;
+        doc.setTextColor(100);
+
+        if (companyNUIT) {
+            doc.text(`NUIT: ${companyNUIT}`, 10, yPosition);
+            yPosition += 4;
+        }
+        if (companyAddress) {
+            doc.text(companyAddress, 10, yPosition);
+            yPosition += 4;
+        }
+        if (companyPhone || companyEmail) {
+            const contact = [companyPhone, companyEmail].filter(Boolean).join(' | ');
+            doc.text(contact, 10, yPosition);
+            yPosition += 4;
+        }
+        
+        doc.setTextColor(0); // Reset color
+        yPosition += 4;
     }
 
-    // Add date
+    // Add title on the right
+    if (title) {
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(title, pageWidth - 10, 20, { align: 'right' });
+    }
+
+    // Add date below title
     if (showDate) {
         doc.setFontSize(9);
         doc.setFont('helvetica', 'italic');
-        doc.text(`Gerado em: ${new Date().toLocaleString(locale)}`, pageWidth / 2, yPosition, { align: 'center' });
-        yPosition += 8;
+        doc.text(`Gerado em: ${new Date().toLocaleString(locale)}`, pageWidth - 10, 26, { align: 'right' });
     }
+
+    // Adjust yPosition if title/date occupied space
+    yPosition = Math.max(yPosition, 35);
 
     // Prepare table data
     const headers = columns.map(col => col.header);
@@ -329,7 +350,7 @@ export const exportProducts = (
 ): void => {
     exportData({
         filename: 'produtos',
-        title: 'Lista de Produtos',
+        title: 'Inventário',
         companyName,
         columns: [
             { key: 'code', header: 'Código', width: 12 },

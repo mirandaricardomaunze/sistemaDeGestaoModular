@@ -85,7 +85,7 @@ export class CampaignsService {
         const now = new Date();
         if (campaign.status !== 'active') throw ApiError.badRequest('Esta campanha não está activa');
         if (now < campaign.startDate || now > campaign.endDate) throw ApiError.badRequest('Campanha fora do período de validade');
-        if (campaign.maxTotalUses && campaign.currentUses >= campaign.maxTotalUses) throw ApiError.badRequest('Limite de utilizaces atingido');
+        if (campaign.maxTotalUses && campaign.currentUses >= campaign.maxTotalUses) throw ApiError.badRequest('Limite de utilizações atingido. Esta campanha já não está disponível.');
         if (campaign.minPurchaseAmount && cartTotal < Number(campaign.minPurchaseAmount)) throw ApiError.badRequest(`Compra mínima de ${campaign.minPurchaseAmount} MT necessária`);
 
         let discount = campaign.discountType === 'percentage'

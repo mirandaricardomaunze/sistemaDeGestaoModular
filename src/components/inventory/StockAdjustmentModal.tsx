@@ -1,6 +1,6 @@
 import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
-import { HiOutlinePlus, HiOutlineMinus, HiOutlineViewList, HiOutlineCheck } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineMinus, HiOutlineListBullet, HiOutlineCheck } from 'react-icons/hi2';
 import { Modal, Button, Input, Select, Textarea } from '../ui';
 import { useWarehouses, useProducts } from '../../hooks/useData';
 import type { Product } from '../../types';
@@ -62,9 +62,9 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
     };
 
     const operationOptions = [
-        { id: 'add' as const, label: 'Entrada (+)', icon: <HiOutlinePlus />, color: 'text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' },
-        { id: 'subtract' as const, label: 'Saída (-)', icon: <HiOutlineMinus />, color: 'text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800' },
-        { id: 'set' as const, label: 'Definir (=)', icon: <HiOutlineViewList />, color: 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800' },
+        { id: 'add' as const, label: 'Entrada (+)', icon: <HiOutlinePlus className="w-5 h-5" />, color: 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20' },
+        { id: 'subtract' as const, label: 'Saída (-)', icon: <HiOutlineMinus className="w-5 h-5" />, color: 'text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20' },
+        { id: 'set' as const, label: 'Definir (=)', icon: <HiOutlineListBullet className="w-5 h-5" />, color: 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20' },
     ];
 
     if (!product) return null;

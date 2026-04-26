@@ -10,7 +10,8 @@ export type MovementType = 'purchase' | 'sale' | 'return_in' | 'return_out' | 'a
 export interface StockMovementParams {
     productId: string;
     warehouseId?: string;
-    batchId?: string;
+    batchId?: string; // Legacy MedicationBatch
+    productBatchId?: string; // Modern ProductBatch
     quantity: number; // Positive for increment, Negative for decrement
     movementType: MovementType;
     originModule: OriginModule;
@@ -38,6 +39,7 @@ export class StockService {
             productId,
             warehouseId,
             batchId,
+            productBatchId,
             quantity,
             movementType,
             originModule,
@@ -71,6 +73,14 @@ export class StockService {
 
         // 3. Update Warehouse Specific Stock if warehouseId is provided
         if (warehouseId) {
+            // Verify warehouse belongs to company
+            const warehouse = await tx.warehouse.findFirst({
+                where: { id: warehouseId, companyId }
+            });
+            if (!warehouse) {
+                throw ApiError.notFound('Armazém não encontrado ou não pertence a esta empresa');
+            }
+
             await tx.warehouseStock.upsert({
                 where: {
                     warehouseId_productId: {
@@ -96,6 +106,7 @@ export class StockService {
                 productId,
                 warehouseId,
                 batchId,
+                productBatchId,
                 quantity: Math.abs(quantity),
                 movementType,
                 balanceBefore,
@@ -185,13 +196,22 @@ export class StockService {
         }
 
         if (warehouseId) {
+            // Verify warehouse belongs to company
+            const warehouse = await tx.warehouse.findFirst({
+                where: { id: warehouseId, companyId }
+            });
+            if (!warehouse) {
+                throw ApiError.notFound('Armazém não encontrado ou acesso negado');
+            }
+
             const wStock = await tx.warehouseStock.findUnique({
                 where: { warehouseId_productId: { warehouseId, productId } },
                 select: { quantity: true }
             });
-            const warehouseQty = wStock?.quantity ?? 0;
+            // Fall back to global stock when no per-warehouse entry exists yet
+            const warehouseQty = wStock != null ? Number(wStock.quantity) : product.currentStock - product.reservedStock;
             if (warehouseQty < requestedQuantity) {
-                throw ApiError.badRequest(`Stock insuficiente no armazém para o produto "${product.name}". Disponível: ${warehouseQty}, Solicitado: ${requestedQuantity}`);
+                throw ApiError.badRequest(`Stock insuficiente para o produto "${product.name}". Disponível: ${warehouseQty}, Solicitado: ${requestedQuantity}`);
             }
             return product;
         }

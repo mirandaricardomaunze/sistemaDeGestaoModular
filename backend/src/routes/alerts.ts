@@ -3,6 +3,7 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { ApiError } from '../middleware/error.middleware';
 import { alertsService } from '../services/alertService';
 import { emitToCompany } from '../lib/socket';
+import { prisma } from '../lib/prisma';
 
 const router = Router();
 
@@ -41,9 +42,28 @@ router.post('/generate', authenticate, async (req: AuthRequest, res) => {
     res.json(result);
 });
 
+const MODULE_ROUTE_MAP: Record<string, string> = {
+    pharmacy:   'PHARMACY',
+    bottlestore:'BOTTLE_STORE',
+    logistics:  'LOGISTICS',
+    hospitality:'HOSPITALITY',
+    restaurant: 'RESTAURANT',
+    commercial: 'COMMERCIAL',
+};
+
 router.post('/generate/:module', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const result = await alertsService.generate(req.companyId, req.params.module);
+    const { module } = req.params;
+
+    const requiredModule = MODULE_ROUTE_MAP[module.toLowerCase()];
+    if (requiredModule) {
+        const active = await prisma.companyModule.findFirst({
+            where: { companyId: req.companyId, moduleCode: requiredModule, isActive: true }
+        });
+        if (!active) throw ApiError.forbidden(`Módulo ${requiredModule} não está activo para esta empresa`);
+    }
+
+    const result = await alertsService.generate(req.companyId, module);
     res.json(result);
 });
 

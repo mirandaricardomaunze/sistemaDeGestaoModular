@@ -59,10 +59,64 @@ export class OrdersService {
 
         const {
             customerName, customerPhone, customerEmail, customerAddress,
-            customerId, items, total, priority, paymentMethod, deliveryDate, notes
+            customerId, items, priority, paymentMethod, deliveryDate, notes
         } = data;
 
         return await prisma.$transaction(async (tx) => {
+            // ====================================================================
+            // SERVER-SIDE AUTHORITATIVE CALCULATION
+            // Fetch real prices from DB and recalculate total.
+            // Never trust frontend-provided total.
+            // ====================================================================
+            const productIds = items.map(i => i.productId).filter(Boolean) as string[];
+            const productPriceMap = new Map<string, { name: string; price: number }>();
+
+            if (productIds.length > 0) {
+                const products = await tx.product.findMany({
+                    where: { id: { in: productIds }, companyId },
+                    select: { id: true, name: true, price: true }
+                });
+                for (const p of products) {
+                    productPriceMap.set(p.id, { name: p.name, price: Number(p.price) });
+                }
+            }
+
+            // Verify and recalculate each item
+            const verifiedItems = items.map((item: any) => {
+                const product = productPriceMap.get(item.productId);
+                const unitPrice = item.price || item.unitPrice;
+
+                if (product && product.price > 0 && Math.abs(product.price - unitPrice) > 0.01) {
+                    logger.warn('Order price mismatch detected', {
+                        productId: item.productId,
+                        productName: product.name,
+                        frontendPrice: unitPrice,
+                        dbPrice: product.price,
+                        companyId
+                    });
+                    // Use DB price as authoritative
+                    return {
+                        ...item,
+                        price: product.price,
+                        unitPrice: product.price,
+                        productName: item.productName || product.name,
+                        total: Math.round(product.price * item.quantity * 100) / 100
+                    };
+                }
+
+                return {
+                    ...item,
+                    price: unitPrice,
+                    unitPrice,
+                    productName: item.productName || product?.name || '',
+                    total: Math.round(unitPrice * item.quantity * 100) / 100
+                };
+            });
+
+            // Recalculate total from verified items
+            const computedTotal = verifiedItems.reduce((sum: number, item: any) => sum + item.total, 0);
+            const total = Math.round(computedTotal * 100) / 100;
+
             // 0. Validate customer credit limit if a customer is linked
             if (customerId) {
                 const customer = await tx.customer.findFirst({
@@ -92,7 +146,7 @@ export class OrdersService {
             }
 
             // 1. Verify and reserve stock for each item
-            for (const item of items) {
+            for (const item of verifiedItems) {
                 await stockService.reserveStock(item.productId, item.quantity, companyId, tx);
             }
 
@@ -113,12 +167,12 @@ export class OrdersService {
                     notes: notes || null,
                     companyId,
                     items: {
-                        create: items.map((item: any) => ({
+                        create: verifiedItems.map((item: any) => ({
                             productId: item.productId,
                             productName: item.productName || '',
                             quantity: item.quantity,
                             price: item.price || item.unitPrice,
-                            total: item.quantity * (item.price || item.unitPrice)
+                            total: item.total
                         }))
                     },
                     transitions: {

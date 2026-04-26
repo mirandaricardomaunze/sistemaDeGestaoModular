@@ -22,7 +22,7 @@ export interface ForecastResult {
 export class PredictiveService {
     
     async getInventoryForecast(companyId: string): Promise<ForecastResult[]> {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
         // 1. Fetch all active products
         const products = await prisma.product.findMany({
@@ -147,7 +147,7 @@ export class PredictiveService {
     }
 
     async createDraftOrdersFromSuggestions(companyId: string, suggestions: Array<{ productId: string; quantity: number }>) {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         
         // 1. Fetch products with their supplier info
         const products = await prisma.product.findMany({

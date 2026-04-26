@@ -23,7 +23,7 @@ const updateSchema = createSchema.partial();
 
 // GET /products/:productId/validities  →  list batches for product
 router.get('/products/:productId/validities', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await batchesService.list(req.companyId, { productId: req.params.productId, limit: 100 });
     const batches = result.data ?? result;
     const now = Date.now();
@@ -52,7 +52,7 @@ router.get('/products/:productId/validities', authenticate, async (req: AuthRequ
 
 // POST /products/:productId/validities  →  create batch
 router.post('/products/:productId/validities', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const data = createSchema.parse(req.body);
     const batch = await batchesService.create({
         batchNumber: data.lote || `LOTE-${Date.now()}`,
@@ -67,7 +67,7 @@ router.post('/products/:productId/validities', authenticate, async (req: AuthReq
 
 // PUT /validities/:id  →  update batch
 router.put('/validities/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const data = updateSchema.parse(req.body);
     const updated = await batchesService.update(req.params.id, {
         quantity: data.quantity,
@@ -79,14 +79,14 @@ router.put('/validities/:id', authenticate, async (req: AuthRequest, res) => {
 
 // DELETE /validities/:id  →  delete batch
 router.delete('/validities/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await batchesService.delete(req.params.id, req.companyId);
     res.json({ message: 'Lote eliminado com sucesso' });
 });
 
 // GET /validities/expiring?days=30  →  expiring batches
 router.get('/validities/expiring', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const days = parseInt(req.query.days as string) || 30;
     const result = await batchesService.getExpiring(req.companyId, { days });
     res.json(result);

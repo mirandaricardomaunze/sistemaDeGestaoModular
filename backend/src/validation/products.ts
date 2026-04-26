@@ -43,6 +43,8 @@ export const createProductSchema = z.object({
     isReturnable: z.boolean().optional().default(false),
     returnPrice: z.number().min(0, 'Preço de retorno não pode ser negativo').optional().default(0),
     packSize: z.number().int().min(1, 'Tamanho do pack deve ser pelo menos 1').optional().default(1),
+    // Weight for logistics
+    weight: z.number().min(0, 'Peso não pode ser negativo').optional().nullable(),
 });
 
 export const updateProductSchema = createProductSchema.partial();

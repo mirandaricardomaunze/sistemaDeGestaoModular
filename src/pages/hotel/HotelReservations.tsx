@@ -13,7 +13,7 @@ export default function HotelReservations() {
     const [view, setView] = useState<ReservationView>('calendar');
     
     // History State (for List View)
-    const [historyPage, setHistoryPage] = useState(1);
+    const [historyPage] = useState(1);
     const [historyPageSize] = useState(10);
     const [bookingHistory, setBookingHistory] = useState<any[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
@@ -42,7 +42,7 @@ export default function HotelReservations() {
             <PageHeader
                 title={t('hotel_module.reservations.title')}
                 subtitle={t('hotel_module.reservations.calendar')}
-                icon={<HiOutlineCalendar />}
+                icon={<HiOutlineCalendar className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex gap-2">
                         <Button
@@ -61,7 +61,7 @@ export default function HotelReservations() {
                         </Button>
                         <Button
                             variant="outline"
-                            leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
+                            leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                             onClick={() => { refetch(); loadHistory(); }}
                         />
                     </div>

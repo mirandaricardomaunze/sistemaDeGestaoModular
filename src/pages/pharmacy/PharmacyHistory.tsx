@@ -9,7 +9,7 @@ import {
     HiOutlineArrowPath,
     HiOutlineTicket
 } from 'react-icons/hi2';
-import { Card, Button, Input, Badge, TableContainer, Pagination, Modal, PageHeader } from '../../components/ui';
+import { Card, Button, Input, Badge, TableContainer, Pagination, Modal, PageHeader, Select, Textarea } from '../../components/ui';
 import { usePharmacySales } from '../../hooks/usePharmacySales';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { format, parseISO } from 'date-fns';
@@ -111,14 +111,14 @@ export default function PharmacyHistory() {
             <PageHeader 
                 title="Histórico de Vendas"
                 subtitle="Consulta e gestão de transações comerciais realizadas na farmácia"
-                icon={<HiOutlineTicket />}
+                icon={<HiOutlineTicket className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => refetch()} 
                         className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
-                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
+                        leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                     >
                         Actualizar
                     </Button>
@@ -135,7 +135,7 @@ export default function PharmacyHistory() {
                                 placeholder="Nº Recibo, Nome do Paciente ou Código..."
                                 value={search}
                                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
+                                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                                 className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
                             />
                         </div>
@@ -158,16 +158,17 @@ export default function PharmacyHistory() {
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 pl-1">Estado</label>
-                            <select
+                            <Select
+                                label="Estado"
                                 value={statusFilter}
                                 onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-                                className="w-full h-10 px-3 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 focus:ring-2 focus:ring-teal-500/20 outline-none transition-all"
-                            >
-                                <option value="">Todos</option>
-                                <option value="active">Activas</option>
-                                <option value="voided">Anuladas</option>
-                            </select>
+                                options={[
+                                    { value: '', label: 'Todos' },
+                                    { value: 'active', label: 'Activas' },
+                                    { value: 'voided', label: 'Anuladas' }
+                                ]}
+                                className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
+                            />
                         </div>
                     </div>
                 </Card>
@@ -235,21 +236,25 @@ export default function PharmacyHistory() {
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex items-center justify-center gap-2">
-                                            <button 
+                                            <Button 
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={() => handleViewReceipt(sale)}
-                                                className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
+                                                className="text-gray-400 hover:text-blue-500"
                                                 title="Ver Recibo"
                                             >
-                                                <HiOutlineEye className="w-5 h-5" />
-                                            </button>
+                                                <HiOutlineEye className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                            </Button>
                                             {sale.status !== 'voided' && (
-                                                <button 
+                                                <Button 
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => handleOpenVoidModal(sale)}
-                                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
+                                                    className="text-gray-400 hover:text-red-500"
                                                     title="Anular Venda"
                                                 >
-                                                    <HiOutlineTrash className="w-5 h-5" />
-                                                </button>
+                                                    <HiOutlineTrash className="w-5 h-5 text-red-500 dark:text-red-400" />
+                                                </Button>
                                             )}
                                         </div>
                                     </td>
@@ -291,15 +296,12 @@ export default function PharmacyHistory() {
                     </div>
 
                     <div>
-                        <label className="text-xs font-bold text-gray-500 block mb-1.5 uppercase tracking-wide">
-                            Motivo da Anulação
-                        </label>
-                        <textarea
+                        <Textarea
+                            label="Motivo da Anulação"
                             value={voidReason}
                             onChange={e => setVoidReason(e.target.value)}
                             rows={3}
                             placeholder="Explique o motivo do cancelamento..."
-                            className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-red-500 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white text-sm"
                         />
                     </div>
 

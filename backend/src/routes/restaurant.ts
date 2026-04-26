@@ -2,8 +2,10 @@ import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { restaurantService } from '../services/restaurantService';
 import { ApiError } from '../middleware/error.middleware';
+import { requireModule } from '../middleware/module';
 
 const router = Router();
+router.use(authenticate, requireModule('RESTAURANT'));
 
 // ============================================================================
 // DASHBOARD

@@ -220,13 +220,13 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                 <PageHeader 
                     title="Gestão de Fornecedores"
                     subtitle="Controlo de Entidades, Contactos e Encomendas de Compra"
-                    icon={<HiOutlineTruck />}
+                    icon={<HiOutlineTruck className="text-primary-600 dark:text-primary-400" />}
                     actions={
                         <>
                             <Button 
                                 variant="ghost" 
                                 size="sm" 
-                                className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                                className="font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/10"
                                 leftIcon={<HiOutlineArrowPath className="w-4 h-4" />} 
                                 onClick={() => refetch()}
                             >
@@ -279,27 +279,27 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                         <StatCard 
                             label="Total Fornecedores"
                             value={metrics.total}
-                            icon={<HiOutlineTruck className="w-6 h-6" />}
+                            icon={<HiOutlineTruck className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
                             color="primary"
                         />
                         <StatCard 
                             label="Total Compras"
                             value={formatCurrency(metrics.totalPurchases)}
-                            icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                            icon={<HiOutlineCurrencyDollar className="w-6 h-6 text-green-600 dark:text-green-400" />}
                             color="green"
                             sublabel="Volume total de aquisições"
                         />
                         <StatCard 
                             label="Saldo Pendente"
                             value={formatCurrency(metrics.totalBalance)}
-                            icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                            icon={<HiOutlineCurrencyDollar className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />}
                             color="yellow"
                             sublabel="Total em dívida a fornecedores"
                         />
                         <StatCard 
                             label="Fornecedores Activos"
                             value={metrics.active}
-                            icon={<HiOutlineTruck className="w-6 h-6" />}
+                            icon={<HiOutlineTruck className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
                             color="blue"
                         />
                     </div>
@@ -309,7 +309,7 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                         <Card padding="md" className="md:col-span-12 border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50">
                             <div className="flex items-center gap-3">
                                 <div className="relative flex-1">
-                                    <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                                    <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-400 w-5 h-5 z-10" />
                                     <Input
                                         placeholder="Buscar fornecedores por nome, NUIT ou contacto..."
                                         value={search}
@@ -360,7 +360,7 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                                            <HiOutlineTruck className="w-5 h-5 text-primary-600" />
+                                                            <HiOutlineTruck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                                                         </div>
                                                         <div>
                                                             <p className="font-medium text-gray-900 dark:text-white">{supplier.name}</p>
@@ -373,12 +373,12 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                                                 <td className="px-6 py-4">
                                                     <div className="space-y-1">
                                                         <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                                                            <HiOutlinePhone className="w-4 h-4" />
+                                                            <HiOutlinePhone className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                                                             <span>{supplier.phone}</span>
                                                         </div>
                                                         {supplier.email && (
                                                             <div className="flex items-center gap-1 text-sm text-gray-500">
-                                                                <HiOutlineEnvelope className="w-4 h-4" />
+                                                                <HiOutlineEnvelope className="w-4 h-4 text-primary-500/70" />
                                                                 <span className="truncate max-w-[150px]">{supplier.email}</span>
                                                             </div>
                                                         )}
@@ -387,7 +387,7 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                                                 <td className="px-6 py-4">
                                                     {supplier.contactPerson ? (
                                                         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                                            <HiOutlineUserCircle className="w-4 h-4" />
+                                                            <HiOutlineUserCircle className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
                                                             <span>{supplier.contactPerson}</span>
                                                         </div>
                                                     ) : (
@@ -406,24 +406,28 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                                                     {formatCurrency(supplier.currentBalance)}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="flex justify-center gap-1">
-                                                        <button
+                                                    <div className="flex justify-center gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
                                                             onClick={() => handleEdit(supplier)}
-                                                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600"
+                                                            className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
                                                             title="Editar"
                                                         >
                                                             <HiOutlinePencil className="w-4 h-4" />
-                                                        </button>
-                                                        <button
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
                                                             onClick={() => {
-                                                                setSupplierToDelete(supplier);
-                                                                setDeleteModalOpen(true);
+                                                                 setSupplierToDelete(supplier);
+                                                                 setDeleteModalOpen(true);
                                                             }}
-                                                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-red-600"
+                                                            className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
                                                             title="Excluir"
                                                         >
                                                             <HiOutlineTrash className="w-4 h-4" />
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 </td>
                                             </tr>

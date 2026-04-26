@@ -7,7 +7,7 @@ const router = Router();
 router.use(authenticate);
 
 router.post('/', async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company context required');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { type, title, subtitle, columns, data, filename } = req.body;
     const finalFilename = filename || `Export_${new Date().getTime()}`;
 

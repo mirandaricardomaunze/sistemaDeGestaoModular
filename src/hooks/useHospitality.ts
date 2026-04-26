@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { hospitalityAPI } from '../services/api/hospitality.api';
 import type {
@@ -138,17 +139,32 @@ export function useHospitality(_params?: { search?: string; status?: string; pag
         onSuccess: () => qc.invalidateQueries({ queryKey: ['hospitality', 'rooms'] }),
     });
 
+    const rooms = Array.isArray(roomsQuery.data) ? roomsQuery.data : (roomsQuery.data as any)?.data || [];
+    const metrics = useMemo(() => ({
+        available: rooms.filter((r: any) => r.status === 'available').length,
+        occupied: rooms.filter((r: any) => r.status === 'occupied').length,
+        dirty: rooms.filter((r: any) => r.status === 'dirty').length,
+        maintenance: rooms.filter((r: any) => r.status === 'maintenance').length,
+    }), [rooms]);
+
+    const handleAddRoom = useCallback((data: any) => addRoomMutation.mutateAsync(data), [addRoomMutation]);
+    const handleUpdateRoom = useCallback((id: string, data: any) => updateRoomMutation.mutateAsync({ id, data }), [updateRoomMutation]);
+    const handleDeleteRoom = useCallback((id: string) => deleteRoomMutation.mutateAsync(id), [deleteRoomMutation]);
+    const fetchBookings = useCallback((params?: { page?: number; limit?: number; status?: string }) => hospitalityAPI.getBookings(params), []);
+    const handleCreateBooking = useCallback((_data: any) => hospitalityAPI.createBooking(_data), []);
+    const handleAddConsumption = useCallback((_id: string, _data?: any) => hospitalityAPI.addConsumption(_id, _data), []);
+
     return {
-        rooms: (roomsQuery.data as any[]) || [],
+        rooms,
         isLoading: roomsQuery.isLoading,
         refetch: roomsQuery.refetch,
-        addRoom: (data: any) => addRoomMutation.mutateAsync(data),
-        updateRoom: (id: string, data: any) => updateRoomMutation.mutateAsync({ id, data }),
-        deleteRoom: (id: string) => deleteRoomMutation.mutateAsync(id),
-        pagination: { total: 0, page: 1, pageSize: 20 },
-        metrics: null as any,
-        fetchBookings: (params?: { page?: number; limit?: number; status?: string }) => hospitalityAPI.getBookings(params),
-        createBooking: (_data: any) => hospitalityAPI.createBooking(_data),
-        addConsumption: (_id: string, _data?: any) => hospitalityAPI.addConsumption(_id, _data),
+        addRoom: handleAddRoom,
+        updateRoom: handleUpdateRoom,
+        deleteRoom: handleDeleteRoom,
+        pagination: (roomsQuery.data as any)?.pagination || { total: rooms.length, page: 1, pageSize: rooms.length },
+        metrics,
+        fetchBookings,
+        createBooking: handleCreateBooking,
+        addConsumption: handleAddConsumption,
     };
 }

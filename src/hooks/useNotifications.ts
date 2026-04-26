@@ -1,18 +1,20 @@
 import { useEffect } from 'react';
 import { useSocket } from '../contexts/SocketContext';
 import toast from 'react-hot-toast';
-import { 
-    HiOutlineBellAlert, 
-    HiOutlineShoppingCart, 
+import {
+    HiOutlineBellAlert,
+    HiOutlineShoppingCart,
     HiOutlineExclamationTriangle,
     HiOutlineDocumentPlus,
     HiOutlineUserPlus,
     HiOutlineReceiptRefund,
     HiOutlineCurrencyDollar,
     HiOutlineSparkles,
-    HiOutlineLightBulb
+    HiOutlineLightBulb,
+    HiOutlineCalendar
 } from 'react-icons/hi2';
 import React from 'react';
+import { playCalendarChime } from '../utils/sound';
 
 export const useNotifications = () => {
     const { socket, isConnected } = useSocket();
@@ -109,6 +111,18 @@ export const useNotifications = () => {
             });
         });
 
+        // Calendar: Event Reminder
+        socket.on('calendar:reminder', (data) => {
+            playCalendarChime();
+            toast(
+                `${data.title} — em ${data.minutesUntilStart} min`,
+                {
+                    icon: React.createElement(HiOutlineCalendar, { className: 'text-blue-500 w-5 h-5' }),
+                    duration: 8000,
+                }
+            );
+        });
+
         return () => {
             socket.off('notification:new');
             socket.off('restaurant:new_order');
@@ -121,6 +135,7 @@ export const useNotifications = () => {
             socket.off('crm:new_opportunity');
             socket.off('payment:success');
             socket.off('ai:action_complete');
+            socket.off('calendar:reminder');
         };
     }, [socket]);
 

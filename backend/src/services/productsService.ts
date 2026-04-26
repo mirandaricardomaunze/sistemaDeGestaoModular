@@ -26,6 +26,13 @@ export class ProductsService {
             warehouseId
         } = params;
 
+        if (warehouseId && warehouseId !== 'all') {
+            const warehouse = await prisma.warehouse.findFirst({
+                where: { id: warehouseId, companyId }
+            });
+            if (!warehouse) throw ApiError.notFound('Armazém não encontrado');
+        }
+
         const where: Prisma.ProductWhereInput = {
             isActive: true,
             companyId: companyId,
@@ -372,6 +379,12 @@ export class ProductsService {
             // Update Warehouse Stock
             let warehouseBalanceBefore = 0;
             if (warehouseId) {
+                // Verify warehouse belongs to company
+                const warehouse = await tx.warehouse.findFirst({
+                    where: { id: warehouseId, companyId }
+                });
+                if (!warehouse) throw ApiError.notFound('Armazém não encontrado ou acesso negado');
+
                 const wStock = await tx.warehouseStock.findUnique({
                     where: { warehouseId_productId: { warehouseId, productId: id } }
                 });

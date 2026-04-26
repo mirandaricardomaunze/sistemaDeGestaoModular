@@ -4,9 +4,12 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { hospitalityService } from '../services/hospitalityService';
 import { createRoomSchema, updateRoomSchema, checkInSchema } from '../validation';
 import { ApiError } from '../middleware/error.middleware';
-import { emitToCompany } from '../lib/socket';
+import { emitToCompany, emitToModule } from '../lib/socket';
+import { requireModule } from '../middleware/module';
+import { emailQueue, JOB_OPTIONS } from '../queues/emailQueue';
 
 const router = Router();
+router.use(authenticate, requireModule('HOSPITALITY'));
 
 // ============================================================================
 // ROOMS CRUD
@@ -68,12 +71,32 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
     const result = await hospitalityService.checkIn(req.companyId, validatedData);
 
     // Socket Notification: Check-in performed
-    emitToCompany(req.companyId, 'hospitality:checkin', {
+    emitToModule(req.companyId, 'hospitality', 'hospitality:checkin', {
         id: result.data.id,
         roomNumber: result.data.room.number,
-        guestName: result.data.customerName, // Fix: field name in schema is customerName
+        guestName: result.data.customerName,
         timestamp: new Date()
     });
+
+    // Send booking confirmation email if guest has email
+    const booking = result.data;
+    if (emailQueue && booking.customerEmail) {
+        const nights = Math.max(1, Math.ceil(
+            (new Date(booking.expectedCheckout).getTime() - new Date(booking.checkIn).getTime()) / 86400000
+        ));
+        const company = await prisma.companySettings.findFirst({ where: { companyId: req.companyId }, select: { companyName: true } });
+        await emailQueue.add('booking-confirmation', {
+            email: booking.customerEmail,
+            guestName: booking.customerName,
+            reservationId: booking.id,
+            roomNumber: booking.room.number,
+            checkIn: booking.checkIn,
+            checkOut: booking.expectedCheckout,
+            nights,
+            totalPrice: Number(booking.totalPrice),
+            companyName: company?.companyName,
+        }, JOB_OPTIONS).catch(() => {});
+    }
 
     res.status(201).json(result);
 });
@@ -147,7 +170,7 @@ router.put('/bookings/:id/checkout', authenticate, async (req: AuthRequest, res)
     const result = await hospitalityService.checkout(req.companyId, req.params.id, req.userId!);
 
     // Socket Notification: Check-out performed
-    emitToCompany(req.companyId, 'hospitality:checkout', {
+    emitToModule(req.companyId, 'hospitality', 'hospitality:checkout', {
         id: req.params.id,
         timestamp: new Date()
     });

@@ -6,7 +6,7 @@ import {
     HiOutlineArrowPath
 } from 'react-icons/hi2';
 import { Card, Button, Select, Badge, LoadingSpinner } from '../../ui';
-import { useStaffPayroll, useCreateStaffPayroll, useUpdateStaffPayrollStatus } from '../../../hooks/useLogistics';
+import { useStaffPayroll, useUpdateStaffPayrollStatus } from '../../../hooks/useLogistics';
 import { formatCurrency } from '../../../utils/helpers';
 
 export const LogisticsPayrollManager: React.FC = () => {
@@ -20,13 +20,7 @@ export const LogisticsPayrollManager: React.FC = () => {
         status: statusFilter || undefined
     });
 
-    const createMutation = useCreateStaffPayroll();
     const updateMutation = useUpdateStaffPayrollStatus();
-
-    const _handleGenerate = async (staffId: string) => {
-        await createMutation.mutateAsync({ staffId, month, year });
-        refetch();
-    };
 
     const handleUpdateStatus = async (id: string, status: 'processed' | 'paid') => {
         await updateMutation.mutateAsync({ id, status });

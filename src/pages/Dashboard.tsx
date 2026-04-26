@@ -23,7 +23,7 @@ import {
 } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
 
-import { Button, Skeleton } from '../components/ui';
+import { Button, Skeleton, Select } from '../components/ui';
 import { cn, formatRelativeTime } from '../utils/helpers';
 import {
     useDashboard,
@@ -172,7 +172,7 @@ export default function Dashboard() {
             case 'insights': return insights && insights.length > 0 ? (
                 <div className="space-y-4">
                     <div className="flex items-center gap-2">
-                        <HiOutlineLightBulb className="w-5 h-5 text-amber-500" />
+                        <HiOutlineLightBulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                         <h2 className="text-lg font-bold">Conselheiro Inteligente</h2>
                     </div>
                     <div className="flex gap-4 overflow-x-auto pb-4">
@@ -212,32 +212,32 @@ export default function Dashboard() {
                 </div>
                 <div className="flex flex-wrap gap-3">
                     <div className="w-56">
-                        <select
+                        <Select
                             value={selectedWarehouseId}
                             onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                            className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 text-sm focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                        >
-                            <option value="">Todos os Armazéns</option>
-                            {warehouses?.map(w => (
-                                <option key={w.id} value={w.id}>{w.name}</option>
-                            ))}
-                        </select>
+                            options={[
+                                { value: '', label: 'Todos os Armazéns' },
+                                ...(warehouses || []).map(w => ({ value: w.id, label: w.name }))
+                            ]}
+                        />
                     </div>
-                    <Button variant="ghost" onClick={() => refetchDashboard()} leftIcon={<HiOutlineRefresh />}>
+                    <Button variant="ghost" onClick={() => refetchDashboard()} leftIcon={<HiOutlineRefresh className="text-primary-600 dark:text-primary-400" />}>
                         {t('common.refresh')}
                     </Button>
-                    <div className="flex bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
+                    <div className="flex bg-gray-100 dark:bg-dark-700 rounded-lg p-1 items-center">
                         {periodOptions.map((opt) => (
-                            <button
+                            <Button
                                 key={opt.value}
                                 onClick={() => setSelectedPeriod(opt.value)}
+                                variant={selectedPeriod === opt.value ? 'primary' : 'ghost'}
+                                size="sm"
                                 className={cn(
                                     'px-3 py-1.5 rounded-md text-sm font-medium',
-                                    selectedPeriod === opt.value ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm' : 'text-gray-500'
+                                    selectedPeriod === opt.value ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm hover:bg-white dark:hover:bg-dark-800' : 'text-gray-500'
                                 )}
                             >
                                 {opt.label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                     <Link to="/pos"><Button leftIcon={<HiOutlinePlus />}>{t('dashboard.newSale')}</Button></Link>

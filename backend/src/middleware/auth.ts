@@ -31,8 +31,19 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 
         req.userId = decoded.userId;
         req.userRole = decoded.role;
-        req.companyId = decoded.companyId;
-        req.userName = decoded.name || decoded.userId;
+        // Favor name from token, fallback to userId (UUID), never allow empty string
+        req.userName = decoded.name || decoded.userId || 'Utilizador';
+
+        // If token has no companyId (old token or super_admin), fetch from DB as fallback
+        if (decoded.companyId) {
+            req.companyId = decoded.companyId;
+        } else if (decoded.role !== 'super_admin') {
+            const user = await prisma.user.findUnique({
+                where: { id: decoded.userId },
+                select: { companyId: true }
+            });
+            req.companyId = user?.companyId ?? undefined;
+        }
 
         tenantContext.run({ companyId: req.companyId, userId: req.userId }, () => next());
     } catch (error) {

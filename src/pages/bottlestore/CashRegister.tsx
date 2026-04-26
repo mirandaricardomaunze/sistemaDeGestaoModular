@@ -60,8 +60,6 @@ export default function CashRegister() {
         const w = window.open('', '_blank');
         if (!w) return;
         const r = zReport;
-        const rows = (items: any[], keys: string[], _headers: string[]) =>
-            items.map(item => `<tr>${keys.map(k => `<td>${item[k] ?? ''}</td>`).join('')}</tr>`).join('');
         w.document.write(`<html><head><title>Relatório Z</title>
         <style>body{font-family:monospace;font-size:12px;margin:20px}h2{text-align:center}hr{border-top:1px dashed #000}
         table{width:100%}td{padding:2px 4px}td:last-child{text-align:right}.total{font-weight:bold}</style></head><body>
@@ -276,8 +274,8 @@ export default function CashRegister() {
 
             {/* Status Card */}
             <Card className={`${currentSession
-                ? 'bg-gradient-to-br from-green-500 to-green-600'
-                : 'bg-gradient-to-br from-red-500 to-red-600'} text-white`}>
+                ? 'bg-green-600'
+                : 'bg-red-600'} text-white`}>
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-white/80 text-sm">Estado do Caixa</p>

@@ -1,4 +1,4 @@
-﻿import { logger } from '../../utils/logger';
+import { logger } from '../../utils/logger';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, Button, Input, Badge, LoadingSpinner, EmptyState, Modal, ConfirmationModal } from '../../components/ui';
 import ThermalReceiptPreview from '../../components/pos/ThermalReceiptPreview';
@@ -253,28 +253,38 @@ export default function BottleStorePOS() {
     const handleCheckout = async () => {
         setProcessingSale(true);
         try {
-            const saleItems = cart.map(item => {
+            const sanitizedItems = cart.map(item => {
                 const quantity = item.mode === 'crate' ? item.quantity * (item.packSize || 1) : item.quantity;
                 const unitPrice = item.finalPrice / (item.mode === 'crate' ? (item.packSize || 1) : 1);
+                const total = quantity * unitPrice;
 
                 return {
                     productId: item.id,
                     quantity: quantity,
-                    unitPrice: unitPrice,
+                    unitPrice: Number(unitPrice.toFixed(2)),
                     discount: 0,
-                    total: quantity * unitPrice
+                    total: Number(total.toFixed(2))
                 };
             });
 
+            const amountPaid = parseFloat(customerMoney) || totalWithTax;
+            const validSubtotal = Number(sanitizedItems.reduce((acc, item) => acc + item.total, 0).toFixed(2));
+            const validDiscount = Number(discountAmount.toFixed(2));
+            const validTax = Number(totalTax.toFixed(2));
+            const validTotal = Number((validSubtotal - validDiscount + validTax).toFixed(2));
+            const validAmountPaid = Number(amountPaid.toFixed(2));
+            const validChange = Math.max(0, Number((validAmountPaid - validTotal).toFixed(2)));
+
             const savedSale = await salesAPI.create({
                 customerId: selectedCustomer?.id,
-                items: saleItems,
+                items: sanitizedItems,
                 paymentMethod: 'cash',
-                amountPaid: parseFloat(customerMoney) || totalWithTax,
-                subtotal: subtotal,
-                total: totalWithTax,
-                tax: totalTax,
-                discount: discountAmount,
+                amountPaid: validAmountPaid,
+                change: validChange,
+                subtotal: validSubtotal,
+                total: validTotal,
+                tax: validTax,
+                discount: validDiscount,
                 notes: selectedCustomer ? `Cliente: ${selectedCustomer.name} (Garrafeira)` : 'Venda Garrafeira'
             });
 
@@ -289,8 +299,18 @@ export default function BottleStorePOS() {
             setThermalPreviewOpen(true);
             refetchProducts();
             refetchSales();
-        } catch (error) {
-            toast.error('Erro ao processar venda');
+        } catch (err: any) {
+            const errorResponse = err.response?.data;
+            const errorMessage = errorResponse?.message || errorResponse?.error || err.message || 'Erro ao processar venda';
+
+            if (errorResponse?.errors && Array.isArray(errorResponse.errors)) {
+                const validationErrors = errorResponse.errors
+                    .map((detail: any) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
+                    .join('\n');
+                toast.error(`Erro de Validação\n\n${validationErrors}`, { duration: 8000 });
+            } else {
+                toast.error(errorMessage, { duration: 6000 });
+            }
         } finally {
             setProcessingSale(false);
         }
@@ -301,7 +321,7 @@ export default function BottleStorePOS() {
             {/* Header */}
             <div className="flex justify-between items-center bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-amber-100 text-amber-600 rounded-lg">
+                    <div className="p-3 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg">
                         <HiOutlineShoppingCart className="w-6 h-6" />
                     </div>
                     <div>

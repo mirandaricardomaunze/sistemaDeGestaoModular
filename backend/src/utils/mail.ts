@@ -182,3 +182,147 @@ export const sendExpirationAlert = async (data: {
 
     return transporter.sendMail(mailOptions);
 };
+
+export const sendStockAlert = async (data: {
+    email: string;
+    productName: string;
+    warehouseName: string;
+    currentStock: number;
+    threshold: number;
+    userName: string;
+    type: 'low_stock' | 'out_of_stock';
+}) => {
+    const isOutOfStock = data.type === 'out_of_stock';
+    const mailOptions = {
+        from: `"${process.env.SMTP_FROM_NAME || 'Multicore'}" <${process.env.SMTP_USER}>`,
+        to: data.email,
+        subject: `${isOutOfStock ? '🚨 STOCK ESGOTADO' : '⚠️ STOCK BAIXO'}: ${data.productName}`,
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid ${isOutOfStock ? '#fee2e2' : '#ffedd5'}; border-radius: 10px;">
+                <h2 style="color: ${isOutOfStock ? '#dc2626' : '#ea580c'}; text-align: center; margin-bottom: 20px;">
+                    ${isOutOfStock ? 'Alerta de Ruptura de Stock' : 'Alerta de Stock Crítico'}
+                </h2>
+                <p>Olá <strong>${data.userName}</strong>,</p>
+                <p>O sistema detetou que um produto atingiu um nível crítico no armazém <strong>${data.warehouseName}</strong>:</p>
+                
+                <div style="background-color: ${isOutOfStock ? '#fef2f2' : '#fff7ed'}; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid ${isOutOfStock ? '#fecaca' : '#fed7aa'};">
+                    <p style="margin: 5px 0;"><strong>Produto:</strong> ${data.productName}</p>
+                    <p style="margin: 5px 0;"><strong>Armazém:</strong> ${data.warehouseName}</p>
+                    <p style="margin: 5px 0;"><strong>Quantidade Atual:</strong> <span style="font-size: 18px; font-weight: bold; color: ${isOutOfStock ? '#dc2626' : '#ea580c'};">${data.currentStock}</span></p>
+                    <p style="margin: 5px 0;"><strong>Nível Mínimo Configurado:</strong> ${data.threshold}</p>
+                </div>
+
+                <p>Por favor, providencie o reabastecimento ou a transferência de stock o mais breve possível para evitar interrupções nas vendas.</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/inventory" 
+                       style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                        Ver Inventário Completo
+                    </a>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0;">
+                <p style="font-size: 11px; color: #9ca3af; text-align: center;">
+                    Este alerta foi gerado automaticamente pelo sistema Multicore ERP.
+                </p>
+            </div>
+        `,
+    };
+
+    if (!process.env.SMTP_USER || (!process.env.SMTP_PASS && !process.env.SMTP_PASSWORD)) {
+        if (process.env.NODE_ENV !== 'production') {
+            logger.warn(`[DEV] sendStockAlert → ${data.email} (SMTP not configured, skipped)`);
+            return { messageId: 'mock-id' };
+        }
+        throw new Error('Configuração de e-mail (SMTP) em falta');
+    }
+
+    return transporter.sendMail(mailOptions);
+};
+
+const smtpReady = () =>
+    !!(process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD));
+
+// ── Booking Confirmation (Hospitality + Public reservations) ─────────────────
+
+export const sendBookingConfirmation = async (data: {
+    email: string; guestName: string; reservationId: string;
+    roomNumber: string | number; checkIn: string | Date; checkOut: string | Date;
+    nights: number; totalPrice: number; companyName?: string;
+}) => {
+    if (!smtpReady()) { logger.warn('[DEV] sendBookingConfirmation skipped'); return; }
+    const fmt = (d: string | Date) => new Date(d).toLocaleDateString('pt-MZ', { day: '2-digit', month: 'long', year: 'numeric' });
+    const fmtCur = (v: number) => new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(v);
+    return transporter.sendMail({
+        from: `"${data.companyName || process.env.SMTP_FROM_NAME || 'Hotelaria'}" <${process.env.SMTP_USER}>`,
+        to: data.email,
+        subject: `Confirmação de Reserva — Quarto ${data.roomNumber}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">
+<div style="background:#1e3a5f;padding:24px 32px;color:white"><h1 style="margin:0;font-size:22px">Reserva Confirmada</h1><p style="margin:4px 0 0;opacity:.8;font-size:14px">Ref: ${data.reservationId.slice(-8).toUpperCase()}</p></div>
+<div style="padding:24px 32px"><p>Caro/a <strong>${data.guestName}</strong>,</p><p>A sua reserva foi confirmada.</p>
+<div style="background:#f8fafc;border-radius:8px;padding:16px;margin:20px 0"><table style="width:100%;font-size:14px">
+<tr><td style="color:#6b7280;padding:4px 0">Quarto</td><td style="font-weight:bold">${data.roomNumber}</td></tr>
+<tr><td style="color:#6b7280;padding:4px 0">Check-in</td><td style="font-weight:bold">${fmt(data.checkIn)}</td></tr>
+<tr><td style="color:#6b7280;padding:4px 0">Check-out</td><td style="font-weight:bold">${fmt(data.checkOut)}</td></tr>
+<tr><td style="color:#6b7280;padding:4px 0">Noites</td><td style="font-weight:bold">${data.nights}</td></tr>
+<tr><td style="color:#6b7280;padding:4px 0">Total</td><td style="font-weight:bold;font-size:16px;color:#1e3a5f">${fmtCur(data.totalPrice)}</td></tr>
+</table></div></div>
+<div style="background:#f3f4f6;padding:12px 32px;font-size:11px;color:#9ca3af;text-align:center">${data.companyName || 'Hotelaria'} — Email automático.</div></div>`,
+    });
+};
+
+// ── Delivery Notification (Logistics) ────────────────────────────────────────
+
+export const sendDeliveryNotification = async (data: {
+    email: string; recipientName: string; deliveryNumber: string;
+    status: string; address: string; trackingInfo?: string; companyName?: string;
+}) => {
+    if (!smtpReady()) { logger.warn('[DEV] sendDeliveryNotification skipped'); return; }
+    const labels: Record<string, string> = {
+        pending: 'Pendente', assigned: 'Atribuída', in_transit: 'Em Trânsito',
+        delivered: 'Entregue', failed: 'Falhou', returned: 'Devolvida',
+    };
+    const isDelivered = data.status === 'delivered';
+    return transporter.sendMail({
+        from: `"${data.companyName || process.env.SMTP_FROM_NAME || 'Logística'}" <${process.env.SMTP_USER}>`,
+        to: data.email,
+        subject: `${isDelivered ? '✅ Entregue' : '📦 Actualização'}: ${data.deliveryNumber}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">
+<div style="background:${isDelivered ? '#16a34a' : '#4f46e5'};padding:24px 32px;color:white"><h1 style="margin:0;font-size:20px">${isDelivered ? 'Entrega Concluída!' : 'Actualização da Entrega'}</h1><p style="margin:4px 0 0;opacity:.85;font-size:14px">Ref: ${data.deliveryNumber}</p></div>
+<div style="padding:24px 32px"><p>Olá <strong>${data.recipientName}</strong>,</p>
+<div style="background:#f8fafc;border-radius:8px;padding:16px;margin:20px 0">
+<p style="margin:0 0 4px;font-size:13px;color:#6b7280">Estado</p>
+<p style="margin:0;font-size:18px;font-weight:bold;color:${isDelivered ? '#16a34a' : '#4f46e5'}">${labels[data.status] || data.status}</p>
+<p style="margin:12px 0 0;font-size:13px"><strong>Endereço:</strong> ${data.address}</p>
+${data.trackingInfo ? `<p style="margin:8px 0 0;font-size:13px"><strong>Info:</strong> ${data.trackingInfo}</p>` : ''}
+</div></div>
+<div style="background:#f3f4f6;padding:12px 32px;font-size:11px;color:#9ca3af;text-align:center">${data.companyName || 'Logística'} — Email automático.</div></div>`,
+    });
+};
+
+// ── Recall Alert (Pharmacy — to admins) ──────────────────────────────────────
+
+export const sendRecallAlert = async (data: {
+    email: string; userName: string; recallNumber: string;
+    medicationName: string; batchNumbers: string[]; reason: string;
+    severity: string; affectedUnits: number; companyName?: string;
+}) => {
+    if (!smtpReady()) { logger.warn('[DEV] sendRecallAlert skipped'); return; }
+    const color = data.severity === 'mandatory' ? '#dc2626' : '#f59e0b';
+    return transporter.sendMail({
+        from: `"${data.companyName || process.env.SMTP_FROM_NAME || 'Farmácia'}" <${process.env.SMTP_USER}>`,
+        to: data.email,
+        subject: `🚨 RECALL ${data.recallNumber}: ${data.medicationName}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;border:2px solid ${color};border-radius:10px;overflow:hidden">
+<div style="background:${color};padding:24px 32px;color:white"><h1 style="margin:0;font-size:20px">RECALL — ${data.recallNumber}</h1><p style="margin:4px 0 0;font-size:12px;font-weight:bold;text-transform:uppercase">${data.severity === 'mandatory' ? 'Obrigatório' : 'Voluntário'}</p></div>
+<div style="padding:24px 32px"><p>Olá <strong>${data.userName}</strong>,</p>
+<div style="background:#fef2f2;border:1px solid ${color};border-radius:8px;padding:16px;margin:20px 0"><table style="width:100%;font-size:14px">
+<tr><td style="color:#6b7280;padding:4px 0">Medicamento</td><td style="font-weight:bold">${data.medicationName}</td></tr>
+<tr><td style="color:#6b7280;padding:4px 0">Lotes</td><td style="font-weight:bold">${data.batchNumbers.join(', ')}</td></tr>
+<tr><td style="color:#6b7280;padding:4px 0">Unidades</td><td style="font-weight:bold">${data.affectedUnits}</td></tr>
+<tr><td style="color:#6b7280;padding:4px 0">Motivo</td><td>${data.reason}</td></tr>
+</table></div>
+<p style="color:#dc2626;font-weight:bold">Retire imediatamente estes lotes do stock.</p></div>
+<div style="background:#f3f4f6;padding:12px 32px;font-size:11px;color:#9ca3af;text-align:center">${data.companyName || 'Farmácia'} — Alerta automático.</div></div>`,
+    });
+};

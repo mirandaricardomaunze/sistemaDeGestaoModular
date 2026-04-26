@@ -12,11 +12,22 @@ interface InventoryPrintReportProps {
     isOpen: boolean;
     onClose: () => void;
     category?: string;
+    status?: string;
+    warehouseId?: string;
+    search?: string;
+    originModule?: string;
 }
 
-export default function InventoryPrintReport({ isOpen, onClose, category }: InventoryPrintReportProps) {
+export default function InventoryPrintReport({ isOpen, onClose, category, status, warehouseId, search, originModule }: InventoryPrintReportProps) {
     const { companySettings, loadCompanySettings } = useStore();
-    const { products } = useProducts({ category });
+    const { products, isLoading } = useProducts({ 
+        category, 
+        status, 
+        warehouseId, 
+        search,
+        origin_module: originModule,
+        limit: 1000 
+    });
     const printRef = useRef<HTMLDivElement>(null);
 
     // Refresh company settings when modal opens
@@ -36,19 +47,37 @@ export default function InventoryPrintReport({ isOpen, onClose, category }: Inve
         let grandTotalValue = 0;
         let grandTotalUnits = 0;
         let grandTotalBoxes = 0;
+        let grandTotalWeight = 0;
 
         const productRows = sortedProducts.map((product) => {
-            const totalValue = product.price * product.currentStock;
+            // Warehouse-aware stock calculation (same as table)
+            const displayStock = (warehouseId && warehouseId !== 'all')
+                ? (product.warehouseStocks?.find(ws => ws.warehouseId === warehouseId)?.quantity ?? 0)
+                : product.currentStock;
+
+            const packSize = product.packSize && product.packSize > 1 ? product.packSize : 1;
+            const boxes = Math.floor(displayStock / packSize);
+            const units = displayStock % packSize;
+            const totalWeight = product.weight ? product.weight * displayStock : null;
+
+            const totalValue = product.price * displayStock;
             grandTotalValue += totalValue;
-            grandTotalUnits += product.currentStock; // Sum all quantities regardless of unit for a general total
-            grandTotalBoxes += product.unit === 'cx' ? product.currentStock : 0;
+            grandTotalUnits += units;
+            grandTotalBoxes += boxes;
+            if (totalWeight !== null) grandTotalWeight += totalWeight;
 
             return {
                 ...product,
+                displayStock,
                 totalValue,
+                totalWeight,
+                boxes,
+                units,
                 categoryLabel: categoryLabels[product.category] || product.category,
             };
         });
+
+        const hasWeight = productRows.some(p => p.weight && p.weight > 0);
 
         // Debug log
         logger.info('Inventory Report - Company Settings:', companySettings);
@@ -71,6 +100,8 @@ export default function InventoryPrintReport({ isOpen, onClose, category }: Inve
             grandTotalValue,
             grandTotalUnits,
             grandTotalBoxes,
+            grandTotalWeight,
+            hasWeight,
             totalProducts: productsList.length,
             generatedAt: new Date().toLocaleString('pt-BR'),
             company,
@@ -88,7 +119,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category }: Inve
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Relatório de Inventário</title>
+                <title>Inventário</title>
                 <meta name="color-scheme" content="light">
                 <style>
                     * {
@@ -183,7 +214,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category }: Inve
         <Modal 
             isOpen={isOpen} 
             onClose={onClose} 
-            title="Relatório de Inventário" 
+            title="Inventário" 
             size="xl"
             isLight
         >
@@ -224,20 +255,40 @@ export default function InventoryPrintReport({ isOpen, onClose, category }: Inve
 
                     {/* Report Title */}
                     <div className="header text-left mb-6" style={{ backgroundColor: 'white !important' }}>
-                        <h1 className="text-xl font-black text-slate-900 uppercase tracking-widest" style={{ color: '#0f172a !important', display: 'inline-block', paddingBottom: '4px' }}>
-                            RELATÓRIO DE INVENTÁRIO
-                        </h1>
-                        <p className="text-slate-400 text-[10px] mt-2 font-bold italic">GERADO EM: {reportData.generatedAt}</p>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h1 className="text-xl font-black text-slate-900 uppercase tracking-widest" style={{ color: '#0f172a !important', display: 'inline-block', paddingBottom: '4px' }}>
+                                    INVENTÁRIO
+                                </h1>
+                                <p className="text-slate-400 text-[10px] mt-2 font-bold italic uppercase">GERADO EM: {reportData.generatedAt}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Total de Itens</p>
+                                <p className="text-lg font-black text-slate-900 tracking-tighter leading-none">{reportData.totalProducts}</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white !important' }}>
+                    {isLoading ? (
+                        <div className="py-20 flex flex-col items-center justify-center space-y-4">
+                            <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">A calcular totais...</p>
+                        </div>
+                    ) : productsList.length === 0 ? (
+                        <div className="py-20 text-center">
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhum produto encontrado com os filtros actuais</p>
+                        </div>
+                    ) : (
+                        <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: 'white !important' }}>
                         <thead>
                             <tr>
-                                <th style={{ width: '160px' }}>Código</th>
+                                <th style={{ width: '120px' }}>Código</th>
                                 <th style={{ width: 'auto' }}>Produto</th>
-                                <th style={{ width: '120px' }}>Referência</th>
-                                <th style={{ width: '80px' }}>Qtd.</th>
-                                <th style={{ width: '140px' }}>Preço Unit.</th>
+                                <th style={{ width: '100px' }}>Referência</th>
+                                <th style={{ width: '70px' }}>Caixas</th>
+                                <th style={{ width: '70px' }}>Unid.</th>
+                                {reportData.hasWeight && <th style={{ width: '100px', textAlign: 'right' }}>Peso Stock</th>}
+                                <th style={{ width: '120px' }}>Preço Unit.</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -248,13 +299,26 @@ export default function InventoryPrintReport({ isOpen, onClose, category }: Inve
                                     </td>
                                     <td>
                                         <h3 className="product-name font-black uppercase tracking-tight text-[#0f172a]">{product.name}</h3>
+                                        {product.weight && product.weight > 0 && (
+                                            <span style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 400 }}>{Number(product.weight).toFixed(3)} kg/un</span>
+                                        )}
                                     </td>
                                     <td>
                                         <span className="sku-text font-bold text-slate-500">{product.sku || '-'}</span>
                                     </td>
-                                    <td style={{ fontWeight: '900', fontSize: '14px', color: '#0f172a' }}>
-                                        {formatCurrency(product.currentStock).replace('MTn', '').trim()}
+                                    <td style={{ fontWeight: '900', fontSize: '13px', color: '#0f172a' }}>
+                                        {product.boxes} <span className="text-[9px] text-slate-400 font-bold ml-0.5">CX</span>
                                     </td>
+                                    <td style={{ fontWeight: '900', fontSize: '13px', color: '#0f172a' }}>
+                                        {product.units} <span className="text-[9px] text-slate-400 font-bold ml-0.5">{product.unit || 'un'}</span>
+                                    </td>
+                                    {reportData.hasWeight && (
+                                        <td style={{ textAlign: 'right', fontSize: '12px', color: '#475569', fontWeight: 600 }}>
+                                            {product.totalWeight !== null && product.totalWeight !== undefined
+                                                ? `${Number(product.totalWeight).toFixed(3)} kg`
+                                                : '—'}
+                                        </td>
+                                    )}
                                     <td className="font-black" style={{ color: '#64748b' }}>
                                         {formatCurrency(product.price)}
                                     </td>
@@ -267,17 +331,32 @@ export default function InventoryPrintReport({ isOpen, onClose, category }: Inve
                                 </td>
                                 <td>
                                     <span className="val-total font-black tracking-tighter">
-                                        {formatCurrency(reportData.grandTotalUnits).replace('MTn', '').trim()}
+                                        {reportData.grandTotalBoxes} <span className="text-[8px] text-slate-400">CX</span>
                                     </span>
                                 </td>
                                 <td>
-                                    <span className="val-price font-black tracking-tighter text-blue-600">
+                                    <span className="val-total font-black tracking-tighter text-blue-600">
+                                        {reportData.grandTotalUnits} <span className="text-[8px] text-slate-400">UN</span>
+                                    </span>
+                                </td>
+                                {reportData.hasWeight && (
+                                    <td style={{ textAlign: 'right' }}>
+                                        <span className="font-black tracking-tighter" style={{ color: '#6366f1' }}>
+                                            {reportData.grandTotalWeight >= 1000
+                                                ? `${(reportData.grandTotalWeight / 1000).toFixed(3)} t`
+                                                : `${reportData.grandTotalWeight.toFixed(3)} kg`}
+                                        </span>
+                                    </td>
+                                )}
+                                <td>
+                                    <span className="val-price font-black tracking-tighter text-emerald-600">
                                         {formatCurrency(reportData.grandTotalValue)}
                                     </span>
                                 </td>
                             </tr>
                         </tbody>
-                    </table>
+                        </table>
+                    )}
 
                     {/* Footer */}
                     <div className="footer mt-8 text-center text-xs text-gray-400">

@@ -53,18 +53,40 @@ function CheckoutModal({ cart, tableId, tableName, onClose, onSuccess }: {
         }
         setProcessing(true);
         try {
+            const sanitizedItems = cart.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: Number(item.price.toFixed(2)),
+                total: Number(item.total.toFixed(2))
+            }));
+            const validSubtotal = Number(sanitizedItems.reduce((acc, item) => acc + item.total, 0).toFixed(2));
+            const validTotal = validSubtotal; // No tax/discount logic here yet, but rounding anyway
+
             await salesAPI.create({
-                items: cart.map(i => ({ productId: i.productId, quantity: i.quantity, unitPrice: i.price })),
+                items: sanitizedItems,
+                subtotal: validSubtotal,
+                total: validTotal,
                 paymentMethod,
-                amountPaid: paymentMethod === 'cash' ? paid : subtotal,
-                tableId: tableId || null,
+                amountPaid: paymentMethod === 'cash' ? Number(paid.toFixed(2)) : validTotal,
+                change: paymentMethod === 'cash' ? Number(change.toFixed(2)) : 0,
+                tableId: tableId || undefined,
                 originModule: 'restaurant',
                 notes: tableId ? `Mesa: ${tableName}` : undefined,
             } as any);
             toast.success('Pedido registado com sucesso!');
             onSuccess();
-        } catch (e: any) {
-            toast.error(e?.response?.data?.error || 'Erro ao registar pedido');
+        } catch (err: any) {
+            const errorResponse = err.response?.data;
+            const errorMessage = errorResponse?.message || errorResponse?.error || err.message || 'Erro ao registar pedido';
+            
+            if (errorResponse?.errors && Array.isArray(errorResponse.errors)) {
+                const validationErrors = errorResponse.errors
+                    .map((detail: any) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
+                    .join('\n');
+                toast.error(`Erro de Validação\n\n${validationErrors}`, { duration: 8000 });
+            } else {
+                toast.error(errorMessage, { duration: 6000 });
+            }
         } finally {
             setProcessing(false);
         }
@@ -209,15 +231,24 @@ export default function RestaurantPOS() {
                     </div>
                     {categories.length > 0 && (
                         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden">
-                            <button onClick={() => setSelectedCategory('')}
-                                className={cn('px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all', !selectedCategory ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300')}>
+                            <Button
+                                variant={!selectedCategory ? 'primary' : 'secondary'}
+                                onClick={() => setSelectedCategory('')}
+                                size="sm"
+                                className={cn('rounded-full whitespace-nowrap', !selectedCategory ? 'bg-red-600' : '')}
+                            >
                                 Todos
-                            </button>
+                            </Button>
                             {categories.map(cat => (
-                                <button key={cat} onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
-                                    className={cn('px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all', selectedCategory === cat ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300')}>
+                                <Button
+                                    key={cat}
+                                    variant={selectedCategory === cat ? 'primary' : 'secondary'}
+                                    onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
+                                    size="sm"
+                                    className={cn('rounded-full whitespace-nowrap', selectedCategory === cat ? 'bg-red-600' : '')}
+                                >
                                     {cat}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     )}
@@ -237,13 +268,13 @@ export default function RestaurantPOS() {
                                     selectedTable?.id === t.id ? 'border-red-500 bg-red-50 text-red-700' :
                                     t.status === 'occupied' ? 'border-red-300 bg-red-50/50 text-red-500' :
                                     'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300')}>
-                                M{t.number}{t.name ? ` "" ${t.name}` : ''}
+                                M{t.number}{t.name ? ` • ${t.name}` : ''}
                                 {t.status === 'occupied' && <span className="ml-1 w-2 h-2 rounded-full bg-red-500 inline-block" />}
                             </button>
                         ))}
-                        <button onClick={() => refetchTables()} className="px-2 py-1.5 text-gray-400 hover:text-gray-600">
+                        <Button variant="ghost" size="xs" onClick={() => refetchTables()} className="px-2">
                             <HiOutlineRefresh className="w-4 h-4" />
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -291,15 +322,16 @@ export default function RestaurantPOS() {
             <div className="w-80 xl:w-96 flex flex-col bg-white dark:bg-dark-800 border-l border-gray-200 dark:border-dark-700">
                 {/* Cart Header */}
                 <div className="p-4 border-b border-gray-200 dark:border-dark-700">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <HiOutlineShoppingCart className="w-5 h-5 text-red-600" />
-                            <h2 className="font-bold text-gray-900 dark:text-white">
-                                {selectedTable ? `Mesa ${selectedTable.number}` : 'Balcão'}
-                            </h2>
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg">
+                            <HiOutlineShoppingCart className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold dark:text-white">POS Restaurante</h1>
+                            <p className="text-xs text-gray-500">Venda directa ao cliente e gestão de mesas</p>
                         </div>
                         {cart.length > 0 && (
-                            <button onClick={() => setCart([])} className="text-gray-400 hover:text-red-500 transition-colors">
+                            <button onClick={() => setCart([])} className="ml-auto text-gray-400 hover:text-red-500 transition-colors">
                                 <HiOutlineX className="w-5 h-5" />
                             </button>
                         )}
@@ -322,16 +354,31 @@ export default function RestaurantPOS() {
                                     <p className="text-xs text-gray-500">{formatCurrency(item.price)} / un</p>
                                 </div>
                                 <div className="flex items-center gap-1.5">
-                                    <button onClick={() => updateQty(item.productId, -1)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center text-gray-600 hover:bg-red-100 hover:text-red-600 transition-colors">
+                                    <Button
+                                        variant="secondary"
+                                        size="xs"
+                                        onClick={() => updateQty(item.productId, -1)}
+                                        className="h-7 w-7 p-0 flex items-center justify-center hover:bg-red-50 hover:text-red-600"
+                                    >
                                         <HiOutlineMinus className="w-3.5 h-3.5" />
-                                    </button>
+                                    </Button>
                                     <span className="w-8 text-center text-sm font-bold text-gray-900 dark:text-white">{item.quantity}</span>
-                                    <button onClick={() => updateQty(item.productId, 1)} className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center text-gray-600 hover:bg-green-100 hover:text-green-600 transition-colors">
+                                    <Button
+                                        variant="secondary"
+                                        size="xs"
+                                        onClick={() => updateQty(item.productId, 1)}
+                                        className="h-7 w-7 p-0 flex items-center justify-center hover:bg-green-50 hover:text-green-600"
+                                    >
                                         <HiOutlinePlus className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button onClick={() => removeItem(item.productId)} className="w-7 h-7 ml-1 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center">
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="xs"
+                                        onClick={() => removeItem(item.productId)}
+                                        className="h-7 w-7 ml-1 p-0 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                    >
                                         <HiOutlineTrash className="w-4 h-4" />
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         ))

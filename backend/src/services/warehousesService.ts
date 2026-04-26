@@ -73,7 +73,7 @@ export class WarehousesService {
                 include: {
                     sourceWarehouse: { select: { id: true, name: true, code: true } },
                     targetWarehouse: { select: { id: true, name: true, code: true } },
-                    items: { include: { product: { select: { id: true, name: true, code: true, barcode: true, description: true, unit: true } } } }
+                    items: { include: { product: { select: { id: true, name: true, code: true, barcode: true, description: true, unit: true, weight: true } } } }
                 },
                 orderBy: { createdAt: 'desc' },
                 skip,

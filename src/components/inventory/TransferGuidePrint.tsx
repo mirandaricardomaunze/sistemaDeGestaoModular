@@ -219,32 +219,68 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                         <h3 className="section-title">Itens Transferidos</h3>
                     </div>
                     <div style={{ padding: '16px 32px' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none' }}>
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '150px' }}>Cód. Barras</th>
-                                    <th style={{ width: '100px' }}>Referência</th>
-                                    <th>Produto</th>
-                                    <th style={{ textAlign: 'left', width: '80px' }}>Qtd</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {transfer.items.map((item, index) => {
-                                    const productName = item.product?.name || item.productName;
-                                    const productCode = (item.product as any)?.sku || item.product?.code || item.productCode;
-                                    const productBarcode = item.product?.barcode || item.productBarcode || '-';
+                        {(() => {
+                            const hasWeight = transfer.items.some(i => i.product?.weight && i.product.weight > 0);
+                            const totalWeight = hasWeight
+                                ? transfer.items.reduce((sum, i) => sum + (i.product?.weight ? i.product.weight * i.quantity : 0), 0)
+                                : 0;
+                            return (
+                                <>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none' }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ width: '150px' }}>Cód. Barras</th>
+                                                <th style={{ width: '100px' }}>Referência</th>
+                                                <th>Produto</th>
+                                                <th style={{ textAlign: 'left', width: '80px' }}>Qtd</th>
+                                                {hasWeight && <th style={{ textAlign: 'right', width: '100px' }}>Peso Total</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {transfer.items.map((item, index) => {
+                                                const productName = item.product?.name || item.productName;
+                                                const productCode = (item.product as any)?.sku || item.product?.code || item.productCode;
+                                                const productBarcode = item.product?.barcode || item.productBarcode || '-';
+                                                const lineWeight = item.product?.weight ? item.product.weight * item.quantity : null;
 
-                                    return (
-                                        <tr key={index}>
-                                            <td style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{productBarcode}</td>
-                                            <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{productCode}</td>
-                                            <td style={{ fontWeight: '600', color: '#1e293b' }}>{productName}</td>
-                                            <td style={{ fontWeight: '800' }}>{item.quantity}</td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                return (
+                                                    <tr key={index}>
+                                                        <td style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{productBarcode}</td>
+                                                        <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{productCode}</td>
+                                                        <td style={{ fontWeight: '600', color: '#1e293b' }}>
+                                                            {productName}
+                                                            {item.product?.weight && item.product.weight > 0 && (
+                                                                <span style={{ display: 'block', fontSize: '9px', color: '#94a3b8', fontWeight: 400 }}>
+                                                                    {item.product.weight.toFixed(3)} kg/un
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ fontWeight: '800' }}>{item.quantity}</td>
+                                                        {hasWeight && (
+                                                            <td style={{ textAlign: 'right', fontWeight: '600', color: '#475569' }}>
+                                                                {lineWeight !== null ? `${lineWeight.toFixed(3)} kg` : '—'}
+                                                            </td>
+                                                        )}
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    {hasWeight && (
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', backgroundColor: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                                <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#64748b' }}>Peso Total da Carga</span>
+                                                <span style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>
+                                                    {totalWeight >= 1000
+                                                        ? `${(totalWeight / 1000).toFixed(3)} t`
+                                                        : `${totalWeight.toFixed(3)} kg`}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
 
                     {/* ─────────────────────────── */}
