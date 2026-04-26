@@ -114,43 +114,86 @@ export default function PharmacyAlerts() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Alertas Inteligentes</h1>
+                    <h1 className="text-2xl font-black text-gray-900 dark:text-white">Alertas Inteligentes</h1>
                     <p className="text-gray-500 dark:text-gray-400">Monitorização em tempo real da farmácia</p>
                 </div>
-                <Button variant="outline" leftIcon={<HiOutlineRefresh className="w-4 h-4" />} onClick={loadData} disabled={isLoading}>
+                <Button
+                    variant="ghost"
+                    className="bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest"
+                    leftIcon={<HiOutlineRefresh className="w-4 h-4" />}
+                    onClick={loadData}
+                    disabled={isLoading}
+                >
                     {isLoading ? 'A carregar...' : 'Atualizar'}
                 </Button>
             </div>
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                    { label: 'Total', value: summary.total, color: 'border-gray-400', textColor: 'text-gray-700 dark:text-gray-300' },
-                    { label: 'Críticos', value: summary.critical, color: 'border-red-500', textColor: 'text-red-700' },
-                    { label: 'Avisos', value: summary.warning, color: 'border-amber-500', textColor: 'text-amber-700' },
-                    { label: 'Info', value: summary.info, color: 'border-blue-500', textColor: 'text-blue-700' },
-                ].map(card => (
-                    <Card key={card.label} className={cn('p-5 border-l-4', card.color)}>
-                        <p className="text-xs font-bold uppercase text-gray-500">{card.label}</p>
-                        <p className={cn('text-3xl font-black', card.textColor)}>{card.value}</p>
-                    </Card>
-                ))}
+                <Card padding="md" className="bg-gray-100/40 dark:bg-gray-900/20 border border-gray-200/50 dark:border-gray-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-gray-200/60 dark:bg-gray-900/40 border border-gray-500/20 flex items-center justify-center text-gray-700 dark:text-gray-300 font-black shadow-inner group-hover:scale-110 transition-transform">
+                            <HiOutlineInformationCircle className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-600/70 dark:text-gray-400/60">Total</p>
+                            <p className="text-xl font-black text-gray-900 dark:text-white leading-none mt-1">{summary.total}</p>
+                        </div>
+                    </div>
+                </Card>
+                <Card padding="md" className="bg-red-100/40 dark:bg-red-900/20 border border-red-200/50 dark:border-red-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-red-200/60 dark:bg-red-900/40 border border-red-500/20 flex items-center justify-center text-red-700 dark:text-red-300 font-black shadow-inner group-hover:scale-110 transition-transform">
+                            <HiOutlineExclamationCircle className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-red-600/70 dark:text-red-400/60">Críticos</p>
+                            <p className="text-xl font-black text-red-900 dark:text-white leading-none mt-1">{summary.critical}</p>
+                        </div>
+                    </div>
+                </Card>
+                <Card padding="md" className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-amber-200/60 dark:bg-amber-900/40 border border-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-300 font-black shadow-inner group-hover:scale-110 transition-transform">
+                            <HiOutlineExclamation className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60">Avisos</p>
+                            <p className="text-xl font-black text-amber-900 dark:text-white leading-none mt-1">{summary.warning}</p>
+                        </div>
+                    </div>
+                </Card>
+                <Card padding="md" className="bg-blue-100/40 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-blue-200/60 dark:bg-blue-900/40 border border-blue-500/20 flex items-center justify-center text-blue-700 dark:text-blue-300 font-black shadow-inner group-hover:scale-110 transition-transform">
+                            <HiOutlineInformationCircle className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-600/70 dark:text-blue-400/60">Info</p>
+                            <p className="text-xl font-black text-blue-900 dark:text-white leading-none mt-1">{summary.info}</p>
+                        </div>
+                    </div>
+                </Card>
             </div>
 
             {/* Tab selector */}
             <div className="flex gap-2">
                 <button
                     onClick={() => setActiveTab('alerts')}
-                    className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all',
-                        activeTab === 'alerts' ? 'bg-teal-600 text-white border-teal-600' : 'border-gray-200 dark:border-dark-600 hover:border-teal-400')}
+                    className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm',
+                        activeTab === 'alerts'
+                            ? 'bg-emerald-500 text-white shadow-emerald-500/20 scale-105'
+                            : 'bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-dark-700 hover:border-emerald-400')}
                 >
                     <HiOutlineClipboardList className="w-4 h-4" />
                     Alertas ({summary.total})
                 </button>
                 <button
                     onClick={() => setActiveTab('reorder')}
-                    className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all',
-                        activeTab === 'reorder' ? 'bg-teal-600 text-white border-teal-600' : 'border-gray-200 dark:border-dark-600 hover:border-teal-400')}
+                    className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm',
+                        activeTab === 'reorder'
+                            ? 'bg-emerald-500 text-white shadow-emerald-500/20 scale-105'
+                            : 'bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-dark-700 hover:border-emerald-400')}
                 >
                     <HiOutlineShoppingCart className="w-4 h-4" />
                     Reposição ({reorderSuggestions.length})
@@ -167,8 +210,10 @@ export default function PharmacyAlerts() {
                             <button
                                 key={f}
                                 onClick={() => setActiveFilter(f)}
-                                className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize',
-                                    activeFilter === f ? 'bg-teal-600 text-white' : 'bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200')}
+                                className={cn('px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm',
+                                    activeFilter === f
+                                        ? 'bg-teal-500 text-white shadow-teal-500/20'
+                                        : 'bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-dark-700 hover:border-teal-400')}
                             >
                                 {f === 'all' ? 'Todos' : f === 'critical' ? 'Críticos' : f === 'warning' ? 'Avisos' : 'Info'}
                                 {f !== 'all' && (

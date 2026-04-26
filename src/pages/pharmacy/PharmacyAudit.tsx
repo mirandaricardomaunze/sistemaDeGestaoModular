@@ -94,7 +94,7 @@ export default function PharmacyAudit() {
                     tableData.push([
                         formatDate(sale.createdAt),
                         sale.customerName || 'Cliente Balcão',
-                        med.product.name,
+                        med.product?.name ?? '-',
                         item.batch?.batchNumber || '-',
                         item.quantity.toString(),
                         sale.prescription?.prescriptionNumber || sale.prescription?.prescriptionNo || '-',
@@ -141,7 +141,7 @@ export default function PharmacyAudit() {
                     const id = med.id;
                     if (!profitData[id]) {
                         profitData[id] = {
-                            name: med.product.name,
+                            name: med.product?.name ?? '',
                             qty: 0,
                             revenue: 0,
                             cost: 0,
@@ -149,8 +149,8 @@ export default function PharmacyAudit() {
                         };
                     }
 
-                    const itemRevenue = item.quantity * (item.unitPrice || med.product.price);
-                    const itemCost = item.quantity * (item.batch?.costPrice || med.product.costPrice || 0);
+                    const itemRevenue = item.quantity * (item.unitPrice || med.product?.price || 0);
+                    const itemCost = item.quantity * (item.batch?.costPrice || med.product?.costPrice || 0);
 
                     profitData[id].qty += item.quantity;
                     profitData[id].revenue += itemRevenue;
@@ -275,7 +275,7 @@ export default function PharmacyAudit() {
 
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="p-5 border-l-4 border-red-500 bg-gradient-to-r from-red-50 to-white dark:from-red-900/20 dark:to-dark-800">
+                <Card className="p-5 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/10">
                     <div className="flex items-start justify-between">
                         <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">Itens Controlados</p>
@@ -290,7 +290,7 @@ export default function PharmacyAudit() {
                     </div>
                 </Card>
 
-                <Card className="p-5 border-l-4 border-blue-500 bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-dark-800">
+                <Card className="p-5 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/10">
                     <div className="flex items-start justify-between">
                         <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Vendas (Período)</p>
@@ -305,7 +305,7 @@ export default function PharmacyAudit() {
                     </div>
                 </Card>
 
-                <Card className="p-5 border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-50 to-white dark:from-emerald-900/20 dark:to-dark-800">
+                <Card className="p-5 border-l-4 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10">
                     <div className="flex items-start justify-between">
                         <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Lucro Bruto</p>
@@ -320,7 +320,7 @@ export default function PharmacyAudit() {
                     </div>
                 </Card>
 
-                <Card className="p-5 border-l-4 border-purple-500 bg-gradient-to-r from-purple-50 to-white dark:from-purple-900/20 dark:to-dark-800">
+                <Card className="p-5 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/10">
                     <div className="flex items-start justify-between">
                         <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Total Vendas</p>
@@ -344,7 +344,7 @@ export default function PharmacyAudit() {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* SARR Report Card */}
-                    <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-red-500 to-rose-600">
+                    <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-0 bg-red-600">
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                         <div className="p-6 relative z-10">
                             <div className="flex items-center gap-3 mb-4">
@@ -374,7 +374,7 @@ export default function PharmacyAudit() {
                     </Card>
 
                     {/* Profitability Card */}
-                    <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-emerald-500 to-teal-600">
+                    <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-0 bg-emerald-600">
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                         <div className="p-6 relative z-10">
                             <div className="flex items-center gap-3 mb-4">
@@ -404,7 +404,7 @@ export default function PharmacyAudit() {
                     </Card>
 
                     {/* Audit Log Card */}
-                    <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-indigo-500 to-purple-600">
+                    <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-0 bg-indigo-600">
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                         <div className="p-6 relative z-10">
                             <div className="flex items-center gap-3 mb-4">

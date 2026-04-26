@@ -4,8 +4,8 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log('🌱 Starting database seed...');
-    console.log('ℹ️  Business modules are now static constants (see src/constants/modules.constants.ts)');
+    console.log('Starting database seed...');
+    console.log(' Business modules are now static constants (see src/constants/modules.constants.ts)');
 
 
     // ==========================================================================

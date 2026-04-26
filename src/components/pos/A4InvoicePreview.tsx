@@ -287,31 +287,63 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                         </div>
 
                         <div className="mb-8">
-                            <table className="w-full text-left print-table" style={{ backgroundColor: 'white' }}>
-                                <thead>
-                                    <tr className="bg-white text-gray-900 border-b-2 border-gray-900">
-                                        <th className="px-4 py-3 text-[10px] font-black uppercase">Descrição do Item</th>
-                                        <th className="px-4 py-3 text-[10px] font-black uppercase text-center">Qtd</th>
-                                        <th className="px-4 py-3 text-[10px] font-black uppercase text-right">Preço Unit.</th>
-                                        <th className="px-4 py-3 text-[10px] font-black uppercase text-right">IVA (%)</th>
-                                        <th className="px-4 py-3 text-[10px] font-black uppercase text-right">Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {(sale.items || []).map((item, index) => (
-                                        <tr key={index}>
-                                            <td className="px-4 py-3">
-                                                <p className="font-bold text-[11px] text-gray-900 leading-tight">{item.product.name}</p>
-                                                <p className="text-[9px] text-gray-400">{item.product.code}</p>
-                                            </td>
-                                            <td className="px-4 py-3 text-center text-[11px] text-gray-600">{item.quantity}</td>
-                                            <td className="px-4 py-3 text-right text-[11px] text-gray-600">{formatCurrency(item.unitPrice)}</td>
-                                            <td className="px-4 py-3 text-right text-[10px] text-gray-500">{formatCurrency(item.total * 0.16 / 1.16)}</td>
-                                            <td className="px-4 py-3 text-right font-black text-[11px] text-gray-900">{formatCurrency(item.total)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            {(() => {
+                                const hasWeight = (sale.items || []).some(i => i.product?.weight && i.product.weight > 0);
+                                const totalWeight = hasWeight
+                                    ? (sale.items || []).reduce((sum, i) => sum + (i.product?.weight ? i.product.weight * i.quantity : 0), 0)
+                                    : 0;
+                                return (
+                                    <>
+                                        <table className="w-full text-left print-table" style={{ backgroundColor: 'white' }}>
+                                            <thead>
+                                                <tr className="bg-white text-gray-900 border-b-2 border-gray-900">
+                                                    <th className="px-4 py-3 text-[10px] font-black uppercase">Descrição do Item</th>
+                                                    <th className="px-4 py-3 text-[10px] font-black uppercase text-center">Qtd</th>
+                                                    <th className="px-4 py-3 text-[10px] font-black uppercase text-right">Preço Unit.</th>
+                                                    <th className="px-4 py-3 text-[10px] font-black uppercase text-right">IVA (%)</th>
+                                                    {hasWeight && <th className="px-4 py-3 text-[10px] font-black uppercase text-right">Peso Total</th>}
+                                                    <th className="px-4 py-3 text-[10px] font-black uppercase text-right">Subtotal</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {(sale.items || []).map((item, index) => {
+                                                    const lineWeight = item.product?.weight ? item.product.weight * item.quantity : null;
+                                                    return (
+                                                        <tr key={index}>
+                                                            <td className="px-4 py-3">
+                                                                <p className="font-bold text-[11px] text-gray-900 leading-tight">{item.product.name}</p>
+                                                                <p className="text-[9px] text-gray-400">{item.product.code}</p>
+                                                                {item.product?.weight && item.product.weight > 0 && (
+                                                                    <p className="text-[9px] text-gray-300">{item.product.weight.toFixed(3)} kg/un</p>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center text-[11px] text-gray-600">{item.quantity}</td>
+                                                            <td className="px-4 py-3 text-right text-[11px] text-gray-600">{formatCurrency(item.unitPrice)}</td>
+                                                            <td className="px-4 py-3 text-right text-[10px] text-gray-500">{formatCurrency(item.total * 0.16 / 1.16)}</td>
+                                                            {hasWeight && (
+                                                                <td className="px-4 py-3 text-right text-[11px] text-gray-500">
+                                                                    {lineWeight !== null ? `${lineWeight.toFixed(3)} kg` : '—'}
+                                                                </td>
+                                                            )}
+                                                            <td className="px-4 py-3 text-right font-black text-[11px] text-gray-900">{formatCurrency(item.total)}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                        {hasWeight && (
+                                            <div className="flex justify-end mt-2">
+                                                <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-lg border border-slate-200">
+                                                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-500">Peso Total da Carga</span>
+                                                    <span className="text-sm font-black text-slate-900">
+                                                        {totalWeight >= 1000 ? `${(totalWeight / 1000).toFixed(3)} t` : `${totalWeight.toFixed(3)} kg`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                );
+                            })()}
                         </div>
 
                         <div className="flex justify-end mb-8">

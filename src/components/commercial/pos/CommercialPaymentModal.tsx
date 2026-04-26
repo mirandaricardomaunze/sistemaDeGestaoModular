@@ -182,7 +182,7 @@ export function CommercialPaymentModal({
                             </div>
                             <div>
                                 <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Desconto</p>
-                                <p className="font-bold text-red-500 text-sm">âˆ' {formatCurrency(cartDiscount)}</p>
+                                <p className="font-bold text-red-500 text-sm">- {formatCurrency(cartDiscount)}</p>
                             </div>
                         </div>
                         <div className="mt-3 pt-3 border-t dark:border-dark-700 flex items-center justify-between">
@@ -330,7 +330,7 @@ export function CommercialPaymentModal({
                             {remaining > 0.01 && (
                                 <div className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
                                     <span className="text-xs font-black uppercase tracking-widest text-red-600">Em falta</span>
-                                    <span className="text-lg font-black text-red-600">âˆ' {formatCurrency(remaining)}</span>
+                                    <span className="text-lg font-black text-red-600">- {formatCurrency(remaining)}</span>
                                 </div>
                             )}
                             {change > 0.01 && (

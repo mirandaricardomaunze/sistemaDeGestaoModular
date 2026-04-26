@@ -23,7 +23,7 @@ interface CardProps {
     className?: string;
     variant?: 'default' | 'glass' | 'premium';
     padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
-    color?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'amber' | 'emerald' | 'cyan' | 'indigo' | 'slate';
+    color?: 'primary' | 'success' | 'warning' | 'danger' | 'info' | 'purple' | 'amber' | 'emerald' | 'cyan' | 'indigo' | 'slate' | 'rose' | 'pink';
     onClick?: () => void;
 }
 
@@ -37,23 +37,25 @@ export function Card({ children, className, variant = 'default', padding = 'md',
     };
 
     const variantClasses = {
-        default: 'bg-white dark:bg-dark-800 rounded-lg shadow-card border border-slate-200/60 dark:border-dark-700/50 transition-all duration-300 hover:shadow-card-hover hover:border-primary-500/20',
+        default: 'bg-white/95 dark:bg-dark-800 rounded-lg shadow-card-strong border border-slate-200/80 dark:border-dark-700/50 transition-all duration-300 hover:shadow-card-hover hover:border-primary-500/30',
         glass: 'bg-white/70 dark:bg-dark-800/80 backdrop-blur-xl rounded-lg shadow-glass border border-white dark:border-dark-700/30',
         premium: 'bg-white dark:bg-dark-900 rounded-lg border border-slate-200/50 dark:border-dark-700 shadow-premium relative overflow-hidden',
     };
 
     const colorClasses: Record<string, string> = {
-        primary: 'bg-primary-100/60 dark:bg-primary-900/40 border-none shadow-md shadow-primary-500/10',
-        success: 'bg-green-100/60 dark:bg-green-900/40 border-none shadow-md shadow-green-500/10',
-        warning: 'bg-yellow-100/60 dark:bg-yellow-900/40 border-none shadow-md shadow-yellow-500/10',
-        danger: 'bg-red-100/60 dark:bg-red-900/40 border-none shadow-md shadow-red-500/10',
-        info: 'bg-blue-100/60 dark:bg-blue-900/40 border-none shadow-md shadow-blue-500/10',
-        purple: 'bg-purple-100/60 dark:bg-purple-900/40 border-none shadow-md shadow-purple-500/10',
-        amber: 'bg-amber-100/60 dark:bg-amber-900/40 border-none shadow-md shadow-amber-500/10',
-        emerald: 'bg-emerald-100/60 dark:bg-emerald-900/40 border-none shadow-md shadow-emerald-500/10',
-        cyan: 'bg-cyan-100/60 dark:bg-cyan-900/40 border-none shadow-md shadow-cyan-500/10',
-        indigo: 'bg-indigo-100/60 dark:bg-indigo-900/40 border-none shadow-md shadow-indigo-500/10',
-        slate: 'bg-slate-100 dark:bg-slate-900/40 border-none shadow-md shadow-slate-500/10',
+        primary: 'bg-primary-500 text-white border-none shadow-lg shadow-primary-500/20',
+        success: 'bg-green-600 text-white border-none shadow-lg shadow-green-500/20',
+        warning: 'bg-amber-500 text-white border-none shadow-lg shadow-amber-500/20',
+        danger: 'bg-red-600 text-white border-none shadow-lg shadow-red-500/20',
+        info: 'bg-blue-600 text-white border-none shadow-lg shadow-blue-500/20',
+        purple: 'bg-purple-600 text-white border-none shadow-lg shadow-purple-500/20',
+        amber: 'bg-amber-600 text-white border-none shadow-lg shadow-amber-500/20',
+        emerald: 'bg-green-600 text-white border-none shadow-lg shadow-green-500/20',
+        cyan: 'bg-cyan-600 text-white border-none shadow-lg shadow-cyan-500/20',
+        indigo: 'bg-indigo-600 text-white border-none shadow-lg shadow-indigo-500/20',
+        slate: 'bg-slate-700 text-white border-none shadow-lg shadow-slate-500/20',
+        rose: 'bg-rose-500 text-white border-none shadow-lg shadow-rose-500/20',
+        pink: 'bg-pink-500 text-white border-none shadow-lg shadow-pink-500/20',
     };
 
     return (
@@ -69,9 +71,6 @@ export function Card({ children, className, variant = 'default', padding = 'md',
             )}
             onClick={onClick}
         >
-            {variant === 'premium' && (
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-            )}
             {children}
         </div>
     );
@@ -92,12 +91,14 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, icon, actions, tabs, className }: PageHeaderProps) {
     return (
-        <Card variant="premium" padding="md" className={cn("mb-6", className)}>
+        <Card variant="default" padding="md" className={cn("mb-6 border-none shadow-sm", className)}>
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
                 <div className="flex items-center gap-4">
                     {icon && (
                         <div className="w-12 h-12 rounded-lg bg-primary-500/10 flex items-center justify-center shrink-0">
-                            {React.cloneElement(icon as React.ReactElement, { className: 'w-6 h-6 text-primary-600' } as any)}
+                            {React.cloneElement(icon as React.ReactElement, { 
+                                className: cn('w-6 h-6 text-primary-600', (icon as any).props?.className) 
+                            } as any)}
                         </div>
                     )}
                     <div>
@@ -136,7 +137,7 @@ interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, '
     helperText?: string;
     leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -158,9 +159,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         ref={ref}
                         className={cn(
                             'w-full rounded-lg border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 transition-all duration-300 shadow-sm',
-                            size === 'sm' ? 'px-3 py-1.5 text-sm' :
-                                size === 'lg' ? 'px-6 py-4 text-lg' :
-                                    'px-4 py-3',
+                            size === 'xs' ? 'px-2 py-1 text-[10px]' :
+                                size === 'sm' ? 'px-3 py-1.5 text-sm' :
+                                    size === 'lg' ? 'px-6 py-3 text-lg' :
+                                        'px-4 py-2',
                             error
                                 ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500'
                                 : 'border-slate-200 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:shadow-md',
@@ -208,7 +210,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
                 <textarea
                     ref={ref}
                     className={cn(
-                        'w-full px-4 py-2.5 rounded-lg border bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200 resize-none shadow-sm',
+                        'w-full px-4 py-2 rounded-lg border bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200 resize-none shadow-sm',
                         error
                             ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500'
                             : 'border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500',
@@ -240,11 +242,12 @@ interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>
     error?: string;
     options: SelectOption[];
     placeholder?: string;
-    size?: 'sm' | 'md' | 'lg';
+    size?: 'xs' | 'sm' | 'md' | 'lg';
+    leftIcon?: React.ReactNode;
 }
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-    ({ label, error, options, placeholder, className, size, ...props }, ref) => {
+    ({ label, error, options, placeholder, className, size, leftIcon, ...props }, ref) => {
         return (
             <div className="w-full">
                 {label && (
@@ -252,31 +255,45 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                         {label}
                     </label>
                 )}
-                <select
-                    ref={ref}
-                    className={cn(
-                        'w-full rounded-lg border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 transition-all duration-300 appearance-none cursor-pointer shadow-sm',
-                        size === 'sm' ? 'px-3 py-1.5 text-sm' :
-                            size === 'lg' ? 'px-6 py-4 text-lg' :
-                                'px-4 py-3',
-                        error
-                            ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500'
-                            : 'border-slate-200 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:shadow-md',
-                        className
+                <div className="relative">
+                    {leftIcon && (
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            {leftIcon}
+                        </div>
                     )}
-                    {...props}
-                >
-                    {placeholder && (
-                        <option value="" disabled>
-                            {placeholder}
-                        </option>
-                    )}
-                    {options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
+                    <select
+                        ref={ref}
+                        className={cn(
+                            'w-full rounded-lg border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 transition-all duration-300 appearance-none cursor-pointer shadow-sm',
+                            size === 'xs' ? 'px-2 py-1 text-[10px]' :
+                                size === 'sm' ? 'px-3 py-1.5 text-sm' :
+                                    size === 'lg' ? 'px-6 py-3 text-lg' :
+                                        'px-4 py-2',
+                            error
+                                ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500'
+                                : 'border-slate-200 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:shadow-md',
+                            leftIcon ? 'pl-10' : '',
+                            className
+                        )}
+                        {...props}
+                    >
+                        {placeholder && (
+                            <option value="" disabled>
+                                {placeholder}
+                            </option>
+                        )}
+                        {options.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-400">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                </div>
                 {error && <p className="mt-1.5 text-sm text-red-500">{error}</p>}
             </div>
         );
@@ -320,7 +337,7 @@ export function Modal({
     };
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 z-[9999] overflow-y-auto">
             {/* Overlay */}
             <div
                 className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
@@ -403,13 +420,13 @@ interface BadgeProps {
 
 export function Badge({ children, variant = 'primary', size = 'md', className }: BadgeProps) {
     const variants = {
-        primary: 'bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300',
-        success: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-        warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-        danger: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-        info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-        gray: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-        outline: 'bg-transparent border border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400',
+        primary: 'bg-primary-600 text-white shadow-sm shadow-primary-500/20',
+        success: 'bg-green-600 text-white shadow-sm shadow-green-500/20',
+        warning: 'bg-amber-500 text-white shadow-sm shadow-amber-500/20',
+        danger: 'bg-red-600 text-white shadow-sm shadow-red-500/20',
+        info: 'bg-blue-600 text-white shadow-sm shadow-blue-500/20',
+        gray: 'bg-slate-500 text-white shadow-sm shadow-slate-500/20',
+        outline: 'bg-transparent border-2 border-primary-500 text-primary-600 dark:text-primary-400',
     };
 
     const sizes = {

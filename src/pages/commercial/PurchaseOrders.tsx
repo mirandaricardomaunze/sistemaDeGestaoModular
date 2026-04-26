@@ -1,4 +1,4 @@
-﻿import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
     HiOutlineClipboardList, HiOutlinePlus, HiOutlineRefresh,
     HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock,
@@ -17,11 +17,11 @@ import { suppliersAPI } from '../../services/api';
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
-    draft:     { label: 'Rascunho',  variant: 'gray'    as const, icon: HiOutlineClipboardList, color: 'text-gray-500',   bg: 'bg-gray-100   dark:bg-dark-700' },
-    ordered:   { label: 'Enviada',   variant: 'info'    as const, icon: HiOutlineTruck,          color: 'text-blue-500',   bg: 'bg-blue-100   dark:bg-blue-900/30' },
-    partial:   { label: 'Parcial',   variant: 'warning' as const, icon: HiOutlineClock,           color: 'text-yellow-500', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
-    received:  { label: 'Recebida',  variant: 'success' as const, icon: HiOutlineCheckCircle,     color: 'text-green-500',  bg: 'bg-green-100  dark:bg-green-900/30' },
-    cancelled: { label: 'Cancelada', variant: 'danger'  as const, icon: HiOutlineXCircle,         color: 'text-red-500',    bg: 'bg-red-100    dark:bg-red-900/30' },
+    draft:     { label: 'Rascunho',  variant: 'gray'    as const, icon: HiOutlineClipboardList, color: 'text-gray-500 dark:text-gray-400',   bg: 'bg-gray-100   dark:bg-dark-700' },
+    ordered:   { label: 'Enviada',   variant: 'info'    as const, icon: HiOutlineTruck,          color: 'text-blue-600 dark:text-blue-400',   bg: 'bg-blue-100   dark:bg-blue-900/30' },
+    partial:   { label: 'Parcial',   variant: 'warning' as const, icon: HiOutlineClock,           color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
+    received:  { label: 'Recebida',  variant: 'success' as const, icon: HiOutlineCheckCircle,     color: 'text-green-600 dark:text-green-400',  bg: 'bg-green-100  dark:bg-green-900/30' },
+    cancelled: { label: 'Cancelada', variant: 'danger'  as const, icon: HiOutlineXCircle,         color: 'text-red-600 dark:text-red-400',    bg: 'bg-red-100    dark:bg-red-900/30' },
 } as const;
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -128,14 +128,16 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                         <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                             Produtos ({lines.length})
                         </span>
-                        <button
+                        <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={addLine}
                             className="flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
                         >
-                            <HiOutlinePlus className="w-3.5 h-3.5" />
+                            <HiOutlinePlus className="w-3.5 h-3.5 text-primary-600 dark:text-primary-400" />
                             Adicionar linha
-                        </button>
+                        </Button>
                     </div>
 
                     <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
@@ -177,14 +179,16 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
                                 </div>
                                 {/* Remove */}
                                 <div className="col-span-1 flex justify-center pb-0.5">
-                                    <button
+                                    <Button
                                         type="button"
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => removeLine(i)}
                                         disabled={lines.length === 1}
                                         className="text-red-400 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                     >
                                         <HiOutlineXCircle className="w-5 h-5" />
-                                    </button>
+                                    </Button>
                                 </div>
                                 {/* Subtotal */}
                                 {line.product && (
@@ -279,17 +283,15 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-dark-700/30 p-4 rounded-lg border border-gray-100 dark:border-dark-700">
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Destino da Mercadoria</p>
-                        <select
+                        <Select
+                            label="Destino da Mercadoria"
                             value={selectedWarehouseId}
                             onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                            className="w-full h-10 px-3 rounded-lg border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 text-sm focus:ring-2 focus:ring-primary-500 transition-all outline-none"
-                        >
-                            <option value="">Seleccione um armazém...</option>
-                            {warehouses?.map(w => (
-                                <option key={w.id} value={w.id}>{w.name} ({w.location})</option>
-                            ))}
-                        </select>
+                            options={[
+                                { value: '', label: 'Seleccione um armazém...' },
+                                ...(warehouses || []).map(w => ({ value: w.id, label: `${w.name} (${w.location})` }))
+                            ]}
+                        />
                     </div>
                 </div>
 
@@ -407,7 +409,7 @@ export default function PurchaseOrders() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineClipboardList className="text-primary-500" />
+                        <HiOutlineClipboardList className="text-primary-600 dark:text-primary-400" />
                         Ordens de Compra
                     </h2>
                     <p className="text-sm text-gray-500 mt-0.5">
@@ -443,7 +445,7 @@ export default function PurchaseOrders() {
                             placeholder="Pesquisar por número ou fornecedor..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            leftIcon={<HiOutlineClipboardList className="w-4 h-4" />}
+                            leftIcon={<HiOutlineClipboardList className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                         />
                     </div>
                     <div className="flex items-center gap-2">
@@ -454,13 +456,14 @@ export default function PurchaseOrders() {
                                 onChange={e => setStatusFilter(e.target.value)}
                             />
                         </div>
-                        <button
+                        <Button
+                            variant="outline"
                             onClick={refetch}
                             title="Actualizar"
                             className="p-2.5 rounded-lg border border-gray-300 dark:border-dark-600 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                         >
                             <HiOutlineRefresh className="w-4 h-4" />
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </Card>
@@ -537,12 +540,14 @@ export default function PurchaseOrders() {
                                                 Receber
                                             </Button>
                                         )}
-                                        <button
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => setExpandedId(isExpanded ? null : order.id)}
                                             className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                                         >
                                             <HiOutlineChevronDown className={cn('w-4 h-4 transition-transform', isExpanded && 'rotate-180')} />
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
 

@@ -72,7 +72,7 @@ export class EmployeesService {
 
     async create(data: any, companyId: string) {
         const code = data.code || `EMP-${Date.now().toString().slice(-6)}`;
-        const { notes, ...employeeData } = data;
+        const { notes, companyId: _dataCompanyId, ...employeeData } = data;
 
         const employee = await prisma.employee.create({
             data: {

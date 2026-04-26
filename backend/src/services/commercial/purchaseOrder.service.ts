@@ -8,7 +8,7 @@ import { ResultHandler, Result } from '../../utils/result';
 export class CommercialPurchaseOrderService {
 
     async listPurchaseOrders(companyId: string, query: any): Promise<Result<any>> {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         const { page, limit, skip } = getPaginationParams(query);
         const { status, supplierId, search } = query;
 

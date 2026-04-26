@@ -85,7 +85,7 @@ router.get('/mpesa/status', authenticate, async (req: AuthRequest, res) => {
  * POST /api/payments/mpesa/initiate
  */
 router.post('/mpesa/initiate', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = initiatePaymentSchema.parse(req.body);
     const { phone, amount, reference, module, moduleReferenceId } = validatedData;
 
@@ -117,7 +117,7 @@ router.post('/mpesa/initiate', authenticate, async (req: AuthRequest, res) => {
  * GET /api/payments/mpesa/transaction/:id
  */
 router.get('/mpesa/transaction/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await mpesaService.getTransactionStatus(req.params.id, req.companyId);
 
     if (!result) {
@@ -137,7 +137,7 @@ router.get('/mpesa/transaction/:id', authenticate, async (req: AuthRequest, res)
  * GET /api/payments/mpesa/module/:module/:referenceId
  */
 router.get('/mpesa/module/:module/:referenceId', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { module, referenceId } = req.params;
 
     if (!['pos', 'invoice', 'hospitality', 'pharmacy'].includes(module)) {
@@ -157,7 +157,7 @@ router.get('/mpesa/module/:module/:referenceId', authenticate, async (req: AuthR
  * POST /api/payments/mpesa/transaction/:id/cancel
  */
 router.post('/mpesa/transaction/:id/cancel', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     // First check ownership
     const transaction = await prisma.mpesaTransaction.findUnique({
         where: { id: req.params.id },

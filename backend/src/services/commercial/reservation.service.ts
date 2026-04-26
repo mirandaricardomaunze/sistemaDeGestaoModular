@@ -13,23 +13,23 @@ export class CommercialReservationService {
 
         return prisma.$transaction(async (tx) => {
             await tx.product.update({ where: { id: productId }, data: { reservedStock: { increment: quantity } } });
-            return (tx as any).stockReservation.create({ data: { productId, quantity, sessionId, companyId, expiresAt } });
+            return tx.stockReservation.create({ data: { productId, quantity, sessionId, companyId, expiresAt } });
         });
     }
 
     async releaseItem(reservationId: string, companyId: string) {
-        const reservation = await (prisma as any).stockReservation.findFirst({ where: { id: reservationId, companyId } });
+        const reservation = await prisma.stockReservation.findFirst({ where: { id: reservationId, companyId } });
         if (!reservation) return ResultHandler.success(true);
 
         return prisma.$transaction(async (tx) => {
             await tx.product.update({ where: { id: reservation.productId }, data: { reservedStock: { decrement: reservation.quantity } } });
-            await (tx as any).stockReservation.delete({ where: { id: reservationId } });
+            await tx.stockReservation.delete({ where: { id: reservationId } });
             return true;
         });
     }
 
     async cleanupExpiredReservations() {
-        const expired = await (prisma as any).stockReservation.findMany({ where: { expiresAt: { lt: new Date() } } });
+        const expired = await prisma.stockReservation.findMany({ where: { expiresAt: { lt: new Date() } } });
         if (expired.length === 0) return;
 
         // Aggregate decrements by productId to minimise DB round-trips
@@ -43,7 +43,7 @@ export class CommercialReservationService {
                 ...Object.entries(byProduct).map(([productId, qty]) =>
                     tx.product.update({ where: { id: productId }, data: { reservedStock: { decrement: qty } } })
                 ),
-                (tx as any).stockReservation.deleteMany({ where: { id: { in: expired.map((e: any) => e.id) } } })
+                tx.stockReservation.deleteMany({ where: { id: { in: expired.map((e: any) => e.id) } } })
             ]);
         });
     }

@@ -37,8 +37,8 @@ export interface CreateSaleInput {
 
 export const saleItemSchema = z.object({
     productId: z.string().uuid('ID do produto inválido'),
-    quantity: z.number().int().positive('Quantidade deve ser maior que zero'),
-    unitPrice: z.number().positive('Preço unitrio deve ser maior que zero'),
+    quantity: z.number().positive('Quantidade deve ser maior que zero'),
+    unitPrice: z.number().positive('Preço unitário deve ser maior que zero'),
     discount: z.number().min(0, 'Desconto não pode ser negativo').optional().default(0),
     total: z.number().positive('Total deve ser maior que zero')
 }).refine(

@@ -26,7 +26,7 @@ export default function Home() {
     }
 
     if (hasModule('HOTEL') || hasModule('HOSPITALITY')) {
-        return <Navigate to="/hotel/dashboard" replace />;
+        return <Navigate to="/hospitality/dashboard" replace />;
     }
 
     if (hasModule('LOGISTICS')) {

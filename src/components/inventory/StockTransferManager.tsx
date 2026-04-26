@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Button, Card, Input, Modal, Select, Pagination, usePagination } from '../ui';
+import { Button, Card, Input, Modal, Select, Pagination, usePagination, ConfirmationModal } from '../ui';
 import { HiOutlineDocumentDownload, HiOutlineSearch, HiOutlineTrash, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
 import { formatDate } from '../../utils/helpers';
 import type { StockTransfer } from '../../types';
@@ -21,6 +21,7 @@ export default function StockTransferManager() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [selectedTransfer, setSelectedTransfer] = useState<StockTransfer | null>(null);
+    const [transferToConfirm, setTransferToConfirm] = useState<{ type: 'complete' | 'cancel', transfer: StockTransfer } | null>(null);
 
     // Form State
     const [sourceId, setSourceId] = useState('');
@@ -176,18 +177,30 @@ export default function StockTransferManager() {
     };
 
     const handleComplete = async (transfer: StockTransfer) => {
-        if (!window.confirm(`Confirmar recepção da transferência ${transfer.number}?\nEsta acção vai adicionar os produtos ao armazém de destino.`)) return;
+        setTransferToConfirm({ type: 'complete', transfer });
+    };
+
+    const confirmComplete = async () => {
+        if (!transferToConfirm) return;
+        const { transfer } = transferToConfirm;
         try {
             await completeTransfer(transfer.id);
             await refetchTransfers();
+            setTransferToConfirm(null);
         } catch { /* error toast handled by hook */ }
     };
 
     const handleCancel = async (transfer: StockTransfer) => {
-        if (!window.confirm(`Cancelar transferência ${transfer.number}?\nO stock será reposto no armazém de origem.`)) return;
+        setTransferToConfirm({ type: 'cancel', transfer });
+    };
+
+    const confirmCancel = async () => {
+        if (!transferToConfirm) return;
+        const { transfer } = transferToConfirm;
         try {
             await cancelTransfer(transfer.id);
             await refetchTransfers();
+            setTransferToConfirm(null);
         } catch { /* error toast handled by hook */ }
     };
 
@@ -499,6 +512,29 @@ export default function StockTransferManager() {
                     </div>
                 </div>
             </Modal>
+
+            {/* Confirmation Modals */}
+            <ConfirmationModal
+                isOpen={transferToConfirm?.type === 'complete'}
+                onClose={() => setTransferToConfirm(null)}
+                onConfirm={confirmComplete}
+                title="Confirmar Recepção"
+                message={`Deseja confirmar a recepção da transferência ${transferToConfirm?.transfer.number}? Esta ação irá adicionar os produtos ao armazém de destino.`}
+                confirmText="Confirmar"
+                cancelText="Cancelar"
+                variant="success"
+            />
+
+            <ConfirmationModal
+                isOpen={transferToConfirm?.type === 'cancel'}
+                onClose={() => setTransferToConfirm(null)}
+                onConfirm={confirmCancel}
+                title="Cancelar Transferência"
+                message={`Deseja cancelar a transferência ${transferToConfirm?.transfer.number}? O estoque será reposto no armazém de origem.`}
+                confirmText="Cancelar Transferência"
+                cancelText="Voltar"
+                variant="danger"
+            />
 
             {/* Print Modal */}
             {selectedTransfer && (

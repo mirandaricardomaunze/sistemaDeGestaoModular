@@ -20,39 +20,39 @@ const router = Router();
 // ============================================================================
 
 router.get('/', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await invoicesService.list(req.query, req.companyId);
     res.json(result);
 });
 
 router.get('/available-sources', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const sources = await invoicesService.getAvailableSources(req.companyId);
     res.json(sources);
 });
 
 router.get('/credit-notes', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await invoicesService.listCreditNotes(req.query, req.companyId);
     res.json(result);
 });
 
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const invoice = await invoicesService.getById(req.params.id, req.companyId);
     res.json(invoice);
 });
 
 router.post('/', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = createInvoiceSchema.parse(req.body);
-    const invoice = await invoicesService.create(validatedData, req.companyId);
+    const invoice = await invoicesService.create(validatedData, req.companyId, req.userName);
     emitToCompany(req.companyId, 'invoice:created', invoice);
     res.status(201).json(invoice);
 });
 
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = updateInvoiceSchema.parse(req.body);
     const result = await invoicesService.update(req.params.id, validatedData, req.companyId);
     emitToCompany(req.companyId, 'invoice:updated', result);
@@ -60,33 +60,33 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 });
 
 router.post('/:id/print', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const invoice = await invoicesService.incrementPrintCount(req.params.id, req.companyId);
     res.json(invoice);
 });
 
 router.post('/:id/payments', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = addPaymentSchema.parse(req.body);
     const result = await invoicesService.addPayment(req.params.id, validatedData, req.companyId);
     res.status(201).json(result);
 });
 
 router.post('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await invoicesService.cancel(req.params.id, req.companyId);
     res.json({ message: 'Fatura cancelada com sucesso' });
 });
 
 // Alias: frontend calls PUT /:id/cancel
 router.put('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await invoicesService.cancel(req.params.id, req.companyId);
     res.json({ message: 'Fatura cancelada com sucesso' });
 });
 
 router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = creditNoteSchema.parse(req.body);
     const result = await invoicesService.createCreditNote(req.params.id, validatedData, req.companyId);
     res.status(201).json(result);
@@ -94,7 +94,7 @@ router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => 
 
 // Download PDF
 router.get('/:id/pdf', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const invoice = await invoicesService.getById(req.params.id, req.companyId);
     const company = await prisma.companySettings.findFirst({ where: { companyId: req.companyId } });
 
@@ -120,7 +120,7 @@ router.get('/:id/pdf', authenticate, async (req: AuthRequest, res) => {
 
 // Send invoice by email
 router.post('/:id/send-email', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { email } = req.body;
 
     const invoice = await invoicesService.getById(req.params.id, req.companyId);
@@ -171,7 +171,7 @@ router.post('/:id/send-email', authenticate, async (req: AuthRequest, res) => {
 
 // Alerts
 router.get('/alerts/overdue', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const today = new Date();
     const invoices = await prisma.invoice.findMany({
         where: {
@@ -187,7 +187,7 @@ router.get('/alerts/overdue', authenticate, async (req: AuthRequest, res) => {
 });
 
 router.post('/convert-order/:orderId', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const invoice = await invoicesService.convertOrderToInvoice(req.params.orderId, req.companyId, req.userName);
     res.status(201).json(invoice);
 });

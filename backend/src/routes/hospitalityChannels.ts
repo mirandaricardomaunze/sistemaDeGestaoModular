@@ -2,8 +2,10 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/auth';
 import { hospitalityChannelsService } from '../services/hospitalityChannelsService';
 import { ApiError } from '../middleware/error.middleware';
+import { requireModule } from '../middleware/module';
 
 const router = Router();
+router.use(authenticate, requireModule('HOSPITALITY'));
 
 // ============================================================================
 // Channel Manager (iCal)
@@ -42,7 +44,7 @@ router.get('/rooms/:roomId/ical', async (req, res) => {
  * Força sincronização de um iCal remoto
  */
 router.post('/rooms/:roomId/sync', authenticate, async (req: any, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company context required');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { icalUrl } = req.body;
     
     if (!icalUrl) throw ApiError.badRequest('iCal URL é obriagtória');

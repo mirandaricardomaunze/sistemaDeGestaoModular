@@ -262,7 +262,7 @@ export const PharmacyHRDashboard: React.FC = () => {
                                         paddingAngle={5}
                                         dataKey="value"
                                     >
-                                        {payrollDistData.map((entry, index) => (
+                                        {payrollDistData.map((_entry, index) => (
                                             <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                                         ))}
                                     </Pie>

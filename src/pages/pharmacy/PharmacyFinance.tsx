@@ -222,50 +222,50 @@ export default function PharmacyFinance() {
 
             {/* Quick Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card padding="md" className="border-l-4 border-l-teal-500 shadow-sm transition-all hover:shadow-md">
+                <Card padding="md" className="bg-emerald-100/40 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
-                            <HiOutlineArrowTrendingUp className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+                        <div className="w-12 h-12 rounded-xl bg-emerald-200/60 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shadow-inner">
+                            <HiOutlineArrowTrendingUp className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-1 italic">Total Receitas</p>
-                            <ResponsiveValue value={summary.totalRevenue} size="md" className="text-teal-600 font-black" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70 dark:text-emerald-400/60 mb-1">Total Receitas</p>
+                            <ResponsiveValue value={summary.totalRevenue} size="md" className="text-emerald-900 dark:text-white font-black" />
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="md" className="border-l-4 border-l-rose-500 shadow-sm transition-all hover:shadow-md">
+                <Card padding="md" className="bg-rose-100/40 dark:bg-rose-900/20 border border-rose-200/50 dark:border-rose-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
-                            <HiOutlineArrowTrendingDown className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                        <div className="w-12 h-12 rounded-xl bg-rose-200/60 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 flex items-center justify-center shadow-inner">
+                            <HiOutlineArrowTrendingDown className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-1 italic">Total Despesas</p>
-                            <ResponsiveValue value={summary.totalExpenses} size="md" className="text-rose-600 font-black" />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-600/70 dark:text-rose-400/60 mb-1">Total Despesas</p>
+                            <ResponsiveValue value={summary.totalExpenses} size="md" className="text-rose-900 dark:text-white font-black" />
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="md" className="border-l-4 border-l-primary-500 shadow-sm transition-all hover:shadow-md">
+                <Card padding="md" className="bg-primary-100/40 dark:bg-primary-900/20 border border-primary-200/50 dark:border-primary-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                        <div className="w-12 h-12 rounded-xl bg-primary-200/60 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center shadow-inner">
+                            <HiOutlineCurrencyDollar className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-1 italic">Lucro Líquido</p>
-                            <ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-600' : 'text-rose-600')} />
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60 mb-1">Lucro Líquido</p>
+                            <ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-rose-700 dark:text-rose-400')} />
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="md" className="border-l-4 border-l-amber-500 shadow-sm transition-all hover:shadow-md">
+                <Card padding="md" className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
                     <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                            <HiOutlineClipboardDocumentList className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                        <div className="w-12 h-12 rounded-xl bg-amber-200/60 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shadow-inner">
+                            <HiOutlineClipboardDocumentList className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-1 italic">Margem de Lucro</p>
-                            <span className="text-lg md:text-xl font-black text-amber-600">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60 mb-1">Margem de Lucro</p>
+                            <span className="text-xl font-black text-amber-900 dark:text-white leading-none block">
                                 {summary.profitMargin.toFixed(1)}%
                             </span>
                         </div>
@@ -365,7 +365,7 @@ export default function PharmacyFinance() {
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
                                             <span className={cn(
                                                 "text-sm font-black tracking-tight",
-                                                t.type === 'income' ? 'text-teal-600' : 'text-rose-600'
+                                                t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
                                             )}>
                                                 {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
                                             </span>

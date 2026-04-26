@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Card, Button, Skeleton, Badge, Pagination } from '../../components/ui';
+import { Card, Button, Skeleton, Badge, Pagination, Input } from '../../components/ui';
 import {
     HiOutlineRefresh, HiOutlineDocumentReport, HiOutlineCalendar,
     HiOutlineCash, HiOutlineShoppingCart, HiOutlineChartBar,
 } from 'react-icons/hi';
-import { HiOutlineCake } from 'react-icons/hi2';
+import { HiOutlineCake, HiOutlineArrowDownTray as HiOutlineDocumentDownload } from 'react-icons/hi2';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useRestaurantReports } from '../../hooks/useRestaurant';
 import { useStore } from '../../stores/useStore';
@@ -106,7 +106,7 @@ export default function RestaurantReports() {
                     <p className="text-gray-500 dark:text-gray-400">Análise de vendas e desempenho</p>
                 </div>
                 <div className="flex gap-3">
-                    <Button variant="ghost" onClick={refetch} leftIcon={<HiOutlineRefresh className="w-5 h-5" />}>Atualizar</Button>
+                    <Button variant="ghost" onClick={() => { void refetch(); }} leftIcon={<HiOutlineRefresh className="w-5 h-5 text-primary-600 dark:text-primary-400" />}>Atualizar</Button>
                 </div>
             </div>
 
@@ -115,20 +115,38 @@ export default function RestaurantReports() {
                 <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex items-center gap-2 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
                         {PRESETS.map(p => (
-                            <button key={p.value} onClick={() => { setPreset(p.value); setPage(1); }}
-                                className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-all', preset === p.value ? 'bg-white dark:bg-dark-800 text-red-600 shadow-sm' : 'text-gray-600 dark:text-gray-400')}>
+                            <Button
+                                key={p.value}
+                                variant={preset === p.value ? 'primary' : 'ghost'}
+                                onClick={() => { setPreset(p.value); setPage(1); }}
+                                size="sm"
+                                className={cn(
+                                    'rounded-md transition-all',
+                                    preset === p.value ? 'bg-white dark:bg-dark-800 text-red-600 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200/50'
+                                )}
+                            >
                                 {p.label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                     {preset === 'custom' && (
                         <div className="flex items-center gap-2">
                             <HiOutlineCalendar className="w-5 h-5 text-gray-400" />
-                            <input type="date" className="rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-1.5 text-sm text-gray-900 dark:text-white"
-                                value={customDates.startDate} onChange={e => setCustomDates(p => ({ ...p, startDate: e.target.value }))} />
+                            <Input
+                                type="date"
+                                size="sm"
+                                className="w-auto"
+                                value={customDates.startDate}
+                                onChange={e => setCustomDates(p => ({ ...p, startDate: e.target.value }))}
+                            />
                             <span className="text-gray-400">-</span>
-                            <input type="date" className="rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-1.5 text-sm text-gray-900 dark:text-white"
-                                value={customDates.endDate} onChange={e => setCustomDates(p => ({ ...p, endDate: e.target.value }))} />
+                            <Input
+                                type="date"
+                                size="sm"
+                                className="w-auto"
+                                value={customDates.endDate}
+                                onChange={e => setCustomDates(p => ({ ...p, endDate: e.target.value }))}
+                            />
                         </div>
                     )}
                 </div>
@@ -141,14 +159,38 @@ export default function RestaurantReports() {
                     { label: 'Total de Pedidos', value: summary.totalOrders, icon: HiOutlineShoppingCart, color: 'orange' },
                     { label: 'Ticket Médio', value: formatCurrency(summary.avgTicket), icon: HiOutlineChartBar, color: 'emerald' },
                 ].map(({ label, value, icon: Icon, color }) => (
-                    <Card key={label} padding="md">
-                        <div className="flex items-center gap-4">
-                            <div className={cn('w-12 h-12 rounded-lg flex items-center justify-center', `bg-${color}-100 dark:bg-${color}-900/30`)}>
-                                <Icon className={cn('w-6 h-6', `text-${color}-600`)} />
+                    <Card 
+                        key={label} 
+                        padding="md"
+                        className={cn(
+                            'border shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group',
+                            color === 'red' ? 'bg-red-100/40 border-red-200/50' :
+                            color === 'orange' ? 'bg-orange-100/40 border-orange-200/50' :
+                            'bg-emerald-100/40 border-emerald-200/50'
+                        )}
+                    >
+                        <div className="flex items-center gap-4 relative z-10">
+                            <div className={cn(
+                                'w-12 h-12 rounded-xl flex items-center justify-center shadow-inner transition-transform group-hover:scale-110',
+                                color === 'red' ? 'bg-red-200/60 text-red-700' :
+                                color === 'orange' ? 'bg-orange-200/60 text-orange-700' :
+                                'bg-emerald-200/60 text-emerald-700'
+                            )}>
+                                <Icon className="w-6 h-6" />
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-                                <p className={cn('text-2xl font-bold', `text-${color}-600`)}>{value}</p>
+                                <p className={cn(
+                                    'text-[10px] font-black uppercase tracking-widest',
+                                    color === 'red' ? 'text-red-600/70' :
+                                    color === 'orange' ? 'text-orange-600/70' :
+                                    'text-emerald-600/70'
+                                )}>{label}</p>
+                                <p className={cn(
+                                    'text-2xl font-black leading-none mt-1',
+                                    color === 'red' ? 'text-red-900 dark:text-white' :
+                                    color === 'orange' ? 'text-orange-900 dark:text-white' :
+                                    'text-emerald-900 dark:text-white'
+                                )}>{value}</p>
                             </div>
                         </div>
                     </Card>
@@ -228,14 +270,8 @@ export default function RestaurantReports() {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Registo de Pedidos</h2>
                         <div className="flex gap-2">
-                             <Button 
-                                size="sm" 
-                                variant="outline" 
-                                leftIcon={<HiOutlineDocumentReport className="w-4 h-4" />}
-                                onClick={() => handleExportPDF()}
-                             >
-                                Exportar PDF
-                             </Button>
+                            <Button variant="outline" onClick={handleExportExcel} leftIcon={<HiOutlineDocumentDownload className="w-4 h-4 text-primary-600 dark:text-primary-400" />}>Gerar XLSX</Button>
+                            <Button onClick={handleExportPDF} leftIcon={<HiOutlineDocumentDownload className="w-4 h-4 text-white" />}>PDF Profissional</Button>
                         </div>
                     </div>
 
@@ -296,6 +332,31 @@ export default function RestaurantReports() {
             </div>
         </div>
     );
+
+    function handleExportExcel() {
+        if (!sales.length) {
+            toast.error('Sem dados para exportar');
+            return;
+        }
+        const headers = ['Nº Recibo', 'Mesa', 'Itens', 'Método', 'Total', 'Data'];
+        const rows = sales.map((s: any) => [
+            s.receiptNumber,
+            s.table ? `Mesa ${s.table.number}` : 'Balcão',
+            s.items?.length || 0,
+            s.paymentMethod?.toUpperCase() || '',
+            Number(s.total).toFixed(2),
+            new Date(s.createdAt).toLocaleDateString('pt-MZ'),
+        ]);
+        const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
+        const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `relatorio-restaurante-${new Date().getTime()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success('Ficheiro Excel (CSV) exportado');
+    }
 
     function handleExportPDF() {
         if (!sales.length) {

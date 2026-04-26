@@ -8,6 +8,7 @@ import type {
     VehicleMaintenance, ExpiryAlertSeverity
 } from '../types/logistics';
 import type { Parcel } from '../services/api/logistics.api';
+import type { StockTransfer } from '../types';
 import toast from 'react-hot-toast';
 
 // ============================================================================
@@ -768,7 +769,7 @@ export function useLogisticsReportsSummary(params?: { startDate?: string; endDat
 import { warehousesAPI } from '../services/api/warehouses.api';
 
 export function useTransfers(params?: { sourceWarehouseId?: string; targetWarehouseId?: string; status?: string }) {
-    return useQuery<any[]>({
+    return useQuery<StockTransfer[]>({
         queryKey: ['logistics', 'transfers', params],
         queryFn: () => warehousesAPI.getTransfers(params),
     });

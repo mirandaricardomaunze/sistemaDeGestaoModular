@@ -36,6 +36,7 @@ import { HiCube, HiUserGroup, HiShoppingBag, HiCloud } from 'react-icons/hi2';
 import { MdCloudOff, MdMedicalServices, MdHotel, MdReceiptLong, MdShowChart } from 'react-icons/md';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import { useTenant } from '../../contexts/TenantContext';
+import { Input } from '../ui';
 
 export default function Header() {
     const location = useLocation();
@@ -55,6 +56,12 @@ export default function Header() {
         setShowSearchResults(false);
     }, [location.pathname, location.search]);
 
+    // Active modular context
+    const SPECIALIZED_MODULES = ['pharmacy', 'commercial', 'hospitality', 'bottle_store', 'logistics', 'restaurant'];
+    const isSuperAdmin = user?.role === 'super_admin';
+    const userSpecializedModule = !isSuperAdmin
+        ? SPECIALIZED_MODULES.find(m => hasModule(m))
+        : undefined;
 
     // Get user initials
     const getUserInitials = (name: string) => {
@@ -140,10 +147,10 @@ export default function Header() {
                     salesRes
                 ] = await Promise.all([
                     // Core/Inventory
-                    hasModule('inventory') ? productsAPI.getAll({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
+                    hasModule('inventory') ? productsAPI.getAll({ search: searchQuery, origin_module: userSpecializedModule }).catch(() => []) : Promise.resolve([]),
                     hasModule('crm') || hasModule('inventory') ? customersAPI.getAll({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
                     hasModule('hr') ? employeesAPI.getAll({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
-                    hasModule('inventory') && (ordersAPI as any).getAll ? (ordersAPI as any).getAll().then((res: any) => {
+                    hasModule('inventory') && (ordersAPI as any).getAll ? (ordersAPI as any).getAll({ search: searchQuery, originModule: userSpecializedModule }).then((res: any) => {
                         const allOrders = Array.isArray(res) ? res : (res.data || []);
                         return allOrders.filter((o: any) =>
                             o.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -162,28 +169,28 @@ export default function Header() {
                     // Specialized Modules
                     hasModule('pharmacy') && (pharmacyAPI as any).getMedications ? (pharmacyAPI as any).getMedications({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
                     hasModule('hospitality') && (hospitalityAPI as any).getRooms ? (hospitalityAPI as any).getRooms({ search: searchQuery }).catch(() => []) : Promise.resolve([]),
-                    hasModule('hospitality') && (hospitalityAPI as any).getBookings ? (hospitalityAPI as any).getBookings().then((res: any) => {
+                    hasModule('hospitality') && (hospitalityAPI as any).getBookings ? (hospitalityAPI as any).getBookings({ search: searchQuery }).then((res: any) => {
                         const items = Array.isArray(res) ? res : (res.data || []);
                         return items.filter((b: any) =>
                             b.customerName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             b.room?.number?.toLowerCase().includes(searchQuery.toLowerCase())
                         );
                     }).catch(() => []) : Promise.resolve([]),
-                    hasModule('crm') && (crmAPI as any).getOpportunities ? (crmAPI as any).getOpportunities().then((res: any) => {
+                    hasModule('crm') && (crmAPI as any).getOpportunities ? (crmAPI as any).getOpportunities({ search: searchQuery }).then((res: any) => {
                         const items = Array.isArray(res) ? res : (res.data || []);
                         return items.filter((o: any) =>
                             o.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             o.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase())
                         );
                     }).catch(() => []) : Promise.resolve([]),
-                    hasModule('invoices') && (invoicesAPI as any).getAll ? (invoicesAPI as any).getAll().then((res: any) => {
+                    hasModule('invoices') && (invoicesAPI as any).getAll ? (invoicesAPI as any).getAll({ search: searchQuery, originModule: userSpecializedModule }).then((res: any) => {
                         const items = Array.isArray(res) ? res : (res.data || []);
                         return items.filter((i: any) =>
                             i.invoiceNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             i.customerName?.toLowerCase().includes(searchQuery.toLowerCase())
                         );
                     }).catch(() => []) : Promise.resolve([]),
-                    hasModule('pos') && (salesAPI as any).getAll ? (salesAPI as any).getAll().then((res: any) => {
+                    hasModule('pos') && (salesAPI as any).getAll ? (salesAPI as any).getAll({ search: searchQuery, originModule: userSpecializedModule }).then((res: any) => {
                         const items = Array.isArray(res) ? res : (res.data || []);
                         return items.filter((s: any) =>
                             s.receiptNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -237,16 +244,15 @@ export default function Header() {
                     {/* Mobile Menu Toggle */}
                     <button
                         onClick={toggleSidebar}
-                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300 transition-colors"
+                        className="p-2.5 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-all duration-300 ring-gray-100 hover:ring-2 dark:ring-dark-700"
                         title="Menu"
                     >
-                        <HiOutlineBars3 className="w-6 h-6" />
+                        <HiOutlineBars3 className="w-5 h-5" />
                     </button>
 
                     {/* Search Bar */}
-                    <div className="hidden md:flex items-center relative">
-                        <HiOutlineMagnifyingGlass className={`absolute left-3 w-5 h-5 ${isSearching ? 'text-primary-500 animate-pulse' : 'text-gray-400'}`} />
-                        <input
+                    <div className="hidden md:flex items-center relative w-80">
+                        <Input
                             type="text"
                             placeholder={t('common.search') + '...'}
                             value={searchQuery}
@@ -256,7 +262,8 @@ export default function Header() {
                             }}
                             onFocus={() => setShowSearchResults(searchQuery.trim().length > 0)}
                             onBlur={() => setTimeout(() => setShowSearchResults(false), 200)}
-                            className="w-80 pl-10 pr-4 py-2 rounded-lg bg-gray-100 dark:bg-dark-700 border-none focus:ring-2 focus:ring-primary-500 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500"
+                            leftIcon={<HiOutlineMagnifyingGlass className={isSearching ? 'text-primary-500 animate-pulse' : 'text-gray-400'} />}
+                            className="bg-gray-100 dark:bg-dark-700 border-transparent shadow-none w-full"
                         />
 
                         {/* Search Results Dropdown */}
@@ -344,7 +351,7 @@ export default function Header() {
                                                 {searchResults.rooms.map((room) => (
                                                     <Link
                                                         key={room.id}
-                                                        to={`/hotel/rooms?number=${room.number}`}
+                                                        to={`/hospitality/rooms?number=${room.number}`}
                                                         onMouseDown={(e) => e.preventDefault()}
                                                         className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
                                                     >
@@ -365,7 +372,7 @@ export default function Header() {
                                                 {searchResults.bookings.map((booking) => (
                                                     <Link
                                                         key={booking.id}
-                                                        to={`/hotel/reservations?search=${booking.customerName}`}
+                                                        to={`/hospitality/reservations?search=${booking.customerName}`}
                                                         onMouseDown={(e) => e.preventDefault()}
                                                         className="w-full px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/10 flex items-center justify-between group transition-colors border-l-2 border-transparent hover:border-primary-500"
                                                     >
@@ -683,7 +690,7 @@ export default function Header() {
                             onClick={() => setShowUserMenu(!showUserMenu)}
                             className="flex items-center gap-2 p-1.5 pr-3 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
                         >
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center shadow-sm shadow-primary-500/20">
                                 <span className="text-white font-semibold text-sm">
                                     {user ? getUserInitials(user.name) : 'U'}
                                 </span>

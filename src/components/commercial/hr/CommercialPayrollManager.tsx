@@ -6,7 +6,7 @@ import {
     HiOutlineArrowPath,
     HiOutlineCalculator,
 } from 'react-icons/hi2';
-import { Card, Button, Select, Badge, LoadingSpinner } from '../../ui';
+import { Card, Button, Select, Badge, LoadingSpinner, ConfirmationModal } from '../../ui';
 import { useEmployees, usePayroll } from '../../../hooks/useData';
 import { formatCurrency } from '../../../utils/helpers';
 import PayslipGenerator from '../../employees/PayslipGenerator';
@@ -35,9 +35,10 @@ export const CommercialPayrollManager: React.FC = () => {
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear());
     const [statusFilter, setStatusFilter] = useState('');
-    const [_selectedPayroll, setSelectedPayroll] = useState<any>(null);
-    const [_isPayslipOpen, setIsPayslipOpen] = useState(false);
+    const [_selectedPayroll] = useState<any>(null);
+    const [_isPayslipOpen] = useState(false);
     const [processingAll, setProcessingAll] = useState(false);
+    const [showProcessConfirm, setShowProcessConfirm] = useState(false);
 
     const { employees: allEmployees } = useEmployees({ limit: 200 });
     const employees = useMemo(() =>
@@ -71,7 +72,11 @@ export const CommercialPayrollManager: React.FC = () => {
     };
 
     const handleProcessAll = async () => {
-        if (!window.confirm('Processar todos os rascunhos da equipa comercial?')) return;
+        setShowProcessConfirm(true);
+    };
+
+    const confirmProcessAll = async () => {
+        setShowProcessConfirm(false);
         const drafts = data.filter(p => p.status === 'draft').map(p => p.id);
         if (!drafts.length) { toast('Sem rascunhos por processar'); return; }
         setProcessingAll(true);
@@ -80,11 +85,6 @@ export const CommercialPayrollManager: React.FC = () => {
         setProcessingAll(false);
         toast.success(`${ok}/${drafts.length} registos processados`);
         refetch();
-    };
-
-    const _openPayslip = (p: any) => {
-        setSelectedPayroll({ ...p, employee: employees.find(e => e.id === p.employeeId) });
-        setIsPayslipOpen(true);
     };
 
     return (
@@ -214,6 +214,17 @@ export const CommercialPayrollManager: React.FC = () => {
                 </div>
             </Card>
 
+            {/* Process All Confirmation */}
+            <ConfirmationModal
+                isOpen={showProcessConfirm}
+                onClose={() => setShowProcessConfirm(false)}
+                onConfirm={confirmProcessAll}
+                title="Processar Salários (Comercial)"
+                message={`Deseja processar todos os rascunhos de salários da equipa comercial para ${MONTHS[month - 1]?.label} / ${year}?`}
+                confirmText="Confirmar Processamento"
+                cancelText="Voltar"
+                variant="primary"
+            />
         </div>
     );
 };

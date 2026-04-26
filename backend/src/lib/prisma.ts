@@ -25,27 +25,32 @@ export const prisma = basePrisma.$extends({
                     'Customer', 'Supplier', 'Sale', 'PharmacySale', 'Medication',
                     'Employee', 'Transaction', 'Invoice', 'Alert', 'Booking', 'Room',
                     // Stock & logistics
-                    'StockTransfer', 'WarehouseStock', 'PriceTier', 'ProductBatch',
+                    'StockTransfer', 'StockReservation', 'PriceTier', 'ProductBatch', 'WarehouseStock',
                     'PurchaseOrder', 'CreditNote', 'CustomerOrder', 'DocumentSeries',
                     // Restaurant
                     'RestaurantTable', 'RestaurantMenuItem', 'RestaurantOrder', 'RestaurantReservation',
                     // CRM
-                    'FunnelStage', 'Opportunity', 'Campaign',
+                    'FunnelStage', 'Opportunity', 'Campaign', 'Interaction',
                     // HR
-                    'AttendanceRecord', 'PayrollRecord', 'VacationRequest',
+                    'AttendanceRecord', 'PayrollRecord', 'VacationRequest', 'AcademicQualification',
+                    'CommissionRule',
                     // Logistics / fleet
                     'Vehicle', 'Driver', 'Delivery', 'Parcel', 'DeliveryRoute',
                     'VehicleMaintenance', 'FuelSupply', 'VehicleIncident',
                     // Pharmacy
                     'Prescription', 'MedicationBatch', 'NarcoticRegister',
-                    'PharmacyPartner', 'PartnerInvoice', 'BatchRecall',
+                    'PharmacyPartner', 'PartnerInvoice', 'BatchRecall', 'DrugInteraction',
+                    'PharmacyDashboardCache',
                     // Finance & fiscal
                     'TaxConfig', 'TaxRetention', 'FiscalReport', 'FiscalDeadline', 'IvaRate',
+                    'IRPSBracket',
                     // Payments & cash
                     'MpesaTransaction', 'CashSession', 'CreditPayment', 'BottleReturn',
                     'LoyaltyTransaction', 'CustomerHistory',
                     // Hospitality
-                    'HousekeepingTask',
+                    'HousekeepingTask', 'BookingConsumption',
+                    // Config & audit (company-scoped)
+                    'AlertConfig', 'AuditLog',
                 ];
 
                 if (tenantModels.includes(model)) {

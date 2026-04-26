@@ -5,7 +5,7 @@ import { logger } from '../utils/logger';
 
 export class DashboardService {
     async getMetrics(companyId: string, warehouseId?: string) {
-        if (!companyId) throw ApiError.badRequest('Company not identified');
+        if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         const cacheKey = CacheKeys.dashboardMetrics(companyId, warehouseId);
         return cacheService.getOrSet(cacheKey, async () => {
             const today = new Date();
@@ -20,7 +20,16 @@ export class DashboardService {
             const saleWhere: any = { companyId, warehouseId };
             if (!warehouseId) delete saleWhere.warehouseId;
 
-            const [todaySales, monthSales, lastMonthSales, lowStockItems, activeEmployees, pendingAlerts, overdueInvoices, totalCustomers, totalProducts, salesItems] = await Promise.all([
+            // Detect which optional modules are active to aggregate the right sales tables
+            const activeModules = await prisma.companyModule.findMany({
+                where: { companyId, isActive: true },
+                select: { moduleCode: true }
+            });
+            const moduleCodes = new Set(activeModules.map(m => m.moduleCode.toUpperCase()));
+            const hasPharmacy = moduleCodes.has('PHARMACY');
+
+            const [todaySales, monthSales, lastMonthSales, lowStockItems, activeEmployees, pendingAlerts, overdueInvoices, totalCustomers, totalProducts, salesItems,
+                todayPharmacySales, monthPharmacySales] = await Promise.all([
                 prisma.sale.aggregate({ where: { ...saleWhere, createdAt: { gte: today, lte: endOfDay } }, _sum: { total: true }, _count: true }),
                 prisma.sale.aggregate({ where: { ...saleWhere, createdAt: { gte: startOfMonth, lte: endOfMonth } }, _sum: { total: true }, _count: true }),
                 prisma.sale.aggregate({ where: { ...saleWhere, createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } }, _sum: { total: true } }),
@@ -43,17 +52,30 @@ export class DashboardService {
                         ...(warehouseId ? { warehouseStocks: { some: { warehouseId } } } : {})
                     }
                 }),
-                prisma.saleItem.findMany({ where: { sale: { ...saleWhere, createdAt: { gte: startOfMonth, lte: endOfMonth } } }, include: { product: { select: { costPrice: true } } } })
+                prisma.saleItem.findMany({ where: { sale: { ...saleWhere, createdAt: { gte: startOfMonth, lte: endOfMonth } } }, include: { product: { select: { costPrice: true } } } }),
+                // PharmacySale aggregations — only if PHARMACY module is active
+                hasPharmacy
+                    ? prisma.pharmacySale.aggregate({ where: { companyId, createdAt: { gte: today, lte: endOfDay } }, _sum: { total: true }, _count: true })
+                    : Promise.resolve({ _sum: { total: null }, _count: 0 }),
+                hasPharmacy
+                    ? prisma.pharmacySale.aggregate({ where: { companyId, createdAt: { gte: startOfMonth, lte: endOfMonth } }, _sum: { total: true }, _count: true })
+                    : Promise.resolve({ _sum: { total: null }, _count: 0 }),
             ]);
 
-            const currentMonthTotal = Number(monthSales._sum?.total) || 0;
+            const currentMonthTotal = Number(monthSales._sum?.total || 0) + Number(monthPharmacySales._sum?.total || 0);
             const lastMonthTotal = Number(lastMonthSales._sum?.total) || 0;
             const salesGrowth = lastMonthTotal > 0 ? ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
             const monthProfit = salesItems.reduce((sum, item) => sum + (Number(item.total) - Number(item.product?.costPrice ?? 0) * item.quantity), 0);
 
             return {
-                todaySales: { total: todaySales._sum?.total || 0, count: todaySales._count },
-                monthSales: { total: monthSales._sum?.total || 0, count: monthSales._count },
+                todaySales: {
+                    total: Number(todaySales._sum?.total || 0) + Number(todayPharmacySales._sum?.total || 0),
+                    count: todaySales._count + (todayPharmacySales._count as number)
+                },
+                monthSales: {
+                    total: currentMonthTotal,
+                    count: monthSales._count + (monthPharmacySales._count as number)
+                },
                 salesGrowth: Math.round(salesGrowth * 100) / 100, monthProfit,
                 lowStockItems, activeEmployees, pendingAlerts, overdueInvoices, totalCustomers, totalProducts
             };

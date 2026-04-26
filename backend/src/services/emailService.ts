@@ -5,10 +5,11 @@ function createTransport() {
     const host = process.env.SMTP_HOST;
     const port = parseInt(process.env.SMTP_PORT || '587');
     const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASSWORD;
+    // Accept both SMTP_PASSWORD and SMTP_PASS for compatibility
+    const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
 
     if (!host || !user || !pass) {
-        logger.warn('SMTP not configured -- emails will not be sent');
+        logger.warn('SMTP not configured (SMTP_HOST / SMTP_USER / SMTP_PASSWORD missing) -- emails will not be sent');
         return null;
     }
 
@@ -20,13 +21,8 @@ function createTransport() {
     });
 }
 
-const fromName = process.env.SMTP_FROM_NAME || 'Sistema';
-const fromAddress = process.env.SMTP_USER || 'noreply@example.com';
-const from = `"${fromName}" <${fromAddress}>`;
+const from = `"${process.env.SMTP_FROM_NAME || 'Sistema'}" <${process.env.SMTP_USER || 'noreply@example.com'}>`;
 
-/**
- * Send a password-reset OTP email.
- */
 export async function sendPasswordResetEmail(to: string, name: string, otp: string): Promise<void> {
     const transport = createTransport();
     if (!transport) return;
@@ -46,7 +42,7 @@ export async function sendPasswordResetEmail(to: string, name: string, otp: stri
                 </div>
                 <p>Este código expira em <strong>15 minutos</strong>.</p>
                 <p style="color:#64748b;font-size:13px">
-                    Se não solicitou a recuperação, ignore este email. A sua palavra-passe permanece inalterada.
+                    Se não solicitou a recuperação, ignore este email.
                 </p>
             </div>
         `,

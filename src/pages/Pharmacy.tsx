@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, Button, Badge, Input, Select, Modal, ConfirmationModal, Pagination, LoadingSpinner, Skeleton } from '../components/ui';
+import { Card, Button, Badge, Input, Select, Modal, ConfirmationModal, Pagination, Skeleton } from '../components/ui';
 import { pharmacyAPI } from '../services/api';
 import { useProducts, useSuppliers, useCategories } from '../hooks/useData';
 import toast from 'react-hot-toast';
@@ -191,13 +191,13 @@ export default function Pharmacy() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineBeaker className="w-6 h-6 text-primary-600" /> Gestão de Medicamentos
+                        <HiOutlineBeaker className="w-6 h-6 text-primary-600 dark:text-primary-400" /> Gestão de Medicamentos
                     </h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Inventário, lotes, stock e receitas médicas</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={exportPDF}>PDF</Button>
-                    <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-4 h-4" />} onClick={() => refetch()} />
+                    <Button variant="outline" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={exportPDF}>PDF</Button>
+                    <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={() => refetch()} />
                     {view === 'medications' && (
                         <Button size="sm" leftIcon={<HiOutlinePlus className="w-4 h-4" />} onClick={() => { resetMedForm(); setMedModal(true); }}>Novo Medicamento</Button>
                     )}
@@ -236,10 +236,15 @@ export default function Pharmacy() {
                 ] as { id: View; label: string; icon: any }[]).map(t => {
                     const Icon = t.icon;
                     return (
-                        <button key={t.id} onClick={() => { setView(t.id); if (t.id === 'stock') loadMovements(1); }}
-                            className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all', view === t.id ? 'bg-white dark:bg-dark-800 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-600 dark:text-gray-400')}>
-                            <Icon className="w-4 h-4" />{t.label}
-                        </button>
+                        <Button 
+                            key={t.id} 
+                            onClick={() => { setView(t.id); if (t.id === 'stock') loadMovements(1); }}
+                            variant={view === t.id ? 'primary' : 'ghost'}
+                            size="sm"
+                            className={cn('flex items-center gap-2 rounded-lg text-sm font-medium transition-all px-4 py-2', view === t.id ? 'bg-white dark:bg-dark-800 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-600 dark:text-gray-400')}
+                        >
+                            <Icon className={cn("w-4 h-4", view === t.id ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />{t.label}
+                        </Button>
                     );
                 })}
             </div>
@@ -255,7 +260,7 @@ export default function Pharmacy() {
                             placeholder="Pesquisar por nome, DCI, laboratório..."
                             value={search}
                             onChange={e => { setSearch(e.target.value); setPage(1); }}
-                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                             className="bg-white dark:bg-dark-800"
                         />
                         <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
@@ -353,12 +358,24 @@ export default function Pharmacy() {
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center justify-end gap-1">
-                                                            <button onClick={() => openEdit(med)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-400 hover:text-primary-600 transition-colors" title="Editar">
-                                                                <HiOutlinePencil className="w-4 h-4" />
-                                                            </button>
-                                                            <button onClick={() => { setSelected(med); setDeleteModal(true); }} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 text-gray-400 hover:text-red-600 transition-colors" title="Eliminar">
-                                                                <HiOutlineTrash className="w-4 h-4" />
-                                                            </button>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                onClick={() => openEdit(med)} 
+                                                                className="text-gray-400 hover:text-primary-600" 
+                                                                title="Editar"
+                                                            >
+                                                                <HiOutlinePencil className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                                                            </Button>
+                                                            <Button 
+                                                                variant="ghost" 
+                                                                size="sm" 
+                                                                onClick={() => { setSelected(med); setDeleteModal(true); }} 
+                                                                className="text-gray-400 hover:text-red-600" 
+                                                                title="Eliminar"
+                                                            >
+                                                                <HiOutlineTrash className="w-4 h-4 text-red-500 dark:text-red-400" />
+                                                            </Button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -445,7 +462,7 @@ export default function Pharmacy() {
                             placeholder="Pesquisar receita, paciente..."
                             value={prescSearch}
                             onChange={e => setPrescSearch(e.target.value)}
-                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                             className="max-w-sm bg-white dark:bg-dark-800"
                         />
                     </div>
@@ -575,12 +592,18 @@ export default function Pharmacy() {
             <Modal isOpen={batchModal} onClose={() => setBatchModal(false)} title="Entrada de Lote" size="md">
                 <div className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Medicamento *</label>
-                        <select value={batchForm.medicationId} onChange={e => setBatchForm(f => ({ ...f, medicationId: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-                            <option value="">Seleccionar medicamento...</option>
-                            {medications.map((m: any) => <option key={m.id} value={m.id}>{m.product?.name} ({m.dosage})</option>)}
-                        </select>
+                        <Select
+                            label="Medicamento *"
+                            value={batchForm.medicationId}
+                            onChange={e => setBatchForm(f => ({ ...f, medicationId: e.target.value }))}
+                            options={[
+                                { value: '', label: 'Seleccionar medicamento...' },
+                                ...medications.map((m: any) => ({
+                                    value: m.id,
+                                    label: `${m.product?.name} (${m.dosage})`
+                                }))
+                            ]}
+                        />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <Input label="Nº Lote *" value={batchForm.batchNumber} onChange={e => setBatchForm(f => ({ ...f, batchNumber: e.target.value }))} placeholder="Ex: LT-2024-001" />

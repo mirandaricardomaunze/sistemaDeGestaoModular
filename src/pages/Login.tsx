@@ -64,7 +64,7 @@ export default function Login() {
                     {/* Header */}
                     <div className="mb-10">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
+                            <div className="w-12 h-12 rounded-lg bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30">
                                 <HiOutlineShieldCheck className="w-7 h-7 text-white" />
                             </div>
                             <div>
@@ -186,15 +186,15 @@ export default function Login() {
                         alt="Cyber Background" 
                         className="w-full h-full object-cover opacity-30 mix-blend-overlay"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-primary-900/80 to-accent-900/90 mix-blend-multiply"></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                    <div className="absolute inset-0 bg-primary-950/90 mix-blend-multiply"></div>
+                    <div className="absolute inset-0 bg-slate-900/30"></div>
                 </div>
 
                 {/* Glass Cards Layout */}
                 <div className="relative z-10 w-full max-w-2xl px-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
                     
                     <h2 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-6">
-                        Gestão <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-300">Inteligente</span>,<br />
+                        Gestão <span className="text-primary-400">Inteligente</span>,<br />
                         Negócio Imbatível.
                     </h2>
                     <p className="text-lg text-slate-300 mb-10 max-w-lg">

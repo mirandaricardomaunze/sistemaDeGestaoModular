@@ -76,7 +76,7 @@ export default function Layout() {
                     className={
                         isPOSPage
                             ? "flex-1 flex flex-col min-h-0 overflow-y-auto bg-gray-50 dark:bg-dark-900 p-4 lg:p-6 scrollbar-thin"
-                            : "flex-1 overflow-y-auto p-4 lg:p-6 pb-12 scrollbar-thin"
+                            : "flex-1 overflow-y-auto p-4 lg:p-6 pb-16 scrollbar-thin"
                     }
                 >
                     <Suspense fallback={<LoadingOverlay />}>
@@ -84,7 +84,6 @@ export default function Layout() {
                     </Suspense>
                 </main>
 
-                {/* Footer - Hide on POS pages to save space if needed, or keep it depending on requirements. Usually POS is full screen. Keeping for now but verify if needed. */}
                 {!isPOSPage && <Footer />}
             </div>
 

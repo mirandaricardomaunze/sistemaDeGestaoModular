@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { LoadingSpinner, Badge, Skeleton } from '../../components/ui';
+import { Badge, Skeleton, Button } from '../../components/ui';
 import { productsAPI, customersAPI, salesAPI, shiftAPI, warehousesAPI } from '../../services/api';
 import type { ShiftSession, ShiftSummary } from '../../services/api';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -49,7 +49,7 @@ export default function CommercialPOS() {
         retry: false,
     });
 
-    const { isOnline, pendingCount, isSyncing } = useSyncManager(activeShift?.companyId);
+    const { isOnline, pendingCount } = useSyncManager(activeShift?.companyId);
     const { data: shiftSummary } = useQuery<ShiftSummary | null>({
         queryKey: ['commercial', 'shift', 'summary'],
         queryFn: () => shiftAPI.getSummary(),
@@ -325,6 +325,7 @@ export default function CommercialPOS() {
         if (qty > item.product.currentStock) { toast.error('Stock insuficiente'); return; }
 
         let newReservation: any = null;
+        let replaceReservations = false;
         if (isOnline && qty > item.quantity) {
             try {
                 newReservation = await commercialAPI.reserveItem(productId, qty - item.quantity, activeShift?.id);
@@ -333,20 +334,33 @@ export default function CommercialPOS() {
                 return;
             }
         } else if (isOnline && qty < item.quantity) {
-             // Logic to release partial reservation can be complex; simplified to just keeping track
-             // In a real scenario, we'd release the difference
+            // Release all existing reservations and re-reserve the new lower quantity
+            try {
+                for (const r of (item.reservations || [])) {
+                    await commercialAPI.releaseItem(r.id);
+                }
+                replaceReservations = true;
+                if (qty > 0) {
+                    newReservation = await commercialAPI.reserveItem(productId, qty, activeShift?.id);
+                }
+            } catch {
+                // Non-blocking: continue with cart update even if release fails
+            }
         }
 
         setCart(c => c.map(item => {
             if (item.productId !== productId) return item;
             const tieredPrice = resolvePrice(productId, item.product.price, qty);
             const total = qty * tieredPrice * (1 - (item.discountPct || 0) / 100);
-            return { 
-                ...item, 
-                quantity: qty, 
-                unitPrice: tieredPrice, 
+            const updatedReservations = replaceReservations
+                ? (newReservation ? [newReservation] : [])
+                : (newReservation ? [...(item.reservations || []), newReservation] : item.reservations);
+            return {
+                ...item,
+                quantity: qty,
+                unitPrice: tieredPrice,
                 total,
-                reservations: newReservation ? [...(item.reservations || []), newReservation] : item.reservations
+                reservations: updatedReservations
             };
         }));
     }, [resolvePrice, cart, isOnline, activeShift?.id]);
@@ -426,29 +440,35 @@ export default function CommercialPOS() {
                 ...(p.reference ? { reference: p.reference } : {})
             }));
 
-            // The backend validates that subtotal == sum(item.total).
-            // item.total already includes per-item discounts, so we send the
-            // discounted subtotal; global discounts (CRM/promo) go separately.
-            const itemsSubtotal = cart.reduce((s, i) => s + i.total, 0);
-            const globalDiscount = cartDiscount - itemDiscounts; // strip item-level discounts (already baked into item.total)
+            // Recompute values safely avoiding floating point discrepancies before sending to backend
+            const sanitizedItems = cart.map(item => {
+                const discountAmount = item.discountPct > 0 ? (item.quantity * item.unitPrice * (item.discountPct / 100)) : 0;
+                return {
+                    productId: item.productId,
+                    quantity: Number(item.quantity),
+                    unitPrice: Number(item.unitPrice.toFixed(2)),
+                    discount: Number(discountAmount.toFixed(2)),
+                    total: Number(item.total.toFixed(2))
+                };
+            });
+            const validItemsSubtotal = Number(sanitizedItems.reduce((acc, item) => acc + item.total, 0).toFixed(2));
+            const validGlobalDiscount = Math.max(0, Number((cartDiscount - itemDiscounts).toFixed(2)));
+            const validTax = Number(cartTax.toFixed(2));
+            const validTotal = Number((validItemsSubtotal - validGlobalDiscount + validTax).toFixed(2));
+            const validAmountPaid = isCredit ? 0 : Number(totalPaid.toFixed(2));
+            const validChange = isCredit ? 0 : Math.max(0, Number((validAmountPaid - validTotal).toFixed(2)));
 
             const saleData = {
                 customerId: selectedCustomer?.id,
-                items: cart.map(item => ({
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    unitPrice: item.unitPrice,
-                    discount: item.discountPct > 0 ? item.quantity * item.unitPrice * (item.discountPct / 100) : 0,
-                    total: item.total
-                })),
-                subtotal: itemsSubtotal,
-                discount: globalDiscount,
-                tax: cartTax,
-                total: cartTotal,
+                items: sanitizedItems,
+                subtotal: validItemsSubtotal,
+                discount: validGlobalDiscount,
+                tax: validTax,
+                total: validTotal,
                 sessionId: activeShift?.id,
                 paymentMethod: primaryMethod,
-                amountPaid: isCredit ? 0 : totalPaid,
-                change: isCredit ? 0 : change,
+                amountPaid: validAmountPaid,
+                change: validChange,
                 paymentRef: JSON.stringify(paymentRefData),
                 warehouseId: activeShift?.warehouseId || undefined,
                 originModule: 'commercial',
@@ -536,7 +556,17 @@ export default function CommercialPOS() {
 
             toast.success(isOnline ? `Venda ${saleResponse.receiptNumber} registada!` : `Venda offline gravada! Sincronização pendente.`);
         } catch (err: any) {
-            toast.error(err.message || 'Erro ao realizar venda');
+            const errorResponse = err.response?.data;
+            const errorMessage = errorResponse?.message || errorResponse?.error || err.message || 'Erro ao realizar venda';
+
+            if (errorResponse?.errors && Array.isArray(errorResponse.errors)) {
+                const validationErrors = errorResponse.errors
+                    .map((detail: any) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
+                    .join('\n');
+                toast.error(`Erro de Validação\n\n${validationErrors}`, { duration: 8000 });
+            } else {
+                toast.error(errorMessage, { duration: 6000 });
+            }
             setShowPaymentModal(true);
         } finally {
             setCheckoutLoading(false);
@@ -584,7 +614,7 @@ export default function CommercialPOS() {
     const handleToggleCashDrawer = () => {
         setCashDrawerOpen(v => !v);
         toast(cashDrawerOpen ? 'Gaveta fechada' : 'Gaveta aberta', { 
-            icon: cashDrawerOpen ? <HiOutlineLockClosed className="w-5 h-5 text-gray-500" /> : <HiOutlineBanknotes className="w-5 h-5 text-green-500" /> 
+            icon: cashDrawerOpen ? <HiOutlineLockClosed className="w-5 h-5 text-gray-400 dark:text-gray-500" /> : <HiOutlineBanknotes className="w-5 h-5 text-emerald-500 dark:text-emerald-400" /> 
         });
     };
 
@@ -657,7 +687,14 @@ export default function CommercialPOS() {
         { key: 'F8',     action: handleToggleCashDrawer, description: 'Gaveta'      },
         { key: 'F9',     action: handleReprintLast,    description: 'Reimprimir'    },
         { key: 'F10',    action: handleToggleShift,    description: 'Turno'         },
-        { key: 'Escape', action: () => { setCart([]); setPosSearch(''); setGlobalDiscountPct(0); }, description: 'Limpar' }
+        { key: 'Escape', action: () => {
+            if (isOnline) {
+                cart.forEach(item => {
+                    (item.reservations || []).forEach((r: any) => commercialAPI.releaseItem(r.id));
+                });
+            }
+            setCart([]); setPosSearch(''); setGlobalDiscountPct(0);
+        }, description: 'Limpar' }
     ], [handleOpenCheckout, handleToggleCashDrawer, handleHoldSale, handleReprintLast, handleToggleShift]);
 
     useKeyboardShortcuts(shortcuts);
@@ -778,21 +815,23 @@ export default function CommercialPOS() {
                 </div>
                 <div className="flex items-center gap-2 relative z-10">
                     {shift ? (
-                        <button
+                        <Button
                             onClick={() => { setShiftModalMode('close'); setShowShiftModal(true); }}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-slate-100 dark:bg-dark-800 hover:bg-slate-200 dark:hover:bg-dark-700 text-slate-900 dark:text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-sm hover:-translate-y-0.5 border border-slate-200 dark:border-white/5 active:scale-95"
+                            variant="secondary"
+                            className="px-6 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm hover:-translate-y-0.5"
+                            leftIcon={<HiOutlineStop className="w-4 h-4 text-red-500" />}
                         >
-                            <HiOutlineStop className="w-4 h-4 text-red-500" />
                             Encerrar Turno
-                        </button>
+                        </Button>
                     ) : (
-                        <button
+                        <Button
                             onClick={() => { setShiftModalMode('open'); setShowShiftModal(true); }}
-                            className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 active:scale-95"
+                            variant="primary"
+                            className="bg-blue-600 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 hover:-translate-y-0.5"
+                            leftIcon={<HiOutlinePlay className="w-4 h-4" />}
                         >
-                            <HiOutlinePlay className="w-4 h-4" />
                             Abrir Turno
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>

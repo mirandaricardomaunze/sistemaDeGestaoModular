@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Deliveries Management Page
  * List, create, track, and manage deliveries
  */
@@ -27,6 +27,7 @@ import autoTable from 'jspdf-autotable';
 import { useStore } from '../../stores/useStore';
 import { addProfessionalHeader, addProfessionalFooter } from '../../utils/documentGenerator';
 import toast from 'react-hot-toast';
+import { cn } from '../../utils/helpers';
 
 const getStatusBadge = (status: string, t: any) => {
     const variants: Record<string, any> = {
@@ -229,7 +230,7 @@ export default function DeliveriesPage() {
         const driver = driversData?.data.find((d: Driver) => d.id === manifestDriverId);
         
         const doc = new jsPDF();
-        addProfessionalHeader(doc, t('logistics_module.deliveries.manifesto').toUpperCase(), companySettings, `${t('common.date')}: ${new Date().toLocaleDateString()}`);
+        addProfessionalHeader(doc, t('logistics_module.deliveries.manifest').toUpperCase(), companySettings, `${t('common.date')}: ${new Date().toLocaleDateString()}`);
 
         doc.setFontSize(10);
         doc.setTextColor(50, 50, 50);
@@ -247,7 +248,7 @@ export default function DeliveriesPage() {
 
         autoTable(doc, {
             startY: 65,
-            head: [[t('logistics_module.deliveries.number'), t('logistics_module.deliveries.route'), t('logistics_module.deliveries.address'), t('logistics_module.deliveries.recipient'), t('common.items'), t('logistics_module.delivery.signature')]],
+            head: [[t('logistics_module.deliveries.number'), t('logistics_module.deliveries.route'), t('logistics_module.deliveries.address'), t('logistics_module.deliveries.recipient'), t('common.items'), t('common.signature')]],
             body: tableData,
             theme: 'striped',
             headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
@@ -332,16 +333,42 @@ export default function DeliveriesPage() {
                     const count = data?.deliveries.filter((d: Delivery) => d.status === status.value).length || 0;
                     const Icon = status.icon;
                     return (
-                        <Card key={status.value} variant="glass" className={`p-4 cursor-pointer hover:shadow-lg transition-shadow ${status.value === statusFilter ? 'ring-2 ring-primary-500' : ''}`}>
-                            <div className="flex items-center gap-3">
-                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${status.color}-100 dark:bg-${status.color}-900/30`}>
-                                    <Icon className={`w-5 h-5 text-${status.color}-600`} />
+                        <Card 
+                            key={status.value} 
+                            variant="glass" 
+                            className={cn(
+                                "p-4 cursor-pointer hover:shadow-lg transition-all duration-300 relative overflow-hidden group",
+                                status.value === statusFilter ? 'ring-2 ring-primary-500' : ''
+                            )}
+                            onClick={() => setStatusFilter(status.value === statusFilter ? '' : status.value)}
+                        >
+                            <div className="absolute -right-4 -top-4 w-16 h-16 bg-current opacity-[0.03] rounded-full blur-xl group-hover:opacity-[0.06] transition-opacity" />
+                            <div className="flex items-center gap-3 relative z-10">
+                                <div className={cn(
+                                    "w-10 h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110 group-hover:rotate-3",
+                                    status.color === 'primary' && "bg-primary-50/50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400",
+                                    status.color === 'warning' && "bg-amber-50/50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                                    status.color === 'info' && "bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400",
+                                    status.color === 'success' && "bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+                                    status.color === 'danger' && "bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400",
+                                    status.color === 'gray' && "bg-gray-50/50 dark:bg-gray-500/10 text-gray-600 dark:text-gray-400"
+                                )}>
+                                    <Icon className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <p className="text-2xl font-bold">{count}</p>
-                                    <p className="text-xs text-gray-500">{status.label}</p>
+                                    <p className="text-2xl font-black tracking-tight">{count}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{status.label}</p>
                                 </div>
                             </div>
+                            <div className={cn(
+                                "absolute bottom-0 left-0 h-1 w-6 transition-all group-hover:w-full",
+                                status.color === 'primary' && "bg-primary-500/30",
+                                status.color === 'warning' && "bg-amber-500/30",
+                                status.color === 'info' && "bg-blue-500/30",
+                                status.color === 'success' && "bg-emerald-500/30",
+                                status.color === 'danger' && "bg-red-500/30",
+                                status.color === 'gray' && "bg-gray-500/30"
+                            )} />
                         </Card>
                     );
                 })}
@@ -408,16 +435,34 @@ export default function DeliveriesPage() {
                                     </td>
                                     <td className="p-4">
                                         <div className="flex items-center justify-center gap-2">
-                                            <Button variant="ghost" size="sm" onClick={() => setSelectedDelivery(delivery)}>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => setSelectedDelivery(delivery)}
+                                                className="p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm"
+                                                title={t('common.view')}
+                                            >
                                                 <HiOutlineEye className="w-5 h-5" />
                                             </Button>
                                             {delivery.status === 'pending' && (
-                                                <Button variant="ghost" size="sm" className="text-blue-500" onClick={() => openStatusModal(delivery, 'in_transit')}>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openStatusModal(delivery, 'in_transit')}
+                                                    className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
+                                                    title={t('logistics_module.deliveries.status.in_transit')}
+                                                >
                                                     <HiOutlineTruck className="w-5 h-5" />
                                                 </Button>
                                             )}
                                             {delivery.status === 'in_transit' && (
-                                                <Button variant="ghost" size="sm" className="text-green-500" onClick={() => openStatusModal(delivery, 'delivered')}>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => openStatusModal(delivery, 'delivered')}
+                                                    className="p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm"
+                                                    title={t('logistics_module.deliveries.status.delivered')}
+                                                >
                                                     <HiOutlineCheckCircle className="w-5 h-5" />
                                                 </Button>
                                             )}

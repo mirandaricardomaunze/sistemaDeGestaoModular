@@ -43,21 +43,21 @@ export class HospitalityDashboardService {
             const nightsQuery = end
                 ? prisma.$queryRaw<[{ total_nights: bigint }]>`
                     SELECT COALESCE(SUM(GREATEST(1, CEIL(
-                        EXTRACT(EPOCH FROM (COALESCE(b.check_out, b.expected_checkout) - b.check_in)) / 86400.0
+                        EXTRACT(EPOCH FROM (COALESCE(b."checkOut", b."expectedCheckout") - b."checkIn")) / 86400.0
                     ))), 0)::bigint AS total_nights
                     FROM bookings b
-                    INNER JOIN rooms r ON r.id = b.room_id
-                    WHERE r.company_id = ${companyId}
-                      AND b.check_in >= ${start}
-                      AND b.check_in <= ${end}`
+                    INNER JOIN rooms r ON r.id = b."roomId"
+                    WHERE r."companyId" = ${companyId}
+                      AND b."checkIn" >= ${start}
+                      AND b."checkIn" <= ${end}`
                 : prisma.$queryRaw<[{ total_nights: bigint }]>`
                     SELECT COALESCE(SUM(GREATEST(1, CEIL(
-                        EXTRACT(EPOCH FROM (COALESCE(b.check_out, b.expected_checkout) - b.check_in)) / 86400.0
+                        EXTRACT(EPOCH FROM (COALESCE(b."checkOut", b."expectedCheckout") - b."checkIn")) / 86400.0
                     ))), 0)::bigint AS total_nights
                     FROM bookings b
-                    INNER JOIN rooms r ON r.id = b.room_id
-                    WHERE r.company_id = ${companyId}
-                      AND b.check_in >= ${start}`;
+                    INNER JOIN rooms r ON r.id = b."roomId"
+                    WHERE r."companyId" = ${companyId}
+                      AND b."checkIn" >= ${start}`;
 
             const [aggBooking, aggConsumption, nightsResult] = await Promise.all([
                 prisma.booking.aggregate({ where: dateFilter, _sum: { totalPrice: true } }),
@@ -135,13 +135,13 @@ export class HospitalityDashboardService {
                 prisma.bookingConsumption.aggregate({ where: { booking: dateFilter }, _sum: { total: true } }),
                 prisma.$queryRaw<[{ total_nights: bigint }]>`
                     SELECT COALESCE(SUM(GREATEST(1, CEIL(
-                        EXTRACT(EPOCH FROM (COALESCE(b.check_out, b.expected_checkout) - b.check_in)) / 86400.0
+                        EXTRACT(EPOCH FROM (COALESCE(b."checkOut", b."expectedCheckout") - b."checkIn")) / 86400.0
                     ))), 0)::bigint AS total_nights
                     FROM bookings b
-                    INNER JOIN rooms r ON r.id = b.room_id
-                    WHERE r.company_id = ${companyId}
-                      AND b.check_in >= ${start}
-                      AND b.check_in <= ${end}`
+                    INNER JOIN rooms r ON r.id = b."roomId"
+                    WHERE r."companyId" = ${companyId}
+                      AND b."checkIn" >= ${start}
+                      AND b."checkIn" <= ${end}`
             ]);
 
             const accommodation = Number(aggBooking._sum.totalPrice || 0);
@@ -167,8 +167,11 @@ export class HospitalityDashboardService {
         // Actual Occupancy Rate for the period
         const periodOccupancyRate = availableRoomNights > 0 ? Math.round((periodRevenue.totalNightsSold / availableRoomNights) * 100) : 0;
 
+        const availableRooms = totalRooms - occupiedRooms;
+
         return {
-            totalRooms, occupiedRooms, occupancyRate: totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0,
+            totalRooms, occupiedRooms, availableRooms,
+            occupancyRate: totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0,
             periodOccupancyRate,
             totalBookings, todayBookings, totalRevenue: periodRevenue.total, todayRevenue: todayRevenue.total,
             consumptionRevenue: periodRevenue.consumption, 
@@ -185,22 +188,22 @@ export class HospitalityDashboardService {
 
         const rows = await prisma.$queryRaw<ChartRow[]>`
             SELECT
-                DATE(b.check_in)                        AS date,
-                COALESCE(SUM(b.total_price), 0)         AS revenue,
+                DATE(b."checkIn")                        AS date,
+                COALESCE(SUM(b."totalPrice"), 0)         AS revenue,
                 COALESCE(SUM(bc_agg.consumption), 0)    AS consumption,
                 COUNT(b.id)                             AS bookings
             FROM bookings b
-            INNER JOIN rooms r ON r.id = b.room_id
+            INNER JOIN rooms r ON r.id = b."roomId"
             LEFT JOIN (
-                SELECT bc.booking_id, SUM(bc.total) AS consumption
+                SELECT bc."bookingId", SUM(bc.total) AS consumption
                 FROM booking_consumptions bc
-                GROUP BY bc.booking_id
-            ) bc_agg ON bc_agg.booking_id = b.id
-            WHERE r.company_id = ${companyId}
-              AND b.check_in >= ${startDate}
-              AND b.check_in <= ${endDate}
-            GROUP BY DATE(b.check_in)
-            ORDER BY DATE(b.check_in) ASC`;
+                GROUP BY bc."bookingId"
+            ) bc_agg ON bc_agg."bookingId" = b.id
+            WHERE r."companyId" = ${companyId}
+              AND b."checkIn" >= ${startDate}
+              AND b."checkIn" <= ${endDate}
+            GROUP BY DATE(b."checkIn")
+            ORDER BY DATE(b."checkIn") ASC`;
 
         return rows.map(row => {
             const revenue = Number(row.revenue);
@@ -215,6 +218,164 @@ export class HospitalityDashboardService {
                 bookings: Number(row.bookings)
             };
         });
+    }
+
+    async getOccupancyChart(companyId: string, period: string) {
+        const { startDate, endDate } = this.getDateRange(period);
+        const totalRooms = await prisma.room.count({ where: { companyId } });
+        if (totalRooms === 0) return [];
+
+        // For occupancy history, we can generate a series of dates and check bookings for each
+        const days: { date: string; rate: number }[] = [];
+        const curr = new Date(startDate);
+        while (curr <= endDate) {
+            const dateStr = curr.toISOString().slice(0, 10);
+            const startOfDay = new Date(curr); startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(curr); endOfDay.setHours(23, 59, 59, 999);
+
+            const occupiedCount = await prisma.booking.count({
+                where: {
+                    room: { companyId },
+                    checkIn: { lte: endOfDay },
+                    OR: [
+                        { checkOut: null, expectedCheckout: { gte: startOfDay } },
+                        { checkOut: { gte: startOfDay } }
+                    ]
+                }
+            });
+
+            days.push({
+                date: dateStr,
+                rate: Math.min(100, Math.round((occupiedCount / totalRooms) * 100))
+            });
+            curr.setDate(curr.getDate() + 1);
+        }
+        return days;
+    }
+
+    async getRoomTypesChart(companyId: string, period: string) {
+        const { startDate, endDate } = this.getDateRange(period);
+
+        type TypeRow = { type: string; value: string; count: bigint };
+        const rows = await prisma.$queryRaw<TypeRow[]>`
+            SELECT
+                r.type                      AS type,
+                COALESCE(SUM(b."totalPrice"), 0) AS value,
+                COUNT(b.id)                 AS count
+            FROM bookings b
+            INNER JOIN rooms r ON r.id = b."roomId"
+            WHERE r."companyId" = ${companyId}
+              AND b."checkIn" >= ${startDate}
+              AND b."checkIn" <= ${endDate}
+            GROUP BY r.type`;
+
+        return rows.map(row => ({
+            name: row.type,
+            value: Number(row.value),
+            count: Number(row.count)
+        }));
+    }
+
+    async getConsumptionChart(companyId: string, period: string) {
+        const { startDate, endDate } = this.getDateRange(period);
+
+        type ConsumptionRow = { name: string; quantity: string; revenue: string };
+        const rows = await prisma.$queryRaw<ConsumptionRow[]>`
+            SELECT
+                p.name                      AS name,
+                SUM(bc.quantity)            AS quantity,
+                SUM(bc.total)               AS revenue
+            FROM booking_consumptions bc
+            INNER JOIN products p ON p.id = bc."productId"
+            INNER JOIN bookings b ON b.id = bc."bookingId"
+            INNER JOIN rooms r ON r.id = b."roomId"
+            WHERE r."companyId" = ${companyId}
+              AND b."checkIn" >= ${startDate}
+              AND b."checkIn" <= ${endDate}
+            GROUP BY p.name
+            ORDER BY revenue DESC
+            LIMIT 5`;
+
+        return rows.map(row => ({
+            name: row.name,
+            quantity: Number(row.quantity),
+            revenue: Number(row.revenue)
+        }));
+    }
+
+    async getReports(companyId: string, period: string) {
+        const { startDate, endDate } = this.getDateRange(period);
+        
+        const [metrics, roomStats, bookingsRaw] = await Promise.all([
+            this.getMetrics(companyId, period),
+            prisma.room.groupBy({
+                by: ['status'],
+                where: { companyId },
+                _count: { _all: true }
+            }),
+            prisma.booking.findMany({
+                where: {
+                    room: { companyId },
+                    checkIn: { gte: startDate, lte: endDate }
+                },
+                include: {
+                    room: true,
+                    consumptions: {
+                        include: { product: true }
+                    }
+                },
+                orderBy: { checkIn: 'desc' }
+            })
+        ]);
+
+        const stats = {
+            total: metrics.totalRooms,
+            available: metrics.availableRooms,
+            occupied: metrics.occupiedRooms,
+            maintenance: roomStats.find(s => s.status === 'maintenance')?._count._all || 0,
+            dirty: roomStats.find(s => s.status === 'dirty')?._count._all || 0
+        };
+
+        const bookings = bookingsRaw.map(b => {
+            const roomRevenue = Number(b.totalPrice);
+            const consumptionTotal = b.consumptions.reduce((sum, c) => sum + Number(c.total), 0);
+            return {
+                id: b.id,
+                checkIn: b.checkIn.toISOString(),
+                checkOut: b.checkOut?.toISOString() || null,
+                roomNumber: b.room.number,
+                roomType: b.room.type,
+                customerName: b.customerName,
+                guestCount: b.guestCount,
+                status: b.status,
+                roomRevenue,
+                consumptionTotal,
+                totalRevenue: roomRevenue + consumptionTotal,
+                consumptions: b.consumptions.map(c => ({
+                    product: c.product.name,
+                    quantity: c.quantity,
+                    unitPrice: Number(c.unitPrice),
+                    total: Number(c.total)
+                }))
+            };
+        });
+
+        return {
+            period,
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
+            summary: {
+                totalBookings: metrics.totalBookings,
+                totalGuests: metrics.activeGuests,
+                totalRoomRevenue: bookings.reduce((sum, b) => sum + b.roomRevenue, 0),
+                totalConsumptionRevenue: bookings.reduce((sum, b) => sum + b.consumptionTotal, 0),
+                totalRevenue: bookings.reduce((sum, b) => sum + b.totalRevenue, 0),
+                avgBookingValue: bookings.length > 0 ? bookings.reduce((sum, b) => sum + b.totalRevenue, 0) / bookings.length : 0,
+                occupancyRate: metrics.occupancyRate
+            },
+            roomStats: stats,
+            bookings
+        };
     }
 }
 

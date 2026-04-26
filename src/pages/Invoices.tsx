@@ -538,14 +538,14 @@ export default function Invoices({ originModule }: InvoicesProps) {
             <PageHeader 
                 title="Facturação & Crédito"
                 subtitle="Gestão de Facturas, Notas de Crédito e Fluxos de Recebimento"
-                icon={<HiOutlineDocumentText />}
+                icon={<HiOutlineDocumentText className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
                         <Button 
                             variant="ghost" 
                             size="sm" 
                             className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
-                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} 
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />} 
                             onClick={() => refetch()}
                         >
                             Actualizar
@@ -613,13 +613,13 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             <StatCard 
                                 label="Total Facturado"
                                 value={formatCurrency(metrics.total)}
-                                icon={<HiOutlineDocumentText className="w-6 h-6" />}
+                                icon={<HiOutlineDocumentText className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
                                 color="primary"
                             />
                             <StatCard 
                                 label="Total Recebido"
                                 value={formatCurrency(metrics.received)}
-                                icon={<HiOutlineCheck className="w-6 h-6" />}
+                                icon={<HiOutlineCheck className="w-6 h-6 text-green-600 dark:text-green-400" />}
                                 color="green"
                             />
                             <StatCard 

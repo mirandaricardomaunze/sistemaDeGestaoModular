@@ -293,9 +293,16 @@ router.get('/users', authenticate, authorize('admin'), async (req: AuthRequest, 
     res.json(users.map(sanitizeUser));
 });
 
+const ASSIGNABLE_ROLES = ['admin', 'manager', 'operator', 'cashier', 'stock_keeper'] as const;
+type AssignableRole = typeof ASSIGNABLE_ROLES[number];
+
 router.put('/users/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const { name, email, role, phone } = req.body;
+
+    if (role !== undefined && !ASSIGNABLE_ROLES.includes(role as AssignableRole)) {
+        throw ApiError.badRequest(`Papel inválido. Permitidos: ${ASSIGNABLE_ROLES.join(', ')}`);
+    }
 
     const user = await prisma.user.updateMany({
         where: { id: req.params.id, companyId: req.companyId },
@@ -388,6 +395,12 @@ router.post('/verify-otp', rateLimiters.passwordReset, async (req, res) => {
         await prisma.user.update({ where: { id: user.id }, data: { otpAttempts: { increment: 1 } } });
         throw ApiError.badRequest('Código inválido ou expirado');
     }
+
+    // Invalidate OTP immediately after verification to prevent replay attacks
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { otp: null, otpExpiry: null, otpAttempts: 0 }
+    });
 
     res.json({ message: 'Código verificado com sucesso', verified: true });
 });

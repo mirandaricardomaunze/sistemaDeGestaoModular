@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Card, Button, Input, Modal, Badge, Skeleton } from '../ui';
+import { useState, useEffect } from 'react';
+import { Card, Button, Input, Modal, Badge, Skeleton, ConfirmationModal } from '../ui';
 import {
     HiOutlinePlus, 
     HiOutlineArrowPath, 
@@ -16,6 +16,7 @@ import {
     useBatchesDashboard, useBatches, useExpBatches,
     useCreateBatch, useUpdateBatch, useDeleteBatch,
 } from '../../hooks/useBatches';
+import { useWarehouses } from '../../hooks/useWarehouses';
 import type { ProductBatch, CreateBatchDto } from '../../services/api';
 import { useProducts } from '../../hooks/useData';
 import { differenceInDays } from 'date-fns';
@@ -61,19 +62,21 @@ const EMPTY_FORM: Partial<CreateBatchDto> = {
 function BatchFormModal({ open, onClose, editing, defaultProductId }: {
     open: boolean; onClose: () => void; editing?: ProductBatch | null; defaultProductId?: string;
 }) {
-    const [form, setForm] = useState<Partial<CreateBatchDto & { status?: string }>>(
+    const [form, setForm] = useState<Partial<CreateBatchDto & { status?: string; totalCost?: number }>>(
         editing ? {
             batchNumber: editing.batchNumber, productId: editing.productId,
             quantity: editing.quantity, costPrice: Number(editing.costPrice),
+            totalCost: editing.quantity * Number(editing.costPrice),
             expiryDate: editing.expiryDate?.split('T')[0] || '',
             manufactureDate: editing.manufactureDate?.split('T')[0] || '',
             receivedDate: editing.receivedDate?.split('T')[0] || '',
             supplierId: editing.supplierId, warehouseId: editing.warehouseId,
             notes: editing.notes || '',
-        } : { ...EMPTY_FORM, productId: defaultProductId || '' }
+        } : { ...EMPTY_FORM, productId: defaultProductId || '', totalCost: 0 }
     );
 
     const { products } = useProducts({ limit: 200 });
+    const { warehouses } = useWarehouses();
     const create = useCreateBatch();
     const update = useUpdateBatch();
 
@@ -82,7 +85,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
         if (!form.batchNumber || !form.productId || form.quantity === undefined) return;
         try {
             const payload: any = {
-                batchNumber: form.batchNumber,
+                batchNumber: form.batchNumber.trim().toUpperCase(),
                 productId: form.productId,
                 quantity: form.quantity,
                 costPrice: form.costPrice || 0,
@@ -104,6 +107,20 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
 
     const busy = create.isLoading || update.isLoading;
 
+    // Auto-preencher preço de custo do produto ao selecionar
+    useEffect(() => {
+        if (!editing && form.productId && products) {
+            const product = (products as any).find((p: any) => p.id === form.productId);
+            if (product && (!form.costPrice || form.costPrice === 0)) {
+                setForm(p => ({
+                    ...p,
+                    costPrice: Number(product.costPrice),
+                    totalCost: Number(((p.quantity || 0) * Number(product.costPrice)).toFixed(2))
+                }));
+            }
+        }
+    }, [form.productId, products, editing]);
+
     return (
         <Modal isOpen={open} onClose={onClose} title={editing ? 'Editar Lote' : 'Registar Novo Lote'}>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -117,14 +134,92 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                             className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60">
                             <option value="">Seleccionar produto...</option>
                             {(products || []).map((p: any) => (
-                                <option key={p.id} value={p.id}>{p.code} "" {p.name}</option>
+                                <option key={p.id} value={p.id}>{p.code} · {p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-1">
+                        <Input 
+                            label="Qtd. Caixas" 
+                            type="number" 
+                            min={0} 
+                            placeholder="Caixas"
+                            onChange={e => {
+                                const boxes = parseInt(e.target.value) || 0;
+                                const product = products?.find((p: any) => p.id === form.productId);
+                                const packSize = product?.packSize || 1;
+                                const qty = boxes * packSize;
+                                
+                                setForm(p => ({ 
+                                    ...p, 
+                                    quantity: qty,
+                                    totalCost: Number((qty * (p.costPrice || 0)).toFixed(2))
+                                }));
+                            }}
+                        />
+                    </div>
+                    <div className="md:col-span-1">
+                        <Input 
+                            label="Qtd. Unidades *" 
+                            type="number" 
+                            min={0} 
+                            value={form.quantity || ''} 
+                            onChange={e => {
+                                const qty = parseInt(e.target.value) || 0;
+                                setForm(p => ({ 
+                                    ...p, 
+                                    quantity: qty,
+                                    totalCost: Number((qty * (p.costPrice || 0)).toFixed(2))
+                                }));
+                            }} 
+                            required 
+                        />
+                    </div>
+                    <div className="md:col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Armazém *</label>
+                        <select required value={form.warehouseId || ''} onChange={e => setForm(p => ({ ...p, warehouseId: e.target.value }))}
+                            className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <option value="">Seleccionar armazém...</option>
+                            {(warehouses || []).map((w: any) => (
+                                <option key={w.id} value={w.id}>{w.name}</option>
                             ))}
                         </select>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                    <Input label="Quantidade *" type="number" min={0} value={form.quantity || ''} onChange={e => setForm(p => ({ ...p, quantity: parseInt(e.target.value) || 0 }))} required />
-                    <Input label="Custo Unitrio (MZN)" type="number" min={0} step={0.01} value={form.costPrice || ''} onChange={e => setForm(p => ({ ...p, costPrice: parseFloat(e.target.value) || 0 }))} />
+                    <Input 
+                        label="Custo Unitário (MZN)" 
+                        type="number" 
+                        min={0} 
+                        step={0.01} 
+                        value={form.costPrice || ''} 
+                        onChange={e => {
+                            const price = parseFloat(e.target.value) || 0;
+                            setForm(p => ({ 
+                                ...p, 
+                                costPrice: price,
+                                totalCost: Number(((p.quantity || 0) * price).toFixed(2))
+                            }));
+                        }} 
+                    />
+                    <Input 
+                        label="Custo Total (MZN)" 
+                        type="number" 
+                        min={0} 
+                        step={0.01} 
+                        value={form.totalCost || ''} 
+                        onChange={e => {
+                            const total = parseFloat(e.target.value) || 0;
+                            const qty = form.quantity || 0;
+                            setForm(p => ({ 
+                                ...p, 
+                                totalCost: total,
+                                costPrice: qty > 0 ? Number((total / qty).toFixed(2)) : p.costPrice
+                            }));
+                        }} 
+                    />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                     <Input label="Data de Fabricação" type="date" value={form.manufactureDate || ''} onChange={e => setForm(p => ({ ...p, manufactureDate: e.target.value }))} />
@@ -259,7 +354,7 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                                         {(dashboard.upcoming || []).map((b: any) => (
                                             <div key={b.id} className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-dark-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-dark-900/30 transition-colors px-2 rounded-lg">
                                                 <div>
-                                                    <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight">{b.product?.name} "" LT {b.batchNumber}</p>
+                                                    <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight">{b.product?.name} · LT {b.batchNumber}</p>
                                                     <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">{b.quantity} {b.product?.unit}</p>
                                                 </div>
                                                 <ExpiryBadge expiryDate={b.expiryDate} daysToExpiry={b.daysToExpiry} />
@@ -375,15 +470,17 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
             {modalOpen && <BatchFormModal open={modalOpen} onClose={handleCloseModal} editing={editing} defaultProductId={defaultProductId} />}
 
             {deleting && (
-                <Modal isOpen={!!deleting} onClose={() => setDeleting(null)} title="Eliminar Lote">
-                    <p className="text-gray-600 dark:text-gray-400 mb-6">
-                        Eliminar lote <strong>{deleting.batchNumber}</strong>? Apenas possível se não estiver em vendas.
-                    </p>
-                    <div className="flex justify-end gap-3">
-                        <Button variant="outline" onClick={() => setDeleting(null)}>Cancelar</Button>
-                        <Button variant="danger" onClick={handleDelete} isLoading={deleteBatch.isLoading}>Eliminar</Button>
-                    </div>
-                </Modal>
+                <ConfirmationModal
+                    isOpen={!!deleting}
+                    onClose={() => setDeleting(null)}
+                    onConfirm={handleDelete}
+                    title="Eliminar Lote"
+                    message={`Tem a certeza que deseja eliminar o lote "${deleting.batchNumber}"? Esta ação apenas é possível se o lote não estiver em uso em vendas.`}
+                    confirmText="Eliminar"
+                    cancelText="Cancelar"
+                    variant="danger"
+                    isLoading={deleteBatch.isLoading}
+                />
             )}
         </div>
     );

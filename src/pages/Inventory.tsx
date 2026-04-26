@@ -59,7 +59,7 @@ export default function Inventory() {
             <PageHeader 
                 title="Gestão de Inventário"
                 subtitle="Controlo de Produtos, Stock e Lotes de Validade"
-                icon={<HiOutlineCube />}
+                icon={<HiOutlineCube className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
                         {activeTab === 'products' && (
@@ -68,7 +68,7 @@ export default function Inventory() {
                                     variant="ghost" 
                                     size="sm" 
                                     className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
-                                    leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} 
+                                    leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />} 
                                     onClick={() => setRefreshKey(prev => prev + 1)}
                                 >
                                     Actualizar
@@ -76,8 +76,8 @@ export default function Inventory() {
                                 <Button 
                                     variant="outline" 
                                     size="sm" 
-                                    className="font-black text-[10px] uppercase tracking-widest"
-                                    leftIcon={<HiOutlinePrinter className="w-5 h-5" />} 
+                                    className="font-black text-[10px] uppercase tracking-widest text-slate-700 dark:text-slate-300"
+                                    leftIcon={<HiOutlinePrinter className="w-5 h-5 text-primary-600 dark:text-primary-400" />} 
                                     onClick={() => setShowPrintReport(true)}
                                 >
                                     Imprimir Stock
@@ -85,7 +85,7 @@ export default function Inventory() {
                                 <Button 
                                     size="sm" 
                                     className="font-black text-[10px] uppercase tracking-widest"
-                                    leftIcon={<HiOutlinePlus className="w-5 h-5" />} 
+                                    leftIcon={<HiOutlinePlus className="w-5 h-5 text-white dark:text-primary-400" />} 
                                     onClick={handleAddProduct}
                                 >
                                     Novo Produto

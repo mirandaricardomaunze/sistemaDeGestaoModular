@@ -97,8 +97,8 @@ export default function ForgotPassword() {
                 {/* Logo & Header -- same as Login */}
                 <div className="text-center group">
                     <div className="relative mx-auto h-24 w-24 mb-8">
-                        <div className="absolute inset-0 bg-gradient-to-tr from-primary-600 to-accent-600 rounded-lg blur-xl opacity-40 group-hover:opacity-60 transition duration-1000 animate-pulse-slow"></div>
-                        <div className="relative h-full w-full rounded-lg bg-gradient-to-tr from-primary-600 to-primary-500 flex items-center justify-center shadow-2xl border border-white/20">
+                        <div className="absolute inset-0 bg-primary-600 rounded-lg blur-xl opacity-40 group-hover:opacity-60 transition duration-1000 animate-pulse-slow"></div>
+                        <div className="relative h-full w-full rounded-lg bg-primary-600 flex items-center justify-center shadow-2xl border border-white/20">
                             <HiOutlineKey className="w-12 h-12 text-white animate-float" />
                         </div>
                     </div>

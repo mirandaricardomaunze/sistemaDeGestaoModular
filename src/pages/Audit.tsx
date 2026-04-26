@@ -49,7 +49,7 @@ export default function Audit() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineShieldCheck className="w-7 h-7 text-primary-500" />
+                        <HiOutlineShieldCheck className="w-7 h-7 text-primary-600 dark:text-primary-400" />
                         {t('audit.title')}
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">

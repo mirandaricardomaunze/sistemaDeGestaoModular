@@ -30,6 +30,14 @@ interface ExportButtonProps {
     buttonText?: string;
     /** Whether to show icon */
     showIcon?: boolean;
+    /** Company info object */
+    companyInfo?: {
+        name: string;
+        nuit?: string;
+        address?: string;
+        phone?: string;
+        email?: string;
+    };
     /** Disabled state */
     disabled?: boolean;
     /** Custom class names */
@@ -37,18 +45,18 @@ interface ExportButtonProps {
     /** Callback after export */
     onExport?: (format: ExportFormat) => void;
 }
-
-export default function ExportButton({
+export function ExportButton({
     options,
     filename,
     title,
-    variant = 'outline',
-    size = 'sm',
+    variant = 'primary',
+    size = 'md',
     buttonText = 'Exportar',
     showIcon = true,
     disabled = false,
     className = '',
-    onExport
+    onExport,
+    companyInfo
 }: ExportButtonProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
@@ -77,7 +85,12 @@ export default function ExportButton({
             exportData({
                 ...options,
                 filename,
-                title
+                title,
+                companyName: companyInfo?.name || options.companyName,
+                companyNUIT: companyInfo?.nuit,
+                companyAddress: companyInfo?.address,
+                companyPhone: companyInfo?.phone,
+                companyEmail: companyInfo?.email
             }, format);
 
             onExport?.(format);
@@ -148,27 +161,49 @@ export default function ExportButton({
 interface QuickExportProps {
     data: any[];
     companyName?: string;
+    companyInfo?: {
+        name: string;
+        nuit?: string;
+        address?: string;
+        phone?: string;
+        email?: string;
+    };
     className?: string;
+    size?: 'sm' | 'md' | 'lg';
 }
 
-export function ExportProductsButton({ data, companyName, className }: QuickExportProps) {
+export function ExportProductsButton({ data, companyInfo, className, size = 'md' }: QuickExportProps) {
+    const formattedData = data.map(p => {
+        const packSize = p.packSize && p.packSize > 1 ? p.packSize : 1;
+        const boxes = Math.floor(p.currentStock / packSize);
+        const units = p.currentStock % packSize;
+
+        return {
+            ...p,
+            boxCount: boxes,
+            unitRemainder: units,
+            categoryName: p.categoryModel?.name || p.category
+        };
+    });
+
     return (
         <ExportButton
-            filename="produtos"
-            title="Lista de Produtos"
+            filename="inventario"
+            title="Inventário"
             className={className}
+            size={size}
+            companyInfo={companyInfo}
             options={{
-                companyName,
                 columns: [
-                    { key: 'code', header: 'Código', width: 12 },
+                    { key: 'barcode', header: 'Código de Barras', width: 15 },
+                    { key: 'sku', header: 'Referência', width: 15 },
                     { key: 'name', header: 'Nome', width: 30 },
-                    { key: 'category.name', header: 'Categoria', width: 15 },
-                    { key: 'currentStock', header: 'Stock', format: 'number', width: 10, align: 'right' },
-                    { key: 'minStock', header: 'Stock Mín.', format: 'number', width: 10, align: 'right' },
-                    { key: 'costPrice', header: 'Custo', format: 'currency', width: 15 },
-                    { key: 'sellingPrice', header: 'Preço Venda', format: 'currency', width: 15 },
+                    { key: 'boxCount', header: 'Caixas', format: 'number', width: 10, align: 'right' },
+                    { key: 'unitRemainder', header: 'Unidades', format: 'number', width: 10, align: 'right' },
+                    { key: 'price', header: 'Preço Venda', format: 'currency', width: 15 },
                 ],
-                data
+                data: formattedData,
+                subtitle: "Gestão avançada de produtos, referências e valor de stock"
             }}
         />
     );

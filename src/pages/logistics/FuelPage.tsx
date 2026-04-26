@@ -100,38 +100,38 @@ export default function FuelPage() {
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="p-5 border-l-4 border-cyan-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center text-cyan-600">
+                <Card className="p-5 bg-cyan-100/40 dark:bg-cyan-900/20 border border-cyan-200/50 dark:border-cyan-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-cyan-200/60 dark:bg-cyan-900/40 flex items-center justify-center text-cyan-700 dark:text-cyan-300 shadow-inner group-hover:scale-110 transition-transform">
                             <HiOutlineCalculator className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('logistics_module.fuel.monthlyCost')}</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-cyan-600/70 dark:text-cyan-400/60">{t('logistics_module.fuel.monthlyCost')}</p>
+                            <p className="text-2xl font-black text-cyan-900 dark:text-white leading-none mt-1">
                                 {new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(stats.totalAmount)}
                             </p>
                         </div>
                     </div>
                 </Card>
-                <Card className="p-5 border-l-4 border-blue-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                <Card className="p-5 bg-blue-100/40 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-blue-200/60 dark:bg-blue-900/40 flex items-center justify-center text-blue-700 dark:text-blue-300 shadow-inner group-hover:scale-110 transition-transform">
                             <HiOutlineFire className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('logistics_module.fuel.liters')}</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalLiters.toFixed(1)} L</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-600/70 dark:text-blue-400/60">{t('logistics_module.fuel.liters')}</p>
+                            <p className="text-2xl font-black text-blue-900 dark:text-white leading-none mt-1">{stats.totalLiters.toFixed(1)} L</p>
                         </div>
                     </div>
                 </Card>
-                <Card className="p-5 border-l-4 border-indigo-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600">
+                <Card className="p-5 bg-indigo-100/40 dark:bg-indigo-900/20 border border-indigo-200/50 dark:border-indigo-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-indigo-200/60 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-700 dark:text-indigo-300 shadow-inner group-hover:scale-110 transition-transform">
                             <HiOutlineChartBar className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">{t('logistics_module.fuel.pricePerLiter')}</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600/70 dark:text-indigo-400/60">{t('logistics_module.fuel.pricePerLiter')}</p>
+                            <p className="text-2xl font-black text-indigo-900 dark:text-white leading-none mt-1">
                                 {stats.avgPrice.toFixed(2)} MT/L
                             </p>
                         </div>

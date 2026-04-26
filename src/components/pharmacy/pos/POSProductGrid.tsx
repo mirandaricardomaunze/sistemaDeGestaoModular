@@ -1,5 +1,5 @@
 import { Input, Badge, Pagination } from '../../ui';
-import { HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 
 export function POSProductGrid({
     searchInputRef,
@@ -23,7 +23,7 @@ export function POSProductGrid({
                 placeholder="Pesquisar medicamento..."
                 value={posSearch}
                 onChange={(e) => setPosSearch(e.target.value)}
-                leftIcon={<HiOutlineSearch className="w-5 h-5 text-gray-400" />}
+                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
             />
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[700px] overflow-y-auto pr-2">
                 {posPagination.paginatedItems.map((med: any) => (
@@ -39,7 +39,7 @@ export function POSProductGrid({
                         </div>
                         <div className="mt-4 flex items-end justify-between">
                             <div className="flex flex-col">
-                                <span className="text-2xl font-black text-teal-600 dark:text-teal-400 group-hover:scale-105 transition-transform origin-left block">
+                                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform origin-left block">
                                     {Number(med.batches[0]?.sellingPrice || med.product.price).toLocaleString()} <span className="text-sm font-bold">MT</span>
                                 </span>
                             </div>

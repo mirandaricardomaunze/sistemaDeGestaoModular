@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
     HiOutlineMagnifyingGlass, 
     HiOutlineClock,
@@ -11,6 +12,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const LogisticsAttendanceControl: React.FC = () => {
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const { data: staff, isLoading: isLoadingStaff } = useDrivers({ limit: 100 });
     const { data: attendance, refetch } = useStaffAttendance({
@@ -39,7 +41,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                 <div className="flex-1 max-w-md relative">
                     <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <Input
-                        placeholder="Pesquisar colaborador por nome ou código..."
+                        placeholder={t('logistics_module.hr.attendance.searchPlaceholder')}
                         className="pl-10 h-11"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -58,7 +60,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                         <HiOutlineLogin className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-xs text-gray-500 uppercase font-black tracking-widest">Presentes</p>
+                        <p className="text-xs text-gray-500 uppercase font-black tracking-widest">{t('logistics_module.hr.attendance.present')}</p>
                         <h4 className="text-xl font-bold">{attendance?.filter(a => a.checkIn && !a.checkOut).length || 0}</h4>
                     </div>
                 </Card>
@@ -67,7 +69,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                         <HiOutlineLogout className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-xs text-gray-500 uppercase font-black tracking-widest">Finalizados</p>
+                        <p className="text-xs text-gray-500 uppercase font-black tracking-widest">{t('logistics_module.hr.attendance.finished')}</p>
                         <h4 className="text-xl font-bold">{attendance?.filter(a => a.checkOut).length || 0}</h4>
                     </div>
                 </Card>
@@ -76,7 +78,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                         <HiOutlineClock className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-xs text-gray-500 uppercase font-black tracking-widest">Em Espera</p>
+                        <p className="text-xs text-gray-500 uppercase font-black tracking-widest">{t('logistics_module.hr.attendance.waiting')}</p>
                         <h4 className="text-xl font-bold">{filteredStaff.length - (attendance?.length || 0)}</h4>
                     </div>
                 </Card>
@@ -98,17 +100,17 @@ export const LogisticsAttendanceControl: React.FC = () => {
                                         <p className="text-xs text-gray-500">{person.category.toUpperCase()} • {person.code}</p>
                                     </div>
                                     {record?.checkIn && !record?.checkOut && (
-                                        <Badge variant="success" className="animate-pulse">EM SERVIÇO</Badge>
+                                        <Badge variant="success" className="animate-pulse">{t('logistics_module.hr.attendance.onService')}</Badge>
                                     )}
                                 </div>
 
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-xs">
-                                        <span className="text-gray-400">Entrada:</span>
+                                        <span className="text-gray-400">{t('logistics_module.hr.attendance.checkIn')}:</span>
                                         <span className="font-bold">{record?.checkIn || '--:--'}</span>
                                     </div>
                                     <div className="flex justify-between text-xs">
-                                        <span className="text-gray-400">Saída:</span>
+                                        <span className="text-gray-400">{t('logistics_module.hr.attendance.checkOut')}:</span>
                                         <span className="font-bold">{record?.checkOut || '--:--'}</span>
                                     </div>
                                 </div>

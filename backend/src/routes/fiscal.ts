@@ -12,13 +12,13 @@ const router = Router();
 // ============================================================================
 
 router.get('/tax-configs', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const configs = await fiscalService.getTaxConfigs(req.companyId);
     res.json(configs);
 });
 
 router.post('/tax-configs', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const config = await prisma.taxConfig.create({
         data: { ...req.body, companyId: req.companyId }
     });
@@ -26,7 +26,7 @@ router.post('/tax-configs', authenticate, authorize('admin'), async (req: AuthRe
 });
 
 router.put('/tax-configs/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await prisma.taxConfig.updateMany({
         where: { id: req.params.id, companyId: req.companyId },
         data: req.body
@@ -42,7 +42,7 @@ router.put('/tax-configs/:id', authenticate, authorize('admin'), async (req: Aut
 // IRPS Brackets
 // ============================================================================
 router.get('/irps-brackets', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { year } = req.query;
     const currentYear = year ? Number(year) : new Date().getFullYear();
     const brackets = await prisma.iRPSBracket.findMany({
@@ -56,7 +56,7 @@ router.get('/irps-brackets', authenticate, async (req: AuthRequest, res) => {
 });
 
 router.post('/irps-brackets', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const bracket = await prisma.iRPSBracket.create({
         data: { ...req.body, companyId: req.companyId }
     });
@@ -68,14 +68,14 @@ router.post('/irps-brackets', authenticate, authorize('admin'), async (req: Auth
 // ============================================================================
 
 router.get('/retentions', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { period, type } = req.query;
     const retentions = await fiscalService.getRetentions(req.companyId, period as string, type as string);
     res.json(retentions);
 });
 
 router.post('/retentions', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const retention = await prisma.taxRetention.create({
         data: { ...req.body, companyId: req.companyId }
     });
@@ -83,7 +83,7 @@ router.post('/retentions', authenticate, async (req: AuthRequest, res) => {
 });
 
 router.put('/retentions/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await prisma.taxRetention.updateMany({
         where: { id: req.params.id, companyId: req.companyId },
         data: req.body
@@ -98,7 +98,7 @@ router.put('/retentions/:id', authenticate, async (req: AuthRequest, res) => {
 // ============================================================================
 
 router.get('/reports', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const reports = await prisma.fiscalReport.findMany({
         where: { companyId: req.companyId },
         orderBy: { createdAt: 'desc' }
@@ -107,7 +107,7 @@ router.get('/reports', authenticate, async (req: AuthRequest, res) => {
 });
 
 router.post('/reports', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const report = await prisma.fiscalReport.create({
         data: { ...req.body, submittedBy: req.userId, companyId: req.companyId }
     });
@@ -115,7 +115,7 @@ router.post('/reports', authenticate, authorize('admin', 'manager'), async (req:
 });
 
 router.put('/reports/:id', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await prisma.fiscalReport.updateMany({
         where: { id: req.params.id, companyId: req.companyId },
         data: req.body
@@ -130,7 +130,7 @@ router.put('/reports/:id', authenticate, authorize('admin', 'manager'), async (r
 // ============================================================================
 
 router.get('/deadlines', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const deadlines = await prisma.fiscalDeadline.findMany({
         where: { companyId: req.companyId },
         orderBy: { dueDate: 'asc' }
@@ -139,7 +139,7 @@ router.get('/deadlines', authenticate, async (req: AuthRequest, res) => {
 });
 
 router.post('/deadlines', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const deadline = await prisma.fiscalDeadline.create({
         data: { ...req.body, companyId: req.companyId }
     });
@@ -147,7 +147,7 @@ router.post('/deadlines', authenticate, authorize('admin'), async (req: AuthRequ
 });
 
 router.put('/deadlines/:id', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await prisma.fiscalDeadline.updateMany({
         where: { id: req.params.id, companyId: req.companyId },
         data: req.body
@@ -158,7 +158,7 @@ router.put('/deadlines/:id', authenticate, authorize('admin'), async (req: AuthR
 });
 
 router.post('/deadlines/:id/complete', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await prisma.fiscalDeadline.updateMany({
         where: { id: req.params.id, companyId: req.companyId },
         data: { status: 'completed', completedAt: new Date(), completedBy: req.userId }
@@ -173,7 +173,7 @@ router.post('/deadlines/:id/complete', authenticate, authorize('admin', 'manager
 // ============================================================================
 
 router.get('/metrics/:module', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const metrics = await fiscalService.getModuleFiscalMetrics(req.companyId, req.params.module);
     res.json(metrics);
 });
@@ -183,38 +183,38 @@ router.get('/metrics/:module', authenticate, async (req: AuthRequest, res) => {
 // ============================================================================
 
 router.get('/iva-rates/dashboard', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await ivaService.getDashboard(req.companyId));
 });
 
 router.get('/iva-rates/active', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await ivaService.getActive(req.companyId));
 });
 
 router.get('/iva-rates', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await ivaService.list(req.companyId, req.query));
 });
 
 router.get('/iva-rates/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await ivaService.getById(req.params.id, req.companyId));
 });
 
 router.post('/iva-rates', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const rate = await ivaService.create(req.body, req.companyId);
     res.status(201).json(rate);
 });
 
 router.put('/iva-rates/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await ivaService.update(req.params.id, req.body, req.companyId));
 });
 
 router.delete('/iva-rates/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await ivaService.delete(req.params.id, req.companyId));
 });
 

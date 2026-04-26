@@ -1,20 +1,19 @@
 import { prisma } from '../lib/prisma';
-import { Queue } from 'bullmq';
-import { connection } from '../config/redis';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { logger } from '../utils/logger';
+import { emailQueue, JOB_OPTIONS } from '../queues/emailQueue';
 
-// Lazy-initialize the email queue so the server can start without Redis
-let emailQueue: Queue | null = null;
-function getEmailQueue(): Queue | null {
-    if (!emailQueue) {
-        try {
-            emailQueue = new Queue('email-queue', { connection });
-        } catch (err) {
-            logger.warn('BullMQ email queue unavailable -- Redis not connected');
-        }
+async function enqueueToAdmins(companyId: string, jobName: string, buildData: (email: string, name: string) => Record<string, unknown>) {
+    if (!emailQueue) return; // Redis not configured — skip silently
+    const admins = await prisma.user.findMany({
+        where: { companyId, role: { in: ['admin', 'manager'] }, isActive: true },
+        select: { email: true, name: true }
+    });
+    for (const admin of admins.filter(a => a.email)) {
+        await emailQueue.add(jobName, buildData(admin.email!, admin.name), JOB_OPTIONS).catch((err: unknown) => {
+            logger.warn(`Email queue error — ${jobName} not enqueued`, { error: (err as Error).message });
+        });
     }
-    return emailQueue;
 }
 
 export class AlertsService {
@@ -149,196 +148,229 @@ export class AlertsService {
         });
     }
 
+    private async getActiveModuleCodes(companyId: string): Promise<Set<string>> {
+        const mods = await prisma.companyModule.findMany({
+            where: { companyId, isActive: true },
+            select: { moduleCode: true }
+        });
+        return new Set(mods.map(m => m.moduleCode.toUpperCase()));
+    }
+
     async generate(companyId: string, module?: string) {
-        const config = await prisma.alertConfig.findFirst({ where: { companyId } }) ?? {
-            lowStockThreshold: 10,
-            expiryWarningDays: 30
-        };
+        try {
+            const [config, activeModules] = await Promise.all([
+                prisma.alertConfig.findFirst({ where: { companyId } }).then(c => c ?? {
+                    lowStockThreshold: 10,
+                    expiryWarningDays: 30
+                }),
+                this.getActiveModuleCodes(companyId)
+            ]);
 
-        const now = new Date();
-        let createdCount = 0;
+            const now = new Date();
+            let createdCount = 0;
 
-        // --- Stock alerts (inventory, pharmacy, pos, bottlestore) ---
-        if (!module || ['inventory', 'pharmacy', 'pos', 'bottlestore'].includes(module)) {
-            const alertModule = module ?? 'inventory';
+            // --- Stock alerts (inventory, pharmacy, pos, bottlestore) ---
+            // Only run if the company has at least one product-carrying module active
+            const hasProductModule = activeModules.has('COMMERCIAL') || activeModules.has('PHARMACY') ||
+                activeModules.has('BOTTLE_STORE') || activeModules.has('RESTAURANT') ||
+                activeModules.size === 0; // fallback: no optional modules yet (new company)
 
-            // Get all warehouses to check them individually
-            const warehouses = await prisma.warehouse.findMany({ where: { companyId, isActive: true } });
+            if (hasProductModule && (!module || ['inventory', 'pharmacy', 'pos', 'bottlestore'].includes(module))) {
+                const alertModule = module ?? 'inventory';
 
-            for (const warehouse of warehouses) {
-                // Out of stock in this warehouse
-                const outOfStockWs = await prisma.warehouseStock.findMany({
-                    where: { 
-                        warehouseId: warehouse.id, 
-                        quantity: 0, 
-                        product: { companyId, isActive: true } 
-                    },
-                    include: { product: { select: { id: true, name: true, code: true } } }
-                });
+                // Get all warehouses to check them individually
+                const warehouses = await prisma.warehouse.findMany({ where: { companyId, isActive: true } });
 
-                for (const ws of outOfStockWs) {
-                    const exists = await prisma.alert.findFirst({
+                for (const warehouse of warehouses) {
+                    // Out of stock in this warehouse
+                    const outOfStockWs = await prisma.warehouseStock.findMany({
                         where: { 
-                            companyId, 
-                            type: 'out_of_stock', 
-                            relatedId: ws.product.id, 
-                            isResolved: false,
-                            metadata: { path: ['warehouseId'], equals: warehouse.id }
-                        }
+                            warehouseId: warehouse.id, 
+                            quantity: 0, 
+                            product: { companyId, isActive: true } 
+                        },
+                        include: { product: { select: { id: true, name: true, code: true } } }
                     });
 
+                    for (const ws of outOfStockWs) {
+                        const exists = await prisma.alert.findFirst({
+                            where: { 
+                                companyId, 
+                                type: 'out_of_stock', 
+                                relatedId: ws.product.id, 
+                                isResolved: false,
+                                metadata: { equals: { warehouseId: warehouse.id } }
+                            }
+                        });
+
+                        if (!exists) {
+                            await prisma.alert.create({
+                                data: {
+                                    type: 'out_of_stock', priority: 'critical',
+                                    title: `Produto sem stock - ${warehouse.name}`,
+                                    message: `"${ws.product.name}" (${ws.product.code}) está sem stock no armazém ${warehouse.name}.`,
+                                    module: alertModule, relatedId: ws.product.id, relatedType: 'product',
+                                    actionUrl: `/products/${ws.product.id}`, companyId,
+                                    metadata: { warehouseId: warehouse.id }
+                                }
+                            });
+                            createdCount++;
+
+                            await enqueueToAdmins(companyId, 'stock-alert', (email, userName) => ({
+                                email, userName, productName: ws.product.name, warehouseName: warehouse.name,
+                                currentStock: ws.quantity, threshold: config.lowStockThreshold, type: 'out_of_stock'
+                            }));
+                        }
+                    }
+
+                    // Low stock in this warehouse
+                    const lowStockWs = await prisma.warehouseStock.findMany({
+                        where: { 
+                            warehouseId: warehouse.id, 
+                            quantity: { gt: 0, lte: config.lowStockThreshold },
+                            product: { companyId, isActive: true } 
+                        },
+                        include: { product: { select: { id: true, name: true, code: true } } }
+                    });
+
+                    for (const ws of lowStockWs) {
+                        const exists = await prisma.alert.findFirst({
+                            where: { 
+                                companyId, 
+                                type: 'low_stock', 
+                                relatedId: ws.product.id, 
+                                isResolved: false,
+                                metadata: { equals: { warehouseId: warehouse.id } }
+                            }
+                        });
+
+                        if (!exists) {
+                            await prisma.alert.create({
+                                data: {
+                                    type: 'low_stock', priority: 'high',
+                                    title: `Stock baixo - ${warehouse.name}`,
+                                    message: `"${ws.product.name}" tem apenas ${ws.quantity} unidade(s) no armazém ${warehouse.name}.`,
+                                    module: alertModule, relatedId: ws.product.id, relatedType: 'product',
+                                    actionUrl: `/products/${ws.product.id}`, companyId,
+                                    metadata: { warehouseId: warehouse.id }
+                                }
+                            });
+                            createdCount++;
+
+                            await enqueueToAdmins(companyId, 'stock-alert', (email, userName) => ({
+                                email, userName, productName: ws.product.name, warehouseName: warehouse.name,
+                                currentStock: ws.quantity, threshold: config.lowStockThreshold, type: 'low_stock'
+                            }));
+                        }
+                    }
+                }
+            }
+
+            // --- Expiry alerts (pharmacy, inventory) ---
+            if (!module || ['pharmacy', 'inventory'].includes(module)) {
+                const expiryWarning = new Date();
+                expiryWarning.setDate(expiryWarning.getDate() + config.expiryWarningDays);
+                const expiryModule = module ?? 'pharmacy';
+
+                // 1. ProductBatch -- expired lotes (inventory / commercial)
+                const expiredBatchesInv = await prisma.productBatch.findMany({
+                    where: { companyId, quantity: { gt: 0 }, expiryDate: { lt: now } },
+                    include: { product: { select: { id: true, name: true, isActive: true } } }
+                });
+                for (const b of expiredBatchesInv) {
+                    if (!b.product.isActive) continue;
+                    const exists = await prisma.alert.findFirst({
+                        where: { companyId, type: 'expired_product', relatedId: b.id, isResolved: false }
+                    });
                     if (!exists) {
                         await prisma.alert.create({
                             data: {
-                                type: 'out_of_stock', priority: 'critical',
-                                title: `Produto sem stock - ${warehouse.name}`,
-                                message: `"${ws.product.name}" (${ws.product.code}) está sem stock no armazém ${warehouse.name}.`,
-                                module: alertModule, relatedId: ws.product.id, relatedType: 'product',
-                                actionUrl: `/products/${ws.product.id}`, companyId,
-                                metadata: { warehouseId: warehouse.id }
+                                type: 'expired_product', priority: 'critical',
+                                title: 'Lote expirado',
+                                message: `"${b.product.name}" (Lote: ${b.batchNumber}) expirou em ${b.expiryDate!.toLocaleDateString('pt-BR')}.`,
+                                module: expiryModule, relatedId: b.id, relatedType: 'product_batch', companyId
                             }
                         });
                         createdCount++;
                     }
                 }
 
-                // Low stock in this warehouse
-                const lowStockWs = await prisma.warehouseStock.findMany({
-                    where: { 
-                        warehouseId: warehouse.id, 
-                        quantity: { gt: 0, lte: config.lowStockThreshold },
-                        product: { companyId, isActive: true } 
-                    },
-                    include: { product: { select: { id: true, name: true, code: true } } }
+                // 2. ProductBatch -- expiring soon lotes (inventory / commercial)
+                const expiringSoonBatchesInv = await prisma.productBatch.findMany({
+                    where: { companyId, quantity: { gt: 0 }, expiryDate: { gte: now, lte: expiryWarning } },
+                    include: { product: { select: { id: true, name: true, isActive: true } } }
                 });
-
-                for (const ws of lowStockWs) {
+                for (const b of expiringSoonBatchesInv) {
+                    if (!b.product.isActive) continue;
                     const exists = await prisma.alert.findFirst({
-                        where: { 
-                            companyId, 
-                            type: 'low_stock', 
-                            relatedId: ws.product.id, 
-                            isResolved: false,
-                            metadata: { path: ['warehouseId'], equals: warehouse.id }
-                        }
+                        where: { companyId, type: 'expiring_soon', relatedId: b.id, isResolved: false }
                     });
-
                     if (!exists) {
+                        const daysLeft = Math.ceil((b.expiryDate!.getTime() - now.getTime()) / 86400000);
                         await prisma.alert.create({
                             data: {
-                                type: 'low_stock', priority: 'high',
-                                title: `Stock baixo - ${warehouse.name}`,
-                                message: `"${ws.product.name}" tem apenas ${ws.quantity} unidade(s) no armazém ${warehouse.name}.`,
-                                module: alertModule, relatedId: ws.product.id, relatedType: 'product',
-                                actionUrl: `/products/${ws.product.id}`, companyId,
-                                metadata: { warehouseId: warehouse.id }
+                                type: 'expiring_soon', priority: 'high',
+                                title: 'Lote a expirar',
+                                message: `"${b.product.name}" (Lote: ${b.batchNumber}) expira em ${daysLeft} dia(s) (${b.expiryDate!.toLocaleDateString('pt-BR')}).`,
+                                module: expiryModule, relatedId: b.id, relatedType: 'product_batch', companyId
                             }
                         });
                         createdCount++;
                     }
                 }
+
+                // 3. Medication Batches Expiry — only for companies with PHARMACY module
+                if (activeModules.has('PHARMACY')) {
+                    const expiredBatches = await prisma.medicationBatch.findMany({
+                        where: { companyId, status: 'active', quantityAvailable: { gt: 0 }, expiryDate: { lt: now } },
+                        include: { medication: { include: { product: { select: { name: true } } } } }
+                    });
+                    for (const batch of expiredBatches) {
+                        const exists = await prisma.alert.findFirst({
+                            where: { companyId, type: 'expired_product', relatedId: batch.id, isResolved: false }
+                        });
+                        if (!exists) {
+                            await prisma.alert.create({
+                                data: {
+                                    type: 'expired_product', priority: 'critical',
+                                    title: 'Lote de Medicamento expirado',
+                                    message: `Lote ${batch.batchNumber} de "${batch.medication.product.name}" expirou em ${batch.expiryDate.toLocaleDateString('pt-BR')}.`,
+                                    module: 'pharmacy', relatedId: batch.id, relatedType: 'medication_batch', companyId
+                                }
+                            });
+                            createdCount++;
+                        }
+                    }
+
+                    const expiringBatches = await prisma.medicationBatch.findMany({
+                        where: { companyId, status: 'active', quantityAvailable: { gt: 0 }, expiryDate: { gte: now, lte: expiryWarning } },
+                        include: { medication: { include: { product: { select: { name: true } } } } }
+                    });
+                    for (const batch of expiringBatches) {
+                        const exists = await prisma.alert.findFirst({
+                            where: { companyId, type: 'expiring_soon', relatedId: batch.id, isResolved: false }
+                        });
+                        if (!exists) {
+                            await prisma.alert.create({
+                                data: {
+                                    type: 'expiring_soon', priority: 'high',
+                                    title: 'Lote de Medicamento a expirar',
+                                    message: `Lote ${batch.batchNumber} de "${batch.medication.product.name}" expira em ${batch.expiryDate.toLocaleDateString('pt-BR')}.`,
+                                    module: 'pharmacy', relatedId: batch.id, relatedType: 'medication_batch', companyId
+                                }
+                            });
+                            createdCount++;
+                        }
+                    }
+                }
             }
+
+            logger.info(`Generated ${createdCount} alerts for company ${companyId}${module ? ` (module: ${module})` : ''}`);
+            return { created: createdCount, message: `${createdCount} alerta(s) criado(s)` };
+        } catch (error) {
+            logger.error('Error generating alerts:', { error, companyId, module });
+            throw error;
         }
-
-        // --- Expiry alerts (pharmacy, inventory) ---
-        if (!module || ['pharmacy', 'inventory'].includes(module)) {
-            const expiryWarning = new Date();
-            expiryWarning.setDate(expiryWarning.getDate() + config.expiryWarningDays);
-            const expiryModule = module ?? 'pharmacy';
-
-            // 1. ProductBatch -- expired lotes (inventory / commercial)
-            const expiredBatchesInv = await prisma.productBatch.findMany({
-                where: { companyId, quantity: { gt: 0 }, expiryDate: { lt: now } },
-                include: { product: { select: { id: true, name: true, isActive: true } } }
-            });
-            for (const b of expiredBatchesInv) {
-                if (!b.product.isActive) continue;
-                const exists = await prisma.alert.findFirst({
-                    where: { companyId, type: 'expired_product', relatedId: b.id, isResolved: false }
-                });
-                if (!exists) {
-                    await prisma.alert.create({
-                        data: {
-                            type: 'expired_product', priority: 'critical',
-                            title: 'Lote expirado',
-                            message: `"${b.product.name}" (Lote: ${b.batchNumber}) expirou em ${b.expiryDate!.toLocaleDateString('pt-BR')}.`,
-                            module: expiryModule, relatedId: b.id, relatedType: 'product_batch', companyId
-                        }
-                    });
-                    createdCount++;
-                }
-            }
-
-            // 2. ProductBatch -- expiring soon lotes (inventory / commercial)
-            const expiringSoonBatchesInv = await prisma.productBatch.findMany({
-                where: { companyId, quantity: { gt: 0 }, expiryDate: { gte: now, lte: expiryWarning } },
-                include: { product: { select: { id: true, name: true, isActive: true } } }
-            });
-            for (const b of expiringSoonBatchesInv) {
-                if (!b.product.isActive) continue;
-                const exists = await prisma.alert.findFirst({
-                    where: { companyId, type: 'expiring_soon', relatedId: b.id, isResolved: false }
-                });
-                if (!exists) {
-                    const daysLeft = Math.ceil((b.expiryDate!.getTime() - now.getTime()) / 86400000);
-                    await prisma.alert.create({
-                        data: {
-                            type: 'expiring_soon', priority: 'high',
-                            title: 'Lote a expirar',
-                            message: `"${b.product.name}" (Lote: ${b.batchNumber}) expira em ${daysLeft} dia(s) (${b.expiryDate!.toLocaleDateString('pt-BR')}).`,
-                            module: expiryModule, relatedId: b.id, relatedType: 'product_batch', companyId
-                        }
-                    });
-                    createdCount++;
-                }
-            }
-
-            // 3. Medication Batches Expiry (Pharmacy specific)
-            const expiredBatches = await prisma.medicationBatch.findMany({
-                where: { companyId, status: 'active', quantityAvailable: { gt: 0 }, expiryDate: { lt: now } },
-                include: { medication: { include: { product: { select: { name: true } } } } }
-            });
-            for (const batch of expiredBatches) {
-                const exists = await prisma.alert.findFirst({
-                    where: { companyId, type: 'expired_product', relatedId: batch.id, isResolved: false }
-                });
-                if (!exists) {
-                    await prisma.alert.create({
-                        data: {
-                            type: 'expired_product', priority: 'critical',
-                            title: 'Lote de Medicamento expirado',
-                            message: `Lote ${batch.batchNumber} de "${batch.medication.product.name}" expirou em ${batch.expiryDate.toLocaleDateString('pt-BR')}.`,
-                            module: 'pharmacy', relatedId: batch.id, relatedType: 'medication_batch', companyId
-                        }
-                    });
-                    createdCount++;
-                }
-            }
-
-            const expiringBatches = await prisma.medicationBatch.findMany({
-                where: { companyId, status: 'active', quantityAvailable: { gt: 0 }, expiryDate: { gte: now, lte: expiryWarning } },
-                include: { medication: { include: { product: { select: { name: true } } } } }
-            });
-            for (const batch of expiringBatches) {
-                const exists = await prisma.alert.findFirst({
-                    where: { companyId, type: 'expiring_soon', relatedId: batch.id, isResolved: false }
-                });
-                if (!exists) {
-                    await prisma.alert.create({
-                        data: {
-                            type: 'expiring_soon', priority: 'high',
-                            title: 'Lote de Medicamento a expirar',
-                            message: `Lote ${batch.batchNumber} de "${batch.medication.product.name}" expira em ${batch.expiryDate.toLocaleDateString('pt-BR')}.`,
-                            module: 'pharmacy', relatedId: batch.id, relatedType: 'medication_batch', companyId
-                        }
-                    });
-                    createdCount++;
-                }
-            }
-        }
-
-        logger.info(`Generated ${createdCount} alerts for company ${companyId}${module ? ` (module: ${module})` : ''}`);
-        return { created: createdCount, message: `${createdCount} alerta(s) criado(s)` };
     }
 }
 
@@ -369,25 +401,14 @@ export const checkExpiringBatches = async () => {
         logger.info(`Found ${expiringBatches.length} product batches expiring in 7 days`);
 
         for (const b of expiringBatches) {
-            const usersToNotify = await prisma.user.findMany({
-                where: { companyId: b.companyId, role: { in: ['admin', 'manager'] } }
-            });
-
-            for (const user of usersToNotify) {
-                if (user.email) {
-                    const queue = getEmailQueue();
-                    if (queue) {
-                        await queue.add('expiration-alert', {
-                            email: user.email,
-                            productName: b.product.name,
-                            batchNumber: b.batchNumber,
-                            expiryDate: b.expiryDate,
-                            currentStock: b.quantity,
-                            userName: user.name
-                        });
-                    }
-                }
-            }
+            if (!b.companyId) continue;
+            await enqueueToAdmins(b.companyId, 'expiration-alert', (email, userName) => ({
+                email, userName,
+                productName: b.product.name,
+                batchNumber: b.batchNumber,
+                expiryDate: b.expiryDate,
+                currentStock: b.quantity,
+            }));
         }
     } catch (error) {
         logger.error('Error checking expiring batches', { error });

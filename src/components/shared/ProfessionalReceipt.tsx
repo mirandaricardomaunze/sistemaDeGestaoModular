@@ -131,29 +131,61 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
             </div>
 
             {/* Items Table */}
-            <table className="receipt-table">
-                <thead>
-                    <tr>
-                        <th style={{ width: '50%' }}>Descrição</th>
-                        <th style={{ width: '10%', textAlign: 'center' }}>Qtd</th>
-                        <th style={{ width: '20%', textAlign: 'right' }}>Preço Unit.</th>
-                        <th style={{ width: '20%', textAlign: 'right' }}>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {(sale.items || []).map((item, index) => (
-                        <tr key={index}>
-                            <td>
-                                <p className="font-medium text-gray-900">{item.product.name}</p>
-                                <p className="text-[8pt] text-gray-400">{item.product.code}</p>
-                            </td>
-                            <td style={{ textAlign: 'center' }}>{item.quantity}</td>
-                            <td style={{ textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
-                            <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(item.total)}</td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            {(() => {
+                const hasWeight = (sale.items || []).some(i => i.product?.weight && i.product.weight > 0);
+                const totalWeight = hasWeight
+                    ? (sale.items || []).reduce((sum, i) => sum + (i.product?.weight ? i.product.weight * i.quantity : 0), 0)
+                    : 0;
+                return (
+                    <>
+                        <table className="receipt-table">
+                            <thead>
+                                <tr>
+                                    <th style={{ width: hasWeight ? '40%' : '50%' }}>Descrição</th>
+                                    <th style={{ width: '10%', textAlign: 'center' }}>Qtd</th>
+                                    <th style={{ width: '20%', textAlign: 'right' }}>Preço Unit.</th>
+                                    {hasWeight && <th style={{ width: '15%', textAlign: 'right' }}>Peso Total</th>}
+                                    <th style={{ width: '20%', textAlign: 'right' }}>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(sale.items || []).map((item, index) => {
+                                    const lineWeight = item.product?.weight ? item.product.weight * item.quantity : null;
+                                    return (
+                                        <tr key={index}>
+                                            <td>
+                                                <p className="font-medium text-gray-900">{item.product.name}</p>
+                                                <p className="text-[8pt] text-gray-400">{item.product.code}</p>
+                                                {item.product?.weight && item.product.weight > 0 && (
+                                                    <p className="text-[7pt] text-gray-300">{item.product.weight.toFixed(3)} kg/un</p>
+                                                )}
+                                            </td>
+                                            <td style={{ textAlign: 'center' }}>{item.quantity}</td>
+                                            <td style={{ textAlign: 'right' }}>{formatCurrency(item.unitPrice)}</td>
+                                            {hasWeight && (
+                                                <td style={{ textAlign: 'right', color: '#64748b' }}>
+                                                    {lineWeight !== null ? `${lineWeight.toFixed(3)} kg` : '—'}
+                                                </td>
+                                            )}
+                                            <td style={{ textAlign: 'right', fontWeight: 600 }}>{formatCurrency(item.total)}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        {hasWeight && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 14px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                    <span style={{ fontSize: '8pt', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>Peso Total da Carga</span>
+                                    <span style={{ fontSize: '11pt', fontWeight: 900, color: '#0f172a' }}>
+                                        {totalWeight >= 1000 ? `${(totalWeight / 1000).toFixed(3)} t` : `${totalWeight.toFixed(3)} kg`}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                );
+            })()}
 
             {/* Totals Section */}
             <div className="flex justify-end mt-6">

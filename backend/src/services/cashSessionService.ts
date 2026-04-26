@@ -97,20 +97,11 @@ export class CashSessionService {
         const session = await this.getCurrentSession(companyId);
         if (!session) throw ApiError.notFound('Não há sessão de caixa aberta');
 
-        // Professional logic: Fetch sales linked DIRECTLY to this session
-        const sales = await prisma.sale.findMany({
+        // Fetch sales linked DIRECTLY to this session
+        const finalSales = await prisma.sale.findMany({
             where: { sessionId: session.id },
             select: { paymentMethod: true, total: true, isCredit: true }
         });
-
-        // If no sales are linked (old data fallback), use date range
-        let finalSales = sales;
-        if (sales.length === 0) {
-            finalSales = await prisma.sale.findMany({
-                where: { companyId, createdAt: { gte: session.openedAt } },
-                select: { paymentMethod: true, total: true, isCredit: true }
-            });
-        }
 
         const stats = {
             cashSales: finalSales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),

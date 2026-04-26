@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DriverPanelPage
  * Orchestrates the Driver Panel view with i18n support.
  */
@@ -139,7 +139,7 @@ export default function DriverPanelPage() {
         <div className="space-y-6 pb-12 animate-fade-in">
 
             {/* ── Driver Identity Header ── */}
-            <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-700 dark:to-primary-900 p-6 shadow-lg text-white">
+            <div className="relative overflow-hidden rounded-lg bg-primary-600 dark:bg-primary-700 p-6 shadow-lg text-white">
                 {/* Decorative background icon */}
                 <HiOutlineTruck
                     className="absolute right-4 top-1/2 -translate-y-1/2 w-32 h-32 opacity-10"

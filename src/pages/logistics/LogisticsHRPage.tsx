@@ -205,14 +205,14 @@ export default function LogisticsHRPage() {
             )
         }),
         columnHelper.accessor('category', {
-            header: 'Categoria',
+            header: t('common.category'),
             cell: (info) => getCategoryBadge(info.getValue())
         }),
         columnHelper.accessor('phone', {
             header: t('logistics_module.drivers.phone')
         }),
         columnHelper.accessor('status', {
-            header: 'Status',
+            header: t('common.status'),
             cell: (info) => (
                 <Badge variant={info.getValue() === 'available' ? 'success' : info.getValue() === 'on_delivery' ? 'primary' : 'gray'}>
                     {t(`logistics_module.drivers.statuses.${info.getValue()}`)}
@@ -284,7 +284,7 @@ export default function LogisticsHRPage() {
                     { id: 'payroll', label: t('logistics_module.hr.tabs.payroll'), icon: HiOutlineBanknotes },
                     { id: 'compliance', label: t('logistics_module.hr.tabs.compliance'), icon: HiOutlineFolderOpen },
                     { id: 'vacations', label: t('logistics_module.hr.tabs.vacations'), icon: HiOutlineCalendar },
-                    { id: 'config', label: t('logistics_module.hr.tabs.config'), icon: HiOutlineChartBar },
+                    { id: 'config', label: t('logistics_module.hr.tabs.config.title'), icon: HiOutlineChartBar },
                 ] as { id: HRTab; label: string; icon: React.ElementType }[]).map((tab) => {
                     const Icon = tab.icon;
                     return (
@@ -345,26 +345,26 @@ export default function LogisticsHRPage() {
                         <Card variant="glass" className="lg:col-span-2 p-6">
                             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                                 <HiOutlineUsers className="w-5 h-5 text-primary-500" />
-                                Distribuição de Equipe
+                                {t('logistics_module.hr.dashboard.teamDistribution')}
                             </h3>
                             <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-dark-700 rounded-lg">
-                                <p className="text-gray-400">Grfico de distribuição (Drivers, Mechanics, etc.)</p>
+                                <p className="text-gray-400">{t('logistics_module.hr.dashboard.chartPlaceholder')}</p>
                             </div>
                         </Card>
                         <Card variant="glass" className="p-6">
                             <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                                 <HiOutlineExclamationTriangle className="w-5 h-5 text-orange-500" />
-                                Alertas de Conformidade
+                                {t('logistics_module.hr.dashboard.complianceAlerts')}
                             </h3>
                             <div className="space-y-4">
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-dark-700/50 rounded-lg border border-gray-100 dark:border-dark-700/30">
-                                        <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600">
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-dark-800 rounded-xl border border-gray-100 dark:border-dark-700/50 shadow-sm transition-all hover:border-orange-500/30 group">
+                                        <div className="w-10 h-10 rounded-lg bg-orange-500/15 border border-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400 backdrop-blur-sm group-hover:scale-110 transition-transform">
                                             <HiOutlineIdentification className="w-6 h-6" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium truncate">Expiração em 5 dias</p>
-                                            <p className="text-xs text-gray-500">Carta de Condução - João Silva</p>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">Expiração em 5 dias</p>
+                                            <p className="text-[10px] text-gray-500 font-medium italic uppercase tracking-wider">Carta de Condução - João Silva</p>
                                         </div>
                                     </div>
                                 ))}
@@ -433,20 +433,20 @@ export default function LogisticsHRPage() {
             <Modal
                 isOpen={isFormOpen}
                 onClose={() => { setIsFormOpen(false); resetForm(); }}
-                title={editingStaff ? "Editar Colaborador" : "Adicionar Colaborador"}
+                title={editingStaff ? t('common.edit') : t('common.add')}
                 size="lg"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Código *"
+                            label={`${t('common.code')} *`}
                             value={formData.code}
                             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                             required
                             disabled={!!editingStaff}
                         />
                         <Select
-                            label="Categoria *"
+                            label={`${t('common.category')} *`}
                             options={[
                                 { value: 'driver', label: t('logistics_module.hr.categories.driver') },
                                 { value: 'mechanic', label: t('logistics_module.hr.categories.mechanic') },
@@ -461,7 +461,7 @@ export default function LogisticsHRPage() {
                     </div>
                     
                     <Input
-                        label="Nome Completo *"
+                        label={`${t('common.fullName')} *`}
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         required
@@ -469,13 +469,13 @@ export default function LogisticsHRPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Telefone *"
+                            label={`${t('common.phone')} *`}
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             required
                         />
                         <Input
-                            label="Email"
+                            label={t('common.email')}
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         />
@@ -484,17 +484,17 @@ export default function LogisticsHRPage() {
                     <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-lg space-y-4">
                         <h4 className="font-bold text-sm flex items-center gap-2">
                             <HiOutlineIdentification className="w-4 h-4 text-primary-500" />
-                            Conformidade e Documentos
+                            {t('logistics_module.hr.tabs.compliance')}
                         </h4>
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="Expiração Carta"
+                                label={t('logistics_module.drivers.expiry')}
                                 type="date"
                                 value={formData.licenseExpiry}
                                 onChange={(e) => setFormData({ ...formData, licenseExpiry: e.target.value })}
                             />
                             <Input
-                                label="Expiração Exame Médico"
+                                label={t('logistics_module.drivers.medicalExam')}
                                 type="date"
                                 value={formData.medicalExamExpiry}
                                 onChange={(e) => setFormData({ ...formData, medicalExamExpiry: e.target.value })}
@@ -505,21 +505,21 @@ export default function LogisticsHRPage() {
                     <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-lg space-y-4">
                         <h4 className="font-bold text-sm flex items-center gap-2">
                             <HiOutlineBanknotes className="w-4 h-4 text-green-500" />
-                            Dados Bancários e Fiscais
+                            {t('logistics_module.hr.tabs.payroll')}
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Input
-                                label="Banco"
+                                label={t('common.bank')}
                                 value={formData.bankName}
                                 onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
                             />
                             <Input
-                                label="Número de Conta"
+                                label={t('common.account')}
                                 value={formData.bankAccountNumber}
                                 onChange={(e) => setFormData({ ...formData, bankAccountNumber: e.target.value })}
                             />
                             <Input
-                                label="NIB / IBAN"
+                                label={t('common.nib')}
                                 value={formData.bankNib}
                                 onChange={(e) => setFormData({ ...formData, bankNib: e.target.value })}
                             />
@@ -529,12 +529,12 @@ export default function LogisticsHRPage() {
                                 onChange={(e) => setFormData({ ...formData, nuit: e.target.value })}
                             />
                             <Input
-                                label="Número INSS"
+                                label={t('common.socialSecurity')}
                                 value={formData.socialSecurityNumber}
                                 onChange={(e) => setFormData({ ...formData, socialSecurityNumber: e.target.value })}
                             />
                              <Input
-                                label="Data de Nascimento"
+                                label={t('common.birthDate')}
                                 type="date"
                                 value={formData.birthDate?.split('T')[0] || ''}
                                 onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
@@ -545,23 +545,23 @@ export default function LogisticsHRPage() {
                     <div className="p-4 bg-gray-50 dark:bg-dark-900/50 rounded-lg space-y-4">
                         <h4 className="font-bold text-sm flex items-center gap-2">
                             <HiOutlineCurrencyDollar className="w-4 h-4 text-indigo-500" />
-                            Remuneração Base
+                            {t('common.salary')}
                         </h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <Input
-                                label="Salário Base"
+                                label={t('common.baseSalary')}
                                 type="number"
                                 value={formData.baseSalary}
                                 onChange={(e) => setFormData({ ...formData, baseSalary: Number(e.target.value) })}
                             />
                             <Input
-                                label="S. Transporte"
+                                label={t('logistics_module.hr.payroll.subsidyTransport')}
                                 type="number"
                                 value={formData.subsidyTransport}
                                 onChange={(e) => setFormData({ ...formData, subsidyTransport: Number(e.target.value) })}
                             />
                             <Input
-                                label="S. Alimentação"
+                                label={t('logistics_module.hr.payroll.subsidyFood')}
                                 type="number"
                                 value={formData.subsidyFood}
                                 onChange={(e) => setFormData({ ...formData, subsidyFood: Number(e.target.value) })}
@@ -571,10 +571,10 @@ export default function LogisticsHRPage() {
 
                     <div className="flex gap-3 pt-4">
                         <Button variant="outline" className="flex-1" onClick={() => setIsFormOpen(false)}>
-                            Cancelar
+                            {t('common.cancel')}
                         </Button>
                         <Button type="submit" className="flex-1" isLoading={createMutation.isLoading || updateMutation.isLoading}>
-                            {editingStaff ? "Guardar Alterações" : "Adicionar Colaborador"}
+                            {editingStaff ? t('common.save') : t('common.add')}
                         </Button>
                     </div>
                 </form>
@@ -584,15 +584,15 @@ export default function LogisticsHRPage() {
             <Modal
                 isOpen={!!deleteConfirm}
                 onClose={() => setDeleteConfirm(null)}
-                title="Eliminar Colaborador"
+                title={t('common.confirmDelete')}
                 size="sm"
             >
                 <div className="text-center py-4">
                     <HiOutlineExclamationTriangle className="w-16 h-16 mx-auto text-red-500 mb-4" />
-                    <p className="text-gray-600 dark:text-gray-300 mb-6">Esta acção não pode ser revertida. Deseja continuar?</p>
+                    <p className="text-gray-600 dark:text-gray-300 mb-6">{t('messages.confirmDelete')}</p>
                     <div className="flex gap-3">
-                        <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
-                        <Button variant="danger" className="flex-1" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>Eliminar</Button>
+                        <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirm(null)}>{t('common.cancel')}</Button>
+                        <Button variant="danger" className="flex-1" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>{t('common.delete')}</Button>
                     </div>
                 </div>
             </Modal>
@@ -602,24 +602,24 @@ export default function LogisticsHRPage() {
 
 function StatCard({ title, value, trend, trendColor = 'green', icon, color }: any) {
     const bgColors: Record<string, string> = {
-        blue: 'bg-blue-50 dark:bg-blue-900/20',
-        green: 'bg-green-50 dark:bg-green-900/20',
-        purple: 'bg-purple-50 dark:bg-purple-900/20',
-        orange: 'bg-orange-50 dark:bg-orange-900/20'
+        blue: 'bg-blue-500/15 border-blue-500/20 text-blue-600 dark:text-blue-300',
+        green: 'bg-green-500/15 border-green-500/20 text-green-600 dark:text-green-300',
+        purple: 'bg-purple-500/15 border-purple-500/20 text-purple-600 dark:text-purple-300',
+        orange: 'bg-orange-500/15 border-orange-500/20 text-orange-600 dark:text-orange-400'
     };
     
     return (
-        <Card variant="glass" className="p-6">
+        <Card variant="default" className="group overflow-hidden transition-all hover:shadow-premium-hover border-none bg-white dark:bg-dark-900 shadow-premium">
             <div className="flex items-center justify-between mb-4">
-                <div className={cn("p-3 rounded-lg", bgColors[color])}>
-                    {icon}
+                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center backdrop-blur-sm border group-hover:scale-110 transition-transform", bgColors[color])}>
+                    {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'w-6 h-6' })}
                 </div>
-                <Badge variant={trendColor === 'green' ? 'success' : 'gray'} size="sm">
+                <Badge variant={trendColor === 'green' ? 'success' : 'gray'} className="font-black text-[9px] px-2 py-0.5 rounded-full">
                     {trend}
                 </Badge>
             </div>
-            <p className="text-sm text-gray-500 mb-1">{title}</p>
-            <h4 className="text-2xl font-bold">{value}</h4>
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">{title}</p>
+            <h4 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{value}</h4>
         </Card>
     );
 }

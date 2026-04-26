@@ -80,6 +80,21 @@ export class SuppliersService {
         const orderNumber = `OC-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
         const total = items.reduce((sum: number, item: any) => sum + (item.quantity * (item.unitCost || 0)), 0);
 
+        // Fetch product weights to snapshot on purchase order items
+        const poProductIds = items.map((i: any) => i.productId).filter(Boolean);
+        const poWeightMap = new Map<string, number>();
+        if (poProductIds.length > 0) {
+            const prods = await prisma.product.findMany({
+                where: { id: { in: poProductIds } },
+                select: { id: true, weight: true }
+            });
+            for (const p of prods) {
+                if (p.weight !== null && p.weight !== undefined) {
+                    poWeightMap.set(p.id, Number(p.weight));
+                }
+            }
+        }
+
         return prisma.purchaseOrder.create({
             data: {
                 orderNumber, supplierId, total, companyId,
@@ -88,7 +103,10 @@ export class SuppliersService {
                 items: {
                     create: items.map((item: any) => ({
                         productId: item.productId, quantity: item.quantity,
-                        unitCost: item.unitCost || 0, total: item.quantity * (item.unitCost || 0)
+                        unitCost: item.unitCost || 0, total: item.quantity * (item.unitCost || 0),
+                        unitWeight: item.productId && poWeightMap.has(item.productId)
+                            ? poWeightMap.get(item.productId)
+                            : null
                     }))
                 }
             },

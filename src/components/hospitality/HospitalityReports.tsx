@@ -350,36 +350,44 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                     <div ref={printRef} className="space-y-6">
                         {/* Summary Cards */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                            <Card className="p-5 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg border-none">
-                                <div className="flex items-center gap-2 mb-2 opacity-80">
-                                    <HiOutlineChartPie className="w-4 h-4" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">Receita Total</span>
+                            <Card className="p-5 bg-indigo-100/40 dark:bg-indigo-900/20 border border-indigo-200/50 dark:border-indigo-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2.5 bg-indigo-200/60 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-xl border border-indigo-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                                        <HiOutlineChartPie className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600/70 dark:text-indigo-400/60">Receita Total</span>
                                 </div>
-                                <p className="text-2xl font-black">{formatCurrency(reportData.summary.totalRevenue)}</p>
+                                <p className="text-2xl font-black text-indigo-900 dark:text-white">{formatCurrency(reportData.summary.totalRevenue)}</p>
                             </Card>
 
-                            <Card className="p-5 bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg border-none">
-                                <div className="flex items-center gap-2 mb-2 opacity-80">
-                                    <HiOutlineHome className="w-4 h-4" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">Hospedagem</span>
+                            <Card className="p-5 bg-green-100/40 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2.5 bg-green-200/60 dark:bg-green-900/40 text-green-700 dark:text-green-300 rounded-xl border border-green-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                                        <HiOutlineHome className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-green-600/70 dark:text-green-400/60">Hospedagem</span>
                                 </div>
-                                <p className="text-2xl font-black">{formatCurrency(reportData.summary.totalRoomRevenue)}</p>
+                                <p className="text-2xl font-black text-green-900 dark:text-white">{formatCurrency(reportData.summary.totalRoomRevenue)}</p>
                             </Card>
 
-                            <Card className="p-5 bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-lg border-none">
-                                <div className="flex items-center gap-2 mb-2 opacity-80">
-                                    <HiOutlineShoppingCart className="w-4 h-4" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">Consumos</span>
+                            <Card className="p-5 bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2.5 bg-amber-200/60 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-xl border border-amber-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                                        <HiOutlineShoppingCart className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60">Consumos</span>
                                 </div>
-                                <p className="text-2xl font-black">{formatCurrency(reportData.summary.totalConsumptionRevenue)}</p>
+                                <p className="text-2xl font-black text-amber-900 dark:text-white">{formatCurrency(reportData.summary.totalConsumptionRevenue)}</p>
                             </Card>
 
-                            <Card className="p-5 bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg border-none">
-                                <div className="flex items-center gap-2 mb-2 opacity-80">
-                                    <HiOutlineUsers className="w-4 h-4" />
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">Reservas</span>
+                            <Card className="p-5 bg-blue-100/40 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2.5 bg-blue-200/60 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-xl border border-blue-500/20 shadow-inner group-hover:scale-110 transition-transform">
+                                        <HiOutlineUsers className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600/70 dark:text-blue-400/60">Reservas</span>
                                 </div>
-                                <p className="text-2xl font-black">{reportData.summary.totalBookings}</p>
+                                <p className="text-2xl font-black text-blue-900 dark:text-white">{reportData.summary.totalBookings}</p>
                             </Card>
                         </div>
 

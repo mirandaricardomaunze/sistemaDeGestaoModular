@@ -13,21 +13,21 @@ const router = Router();
 
 // Get all customers with pagination
 router.get('/', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await customersService.list(req.query, req.companyId);
     res.json(result);
 });
 
 // Get customer by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const customer = await customersService.getById(req.params.id, req.companyId);
     res.json(customer);
 });
 
 // Create customer
 router.post('/', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = createCustomerSchema.parse(req.body);
     const customer = await customersService.create(validatedData, req.companyId);
     emitToCompany(req.companyId, 'customer:created', customer);
@@ -36,7 +36,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
 // Update customer
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = updateCustomerSchema.parse(req.body);
     const updated = await customersService.update(req.params.id, validatedData, req.companyId);
     emitToCompany(req.companyId, 'customer:updated', updated);
@@ -45,7 +45,7 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 
 // Delete customer (soft delete)
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await customersService.delete(req.params.id, req.companyId);
     emitToCompany(req.companyId, 'customer:deleted', { id: req.params.id });
     res.json({ message: 'Cliente removido com sucesso' });
@@ -53,14 +53,14 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
 
 // Get customer purchase history with pagination
 router.get('/:id/purchases', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await customersService.getPurchases(req.params.id, req.query, req.companyId);
     res.json(result);
 });
 
 // Update customer balance
 router.patch('/:id/balance', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = updateCustomerBalanceSchema.parse(req.body);
     const result = await customersService.updateBalance(req.params.id, validatedData, req.companyId);
     res.json(result);

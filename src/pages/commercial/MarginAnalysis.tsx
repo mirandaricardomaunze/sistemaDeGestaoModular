@@ -29,7 +29,7 @@ function MarginBar({ value, max, color }: { value: number; max: number; color: s
         <div className="flex-1 h-2 bg-gray-100 dark:bg-dark-800/50 rounded-full overflow-hidden border border-gray-200/10 active:scale-[1.02] transition-transform">
             <div 
                 className={cn('h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(0,0,0,0.1)]', color)} 
-                style={{ width: `${pct}%`, background: `linear-gradient(90deg, currentColor 0%, #fff 400%)` }} 
+                style={{ width: `${pct}%`, backgroundColor: 'currentColor' }} 
             />
         </div>
     );
@@ -319,11 +319,11 @@ export default function MarginAnalysis() {
                                                     <div className="w-full relative min-h-[50px] overflow-hidden rounded-t-xl" style={{ height: `${Math.max(20, pct * 1.8)}px` }}>
                                                         <div className="absolute inset-0 bg-gray-100 dark:bg-dark-800/80 group-hover:bg-primary-50/50 dark:group-hover:bg-primary-900/10 transition-colors" />
                                                         <div
-                                                            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-primary-600 to-primary-400 group-hover:from-primary-500 group-hover:to-primary-300 transition-all duration-700 opacity-60"
+                                                            className="absolute bottom-0 left-0 right-0 bg-primary-600 group-hover:bg-primary-500 transition-all duration-700 opacity-60"
                                                             style={{ height: '100%' }}
                                                         />
                                                         <div
-                                                            className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-green-500 to-green-300 group-hover:from-green-400 group-hover:to-green-200 transition-all duration-700"
+                                                            className="absolute bottom-0 left-0 right-0 bg-green-500 group-hover:bg-green-400 transition-all duration-700"
                                                             style={{ height: `${Math.max(5, profitPct)}%` }}
                                                         />
                                                     </div>
@@ -416,7 +416,7 @@ export default function MarginAnalysis() {
                                                         </Badge>
                                                     </td>
                                                     <td className="py-3 text-right text-gray-600 dark:text-gray-400">
-                                                        {row.daysOnHand > 0 ? `${row.daysOnHand} dias` : ''}
+                                                        {row.daysOnHand > 0 ? `${row.daysOnHand} dias` : <span className="text-gray-300 dark:text-gray-600">—</span>}
                                                     </td>
                                                 </tr>
                                             ))}

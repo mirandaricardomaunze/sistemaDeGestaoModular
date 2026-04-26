@@ -10,6 +10,7 @@ import ProductValiditiesSection from './ProductValiditiesSection';
 
 import { useSuppliers } from '../../hooks/useData';
 import { productsAPI } from '../../services/api';
+import { HiOutlineInformationCircle } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 
@@ -31,6 +32,7 @@ const productSchema = z.object({
     isReturnable: z.boolean().optional(),
     returnPrice: z.coerce.number().min(0).optional(),
     packSize: z.coerce.number().min(1).optional(),
+    weight: z.coerce.number().min(0).optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -74,6 +76,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
             isReturnable: false,
             returnPrice: 0,
             packSize: 1,
+            weight: 0,
         },
     });
 
@@ -109,6 +112,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                 isReturnable: product.isReturnable || false,
                 returnPrice: product.returnPrice || 0,
                 packSize: product.packSize || 1,
+                weight: product.weight || 0,
             });
         } else {
             reset({
@@ -128,6 +132,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                 isReturnable: false,
                 returnPrice: 0,
                 packSize: 1,
+                weight: 0,
             });
         }
     }, [product, reset]);
@@ -153,6 +158,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                 isReturnable: data.isReturnable,
                 returnPrice: data.returnPrice,
                 packSize: data.packSize,
+                weight: data.weight && data.weight > 0 ? data.weight : undefined,
             };
 
             if (isEditing && product) {
@@ -210,10 +216,18 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
             size="xl"
         >
             <form onSubmit={handleSubmit(onSubmit as never)} className="space-y-6">
-                {/* Identification */}
                 <div>
                     <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4">Informação de Identidade</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="w-full mb-6">
+                         <Input
+                            label="Nome do Produto *"
+                            {...register('name')}
+                            error={errors.name?.message}
+                            placeholder="Ex: Coca-Cola 330ml"
+                            className="w-full"
+                        />
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <Input
                             label="Código Interno *"
                             {...register('code')}
@@ -231,20 +245,18 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                             {...register('barcode')}
                             placeholder="Use o scanner..."
                         />
-                        <Input
-                            label="Nome *"
-                            {...register('name')}
-                            error={errors.name?.message}
-                            placeholder="Nome do produto"
-                        />
                     </div>
                 </div>
 
-                <Input
-                    label="Descrição"
-                    {...register('description')}
-                    placeholder="Descrição do produto (opcional)"
-                />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                        <Input
+                            label="Descrição"
+                            {...register('description')}
+                            placeholder="Descrição detalhada do produto (opcional)"
+                        />
+                    </div>
+                </div>
 
                 {/* Category and Unit */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -259,11 +271,38 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                         disabled={categoriesLoading}
                     />
                     <Select
-                        label="Unidade *"
+                        label="Unidade Principal *"
                         options={unitOptions}
                         {...register('unit')}
                         error={errors.unit?.message}
+                        placeholder="un"
                     />
+                    <Input
+                        label="Unidades por Caixa (Cx)"
+                        type="number"
+                        min={1}
+                        {...register('packSize')}
+                        error={errors.packSize?.message}
+                        placeholder="1"
+                    />
+                    <div className="relative">
+                        <Input
+                            label="Peso por Unidade (kg)"
+                            type="number"
+                            step="0.001"
+                            min={0}
+                            {...register('weight')}
+                            error={errors.weight?.message}
+                            placeholder="0.000"
+                        />
+                        <span className="absolute right-3 bottom-3 text-xs font-bold text-gray-400 pointer-events-none">kg</span>
+                    </div>
+                    <div className="md:col-span-2 mt-1">
+                        <p className="text-[10px] text-primary-600 dark:text-primary-400 font-bold uppercase tracking-tight flex items-center gap-1">
+                            <HiOutlineInformationCircle className="w-3 h-3" />
+                            O sistema usará este valor ({watch('packSize') || 1} un) para calcular automaticamente o total de caixas no inventário.
+                        </p>
+                    </div>
                 </div>
 
                 {/* Prices + Margin */}
@@ -400,12 +439,12 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                             {...register('returnPrice')}
                             placeholder="0.00"
                         />
-                        <Input
-                            label="Tamanho da Caixa/Pack"
-                            type="number"
-                            {...register('packSize')}
-                            placeholder="1"
-                        />
+                        <div className="md:col-span-2 p-3 bg-white/50 dark:bg-dark-800/50 rounded border border-amber-100 dark:border-amber-900/30">
+                            <p className="text-[10px] text-amber-700 dark:text-amber-500 font-bold uppercase mb-1">Nota sobre Vasilhame</p>
+                            <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                                O tamanho da caixa definido acima ({watch('packSize')} un) será usado para o cálculo de caução se este produto for marcado como retornável.
+                            </p>
+                        </div>
                     </div>
                 </div>
 

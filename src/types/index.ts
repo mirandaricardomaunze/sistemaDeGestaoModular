@@ -49,6 +49,7 @@ export interface Product {
     packSize?: number;
     origin_module?: string;
     taxRate?: number;
+    weight?: number;
     leadTime?: number; // Days for supplier delivery
     avgWeeklySales?: number; // Historical average
     createdAt: string;
@@ -62,6 +63,10 @@ export interface Product {
         quantity: number;
         warehouse: { id: string; name: string; code: string };
     }>;
+    categoryModel?: {
+        id: string;
+        name: string;
+    };
 }
 
 export interface ProductFilters {
@@ -137,6 +142,7 @@ export interface StockTransfer {
             barcode?: string;
             description?: string;
             unit: string;
+            weight?: number;
         };
     }[];
     status: 'pending' | 'in_transit' | 'completed' | 'cancelled';
@@ -144,6 +150,8 @@ export interface StockTransfer {
     reason: string;
     date: string;
     createdAt: string;
+    sourceWarehouse?: { id: string; name: string; code: string };
+    targetWarehouse?: { id: string; name: string; code: string };
 }
 
 // ============================================================================
@@ -451,6 +459,7 @@ export interface InvoiceItem {
     unitPrice: number;
     discount: number;
     total: number;
+    unitWeight?: number;
 }
 
 export interface InvoicePayment {
@@ -729,6 +738,7 @@ export interface PurchaseOrderItem {
     receivedQty: number;
     unitCost: number;
     total: number;
+    unitWeight?: number;
 }
 
 export interface PurchaseOrder {

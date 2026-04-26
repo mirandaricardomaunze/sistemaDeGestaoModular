@@ -9,7 +9,7 @@ import {
 } from 'react-icons/hi';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { useUser } from '../../stores/useAuthStore';
-import { Button, Card, Input, Modal, Select, Badge, Pagination, usePagination } from '../ui';
+import { Button, Card, Input, Modal, Select, Badge, Pagination, usePagination, ConfirmationModal } from '../ui';
 import { generateId } from '../../utils/helpers';
 import { calculateDeadlineDate, formatPeriod, getCurrentFiscalPeriod } from '../../utils/fiscalCalculations';
 import type { FiscalDeadline, DeadlineType } from '../../types/fiscal';
@@ -426,26 +426,16 @@ export default function DeadlineManager() {
             </Modal>
 
             {/* Delete Confirmation */}
-            <Modal
+            <ConfirmationModal
                 isOpen={!!showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(null)}
+                onConfirm={() => { if (showDeleteConfirm) handleDelete(showDeleteConfirm); }}
                 title="Confirmar Eliminação"
-                size="sm"
-            >
-                <div className="space-y-4">
-                    <p className="text-gray-600 dark:text-gray-300">
-                        Tem certeza que deseja eliminar este prazo?
-                    </p>
-                    <div className="flex justify-end gap-2 pt-4">
-                        <Button variant="ghost" onClick={() => setShowDeleteConfirm(null)}>
-                            Cancelar
-                        </Button>
-                        <Button variant="danger" onClick={() => showDeleteConfirm && handleDelete(showDeleteConfirm)}>
-                            Eliminar
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
-        </div >
+                message="Tem certeza que deseja eliminar este prazo? Esta ação não pode ser desfeita."
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+                variant="danger"
+            />
+        </div>
     );
 }

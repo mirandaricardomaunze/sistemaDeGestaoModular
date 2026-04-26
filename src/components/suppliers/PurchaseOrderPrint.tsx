@@ -182,42 +182,82 @@ export default function PurchaseOrderPrint({ isOpen, onClose, order }: PurchaseO
                     {/* SECTION: DETALHES DOS PRODUTOS */}
                     {/* ------------------------------- */}
                     <div style={{ padding: '0 32px 16px' }}>
-                        <table className="print-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff' }}>
-                            <thead>
-                                <tr>
-                                    <th style={{ textAlign: 'left', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
-                                        Descrição do Item
-                                    </th>
-                                    <th style={{ textAlign: 'center', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '80px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
-                                        Qtd
-                                    </th>
-                                    <th style={{ textAlign: 'right', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '120px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
-                                        V. Unitrio
-                                    </th>
-                                    <th style={{ textAlign: 'right', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '120px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
-                                        Subtotal
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {order.items.map((item) => (
-                                    <tr key={item.productName}>
-                                        <td style={{ padding: '10px 16px', color: '#1e293b', borderBottom: '1px solid #f1f5f9', fontWeight: 500 }}>
-                                            {item.productName}
-                                        </td>
-                                        <td style={{ padding: '10px 16px', textAlign: 'center', color: '#1e293b', fontWeight: 600, borderBottom: '1px solid #f1f5f9' }}>
-                                            {item.quantity}
-                                        </td>
-                                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#1e293b', borderBottom: '1px solid #f1f5f9' }}>
-                                            {formatCurrency(item.unitCost)}
-                                        </td>
-                                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#1a1a1a', fontWeight: 700, borderBottom: '1px solid #f1f5f9' }}>
-                                            {formatCurrency(item.total)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        {(() => {
+                            const hasWeight = order.items.some(i => i.unitWeight && i.unitWeight > 0);
+                            const totalWeight = hasWeight
+                                ? order.items.reduce((sum, i) => sum + (i.unitWeight ? i.unitWeight * i.quantity : 0), 0)
+                                : 0;
+                            return (
+                                <>
+                                    <table className="print-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff' }}>
+                                        <thead>
+                                            <tr>
+                                                <th style={{ textAlign: 'left', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
+                                                    Descrição do Item
+                                                </th>
+                                                <th style={{ textAlign: 'center', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '80px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
+                                                    Qtd
+                                                </th>
+                                                <th style={{ textAlign: 'right', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '120px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
+                                                    V. Unitário
+                                                </th>
+                                                {hasWeight && (
+                                                    <th style={{ textAlign: 'right', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '100px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
+                                                        Peso Total
+                                                    </th>
+                                                )}
+                                                <th style={{ textAlign: 'right', fontSize: '10px', fontWeight: 900, color: '#475569', textTransform: 'uppercase', padding: '12px 16px', width: '120px', borderBottom: '1.5px solid #1a1a1a', backgroundColor: '#ffffff' }}>
+                                                    Subtotal
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {order.items.map((item) => {
+                                                const lineWeight = item.unitWeight ? item.unitWeight * item.quantity : null;
+                                                return (
+                                                    <tr key={item.productName}>
+                                                        <td style={{ padding: '10px 16px', color: '#1e293b', borderBottom: '1px solid #f1f5f9', fontWeight: 500 }}>
+                                                            {item.productName}
+                                                            {item.unitWeight && item.unitWeight > 0 && (
+                                                                <span style={{ display: 'block', fontSize: '10px', color: '#94a3b8', fontWeight: 400, marginTop: '2px' }}>
+                                                                    {item.unitWeight.toFixed(3)} kg/un
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ padding: '10px 16px', textAlign: 'center', color: '#1e293b', fontWeight: 600, borderBottom: '1px solid #f1f5f9' }}>
+                                                            {item.quantity}
+                                                        </td>
+                                                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#1e293b', borderBottom: '1px solid #f1f5f9' }}>
+                                                            {formatCurrency(item.unitCost)}
+                                                        </td>
+                                                        {hasWeight && (
+                                                            <td style={{ padding: '10px 16px', textAlign: 'right', color: '#475569', borderBottom: '1px solid #f1f5f9' }}>
+                                                                {lineWeight !== null ? `${lineWeight.toFixed(3)} kg` : '—'}
+                                                            </td>
+                                                        )}
+                                                        <td style={{ padding: '10px 16px', textAlign: 'right', color: '#1a1a1a', fontWeight: 700, borderBottom: '1px solid #f1f5f9' }}>
+                                                            {formatCurrency(item.total)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    {hasWeight && (
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', backgroundColor: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                                <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#64748b' }}>Peso Total da Carga</span>
+                                                <span style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>
+                                                    {totalWeight >= 1000
+                                                        ? `${(totalWeight / 1000).toFixed(3)} t`
+                                                        : `${totalWeight.toFixed(3)} kg`}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
 
                     {/* --------------- */}

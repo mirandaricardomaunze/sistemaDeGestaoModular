@@ -7,7 +7,7 @@ import {
     HiOutlinePrinter,
     HiOutlineCalculator
 } from 'react-icons/hi2';
-import { Card, Button, Select, Badge, LoadingSpinner, Modal } from '../../ui';
+import { Card, Button, Select, Badge, LoadingSpinner, Modal, ConfirmationModal } from '../../ui';
 import { useEmployees, usePayroll } from '../../../hooks/useData';
 import { formatCurrency, formatDate } from '../../../utils/helpers';
 import toast from 'react-hot-toast';
@@ -31,6 +31,7 @@ export const PharmacyPayrollManager: React.FC = () => {
     const [selectedPayroll, setSelectedPayroll] = useState<any>(null);
     const [isPayslipOpen, setIsPayslipOpen] = useState(false);
     const [processingAll, setProcessingAll] = useState(false);
+    const [showProcessConfirm, setShowProcessConfirm] = useState(false);
 
     const { employees } = useEmployees({ limit: 100 });
     const { payroll: payrollData, isLoading, refetch, updatePayroll, processPayroll } = usePayroll({
@@ -54,7 +55,11 @@ export const PharmacyPayrollManager: React.FC = () => {
     };
 
     const handleProcessAll = async () => {
-        if (!window.confirm('Processar todos os rascunhos deste mês?')) return;
+        setShowProcessConfirm(true);
+    };
+
+    const confirmProcessAll = async () => {
+        setShowProcessConfirm(false);
         const draftIds = payrollData?.filter(p => p.status === 'draft').map(p => p.id) || [];
         if (draftIds.length === 0) {
             toast('Não h rascunhos por processar');
@@ -392,6 +397,18 @@ export const PharmacyPayrollManager: React.FC = () => {
                     );
                 })()}
             </Modal>
+
+            {/* Process All Confirmation */}
+            <ConfirmationModal
+                isOpen={showProcessConfirm}
+                onClose={() => setShowProcessConfirm(false)}
+                onConfirm={confirmProcessAll}
+                title="Processar Salários"
+                message={`Deseja processar todos os rascunhos de salários para o período de ${months.find(m => m.value === month.toString())?.label} / ${year}?`}
+                confirmText="Sim, Processar Todos"
+                cancelText="Cancelar"
+                variant="primary"
+            />
         </div>
     );
 };

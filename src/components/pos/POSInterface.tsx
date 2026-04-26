@@ -1,4 +1,4 @@
-﻿import { logger } from '../../utils/logger';
+import { logger } from '../../utils/logger';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
     HiOutlineSearch,
@@ -417,7 +417,6 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             // No exact match found
             if (filteredProducts.length === 0) {
                 toast.error('Nenhum produto encontrado com este código', {
-                    icon: '❌',
                     duration: 2000,
                 });
             }
@@ -521,7 +520,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                 total: Number(cartTotal),
                 paymentMethod: selectedPayment,
                 amountPaid: Number(paymentAmount),
-                change: Number(paymentAmount - cartTotal),
+                change: Math.max(0, Number(paymentAmount - cartTotal)),
                 redeemPoints: pointsToRedeem,
                 warehouseId: selectedWarehouseId || undefined,
                 notes: customerPhone
@@ -593,12 +592,12 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                 const productMatch = errorMessage.match(/(.+?)\. Disponível: (\d+)/);
                 if (productMatch) {
                     toast.error(
-                        `❌ ${errorMessage}\n\nPor favor, ajuste a quantidade no carrinho.`,
+                        `${errorMessage}\n\nPor favor, ajuste a quantidade no carrinho.`,
                         { duration: 6000 }
                     );
                 } else {
                     toast.error(
-                        `❌ Estoque insuficiente\n\nUm ou mais produtos não têm estoque disponível. Atualize o carrinho.`,
+                        `Estoque insuficiente\n\nUm ou mais produtos não têm estoque disponível. Atualize o carrinho.`,
                         { duration: 5000 }
                     );
                 }
@@ -610,7 +609,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             // Product not found error
             if (errorMessage?.includes('não encontrado')) {
                 toast.error(
-                    `❌ ${errorMessage}\n\nO produto pode ter sido removido. Atualizando lista...`,
+                    `${errorMessage}\n\nO produto pode ter sido removido. Atualizando lista...`,
                     { duration: 5000 }
                 );
                 refetchProducts();
@@ -620,7 +619,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             // Customer points error
             if (errorMessage?.includes('Pontos insuficientes')) {
                 toast.error(
-                    `❌ ${errorMessage}\n\nDesmarque a opção de usar pontos de fidelidade.`,
+                    `${errorMessage}\n\nDesmarque a opção de usar pontos de fidelidade.`,
                     { duration: 5000 }
                 );
                 setRedeemPoints(false);
@@ -644,7 +643,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     .join('\n');
 
                 toast.error(
-                    `❌ Erro de Validação\n\n${validationErrors}\n\nVerifique os dados e tente novamente.`,
+                    `Erro de Validação\n\n${validationErrors}\n\nVerifique os dados e tente novamente.`,
                     { duration: 8000 }
                 );
 
@@ -656,7 +655,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             // Generic validation error
             if (errorMessage?.includes('inválidos') || errorMessage?.includes('validação')) {
                 toast.error(
-                    `❌ ${errorMessage}\n\nVerifique os dados da venda:\n• Produtos no carrinho\n• Quantidade e preços\n• Método de pagamento\n• Valor pago`,
+                    `${errorMessage}\n\nVerifique os dados da venda:\n• Produtos no carrinho\n• Quantidade e preços\n• Método de pagamento\n• Valor pago`,
                     { duration: 6000 }
                 );
 
@@ -667,7 +666,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
 
             // Generic error with helpful message
             toast.error(
-                `❌ Erro ao processar venda\n\n${errorMessage || 'Erro desconhecido. Tente novamente.'}\n\nSe o problema persistir, contacte o suporte.`,
+                `Erro ao processar venda\n\n${errorMessage || 'Erro desconhecido. Tente novamente.'}\n\nSe o problema persistir, contacte o suporte.`,
                 { duration: 6000 }
             );
 
@@ -755,7 +754,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={handleBarcodeSearch}
-                                    leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                                    leftIcon={<HiOutlineSearch className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                                     autoFocus
                                 />
                             </div>

@@ -10,13 +10,23 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900 dark:bg-dark-900 dark:text-gray-100 transition-colors duration-300 antialiased;
-    background-image: radial-gradient(at 0% 0%, rgba(59, 84, 255, 0.03) 0, transparent 50%), 
-                      radial-gradient(at 50% 0%, rgba(213, 54, 255, 0.03) 0, transparent 50%);
+    @apply bg-slate-100/40 text-slate-900 dark:bg-dark-900 dark:text-gray-100 transition-colors duration-300 antialiased;
+    /* Subtle mesh background for light mode */
+    background-image: radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.05) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+  
+  .dark body {
+    background-image: none;
   }
 
   * {
     @apply border-slate-200/60 dark:border-dark-700/50;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    word-spacing: 0.125em;
+    letter-spacing: -0.01em;
   }
 }
 
@@ -26,7 +36,7 @@
   }
 
   .btn-primary {
-    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-md hover:shadow-lg;
+    @apply btn bg-gradient-to-r from-primary-600 to-primary-500 text-white hover:from-primary-700 hover:to-primary-600 focus:ring-primary-500 shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30;
   }
 
   .btn-secondary {
@@ -46,21 +56,35 @@
   }
 
   .card {
-    @apply bg-white dark:bg-dark-800 rounded-lg shadow-card p-4 sm:p-6 transition-all duration-300 border border-slate-200/60 dark:border-dark-700/50 hover:shadow-card-hover hover:border-primary-500/20;
+    @apply bg-white/95 dark:bg-dark-800 rounded-xl shadow-card p-4 sm:p-6 transition-all duration-300 border border-slate-200/60 dark:border-dark-700/50 hover:shadow-card-hover hover:border-primary-500/30 backdrop-blur-sm;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, currentColor, transparent);
+    opacity: 0.1;
   }
 
   .card-premium {
-    @apply bg-white dark:bg-dark-800 rounded-lg shadow-premium p-6 sm:p-8 transition-all duration-300 border border-white/50 dark:border-dark-700/50;
+    @apply bg-primary-600 text-white rounded-lg shadow-premium p-6 sm:p-8 transition-all duration-300 border-none relative overflow-hidden;
   }
 
   .card-glass {
-    @apply bg-white/70 dark:bg-dark-800/80 backdrop-blur-xl rounded-lg shadow-glass p-4 sm:p-6 border border-white dark:border-dark-700/30;
+    @apply bg-white/10 dark:bg-dark-800/20 backdrop-blur-xl rounded-lg shadow-glass p-4 sm:p-6 border border-white/20;
   }
 
   /* Responsive card content helpers */
   .card-title {
     @apply font-bold text-gray-900 dark:text-white break-words;
     font-size: clamp(1.125rem, 4vw, 1.5rem); /* 18px -> 24px */
+    word-spacing: 0.125em;
   }
 
   .card-subtitle {
@@ -95,6 +119,7 @@
   .stat-value {
     @apply font-bold text-gray-900 dark:text-white truncate;
     font-size: clamp(1.125rem, 4vw, 1.875rem); /* 18px -> 30px */
+    word-spacing: 0.125em;
   }
 
   .stat-label {
@@ -120,23 +145,23 @@
   }
 
   .badge-primary {
-    @apply badge bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300;
+    @apply badge bg-primary-600 text-white shadow-sm shadow-primary-500/20;
   }
 
   .badge-success {
-    @apply badge bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300;
+    @apply badge bg-green-600 text-white shadow-sm shadow-green-500/20;
   }
 
   .badge-warning {
-    @apply badge bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300;
+    @apply badge bg-amber-500 text-white shadow-sm shadow-amber-500/20;
   }
 
   .badge-danger {
-    @apply badge bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300;
+    @apply badge bg-red-600 text-white shadow-sm shadow-red-500/20;
   }
 
   .badge-info {
-    @apply badge bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300;
+    @apply badge bg-blue-600 text-white shadow-sm shadow-blue-500/20;
   }
 
   .table-container {
@@ -184,6 +209,7 @@
 
   .sidebar-link {
     @apply flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-800 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-200;
+    word-spacing: 0.05em;
   }
 
   .sidebar-link-active {
@@ -191,7 +217,7 @@
   }
 
   .modal-overlay {
-    @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4;
+    @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998] flex items-center justify-center p-4;
   }
 
   .modal-content {
@@ -216,15 +242,19 @@
 
 @layer utilities {
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-accent-600;
+    @apply text-primary-600;
   }
 
   .bg-gradient-primary {
-    @apply bg-gradient-to-r from-primary-600 to-primary-700;
+    @apply bg-primary-600;
   }
 
   .bg-gradient-accent {
-    @apply bg-gradient-to-r from-accent-500 to-primary-600;
+    @apply bg-accent-500;
+  }
+
+  .shadow-card-strong {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02);
   }
 
   .scrollbar-thin {
@@ -381,3 +411,44 @@
 .animate-slide-down {
   animation: slide-down 0.3s ease-out;
 }
+
+/* Custom Webkit Scrollbar styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-dark-600 rounded-full transition-colors duration-200;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-dark-500;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+    box-shadow: 0 0 10px 2px rgba(34, 197, 94, 0.4);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite ease-in-out;
+}

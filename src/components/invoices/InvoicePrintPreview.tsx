@@ -334,28 +334,66 @@ export default function InvoicePrintPreview({ isOpen, onClose, invoice }: Invoic
                     {/* SECTION: DETALHES DOS PRODUTOS */}
                     {/* ─────────────────────────────── */}
                     <div style={{ padding: '0 32px 16px', backgroundColor: 'white', margin: 0 }}>
-                        <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff', overflow: 'hidden', borderRadius: '8px' }}>
-                            <thead>
-                                <tr style={{ backgroundColor: '#f8fafc' }}>
-                                    <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Produto / Serviço</th>
-                                    <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Qtd</th>
-                                    <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Preço Unitário</th>
-                                    <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(invoice.items || []).map((item, index) => (
-                                    <tr key={index} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#1e293b', fontWeight: 600 }}>
-                                            {item.description}
-                                        </td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: '#475569', fontWeight: 500 }}>{item.quantity}</td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: '#475569', fontWeight: 500 }}>{formatCurrency(item.unitPrice)}</td>
-                                        <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(item.total)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        {(() => {
+                            const hasWeight = (invoice.items || []).some(i => i.unitWeight && i.unitWeight > 0);
+                            const totalWeight = hasWeight
+                                ? (invoice.items || []).reduce((sum, i) => sum + (i.unitWeight ? i.unitWeight * i.quantity : 0), 0)
+                                : 0;
+                            return (
+                                <>
+                                    <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff', overflow: 'hidden', borderRadius: '8px' }}>
+                                        <thead>
+                                            <tr style={{ backgroundColor: '#f8fafc' }}>
+                                                <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Produto / Serviço</th>
+                                                <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Qtd</th>
+                                                <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'left', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Preço Unit.</th>
+                                                {hasWeight && (
+                                                    <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Peso Total</th>
+                                                )}
+                                                <th style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', textAlign: 'right', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em', color: '#64748b' }}>Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {(invoice.items || []).map((item, index) => {
+                                                const lineWeight = item.unitWeight ? item.unitWeight * item.quantity : null;
+                                                return (
+                                                    <tr key={index} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#1e293b', fontWeight: 600 }}>
+                                                            {item.description}
+                                                            {item.unitWeight && item.unitWeight > 0 && (
+                                                                <span style={{ display: 'block', fontSize: '10px', color: '#94a3b8', fontWeight: 400, marginTop: '2px' }}>
+                                                                    {item.unitWeight.toFixed(3)} kg/un
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: '#475569', fontWeight: 500 }}>{item.quantity}</td>
+                                                        <td style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', color: '#475569', fontWeight: 500 }}>{formatCurrency(item.unitPrice)}</td>
+                                                        {hasWeight && (
+                                                            <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', color: '#475569', fontWeight: 500 }}>
+                                                                {lineWeight !== null ? `${lineWeight.toFixed(3)} kg` : '—'}
+                                                            </td>
+                                                        )}
+                                                        <td style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 800, color: '#0f172a' }}>{formatCurrency(item.total)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    {hasWeight && (
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 16px', backgroundColor: '#f1f5f9', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                                <span style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#64748b' }}>Peso Total da Carga</span>
+                                                <span style={{ fontSize: '14px', fontWeight: 900, color: '#0f172a' }}>
+                                                    {totalWeight >= 1000
+                                                        ? `${(totalWeight / 1000).toFixed(3)} t`
+                                                        : `${totalWeight.toFixed(3)} kg`}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
 
                     {/* ───────────────── */}

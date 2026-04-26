@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CRM Page
  * Página principal do CRM com funil de vendas e campanhas
  */
@@ -50,14 +50,14 @@ export default function CRM() {
             <PageHeader 
                 title="CRM & Marketing"
                 subtitle="Gestão de Clientes, Oportunidades e Campanhas"
-                icon={<HiOutlinePresentationChartBar />}
+                icon={<HiOutlinePresentationChartBar className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
                         <Button 
                             variant="ghost" 
                             size="sm" 
                             className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
-                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />}
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                         >
                             Actualizar
                         </Button>
@@ -99,25 +99,25 @@ export default function CRM() {
                 <MetricCard 
                     label="Pipeline Total"
                     value={formatCurrency(metrics.totalValue)}
-                    icon={<HiOutlineChartBar className="w-6 h-6" />}
+                    icon={<HiOutlineChartBar className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
                     color="primary"
                 />
                 <MetricCard 
                     label="Taxa de Conversão"
                     value={`${metrics.winRate}%`}
-                    icon={<HiOutlineChartBar className="w-6 h-6" />}
+                    icon={<HiOutlineChartBar className="w-6 h-6 text-green-600 dark:text-green-400" />}
                     color="green"
                 />
                 <MetricCard 
                     label="Oportunidades"
                     value={openOpportunities.length}
-                    icon={<HiOutlineUserGroup className="w-6 h-6" />}
+                    icon={<HiOutlineUserGroup className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
                     color="blue"
                 />
                 <MetricCard 
                     label="Campanhas Activas"
                     value={activeCampaigns.length}
-                    icon={<HiOutlineTag className="w-6 h-6" />}
+                    icon={<HiOutlineTag className="w-6 h-6 text-orange-600 dark:text-orange-400" />}
                     color="orange"
                 />
             </div>
@@ -130,7 +130,7 @@ export default function CRM() {
                 {activeTab === 'campaigns' && <CampaignManager />}
                 {activeTab === 'customers' && (
                     <Card padding="lg" className="text-center">
-                        <HiOutlineUserGroup className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <HiOutlineUserGroup className="w-16 h-16 text-primary-600/30 dark:text-primary-400/30 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                             Segmentação de Clientes
                         </h3>
@@ -194,7 +194,7 @@ export default function CRM() {
 
                         <Card padding="md" className="bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
                             <div className="flex items-start gap-3">
-                                <HiOutlineCog className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+                                <HiOutlineCog className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                                 <div>
                                     <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
                                         Automação Configurada

@@ -58,9 +58,10 @@ export const useSyncManager = (companyId?: string) => {
 
       // Customers
       const customersData = await customersAPI.getAll();
-      if (customersData) {
+      const customersList = Array.isArray(customersData) ? customersData : customersData?.data;
+      if (Array.isArray(customersList)) {
         await offlineDB.customers.clear();
-        await offlineDB.customers.bulkAdd(customersData.map((c: any) => ({
+        await offlineDB.customers.bulkAdd(customersList.map((c: any) => ({
           id: c.id,
           name: c.name,
           phone: c.phone,
@@ -101,9 +102,12 @@ export const useSyncManager = (companyId?: string) => {
           await offlineDB.syncQueue.delete(item.id!);
         } catch (error) {
           console.error(`Failed to sync item ${item.id}:`, error);
+          const nextAttempt = item.attempts + 1;
+          const newStatus = nextAttempt >= 5 ? 'failed' : 'pending';
+          
           await offlineDB.syncQueue.update(item.id!, { 
-            status: 'pending', // retry later
-            attempts: item.attempts + 1,
+            status: newStatus,
+            attempts: nextAttempt,
             error: String(error)
           });
         }

@@ -9,16 +9,17 @@ import {
     type ColumnFiltersState,
 } from '@tanstack/react-table';
 import { HiOutlineMagnifyingGlass, HiOutlinePencilSquare, HiOutlineTrash, HiOutlineEye, HiOutlineBuildingOffice, HiOutlineArrowPath, HiOutlinePlusCircle, HiOutlineClock, HiOutlineCube } from 'react-icons/hi2';
-import { Button, Badge, Modal, Card, Input, Select, Pagination, DataTable } from '../ui';
+import { Button, Badge, Modal, Card, Input, Select, Pagination, DataTable, ConfirmationModal } from '../ui';
 import StockAdjustmentModal from './StockAdjustmentModal';
 import ProductValiditiesSection from './ProductValiditiesSection';
 import { ProductStockHistory } from './ProductStockHistory';
 import { ExportProductsButton } from '../common/ExportButton';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { categoryLabels, statusLabels } from '../../utils/constants';
-import type { Product, ProductCategory, StockStatus } from '../../types';
+import type { Product, StockStatus } from '../../types';
 
 import { useProducts, useWarehouses } from '../../hooks/useData';
+import { useCategories, useCompanySettings } from '../../hooks/useSettings';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { playScanSound } from '../../utils/audio';
 import toast from 'react-hot-toast';
@@ -31,17 +32,65 @@ interface InventoryTableProps {
     onAddProduct?: () => void;
     initialSearch?: string;
     originModule?: string;
+    // Controlled Filter Props
+    category?: string;
+    onCategoryChange?: (category: string) => void;
+    status?: string;
+    onStatusChange?: (status: string) => void;
+    warehouse?: string;
+    onWarehouseChange?: (warehouse: string) => void;
+    onSearchChange?: (search: string) => void;
 }
 
-export default function InventoryTable({ onEdit, onView, onAddProduct, initialSearch, originModule = 'inventory' }: InventoryTableProps) {
+export default function InventoryTable({ 
+    onEdit, 
+    onView, 
+    onAddProduct, 
+    initialSearch, 
+    originModule = 'inventory',
+    category: externalCategory,
+    onCategoryChange,
+    status: externalStatus,
+    onStatusChange,
+    warehouse: externalWarehouse,
+    onWarehouseChange,
+    onSearchChange
+}: InventoryTableProps) {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-    const [globalFilter, setGlobalFilter] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
-    const [selectedStatus, setSelectedStatus] = useState<StockStatus | 'all'>('all');
-    const [selectedWarehouse, setSelectedWarehouse] = useState<string | 'all'>('all');
+    const [globalFilter, setGlobalFilter] = useState(initialSearch || '');
+    
+    // Internal states for local fallback if not controlled
+    const [localCategory, setLocalCategory] = useState<string>('all');
+    const [localStatus, setLocalStatus] = useState<string>('all');
+    const [localWarehouse, setLocalWarehouse] = useState<string>('all');
+
+    const selectedCategory = externalCategory ?? localCategory;
+    const selectedStatus = (externalStatus ?? localStatus) as StockStatus | 'all';
+    const selectedWarehouse = externalWarehouse ?? localWarehouse;
+
+    const handleCategoryChange = (val: string) => {
+        onCategoryChange ? onCategoryChange(val) : setLocalCategory(val);
+        setPage(1);
+    };
+
+    const handleStatusChange = (val: string) => {
+        onStatusChange ? onStatusChange(val) : setLocalStatus(val);
+        setPage(1);
+    };
+
+    const handleWarehouseChange = (val: string) => {
+        onWarehouseChange ? onWarehouseChange(val) : setLocalWarehouse(val);
+        setPage(1);
+    };
+
+    const handleSearchChange = (val: string) => {
+        setGlobalFilter(val);
+        onSearchChange?.(val);
+        setPage(1);
+    };
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -50,9 +99,9 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
     const [historyModalOpen, setHistoryModalOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Sync global filter with initial search
+    // Sync global filter with external search changes
     useEffect(() => {
-        if (initialSearch !== undefined) {
+        if (initialSearch !== undefined && initialSearch !== globalFilter) {
             setGlobalFilter(initialSearch);
         }
     }, [initialSearch]);
@@ -70,11 +119,13 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
         origin_module: originModule
     });
     const { warehouses } = useWarehouses();
+    const { categories, isLoading: categoriesLoading } = useCategories();
+    const { settings: companySettings } = useCompanySettings();
 
     // Barcode Scanner Integration for Inventory Management
     useBarcodeScanner({
         onScan: (barcode) => {
-            setGlobalFilter(barcode);
+            handleSearchChange(barcode);
             playScanSound();
             toast.success(`Código detectado: ${barcode}`, { duration: 2000 });
         },
@@ -83,22 +134,35 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
 
     // Status badge colors
     const getStatusBadge = (status: StockStatus) => {
-        const variants: Record<StockStatus, 'success' | 'warning' | 'danger'> = {
-            in_stock: 'success',
-            low_stock: 'warning',
-            out_of_stock: 'danger',
+        const configs: Record<StockStatus, { variant: any; label: string; className: string }> = {
+            in_stock: { 
+                variant: 'success', 
+                label: statusLabels[status], 
+                className: 'bg-green-500/15 text-green-600 dark:text-green-300 border border-green-500/20 backdrop-blur-sm' 
+            },
+            low_stock: { 
+                variant: 'warning', 
+                label: statusLabels[status], 
+                className: 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border border-amber-500/20 backdrop-blur-sm' 
+            },
+            out_of_stock: { 
+                variant: 'danger', 
+                label: statusLabels[status], 
+                className: 'bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20 backdrop-blur-sm' 
+            },
         };
-        return <Badge variant={variants[status]}>{statusLabels[status]}</Badge>;
+        const config = configs[status];
+        return <Badge variant={config.variant} className={cn("font-black text-[9px] uppercase tracking-[0.1em] px-2.5 py-1 rounded-lg", config.className)}>{config.label}</Badge>;
     };
 
     // Define columns
     const columns = useMemo(
         () => [
-            columnHelper.accessor('code', {
-                header: 'Código',
+            columnHelper.accessor('barcode', {
+                header: 'Código de Barras',
                 cell: (info) => (
                     <span className="font-mono text-sm font-medium text-primary-600 dark:text-primary-400">
-                        {info.getValue()}
+                        {info.getValue() || <span className="text-gray-300">N/A</span>}
                     </span>
                 ),
             }),
@@ -106,22 +170,10 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                 header: 'Referência',
                 cell: (info) => {
                     const sku = info.getValue();
-                    const barcode = info.row.original.barcode;
                     return (
-                        <div>
-                            {sku ? (
-                                <span className="font-mono text-sm font-medium text-gray-800 dark:text-gray-200">
-                                    {sku}
-                                </span>
-                            ) : (
-                                <span className="text-gray-300 dark:text-gray-600 text-xs">-</span>
-                            )}
-                            {barcode && (
-                                <p className="font-mono text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                                    EAN: {barcode}
-                                </p>
-                            )}
-                        </div>
+                        <span className="font-mono text-sm font-medium text-gray-800 dark:text-gray-200">
+                            {sku || <span className="text-gray-300">-</span>}
+                        </span>
                     );
                 },
             }),
@@ -129,81 +181,71 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                 header: 'Nome',
                 cell: (info) => (
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
-                            <HiOutlineCube className="w-5 h-5 text-primary-500" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-xs">{info.getValue()}</p>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                                {categoryLabels[info.row.original.category]}
-                            </p>
-                        </div>
+                        <span className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-xs">
+                            {info.getValue()}
+                        </span>
                     </div>
                 ),
             }),
-            columnHelper.accessor('category', {
-                header: 'Categoria',
-                cell: (info) => (
-                    <Badge variant="gray">{categoryLabels[info.getValue()]}</Badge>
-                ),
-            }),
             columnHelper.accessor('currentStock', {
-                header: 'Estoque Atual',
+                header: 'Caixas',
                 cell: (info) => {
                     const product = info.row.original;
-                    // If a specific warehouse is selected, show that warehouse's stock
-                    // Otherwise show global currentStock
                     const displayStock = (selectedWarehouse !== 'all')
                         ? (product.warehouseStocks?.find(ws => ws.warehouseId === selectedWarehouse)?.quantity ?? 0)
                         : info.getValue();
 
+                    const packSize = product.packSize && product.packSize > 1 ? product.packSize : 1;
+                    const boxes = Math.floor(displayStock / packSize);
+                    
+                    return (
+                        <div className="flex items-center gap-1">
+                            <span className="font-black text-sm text-gray-900 dark:text-white">
+                                {boxes}
+                            </span>
+                        </div>
+                    );
+                },
+            }),
+            columnHelper.display({
+                id: 'total_calculated',
+                header: 'Unidades',
+                cell: ({ row }) => {
+                    const product = row.original;
+                    const displayStock = (selectedWarehouse !== 'all')
+                        ? (product.warehouseStocks?.find(ws => ws.warehouseId === selectedWarehouse)?.quantity ?? 0)
+                        : product.currentStock;
+                    
+                    const packSize = product.packSize && product.packSize > 1 ? product.packSize : 1;
+                    const boxes = Math.floor(displayStock / packSize);
+                    const calculatedTotal = boxes * packSize;
                     const isLow = displayStock <= product.minStock;
+
                     return (
                         <div className="flex items-center gap-2">
                             <span
                                 className={cn(
                                     'font-black text-sm',
-                                    isLow ? 'text-red-500' : 'text-gray-900 dark:text-white'
+                                    isLow ? 'text-red-500' : 'text-primary-600 dark:text-primary-400'
                                 )}
                             >
-                                {displayStock}
+                                {calculatedTotal}
                             </span>
-                            <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">{product.unit}</span>
                             {isLow && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" title="Estoque baixo" />
+                                <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse" title="Estoque baixo" />
                             )}
                         </div>
                     );
                 },
             }),
-            columnHelper.accessor('minStock', {
-                header: 'Estoque Mín.',
-                cell: (info) => (
-                    <span className="text-gray-600 dark:text-gray-400">{info.getValue()}</span>
-                ),
-            }),
             columnHelper.accessor('price', {
-                header: 'Preço / Margem',
+                header: 'Preço de Venda',
                 cell: (info) => {
                     const price = Number(info.getValue());
-                    const cost = Number(info.row.original.costPrice);
-                    const margin = price > 0 && cost > 0 ? ((price - cost) / price) * 100 : null;
                     return (
-                        <div>
-                            <span className="font-black text-sm text-gray-900 dark:text-white tracking-tighter">
-                                {formatCurrency(price)}
-                            </span>
-                            {margin !== null && (
-                                <p className={cn(
-                                    'text-[9px] font-black uppercase tracking-widest mt-0.5',
-                                    margin >= 30 ? 'text-green-500' :
-                                    margin >= 10 ? 'text-amber-500' :
-                                    'text-red-500'
-                                )}>
-                                    {margin.toFixed(1)}% margem
-                                </p>
-                            )}
-                        </div>
+                        <span className="font-black text-sm text-gray-900 dark:text-white tracking-tighter">
+                            {formatCurrency(price)}
+                        </span>
                     );
                 },
             }),
@@ -215,13 +257,13 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                 id: 'actions',
                 header: 'Ações',
                 cell: ({ row }) => (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={() => {
                                 setSelectedProduct(row.original);
                                 setAdjustmentModalOpen(true);
                             }}
-                            className="p-2 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-gray-500 hover:text-emerald-600 transition-colors"
+                            className="p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all border border-emerald-100/50 dark:border-emerald-500/20"
                             title="Ajustar Stock"
                         >
                             <HiOutlinePlusCircle className="w-4 h-4" />
@@ -231,28 +273,28 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                                 setSelectedProduct(row.original);
                                 setHistoryModalOpen(true);
                             }}
-                            className="p-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-500 hover:text-primary-600 transition-colors"
+                            className="p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-100/50 dark:border-indigo-500/20"
                             title="Ver Histórico de Stock"
                         >
                             <HiOutlineClock className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => handleView(row.original)}
-                            className="p-2 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-500 hover:text-primary-600 transition-colors"
+                            className="p-2 rounded-lg bg-primary-50/50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 transition-all border border-primary-100/50 dark:border-primary-500/20"
                             title="Ver detalhes"
                         >
                             <HiOutlineEye className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => onEdit?.(row.original)}
-                            className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 hover:text-blue-600 transition-colors"
+                            className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20"
                             title="Editar"
                         >
                             <HiOutlinePencilSquare className="w-4 h-4" />
                         </button>
                         <button
                             onClick={() => handleDeleteClick(row.original)}
-                            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 transition-colors"
+                            className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20"
                             title="Excluir"
                         >
                             <HiOutlineTrash className="w-4 h-4" />
@@ -311,7 +353,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
 
     const categoryOptions = [
         { value: 'all', label: 'Todas as categorias' },
-        ...Object.entries(categoryLabels).map(([value, label]) => ({ value, label })),
+        ...categories.map(c => ({ value: c.id, label: c.name })),
     ];
 
     const statusOptions = [
@@ -329,14 +371,14 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
     return (
         <div className="space-y-4">
             {/* Filters */}
-            <Card padding="md">
+            <Card padding="md" className="overflow-visible">
                 <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search */}
                     <div className="flex-1">
                         <Input
                             placeholder="Buscar por código, nome..."
                             value={globalFilter ?? ''}
-                            onChange={(e) => setGlobalFilter(e.target.value)}
+                            onChange={(e) => handleSearchChange(e.target.value)}
                             leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                         />
                     </div>
@@ -346,7 +388,8 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                         <Select
                             options={categoryOptions}
                             value={selectedCategory}
-                            onChange={(e) => setSelectedCategory(e.target.value as ProductCategory | 'all')}
+                            onChange={(e) => handleCategoryChange(e.target.value)}
+                            disabled={categoriesLoading}
                         />
                     </div>
 
@@ -355,7 +398,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                         <Select
                             options={statusOptions}
                             value={selectedStatus}
-                            onChange={(e) => setSelectedStatus(e.target.value as StockStatus | 'all')}
+                            onChange={(e) => handleStatusChange(e.target.value)}
                         />
                     </div>
 
@@ -364,7 +407,7 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                         <Select
                             options={warehouseOptions}
                             value={selectedWarehouse}
-                            onChange={(e) => setSelectedWarehouse(e.target.value)}
+                            onChange={(e) => handleWarehouseChange(e.target.value)}
                         />
                     </div>
 
@@ -378,9 +421,18 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                             title="Atualizar dados"
                             className="bg-gray-50 dark:bg-dark-800"
                         >
-                            <HiOutlineArrowPath className="w-5 h-5 text-gray-500" />
+                            <HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                         </Button>
-                        <ExportProductsButton data={products} />
+                        <ExportProductsButton 
+                            data={products} 
+                            companyInfo={companySettings ? {
+                                name: companySettings.companyName,
+                                nuit: companySettings.nuit,
+                                address: companySettings.address,
+                                phone: companySettings.phone,
+                                email: companySettings.email
+                            } : undefined}
+                        />
                     </div>
                 </div>
             </Card>
@@ -579,6 +631,21 @@ export default function InventoryTable({ onEdit, onView, onAddProduct, initialSe
                     product={selectedProduct}
                 />
             )}
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={deleteModalOpen}
+                onClose={() => {
+                    setDeleteModalOpen(false);
+                    setProductToDelete(null);
+                }}
+                onConfirm={confirmDelete}
+                title="Excluir Produto"
+                message={`Tem certeza que deseja excluir o produto "${productToDelete?.name}"? Esta ação não pode ser desfeita.`}
+                confirmText="Excluir"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 }

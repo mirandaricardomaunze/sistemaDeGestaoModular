@@ -38,6 +38,7 @@ import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { SmartInsightCard } from '../../components/common/SmartInsightCard';
 import { MetricCard, StatCard, CHART_COLORS } from '../../components/common/ModuleMetricCard';
 import { ModulePeriodFilter } from '../../components/common/ModulePeriodFilter';
+import { QuickActionCard } from '../../components/common/QuickActionCard';
 import type { TimePeriod } from '../../components/common/ModulePeriodFilter';
 import { WeeklySalesWidget, RecentActivityWidget } from '../../components/dashboard/DashboardWidgets';
 import { alertsAPI } from '../../services/api';
@@ -78,7 +79,8 @@ export default function PharmacyDashboard() {
 
     // Transform sales chart data
     const salesData = useMemo(() => {
-        return salesChart.map(item => ({
+        const data = Array.isArray(salesChart) ? salesChart : (salesChart as any)?.data || [];
+        return data.map((item: any) => ({
             name: item.date.slice(-5), // Show MM-DD
             vendas: item.total,
         }));
@@ -86,7 +88,8 @@ export default function PharmacyDashboard() {
 
     // Transform weekly chart data
     const weeklySalesData = useMemo(() => {
-        return weeklyChart.map(item => {
+        const data = Array.isArray(weeklyChart) ? weeklyChart : (weeklyChart as any)?.data || [];
+        return data.map((item: any) => {
             const date = new Date(item.date);
             const dayName = dayNames[date.getDay().toString()] || item.date;
             return {
@@ -107,7 +110,8 @@ export default function PharmacyDashboard() {
 
     // Recent activities from recent sales
     const recentActivities = useMemo(() => {
-        return (recentSales as any[]).map((sale: any) => ({
+        const sales = Array.isArray(recentSales) ? recentSales : (recentSales as any)?.data || [];
+        return sales.map((sale: any) => ({
             id: sale.id,
             action: 'Venda realizada',
             detail: `Venda #${sale.id.slice(-6)} - ${formatCurrency(Number(sale.total))}`,
@@ -168,12 +172,12 @@ export default function PharmacyDashboard() {
             {insights.length > 0 && (
                 <div className="space-y-4 mb-6">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                            <HiOutlineLightBulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/15 border border-amber-200/50 dark:border-amber-500/25 flex items-center justify-center backdrop-blur-sm shadow-sm transition-all duration-300">
+                            <HiOutlineLightBulb className="w-6 h-6 text-amber-600 dark:text-amber-300" />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Alertas de validade e reposição farmacêutica</p>
+                            <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Conselheiro Inteligente</h2>
+                            <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase">Alertas de validade e reposição farmacêutica</p>
                         </div>
                     </div>
                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
@@ -352,30 +356,30 @@ export default function PharmacyDashboard() {
                     </div>
                     <div className="space-y-3">
                         {(summary?.lowStockItems || 0) > 0 && (
-                            <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600">
-                                    <HiOutlineExclamationCircle className="w-4 h-4" />
+                            <div className="flex items-start gap-3 p-3 bg-amber-100/40 dark:bg-amber-500/10 rounded-xl border border-amber-200/50 dark:border-amber-500/20">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-amber-200/60 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 shadow-inner">
+                                    <HiOutlineExclamationCircle className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    <p className="text-xs font-black text-amber-900 dark:text-amber-400 uppercase tracking-tight">
                                         Stock Baixo
                                     </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    <p className="text-[10px] font-bold text-amber-800/70 dark:text-amber-400/60 uppercase">
                                         {summary?.lowStockItems} medicamentos abaixo do mínimo
                                     </p>
                                 </div>
                             </div>
                         )}
                         {(summary?.expiringSoonBatches || 0) > 0 && (
-                            <div className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-red-100 dark:bg-red-900/30 text-red-600">
-                                    <HiOutlineExclamationCircle className="w-4 h-4" />
+                            <div className="flex items-start gap-3 p-3 bg-red-100/40 dark:bg-red-500/10 rounded-xl border border-red-200/50 dark:border-red-500/20">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-red-200/60 text-red-700 dark:bg-red-500/20 dark:text-red-300 shadow-inner">
+                                    <HiOutlineExclamationCircle className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                    <p className="text-xs font-black text-red-900 dark:text-red-400 uppercase tracking-tight">
                                         Próximo da Validade
                                     </p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    <p className="text-[10px] font-bold text-red-800/70 dark:text-red-400/60 uppercase">
                                         {summary?.expiringSoonBatches} medicamentos expiram em 90 dias
                                     </p>
                                 </div>
@@ -404,38 +408,34 @@ export default function PharmacyDashboard() {
                     Acções Rápidas
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Link to="/pharmacy/pos">
-                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-teal-500 dark:hover:border-teal-500 hover:bg-teal-50 dark:hover:bg-teal-900/10 transition-all group">
-                            <HiOutlineShoppingCart className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-teal-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-teal-600">
-                                Nova Venda
-                            </p>
-                        </button>
-                    </Link>
-                    <Link to="/pharmacy/manage">
-                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineBeaker className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                Medicamentos
-                            </p>
-                        </button>
-                    </Link>
-                    <Link to="/pharmacy/reconciliation">
-                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineCube className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                Stock
-                            </p>
-                        </button>
-                    </Link>
-                    <Link to="/pharmacy/reports">
-                        <button className="w-full p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
-                            <HiOutlineCurrencyDollar className="w-8 h-8 mx-auto mb-2 text-gray-400 group-hover:text-primary-600 transition-colors" />
-                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600">
-                                Relatórios
-                            </p>
-                        </button>
-                    </Link>
+                    <QuickActionCard
+                        icon={HiOutlineShoppingCart}
+                        label="Nova Venda"
+                        description="Iniciar transação no POS"
+                        path="/pharmacy/pos"
+                        color="teal"
+                    />
+                    <QuickActionCard
+                        icon={HiOutlineBeaker}
+                        label="Medicamentos"
+                        description="Gestão de catálogo"
+                        path="/pharmacy/manage"
+                        color="primary"
+                    />
+                    <QuickActionCard
+                        icon={HiOutlineCube}
+                        label="Stock"
+                        description="Reconciliação e inventário"
+                        path="/pharmacy/reconciliation"
+                        color="indigo"
+                    />
+                    <QuickActionCard
+                        icon={HiOutlineCurrencyDollar}
+                        label="Relatórios"
+                        description="Análise de vendas"
+                        path="/pharmacy/reports"
+                        color="purple"
+                    />
                 </div>
             </Card>
         </div>

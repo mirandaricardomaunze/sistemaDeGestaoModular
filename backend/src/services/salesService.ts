@@ -95,13 +95,9 @@ export class SalesService {
         const {
             customerId,
             items,
-            subtotal,
             discount: inputDiscount,
-            tax,
-            total: inputTotal,
             paymentMethod,
             amountPaid,
-            change,
             paymentRef,
             notes,
             redeemPoints,
@@ -115,7 +111,20 @@ export class SalesService {
         const POINT_VALUE = 1;
 
         return await prisma.$transaction(async (tx: any) => {
-            // 0. Validate Customer & Loyalty
+            // 0. Validate Session (Mandatory for POS modules)
+            if (['commercial', 'bottlestore', 'restaurant'].includes(originModule || '')) {
+                if (!sessionId) {
+                    throw ApiError.badRequest(`Uma sessão de caixa aberta é obrigatória para o módulo ${originModule}.`);
+                }
+                const session = await tx.cashSession.findFirst({
+                    where: { id: sessionId, companyId, status: 'open' }
+                });
+                if (!session) {
+                    throw ApiError.badRequest('Sessão de caixa não encontrada ou já encerrada.');
+                }
+            }
+
+            // 0.1 Validate Customer & Loyalty
             let loyaltyDiscount = 0;
             let pointsToRedeem = 0;
             let customerData = null;
@@ -136,8 +145,59 @@ export class SalesService {
                 }
             }
 
+            // ====================================================================
+            // SERVER-SIDE AUTHORITATIVE CALCULATION
+            // Fetch real prices from DB and recalculate all totals.
+            // Never trust frontend-provided subtotal/tax/total.
+            // ====================================================================
+            const productIds = items.map(i => i.productId);
+            const products = await tx.product.findMany({
+                where: { id: { in: productIds }, companyId },
+                select: { id: true, name: true, price: true, currentStock: true }
+            });
+            const productMap = new Map<string, { id: string; name: string; price: any; currentStock: number }>(products.map((p: any) => [p.id, p]));
+
+            // Fetch company IVA rate for server-side tax calculation
+            const companySettings = await tx.companySettings.findFirst({
+                where: { companyId },
+                select: { ivaRate: true }
+            });
+            const ivaRate = Number(companySettings?.ivaRate ?? 16) / 100;
+
+            // Recalculate each item total using DB prices
+            const verifiedItems = items.map(item => {
+                const product = productMap.get(item.productId);
+                if (!product) {
+                    throw ApiError.notFound(`Produto não encontrado: ${item.productId}`);
+                }
+
+                // Verify unit price matches DB (allow 0.01 tolerance for rounding)
+                const dbPrice = Number(product.price);
+                if (dbPrice > 0 && Math.abs(dbPrice - item.unitPrice) > 0.01) {
+                    logger.warn('Price mismatch detected', {
+                        productId: item.productId,
+                        productName: product.name,
+                        frontendPrice: item.unitPrice,
+                        dbPrice,
+                        userId, companyId
+                    });
+                    // Use DB price as authoritative source
+                    item.unitPrice = dbPrice;
+                }
+
+                const computedItemTotal = (item.unitPrice * item.quantity) - (item.discount || 0);
+                return { ...item, total: Math.round(computedItemTotal * 100) / 100 };
+            });
+
+            const computedSubtotal = verifiedItems.reduce((sum, item) => sum + item.total, 0);
+            const computedTax = Math.round(computedSubtotal * ivaRate * 100) / 100;
             const finalDiscount = (inputDiscount || 0) + loyaltyDiscount;
-            const total = inputTotal - loyaltyDiscount;
+            const computedTotal = Math.round((computedSubtotal - finalDiscount + computedTax) * 100) / 100;
+
+            // Use server-computed values as authoritative
+            const subtotal = computedSubtotal;
+            const tax = computedTax;
+            const total = computedTotal;
 
             // 1. Document Series -- use FOR UPDATE to prevent duplicate receipt numbers under concurrency.
             // Prisma.sql uses parameterized queries (safe against SQL injection).
@@ -151,9 +211,12 @@ export class SalesService {
 
             let docSeries = docSeriesResult[0];
             if (!docSeries) {
-                docSeries = await tx.documentSeries.create({
-                    data: {
-                        code: `FR-${new Date().getFullYear()}`,
+                const yearCode = `FR-${new Date().getFullYear()}`;
+                docSeries = await tx.documentSeries.upsert({
+                    where: { companyId_code: { companyId, code: yearCode } },
+                    update: { isActive: true, prefix: 'FR' },
+                    create: {
+                        code: yearCode,
                         name: `Faturas Recibo ${new Date().getFullYear()}`,
                         prefix: 'FR',
                         series: 'A',
@@ -165,7 +228,8 @@ export class SalesService {
             }
 
             const series = docSeries.series;
-            const fiscalNumber = docSeries.lastNumber + 1;
+            // $queryRaw returns PostgreSQL INT as BigInt — coerce to JS number
+            const fiscalNumber = Number(docSeries.lastNumber) + 1;
             const receiptNumber = `FR ${series}/${String(fiscalNumber).padStart(4, '0')}`;
 
             await tx.documentSeries.update({
@@ -179,7 +243,7 @@ export class SalesService {
             const hashCode = crypto.createHash('sha256').update(hashData).digest('hex').substring(0, 4).toUpperCase();
 
             // 4. Validate Products & Stock
-            for (const item of items) {
+            for (const item of verifiedItems) {
                 await stockService.validateAvailability(item.productId, item.quantity, companyId, tx, warehouseId);
             }
 
@@ -212,7 +276,7 @@ export class SalesService {
                     fiscalNumber,
                     hashCode,
                     items: {
-                        create: items.map((item) => ({
+                        create: verifiedItems.map((item) => ({
                             productId: item.productId,
                             quantity: item.quantity,
                             unitPrice: item.unitPrice,
@@ -244,7 +308,7 @@ export class SalesService {
             }
 
             // 7. Update Stock & Log Movements (Alerts handled internally by StockService)
-            for (const item of items) {
+            for (const item of verifiedItems) {
                 await stockService.recordMovement({
                     productId: item.productId,
                     quantity: -item.quantity,

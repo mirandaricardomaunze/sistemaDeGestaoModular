@@ -77,7 +77,7 @@ export default function Employees() {
                             className={cn(
                                 "px-4 md:px-6 py-4 text-xs md:text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-2",
                                 activeTab === tab.id
-                                    ? "border-primary-500 text-primary-600 dark:text-primary-400"
+                                    ? "border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/10 rounded-t-lg"
                                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                             )}
                         >

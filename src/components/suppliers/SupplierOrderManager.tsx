@@ -5,10 +5,9 @@ import {
     HiOutlineMagnifyingGlass as HiOutlineSearch,
     HiOutlineCheck,
     HiOutlineXMark as HiOutlineX,
-    HiOutlineTruck,
     HiOutlineEye
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Badge, Pagination, usePagination, Modal, LoadingOverlay, ConfirmationModal } from '../ui';
+import { Card, Button, Input, Select, Badge, Pagination, usePagination, LoadingOverlay, ConfirmationModal } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { format, parseISO } from 'date-fns';
 import CreatePurchaseOrderModal from './CreatePurchaseOrderModal';
@@ -285,36 +284,16 @@ export default function SupplierOrderManager() {
             )}
 
             {/* Receive Confirmation Modal */}
-            <Modal
+            <ConfirmationModal
                 isOpen={showReceiveModal}
                 onClose={() => setShowReceiveModal(false)}
+                onConfirm={handleReceiveOrder}
                 title="Receber Encomenda"
-                size="sm"
-            >
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-green-600 bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                        <HiOutlineTruck className="w-6 h-6" />
-                        <div>
-                            <p className="font-semibold">Confirmar Recebimento</p>
-                            <p className="text-sm">Isso irá adicionar os itens ao estoque.</p>
-                        </div>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-300">
-                        Confirmar recebimento da encomenda <strong>{selectedOrder?.orderNumber}</strong> de <strong>{selectedOrder?.supplierName}</strong>?
-                    </p>
-                    <div className="flex justify-end gap-3 pt-2">
-                        <Button variant="ghost" onClick={() => setShowReceiveModal(false)}>
-                            Cancelar
-                        </Button>
-                        <Button
-                            className="bg-green-600 hover:bg-green-700 text-white focus:ring-green-500"
-                            onClick={handleReceiveOrder}
-                        >
-                            Confirmar e Atualizar Estoque
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+                message={`Deseja confirmar o recebimento da encomenda ${selectedOrder?.orderNumber} de ${selectedOrder?.supplierName}? Isso irá adicionar os itens ao estoque.`}
+                confirmText="Confirmar e Atualizar Estoque"
+                cancelText="Cancelar"
+                variant="success"
+            />
 
             {/* Cancel Order Confirmation Modal */}
             <ConfirmationModal

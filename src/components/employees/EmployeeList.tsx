@@ -17,7 +17,7 @@ import {
     HiOutlineArrowPath,
 } from 'react-icons/hi2';
 import { useEmployees } from '../../hooks/useData';
-import { Button, Card, Input, Select, Modal, Badge, Pagination, DataTable } from '../ui';
+import { Button, Card, Input, Select, Badge, Pagination, DataTable, ConfirmationModal } from '../ui';
 import { ExportEmployeesButton } from '../common/ExportButton';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { roleLabels } from '../../utils/constants';
@@ -299,35 +299,18 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
             </div>
 
             {/* Toggle Status Modal */}
-            <Modal
+            <ConfirmationModal
                 isOpen={deleteModalOpen}
-                onClose={() => setDeleteModalOpen(false)}
+                onClose={() => {
+                    setDeleteModalOpen(false);
+                    setEmployeeToToggle(null);
+                }}
+                onConfirm={confirmToggleStatus}
                 title={employeeToToggle?.isActive ? 'Desativar Funcionário' : 'Ativar Funcionário'}
-                size="sm"
-            >
-                <div className="space-y-4">
-                    <p className="text-gray-600 dark:text-gray-300">
-                        {employeeToToggle?.isActive
-                            ? 'Tem certeza que deseja desativar o funcionário '
-                            : 'Tem certeza que deseja ativar o funcionário '}
-                        <strong className="text-gray-900 dark:text-white">
-                            {employeeToToggle?.name}
-                        </strong>
-                        ?
-                    </p>
-                    <div className="flex gap-3 justify-end">
-                        <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>
-                            Cancelar
-                        </Button>
-                        <Button
-                            variant={employeeToToggle?.isActive ? 'danger' : 'primary'}
-                            onClick={confirmToggleStatus}
-                        >
-                            {employeeToToggle?.isActive ? 'Desativar' : 'Ativar'}
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
+                message={`Tem certeza que deseja ${employeeToToggle?.isActive ? 'desativar' : 'ativar'} o funcionário "${employeeToToggle?.name}"?`}
+                confirmText={employeeToToggle?.isActive ? 'Desativar' : 'Ativar'}
+                variant={employeeToToggle?.isActive ? 'danger' : 'info'}
+            />
         </div>
     );
 }

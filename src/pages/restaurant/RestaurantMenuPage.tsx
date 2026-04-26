@@ -3,7 +3,7 @@ import {
     HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash,
     HiOutlineChevronRight, HiOutlineFunnel, HiOutlineCamera
 } from 'react-icons/hi2';
-import { Card, Button, Input, Modal, Badge, LoadingSpinner, Select } from '../../components/ui';
+import { Card, Button, Input, Modal, Badge, LoadingSpinner, Select, Textarea } from '../../components/ui';
 import { 
     useRestaurantMenu, useCreateMenuItem, useUpdateMenuItem, 
     useDeleteMenuItem, useToggleMenuItemAvailability 
@@ -126,16 +126,13 @@ function MenuItemModal({ open, onClose, editing }: { open: boolean; onClose: () 
                     </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição / Ingredientes</label>
-                    <textarea 
-                        className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all dark:text-white"
-                        rows={3}
-                        value={form.description}
-                        onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
-                        placeholder="Ex: Acompanha arroz, feijão e farofa..."
-                    />
-                </div>
+                <Textarea 
+                    label="Descrição / Ingredientes"
+                    placeholder="Ex: Acompanha arroz, feijão e farofa..."
+                    rows={3}
+                    value={form.description}
+                    onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+                />
 
                 <div className="flex justify-end gap-3 pt-4">
                     <Button variant="outline" type="button" onClick={onClose}>Cancelar</Button>
@@ -284,26 +281,24 @@ export default function RestaurantMenuPage() {
                     />
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 scrollbar-hidden">
-                    <button 
+                    <Button 
+                        variant={!category ? 'primary' : 'secondary'}
                         onClick={() => setCategory('')}
-                        className={cn(
-                            "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
-                            !category ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : "bg-gray-50 dark:bg-dark-700 text-gray-500 hover:bg-gray-100"
-                        )}
+                        size="sm"
+                        className={cn("rounded-lg whitespace-nowrap", !category ? "shadow-md shadow-primary-500/20" : "")}
                     >
                         Todos
-                    </button>
+                    </Button>
                     {categories.map(cat => (
-                        <button 
+                        <Button 
                             key={cat}
+                            variant={category === cat ? 'primary' : 'secondary'}
                             onClick={() => setCategory(cat)}
-                            className={cn(
-                                "px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap",
-                                category === cat ? "bg-primary-600 text-white shadow-md shadow-primary-500/20" : "bg-gray-50 dark:bg-dark-700 text-gray-500 hover:bg-gray-100"
-                            )}
+                            size="sm"
+                            className={cn("rounded-lg whitespace-nowrap", category === cat ? "shadow-md shadow-primary-500/20" : "")}
                         >
                             {cat}
-                        </button>
+                        </Button>
                     ))}
                 </div>
             </div>

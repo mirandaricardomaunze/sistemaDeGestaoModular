@@ -13,10 +13,11 @@ import {
     HiOutlineMap,
     HiOutlineCurrencyDollar,
     HiOutlineCheckCircle,
-    HiOutlineArrowDownTray,
     HiOutlineArrowPath,
     HiOutlineCalendarDays,
-    HiOutlineChartBar
+    HiOutlineChartBar,
+    HiOutlinePrinter,
+    HiOutlineTableCells
 } from 'react-icons/hi2';
 import { useLogisticsReportsSummary, useLogisticsDashboard } from '../../hooks/useLogistics';
 import { PageHeader } from '../../components/ui';
@@ -160,17 +161,17 @@ export default function LogisticsReportsPage() {
                         </Button>
                         <Button
                             variant="outline"
-                            leftIcon={<HiOutlineArrowDownTray className="w-5 h-5" />}
+                            leftIcon={<HiOutlineTableCells className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
                             onClick={() => handleExport('excel')}
                         >
-                            Gerar XLSX
+                            Excel
                         </Button>
                         <Button
-                            variant="primary"
-                            leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />}
+                            variant="outline"
+                            leftIcon={<HiOutlinePrinter className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                             onClick={() => handleExport('pdf')}
                         >
-                            {t('common.export')} PDF
+                            PDF
                         </Button>
                     </div>
                 }
@@ -178,47 +179,47 @@ export default function LogisticsReportsPage() {
 
             {/* KPI Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card variant="glass" className="p-4">
+                <Card className="bg-primary-100/40 dark:bg-primary-900/20 border border-primary-200/50 dark:border-primary-800/30 shadow-card-strong transition-all hover:scale-[1.02] p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-primary-100 dark:bg-primary-900/30">
-                            <HiOutlineTruck className="w-6 h-6 text-primary-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-primary-200/60 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 shadow-inner">
+                            <HiOutlineTruck className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">{deliveryStats?.total || 0}</p>
-                            <p className="text-xs text-gray-500">{t('logistics_module.dashboard.kpis.totalShipments')}</p>
+                            <p className="text-2xl font-black text-primary-900 dark:text-white tracking-tighter">{deliveryStats?.total || 0}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60">{t('logistics_module.dashboard.kpis.totalShipments')}</p>
                         </div>
                     </div>
                 </Card>
-                <Card variant="glass" className="p-4">
+                <Card className="bg-green-100/40 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/30 shadow-card-strong transition-all hover:scale-[1.02] p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-success-100 dark:bg-success-900/30">
-                            <HiOutlineCheckCircle className="w-6 h-6 text-success-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-200/60 dark:bg-green-900/40 text-green-700 dark:text-green-300 shadow-inner">
+                            <HiOutlineCheckCircle className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">{deliveryStats?.successRate.toFixed(1) || 0}%</p>
-                            <p className="text-xs text-gray-500">{t('logistics_module.dashboard.kpis.conversion')}</p>
+                            <p className="text-2xl font-black text-green-900 dark:text-white tracking-tighter">{deliveryStats?.successRate.toFixed(1) || 0}%</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-green-600/70 dark:text-green-400/60">{t('logistics_module.dashboard.kpis.conversion')}</p>
                         </div>
                     </div>
                 </Card>
-                <Card variant="glass" className="p-4">
+                <Card className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02] p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-warning-100 dark:bg-warning-900/30">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-warning-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-200/60 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 shadow-inner">
+                            <HiOutlineCurrencyDollar className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">{formatCurrency(deliveryStats?.totalRevenue || 0)}</p>
-                            <p className="text-xs text-gray-500">{t('logistics_module.dashboard.kpis.deliveryRevenue')}</p>
+                            <p className="text-2xl font-black text-amber-900 dark:text-white tracking-tighter">{formatCurrency(deliveryStats?.totalRevenue || 0)}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60">{t('logistics_module.dashboard.kpis.deliveryRevenue')}</p>
                         </div>
                     </div>
                 </Card>
-                <Card variant="glass" className="p-4">
+                <Card className="bg-blue-100/40 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30 shadow-card-strong transition-all hover:scale-[1.02] p-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-info-100 dark:bg-info-900/30">
-                            <HiOutlineCalendarDays className="w-6 h-6 text-info-600" />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-200/60 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 shadow-inner">
+                            <HiOutlineCalendarDays className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-2xl font-bold">{deliveryStats?.avgDeliveryHours.toFixed(1) || 0}h</p>
-                            <p className="text-xs text-gray-500">{t('logistics_module.routes.estimatedTime')}</p>
+                            <p className="text-2xl font-black text-blue-900 dark:text-white tracking-tighter">{deliveryStats?.avgDeliveryHours.toFixed(1) || 0}h</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-600/70 dark:text-blue-400/60">{t('logistics_module.routes.estimatedTime')}</p>
                         </div>
                     </div>
                 </Card>

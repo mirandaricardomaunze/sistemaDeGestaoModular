@@ -9,6 +9,7 @@ import {
     ResponsiveContainer,
     Cell,
 } from 'recharts';
+import { HiOutlinePresentationChartBar } from 'react-icons/hi2';
 import { Card } from '../../ui';
 import { formatCurrency } from '../../../utils/helpers';
 import type { ABCClassification } from '../../../hooks/useCommercialAnalytics';
@@ -28,11 +29,16 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
     const displayData = data.slice(0, maxItems);
 
     return (
-        <Card padding="lg" className="h-full">
+        <Card padding="lg">
             <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-tighter">Análise ABC (Pareto)</h3>
-                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Classificação por Receita Acumulada</p>
+                <div className="flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/25 flex items-center justify-center flex-shrink-0">
+                        <HiOutlinePresentationChartBar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    </span>
+                    <div>
+                        <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-tighter">Análise ABC (Pareto)</h3>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Classificação por Receita Acumulada</p>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     {Object.entries(CLASSIFICATION_COLORS).map(([label, color]) => (
@@ -76,13 +82,16 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
                         />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                backdropFilter: 'blur(8px)',
-                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                backdropFilter: 'blur(12px)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
                                 borderRadius: '12px',
                                 color: '#fff',
                                 fontSize: '11px',
+                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
                             }}
+                            itemStyle={{ color: '#fff', fontWeight: '600' }}
+                            labelStyle={{ color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}
                             formatter={(value: any, name?: string) => [
                                 name === 'cumulativePercentage' ? `${Number(value).toFixed(1)}%` : formatCurrency(value),
                                 name === 'cumulativePercentage' ? 'Acumulado' : 'Receita'

@@ -245,21 +245,21 @@ export default function Financial() {
             <PageHeader 
                 title="Gestão Financeira"
                 subtitle="Controle de Fluxo de Caixa, Contas a Pagar e Receber"
-                icon={<HiOutlineCurrencyDollar />}
+                icon={<HiOutlineCurrencyDollar className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
                         <Button 
                             variant="ghost" 
                             size="sm" 
                             className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
-                            leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
+                            leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                         >
                             Actualizar
                         </Button>
                         <Button 
                             size="sm" 
                             className="font-black text-[10px] uppercase tracking-widest"
-                            leftIcon={<HiOutlinePlus className="w-4 h-4" />} 
+                            leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />} 
                             onClick={() => setShowFormModal(true)}
                         >
                             Novo Lançamento
@@ -296,18 +296,20 @@ export default function Financial() {
                         <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-100/50 dark:bg-dark-800/50 p-3 rounded-lg border-none">
                             <div className="flex items-center gap-1 bg-white/50 dark:bg-dark-700/50 rounded-lg p-1 shadow-sm">
                                 {periodOptions.map((option) => (
-                                    <button
+                                    <Button
                                         key={option.value}
                                         onClick={() => setSelectedPeriod(option.value)}
+                                        variant={selectedPeriod === option.value ? 'primary' : 'ghost'}
+                                        size="sm"
                                         className={cn(
-                                            'px-6 py-2 rounded-lg text-xs font-black transition-all uppercase tracking-widest',
+                                            'px-6 font-black uppercase tracking-widest',
                                             selectedPeriod === option.value
-                                                ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-md'
-                                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                                ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-md hover:bg-white'
+                                                : ''
                                         )}
                                     >
                                         {option.label}
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         </div>
@@ -316,8 +318,8 @@ export default function Financial() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <Card padding="md" className="border-l-4 border-l-green-500">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                        <HiOutlineArrowTrendingUp className="w-6 h-6 text-green-600" />
+                                    <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-500/15 border border-transparent dark:border-green-500/30 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
+                                        <HiOutlineArrowTrendingUp className="w-6 h-6 text-green-600 dark:text-green-300" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Receitas</p>
@@ -328,8 +330,8 @@ export default function Financial() {
 
                             <Card padding="md" className="border-l-4 border-l-red-500">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                        <HiOutlineArrowTrendingDown className="w-6 h-6 text-red-600" />
+                                    <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-500/15 border border-transparent dark:border-red-500/30 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
+                                        <HiOutlineArrowTrendingDown className="w-6 h-6 text-red-600 dark:text-red-300" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Despesas</p>
@@ -340,8 +342,8 @@ export default function Financial() {
 
                             <Card padding="md" className="border-l-4 border-l-primary-500">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                        <HiOutlineArrowTrendingUp className="w-6 h-6 text-primary-600" />
+                                    <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-500/15 border border-transparent dark:border-primary-500/30 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
+                                        <HiOutlineArrowTrendingUp className="w-6 h-6 text-primary-600 dark:text-primary-300" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Saldo</p>
@@ -356,8 +358,8 @@ export default function Financial() {
 
                             <Card padding="md" className="border-l-4 border-l-yellow-500">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                        <HiOutlineArrowTrendingDown className="w-6 h-6 text-yellow-600" />
+                                    <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-500/15 border border-transparent dark:border-yellow-500/30 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
+                                        <HiOutlineArrowTrendingDown className="w-6 h-6 text-yellow-600 dark:text-yellow-300" />
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Pendentes</p>
@@ -375,7 +377,7 @@ export default function Financial() {
                                         placeholder="Buscar transaces..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
+                                        leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                                         className="bg-gray-50/50 dark:bg-dark-900 border-none shadow-sm"
                                     />
                                 </div>
@@ -456,24 +458,28 @@ export default function Financial() {
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-1">
                                                             {t.status === 'pending' && (
-                                                                <button
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
                                                                     onClick={() => handleMarkComplete(t.id)}
-                                                                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-green-600 transition-colors"
+                                                                    className="text-gray-500 hover:text-green-600"
                                                                     title="Marcar como concluído"
                                                                 >
                                                                     <HiOutlineCheck className="w-4 h-4" />
-                                                                </button>
+                                                                </Button>
                                                             )}
-                                                            <button
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
                                                                 onClick={() => {
                                                                     setTransactionToDelete(t);
                                                                     setDeleteModalOpen(true);
                                                                 }}
-                                                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-red-600 transition-colors"
+                                                                className="text-gray-500 hover:text-red-600"
                                                                 title="Excluir"
                                                             >
                                                                 <HiOutlineTrash className="w-4 h-4" />
-                                                            </button>
+                                                            </Button>
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -501,7 +507,7 @@ export default function Financial() {
 
                 {activeTab === 'settings' && (
                     <Card padding="lg" className="flex flex-col items-center justify-center py-20">
-                        <HiOutlineCog className="w-16 h-16 text-gray-300 mb-4" />
+                        <HiOutlineCog className="w-16 h-16 text-primary-600/30 dark:text-primary-400/30 mb-4" />
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">Configurações Financeiras</h3>
                         <p className="text-gray-500 text-center max-w-md">Configure categorias, contas bancárias e automaces.</p>
                     </Card>

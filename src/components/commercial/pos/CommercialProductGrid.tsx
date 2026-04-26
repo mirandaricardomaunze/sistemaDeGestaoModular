@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Input, Badge, Pagination } from '../../ui';
-import { HiOutlineSearch, HiOutlinePlus } from 'react-icons/hi';
+import { HiOutlineMagnifyingGlass, HiOutlinePlus } from 'react-icons/hi2';
 
 interface CommercialProductGridProps {
     searchInputRef: React.RefObject<HTMLInputElement | null>;
@@ -74,9 +74,10 @@ export function CommercialProductGrid({
                     value={posSearch}
                     onChange={(e) => setPosSearch(e.target.value)}
                     onKeyDown={handleBarcodeSearch}
-                    leftIcon={<HiOutlineSearch className="w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />}
+                    leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-500/70 group-focus-within:text-primary-600 dark:group-focus-within:text-primary-400 transition-colors" />}
                     autoFocus
-                    className="text-lg py-3 bg-gray-50/50 dark:bg-dark-800 border-none group-focus-within:bg-white dark:group-focus-within:bg-dark-900 transition-all font-medium"
+                    size="lg"
+                    className="bg-gray-50/50 dark:bg-dark-800 border-none group-focus-within:bg-white dark:group-focus-within:bg-dark-900 transition-all font-medium"
                 />
 
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mt-3 overflow-hidden">
@@ -167,7 +168,7 @@ export function CommercialProductGrid({
                 {displayProducts.length === 0 && (
                     <div className="col-span-full py-20 text-center flex flex-col items-center gap-4">
                         <div className="w-20 h-20 bg-gray-50 dark:bg-dark-800 rounded-full flex items-center justify-center">
-                            <HiOutlineSearch className="w-10 h-10 text-gray-300 dark:text-dark-600" />
+                            <HiOutlineMagnifyingGlass className="w-10 h-10 text-gray-300 dark:text-dark-600" />
                         </div>
                         <div>
                             <p className="text-lg font-bold text-gray-900 dark:text-white">Nenhum produto encontrado</p>

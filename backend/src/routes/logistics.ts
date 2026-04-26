@@ -3,9 +3,12 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { logisticsService } from '../services/logisticsService';
 import { ApiError } from '../middleware/error.middleware';
 import { prisma } from '../lib/prisma';
-import { emitToCompany } from '../lib/socket';
+import { emitToCompany, emitToModule } from '../lib/socket';
+import { requireModule } from '../middleware/module';
+import { emailQueue, JOB_OPTIONS } from '../queues/emailQueue';
 
 const router = Router();
+router.use(authenticate, requireModule('LOGISTICS'));
 
 // ============================================================================
 // DASHBOARD
@@ -141,12 +144,23 @@ router.post('/deliveries', authenticate, async (req: AuthRequest, res) => {
     const delivery = await logisticsService.createDelivery(req.companyId, req.body);
 
     // Socket Notification: New Delivery Assigned
-    emitToCompany(req.companyId, 'logistics:new_delivery', {
+    emitToModule(req.companyId, 'logistics', 'logistics:new_delivery', {
         id: delivery.id,
         driverId: delivery.driverId,
         destination: delivery.deliveryAddress,
         timestamp: new Date()
     });
+
+    // Notify recipient if email available
+    if (emailQueue && (delivery as any).recipientEmail) {
+        await emailQueue.add('delivery-notification', {
+            email: (delivery as any).recipientEmail,
+            recipientName: delivery.recipientName,
+            deliveryNumber: delivery.number,
+            status: delivery.status,
+            address: delivery.deliveryAddress,
+        }, JOB_OPTIONS).catch(() => {});
+    }
 
     res.status(201).json(delivery);
 });
@@ -189,6 +203,19 @@ router.put('/deliveries/:id/status', authenticate, async (req: AuthRequest, res)
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const { status, ...extra } = req.body;
     const delivery = await logisticsService.updateDeliveryStatus(req.companyId, req.params.id, status, extra);
+
+    // Notify recipient on key status changes (delivery is Result<Delivery> — unwrap .data)
+    const deliveryData = (delivery as any).data ?? delivery;
+    if (emailQueue && deliveryData.recipientEmail && ['in_transit', 'delivered', 'failed'].includes(status)) {
+        await emailQueue.add('delivery-notification', {
+            email: deliveryData.recipientEmail,
+            recipientName: deliveryData.recipientName,
+            deliveryNumber: deliveryData.number,
+            status: deliveryData.status,
+            address: deliveryData.deliveryAddress,
+        }, JOB_OPTIONS).catch(() => {});
+    }
+
     res.json(delivery);
 });
 
@@ -321,7 +348,7 @@ router.post('/incidents', authenticate, async (req: AuthRequest, res) => {
     const incident = await logisticsService.createIncident(req.companyId, req.body);
 
     // Socket Notification: High Priority Incident
-    emitToCompany(req.companyId, 'logistics:incident', {
+    emitToModule(req.companyId, 'logistics', 'logistics:incident', {
         id: incident.id,
         type: incident.type,
         vehicleId: incident.vehicleId,
@@ -342,6 +369,40 @@ router.delete('/incidents/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     await logisticsService.deleteIncident(req.companyId, req.params.id);
     res.json({ message: 'Incidente eliminado com sucesso' });
+});
+
+// ============================================================================
+// STAFF HR (Attendance & Payroll)
+// ============================================================================
+
+router.get('/hr/attendance', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await logisticsService.getStaffAttendance(req.companyId, req.query as any);
+    res.json(result);
+});
+
+router.post('/hr/attendance', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await logisticsService.recordStaffTime(req.companyId, req.body);
+    res.json(result);
+});
+
+router.get('/hr/payroll', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await logisticsService.getStaffPayroll(req.companyId, req.query as any);
+    res.json(result);
+});
+
+router.post('/hr/payroll', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await logisticsService.createStaffPayroll(req.companyId, req.body);
+    res.json(result);
+});
+
+router.patch('/hr/payroll/:id/status', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const result = await logisticsService.updateStaffPayrollStatus(req.companyId, req.params.id, req.body.status);
+    res.json(result);
 });
 
 // ============================================================================

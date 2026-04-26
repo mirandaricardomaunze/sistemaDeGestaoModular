@@ -1,12 +1,11 @@
 import { logger } from '../utils/logger';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiOutlineTrash } from 'react-icons/hi2';
 import { format } from 'date-fns';
 import { useOrders } from '../hooks/useData';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useStore } from '../stores/useStore';
-import { Modal, Button } from '../components/ui';
+import { Modal, Button, Textarea, ConfirmationModal } from '../components/ui';
 import { ordersAPI } from '../services/api';
 import {
     OrderCreationWizard,
@@ -32,6 +31,7 @@ interface ApiOrderItem {
     quantity: number;
     price: number | string;
     total: number | string;
+    productWeight?: number;
 }
 
 interface ApiTransition {
@@ -132,6 +132,7 @@ export default function Orders({ originModule }: OrdersProps) {
                     name: item.productName,
                     price: Number(item.price),
                     currentStock: 0,
+                    weight: item.productWeight || undefined,
                 } as Product,
                 quantity: item.quantity,
             })),
@@ -593,63 +594,33 @@ export default function Orders({ originModule }: OrdersProps) {
                     </div>
                 )}
             </Modal>
-            {/* Cancel Modal */}
-            <Modal
+            {/* Cancel Confirmation Modal */}
+            <ConfirmationModal
                 isOpen={showCancel}
                 onClose={() => {
                     setShowCancel(false);
                     setSelectedOrder(null);
                 }}
+                onConfirm={handleConfirmCancel}
                 title="Cancelar Encomenda"
-                size="md"
+                message={`Tem certeza que deseja cancelar a encomenda "${selectedOrder?.orderNumber}"? Esta ação recomporá o stock dos itens.`}
+                confirmText="Confirmar Cancelamento"
+                cancelText="Voltar"
+                variant="danger"
+                isLoading={false}
             >
-                <div className="space-y-4">
-                    <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-start gap-3">
-                        <div className="p-2 bg-red-100 dark:bg-red-900/40 rounded-full">
-                            <HiOutlineTrash className="w-5 h-5 text-red-600 dark:text-red-400" />
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-red-900 dark:text-red-300">Atenção!</h3>
-                            <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                                Tem certeza que deseja cancelar a encomenda <span className="font-bold">{selectedOrder?.orderNumber}</span>?
-                                Esta ação não pode ser desfeita.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Motivo do Cancelamento
-                        </label>
-                        <textarea
-                            className="w-full rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800 focus:ring-red-500 focus:border-red-500"
-                            rows={3}
-                            placeholder="Informe o motivo..."
-                            value={cancelReason}
-                            onChange={(e) => setCancelReason(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <Button
-                            variant="ghost"
-                            onClick={() => {
-                                setShowCancel(false);
-                                setSelectedOrder(null);
-                            }}
-                        >
-                            Voltar
-                        </Button>
-                        <Button
-                            variant="danger"
-                            onClick={handleConfirmCancel}
-                            disabled={!cancelReason.trim()}
-                        >
-                            Confirmar Cancelamento
-                        </Button>
-                    </div>
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Motivo do Cancelamento
+                    </label>
+                    <Textarea
+                        rows={3}
+                        placeholder="Informe o motivo..."
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                    />
                 </div>
-            </Modal>
+            </ConfirmationModal>
         </div>
     );
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card, Button, Input, Badge, LoadingSpinner, Pagination } from '../../components/ui';
+import { Card, Button, Input, Badge, LoadingSpinner, Pagination, Textarea } from '../../components/ui';
 import {
     HiOutlineUser, HiOutlineMagnifyingGlass, HiOutlineHeart, HiOutlineClipboardDocumentList,
     HiOutlinePencil, HiOutlineXMark as HiOutlineX, HiOutlineCheck, HiOutlinePhone
@@ -8,7 +8,7 @@ import {
 import { pharmacyAPI } from '../../services/api';
 import { useCustomers } from '../../hooks/useData';
 import toast from 'react-hot-toast';
-import { formatDate, formatCurrency } from '../../utils/helpers';
+import { formatDate, formatCurrency, cn } from '../../utils/helpers';
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const COMMON_ALLERGIES = ['Penicilina', 'Amoxicilina', 'Aspirina', 'Ibuprofeno', 'Sulfonamidas', 'Látex', 'Contraste iodado', 'Morfina'];
@@ -104,17 +104,35 @@ export default function PharmacyPatients() {
                                 <button
                                     key={c.id}
                                     onClick={() => { setSelectedPatient(c); setEditMode(false); setActiveTab('profile'); }}
-                                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${selectedPatient?.id === c.id ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20' : 'border-gray-100 dark:border-dark-700 hover:border-gray-300'}`}
+                                    className={cn(
+                                        "w-full text-left p-3 rounded-xl border-2 transition-all duration-300 relative overflow-hidden group",
+                                        selectedPatient?.id === c.id 
+                                            ? "border-emerald-500/50 bg-emerald-50/50 dark:bg-emerald-500/10 shadow-lg shadow-emerald-500/10" 
+                                            : "border-gray-100 dark:border-dark-700 hover:border-emerald-200 dark:hover:border-emerald-900/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-900/5"
+                                    )}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
-                                            <HiOutlineUser className="w-5 h-5 text-teal-600" />
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110",
+                                            selectedPatient?.id === c.id 
+                                                ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" 
+                                                : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                                        )}>
+                                            <HiOutlineUser className="w-5 h-5" />
                                         </div>
                                         <div className="min-w-0">
-                                            <p className="font-semibold text-sm truncate">{c.name}</p>
-                                            <p className="text-xs text-gray-500 flex items-center gap-1"><HiOutlinePhone className="w-3 h-3" /> {c.phone || ''}</p>
+                                            <p className={cn(
+                                                "font-black text-sm truncate tracking-tight",
+                                                selectedPatient?.id === c.id ? "text-emerald-900 dark:text-emerald-100" : "text-gray-900 dark:text-white"
+                                            )}>{c.name}</p>
+                                            <p className="text-[10px] font-bold text-gray-500 flex items-center gap-1 uppercase tracking-wider">
+                                                <HiOutlinePhone className="w-3.5 h-3.5" /> {c.phone || ''}
+                                            </p>
                                         </div>
                                     </div>
+                                    {selectedPatient?.id === c.id && (
+                                        <div className="absolute right-0 top-0 bottom-0 w-1 bg-emerald-500" />
+                                    )}
                                 </button>
                             ))}
                             {filtered.length === 0 && <p className="text-center text-gray-400 py-8 text-sm">Nenhum paciente encontrado</p>}
@@ -134,12 +152,24 @@ export default function PharmacyPatients() {
                     ) : (
                         <div className="space-y-4">
                             <div className="flex gap-2">
-                                <button onClick={() => setActiveTab('profile')} className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'profile' ? 'bg-teal-600 text-white shadow-lg shadow-teal-500/20' : 'bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 text-gray-600 hover:bg-teal-50 hover:text-teal-600'}`}>
-                                    <HiOutlineHeart className="w-4 h-4 inline mr-1" />Perfil Clínico
-                                </button>
-                                <button onClick={() => setActiveTab('history')} className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${activeTab === 'history' ? 'bg-teal-600 text-white shadow-lg shadow-teal-500/20' : 'bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 text-gray-600 hover:bg-teal-50 hover:text-teal-600'}`}>
-                                    <HiOutlineClipboardDocumentList className="w-4 h-4 inline mr-1" />Historial de Medicação
-                                </button>
+                                <Button
+                                    variant={activeTab === 'profile' ? 'primary' : 'outline'}
+                                    onClick={() => setActiveTab('profile')}
+                                    size="sm"
+                                    className={cn("rounded-lg font-medium transition-colors", activeTab === 'profile' ? "shadow-lg shadow-teal-500/20" : "")}
+                                    leftIcon={<HiOutlineHeart className="w-4 h-4" />}
+                                >
+                                    Perfil Clínico
+                                </Button>
+                                <Button
+                                    variant={activeTab === 'history' ? 'primary' : 'outline'}
+                                    onClick={() => setActiveTab('history')}
+                                    size="sm"
+                                    className={cn("rounded-lg font-medium transition-colors", activeTab === 'history' ? "shadow-lg shadow-teal-500/20" : "")}
+                                    leftIcon={<HiOutlineClipboardDocumentList className="w-4 h-4" />}
+                                >
+                                    Historial de Medicação
+                                </Button>
                             </div>
 
                             {activeTab === 'profile' && (
@@ -150,11 +180,35 @@ export default function PharmacyPatients() {
                                             <p className="text-sm text-gray-500">{selectedPatient.phone}</p>
                                         </div>
                                         {!editMode ? (
-                                            <Button variant="outline" size="sm" onClick={startEdit} leftIcon={<HiOutlinePencil className="w-4 h-4" />}>Editar</Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={startEdit}
+                                                className="p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest"
+                                                leftIcon={<HiOutlinePencil className="w-4 h-4" />}
+                                            >
+                                                Editar
+                                            </Button>
                                         ) : (
                                             <div className="flex gap-2">
-                                                <Button size="sm" onClick={() => updateMutation.mutate()} isLoading={updateMutation.isPending} leftIcon={<HiOutlineCheck className="w-4 h-4" />}>Guardar</Button>
-                                                <Button variant="outline" size="sm" onClick={() => setEditMode(false)} leftIcon={<HiOutlineX className="w-4 h-4" />}>Cancelar</Button>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => updateMutation.mutate()}
+                                                    isLoading={updateMutation.isPending}
+                                                    className="p-2 px-4 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 font-black text-[10px] uppercase tracking-widest"
+                                                    leftIcon={<HiOutlineCheck className="w-4 h-4" />}
+                                                >
+                                                    Guardar
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => setEditMode(false)}
+                                                    className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest"
+                                                    leftIcon={<HiOutlineX className="w-4 h-4" />}
+                                                >
+                                                    Cancelar
+                                                </Button>
                                             </div>
                                         )}
                                     </div>
@@ -167,10 +221,15 @@ export default function PharmacyPatients() {
                                                 {editMode ? (
                                                     <div className="flex gap-2 flex-wrap">
                                                         {BLOOD_TYPES.map(bt => (
-                                                            <button key={bt} onClick={() => setProfileForm((f: any) => ({ ...f, bloodType: bt }))}
-                                                                className={`px-3 py-1.5 rounded-lg text-sm font-semibold border-2 transition-colors ${profileForm.bloodType === bt ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 hover:border-gray-400'}`}>
+                                                            <Button
+                                                                key={bt}
+                                                                variant={profileForm.bloodType === bt ? 'danger' : 'outline'}
+                                                                onClick={() => setProfileForm((f: any) => ({ ...f, bloodType: bt }))}
+                                                                size="sm"
+                                                                className="rounded-lg font-semibold"
+                                                            >
                                                                 {bt}
-                                                            </button>
+                                                            </Button>
                                                         ))}
                                                     </div>
                                                 ) : (
@@ -187,10 +246,15 @@ export default function PharmacyPatients() {
                                                     <div className="space-y-2">
                                                         <div className="flex flex-wrap gap-2 mb-2">
                                                             {COMMON_ALLERGIES.map(a => (
-                                                                <button key={a} onClick={() => addAllergy(a)}
-                                                                    className={`px-2 py-1 rounded text-xs border transition-colors ${profileForm.allergies.includes(a) ? 'bg-red-100 border-red-400 text-red-700 font-medium' : 'border-gray-200 hover:border-red-300 text-gray-600'}`}>
+                                                                <Button
+                                                                    key={a}
+                                                                    variant={profileForm.allergies.includes(a) ? 'danger' : 'outline'}
+                                                                    onClick={() => addAllergy(a)}
+                                                                    size="xs"
+                                                                    className="rounded"
+                                                                >
                                                                     {a}
-                                                                </button>
+                                                                </Button>
                                                             ))}
                                                         </div>
                                                         <div className="flex gap-2">
@@ -221,10 +285,15 @@ export default function PharmacyPatients() {
                                                     <div className="space-y-2">
                                                         <div className="flex flex-wrap gap-2 mb-2">
                                                             {COMMON_CONDITIONS.map(c => (
-                                                                <button key={c} onClick={() => addCondition(c)}
-                                                                    className={`px-2 py-1 rounded text-xs border transition-colors ${profileForm.chronicConditions.includes(c) ? 'bg-amber-100 border-amber-400 text-amber-700 font-medium' : 'border-gray-200 hover:border-amber-300 text-gray-600'}`}>
+                                                                <Button
+                                                                    key={c}
+                                                                    variant={profileForm.chronicConditions.includes(c) ? 'warning' : 'outline'}
+                                                                    onClick={() => addCondition(c)}
+                                                                    size="xs"
+                                                                    className="rounded"
+                                                                >
                                                                     {c}
-                                                                </button>
+                                                                </Button>
                                                             ))}
                                                         </div>
                                                         <div className="flex gap-2">
@@ -253,9 +322,13 @@ export default function PharmacyPatients() {
                                                 <div className="grid grid-cols-1 gap-4">
                                                     <Input label="Contacto de Emergência" value={profileForm.emergencyContact} onChange={e => setProfileForm((f: any) => ({ ...f, emergencyContact: e.target.value }))} placeholder="Nome e telefone..." />
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Observações Clínicas</label>
-                                                        <textarea className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none" rows={3}
-                                                            value={profileForm.patientNotes} onChange={e => setProfileForm((f: any) => ({ ...f, patientNotes: e.target.value }))} placeholder="Notas sobre o paciente..." />
+                                                        <Textarea 
+                                                            label="Observações Clínicas"
+                                                            rows={3}
+                                                            value={profileForm.patientNotes}
+                                                            onChange={e => setProfileForm((f: any) => ({ ...f, patientNotes: e.target.value }))}
+                                                            placeholder="Notas sobre o paciente..."
+                                                        />
                                                     </div>
                                                 </div>
                                             ) : (
@@ -292,7 +365,10 @@ export default function PharmacyPatients() {
                                                             <div>
                                                                 <p className="font-semibold text-sm">{sale.saleNumber} - {formatDate(sale.createdAt)}</p>
                                                                 {sale.prescription && (
-                                                                    <div className="text-xs text-blue-600" dangerouslySetInnerHTML={{ __html: `<strong>Receita:</strong> ${sale.prescription.prescriptionNumber || sale.prescription.prescriptionNo || ''} - Dr. ${sale.prescription.prescriberName}` }} />
+                                                                    <p className="text-xs text-blue-600">
+                                                        <strong>Receita:</strong>{' '}
+                                                        {sale.prescription.prescriptionNumber || sale.prescription.prescriptionNo || ''} - Dr. {sale.prescription.prescriberName ?? ''}
+                                                    </p>
                                                                 )}
                                                             </div>
                                                             <span className="font-bold text-teal-600">{formatCurrency(Number(sale.total))}</span>

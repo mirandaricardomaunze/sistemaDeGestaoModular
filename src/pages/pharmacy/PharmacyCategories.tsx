@@ -5,14 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlinePlus,
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineTag,
-    HiOutlineColorSwatch,
+    HiOutlineSwatch,
     HiOutlineCube,
-    HiOutlineRefresh,
-} from 'react-icons/hi';
+    HiOutlineArrowPath,
+} from 'react-icons/hi2';
 import { Card, Button, Input, Modal, Pagination, usePagination, LoadingSpinner } from '../../components/ui';
 import { cn } from '../../utils/helpers';
 import type { Category } from '../../types';
@@ -189,8 +189,8 @@ export default function PharmacyCategories() {
         return (
             <div className="flex flex-col items-center justify-center h-96 gap-4">
                 <p className="text-red-500">{error}</p>
-                <Button onClick={() => refetch()}>
-                    <HiOutlineRefresh className="w-5 h-5 mr-2" />
+                <Button onClick={() => refetch()} variant="ghost" className="bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest">
+                    <HiOutlineArrowPath className="w-5 h-5 mr-2" />
                     Tentar Novamente
                 </Button>
             </div>
@@ -213,38 +213,41 @@ export default function PharmacyCategories() {
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card padding="md" className="border-l-4 border-l-teal-500 shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
-                            <HiOutlineTag className="w-6 h-6 text-teal-600" />
+                <Card padding="md" className="border-none shadow-premium bg-white dark:bg-dark-900 overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-emerald-500/10 transition-colors" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
+                            <HiOutlineTag className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500">Total Categorias</p>
-                            <p className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.total}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total Categorias</p>
+                            <p className="text-2xl font-black text-gray-900 dark:text-white leading-none mt-1">{metrics.total}</p>
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="md" className="border-l-4 border-l-green-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <HiOutlineTag className="w-6 h-6 text-green-600" />
+                <Card padding="md" className="border-none shadow-premium bg-white dark:bg-dark-900 overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-green-500/10 transition-colors" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-green-500/15 border border-green-500/20 flex items-center justify-center text-green-600 dark:text-green-400 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
+                            <HiOutlineTag className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500">Categorias Activas</p>
-                            <p className="text-2xl font-bold text-green-600">{metrics.active}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Categorias Activas</p>
+                            <p className="text-2xl font-black text-green-600 leading-none mt-1">{metrics.active}</p>
                         </div>
                     </div>
                 </Card>
 
-                <Card padding="md" className="border-l-4 border-l-blue-500">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                            <HiOutlineCube className="w-6 h-6 text-blue-600" />
+                <Card padding="md" className="border-none shadow-premium bg-white dark:bg-dark-900 overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-blue-500/10 transition-colors" />
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
+                            <HiOutlineCube className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-sm text-gray-500">Total Produtos</p>
-                            <p className="text-2xl font-bold text-blue-600">{metrics.totalProducts}</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total Produtos</p>
+                            <p className="text-2xl font-black text-blue-600 leading-none mt-1">{metrics.totalProducts}</p>
                         </div>
                     </div>
                 </Card>
@@ -256,7 +259,7 @@ export default function PharmacyCategories() {
                     placeholder="Buscar categorias..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                    leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-emerald-600" />}
                 />
             </Card>
 
@@ -339,7 +342,7 @@ export default function PharmacyCategories() {
                                         <div className="flex gap-1 justify-end">
                                             <button
                                                 onClick={() => handleEdit(category)}
-                                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-600 text-gray-500 hover:text-teal-600 transition-colors"
+                                                className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
                                                 title="Editar"
                                             >
                                                 <HiOutlinePencil className="w-4 h-4" />
@@ -349,7 +352,7 @@ export default function PharmacyCategories() {
                                                     setCategoryToDelete(category);
                                                     setDeleteModalOpen(true);
                                                 }}
-                                                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-600 text-gray-500 hover:text-red-600 transition-colors"
+                                                className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
                                                 title="Excluir"
                                             >
                                                 <HiOutlineTrash className="w-4 h-4" />
@@ -397,7 +400,7 @@ export default function PharmacyCategories() {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            <HiOutlineColorSwatch className="w-4 h-4 inline mr-1" />
+                            <HiOutlineSwatch className="w-4 h-4 inline mr-1" />
                             Cor da Categoria
                         </label>
                         <div className="flex flex-wrap gap-2">

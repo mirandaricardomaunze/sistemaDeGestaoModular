@@ -70,13 +70,13 @@ export default function Hospitality() {
     const debouncedSearch = useDebounce(search, 500);
     const [filter, setFilter] = useState<'all' | 'available' | 'occupied' | 'dirty' | 'maintenance'>('all');
 
-    const tabs: { id: MainTab; label: string; icon: React.ReactNode }[] = [
-        { id: 'rooms', label: 'Quartos', icon: <HiOutlineHome className="w-5 h-5" /> },
-        { id: 'calendar', label: 'Calendário', icon: <HiOutlineCalendar className="w-5 h-5" /> },
-        { id: 'housekeeping', label: 'Limpeza', icon: <HiOutlineSparkles className="w-5 h-5" /> },
-        { id: 'history', label: 'Histórico', icon: <HiOutlineClipboardList className="w-5 h-5" /> },
-        { id: 'management', label: 'Configuração', icon: <HiOutlineCog className="w-5 h-5" /> },
-        { id: 'dashboard', label: 'Estatísticas', icon: <HiOutlineChartBar className="w-5 h-5" /> },
+    const tabs: { id: MainTab; label: string; icon: (isActive: boolean) => React.ReactNode }[] = [
+        { id: 'rooms', label: 'Quartos', icon: (active) => <HiOutlineHome className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'calendar', label: 'Calendário', icon: (active) => <HiOutlineCalendar className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'housekeeping', label: 'Limpeza', icon: (active) => <HiOutlineSparkles className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'history', label: 'Histórico', icon: (active) => <HiOutlineClipboardList className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'management', label: 'Configuração', icon: (active) => <HiOutlineCog className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'dashboard', label: 'Estatísticas', icon: (active) => <HiOutlineChartBar className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
     ];
 
     useTranslation();
@@ -413,14 +413,14 @@ export default function Hospitality() {
             <PageHeader 
                 title="Hospedagem & Hotelaria"
                 subtitle="Controle de Ocupação, Reservas e Consumos"
-                icon={<HiOutlineBuildingOffice2 />}
+                icon={<HiOutlineBuildingOffice2 className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
                         <Button 
                             variant="ghost" 
                             size="sm" 
                             className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
-                            leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} 
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />} 
                             onClick={() => refetch()}
                         >
                             Actualizar
@@ -431,7 +431,7 @@ export default function Hospitality() {
                             <Button 
                                 size="sm" 
                                 className="font-black text-[10px] uppercase tracking-widest"
-                                leftIcon={<HiOutlineUserPlus className="w-5 h-5" />} 
+                                leftIcon={<HiOutlineUserPlus className="w-5 h-5 text-white" />} 
                                 onClick={() => { setSelectedRoom(null); setIsCheckInModalOpen(true); }}
                             >
                                 Novo Check-in
@@ -452,7 +452,7 @@ export default function Hospitality() {
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
                                 )}
                             >
-                                <span className="shrink-0">{tab.icon}</span>
+                                <span className="shrink-0">{tab.icon(activeMainTab === tab.id)}</span>
                                 <span className="hidden sm:inline-block">{tab.label}</span>
                                 <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
                             </button>
@@ -501,7 +501,7 @@ export default function Hospitality() {
 
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-400 w-5 h-5 z-10" />
                             <Input
                                 placeholder="Procurar quarto..."
                                 value={search}
@@ -513,7 +513,7 @@ export default function Hospitality() {
                             variant="primary"
                             size="sm"
                             className="font-black text-[10px] uppercase tracking-widest h-10 px-6"
-                            leftIcon={<HiOutlinePlus className="w-5 h-5" />}
+                            leftIcon={<HiOutlinePlus className="w-5 h-5 text-white" />}
                             onClick={() => setIsRoomModalOpen(true)}
                         >
                             Novo Quarto
@@ -621,7 +621,7 @@ export default function Hospitality() {
                                     <EmptyState
                                         title="Nenhum quarto encontrado"
                                         description="Tente ajustar seus filtros ou busca para encontrar o que procura."
-                                        icon={<HiOutlineHome className="w-12 h-12" />}
+                                        icon={<HiOutlineHome className="w-12 h-12 text-primary-600 dark:text-primary-400 opacity-50" />}
                                     />
                                 )}
 

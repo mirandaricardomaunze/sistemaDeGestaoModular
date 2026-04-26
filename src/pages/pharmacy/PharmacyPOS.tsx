@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, LoadingSpinner, Input, Skeleton, Card } from '../../components/ui';
+import { Button, Input, Skeleton, Card, Textarea } from '../../components/ui';
 import { usePharmacyPartners } from '../../hooks/usePharmacyPartners';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { playScanSound } from '../../utils/audio';
@@ -451,7 +451,7 @@ export default function PharmacyPOS() {
                         <Button 
                             variant="danger" 
                             size="sm" 
-                            leftIcon={<HiOutlineRefresh className="w-4 h-4" />} 
+                            leftIcon={<HiOutlineRefresh className="w-4 h-4 text-white" />} 
                             onClick={() => setShowRefundModal(true)} 
                             className="rounded-lg font-bold uppercase tracking-widest text-[10px] h-10 px-3"
                         />
@@ -463,7 +463,7 @@ export default function PharmacyPOS() {
             {allergyWarnings.length > 0 && (
                 <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-lg p-4 animate-bounce">
                     <div className="flex items-start gap-3">
-                        <HiOutlineShieldExclamation className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                        <HiOutlineShieldExclamation className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                             <p className="font-bold text-red-700 dark:text-red-400 mb-1 uppercase tracking-tighter">🚨 ALERTA DE SEGURANÇA - CONTRA-INDICAÇÃO</p>
                             {allergyWarnings.map((w, i) => <p key={i} className="text-sm text-red-600 font-medium">{w}</p>)}
@@ -528,7 +528,7 @@ export default function PharmacyPOS() {
                     <div className="bg-white dark:bg-dark-800 rounded-2xl shadow-2xl w-full max-w-lg p-8 border-4 border-amber-500 transform scale-110">
                         <div className="flex items-center gap-4 mb-6">
                             <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 animate-pulse">
-                                <HiOutlineExclamationCircle className="w-8 h-8 text-amber-600" />
+                                <HiOutlineExclamationCircle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
                             </div>
                             <div>
                                 <h3 className="font-black text-xl text-amber-900 dark:text-amber-400 tracking-tighter">RISCO DE INTERAÇÃO</h3>
@@ -571,7 +571,7 @@ export default function PharmacyPOS() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
                     <div className="bg-white dark:bg-dark-800 rounded-lg shadow-2xl w-full max-w-md p-6">
                         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                            <HiOutlineRefresh className="w-5 h-5 text-red-500" />
+                            <HiOutlineRefresh className="w-5 h-5 text-red-500 dark:text-red-400" />
                             Devolução
                         </h3>
                         <div className="space-y-4">
@@ -583,8 +583,12 @@ export default function PharmacyPOS() {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">Motivo</label>
-                                <textarea className="w-full rounded-lg border px-3 py-2 text-sm" rows={3} value={refundReason} onChange={e => setRefundReason(e.target.value)} />
+                                <Textarea 
+                                    label="Motivo"
+                                    rows={3} 
+                                    value={refundReason} 
+                                    onChange={e => setRefundReason(e.target.value)} 
+                                />
                             </div>
                         </div>
                         <div className="flex gap-2 mt-4">

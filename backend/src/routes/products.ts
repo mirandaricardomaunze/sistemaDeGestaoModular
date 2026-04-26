@@ -11,33 +11,54 @@ import {
 import { productsService } from '../services/productsService';
 import { ApiError } from '../middleware/error.middleware';
 import { emitToCompany } from '../lib/socket';
+import { prisma } from '../lib/prisma';
+
+// Maps originModule values to the CompanyModule code required
+const ORIGIN_MODULE_TO_MODULE: Record<string, string> = {
+    pharmacy:     'PHARMACY',
+    commercial:   'COMMERCIAL',
+    bottle_store: 'BOTTLE_STORE',
+    restaurant:   'RESTAURANT',
+    logistics:    'LOGISTICS',
+};
+
+async function assertOriginModuleAllowed(companyId: string, originModule: string | undefined): Promise<void> {
+    if (!originModule || originModule === 'inventory') return; // always allowed
+    const required = ORIGIN_MODULE_TO_MODULE[originModule.toLowerCase()];
+    if (!required) return; // unknown originModule — let DB filter handle it
+    const active = await prisma.companyModule.findFirst({
+        where: { companyId, moduleCode: required, isActive: true }
+    });
+    if (!active) throw ApiError.forbidden(`Módulo ${required} não está activo para esta empresa`);
+}
 
 const router = Router();
 
 // Get all products with pagination
 router.get('/', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    await assertOriginModuleAllowed(req.companyId, req.query.originModule as string | undefined);
     const result = await productsService.list(req.query, req.companyId);
     res.json(result);
 });
 
 // Get all stock movements (Global Audit Log) - MUST be before /:id route
 router.get('/stock-movements', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await productsService.getMovements(req.query, req.companyId);
     res.json(result);
 });
 
 // Get product by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const product = await productsService.getById(req.params.id, req.companyId);
     res.json(product);
 });
 
 // Get product by Barcode
 router.get('/barcode/:barcode', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const barcode = req.params.barcode;
     // Whitelist: allow only alphanumeric, hyphens and dots (no path traversal or injections)
     if (!/^[\w\-.]{1,100}$/.test(barcode)) throw ApiError.badRequest('Código de barras inválido');
@@ -47,28 +68,28 @@ router.get('/barcode/:barcode', authenticate, async (req: AuthRequest, res) => {
 
 // Get low stock products
 router.get('/alerts/low-stock', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await productsService.getLowStock(req.query, req.companyId);
     res.json(result);
 });
 
 // Get expiring soon products
 router.get('/alerts/expiring', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await productsService.getExpiring(req.query, req.companyId);
     res.json(result);
 });
 
 // Get product stock movements (Audit Trail)
 router.get('/:id/movements', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await productsService.getMovements(req.query, req.companyId, req.params.id);
     res.json(result);
 });
 
 // Create product
 router.post('/', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = createProductSchema.parse(req.body);
     const product = await productsService.create(validatedData, req.companyId);
     emitToCompany(req.companyId, 'product:created', product);
@@ -77,7 +98,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
 // Update product
 router.put('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = updateProductSchema.parse(req.body);
     const product = await productsService.update(req.params.id, validatedData, req.companyId, req.userId);
     emitToCompany(req.companyId, 'product:updated', product);
@@ -86,16 +107,16 @@ router.put('/:id', authenticate, async (req: AuthRequest, res) => {
 
 // Update stock
 router.patch('/:id/stock', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = adjustStockSchema.parse(req.body);
-    const result = await productsService.updateStock(req.params.id, validatedData, req.companyId, req.userName || 'Sistema');
+    const result = await productsService.updateStock(req.params.id, validatedData, req.companyId, req.userName!);
     emitToCompany(req.companyId, 'product:stock-updated', result);
     res.json(result);
 });
 
 // Delete product
 router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await productsService.delete(req.params.id, req.companyId);
     emitToCompany(req.companyId, 'product:deleted', { id: req.params.id });
     res.json({ message: 'Produto removido com sucesso' });
@@ -103,7 +124,7 @@ router.delete('/:id', authenticate, async (req: AuthRequest, res) => {
 
 // Bulk price adjustment
 router.post('/bulk-price-adjustment', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await productsService.bulkUpdatePrices(
         req.body,
         req.companyId,
@@ -117,7 +138,7 @@ router.post('/bulk-price-adjustment', authenticate, async (req: AuthRequest, res
 
 // GET /api/products/price-tiers/batch?ids=id1,id2,... -- Batch fetch for POS load
 router.get('/price-tiers/batch', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const ids = String(req.query.ids || '').split(',').map(s => s.trim()).filter(Boolean);
     if (ids.length === 0) { res.json({}); return; }
     const { prisma } = await import('../lib/prisma');
@@ -136,14 +157,14 @@ router.get('/price-tiers/batch', authenticate, async (req: AuthRequest, res) => 
 
 // Get price tiers for a product
 router.get('/:id/price-tiers', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const tiers = await productsService.getPriceTiers(req.params.id, req.companyId);
     res.json(tiers);
 });
 
 // Set/replace price tiers for a product
 router.put('/:id/price-tiers', authenticate, async (req: AuthRequest, res) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { tiers } = req.body;
     if (!Array.isArray(tiers)) throw ApiError.badRequest('tiers deve ser um array');
     const result = await productsService.setPriceTiers(req.params.id, tiers, req.companyId);

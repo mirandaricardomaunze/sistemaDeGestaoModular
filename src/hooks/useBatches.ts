@@ -69,7 +69,10 @@ export function useCreateBatch() {
     return useM((data: CreateBatchDto) => batchesAPI.create(data), {
         invalidates: ['batches-list', 'batches-expiring', 'batches-dashboard'],
         onSuccess: () => toast.success('Lote registado com sucesso'),
-        onError: (e: any) => toast.error(e?.response?.data?.message || e?.response?.data?.error || 'Erro ao registar lote'),
+        onError: (e: any) => {
+            const msg = e?.response?.data?.message || e?.response?.data?.error || 'Erro ao registar lote';
+            toast.error(msg);
+        },
     });
 }
 

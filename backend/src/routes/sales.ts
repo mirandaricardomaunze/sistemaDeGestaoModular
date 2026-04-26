@@ -11,7 +11,7 @@ const router = Router();
 
 // Get all sales with pagination
 router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     // Validate query
     const validatedQuery = validateSalesQuery(req.query);
@@ -22,7 +22,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
 
 // Get sale by ID
 router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(req.params.id)) throw ApiError.badRequest('ID inválido: deve ser um UUID válido');
@@ -33,20 +33,20 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
 
 // Get sales statistics (both /stats and /stats/summary for compatibility)
 router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await salesService.getStats(req.query, req.companyId);
     res.json(result);
 });
 
 router.get('/stats/summary', authenticate, async (req: AuthRequest, res: Response) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await salesService.getStats(req.query, req.companyId);
     res.json(result);
 });
 
 // Get today's sales
 router.get('/today/summary', authenticate, async (req: AuthRequest, res: Response) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     const result = await salesService.getTodaySummary(req.companyId);
     res.json(result);
@@ -54,7 +54,7 @@ router.get('/today/summary', authenticate, async (req: AuthRequest, res: Respons
 
 // Create sale (POS)
 router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     // Validate input
     const validatedData = validateCreateSale(req.body);
@@ -63,7 +63,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         validatedData,
         req.companyId,
         req.userId!,
-        req.userName || 'Sistema',
+        req.userName!,
         (req as any).ip || req.socket.remoteAddress || ''
     ) as any;
 
@@ -83,7 +83,7 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
 
 // Cancel/Void sale (POS)
 router.post('/:id/cancel', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
-    if (!req.companyId) throw ApiError.badRequest('Company not identified');
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     const { reason } = req.body;
     if (!reason) throw ApiError.badRequest('Motivo é obrigatório');

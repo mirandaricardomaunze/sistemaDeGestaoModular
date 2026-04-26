@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Button, Card, Input, Modal, Badge, Pagination, usePagination } from '../ui';
-import { HiOutlinePencil, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
+import { Button, Card, Input, Modal, Badge, Pagination, usePagination, ConfirmationModal } from '../ui';
+import { HiOutlinePencil, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
+import { cn } from '../../utils/helpers';
 import { useWarehouses } from '../../hooks/useData';
 
 export default function WarehouseManager() {
@@ -21,6 +22,7 @@ export default function WarehouseManager() {
         isActive: boolean;
         isDefault: boolean;
     } | null>(null);
+    const [warehouseToToggle, setWarehouseToToggle] = useState<{ id: string, name: string, isActive: boolean } | null>(null);
 
     const {
         currentPage,
@@ -59,9 +61,15 @@ export default function WarehouseManager() {
         setIsModalOpen(true);
     };
 
-    const handleToggleActive = async (warehouse: { id: string; isActive: boolean }) => {
+    const handleToggleActive = (warehouse: { id: string, name: string, isActive: boolean }) => {
+        setWarehouseToToggle(warehouse);
+    };
+
+    const confirmToggleActive = async () => {
+        if (!warehouseToToggle) return;
         try {
-            await updateWarehouse({ id: warehouse.id, data: { isActive: !warehouse.isActive } });
+            await updateWarehouse({ id: warehouseToToggle.id, data: { isActive: !warehouseToToggle.isActive } });
+            setWarehouseToToggle(null);
         } catch (err) {
             toast.error('Erro ao alterar status do armazém');
         }
@@ -130,24 +138,28 @@ export default function WarehouseManager() {
                                                 {warehouse.isActive ? 'Ativo' : 'Inativo'}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
-                                            <button
-                                                onClick={() => handleOpenModal(warehouse)}
-                                                className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                                title="Editar"
-                                            >
-                                                <HiOutlinePencil className="w-5 h-5" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleActive(warehouse)}
-                                                className={`p-2 rounded-lg transition-colors ${warehouse.isActive
-                                                    ? 'text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20'
-                                                    : 'text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
-                                                    }`}
-                                                title={warehouse.isActive ? 'Desativar' : 'Ativar'}
-                                            >
-                                                {warehouse.isActive ? <HiOutlineX className="w-5 h-5" /> : <HiOutlineCheck className="w-5 h-5" />}
-                                            </button>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleOpenModal(warehouse)}
+                                                    className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
+                                                    title="Editar"
+                                                >
+                                                    <HiOutlinePencil className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleToggleActive(warehouse)}
+                                                    className={cn(
+                                                        "p-2 rounded-lg transition-all border shadow-sm",
+                                                        warehouse.isActive
+                                                            ? 'bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border-red-100/50 dark:border-red-500/20'
+                                                            : 'bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border-emerald-100/50 dark:border-emerald-500/20'
+                                                    )}
+                                                    title={warehouse.isActive ? 'Desativar' : 'Ativar'}
+                                                >
+                                                    {warehouse.isActive ? <HiOutlineXMark className="w-5 h-5" /> : <HiOutlineCheck className="w-5 h-5" />}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -214,6 +226,16 @@ export default function WarehouseManager() {
                     </div>
                 </form>
             </Modal>
+            {/* Toggle Active Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={!!warehouseToToggle}
+                onClose={() => setWarehouseToToggle(null)}
+                onConfirm={confirmToggleActive}
+                title={warehouseToToggle?.isActive ? 'Desativar Armazém' : 'Ativar Armazém'}
+                message={`Tem certeza que deseja ${warehouseToToggle?.isActive ? 'desativar' : 'ativar'} o armazém "${warehouseToToggle?.name}"?`}
+                confirmText={warehouseToToggle?.isActive ? 'Desativar' : 'Ativar'}
+                variant={warehouseToToggle?.isActive ? 'danger' : 'info'}
+            />
         </div>
     );
 }

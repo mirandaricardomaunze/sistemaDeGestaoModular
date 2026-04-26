@@ -1,4 +1,4 @@
-﻿import { logger } from '../utils/logger';
+import { logger } from '../utils/logger';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -28,6 +28,7 @@ import {
 import { useAuthStore } from '../stores/useAuthStore';
 import { modulesAPI } from '../services/api';
 import { OPTIONAL_MODULES, type BusinessModule } from '../constants/modules.constants';
+import { Button, Input } from '../components/ui';
 
 // Module icons mapping
 const moduleIcons: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -63,8 +64,6 @@ export default function Register() {
     const navigate = useNavigate();
     const { register: registerUser, isLoading } = useAuthStore();
     const [currentStep, setCurrentStep] = useState(1);
-    const [showPassword] = useState(false);
-    const [showConfirmPassword] = useState(false);
     const [registerError, setRegisterError] = useState<string | null>(null);
     const [shakeForm, setShakeForm] = useState(false);
     const [modules, setModules] = useState<BusinessModule[]>([]);
@@ -144,9 +143,7 @@ export default function Register() {
         }
     };
 
-    const inputClass = (hasError?: boolean) =>
-        `block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-dark-800/50 border ${hasError ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/60'
-        } rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium`;
+
 
     const stepLabels = ['Empresa', 'Solução', 'Acesso'];
 
@@ -158,7 +155,7 @@ export default function Register() {
                     {/* Header */}
                     <div className="mb-8">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/30">
+                            <div className="w-12 h-12 rounded-lg bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/30">
                                 <HiOutlineUserAdd className="w-7 h-7 text-white" />
                             </div>
                             <div>
@@ -188,7 +185,7 @@ export default function Register() {
                                         <div className={`
                                             w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500
                                             ${currentStep >= s
-                                                ? 'bg-gradient-to-r from-primary-600 to-primary-500 border-primary-600 text-white shadow-lg shadow-primary-500/30'
+                                                ? 'bg-primary-600 border-primary-600 text-white shadow-lg shadow-primary-500/30'
                                                 : 'bg-white dark:bg-dark-900 border-slate-200 dark:border-dark-700 text-slate-400'
                                             }
                                         `}>
@@ -222,42 +219,51 @@ export default function Register() {
                                     <p className="text-xs text-slate-500 mb-4">Dados oficiais para a faturação do software.</p>
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Razão Social</label>
-                                        <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><HiOutlineOfficeBuilding className="h-5 w-5 text-slate-400" /></div>
-                                            <input className={inputClass(!!errors.companyName)} placeholder="Ex: Farmácia Sagrada Lda" {...register('companyName')} />
-                                        </div>
-                                        {errors.companyName && <p className="text-[10px] text-red-500 font-bold">{errors.companyName.message}</p>}
-                                    </div>
+                                    <Input
+                                        label="Razão Social"
+                                        placeholder="Ex: Farmácia Sagrada Lda"
+                                        leftIcon={<HiOutlineOfficeBuilding className="h-5 w-5" />}
+                                        error={errors.companyName?.message}
+                                        size="lg"
+                                        {...register('companyName')}
+                                    />
+
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">NUIT</label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><HiOutlineHashtag className="h-5 w-5 text-slate-400" /></div>
-                                                <input className={inputClass(!!errors.companyNuit)} placeholder="900000000" {...register('companyNuit')} />
-                                                {errors.companyNuit && <p className="text-[10px] text-red-500 font-bold mt-1 max-w-[150px] truncate">{errors.companyNuit.message}</p>}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Telefone</label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><HiOutlinePhone className="h-5 w-5 text-slate-400" /></div>
-                                                <input className={inputClass(!!errors.companyPhone)} placeholder="84 000 0000" {...register('companyPhone')} />
-                                            </div>
-                                        </div>
+                                        <Input
+                                            label="NUIT"
+                                            placeholder="900000000"
+                                            leftIcon={<HiOutlineHashtag className="h-5 w-5" />}
+                                            error={errors.companyNuit?.message}
+                                            size="lg"
+                                            {...register('companyNuit')}
+                                        />
+                                        <Input
+                                            label="Telefone"
+                                            placeholder="84 000 0000"
+                                            leftIcon={<HiOutlinePhone className="h-5 w-5" />}
+                                            error={errors.companyPhone?.message}
+                                            size="lg"
+                                            {...register('companyPhone')}
+                                        />
                                     </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Endereço (Sede)</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><HiOutlineLocationMarker className="h-5 w-5 text-slate-400" /></div>
-                                            <input className={inputClass(!!errors.companyAddress)} placeholder="Avenida, Cidade" {...register('companyAddress')} />
-                                        </div>
-                                    </div>
+                                    <Input
+                                        label="Endereço (Sede)"
+                                        placeholder="Avenida, Cidade"
+                                        leftIcon={<HiOutlineLocationMarker className="h-5 w-5" />}
+                                        error={errors.companyAddress?.message}
+                                        size="lg"
+                                        {...register('companyAddress')}
+                                    />
                                 </div>
-                                <button type="button" onClick={nextStep} className="w-full relative overflow-hidden group mt-6 py-4 px-6 rounded-lg bg-slate-900 dark:bg-primary-600 text-white font-bold shadow-xl hover:-translate-y-0.5 transition-all">
-                                    <span className="relative z-10 flex items-center justify-center gap-2">PRÓXIMO PASSO <HiOutlineChevronRight className="w-4 h-4" /></span>
-                                </button>
+                                <Button
+                                    type="button"
+                                    onClick={nextStep}
+                                    className="w-full relative overflow-hidden group mt-6 shadow-xl hover:-translate-y-0.5 transition-all"
+                                    size="lg"
+                                    rightIcon={<HiOutlineChevronRight className="w-4 h-4 text-white/50" />}
+                                >
+                                    PRÓXIMO PASSO
+                                </Button>
                             </div>
                         )}
 
@@ -295,8 +301,8 @@ export default function Register() {
                                 </div>
                                 {errors.moduleCode && <p className="text-[10px] text-red-500 font-bold">{errors.moduleCode.message}</p>}
                                 <div className="flex gap-3">
-                                    <button type="button" onClick={prevStep} className="flex-1 py-4 px-6 rounded-lg bg-slate-100 dark:bg-dark-800 text-slate-700 dark:text-white font-bold hover:bg-slate-200 transition-all">Voltar</button>
-                                    <button type="button" onClick={nextStep} className="flex-[2] py-4 px-6 rounded-lg bg-slate-900 dark:bg-primary-600 text-white font-bold shadow-xl hover:-translate-y-0.5 transition-all">Próximo</button>
+                                    <Button type="button" variant="secondary" onClick={prevStep} size="lg" className="flex-1">Voltar</Button>
+                                    <Button type="button" onClick={nextStep} size="lg" className="flex-[2] shadow-xl hover:-translate-y-0.5">Próximo</Button>
                                 </div>
                             </div>
                         )}
@@ -308,43 +314,49 @@ export default function Register() {
                                     <p className="text-xs text-slate-500 mb-4">A primeira conta é sempre o Super Administrador (Master).</p>
                                 </div>
                                 <div className="space-y-4">
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Nome do Administrador</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><HiOutlineUser className="h-5 w-5 text-slate-400" /></div>
-                                            <input className={inputClass(!!errors.name)} placeholder="Rui Silva" {...register('name')} />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Email Login</label>
-                                        <div className="relative">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><HiOutlineMail className="h-5 w-5 text-slate-400" /></div>
-                                            <input type="email" className={inputClass(!!errors.email)} placeholder="admin@multicore.co.mz" {...register('email')} />
-                                        </div>
-                                    </div>
+                                    <Input
+                                        label="Nome do Administrador"
+                                        placeholder="Rui Silva"
+                                        leftIcon={<HiOutlineUser className="h-5 w-5" />}
+                                        error={errors.name?.message}
+                                        size="lg"
+                                        {...register('name')}
+                                    />
+                                    <Input
+                                        label="Email Login"
+                                        type="email"
+                                        placeholder="admin@multicore.co.mz"
+                                        leftIcon={<HiOutlineMail className="h-5 w-5" />}
+                                        error={errors.email?.message}
+                                        size="lg"
+                                        {...register('email')}
+                                    />
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-1.5">
-                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Senha Segura</label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><HiOutlineLockClosed className="h-5 w-5 text-slate-400" /></div>
-                                                <input type={showPassword ? 'text' : 'password'} className={inputClass(!!errors.password)} placeholder="••••••••" {...register('password')} />
-                                            </div>
-                                        </div>
-                                        <div className="space-y-1.5">
-                                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Confirmar</label>
-                                            <div className="relative">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><HiOutlineLockClosed className="h-5 w-5 text-slate-400" /></div>
-                                                <input type={showConfirmPassword ? 'text' : 'password'} className={inputClass(!!errors.confirmPassword)} placeholder="••••••••" {...register('confirmPassword')} />
-                                            </div>
-                                            {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold truncate">{errors.confirmPassword.message}</p>}
-                                        </div>
+                                        <Input
+                                            label="Senha Segura"
+                                            type="password"
+                                            placeholder="••••••••"
+                                            leftIcon={<HiOutlineLockClosed className="h-5 w-5" />}
+                                            error={errors.password?.message}
+                                            size="lg"
+                                            {...register('password')}
+                                        />
+                                        <Input
+                                            label="Confirmar"
+                                            type="password"
+                                            placeholder="••••••••"
+                                            leftIcon={<HiOutlineLockClosed className="h-5 w-5" />}
+                                            error={errors.confirmPassword?.message}
+                                            size="lg"
+                                            {...register('confirmPassword')}
+                                        />
                                     </div>
                                 </div>
                                 <div className="flex gap-3 pt-2">
-                                    <button type="button" onClick={prevStep} disabled={isLoading} className="flex-1 py-4 px-6 rounded-lg bg-slate-100 dark:bg-dark-800 text-slate-700 dark:text-white font-bold hover:bg-slate-200 transition-all opacity-80 disabled:opacity-50">Voltar</button>
-                                    <button type="submit" disabled={isLoading} className="flex-[2] py-4 px-6 rounded-lg bg-slate-900 dark:bg-primary-600 text-white font-bold shadow-xl hover:-translate-y-0.5 transition-all text-sm">
-                                        {isLoading ? 'CONFIGURANDO...' : 'FINALIZAR REGISTO'}
-                                    </button>
+                                    <Button type="button" variant="secondary" onClick={prevStep} disabled={isLoading} size="lg" className="flex-1 opacity-80 disabled:opacity-50">Voltar</Button>
+                                    <Button type="submit" isLoading={isLoading} size="lg" className="flex-[2] shadow-xl hover:-translate-y-0.5 text-sm">
+                                        FINALIZAR REGISTO
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -370,14 +382,14 @@ export default function Register() {
                         alt="Cyber Background" 
                         className="w-full h-full object-cover opacity-30 mix-blend-overlay"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-primary-900/80 to-accent-900/90 mix-blend-multiply"></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent"></div>
+                    <div className="absolute inset-0 bg-primary-950/90 mix-blend-multiply"></div>
+                    <div className="absolute inset-0 bg-slate-900/30"></div>
                 </div>
 
                 <div className="relative z-10 w-full max-w-2xl px-12 animate-slide-up" style={{ animationDelay: '0.2s' }}>
                     <h2 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-6">
                         Inove mais Rápido.<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-300">Cresça sem Limites.</span>
+                        <span className="text-primary-400">Cresça sem Limites.</span>
                     </h2>
                     <p className="text-lg text-slate-300 mb-10 max-w-lg">
                         Adquira a plataforma tecnológica do futuro para o seu negócio. Registe-se e desfrute do Multicore ERP num ambiente SaaS poderoso e escalável.

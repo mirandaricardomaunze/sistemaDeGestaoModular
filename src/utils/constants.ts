@@ -50,5 +50,7 @@ export const priorityLabels: Record<string, string> = {
 };
 
 export const statusLabels: Record<string, string> = {
+    in_stock: 'Em Stock',
+    low_stock: 'Stock Baixo',
     out_of_stock: 'Sem Estoque',
 };

@@ -96,6 +96,60 @@ export class InvoicesService {
                 }
             }
 
+            // ====================================================================
+            // SERVER-SIDE AUTHORITATIVE CALCULATION
+            // Fetch real prices from DB and recalculate all totals.
+            // Never trust frontend-provided subtotal/tax/total.
+            // ====================================================================
+            const productIds = items.map((i: any) => i.productId).filter(Boolean);
+            const productPriceMap = new Map<string, number>();
+
+            if (productIds.length > 0) {
+                const products = await tx.product.findMany({
+                    where: { id: { in: productIds }, companyId },
+                    select: { id: true, name: true, price: true }
+                });
+                for (const p of products) {
+                    productPriceMap.set(p.id, Number(p.price));
+                }
+            }
+
+            // Fetch company IVA rate for server-side tax calculation
+            const companyCfg = await tx.companySettings.findFirst({
+                where: { companyId },
+                select: { ivaRate: true }
+            });
+            const ivaRate = Number(companyCfg?.ivaRate ?? 16) / 100;
+
+            // Verify and recalculate each item
+            const verifiedItems = items.map((item: any) => {
+                if (item.productId && productPriceMap.has(item.productId)) {
+                    const dbPrice = productPriceMap.get(item.productId)!;
+                    // Use DB price as authoritative when available and > 0
+                    if (dbPrice > 0 && Math.abs(dbPrice - item.unitPrice) > 0.01) {
+                        logger.warn('Invoice price mismatch detected', {
+                            productId: item.productId,
+                            frontendPrice: item.unitPrice,
+                            dbPrice,
+                            companyId
+                        });
+                        item.unitPrice = dbPrice;
+                    }
+                }
+                const computedTotal = (item.unitPrice * item.quantity) - (item.discount || 0);
+                return { ...item, total: Math.round(computedTotal * 100) / 100 };
+            });
+
+            const computedSubtotal = verifiedItems.reduce((sum: number, item: any) => sum + item.total, 0);
+            const computedDiscount = data.discount || 0;
+            const computedTax = Math.round((computedSubtotal - computedDiscount) * ivaRate * 100) / 100;
+            const computedTotal = Math.round((computedSubtotal - computedDiscount + computedTax) * 100) / 100;
+
+            // Use server-computed values
+            const finalSubtotal = computedSubtotal;
+            const finalTax = computedTax;
+            const finalTotal = computedTotal;
+
             // Validate customer credit limit for direct invoices (not linked to an order)
             if (!data.orderId && data.customerId) {
                 const customer = await tx.customer.findFirst({
@@ -107,12 +161,12 @@ export class InvoicesService {
                         _sum: { amountDue: true }
                     });
                     const currentExposure = Number((openInvoicesTotal._sum as any).amountDue ?? 0);
-                    if (currentExposure + data.total > Number(customer.creditLimit)) {
+                    if (currentExposure + finalTotal > Number(customer.creditLimit)) {
                         throw ApiError.badRequest(
                             `Limite de crédito excedido para "${customer.name}". ` +
                             `Limite: ${Number(customer.creditLimit).toFixed(2)} MT, ` +
                             `Em dívida: ${currentExposure.toFixed(2)} MT, ` +
-                            `Esta fatura: ${data.total.toFixed(2)} MT.`
+                            `Esta fatura: ${finalTotal.toFixed(2)} MT.`
                         );
                     }
                 }
@@ -120,14 +174,14 @@ export class InvoicesService {
 
             // Validate stock for manual invoices (those not linked to an existing order/sale)
             if (!data.orderId) {
-                for (const item of items) {
+                for (const item of verifiedItems) {
                     if (item.productId) {
                         await stockService.validateAvailability(item.productId, item.quantity, companyId, tx);
                     }
                 }
             } else {
                 // For Orders, release reservation and deduct effective stock
-                for (const item of items) {
+                for (const item of verifiedItems) {
                     if (item.productId) {
                         await stockService.releaseReservation(item.productId, item.quantity, companyId, tx);
                         await stockService.recordMovement({
@@ -145,6 +199,22 @@ export class InvoicesService {
                 }
             }
 
+            /* 
+            // Fetch product weights to snapshot on invoice items
+            const productWeightMap = new Map<string, number>();
+            if (productIds.length > 0) {
+                const products = await tx.product.findMany({
+                    where: { id: { in: productIds } },
+                    select: { id: true, weight: true } as any
+                });
+                for (const p of products) {
+                    if (p.weight !== null && p.weight !== undefined) {
+                        productWeightMap.set(p.id, Number(p.weight));
+                    }
+                }
+            }
+            */
+
             const invoice = await tx.invoice.create({
                 data: {
                     invoiceNumber,
@@ -157,22 +227,23 @@ export class InvoicesService {
                     customerPhone: data.customerPhone || null,
                     customerAddress: data.customerAddress || null,
                     customerDocument: data.customerNuit || null,
-                    subtotal: data.subtotal,
-                    discount: data.discount || 0,
-                    tax: data.taxAmount || 0,
-                    total: data.total,
-                    amountDue: data.total,
+                    subtotal: finalSubtotal,
+                    discount: computedDiscount,
+                    tax: finalTax,
+                    total: finalTotal,
+                    amountDue: finalTotal,
                     dueDate: data.dueDate ? new Date(data.dueDate) : new Date(),
                     notes: data.notes || null,
                     terms: data.paymentTerms || null,
                     items: {
-                        create: items.map((item: any) => ({
+                        create: verifiedItems.map((item: any) => ({
                             productId: item.productId || null,
                             description: item.description,
                             quantity: item.quantity,
                             unitPrice: item.unitPrice,
                             discount: item.discount || 0,
-                            total: item.total
+                            total: item.total,
+                            unitWeight: null
                         }))
                     }
                 },
@@ -181,7 +252,7 @@ export class InvoicesService {
 
             // Deduct stock for manual invoices
             if (!data.orderId) {
-                for (const item of items) {
+                for (const item of verifiedItems) {
                     if (item.productId) {
                         await stockService.recordMovement({
                             productId: item.productId,
@@ -199,18 +270,17 @@ export class InvoicesService {
             }
 
             // Register IVA Retention
-            if (data.taxAmount > 0) {
+            if (finalTax > 0) {
                 try {
-                    const [ivaConfig, companyCfg] = await Promise.all([
-                        tx.taxConfig.findFirst({ where: { type: 'iva', isActive: true, companyId } }),
-                        tx.companySettings.findFirst({ where: { companyId } })
+                    const [ivaConfig] = await Promise.all([
+                        tx.taxConfig.findFirst({ where: { type: 'iva', isActive: true, companyId } })
                     ]);
-                    const effectiveRate = ivaConfig?.rate ?? companyCfg?.ivaRate ?? 16;
+                    const effectiveRate = ivaConfig?.rate ?? Number(companyCfg?.ivaRate ?? 16);
                     await tx.taxRetention.create({
                         data: {
                             companyId, type: 'iva', entityType: 'invoice', entityId: invoice.id,
                             period: new Date().toISOString().slice(0, 7),
-                            baseAmount: data.subtotal, retainedAmount: data.taxAmount,
+                            baseAmount: finalSubtotal, retainedAmount: finalTax,
                             rate: effectiveRate, description: `IVA da Fatura ${invoiceNumber}`
                         }
                     });
@@ -229,7 +299,7 @@ export class InvoicesService {
             const existingInvoice = await tx.invoice.findFirst({
                 where: { id, companyId }
             });
-            if (!existingInvoice) throw ApiError.notFound('Invoice not found');
+            if (!existingInvoice) throw ApiError.notFound('Fatura não encontrada');
 
             // Update invoice
             const invoice = await tx.invoice.update({

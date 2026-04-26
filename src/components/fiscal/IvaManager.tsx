@@ -1,5 +1,5 @@
-﻿import { useState } from 'react';
-import { Card, Button, Input, Modal, Badge } from '../ui';
+import { useState } from 'react';
+import { Card, Button, Input, Modal, Badge, ConfirmationModal } from '../ui';
 import {
     HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineRefresh,
     HiOutlineCheckCircle, HiOutlineChartBar, HiOutlineCurrencyDollar,
@@ -335,18 +335,17 @@ export default function IvaManager() {
             {modalOpen && <IvaRateModal open={modalOpen} onClose={handleCloseModal} editing={editing} />}
 
             {deleting && (
-                <Modal isOpen={!!deleting} onClose={() => setDeleting(null)} title="Eliminar Taxa IVA">
-                    <p className="text-gray-600 dark:text-gray-400 mb-2">
-                        Tem a certeza que quer eliminar a taxa <strong>{deleting.name}</strong> ({Number(deleting.rate)}%)?
-                    </p>
-                    <p className="text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2 mb-6">
-                        Apenas possível se não estiver em uso em produtos.
-                    </p>
-                    <div className="flex justify-end gap-3">
-                        <Button variant="outline" onClick={() => setDeleting(null)}>Cancelar</Button>
-                        <Button variant="danger" onClick={handleDelete} isLoading={deleteRate.isLoading}>Eliminar</Button>
-                    </div>
-                </Modal>
+                <ConfirmationModal
+                    isOpen={!!deleting}
+                    onClose={() => setDeleting(null)}
+                    onConfirm={handleDelete}
+                    title="Eliminar Taxa IVA"
+                    message={`Tem a certeza que deseja eliminar a taxa "${deleting.name}" (${Number(deleting.rate)}%)? Esta ação apenas é possível se a taxa não estiver em uso em produtos.`}
+                    confirmText="Eliminar"
+                    cancelText="Cancelar"
+                    variant="danger"
+                    isLoading={deleteRate.isLoading}
+                />
             )}
         </div>
     );

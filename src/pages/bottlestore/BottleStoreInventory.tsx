@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Card, Button, Input, Badge, EmptyState, Modal, Select } from '../../components/ui';
+import { Card, Button, Input, Badge, EmptyState, Modal, Select, PageHeader } from '../../components/ui';
 import { HiOutlineSearch, HiOutlineRefresh, HiOutlineCube, HiOutlinePlus, HiOutlineMinus, HiOutlinePrinter, HiOutlineDownload, HiOutlineArchive, HiOutlineTag, HiOutlineTrash } from 'react-icons/hi';
 import { useProducts } from '../../hooks/useData';
 import Pagination from '../../components/ui/Pagination';
@@ -210,29 +210,29 @@ export default function BottleStoreInventory() {
 
     return (
         <div className="flex flex-col gap-6 p-4 pb-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 className="text-2xl font-bold dark:text-white">Gestão de Stock</h2>
-                    <p className="text-gray-500">Controlo de inventário de bebidas</p>
-                </div>
-                <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => setShowPrintReport(true)} leftIcon={<HiOutlinePrinter className="w-5 h-5" />}>Imprimir Inventário</Button>
-                    <Button variant="outline" onClick={() => refetch()}>
-                        <HiOutlineRefresh className="w-4 h-4 mr-2" />
-                        Atualizar
-                    </Button>
-                    <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 gap-1 border border-gray-200 dark:border-dark-700">
-                        <Button variant="ghost" size="sm" onClick={handleExportExcel}>
-                            <HiOutlineDownload className="w-4 h-4 mr-1 text-green-600" />
-                            Excel
+            <PageHeader 
+                title="Gestão de Stock Garrafeira"
+                subtitle="Controlo de inventário de bebidas"
+                icon={<HiOutlineCube className="text-primary-600 dark:text-primary-400" />}
+                actions={
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Button variant="outline" onClick={() => setShowPrintReport(true)} leftIcon={<HiOutlinePrinter className="w-5 h-5 text-primary-600 dark:text-primary-400" />}>Imprimir Inventário</Button>
+                        <Button variant="outline" onClick={() => refetch()} leftIcon={<HiOutlineRefresh className="w-4 h-4 text-primary-600 dark:text-primary-400" />}>
+                            Atualizar
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={handleExportPDF}>
-                            <HiOutlinePrinter className="w-4 h-4 mr-1 text-red-600" />
-                            PDF
-                        </Button>
+                        <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 gap-1 border border-gray-200 dark:border-dark-700">
+                            <Button variant="ghost" size="sm" onClick={handleExportExcel}>
+                                <HiOutlineDownload className="w-4 h-4 mr-1 text-green-600 dark:text-green-400" />
+                                Excel
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={handleExportPDF}>
+                                <HiOutlinePrinter className="w-4 h-4 mr-1 text-red-600 dark:text-red-400" />
+                                PDF
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             <Card padding="md">
                 <div className="flex flex-col md:flex-row gap-4">
