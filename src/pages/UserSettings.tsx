@@ -26,13 +26,12 @@ import {
     HiOutlinePlus,
     HiOutlineBuildingOffice2,
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, ConfirmationModal, Textarea, Pagination, usePagination } from '../components/ui';
+import { Card, Button, Input, Select, ConfirmationModal, Textarea, Pagination, usePagination, PageHeader } from '../components/ui';
 import { useStore } from '../stores/useStore';
 import { useAuthStore, roleLabels } from '../stores/useAuthStore';
 import { SegmentedControl } from '../components/common/SegmentedControl';
 import { authAPI, adminAPI } from '../services/api';
 import type { BusinessType } from '../types';
-import { cn } from '../utils/helpers';
 import toast from 'react-hot-toast';
 
 // Company Schema
@@ -473,30 +472,25 @@ export default function Settings() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {t('settings.title')}
-                </h1>
-                <p className="text-gray-500 dark:text-gray-400">
-                    {t('settings.systemSettings')}
-                </p>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-2 border-b border-gray-200 dark:border-dark-700 pb-4 overflow-x-auto scrollbar-hidden">
-                {tabs.map((tab) => (
-                    <Button
-                        key={tab.id}
-                        variant={activeTab === tab.id ? 'premium' : 'ghost'}
-                        size="sm"
-                        onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                        leftIcon={<tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-white" : "text-primary-600 dark:text-primary-400")} />}
-                    >
-                        {tab.label}
-                    </Button>
-                ))}
-            </div>
+            <PageHeader
+                title={t('settings.title')}
+                subtitle={t('settings.systemSettings')}
+                icon={<HiOutlineCog className="w-8 h-8" />}
+                tabs={
+                    <div className="flex overflow-x-auto scrollbar-hidden">
+                        <SegmentedControl
+                            options={tabs.map(t => ({
+                                label: t.label,
+                                value: t.id,
+                                icon: t.icon
+                            }))}
+                            value={activeTab}
+                            onChange={(val) => setActiveTab(val)}
+                            size="md"
+                        />
+                    </div>
+                }
+            />
 
             {/* Profile Settings */}
             {activeTab === 'profile' && (

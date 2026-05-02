@@ -5,10 +5,10 @@ import { cn } from '../../utils/helpers';
 // Button Component
 // ============================================================================
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'warning' | 'premium';
-type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'action';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'warning' | 'premium';
+export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'action';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: ButtonVariant;
     size?: ButtonSize;
     isLoading?: boolean;

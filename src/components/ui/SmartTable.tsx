@@ -8,13 +8,11 @@ import {
     type OnChangeFn,
     type Table as TanStackTable
 } from '@tanstack/react-table';
-import { 
-    DataTable, 
-    Pagination, 
-    Card, 
-    Input, 
-    Button,
-} from './index';
+import { DataTable } from './DataTable';
+import { Pagination } from './Pagination';
+import { Card } from './Card';
+import { Input } from './Input';
+import { Button } from './Button';
 import { ExportButton } from '../common/ExportButton';
 import { HiOutlineMagnifyingGlass, HiOutlineArrowPath } from 'react-icons/hi2';
 import { useCompanySettings } from '../../hooks/useSettings';

@@ -16,7 +16,9 @@ import {
     HiOutlineArrowTrendingUp,
     HiOutlineStar
 } from 'react-icons/hi2';
-import { Card, Badge, Button } from '../../ui';
+import { Card } from '../../ui/Card';
+import { Badge } from '../../ui/Badge';
+import { Button } from '../../ui/Button';
 import { employeesAPI } from '../../../services/api';
 import type { Employee } from '../../../types';
 import { logger } from '../../../utils/logger';

@@ -440,7 +440,7 @@ export default function PharmacyReports() {
                             </TableContainer>
                             {reportData.pagination && (
                                 <div className="p-4 border-t dark:border-dark-700">
-                                    <Pagination currentPage={page} totalItems={reportData.pagination.total} itemsPerPage={limit} onPageChange={p => handleGenerateReport(p)} />
+                                    <Pagination currentPage={page} totalItems={reportData.pagination.total} itemsPerPage={limit} onPageChange={(p: number) => handleGenerateReport(p)} />
                                 </div>
                             )}
                         </Card>

@@ -1,6 +1,7 @@
 import React, { type ReactNode } from 'react';
 import { flexRender, type Table as TanStackTable } from '@tanstack/react-table';
-import { Button, LoadingOverlay } from './index';
+import { Button } from './Button';
+import { LoadingOverlay } from './Loading';
 import { EmptyState } from './EmptyState';
 import { cn } from '../../utils/helpers';
 import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';

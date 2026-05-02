@@ -8,7 +8,7 @@ import { logger } from '../../utils/logger';
 
 import { useState, useRef, useEffect } from 'react';
 import { HiOutlineDownload, HiOutlineDocumentText, HiOutlineTable } from 'react-icons/hi';
-import { Button } from '../ui';
+import { Button } from '../ui/Button';
 import type { ExportOptions, ExportFormat } from '../../utils/exportUtils';
 import { exportData } from '../../utils/exportUtils';
 import { useStore } from '../../stores/useStore';

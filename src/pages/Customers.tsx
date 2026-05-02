@@ -19,7 +19,15 @@ import {
     HiOutlineUsers,
     HiOutlineEye
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer, PageHeader } from '../components/ui';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
+import { Modal } from '../components/ui/Modal';
+import { Badge } from '../components/ui/Badge';
+import { Pagination } from '../components/ui/Pagination';
+import { TableContainer } from '../components/ui/DataTable';
+import { PageHeader } from '../components/ui/PageHeader';
 import { MetricCard } from '../components/common/ModuleMetricCard';
 import { ExportCustomersButton } from '../components/common/ExportButton';
 import { formatCurrency, cn } from '../utils/helpers';

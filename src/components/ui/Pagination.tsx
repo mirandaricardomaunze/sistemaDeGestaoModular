@@ -18,7 +18,7 @@ interface PaginationProps {
     className?: string;
 }
 
-export default function Pagination({
+export function Pagination({
     currentPage,
     totalItems,
     itemsPerPage,
@@ -210,3 +210,5 @@ export function usePagination<T>(items: T[] | undefined | null, initialItemsPerP
         resetToFirstPage,
     };
 }
+
+export default Pagination;

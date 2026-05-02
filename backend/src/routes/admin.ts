@@ -225,8 +225,24 @@ router.get('/users', authenticate, requireSuperAdmin, async (req: AuthRequest, r
 
 router.patch('/users/:id/status', authenticate, requireSuperAdmin, async (req: AuthRequest, res) => {
     const { isActive } = z.object({ isActive: z.boolean() }).parse(req.body);
+    const targetId = req.params.id;
+
+    if (targetId === req.userId) {
+        throw ApiError.badRequest('Não pode alterar o estado da sua própria conta');
+    }
+
+    const target = await prisma.user.findUnique({
+        where: { id: targetId },
+        select: { id: true, role: true },
+    });
+    if (!target) throw ApiError.notFound('Utilizador não encontrado');
+
+    if (target.role === 'super_admin' && !isActive) {
+        throw ApiError.forbidden('Não é permitido desativar outro super administrador');
+    }
+
     const updated = await prisma.user.update({
-        where: { id: req.params.id },
+        where: { id: targetId },
         data: { isActive },
         select: { id: true, name: true, email: true, isActive: true },
     });

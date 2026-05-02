@@ -19,6 +19,8 @@ import { adminAPI } from '../../services/api';
 import { Card, Pagination } from '../../components/ui';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import toast from 'react-hot-toast';
+import { useUser } from '../../stores/useAuthStore';
 
 type Tab = 'overview' | 'companies' | 'users' | 'activity' | 'system';
 
@@ -114,6 +116,7 @@ const ACTION_LABELS: Record<string, string> = {
 
 const SuperAdminDashboard: React.FC = () => {
     const navigate = useNavigate();
+    const currentUser = useUser();
     const [tab, setTab] = useState<Tab>('overview');
 
     // data states
@@ -214,11 +217,25 @@ const SuperAdminDashboard: React.FC = () => {
         }
     };
 
-    const handleUserStatus = async (id: string, current: boolean) => {
-        setTogglingId(id);
+    const handleUserStatus = async (user: User) => {
+        if (user.id === currentUser?.id) {
+            toast.error('Não pode alterar o estado da sua própria conta');
+            return;
+        }
+        if (user.role === 'super_admin' && user.isActive) {
+            toast.error('Não é permitido desativar outro super administrador');
+            return;
+        }
+        const action = user.isActive ? 'desativar' : 'ativar';
+        if (!window.confirm(`Tem a certeza que pretende ${action} o utilizador "${user.name}"?`)) return;
+
+        setTogglingId(user.id);
         try {
-            await adminAPI.toggleUserStatus(id, !current);
+            await adminAPI.toggleUserStatus(user.id, !user.isActive);
+            toast.success(`Utilizador ${user.isActive ? 'desativado' : 'ativado'} com sucesso`);
             await loadUsers();
+        } catch (e: any) {
+            toast.error(e.response?.data?.message || 'Erro ao alterar estado do utilizador');
         } finally {
             setTogglingId(null);
         }
@@ -535,17 +552,30 @@ const SuperAdminDashboard: React.FC = () => {
                                                     {u.lastLoginAt ? formatDistanceToNow(new Date(u.lastLoginAt), { addSuffix: true, locale: ptBR }) : 'Nunca'}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <button
-                                                        disabled={togglingId === u.id}
-                                                        onClick={() => handleUserStatus(u.id, u.isActive)}
-                                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
-                                                            u.isActive
-                                                                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100'
-                                                                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100'
-                                                        }`}
-                                                    >
-                                                        {togglingId === u.id ? '...' : u.isActive ? 'Desativar' : 'Ativar'}
-                                                    </button>
+                                                    {(() => {
+                                                        const isSelf = u.id === currentUser?.id;
+                                                        const isProtectedSuper = u.role === 'super_admin' && u.isActive;
+                                                        const blocked = isSelf || isProtectedSuper;
+                                                        const title = isSelf
+                                                            ? 'Não pode alterar a sua própria conta'
+                                                            : isProtectedSuper
+                                                                ? 'Não é permitido desativar outro super administrador'
+                                                                : '';
+                                                        return (
+                                                            <button
+                                                                disabled={togglingId === u.id || blocked}
+                                                                title={title}
+                                                                onClick={() => handleUserStatus(u)}
+                                                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                                                                    u.isActive
+                                                                        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100'
+                                                                        : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100'
+                                                                }`}
+                                                            >
+                                                                {togglingId === u.id ? '...' : u.isActive ? 'Desativar' : 'Ativar'}
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </td>
                                             </tr>
                                         ))}

@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { Button, Card, Input, Modal, Badge, Pagination, usePagination, ConfirmationModal } from '../ui';
+import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { Input } from '../ui/Input';
+import { Modal } from '../ui/Modal';
+import { Badge } from '../ui/Badge';
+import { Pagination, usePagination } from '../ui/Pagination';
+import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { HiOutlinePencil, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 import { cn } from '../../utils/helpers';

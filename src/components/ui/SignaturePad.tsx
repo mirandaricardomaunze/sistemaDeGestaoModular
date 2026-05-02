@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Button } from './index';
+import { Button } from './Button';
 import { HiOutlineTrash, HiOutlineCheck } from 'react-icons/hi2';
 import { useTranslation } from 'react-i18next';
 

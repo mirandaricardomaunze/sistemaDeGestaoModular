@@ -575,8 +575,8 @@ export default function Hospitality() {
                                         currentPage={historyPage}
                                         totalItems={historyMeta?.total || 0}
                                         itemsPerPage={historyPageSize}
-                                        onPageChange={(page) => setHistoryPage(page)}
-                                        onItemsPerPageChange={(size) => setHistoryPageSize(size)}
+                                        onPageChange={(page: number) => setHistoryPage(page)}
+                                        onItemsPerPageChange={(size: number) => setHistoryPageSize(size)}
                                     />
                                 </div>
                             </div>
@@ -630,8 +630,8 @@ export default function Hospitality() {
                                         currentPage={roomPaginationMeta?.page || 1}
                                         totalItems={roomPaginationMeta?.total || 0}
                                         itemsPerPage={pageSize}
-                                        onPageChange={(page) => setPage(page)}
-                                        onItemsPerPageChange={(size) => setPageSize(size)}
+                                        onPageChange={(page: number) => setPage(page)}
+                                        onItemsPerPageChange={(size: number) => setPageSize(size)}
                                     />
                                 </div>
                             </div>

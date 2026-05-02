@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { cn } from '../../utils/helpers';
 import { Button } from './Button';
 
@@ -10,7 +10,7 @@ interface EmptyStateProps {
         label: string;
         onClick: () => void;
         icon?: ReactNode;
-    };
+    } | ReactNode;
     className?: string;
 }
 
@@ -31,9 +31,13 @@ export function EmptyState({ icon, title, description, action, className }: Empt
                 </p>
             )}
             {action && (
-                <Button onClick={action.onClick} leftIcon={action.icon}>
-                    {action.label}
-                </Button>
+                React.isValidElement(action) ? (
+                    action
+                ) : (
+                    <Button onClick={(action as any).onClick} leftIcon={(action as any).icon}>
+                        {(action as any).label}
+                    </Button>
+                )
             )}
         </div>
     );

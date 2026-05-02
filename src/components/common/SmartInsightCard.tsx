@@ -12,7 +12,9 @@ import {
     HiOutlineUsers,
     HiOutlineCurrencyDollar
 } from 'react-icons/hi';
-import { Card, Badge, Button } from '../ui';
+import { Card } from '../ui/Card';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
 import { cn } from '../../utils/helpers';
 import type { SmartInsight } from '../../hooks/useSmartInsights';
 
