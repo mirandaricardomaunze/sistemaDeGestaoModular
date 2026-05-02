@@ -11,24 +11,24 @@ const PALETTE: Record<string, {
     iconBg: string; iconColor: string;
     accent: string;
 }> = {
-    primary:   { cardBg: 'bg-indigo-50/60 dark:bg-indigo-950/30',   cardBorder: 'border border-indigo-100/80 dark:border-indigo-500/20',   iconBg: 'bg-indigo-100 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/25',   iconColor: 'text-indigo-600 dark:text-indigo-300',   accent: 'bg-indigo-500' },
-    indigo:    { cardBg: 'bg-indigo-50/60 dark:bg-indigo-950/30',   cardBorder: 'border border-indigo-100/80 dark:border-indigo-500/20',   iconBg: 'bg-indigo-100 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/25',   iconColor: 'text-indigo-600 dark:text-indigo-300',   accent: 'bg-indigo-500' },
-    success:   { cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30',  cardBorder: 'border border-emerald-100/80 dark:border-emerald-500/20',  iconBg: 'bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25',  iconColor: 'text-emerald-600 dark:text-emerald-300',  accent: 'bg-emerald-500' },
-    green:     { cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30',  cardBorder: 'border border-emerald-100/80 dark:border-emerald-500/20',  iconBg: 'bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25',  iconColor: 'text-emerald-600 dark:text-emerald-300',  accent: 'bg-emerald-500' },
-    emerald:   { cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30',  cardBorder: 'border border-emerald-100/80 dark:border-emerald-500/20',  iconBg: 'bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25',  iconColor: 'text-emerald-600 dark:text-emerald-300',  accent: 'bg-emerald-500' },
-    warning:   { cardBg: 'bg-amber-50/60 dark:bg-amber-950/30',    cardBorder: 'border border-amber-100/80 dark:border-amber-500/20',      iconBg: 'bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25',        iconColor: 'text-amber-600 dark:text-amber-300',      accent: 'bg-amber-500' },
-    amber:     { cardBg: 'bg-amber-50/60 dark:bg-amber-950/30',    cardBorder: 'border border-amber-100/80 dark:border-amber-500/20',      iconBg: 'bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25',        iconColor: 'text-amber-600 dark:text-amber-300',      accent: 'bg-amber-500' },
-    yellow:    { cardBg: 'bg-amber-50/60 dark:bg-amber-950/30',    cardBorder: 'border border-amber-100/80 dark:border-amber-500/20',      iconBg: 'bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25',        iconColor: 'text-amber-600 dark:text-amber-300',      accent: 'bg-amber-500' },
-    danger:    { cardBg: 'bg-red-50/60 dark:bg-red-950/30',      cardBorder: 'border border-red-100/80 dark:border-red-500/20',          iconBg: 'bg-red-100 dark:bg-red-500/15 border border-red-200 dark:border-red-500/25',                iconColor: 'text-red-600 dark:text-red-300',          accent: 'bg-red-500' },
-    red:       { cardBg: 'bg-red-50/60 dark:bg-red-950/30',      cardBorder: 'border border-red-100/80 dark:border-red-500/20',          iconBg: 'bg-red-100 dark:bg-red-500/15 border border-red-200 dark:border-red-500/25',                iconColor: 'text-red-600 dark:text-red-300',          accent: 'bg-red-500' },
-    info:      { cardBg: 'bg-blue-50/60 dark:bg-blue-950/30',     cardBorder: 'border border-blue-100/80 dark:border-blue-500/20',        iconBg: 'bg-blue-100 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/25',            iconColor: 'text-blue-600 dark:text-blue-300',        accent: 'bg-blue-500' },
-    blue:      { cardBg: 'bg-blue-50/60 dark:bg-blue-950/30',     cardBorder: 'border border-blue-100/80 dark:border-blue-500/20',        iconBg: 'bg-blue-100 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/25',            iconColor: 'text-blue-600 dark:text-blue-300',        accent: 'bg-blue-500' },
-    cyan:      { cardBg: 'bg-cyan-50/60 dark:bg-cyan-950/30',     cardBorder: 'border border-cyan-100/80 dark:border-cyan-500/20',        iconBg: 'bg-cyan-100 dark:bg-cyan-500/15 border border-cyan-200 dark:border-cyan-500/25',            iconColor: 'text-cyan-600 dark:text-cyan-300',        accent: 'bg-cyan-500' },
-    purple:    { cardBg: 'bg-purple-50/60 dark:bg-purple-950/30',   cardBorder: 'border border-purple-100/80 dark:border-purple-500/20',    iconBg: 'bg-purple-100 dark:bg-purple-500/15 border border-purple-200 dark:border-purple-500/25',    iconColor: 'text-purple-600 dark:text-purple-300',    accent: 'bg-purple-500' },
-    violet:    { cardBg: 'bg-violet-50/60 dark:bg-violet-950/30',   cardBorder: 'border border-violet-100/80 dark:border-violet-500/20',    iconBg: 'bg-violet-100 dark:bg-violet-500/15 border border-violet-200 dark:border-violet-500/25',    iconColor: 'text-violet-600 dark:text-violet-300',    accent: 'bg-violet-500' },
-    teal:      { cardBg: 'bg-teal-50/60 dark:bg-teal-950/30',     cardBorder: 'border border-teal-100/80 dark:border-teal-500/20',        iconBg: 'bg-teal-100 dark:bg-teal-500/15 border border-teal-200 dark:border-teal-500/25',            iconColor: 'text-teal-600 dark:text-teal-300',        accent: 'bg-teal-500' },
-    orange:    { cardBg: 'bg-orange-50/60 dark:bg-orange-950/30',   cardBorder: 'border border-orange-100/80 dark:border-orange-500/20',    iconBg: 'bg-orange-100 dark:bg-orange-500/15 border border-orange-200 dark:border-orange-500/25',    iconColor: 'text-orange-600 dark:text-orange-300',    accent: 'bg-orange-500' },
-    slate:     { cardBg: 'bg-slate-50/60 dark:bg-slate-900/40',    cardBorder: 'border border-slate-200/80 dark:border-slate-600/20',      iconBg: 'bg-slate-100 dark:bg-slate-500/15 border border-slate-200 dark:border-slate-500/25',        iconColor: 'text-slate-600 dark:text-slate-300',      accent: 'bg-slate-500' },
+    primary:   { cardBg: 'bg-indigo-50 dark:bg-indigo-950/30',   cardBorder: 'border border-indigo-200 dark:border-indigo-500/20',   iconBg: 'bg-indigo-100 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/25',   iconColor: 'text-indigo-600 dark:text-indigo-300',   accent: 'bg-indigo-500' },
+    indigo:    { cardBg: 'bg-indigo-50 dark:bg-indigo-950/30',   cardBorder: 'border border-indigo-200 dark:border-indigo-500/20',   iconBg: 'bg-indigo-100 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/25',   iconColor: 'text-indigo-600 dark:text-indigo-300',   accent: 'bg-indigo-500' },
+    success:   { cardBg: 'bg-emerald-50 dark:bg-emerald-950/30',  cardBorder: 'border border-emerald-200 dark:border-emerald-500/20',  iconBg: 'bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25',  iconColor: 'text-emerald-600 dark:text-emerald-300',  accent: 'bg-emerald-500' },
+    green:     { cardBg: 'bg-emerald-50 dark:bg-emerald-950/30',  cardBorder: 'border border-emerald-200 dark:border-emerald-500/20',  iconBg: 'bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25',  iconColor: 'text-emerald-600 dark:text-emerald-300',  accent: 'bg-emerald-500' },
+    emerald:   { cardBg: 'bg-emerald-50 dark:bg-emerald-950/30',  cardBorder: 'border border-emerald-200 dark:border-emerald-500/20',  iconBg: 'bg-emerald-100 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/25',  iconColor: 'text-emerald-600 dark:text-emerald-300',  accent: 'bg-emerald-500' },
+    warning:   { cardBg: 'bg-amber-50 dark:bg-amber-950/30',    cardBorder: 'border border-amber-200 dark:border-amber-500/20',      iconBg: 'bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25',        iconColor: 'text-amber-600 dark:text-amber-300',      accent: 'bg-amber-500' },
+    amber:     { cardBg: 'bg-amber-50 dark:bg-amber-950/30',    cardBorder: 'border border-amber-200 dark:border-amber-500/20',      iconBg: 'bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25',        iconColor: 'text-amber-600 dark:text-amber-300',      accent: 'bg-amber-500' },
+    yellow:    { cardBg: 'bg-amber-50 dark:bg-amber-950/30',    cardBorder: 'border border-amber-200 dark:border-amber-500/20',      iconBg: 'bg-amber-100 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/25',        iconColor: 'text-amber-600 dark:text-amber-300',      accent: 'bg-amber-500' },
+    danger:    { cardBg: 'bg-red-50 dark:bg-red-950/30',      cardBorder: 'border border-red-200 dark:border-red-500/20',          iconBg: 'bg-red-100 dark:bg-red-500/15 border border-red-200 dark:border-red-500/25',                iconColor: 'text-red-600 dark:text-red-300',          accent: 'bg-red-500' },
+    red:       { cardBg: 'bg-red-50 dark:bg-red-950/30',      cardBorder: 'border border-red-200 dark:border-red-500/20',          iconBg: 'bg-red-100 dark:bg-red-500/15 border border-red-200 dark:border-red-500/25',                iconColor: 'text-red-600 dark:text-red-300',          accent: 'bg-red-500' },
+    info:      { cardBg: 'bg-blue-50 dark:bg-blue-950/30',     cardBorder: 'border border-blue-200 dark:border-blue-500/20',        iconBg: 'bg-blue-100 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/25',            iconColor: 'text-blue-600 dark:text-blue-300',        accent: 'bg-blue-500' },
+    blue:      { cardBg: 'bg-blue-50 dark:bg-blue-950/30',     cardBorder: 'border border-blue-200 dark:border-blue-500/20',        iconBg: 'bg-blue-100 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-500/25',            iconColor: 'text-blue-600 dark:text-blue-300',        accent: 'bg-blue-500' },
+    cyan:      { cardBg: 'bg-cyan-50 dark:bg-cyan-950/30',     cardBorder: 'border border-cyan-200 dark:border-cyan-500/20',        iconBg: 'bg-cyan-100 dark:bg-cyan-500/15 border border-cyan-200 dark:border-cyan-500/25',            iconColor: 'text-cyan-600 dark:text-cyan-300',        accent: 'bg-cyan-500' },
+    purple:    { cardBg: 'bg-purple-50 dark:bg-purple-950/30',   cardBorder: 'border border-purple-200 dark:border-purple-500/20',    iconBg: 'bg-purple-100 dark:bg-purple-500/15 border border-purple-200 dark:border-purple-500/25',    iconColor: 'text-purple-600 dark:text-purple-300',    accent: 'bg-purple-500' },
+    violet:    { cardBg: 'bg-violet-50 dark:bg-violet-950/30',   cardBorder: 'border border-violet-200 dark:border-violet-500/20',    iconBg: 'bg-violet-100 dark:bg-violet-500/15 border border-violet-200 dark:border-violet-500/25',    iconColor: 'text-violet-600 dark:text-violet-300',    accent: 'bg-violet-500' },
+    teal:      { cardBg: 'bg-teal-50 dark:bg-teal-950/30',     cardBorder: 'border border-teal-200 dark:border-teal-500/20',        iconBg: 'bg-teal-100 dark:bg-teal-500/15 border border-teal-200 dark:border-teal-500/25',            iconColor: 'text-teal-600 dark:text-teal-300',        accent: 'bg-teal-500' },
+    orange:    { cardBg: 'bg-orange-50 dark:bg-orange-950/30',   cardBorder: 'border border-orange-200 dark:border-orange-500/20',    iconBg: 'bg-orange-100 dark:bg-orange-500/15 border border-orange-200 dark:border-orange-500/25',    iconColor: 'text-orange-600 dark:text-orange-300',    accent: 'bg-orange-500' },
+    slate:     { cardBg: 'bg-slate-50 dark:bg-slate-900/40',    cardBorder: 'border border-slate-300 dark:border-slate-600/20',      iconBg: 'bg-slate-100 dark:bg-slate-500/15 border border-slate-200 dark:border-slate-500/25',        iconColor: 'text-slate-600 dark:text-slate-300',      accent: 'bg-slate-500' },
 };
 
 
@@ -41,28 +41,56 @@ function getPalette(color: string) {
 interface MetricCardProps {
     icon: ReactNode;
     color?: string;
-    value: ReactNode;
+    value: any;
     label: string;
     growth?: number;
     badge?: ReactNode;
     className?: string;
+    isCurrency?: boolean;
+    isLoading?: boolean;
 }
 
-export function MetricCard({ icon, color = 'primary', value, label, growth, badge, className }: MetricCardProps) {
+export function MetricCard({ 
+    icon, 
+    color = 'primary', 
+    value, 
+    label, 
+    growth, 
+    badge, 
+    className,
+    isCurrency = false,
+    isLoading = false
+}: MetricCardProps) {
     const p = getPalette(color);
+
+    const formattedValue = isLoading 
+        ? '...' 
+        : isCurrency 
+            ? new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(Number(value) || 0)
+            : value;
 
     return (
         <div className={cn(
-            'relative group overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all duration-300',
-            p.cardBg, p.cardBorder, className
+            'relative group overflow-hidden rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgb(0,0,0,0.12)] transition-all duration-500 backdrop-blur-xl',
+            'hover:-translate-y-1.5 active:scale-[0.98] border border-slate-200/60 dark:border-white/5',
+            p.cardBg, className
         )}>
-            <div className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                    <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300', p.iconBg, p.iconColor)}>
+            {/* Subtle inner glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+            
+            <div className="p-5 relative z-10">
+                <div className="flex items-center justify-between mb-5">
+                    <div className={cn(
+                        'w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm transition-all duration-500 group-hover:rotate-6',
+                        p.iconBg, p.iconColor
+                    )}>
                         {icon}
                     </div>
                     {growth !== undefined ? (
-                        <div className={cn('flex items-center gap-1 text-xs font-black uppercase tracking-widest', growth >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                        <div className={cn(
+                            'px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter flex items-center gap-1',
+                            growth >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 text-red-600 dark:text-red-400'
+                        )}>
                             {growth >= 0
                                 ? <HiOutlineArrowTrendingUp className="w-3.5 h-3.5" />
                                 : <HiOutlineArrowTrendingDown className="w-3.5 h-3.5" />}
@@ -72,10 +100,22 @@ export function MetricCard({ icon, color = 'primary', value, label, growth, badg
                         <div className="scale-90 origin-right">{badge}</div>
                     ) : null}
                 </div>
-                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{value}</p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold mt-0.5">{label}</p>
+                
+                <div className="space-y-1">
+                    <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tight tabular-nums">
+                        {formattedValue}
+                    </p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest font-black opacity-80">
+                        {label}
+                    </p>
+                </div>
             </div>
-            <div className={cn('absolute bottom-0 left-0 h-0.5 transition-all duration-500 group-hover:w-full w-8', p.accent)} />
+            
+            {/* Elegant accent line */}
+            <div className={cn(
+                'absolute bottom-0 left-0 h-1 transition-all duration-700 ease-out w-0 group-hover:w-full opacity-60',
+                p.accent
+            )} />
         </div>
     );
 }
@@ -96,7 +136,7 @@ export function StatCard({ icon, color = 'success', value, label, sublabel, clas
 
     return (
         <div className={cn(
-            'relative group overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all duration-300',
+            'relative group overflow-hidden rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all duration-500 backdrop-blur-xl active:scale-[0.98]',
             p.cardBg, p.cardBorder, className
         )}>
             <div className="p-5 flex items-center gap-4">

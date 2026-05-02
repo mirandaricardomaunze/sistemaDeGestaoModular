@@ -21,8 +21,10 @@ export interface PaginatedResponse<T> {
  * Extract pagination parameters from request query
  */
 export function getPaginationParams(query: any): { page: number; limit: number; skip: number } {
-    const page = Math.max(1, parseInt(query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(query.limit as string) || 50));
+    const pageRaw = parseInt(query.page as string);
+    const limitRaw = parseInt(query.limit as string);
+    const page = isNaN(pageRaw) ? 1 : Math.max(1, pageRaw);
+    const limit = isNaN(limitRaw) ? 50 : Math.min(2000, Math.max(1, limitRaw));
     const skip = (page - 1) * limit;
 
     return { page, limit, skip };
@@ -62,3 +64,45 @@ export function createPaginatedResponse<T>(
         pagination: buildPaginationMeta(page, limit, total),
     };
 }
+
+/**
+ * Parse comma-separated `fields` query param into a Prisma select object.
+ * Returns null when the caller did not request specific fields, signalling
+ * "use the default include/select".
+ *
+ * Example:
+ *   ?fields=id,name,price       -> { id: true, name: true, price: true }
+ *   ?fields=id,supplier.name    -> { id: true, supplier: { select: { name: true } } }
+ *
+ * The `allowed` set is mandatory: any field outside the allowlist is dropped
+ * to prevent clients from probing private columns. The primary key is always
+ * forced into the projection so React Query can keep stable cache entries.
+ */
+export function parseFields(
+    raw: unknown,
+    allowed: ReadonlyArray<string>,
+    primaryKey: string = 'id'
+): Record<string, any> | null {
+    if (typeof raw !== 'string' || !raw.trim()) return null;
+
+    const allowSet = new Set(allowed);
+    const select: Record<string, any> = {};
+
+    for (const token of raw.split(',').map(s => s.trim()).filter(Boolean)) {
+        if (!allowSet.has(token)) continue;
+        if (token.includes('.')) {
+            const [parent, child] = token.split('.', 2);
+            if (!select[parent] || select[parent] === true) {
+                select[parent] = { select: {} };
+            }
+            select[parent].select[child] = true;
+        } else {
+            select[token] = true;
+        }
+    }
+
+    if (Object.keys(select).length === 0) return null;
+    select[primaryKey] = true;
+    return select;
+}
+

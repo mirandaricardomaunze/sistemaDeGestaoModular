@@ -21,6 +21,7 @@ import {
 import type { Room, Booking } from '../../types';
 import { useStore } from '../../stores/useStore';
 import { cn } from '../../utils/helpers';
+import { SegmentedControl } from '../../components/common/SegmentedControl';
 import {
     HiOutlineHome,
     HiOutlineMagnifyingGlass,
@@ -229,18 +230,14 @@ export default function HotelRooms() {
                 icon={<HiOutlineBuildingOffice2 className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex gap-3">
-                        <Button
-                            variant={activeView === 'operational' ? 'primary' : 'ghost'}
-                            onClick={() => setActiveView('operational')}
-                        >
-                            Operacional
-                        </Button>
-                        <Button
-                            variant={activeView === 'management' ? 'primary' : 'ghost'}
-                            onClick={() => setActiveView('management')}
-                        >
-                            Gestão
-                        </Button>
+                        <SegmentedControl
+                            options={[
+                                { value: 'operational', label: 'Operacional' },
+                                { value: 'management', label: 'Gestão' },
+                            ]}
+                            value={activeView}
+                            onChange={(val) => setActiveView(val as RoomView)}
+                        />
                         <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={() => refetch()} />
                     </div>
                 }
@@ -250,22 +247,18 @@ export default function HotelRooms() {
                 <>
                     {/* Filters Toolbar */}
                     <Card padding="md" className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                        <div className="flex flex-wrap gap-2">
-                            {(['all', 'available', 'occupied', 'dirty', 'maintenance'] as const).map((s) => (
-                                <button
-                                    key={s}
-                                    onClick={() => setFilter(s)}
-                                    className={cn(
-                                        "px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                                        filter === s
-                                            ? "bg-primary-600 text-white shadow-lg shadow-primary-200 dark:shadow-none"
-                                            : "bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-dark-600"
-                                    )}
-                                >
-                                    {s === 'all' ? t('common.all') : t(`hotel_module.rooms.statuses.${s}`)}
-                                </button>
-                            ))}
-                        </div>
+                        <SegmentedControl
+                            options={([
+                                { value: 'all', label: t('common.all') },
+                                { value: 'available', label: t('hotel_module.rooms.statuses.available') },
+                                { value: 'occupied', label: t('hotel_module.rooms.statuses.occupied') },
+                                { value: 'dirty', label: t('hotel_module.rooms.statuses.dirty') },
+                                { value: 'maintenance', label: t('hotel_module.rooms.statuses.maintenance') },
+                            ])}
+                            value={filter}
+                            onChange={(val) => setFilter(val as any)}
+                            size="sm"
+                        />
                         <div className="relative w-full md:w-72">
                             <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <Input

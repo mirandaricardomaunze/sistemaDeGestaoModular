@@ -13,8 +13,10 @@ import {
     HiOutlineDocumentChartBar as HiOutlineDocumentReport, HiOutlineArrowDownTray as HiOutlineDownload, HiOutlineArrowTrendingUp as HiOutlineTrendingUp,
     HiOutlineCurrencyDollar, HiOutlineCube, HiOutlinePrinter,
     HiOutlineChartBar, HiOutlineTableCells as HiOutlineTable, HiOutlineUsers, HiOutlineTruck,
+    HiOutlineExclamationCircle,
 } from 'react-icons/hi2';
 import { Card, Button, Input, LoadingSpinner, TableContainer, PageHeader } from '../../components/ui';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 import Pagination from '../../components/ui/Pagination';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
 import { useStore } from '../../stores/useStore';
@@ -143,19 +145,39 @@ export default function PharmacyReports() {
 
     const summary = reportData.summary || {};
 
-    const handleExport = (type: 'pdf' | 'excel') => {
+    const handleExport = (type: 'pdf' | 'excel' | 'print') => {
         if (!isReportGenerated) { toast.error('Gere o relatório antes de exportar!'); return; }
         const periodLabel = `${period.start || 'Início'} a ${period.end || 'Fim'}`;
-        if (type === 'pdf') {
+        if (type === 'pdf' || type === 'print') {
+            const action = type === 'print' ? 'print' : 'save';
             if (reportType === 'sales' || reportType === 'profitability') {
-                generatePharmacySalesReport(reportData.sales, periodLabel, companySettings);
+                generatePharmacySalesReport(reportData.sales, periodLabel, {
+                    name: companySettings.companyName,
+                    companyName: companySettings.companyName,
+                    address: companySettings.address,
+                    phone: companySettings.phone,
+                    email: companySettings.email,
+                    logo: companySettings.logo,
+                    nuit: companySettings.taxId,
+                    taxId: companySettings.taxId
+                }, action);
             } else if (reportType === 'stock') {
                 generatePharmacyStockReport(
                     { items: reportData.medications, summary: reportData.summary },
-                    companySettings
+                    {
+                        name: companySettings.companyName,
+                        companyName: companySettings.companyName,
+                        address: companySettings.address,
+                        phone: companySettings.phone,
+                        email: companySettings.email,
+                        logo: companySettings.logo,
+                        nuit: companySettings.taxId,
+                        taxId: companySettings.taxId
+                    },
+                    action
                 );
             }
-            toast.success('PDF gerado!');
+            toast.success(type === 'print' ? 'A preparar impressão...' : 'PDF gerado!');
         } else {
             // CSV export
             let rows: string[][] = [];
@@ -234,7 +256,7 @@ export default function PharmacyReports() {
                     className="mb-4"
                     actions={
                         <>
-                            <Button variant="ghost" className="bg-gray-50/50 dark:bg-dark-700 text-gray-500 hover:text-teal-600 font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => window.print()}>Imprimir</Button>
+                            <Button variant="ghost" className="bg-gray-50/50 dark:bg-dark-700 text-gray-500 hover:text-teal-600 font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => handleExport('print')}>Imprimir</Button>
                             <Button variant="ghost" className="bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={() => handleExport('excel')}>Excel</Button>
                             <Button variant="primary" className="bg-teal-500 hover:bg-teal-600 shadow-lg shadow-teal-500/20 font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={() => handleExport('pdf')}>PDF</Button>
                         </>
@@ -244,13 +266,15 @@ export default function PharmacyReports() {
 
             {/* Filters */}
             <Card className="p-4 print:hidden">
-                <div className="flex flex-wrap items-center gap-3">
-                    <Input type="date" value={period.start} onChange={e => setPeriod({ ...period, start: e.target.value })} className="w-36" />
-                    <span className="text-gray-400">até</span>
-                    <Input type="date" value={period.end} onChange={e => setPeriod({ ...period, end: e.target.value })} className="w-36" />
+                <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center h-10 gap-2 bg-gray-50 dark:bg-dark-700/50 p-1.5 rounded-lg border border-gray-100 dark:border-dark-600">
+                        <Input type="date" value={period.start} onChange={e => setPeriod({ ...period, start: e.target.value })} className="w-36 border-none bg-transparent shadow-none focus:ring-0 h-full" />
+                        <span className="text-[10px] font-black uppercase tracking-tighter text-gray-400 px-1">até</span>
+                        <Input type="date" value={period.end} onChange={e => setPeriod({ ...period, end: e.target.value })} className="w-36 border-none bg-transparent shadow-none focus:ring-0 h-full" />
+                    </div>
 
                     {/* Report type selector */}
-                    <div className="flex gap-1 flex-wrap">
+                    <div className="flex gap-2 flex-wrap">
                         {REPORT_OPTIONS.map(opt => {
                             const Icon = opt.icon;
                             return (
@@ -258,7 +282,7 @@ export default function PharmacyReports() {
                                     key={opt.value}
                                     onClick={() => { setReportType(opt.value as ReportType); setIsReportGenerated(false); }}
                                     className={cn(
-                                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm',
+                                        'flex items-center gap-1.5 px-3 h-10 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border shadow-sm',
                                         reportType === opt.value
                                             ? 'bg-teal-500 text-white border-teal-500 shadow-teal-500/20 scale-105'
                                             : 'bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400 border-gray-100 dark:border-dark-700 hover:border-teal-400'
@@ -272,16 +296,16 @@ export default function PharmacyReports() {
                     </div>
 
                     {/* View toggle */}
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1 ml-auto">
-                        <button onClick={() => setViewMode('charts')} className={cn('p-2 rounded-md', viewMode === 'charts' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
+                    <div className="flex items-center h-10 gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1 ml-auto">
+                        <button onClick={() => setViewMode('charts')} className={cn('p-2 h-full aspect-square rounded-md flex items-center justify-center', viewMode === 'charts' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
                             <HiOutlineChartBar className="w-4 h-4" />
                         </button>
-                        <button onClick={() => setViewMode('table')} className={cn('p-2 rounded-md', viewMode === 'table' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
+                        <button onClick={() => setViewMode('table')} className={cn('p-2 h-full aspect-square rounded-md flex items-center justify-center', viewMode === 'table' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
                             <HiOutlineTable className="w-4 h-4" />
                         </button>
                     </div>
 
-                    <Button variant="primary" onClick={() => handleGenerateReport(1)} disabled={isGenerating}>
+                    <Button variant="primary" className="h-10 px-6" onClick={() => handleGenerateReport(1)} disabled={isGenerating}>
                         {isGenerating ? <><LoadingSpinner size="sm" /> A gerar...</> : 'Gerar Relatório'}
                     </Button>
                 </div>
@@ -304,50 +328,33 @@ export default function PharmacyReports() {
                 <>
                     {/* KPI Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Card padding="md" className="bg-teal-100/40 dark:bg-teal-900/20 border border-teal-200/50 dark:border-teal-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="w-10 h-10 rounded-xl bg-teal-200/60 dark:bg-teal-900/40 border border-teal-500/20 flex items-center justify-center text-teal-700 dark:text-teal-300 font-black shadow-inner group-hover:scale-110 transition-transform">
-                                    <HiOutlineCurrencyDollar className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-teal-600/70 dark:text-teal-400/60">Receita Total</p>
-                                    <p className="text-xl font-black text-teal-900 dark:text-white leading-none mt-1">{formatCurrency(summary.totalRevenue || 0)}</p>
-                                </div>
-                            </div>
-                        </Card>
-                        <Card padding="md" className="bg-emerald-100/40 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="w-10 h-10 rounded-xl bg-emerald-200/60 dark:bg-emerald-900/40 border border-emerald-500/20 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-black shadow-inner group-hover:scale-110 transition-transform">
-                                    <HiOutlineTrendingUp className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70 dark:text-emerald-400/60">Lucro Bruto</p>
-                                    <p className="text-xl font-black text-emerald-700 dark:text-white leading-none mt-1">{formatCurrency(summary.totalProfit || 0)}</p>
-                                </div>
-                            </div>
-                        </Card>
-                        <Card padding="md" className="bg-blue-100/40 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="w-10 h-10 rounded-xl bg-blue-200/60 dark:bg-blue-900/40 border border-blue-500/20 flex items-center justify-center text-blue-700 dark:text-blue-300 font-black shadow-inner group-hover:scale-110 transition-transform">
-                                    <HiOutlineChartBar className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-600/70 dark:text-blue-400/60">Margem Média</p>
-                                    <p className="text-xl font-black text-blue-900 dark:text-white leading-none mt-1">{(summary.margin || 0).toFixed(1)}%</p>
-                                </div>
-                            </div>
-                        </Card>
-                        <Card padding="md" className="bg-purple-100/40 dark:bg-purple-900/20 border border-purple-200/50 dark:border-purple-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
-                            <div className="flex items-center gap-4 relative z-10">
-                                <div className="w-10 h-10 rounded-xl bg-purple-200/60 dark:bg-purple-900/40 border border-purple-500/20 flex items-center justify-center text-purple-700 dark:text-purple-300 font-black shadow-inner group-hover:scale-110 transition-transform">
-                                    <HiOutlineTable className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-purple-600/70 dark:text-purple-400/60">Ticket Médio</p>
-                                    <p className="text-xl font-black text-purple-900 dark:text-white leading-none mt-1">{formatCurrency(summary.avgTicket || 0)}</p>
-                                </div>
-                            </div>
-                        </Card>
+                        <MetricCard
+                            label="Receita Total"
+                            value={summary.totalRevenue}
+                            icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
+                            color="teal"
+                            isCurrency
+                        />
+                        <MetricCard
+                            label="Lucro Bruto"
+                            value={summary.totalProfit}
+                            icon={<HiOutlineTrendingUp className="w-5 h-5" />}
+                            color="emerald"
+                            isCurrency
+                        />
+                        <MetricCard
+                            label="Margem Média"
+                            value={`${(summary.margin || 0).toFixed(1)}%`}
+                            icon={<HiOutlineChartBar className="w-5 h-5" />}
+                            color="blue"
+                        />
+                        <MetricCard
+                            label="Ticket Médio"
+                            value={summary.avgTicket}
+                            icon={<HiOutlineTable className="w-5 h-5" />}
+                            color="purple"
+                            isCurrency
+                        />
                     </div>
 
                     {viewMode === 'charts' ? (
@@ -447,22 +454,32 @@ export default function PharmacyReports() {
             {isReportGenerated && reportType === 'stock' && (
                 <>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Card className="p-5 border-l-4 border-blue-500">
-                            <p className="text-xs font-bold uppercase text-blue-600">Total Produtos</p>
-                            <p className="text-2xl font-black">{summary.totalProducts || 0}</p>
-                        </Card>
-                        <Card className="p-5 border-l-4 border-teal-500">
-                            <p className="text-xs font-bold uppercase text-teal-600">Valor em Stock</p>
-                            <p className="text-2xl font-black">{formatCurrency(summary.totalValue || 0)}</p>
-                        </Card>
-                        <Card className="p-5 border-l-4 border-orange-500">
-                            <p className="text-xs font-bold uppercase text-orange-600">Stock Baixo</p>
-                            <p className="text-2xl font-black">{summary.lowStockCount || 0}</p>
-                        </Card>
-                        <Card className="p-5 border-l-4 border-emerald-500">
-                            <p className="text-xs font-bold uppercase text-emerald-600">Custo Total</p>
-                            <p className="text-2xl font-black">{formatCurrency(summary.totalCost || 0)}</p>
-                        </Card>
+                        <MetricCard
+                            label="Total Produtos"
+                            value={summary.totalProducts}
+                            icon={<HiOutlineCube className="w-5 h-5" />}
+                            color="blue"
+                        />
+                        <MetricCard
+                            label="Valor em Stock"
+                            value={summary.totalValue}
+                            icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
+                            color="teal"
+                            isCurrency
+                        />
+                        <MetricCard
+                            label="Stock Baixo"
+                            value={summary.lowStockCount}
+                            icon={<HiOutlineExclamationCircle className="w-5 h-5" />}
+                            color="orange"
+                        />
+                        <MetricCard
+                            label="Custo Total"
+                            value={summary.totalCost}
+                            icon={<HiOutlineTrendingUp className="w-5 h-5" />}
+                            color="emerald"
+                            isCurrency
+                        />
                     </div>
 
                     {viewMode === 'charts' ? (
@@ -543,18 +560,25 @@ export default function PharmacyReports() {
             {isReportGenerated && reportType === 'top-customers' && (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="p-5 border-l-4 border-blue-500">
-                            <p className="text-xs font-bold uppercase text-blue-600">Clientes Únicos</p>
-                            <p className="text-2xl font-black">{reportData.customers.length}</p>
-                        </Card>
-                        <Card className="p-5 border-l-4 border-teal-500">
-                            <p className="text-xs font-bold uppercase text-teal-600">Top Cliente</p>
-                            <p className="text-xl font-black truncate">{reportData.customers[0]?.customerName || ''}</p>
-                        </Card>
-                        <Card className="p-5 border-l-4 border-emerald-500">
-                            <p className="text-xs font-bold uppercase text-emerald-600">Total Top 20</p>
-                            <p className="text-2xl font-black">{formatCurrency(reportData.customers.reduce((s: number, c: any) => s + c.totalSpent, 0))}</p>
-                        </Card>
+                        <MetricCard
+                            label="Clientes Únicos"
+                            value={reportData.customers.length}
+                            icon={<HiOutlineUsers className="w-6 h-6" />}
+                            color="blue"
+                        />
+                        <MetricCard
+                            label="Top Cliente"
+                            value={reportData.customers[0]?.customerName || '-'}
+                            icon={<HiOutlineUsers className="w-6 h-6" />}
+                            color="teal"
+                        />
+                        <MetricCard
+                            label="Total Top 20"
+                            value={reportData.customers.reduce((s: number, c: any) => s + c.totalSpent, 0)}
+                            icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                            color="emerald"
+                            isCurrency
+                        />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -612,18 +636,25 @@ export default function PharmacyReports() {
             {isReportGenerated && reportType === 'suppliers' && (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="p-5 border-l-4 border-indigo-500">
-                            <p className="text-xs font-bold uppercase text-indigo-600">Total Fornecedores</p>
-                            <p className="text-2xl font-black">{reportData.suppliers.length}</p>
-                        </Card>
-                        <Card className="p-5 border-l-4 border-teal-500">
-                            <p className="text-xs font-bold uppercase text-teal-600">Total Unidades</p>
-                            <p className="text-2xl font-black">{reportData.suppliers.reduce((s: number, x: any) => s + x.totalUnits, 0)}</p>
-                        </Card>
-                        <Card className="p-5 border-l-4 border-orange-500">
-                            <p className="text-xs font-bold uppercase text-orange-600">Total Custo Compras</p>
-                            <p className="text-2xl font-black">{formatCurrency(reportData.suppliers.reduce((s: number, x: any) => s + x.totalCost, 0))}</p>
-                        </Card>
+                        <MetricCard
+                            label="Total Fornecedores"
+                            value={reportData.suppliers.length}
+                            icon={<HiOutlineTruck className="w-6 h-6" />}
+                            color="indigo"
+                        />
+                        <MetricCard
+                            label="Total Unidades"
+                            value={reportData.suppliers.reduce((s: number, x: any) => s + x.totalUnits, 0)}
+                            icon={<HiOutlineCube className="w-6 h-6" />}
+                            color="teal"
+                        />
+                        <MetricCard
+                            label="Total Custo Compras"
+                            value={reportData.suppliers.reduce((s: number, x: any) => s + x.totalCost, 0)}
+                            icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                            color="orange"
+                            isCurrency
+                        />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

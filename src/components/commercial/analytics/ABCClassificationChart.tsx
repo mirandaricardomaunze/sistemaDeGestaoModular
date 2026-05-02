@@ -29,7 +29,8 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
     const displayData = data.slice(0, maxItems);
 
     return (
-        <Card padding="lg">
+        <Card padding="lg" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2.5">
                     <span className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/25 flex items-center justify-center flex-shrink-0">
@@ -81,21 +82,26 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
                             tickFormatter={(val) => `${val}%`}
                         />
                         <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                                backdropFilter: 'blur(12px)',
-                                border: '1px solid rgba(255, 255, 255, 0.2)',
-                                borderRadius: '12px',
-                                color: '#fff',
-                                fontSize: '11px',
-                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
+                            content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-md border border-gray-200 dark:border-white/20 p-3 rounded-xl shadow-2xl">
+                                            <p className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+                                            <div className="space-y-1">
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Receita:</span>
+                                                    <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{formatCurrency(payload[0].value)}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Acumulado:</span>
+                                                    <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{Number(payload[1].value).toFixed(1)}%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
                             }}
-                            itemStyle={{ color: '#fff', fontWeight: '600' }}
-                            labelStyle={{ color: '#94a3b8', marginBottom: '4px', fontWeight: 'bold' }}
-                            formatter={(value: any, name?: string) => [
-                                name === 'cumulativePercentage' ? `${Number(value).toFixed(1)}%` : formatCurrency(value),
-                                name === 'cumulativePercentage' ? 'Acumulado' : 'Receita'
-                            ]}
                         />
                         <Bar 
                             yAxisId="left" 

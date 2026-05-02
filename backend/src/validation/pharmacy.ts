@@ -69,6 +69,7 @@ export const createPharmacySaleSchema = z.object({
     paymentMethod: z.enum(['cash', 'card', 'mpesa', 'emola', 'transfer', 'credit']).default('cash'),
     paymentDetails: z.string().optional(),
     partnerId: z.string().uuid().optional().nullable(),
+    sessionId: z.string().uuid('ID de sessão de caixa inválido'),
     notes: z.string().optional()
 });
 

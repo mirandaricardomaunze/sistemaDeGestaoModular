@@ -155,10 +155,17 @@ export class CashSessionService {
         const where: any = { companyId, status: 'closed' };
 
         if (params.startDate && params.endDate) {
-            where.closedAt = { gte: new Date(params.startDate), lte: new Date(params.endDate) };
+            const end = new Date(params.endDate);
+            end.setHours(23, 59, 59, 999);
+            where.closedAt = { gte: new Date(params.startDate), lte: end };
         }
 
         if (params.openedById) where.openedById = params.openedById;
+        if (params.search) {
+            where.openedBy = {
+                name: { contains: params.search, mode: 'insensitive' }
+            };
+        }
 
         const [total, sessions] = await Promise.all([
             prisma.cashSession.count({ where }),

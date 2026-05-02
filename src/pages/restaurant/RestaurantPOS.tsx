@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { Button, Input, Badge, Modal } from '../../components/ui';
+import { Button, Input, Badge, Modal, LoadingOverlay } from '../../components/ui';
 import { useProducts } from '../../hooks/useData';
 import { useRestaurantTables, useUpdateTableStatus } from '../../hooks/useRestaurant';
 import { useDebounce } from '../../hooks/useDebounce';
 import { salesAPI } from '../../services/api';
 import { formatCurrency } from '../../utils/helpers';
 import { cn } from '../../utils';
+import { SegmentedControl } from '../../components/common/SegmentedControl';
 import toast from 'react-hot-toast';
 import {
     HiOutlineShoppingCart, 
@@ -35,12 +36,17 @@ const PAYMENT_METHODS = [
 // CHECKOUT MODAL
 // ============================================================================
 
-function CheckoutModal({ cart, tableId, tableName, onClose, onSuccess }: {
+function CheckoutModal({ cart, tableId, tableName, onClose, onSuccess, onProcessingChange }: {
     cart: CartItem[]; tableId?: string; tableName: string; onClose: () => void; onSuccess: () => void;
+    onProcessingChange?: (busy: boolean) => void;
 }) {
     const [paymentMethod, setPaymentMethod] = useState('cash');
     const [amountPaid, setAmountPaid] = useState('');
     const [processing, setProcessing] = useState(false);
+
+    useEffect(() => {
+        onProcessingChange?.(processing);
+    }, [processing, onProcessingChange]);
 
     const subtotal = cart.reduce((s, i) => s + i.total, 0);
     const paid = parseFloat(amountPaid) || 0;
@@ -110,14 +116,12 @@ function CheckoutModal({ cart, tableId, tableName, onClose, onSuccess }: {
                 </div>
 
                 {/* Payment Method */}
-                <div className="grid grid-cols-2 gap-2">
-                    {PAYMENT_METHODS.map(m => (
-                        <button key={m.value} onClick={() => setPaymentMethod(m.value)}
-                            className={cn('rounded-lg p-3 text-sm font-medium border-2 transition-all', paymentMethod === m.value ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700' : 'border-gray-200 dark:border-dark-600 text-gray-700 dark:text-gray-300')}>
-                            {m.label}
-                        </button>
-                    ))}
-                </div>
+                <SegmentedControl
+                    options={PAYMENT_METHODS}
+                    value={paymentMethod}
+                    onChange={setPaymentMethod}
+                    className="w-full"
+                />
 
                 {paymentMethod === 'cash' && (
                     <div className="space-y-2">
@@ -133,7 +137,7 @@ function CheckoutModal({ cart, tableId, tableName, onClose, onSuccess }: {
 
                 <div className="flex gap-3 pt-2">
                     <Button variant="outline" onClick={onClose} className="flex-1">Cancelar</Button>
-                    <Button onClick={handleConfirm} isLoading={processing} className="flex-1 bg-red-600 hover:bg-red-700">
+                    <Button variant="primary" onClick={handleConfirm} isLoading={processing} className="flex-1">
                         Confirmar Pagamento
                     </Button>
                 </div>
@@ -152,10 +156,11 @@ export default function RestaurantPOS() {
     const [selectedTable, setSelectedTable] = useState<any>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [checkoutOpen, setCheckoutOpen] = useState(false);
+    const [checkoutProcessing, setCheckoutProcessing] = useState(false);
     const debouncedSearch = useDebounce(search, 400);
     const updateTableStatus = useUpdateTableStatus();
 
-    const { products, isLoading } = useProducts({ search: debouncedSearch, category: selectedCategory || undefined, limit: 100, origin_module: 'restaurant' });
+    const { products, isLoading } = useProducts({ search: debouncedSearch, category: selectedCategory || undefined, limit: 100, originModule: 'restaurant' });
     const { data: tablesData, refetch: refetchTables } = useRestaurantTables({ status: undefined });
     const tables = tablesData?.data || [];
 
@@ -210,7 +215,9 @@ export default function RestaurantPOS() {
     const handleSelectTable = (table: any) => {
         setSelectedTable(table);
         if (table.status === 'available') {
-            updateTableStatus.mutate({ id: table.id, status: 'occupied' });
+            updateTableStatus.mutate(
+                { id: table.id, status: 'occupied' }
+            );
         }
     };
 
@@ -230,52 +237,44 @@ export default function RestaurantPOS() {
                         />
                     </div>
                     {categories.length > 0 && (
-                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden">
-                            <Button
-                                variant={!selectedCategory ? 'primary' : 'secondary'}
-                                onClick={() => setSelectedCategory('')}
-                                size="sm"
-                                className={cn('rounded-full whitespace-nowrap', !selectedCategory ? 'bg-red-600' : '')}
-                            >
-                                Todos
-                            </Button>
-                            {categories.map(cat => (
-                                <Button
-                                    key={cat}
-                                    variant={selectedCategory === cat ? 'primary' : 'secondary'}
-                                    onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
-                                    size="sm"
-                                    className={cn('rounded-full whitespace-nowrap', selectedCategory === cat ? 'bg-red-600' : '')}
-                                >
-                                    {cat}
-                                </Button>
-                            ))}
-                        </div>
+                        <SegmentedControl
+                            options={[
+                                { value: '', label: 'Todos' },
+                                ...categories.map(cat => ({ value: cat, label: cat }))
+                            ]}
+                            value={selectedCategory}
+                            onChange={setSelectedCategory}
+                            size="sm"
+                        />
                     )}
                 </div>
 
-                {/* Table Selector */}
                 <div className="p-3 bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-dark-700">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Mesa</p>
-                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hidden">
-                        <button onClick={() => setSelectedTable(null)}
-                            className={cn('px-3 py-1.5 rounded-lg text-sm font-medium border-2 whitespace-nowrap transition-all', !selectedTable ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300')}>
-                            Balcão
-                        </button>
-                        {tables.map((t: any) => (
-                            <button key={t.id} onClick={() => handleSelectTable(t)}
-                                className={cn('px-3 py-1.5 rounded-lg text-sm font-medium border-2 whitespace-nowrap transition-all',
-                                    selectedTable?.id === t.id ? 'border-red-500 bg-red-50 text-red-700' :
-                                    t.status === 'occupied' ? 'border-red-300 bg-red-50/50 text-red-500' :
-                                    'border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-300')}>
-                                M{t.number}{t.name ? ` • ${t.name}` : ''}
-                                {t.status === 'occupied' && <span className="ml-1 w-2 h-2 rounded-full bg-red-500 inline-block" />}
-                            </button>
-                        ))}
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mesa</p>
                         <Button variant="ghost" size="xs" onClick={() => refetchTables()} className="px-2">
                             <HiOutlineRefresh className="w-4 h-4" />
                         </Button>
                     </div>
+                    <SegmentedControl
+                        options={[
+                            { value: 'counter', label: 'Balcão' },
+                            ...tables.map((t: any) => ({
+                                value: t.id,
+                                label: `M${t.number}${t.name ? ` • ${t.name}` : ''}`,
+                                variant: t.status === 'occupied' ? 'danger' : 'default'
+                            }))
+                        ]}
+                        value={selectedTable?.id || 'counter'}
+                        onChange={(val) => {
+                            if (val === 'counter') setSelectedTable(null);
+                            else {
+                                const t = tables.find((table: any) => table.id === val);
+                                if (t) handleSelectTable(t);
+                            }
+                        }}
+                        size="sm"
+                    />
                 </div>
 
                 {/* Products Grid */}
@@ -331,9 +330,14 @@ export default function RestaurantPOS() {
                             <p className="text-xs text-gray-500">Venda directa ao cliente e gestão de mesas</p>
                         </div>
                         {cart.length > 0 && (
-                            <button onClick={() => setCart([])} className="ml-auto text-gray-400 hover:text-red-500 transition-colors">
+                            <Button 
+                                variant="ghost" 
+                                size="xs" 
+                                onClick={() => setCart([])} 
+                                className="ml-auto text-gray-400 hover:text-red-500"
+                            >
                                 <HiOutlineX className="w-5 h-5" />
-                            </button>
+                            </Button>
                         )}
                     </div>
                     <p className="text-xs text-gray-400 mt-1">{cart.length} {cart.length === 1 ? 'item' : 'itens'} • ESC limpa • F4 paga</p>
@@ -392,9 +396,10 @@ export default function RestaurantPOS() {
                         <span className="text-red-600">{formatCurrency(subtotal)}</span>
                     </div>
                     <Button
+                        variant="primary"
                         onClick={() => setCheckoutOpen(true)}
                         disabled={cart.length === 0}
-                        className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                        className="w-full"
                         leftIcon={<HiOutlineShoppingCart className="w-5 h-5" />}
                     >
                         Cobrar (F4)
@@ -410,7 +415,12 @@ export default function RestaurantPOS() {
                     tableName={selectedTable ? `Mesa ${selectedTable.number}` : 'Balcão'}
                     onClose={() => setCheckoutOpen(false)}
                     onSuccess={handleCheckoutSuccess}
+                    onProcessingChange={setCheckoutProcessing}
                 />
+            )}
+
+            {checkoutProcessing && (
+                <LoadingOverlay message="A processar o pedido... Por favor, aguarde." fullScreen />
             )}
         </div>
     );

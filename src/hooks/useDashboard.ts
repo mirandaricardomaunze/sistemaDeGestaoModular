@@ -19,6 +19,9 @@ interface DashboardStats {
     pharmacyRevenue?: number;
     bottleStoreRevenue?: number;
     commercialRevenue?: number;
+    // Modules whose data failed to load — UI can flag the consolidated KPI
+    // as partial instead of silently understating the total.
+    failedModules?: string[];
 }
 
 interface TopProductItem {
@@ -62,20 +65,40 @@ export function useDashboard(warehouseId?: string) {
             let pharmacyRevenue = 0;
             let bottleStoreRevenue = 0;
             let bottleStoreProfit = 0;
+            const failedModules: string[] = [];
 
-            const modulePromises = [];
+            const modulePromises: Array<Promise<unknown>> = [];
             if (hasModule('HOTEL')) {
-                modulePromises.push(hospitalityAPI.getFinanceDashboard('month').then(d => {
-                    hospitalityRevenue = Number(d?.summary?.totalRevenue || 0);
-                    hospitalityProfit = Number(d?.summary?.grossProfit || 0);
-                }));
+                modulePromises.push(
+                    hospitalityAPI.getFinanceDashboard('month').then(d => {
+                        hospitalityRevenue = Number(d?.summary?.totalRevenue || 0);
+                        hospitalityProfit = Number(d?.summary?.grossProfit || 0);
+                    }).catch(err => {
+                        logger.warn('hospitality module failed in dashboard consolidation', err);
+                        failedModules.push('HOTEL');
+                    })
+                );
             }
-            if (hasModule('PHARMACY')) modulePromises.push(pharmacyAPI.getDashboardSummary().then(d => pharmacyRevenue = Number(d?.totalSales || 0)));
+            if (hasModule('PHARMACY')) {
+                modulePromises.push(
+                    pharmacyAPI.getDashboardSummary().then(d => {
+                        pharmacyRevenue = Number(d?.totalSales || 0);
+                    }).catch(err => {
+                        logger.warn('pharmacy module failed in dashboard consolidation', err);
+                        failedModules.push('PHARMACY');
+                    })
+                );
+            }
             if (hasModule('BOTTLE_STORE')) {
-                modulePromises.push(bottleStoreAPI.getDashboard('1M').then(d => {
-                    bottleStoreRevenue = Number(d?.revenue || 0);
-                    bottleStoreProfit = Number(d?.profit || 0);
-                }));
+                modulePromises.push(
+                    bottleStoreAPI.getDashboard('1M').then(d => {
+                        bottleStoreRevenue = Number(d?.revenue || 0);
+                        bottleStoreProfit = Number(d?.profit || 0);
+                    }).catch(err => {
+                        logger.warn('bottle store module failed in dashboard consolidation', err);
+                        failedModules.push('BOTTLE_STORE');
+                    })
+                );
             }
 
             await Promise.all(modulePromises);
@@ -99,7 +122,8 @@ export function useDashboard(warehouseId?: string) {
                 hospitalityRevenue,
                 pharmacyRevenue,
                 bottleStoreRevenue,
-                commercialRevenue
+                commercialRevenue,
+                failedModules: failedModules.length ? failedModules : undefined,
             };
 
             setStats(mappedStats);

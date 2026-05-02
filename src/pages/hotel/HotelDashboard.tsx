@@ -28,7 +28,7 @@ import {
     HiOutlineExclamationCircle,
     HiOutlineBuildingOffice2
 } from 'react-icons/hi2';
-import { Card, Button, Badge, Skeleton, PageHeader } from '../../components/ui';
+import { Card, Button, Badge, Skeleton } from '../../components/ui';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import { useHotelDashboardSummary, useRecentBookings } from '../../hooks/useHospitality';
 import { MetricCard, CHART_COLORS } from '../../components/common/ModuleMetricCard';
@@ -109,34 +109,45 @@ export default function HotelDashboard() {
     }
 
     return (
-        <div className="space-y-6">
-            <PageHeader
-                title={t('hotel_module.dashboard.title')}
-                subtitle={t('hotel_module.dashboard.subtitle')}
-                icon={<HiOutlineBuildingOffice2 className="text-primary-600 dark:text-primary-400" />}
-                actions={
-                    <>
-                        <Button
-                            variant="ghost"
-                            onClick={() => refetchDashboard()}
-                            leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
-                        >
-                            {t('common.refresh')}
-                        </Button>
+        <div className="space-y-6 pb-12">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                <div>
+                    <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+                        <span className="w-10 h-10 rounded-2xl bg-primary-100 dark:bg-primary-500/15 border border-primary-200 dark:border-primary-500/25 flex items-center justify-center">
+                            <HiOutlineBuildingOffice2 className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                        </span>
+                        {t('hotel_module.dashboard.title')}
+                    </h1>
+                    <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1 ml-1">
+                        {t('hotel_module.dashboard.subtitle')}
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
+                    <div className="flex items-center bg-slate-100 dark:bg-dark-800 rounded-xl p-1 border border-slate-200 dark:border-white/5 shadow-inner">
                         <ModulePeriodFilter value={selectedPeriod} onChange={setSelectedPeriod} />
-                        <Link to="/hospitality/reports">
-                            <Button variant="outline">
-                                {t('nav.reports')}
-                            </Button>
-                        </Link>
-                        <Link to="/hospitality/rooms">
-                            <Button leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
-                                {t('hotel_module.reservations.checkIn')}
-                            </Button>
-                        </Link>
-                    </>
-                }
-            />
+                    </div>
+
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => refetchDashboard()}
+                        leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
+                    >
+                        {t('common.refresh')}
+                    </Button>
+
+                    <Link to="/hospitality/rooms">
+                        <Button 
+                            size="sm" 
+                            variant="primary"
+                            leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                        >
+                            {t('hotel_module.reservations.checkIn')}
+                        </Button>
+                    </Link>
+                </div>
+            </div>
 
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -148,8 +159,8 @@ export default function HotelDashboard() {
                     growth={metrics.monthlyGrowth}
                 />
                 <MetricCard
-                    icon={<HiOutlineChartBar className="w-6 h-6 text-secondary-600 dark:text-secondary-400" />}
-                    color="secondary"
+                    icon={<HiOutlineChartBar className="w-6 h-6 text-teal-600 dark:text-teal-400" />}
+                    color="teal"
                     value={`${metrics.occupancyRate}%`}
                     label={t('hotel_module.dashboard.metrics.occupancyRate')}
                     badge={<Badge variant="success">Rate</Badge>}
@@ -409,7 +420,7 @@ export default function HotelDashboard() {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-300 font-medium text-xs">
-                                                    {b.customerName?.charAt(0)}
+                                                    {b.customerName?.charAt(0) || '?'}
                                                 </div>
                                                 <span className="text-sm font-medium text-gray-900 dark:text-white">
                                                     {b.customerName}

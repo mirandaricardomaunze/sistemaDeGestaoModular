@@ -13,7 +13,8 @@ import {
     HiOutlineCurrencyDollar,
     HiOutlineClipboardDocumentList,
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, ResponsiveValue, PageHeader } from '../../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, ResponsiveValue, PageHeader, LoadingOverlay, SkeletonTable } from '../../components/ui';
+import { StatCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
 import { commercialAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -188,86 +189,65 @@ export default function CommercialFinance() {
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Gestão Financeira Comercial"
-                subtitle="Controle de fluxo de caixa, compra de mercadoria e custos de trading"
-                icon={<HiOutlineCurrencyDollar />}
-                actions={
-                    <>
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={fetchData}
-                            leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4', loading && 'animate-spin')} />}
-                        >
-                            Actualizar
-                        </Button>
-                        <Button 
-                            variant="primary"
-                            size="sm" 
-                            leftIcon={<HiOutlinePlus className="w-4 h-4" />} 
-                            onClick={() => {
-                                setEditingTransaction(null);
-                                reset();
-                                setShowFormModal(true);
-                            }}
-                        >
-                            Nova Operação
-                        </Button>
-                    </>
-                }
+                title="Gestão Financeira Comercial" 
+                subtitle="Controle de receitas, custos e margens de lucro"
+                icon={<HiOutlineCurrencyDollar className="text-primary-600 dark:text-primary-400" />}
             />
+            {/* Actions Bar */}
+            <div className="flex flex-wrap items-center justify-end gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
+                <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={fetchData}
+                    className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-gray-400 hover:text-primary-600 transition-all"
+                    leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4', loading && 'animate-spin')} />}
+                >
+                    Actualizar
+                </Button>
+                <Button 
+                    variant="primary"
+                    size="sm" 
+                    leftIcon={<HiOutlinePlus className="w-4 h-4" />} 
+                    onClick={() => {
+                        setEditingTransaction(null);
+                        reset();
+                        setShowFormModal(true);
+                    }}
+                    className="font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all"
+                >
+                    Nova Operação
+                </Button>
+            </div>
 
             {/* Quick Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card padding="md" className="bg-orange-100/40 dark:bg-orange-900/20 border border-orange-200/50 dark:border-orange-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-orange-200/60 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineArrowTrendingUp className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/70 dark:text-orange-400/60 mb-1">Vendas Totais</p>
-                            <ResponsiveValue value={summary.totalRevenue} size="md" className="text-orange-900 dark:text-white font-black" />
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    label="Vendas Totais"
+                    value={<ResponsiveValue value={summary.totalRevenue} size="md" className="text-orange-900 dark:text-white font-black" />}
+                    icon={<HiOutlineArrowTrendingUp className="w-6 h-6" />}
+                    color="orange"
+                />
 
-                <Card padding="md" className="bg-rose-100/40 dark:bg-rose-900/20 border border-rose-200/50 dark:border-rose-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-rose-200/60 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineArrowTrendingDown className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-600/70 dark:text-rose-400/60 mb-1">Custos Operacionais</p>
-                            <ResponsiveValue value={summary.totalExpenses} size="md" className="text-rose-900 dark:text-white font-black" />
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    label="Custos Operacionais"
+                    value={<ResponsiveValue value={summary.totalExpenses} size="md" className="text-rose-900 dark:text-white font-black" />}
+                    icon={<HiOutlineArrowTrendingDown className="w-6 h-6" />}
+                    color="rose"
+                />
 
-                <Card padding="md" className="bg-primary-100/40 dark:bg-primary-900/20 border border-primary-200/50 dark:border-primary-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary-200/60 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineCurrencyDollar className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60 mb-1">EBITDA / Lucro</p>
-                            <ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-rose-700 dark:text-rose-400')} />
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    label="EBITDA / Lucro"
+                    value={<ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-rose-700 dark:text-rose-400')} />}
+                    icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                    color="primary"
+                />
 
-                <Card padding="md" className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-amber-200/60 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineClipboardDocumentList className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60 mb-1">Margem Comercial</p>
-                            <span className="text-lg md:text-xl font-black text-amber-900 dark:text-white">
-                                {summary.profitMargin.toFixed(1)}%
-                            </span>
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    label="Margem Comercial"
+                    value={`${summary.profitMargin.toFixed(1)}%`}
+                    icon={<HiOutlineClipboardDocumentList className="w-6 h-6" />}
+                    color="amber"
+                />
             </div>
 
             {/* Filter & Period Header */}
@@ -295,7 +275,8 @@ export default function CommercialFinance() {
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
-                        className="bg-white dark:bg-dark-800 border-none shadow-sm h-10 min-w-[280px]"
+                        className="bg-white dark:bg-dark-800 border-none shadow-sm min-w-[280px]"
+                        size="sm"
                     />
                     <Select
                         options={[
@@ -305,93 +286,104 @@ export default function CommercialFinance() {
                         ]}
                         value={filterType}
                         onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
-                        className="w-40 border-none shadow-sm h-10"
+                        className="w-40 border-none shadow-sm"
+                        size="sm"
                     />
                 </div>
             </div>
 
             {/* Table Area */}
-            <Card padding="none" className="overflow-hidden border-none shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead className="bg-gray-50/50 dark:bg-dark-900/50">
-                            <tr className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">
-                                <th className="px-6 py-4 text-left">Canal</th>
-                                <th className="px-6 py-4 text-left">Data</th>
-                                <th className="px-6 py-4 text-left">Descrição</th>
-                                <th className="px-6 py-4 text-left">Categoria</th>
-                                <th className="px-6 py-4 text-right">Valor</th>
-                                <th className="px-6 py-4 text-center">Gestão</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-dark-800 divide-y divide-gray-100 dark:divide-dark-700">
-                            {loading ? (
-                                Array.from({ length: 4 }).map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td colSpan={6} className="px-6 py-4 h-16 bg-gray-50/20"></td>
+            <Card padding="none" className="min-h-[500px] relative overflow-hidden border-none shadow-sm">
+                {loading && transactions.length === 0 ? (
+                    <div className="p-6">
+                        <SkeletonTable rows={8} columns={6} />
+                    </div>
+                ) : (
+                    <>
+                        {loading && (
+                            <div className="absolute inset-0 z-20">
+                                <LoadingOverlay 
+                                    fullScreen={false} 
+                                    message="A carregar transações..." 
+                                />
+                            </div>
+                        )}
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
+                                <thead className="bg-gray-50/50 dark:bg-dark-900/50">
+                                    <tr className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">
+                                        <th className="px-6 py-4 text-left">Canal</th>
+                                        <th className="px-6 py-4 text-left">Data</th>
+                                        <th className="px-6 py-4 text-left">Descrição</th>
+                                        <th className="px-6 py-4 text-left">Categoria</th>
+                                        <th className="px-6 py-4 text-right">Valor</th>
+                                        <th className="px-6 py-4 text-center">Gestão</th>
                                     </tr>
-                                ))
-                            ) : transactions.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center text-gray-400 italic font-medium">
-                                        Não existem movimentações comerciais para os critrios seleccionados.
-                                    </td>
-                                </tr>
-                            ) : (
-                                transactions.map((t) => (
-                                    <tr key={t.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-700 transition-colors group">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <Badge variant={t.type === 'income' ? 'success' : 'danger'} className="uppercase font-black text-[9px] tracking-widest px-2.5 py-0.5 rounded-full">
-                                                {t.type === 'income' ? 'Entrada' : 'Saída'}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400">
-                                            {formatDate(t.date)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">{t.description}</span>
-                                                {t.reference && <span className="text-[10px] text-gray-400 font-medium italic">MOV: {t.reference}</span>}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-[10px] px-2 py-1 bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300 rounded-lg font-black uppercase tracking-wider italic">
-                                                {t.category.replace(/_/g, ' ')}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <span className={cn(
-                                                "text-sm font-black tracking-tight",
-                                                t.type === 'income' ? 'text-teal-600' : 'text-rose-600'
-                                            )}>
-                                                {formatCurrency(t.amount)}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => handleEdit(t)}
-                                                    className="p-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600 transition-colors"
-                                                >
-                                                    <HiOutlineCog className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setTransactionToDelete(t);
-                                                        setDeleteModalOpen(true);
-                                                    }}
-                                                    className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-600 transition-colors"
-                                                >
-                                                    <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                                </thead>
+                                <tbody className="bg-white dark:bg-dark-800 divide-y divide-gray-100 dark:divide-dark-700">
+                                    {transactions.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="px-6 py-20 text-center text-gray-400 italic font-medium">
+                                                Não existem movimentações comerciais para os critérios seleccionados.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        transactions.map((t) => (
+                                            <tr key={t.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-700 transition-colors group">
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <Badge variant={t.type === 'income' ? 'success' : 'danger'} className="uppercase font-black text-[9px] tracking-widest px-2.5 py-0.5 rounded-full">
+                                                        {t.type === 'income' ? 'Entrada' : 'Saída'}
+                                                    </Badge>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-xs font-medium text-gray-500 dark:text-gray-400">
+                                                    {formatDate(t.date)}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">{t.description}</span>
+                                                        {t.reference && <span className="text-[10px] text-gray-400 font-medium italic">MOV: {t.reference}</span>}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    <span className="text-[10px] px-2 py-1 bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300 rounded-lg font-black uppercase tracking-wider italic">
+                                                        {t.category.replace(/_/g, ' ')}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                    <span className={cn(
+                                                        "text-sm font-black tracking-tight",
+                                                        t.type === 'income' ? 'text-teal-600' : 'text-rose-600'
+                                                    )}>
+                                                        {formatCurrency(t.amount)}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                    <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => handleEdit(t)}
+                                                            className="p-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600 transition-colors"
+                                                        >
+                                                            <HiOutlineCog className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                setTransactionToDelete(t);
+                                                                setDeleteModalOpen(true);
+                                                            }}
+                                                            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-600 transition-colors"
+                                                        >
+                                                            <HiOutlineTrash className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
+                )}
 
                 <div className="px-6 py-4 bg-gray-50/30 dark:bg-dark-900/30 border-t border-gray-100 dark:border-dark-700">
                     <Pagination

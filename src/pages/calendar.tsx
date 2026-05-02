@@ -127,7 +127,6 @@ function toLocalDatetimeValue(dateStr: string) {
 
 function getEventStyle(event: CalendarEvent) {
     if (event.color) return { backgroundColor: event.color };
-    const mod = event.module || 'calendar';
     return {};
 }
 

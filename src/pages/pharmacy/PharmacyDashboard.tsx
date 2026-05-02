@@ -27,8 +27,8 @@ import {
     HiOutlineLightBulb,
 } from 'react-icons/hi2';
 
-import { Card, Button, Badge, PageHeader, Skeleton } from '../../components/ui';
-import { formatCurrency, formatRelativeTime } from '../../utils/helpers';
+import { Card, Button, Badge, Skeleton, LoadingOverlay, PageHeader } from '../../components/ui';
+import { formatCurrency, formatRelativeTime, cn } from '../../utils/helpers';
 import { 
     usePharmacyDashboard, 
     usePharmacySalesChart, 
@@ -122,7 +122,7 @@ export default function PharmacyDashboard() {
 
     if (isLoading && !summary) {
         return (
-            <div className="space-y-6 animate-pulse">
+            <div className="space-y-6 animate-fade-in relative min-h-screen">
                 <div className="h-20 bg-gray-200 dark:bg-dark-700 rounded-xl mb-8" />
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-gray-200 dark:bg-dark-700 rounded-xl" />)}
@@ -136,37 +136,50 @@ export default function PharmacyDashboard() {
     }
 
     return (
-        <div className="space-y-6">
-            <PageHeader 
+        <div className="space-y-6 pb-12 relative min-h-screen">
+            <PageHeader
                 title="Dashboard Farmácia"
-                subtitle="Visão geral de vendas, stock e métricas farmacêuticas"
+                subtitle="Gestão Inteligente de Medicamentos e Vendas"
                 icon={<HiOutlineBeaker />}
                 actions={
-                    <>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center bg-slate-100 dark:bg-dark-800 rounded-xl p-1 border border-slate-200 dark:border-white/5 shadow-inner h-10">
+                            <ModulePeriodFilter value={selectedPeriod} onChange={setSelectedPeriod} />
+                        </div>
+
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={handleRefresh}
                             disabled={isRefreshing}
-                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-teal-600"
-                            leftIcon={<HiOutlineArrowPath className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />}
+                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-teal-600 transition-all"
+                            leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-teal-600", isRefreshing && "animate-spin")} />}
                         >
-                            {isRefreshing ? 'A actualizar...' : 'Actualizar'}
+                            {isRefreshing ? 'Actualizando...' : 'Actualizar'}
                         </Button>
-                        <ModulePeriodFilter value={selectedPeriod} onChange={setSelectedPeriod} />
-                        <Link to="/pharmacy/reports">
-                            <Button variant="outline" size="sm" className="font-black text-[10px] uppercase tracking-widest">
-                                Relatórios
-                            </Button>
-                        </Link>
+
                         <Link to="/pharmacy/pos">
-                            <Button size="sm" className="font-black text-[10px] uppercase tracking-widest" leftIcon={<HiOutlinePlus className="w-5 h-5" />}>
+                            <Button 
+                                size="sm" 
+                                variant="primary"
+                                className="h-10 px-6 bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none" 
+                                leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                            >
                                 Nova Venda
                             </Button>
                         </Link>
-                    </>
+                    </div>
                 }
             />
+
+            {/* Premium Loading Overlay for Background Refresh */}
+            {isRefreshing && (
+                <LoadingOverlay 
+                    fullScreen={false} 
+                    message="A atualizar dados da farmácia..." 
+                    subtext="Inteligência Multicore em Acção"
+                />
+            )}
 
             {/* Smart Insights / Intelligent Advisor */}
             {insights.length > 0 && (
@@ -198,7 +211,7 @@ export default function PharmacyDashboard() {
                 />
                 <MetricCard
                     icon={<HiOutlineShoppingCart className="w-6 h-6" />}
-                    color="secondary"
+                    color="indigo"
                     value={summary?.salesCount || 0}
                     label="Vendas Hoje"
                     badge={<Badge variant="success">Hoje</Badge>}
@@ -246,7 +259,7 @@ export default function PharmacyDashboard() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Sales Chart */}
-                <Card padding="md" color="slate" className="lg:col-span-2">
+                <Card padding="md" className="lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                             Vendas por Período
@@ -295,7 +308,7 @@ export default function PharmacyDashboard() {
                 </Card>
 
                 {/* Top Products */}
-                <Card padding="md" color="slate">
+                <Card padding="md">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                         Mais Vendidos
                     </h2>
@@ -347,7 +360,7 @@ export default function PharmacyDashboard() {
                 <WeeklySalesWidget weeklyData={weeklySalesData} />
 
                 {/* Stock Alerts */}
-                <Card padding="md" color="slate">
+                <Card padding="md">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                             Alertas de Stock

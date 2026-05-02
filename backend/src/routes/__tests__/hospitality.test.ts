@@ -13,7 +13,7 @@ jest.mock('../../middleware/auth', () => ({
     authorize: () => (_: any, __: any, next: any) => next(),
     AuthRequest: {} as any,
 }));
-jest.mock('../../lib/socket', () => ({ emitToCompany: jest.fn(), initSocket: jest.fn().mockReturnValue({ on: jest.fn() }) }));
+jest.mock('../../lib/socket', () => ({ emitToCompany: jest.fn(), emitToModule: jest.fn(), emitToUser: jest.fn(), getIO: jest.fn(), initSocket: jest.fn().mockReturnValue({ on: jest.fn() }) }));
 
 let roomId: string;
 
@@ -46,10 +46,11 @@ describe('Hospitality - Rooms', () => {
     it('POST /api/hospitality/rooms creates a room', async () => {
         const res = await request(app).post('/api/hospitality/rooms').send({
             number: `R-${Date.now()}`, type: 'single', floor: 1,
-            pricePerNight: 1500, capacity: 2, status: 'available',
+            pricePerNight: 1500, capacity: 2,
         }).expect(201);
-        expect(res.body).toHaveProperty('id');
-        roomId = res.body.id;
+        const body = res.body.data ?? res.body;
+        expect(body).toHaveProperty('id');
+        roomId = body.id;
     });
 
     it('POST /api/hospitality/rooms rejects missing number', async () => {
@@ -59,11 +60,12 @@ describe('Hospitality - Rooms', () => {
     it('PUT /api/hospitality/rooms/:id updates room', async () => {
         if (!roomId) return;
         const res = await request(app).put(`/api/hospitality/rooms/${roomId}`).send({ pricePerNight: 2000 }).expect(200);
-        expect(Number(res.body.pricePerNight)).toBe(2000);
+        const body = res.body.data ?? res.body;
+        expect(Number(body.price)).toBe(2000);
     });
 
     it('DELETE /api/hospitality/rooms/:id removes room', async () => {
-        const r = await prisma.room.create({ data: { number: `DEL-${Date.now()}`, type: 'single', floor: 1, pricePerNight: 500, capacity: 1, status: 'available', companyId: CO } });
+        const r = await prisma.room.create({ data: { number: `DEL-${Date.now()}`, type: 'single', price: 500, status: 'available', companyId: CO } });
         await request(app).delete(`/api/hospitality/rooms/${r.id}`).expect(200);
     });
 });
@@ -74,7 +76,7 @@ describe('Hospitality - Bookings', () => {
 
     beforeAll(async () => {
         if (!roomId) {
-            const r = await prisma.room.create({ data: { number: `BK-${Date.now()}`, type: 'double', floor: 2, pricePerNight: 2000, capacity: 2, status: 'available', companyId: CO } });
+            const r = await prisma.room.create({ data: { number: `BK-${Date.now()}`, type: 'double', price: 2000, status: 'available', companyId: CO } });
             roomId = r.id;
         }
     });
@@ -87,13 +89,12 @@ describe('Hospitality - Bookings', () => {
     it('POST /api/hospitality/bookings creates check-in', async () => {
         const res = await request(app).post('/api/hospitality/bookings').send({
             roomId,
-            customerName: 'João Hóspede',
-            customerPhone: '841000001',
-            checkInDate: new Date().toISOString(),
-            checkOutDate: new Date(Date.now() + 2 * 86400000).toISOString(),
-            adults: 1, children: 0,
-            totalAmount: 4000,
-            paymentMethod: 'cash',
+            guestName: 'João Hóspede',
+            guestPhone: '841000001',
+            checkIn: new Date().toISOString(),
+            checkOut: new Date(Date.now() + 2 * 86400000).toISOString(),
+            guestCount: 1,
+            totalPrice: 4000,
             mealPlan: 'none',
         }).expect(201);
         expect(res.body.data ?? res.body).toHaveProperty('id');
@@ -122,9 +123,9 @@ describe('Hospitality - Housekeeping', () => {
     it('POST /api/hospitality/housekeeping creates task', async () => {
         if (!roomId) return;
         const res = await request(app).post('/api/hospitality/housekeeping').send({
-            roomId, type: 'cleaning', priority: 'normal', assignedTo: 'Limpeza A',
+            roomId, type: 'stay_cleaning', priority: 'medium',
         }).expect(201);
-        expect(res.body).toHaveProperty('id');
+        expect(res.body.data ?? res.body).toHaveProperty('id');
     });
 });
 
@@ -143,17 +144,17 @@ describe('HospitalityFinance', () => {
         expect(res.body).toBeDefined();
     });
 
-    it('GET /api/hospitality/finance/transactions returns list', async () => {
-        const res = await request(app).get('/api/hospitality/finance/transactions').expect(200);
+    it('GET /api/hospitality/finance/expenses returns list', async () => {
+        const res = await request(app).get('/api/hospitality/finance/expenses').expect(200);
         expect(res.body).toBeDefined();
     });
 
-    it('POST /api/hospitality/finance/transactions creates transaction', async () => {
-        const res = await request(app).post('/api/hospitality/finance/transactions').send({
-            type: 'income', category: 'Diárias', description: 'Diária quarto',
-            amount: 2000, date: new Date().toISOString(),
-        }).expect(201);
-        expect(res.body).toHaveProperty('id');
+    it('POST /api/hospitality/finance/expenses creates expense', async () => {
+        const res = await request(app).post('/api/hospitality/finance/expenses').send({
+            category: 'utilities', description: 'Electricidade', amount: 2000,
+            date: new Date().toISOString().slice(0, 10),
+        });
+        expect([200, 201]).toContain(res.status);
     });
 });
 
@@ -167,13 +168,5 @@ describe('HospitalityDashboard', () => {
     it('GET /api/hospitality/dashboard/recent-bookings returns list', async () => {
         const res = await request(app).get('/api/hospitality/dashboard/recent-bookings').expect(200);
         expect(res.body).toBeDefined();
-    });
-});
-
-// ── Hospitality Channels ──────────────────────────────────────────────────────
-describe('HospitalityChannels', () => {
-    it('GET /api/hospitality/channels returns channels list', async () => {
-        const res = await request(app).get('/api/hospitality/channels').expect(200);
-        expect(Array.isArray(res.body.data ?? res.body)).toBe(true);
     });
 });

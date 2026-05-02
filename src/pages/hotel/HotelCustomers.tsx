@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PageHeader, TableContainer, Card, Badge, Button, Input } from '../../components/ui';
+import { PageHeader, TableContainer, Card, Badge, Button, Input, Pagination } from '../../components/ui';
 import { GuestProfileModal } from '../../components/hospitality';
 import { hospitalityAPI } from '../../services/api';
 import { logger } from '../../utils/logger';
@@ -13,13 +13,21 @@ export default function HotelCustomers() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(20);
+    const [totalItems, setTotalItems] = useState(0);
 
     const loadGuests = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await hospitalityAPI.getBookings({ limit: 50 });
+            const res = await hospitalityAPI.getBookings({ 
+                page, 
+                limit, 
+                search: searchTerm || undefined 
+            });
             if (res?.data) {
                 setBookings(res.data);
+                setTotalItems(res.pagination?.total || res.total || res.data.length);
             }
         } catch (err) {
             logger.error('Error loading guests:', err);
@@ -30,18 +38,18 @@ export default function HotelCustomers() {
 
     useEffect(() => {
         loadGuests();
-    }, [loadGuests]);
+    }, [loadGuests, page, limit]);
 
-    const filteredGuests = bookings.filter(b => 
-        b.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.guestPhone?.includes(searchTerm) ||
-        b.room?.number?.includes(searchTerm)
-    );
 
     const openProfile = (id: string) => {
         setSelectedBookingId(id);
         setIsModalOpen(true);
     };
+
+    // Reset to page 1 when searching
+    useEffect(() => {
+        setPage(1);
+    }, [searchTerm]);
 
     return (
         <div className="space-y-6">
@@ -73,7 +81,7 @@ export default function HotelCustomers() {
 
             <TableContainer
                 isLoading={loading}
-                isEmpty={filteredGuests.length === 0}
+                isEmpty={bookings.length === 0}
                 emptyTitle={t('common.noData')}
             >
                 <Card padding="none" className="overflow-hidden">
@@ -87,7 +95,7 @@ export default function HotelCustomers() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                            {filteredGuests.map((booking) => (
+                            {bookings.map((booking) => (
                                 <tr key={booking.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div>
@@ -119,6 +127,20 @@ export default function HotelCustomers() {
                             ))}
                         </tbody>
                     </table>
+                    {totalItems > limit && (
+                        <div className="px-6 py-4 border-t border-gray-100 dark:border-dark-700">
+                            <Pagination
+                                currentPage={page}
+                                totalItems={totalItems}
+                                itemsPerPage={limit}
+                                onPageChange={setPage}
+                                onItemsPerPageChange={(newLimit) => {
+                                    setLimit(newLimit);
+                                    setPage(1);
+                                }}
+                            />
+                        </div>
+                    )}
                 </Card>
             </TableContainer>
 

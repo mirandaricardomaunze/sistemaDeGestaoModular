@@ -45,7 +45,10 @@ jest.mock('../../middleware/auth', () => ({
 // Silence socket in tests
 jest.mock('../../lib/socket', () => ({
     initSocket: jest.fn().mockReturnValue({ on: jest.fn() }),
+    getIO: jest.fn(),
     emitToCompany: jest.fn(),
+    emitToModule: jest.fn(),
+    emitToUser: jest.fn(),
 }));
 
 // ── Test data IDs (set in beforeAll) ─────────────────────────────────────────

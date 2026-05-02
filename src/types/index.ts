@@ -47,7 +47,7 @@ export interface Product {
     isReturnable?: boolean;
     returnPrice?: number;
     packSize?: number;
-    origin_module?: string;
+    originModule?: string;
     taxRate?: number;
     weight?: number;
     leadTime?: number; // Days for supplier delivery
@@ -145,13 +145,13 @@ export interface StockTransfer {
             weight?: number;
         };
     }[];
-    status: 'pending' | 'in_transit' | 'completed' | 'cancelled';
+    status: 'draft' | 'pending' | 'approved' | 'in_transit' | 'received' | 'completed' | 'rejected' | 'cancelled';
     responsible: string;
     reason: string;
     date: string;
     createdAt: string;
-    sourceWarehouse?: { id: string; name: string; code: string };
-    targetWarehouse?: { id: string; name: string; code: string };
+    sourceWarehouse?: Warehouse;
+    targetWarehouse?: Warehouse;
 }
 
 // ============================================================================
@@ -374,12 +374,21 @@ export interface ReceiptData {
 }
 
 export interface CompanyInfo {
+    id?: string;
     name: string;
+    companyName: string;
+    tradeName?: string;
+    nuit?: string;
+    taxId?: string;
     address: string;
+    city?: string;
+    province?: string;
+    country?: string;
     phone: string;
     email: string;
-    taxId: string;
     logo?: string;
+    ivaRate?: number;
+    currency?: string;
 }
 
 // ============================================================================
@@ -782,6 +791,9 @@ export type UserRole = 'super_admin' | 'admin' | 'manager' | 'operator' | 'cashi
 export interface Company {
     id: string;
     name: string;
+    nuit?: string;
+    address?: string;
+    city?: string;
     status?: 'active' | 'inactive' | 'suspended';
     settings?: any;
 }
@@ -808,4 +820,52 @@ export interface AuthState {
     users: User[];
     isAuthenticated: boolean;
     isLoading: boolean;
+}
+
+// ============================================================================
+// Report & Export Types
+// ============================================================================
+
+export interface HospitalityReportData {
+    period: string;
+    summary: {
+        totalRevenue: number;
+        totalRoomRevenue: number;
+        totalConsumptionRevenue: number;
+        totalBookings: number;
+        occupancyRate: number;
+    };
+    roomStats: {
+        available: number;
+        occupied: number;
+        dirty: number;
+        maintenance: number;
+    };
+    bookings: Array<{
+        checkIn: string;
+        roomNumber: string;
+        customerName: string;
+        totalRevenue: number;
+        status: string;
+    }>;
+}
+
+export interface PharmacyStockReportData {
+    items: any[];
+    summary: {
+        totalProducts: number;
+        totalStock: number;
+        lowStockCount: number;
+        totalValue: number | string;
+        totalCost: number | string;
+    };
+}
+
+export interface PharmacySalesReportData {
+    sales: any[];
+    summary: {
+        totalSales: number;
+        totalItems: number;
+        totalRevenue: number;
+    };
 }

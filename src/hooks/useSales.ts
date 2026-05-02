@@ -1,9 +1,9 @@
 import { logger } from '../utils/logger';
-import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { salesAPI } from '../services/api';
 import { useInvoiceTaxes, getCurrentFiscalPeriod } from '../utils/fiscalIntegration';
-import { db } from '../db/offlineDB';
+import { db, cryptoRandomId } from '../db/offlineDB';
 import type { Sale } from '../types';
 
 interface PaginationMeta {
@@ -24,77 +24,63 @@ interface UseSalesParams {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    fields?: string;
 }
 
+const QK = ['sales'] as const;
+
 export function useSales(params?: UseSalesParams) {
-    const [sales, setSales] = useState<Sale[]>([]);
-    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
     const { calculateInvoiceIVA } = useInvoiceTaxes();
 
-    const fetchSales = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await salesAPI.getAll(params);
+    const query = useQuery({
+        queryKey: [...QK, params ?? {}],
+        queryFn: async () => {
+            const response = await salesAPI.getAll(params as any);
 
-            let salesData: Sale[] = [];
-            if (response.data && response.pagination) {
+            let salesData: Sale[];
+            let pagination: PaginationMeta;
+            if (response?.data && response?.pagination) {
                 salesData = response.data;
-                setPagination(response.pagination);
+                pagination = {
+                    ...response.pagination,
+                    hasMore: response.pagination.hasMore ?? response.pagination.hasNext ?? false,
+                };
             } else {
                 salesData = Array.isArray(response) ? response : (response.data || []);
-                setPagination({
+                pagination = {
                     page: params?.page || 1,
                     limit: params?.limit || salesData.length,
                     total: salesData.length,
                     totalPages: 1,
-                    hasMore: false
-                });
+                    hasMore: false,
+                };
             }
 
-            setSales(salesData);
-        } catch (err) {
-            setError('Erro ao carregar vendas');
-            logger.error('Error fetching sales:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [
-        params?.startDate,
-        params?.endDate,
-        params?.customerId,
-        params?.paymentMethod,
-        params?.search,
-        params?.page,
-        params?.limit,
-        params?.sortBy,
-        params?.sortOrder
-    ]);
+            return { sales: salesData, pagination };
+        },
+        placeholderData: keepPreviousData,
+    });
 
-    useEffect(() => {
-        fetchSales();
-    }, [fetchSales]);
-
-    const createSale = async (data: Parameters<typeof salesAPI.create>[0]) => {
-        try {
+    const createMutation = useMutation({
+        mutationFn: async (data: Parameters<typeof salesAPI.create>[0]) => {
             if (!navigator.onLine) {
-                const pendingSaleId = await db.pendingSales.add({
+                const pendingId = await db.pendingSales.add({
+                    clientId: cryptoRandomId(),
                     data,
                     timestamp: Date.now(),
-                    synced: false as any
+                    status: 'pending',
+                    synced: false,
+                    attempts: 0,
+                    nextRetryAt: Date.now(),
                 });
-
                 const mockSale: any = {
                     ...data,
-                    id: `offline-${pendingSaleId}`,
+                    id: `offline-${pendingId}`,
                     createdAt: new Date().toISOString(),
-                    receiptNumber: `OFFLINE-${pendingSaleId}`,
-                    items: data.items
+                    receiptNumber: `OFFLINE-${pendingId}`,
+                    items: data.items,
                 };
-
-                // 📊 Auto-register IVA in Fiscal module even when offline
                 calculateInvoiceIVA(
                     mockSale.subtotal,
                     mockSale.customerId || 'anonymous',
@@ -103,17 +89,12 @@ export function useSales(params?: UseSalesParams) {
                     mockSale.receiptNumber,
                     mockSale.createdAt.split('T')[0],
                     getCurrentFiscalPeriod(),
-                    true // createRetention
+                    true,
                 );
-
-                setSales((prev) => [mockSale, ...prev]);
                 toast('Venda guardada e IVA registado (Offline)', { icon: '💾' });
                 return mockSale;
             }
-
             const newSale = await salesAPI.create(data);
-
-            // 📊 Auto-register IVA in Fiscal module
             calculateInvoiceIVA(
                 newSale.subtotal,
                 newSale.customerId || 'anonymous',
@@ -122,37 +103,81 @@ export function useSales(params?: UseSalesParams) {
                 newSale.receiptNumber || `SALE-${newSale.id.slice(-6)}`,
                 newSale.createdAt ? newSale.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
                 getCurrentFiscalPeriod(),
-                true // createRetention
+                true,
             );
-
-            setSales((prev) => [newSale, ...prev]);
-            toast.success('Venda realizada e IVA registado na Gestão Fiscal!');
             return newSale;
-        } catch (err) {
-            logger.error('Error creating sale:', err);
-            throw err;
-        }
-    };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
+            toast.success('Venda realizada e IVA registado na Gestão Fiscal!');
+        },
+        onError: (err) => logger.error('Error creating sale:', err),
+    });
 
-    const voidSale = async (id: string, reason: string) => {
-        try {
-            await salesAPI.voidSale(id, reason);
-            setSales(prev => prev.map(s => s.id === id ? { ...s, status: 'voided' } : s));
-            toast.success('Venda anulada com sucesso');
-        } catch (err) {
-            logger.error('Error voiding sale:', err);
-            toast.error('Erro ao anular venda');
-            throw err;
-        }
-    };
+    const requestVoidMutation = useMutation({
+        mutationFn: ({ id, reason }: { id: string; reason: string }) => salesAPI.requestVoid(id, reason),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
+            queryClient.invalidateQueries({ queryKey: ['sales', 'pending-voids'] });
+            toast.success('Pedido de anulação enviado. Aguarda aprovação de um gestor.');
+        },
+        onError: (err: any) => {
+            logger.error('Error requesting void:', err);
+            toast.error(err?.response?.data?.message || 'Erro ao solicitar anulação');
+        },
+    });
+
+    const approveVoidMutation = useMutation({
+        mutationFn: (id: string) => salesAPI.approveVoid(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
+            queryClient.invalidateQueries({ queryKey: ['sales', 'pending-voids'] });
+            toast.success('Anulação aprovada. Stock revertido.');
+        },
+        onError: (err: any) => {
+            logger.error('Error approving void:', err);
+            toast.error(err?.response?.data?.message || 'Erro ao aprovar anulação');
+        },
+    });
+
+    const rejectVoidMutation = useMutation({
+        mutationFn: ({ id, reason }: { id: string; reason: string }) => salesAPI.rejectVoid(id, reason),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
+            queryClient.invalidateQueries({ queryKey: ['sales', 'pending-voids'] });
+            toast.success('Pedido de anulação rejeitado.');
+        },
+        onError: (err: any) => {
+            logger.error('Error rejecting void:', err);
+            toast.error(err?.response?.data?.message || 'Erro ao rejeitar anulação');
+        },
+    });
 
     return {
-        sales,
-        pagination,
-        isLoading,
-        error,
-        refetch: fetchSales,
-        createSale,
-        voidSale,
+        sales: query.data?.sales ?? [],
+        pagination: query.data?.pagination ?? null,
+        isLoading: query.isLoading || query.isFetching,
+        isPlaceholderData: query.isPlaceholderData,
+        error: query.error ? 'Erro ao carregar vendas' : null,
+        refetch: query.refetch,
+        createSale: createMutation.mutateAsync,
+        // New two-step API
+        requestVoid: (id: string, reason: string) => requestVoidMutation.mutateAsync({ id, reason }),
+        approveVoid: (id: string) => approveVoidMutation.mutateAsync(id),
+        rejectVoid: (id: string, reason: string) => rejectVoidMutation.mutateAsync({ id, reason }),
+        // Legacy alias -- now triggers a void *request* (step 1), not an immediate void.
+        voidSale: (id: string, reason: string) => requestVoidMutation.mutateAsync({ id, reason }),
     };
+}
+
+export function usePendingVoids() {
+    return useQuery({
+        queryKey: ['sales', 'pending-voids'] as const,
+        queryFn: async () => {
+            const response = await salesAPI.listPendingVoids();
+            const data = response?.data ?? response;
+            return Array.isArray(data) ? data : [];
+        },
+        refetchInterval: 30000,
+    });
 }

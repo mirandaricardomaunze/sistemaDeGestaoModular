@@ -67,8 +67,8 @@ export default function Reports() {
 
     // Otherwise show sales reports (for COMMERCIAL, PHARMACY, etc.)
     // Fetch real data from API
-    const { sales: apiSales } = useSales();
-    const { products } = useProducts();
+    const { sales: apiSales } = useSales({ page: 1, limit: 100 });
+    const { products } = useProducts({ page: 1, limit: 100 });
     const [period, setPeriod] = useState<TimePeriod>('month');
     const [startDateCustom, setStartDateCustom] = useState<string>(
         new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]

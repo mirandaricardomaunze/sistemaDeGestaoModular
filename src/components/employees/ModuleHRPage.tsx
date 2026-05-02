@@ -15,7 +15,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell,
 } from 'recharts';
-import { Card, Button, Badge, Input, Select, Modal, PageHeader, LoadingSpinner, ConfirmationModal } from '../ui';
+import { Card, Button, Badge, Input, Select, Modal, PageHeader, LoadingSpinner, ConfirmationModal, Pagination, usePagination } from '../ui';
 import EmployeeList from './EmployeeList';
 import EmployeeForm from './EmployeeForm';
 import PayslipGenerator from './PayslipGenerator';
@@ -394,6 +394,15 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
     const { payroll: allPayroll, isLoading, refetch, updatePayroll, processPayroll } = usePayroll({ month, year, status: statusFilter || undefined });
     const data = useMemo(() => (allPayroll || []).filter(p => employees.some(e => e.id === p.employeeId)), [allPayroll, employees]);
 
+    const {
+        paginatedItems: paginatedData,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(data, 10);
+
     const stats = useMemo(() => ({
         totalNet: data.reduce((a, p) => a + Number(p.netSalary || 0), 0),
         totalPaid: data.filter(p => p.status === 'paid').reduce((a, p) => a + Number(p.netSalary || 0), 0),
@@ -474,9 +483,9 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700/50">
                             {isLoading ? (
                                 <tr><td colSpan={8} className="py-20 text-center"><LoadingSpinner size="lg" /></td></tr>
-                            ) : data.length === 0 ? (
+                            ) : paginatedData.length === 0 ? (
                                 <tr><td colSpan={8} className="py-20 text-center text-gray-400 italic">Nenhum registo para {MONTHS[month - 1]} / {year}</td></tr>
-                            ) : data.map(p => {
+                            ) : paginatedData.map(p => {
                                 const emp = employees.find(e => e.id === p.employeeId);
                                 const inss = Number(p.inssDeduction) || calcINSS(Number(p.baseSalary));
                                 const irt = Number(p.irtDeduction) || calcIRT(Number(p.totalEarnings || p.baseSalary));
@@ -514,6 +523,17 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
                         </tbody>
                     </table>
                 </div>
+                {!isLoading && data.length > 0 && (
+                    <div className="p-4 border-t border-gray-100 dark:border-dark-700/50 bg-white/50 dark:bg-dark-900/50">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
+                    </div>
+                )}
             </Card>
 
             <Modal isOpen={!!selectedPayroll} onClose={() => setSelectedPayroll(null)} title="Recibo de Salário" size="lg">
@@ -604,6 +624,15 @@ export function VacationsPanel({ config, employees: allEmp }: { config: ModuleHR
     const c = config.accentColor;
     const deptRequests = requests.filter(r => employees.some(e => e.id === r.employeeId));
 
+    const {
+        paginatedItems: paginatedRequests,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(deptRequests, 10);
+
     if (isLoading) return <div className="h-64 flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
 
     return (
@@ -641,9 +670,9 @@ export function VacationsPanel({ config, employees: allEmp }: { config: ModuleHR
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-600">
-                            {deptRequests.length === 0 ? (
+                            {paginatedRequests.length === 0 ? (
                                 <tr><td colSpan={5} className="px-6 py-12 text-center text-gray-500 italic">Nenhum pedido de férias registado.</td></tr>
-                            ) : deptRequests.map(req => (
+                            ) : paginatedRequests.map(req => (
                                 <tr key={req.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-6 py-4"><p className="font-bold text-gray-900 dark:text-white">{employees.find(e => e.id === req.employeeId)?.name || ''}</p></td>
                                     <td className="px-6 py-4"><div className="flex items-center gap-2 text-sm text-gray-500"><HiOutlineCalendar /><span>{new Date(req.startDate).toLocaleDateString('pt-MZ')}</span><span>→</span><span>{new Date(req.endDate).toLocaleDateString('pt-MZ')}</span></div></td>
@@ -662,6 +691,17 @@ export function VacationsPanel({ config, employees: allEmp }: { config: ModuleHR
                         </tbody>
                     </table>
                 </div>
+                {!isLoading && deptRequests.length > 0 && (
+                    <div className="p-4 border-t border-gray-100 dark:border-dark-700/50 bg-gray-50/50 dark:bg-dark-800/50">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
+                    </div>
+                )}
             </Card>
 
             <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Novo Pedido de Férias">

@@ -19,11 +19,12 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import {
     HiOutlineArrowPath as HiOutlineRefresh,
     HiOutlinePlus,
-    HiOutlineLightBulb
+    HiOutlineLightBulb,
+    HiOutlineChartBar
 } from 'react-icons/hi2';
 import { Link } from 'react-router-dom';
 
-import { Button, Skeleton, Select } from '../components/ui';
+import { Button, Skeleton, Select, PageHeader } from '../components/ui';
 import { cn, formatRelativeTime } from '../utils/helpers';
 import {
     useDashboard,
@@ -82,9 +83,9 @@ export default function Dashboard() {
 
     // Fetch data
     const { stats, salesChart, weeklyChart, recentActivity, isLoading: isLoadingDashboard, refetch: refetchDashboard } = useDashboard(selectedWarehouseId);
-    const { products, isLoading: isLoadingProducts } = useProducts(selectedWarehouseId ? { warehouseId: selectedWarehouseId } : undefined);
+    const { products, isLoading: isLoadingProducts } = useProducts({ page: 1, limit: 100, ...(selectedWarehouseId ? { warehouseId: selectedWarehouseId } : {}) });
     const { alerts, isLoading: isLoadingAlerts } = useAlerts();
-    const { employees, isLoading: isLoadingEmployees } = useEmployees();
+    const { employees, isLoading: isLoadingEmployees } = useEmployees({ page: 1, limit: 100 });
     const { categories, isLoading: isLoadingCategories } = useCategories();
     const { insights, isLoading: isLoadingInsights } = useSmartInsights();
     const { warehouses } = useWarehouses();
@@ -204,45 +205,63 @@ export default function Dashboard() {
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
-                    <p className="text-gray-500">{t('dashboard.overview')}</p>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                    <div className="w-56">
-                        <Select
-                            value={selectedWarehouseId}
-                            onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                            options={[
-                                { value: '', label: 'Todos os Armazéns' },
-                                ...(warehouses || []).map(w => ({ value: w.id, label: w.name }))
-                            ]}
-                        />
-                    </div>
-                    <Button variant="ghost" onClick={() => refetchDashboard()} leftIcon={<HiOutlineRefresh className="text-primary-600 dark:text-primary-400" />}>
-                        {t('common.refresh')}
-                    </Button>
-                    <div className="flex bg-gray-100 dark:bg-dark-700 rounded-lg p-1 items-center">
-                        {periodOptions.map((opt) => (
-                            <Button
-                                key={opt.value}
-                                onClick={() => setSelectedPeriod(opt.value)}
-                                variant={selectedPeriod === opt.value ? 'primary' : 'ghost'}
+        <div className="space-y-6 pb-20 animate-fade-in">
+            <PageHeader
+                title={t('dashboard.title')}
+                subtitle={t('dashboard.overview')}
+                icon={<HiOutlineChartBar />}
+                actions={
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="w-56">
+                            <Select
                                 size="sm"
-                                className={cn(
-                                    'px-3 py-1.5 rounded-md text-sm font-medium',
-                                    selectedPeriod === opt.value ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm hover:bg-white dark:hover:bg-dark-800' : 'text-gray-500'
-                                )}
+                                value={selectedWarehouseId}
+                                onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                                options={[
+                                    { value: '', label: 'Todos os Armazéns' },
+                                    ...(warehouses || []).map(w => ({ value: w.id, label: w.name }))
+                                ]}
+                                className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
+                            />
+                        </div>
+                        <div className="flex bg-gray-100 dark:bg-dark-800 p-1 rounded-xl border border-gray-200 dark:border-dark-700">
+                            {periodOptions.map((opt) => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => setSelectedPeriod(opt.value)}
+                                    className={cn(
+                                        'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all',
+                                        selectedPeriod === opt.value
+                                            ? 'bg-white dark:bg-dark-700 text-primary-600 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    )}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800"
+                            onClick={() => refetchDashboard()}
+                            leftIcon={<HiOutlineRefresh className={cn("w-4 h-4 text-primary-600", isLoading && "animate-spin")} />}
+                        >
+                            {t('common.refresh')}
+                        </Button>
+                        <Link to="/pos">
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                className="h-10 px-6 bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none"
+                                leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                             >
-                                {opt.label}
+                                {t('dashboard.newSale')}
                             </Button>
-                        ))}
+                        </Link>
                     </div>
-                    <Link to="/pos"><Button leftIcon={<HiOutlinePlus />}>{t('dashboard.newSale')}</Button></Link>
-                </div>
-            </div>
+                }
+            />
 
             <DndContext
                 sensors={sensors}

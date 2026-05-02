@@ -5,8 +5,8 @@ export const chatAPI = {
     /**
      * Envia mensagem para o assistente
      */
-    sendMessage: async (message: string): Promise<ChatResponse> => {
-        const response = await api.post('/chat/message', { message });
+    sendMessage: async (message: string, module?: string): Promise<ChatResponse> => {
+        const response = await api.post('/chat/message', { message, module });
         return response.data;
     },
 
@@ -21,8 +21,8 @@ export const chatAPI = {
     /**
      * Busca sugestões de perguntas
      */
-    getSuggestions: async () => {
-        const response = await api.get('/chat/suggestions');
+    getSuggestions: async (module?: string) => {
+        const response = await api.get('/chat/suggestions', { params: { module } });
         return response.data;
     }
 };

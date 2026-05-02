@@ -40,6 +40,7 @@ export default function ReceiptGenerator() {
     // Format company info for receipt display with null safety
     const companyInfo: CompanyInfo = useMemo(() => ({
         name: companySettings?.companyName ?? 'Empresa',
+        companyName: companySettings?.companyName ?? 'Empresa',
         address: `${companySettings?.address ?? ''} - ${companySettings?.city ?? ''}/${companySettings?.state ?? ''}`,
         phone: companySettings?.phone ?? '',
         email: companySettings?.email ?? '',

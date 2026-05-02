@@ -1,6 +1,6 @@
 import { logger } from '../../utils/logger';
 import { useState, useEffect, useCallback } from 'react';
-import { Card, Input, Select, Badge, LoadingSpinner, Button, Modal } from '../ui';
+import { Card, Input, Select, Badge, Button, Modal, LoadingOverlay, SkeletonTable } from '../ui';
 import Pagination from '../ui/Pagination';
 import { productsAPI } from '../../services/api';
 import { useWarehouses } from '../../hooks/useData';
@@ -87,7 +87,7 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                 search: filters.search || undefined,
                 startDate: filters.startDate || undefined,
                 endDate: filters.endDate || undefined,
-                origin_module: originModule
+                originModule
             });
             setMovements(response.data || []);
             setPagination(response.pagination);
@@ -184,12 +184,24 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
             </Card>
 
             {/* Table */}
-            <Card padding="none">
-                {isLoading ? (
-                    <div className="py-16 flex justify-center">
-                        <LoadingSpinner size="lg" />
+            <Card padding="none" className="min-h-[500px] relative overflow-hidden">
+                {isLoading && movements.length === 0 ? (
+                    <div className="p-6">
+                        <SkeletonTable rows={10} columns={8} />
                     </div>
-                ) : movements.length === 0 ? (
+                ) : (
+                    <>
+                        {isLoading && (
+                            <div className="absolute inset-0 z-20">
+                                <LoadingOverlay 
+                                    fullScreen={false} 
+                                    message="A carregar movimentações..." 
+                                    subtext="Sincronizando com base de dados"
+                                />
+                            </div>
+                        )}
+
+                        {movements.length === 0 ? (
                     <div className="py-16 flex flex-col items-center justify-center text-center">
                         <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
                             <HiOutlineFunnel className="w-8 h-8 text-gray-400" />
@@ -312,7 +324,9 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                                 })}
                             </tbody>
                         </table>
-                    </div>
+                        </div>
+                        )}
+                    </>
                 )}
 
                 {/* Pagination */}

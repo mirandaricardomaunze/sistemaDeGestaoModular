@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,13 +28,14 @@ import {
 } from 'recharts';
 import { format, parseISO, addDays, subDays } from 'date-fns';
 import { Card, Button, Input, Select, Modal, Pagination, TableContainer, PageHeader } from '../components/ui';
-import { StatCard } from '../components/common/ModuleMetricCard';
+import { MetricCard } from '../components/common/ModuleMetricCard';
 import { InvoicePrintPreview, CreditNoteManager } from '../components/invoices';
 import MobilePaymentModal from '../components/pos/MobilePaymentModal';
 import { formatCurrency, generateId, cn } from '../utils/helpers';
 import { ExportInvoicesButton } from '../components/common/ExportButton';
 import type { Invoice, InvoiceStatus } from '../types';
 import toast from 'react-hot-toast';
+import { PAGE_SIZE } from '../utils/constants';
 
 // Time period options
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
@@ -85,20 +86,21 @@ const paymentSchema = z.object({
 
 type PaymentFormData = z.infer<typeof paymentSchema>;
 
-const statusConfig: Record<InvoiceStatus, { label: string; color: string; bgColor: string }> = {
-    draft: { label: 'Rascunho', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-    sent: { label: 'Enviada', color: 'text-blue-600', bgColor: 'bg-blue-100' },
-    paid: { label: 'Paga', color: 'text-green-600', bgColor: 'bg-green-100' },
-    partial: { label: 'Parcial', color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
-    overdue: { label: 'Vencida', color: 'text-red-600', bgColor: 'bg-red-100' },
-    cancelled: { label: 'Cancelada', color: 'text-gray-400', bgColor: 'bg-gray-50' },
+const statusConfig: Record<string, { label: string; color: string; bgColor: string; hex: string }> = {
+    draft: { label: 'RASCUNHO-VIOLET', color: 'text-violet-600', bgColor: 'bg-violet-100', hex: '#8b5cf6' },
+    rascunho: { label: 'RASCUNHO-VIOLET', color: 'text-violet-600', bgColor: 'bg-violet-100', hex: '#8b5cf6' },
+    sent: { label: 'Enviada', color: 'text-blue-600', bgColor: 'bg-blue-100', hex: '#3b82f6' },
+    paid: { label: 'Paga', color: 'text-green-600', bgColor: 'bg-green-100', hex: '#22c55e' },
+    partial: { label: 'Parcial', color: 'text-yellow-600', bgColor: 'bg-yellow-100', hex: '#f59e0b' },
+    overdue: { label: 'Vencida', color: 'text-red-600', bgColor: 'bg-red-100', hex: '#ef4444' },
+    cancelled: { label: 'Cancelada', color: 'text-pink-600', bgColor: 'bg-pink-100', hex: '#ec4899' },
 };
 
-const CHART_COLORS = ['#6b7280', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#9ca3af'];
 
 // Sample orders are removed in favor of real data from the API
 
 import { useInvoices, useProducts } from '../hooks/useData';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface InvoicesProps {
     originModule?: string;
@@ -107,11 +109,24 @@ interface InvoicesProps {
 export default function Invoices({ originModule }: InvoicesProps) {
     const [searchParams] = useSearchParams();
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const [pageSize, setPageSize] = useState(PAGE_SIZE);
     const [search, setSearch] = useState(searchParams.get('search') || '');
+    const debouncedSearch = useDebounce(search, 300);
     const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
 
     const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+    const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
+
+    // Get date range based on period
+    const periodStartDate = useMemo(() => {
+        const now = new Date();
+        switch (selectedPeriod) {
+            case '1m': return subDays(now, 30);
+            case '3m': return subDays(now, 90);
+            case '6m': return subDays(now, 180);
+            case '1y': return subDays(now, 365);
+        }
+    }, [selectedPeriod]);
 
     useEffect(() => {
         const searchParam = searchParams.get('search');
@@ -133,6 +148,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
     const {
         invoices,
         pagination,
+        summary,
         isLoading,
         error,
         availableSources,
@@ -143,8 +159,9 @@ export default function Invoices({ originModule }: InvoicesProps) {
         addPayment: registerInvoicePayment,
         getInvoiceById,
     } = useInvoices({
-        search,
+        search: debouncedSearch || undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
+        startDate: periodStartDate?.toISOString(),
         page,
         limit: pageSize,
         originModule,
@@ -171,25 +188,24 @@ export default function Invoices({ originModule }: InvoicesProps) {
     const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>('');
-    const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
     const [activeTab, setActiveTab] = useState<'invoices' | 'credit_notes'>('invoices');
     const [showMpesaModal, setShowMpesaModal] = useState(false);
     const [mpesaAmount, setMpesaAmount] = useState(0);
 
-    // Product Search State
+    // Product Search State (server-side search, only fetches matches)
     const [productSearch, setProductSearch] = useState('');
     const [showProductResults, setShowProductResults] = useState(false);
-    const { products: allProducts } = useProducts();
+    const debouncedProductSearch = useDebounce(productSearch, 300);
+    const { products: searchedProducts } = useProducts({
+        search: debouncedProductSearch || undefined,
+        page: 1,
+        limit: 8
+    });
 
     const filteredProducts = useMemo(() => {
         if (!productSearch) return [];
-        const query = productSearch.toLowerCase();
-        return allProducts.filter(p =>
-            p.name.toLowerCase().includes(query) ||
-            p.code.toLowerCase().includes(query) ||
-            p.barcode?.toLowerCase().includes(query)
-        ).slice(0, 8); // Limit results for UI
-    }, [allProducts, productSearch]);
+        return searchedProducts || [];
+    }, [searchedProducts, productSearch]);
 
     // Close product results when clicking outside
     useEffect(() => {
@@ -200,21 +216,36 @@ export default function Invoices({ originModule }: InvoicesProps) {
         return () => document.removeEventListener('click', handleClickOutside);
     }, [showProductResults]);
 
-    // Get date range based on period
-    const periodStartDate = useMemo(() => {
-        const now = new Date();
-        switch (selectedPeriod) {
-            case '1m': return subDays(now, 30);
-            case '3m': return subDays(now, 90);
-            case '6m': return subDays(now, 180);
-            case '1y': return subDays(now, 365);
-        }
-    }, [selectedPeriod]);
+    // Source (Sale/Order) Search State for the searchable dropdown
+    const [sourceSearch, setSourceSearch] = useState('');
+    const [showSourceResults, setShowSourceResults] = useState(false);
+    const sourceContainerRef = useRef<HTMLDivElement>(null);
 
-    // Filter invoices by selected period
-    const periodInvoices = useMemo(() => {
-        return invoices.filter((inv) => parseISO(inv.issueDate) >= periodStartDate);
-    }, [invoices, periodStartDate]);
+    const filteredSources = useMemo(() => {
+        const term = sourceSearch.trim().toLowerCase();
+        if (!term) return availableSources;
+        return availableSources.filter((s: any) => {
+            return (
+                (s.number || '').toLowerCase().includes(term) ||
+                (s.customerName || '').toLowerCase().includes(term) ||
+                (s.type || '').toLowerCase().includes(term)
+            );
+        });
+    }, [availableSources, sourceSearch]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (sourceContainerRef.current && !sourceContainerRef.current.contains(e.target as Node)) {
+                setShowSourceResults(false);
+            }
+        };
+        if (showSourceResults) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showSourceResults]);
+
+
 
     // Invoice form
     const {
@@ -284,43 +315,58 @@ export default function Invoices({ originModule }: InvoicesProps) {
         return { subtotal, total };
     }, [watchItems, watchDiscount, watchTax]);
 
-    // Metrics (based on period)
+    // Metrics (prefer server-side summary if available)
     const metrics = useMemo(() => {
-        const total = periodInvoices.reduce((sum, inv) => sum + inv.total, 0);
-        const received = periodInvoices.reduce((sum, inv) => sum + inv.amountPaid, 0);
-        const pending = periodInvoices.filter(inv => inv.status === 'sent' || inv.status === 'partial')
+        if (summary) {
+            return { 
+                total: summary.total, 
+                received: summary.paid, 
+                pending: summary.pending, 
+                overdue: summary.overdue, 
+                count: pagination?.total || invoices.length 
+            };
+        }
+        
+        // Fallback to client-side for immediate feedback or if summary is missing
+        const total = invoices.reduce((sum, inv) => sum + inv.total, 0);
+        const received = invoices.reduce((sum, inv) => sum + inv.amountPaid, 0);
+        const pending = invoices.filter(inv => inv.status === 'sent' || inv.status === 'partial')
             .reduce((sum, inv) => sum + inv.amountDue, 0);
-        const overdue = periodInvoices.filter(inv => inv.status === 'overdue')
+        const overdue = invoices.filter(inv => inv.status === 'overdue')
             .reduce((sum, inv) => sum + inv.amountDue, 0);
-        return { total, received, pending, overdue, count: periodInvoices.length };
-    }, [periodInvoices]);
+        return { total, received, pending, overdue, count: invoices.length };
+    }, [invoices, summary, pagination?.total]);
 
-    // Status distribution (based on period)
+    // Status distribution (based on current page)
     const statusDistribution = useMemo(() => {
         const dist: Record<string, number> = {};
-        periodInvoices.forEach(inv => {
-            dist[inv.status] = (dist[inv.status] || 0) + 1;
+        invoices.forEach(inv => {
+            const statusKey = (inv.status || 'draft').toLowerCase();
+            dist[statusKey] = (dist[statusKey] || 0) + 1;
         });
-        return Object.entries(dist).map(([status, count]) => ({
-            name: statusConfig[status as InvoiceStatus]?.label || status,
-            value: count,
-        }));
-    }, [periodInvoices]);
-
-    // Filtered invoices (based on period + search + status)
-    const filteredInvoices = useMemo(() => {
-        return periodInvoices.filter(inv => {
-            const matchesSearch = inv.customerName.toLowerCase().includes(search.toLowerCase()) ||
-                inv.invoiceNumber.toLowerCase().includes(search.toLowerCase());
-            const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
-            return matchesSearch && matchesStatus;
+        return Object.entries(dist).map(([status, count]) => {
+            const config = statusConfig[status as InvoiceStatus] || statusConfig.draft;
+            return {
+                name: config.label,
+                value: count,
+                color: config.hex,
+            };
         });
-    }, [periodInvoices, search, statusFilter]);
+    }, [invoices]);
 
     // Pagination logic (now server-side)
     const totalItems = pagination?.total || 0;
 
 
+
+    const [lockedSource, setLockedSource] = useState<{
+        type: 'pharmacy' | 'commercial';
+        subtotal: number;
+        discount: number;
+        taxRate: number;
+        taxAmount: number;
+        total: number;
+    } | null>(null);
 
     // Handle order/sale selection and auto-fill
     const handleOrderSelect = (sourceId: string) => {
@@ -328,10 +374,13 @@ export default function Invoices({ originModule }: InvoicesProps) {
             setSelectedOrderNumber('');
             setValue('orderId', '');
             setValue('orderNumber', '');
+            setValue('discount', 0);
+            setValue('tax', 0);
+            setLockedSource(null);
             return;
         }
 
-        const source = availableSources.find(s => s.id === sourceId);
+        const source = availableSources.find((s: any) => s.id === sourceId);
         if (source) {
             setSelectedOrderNumber(source.number);
             setValue('orderId', source.id);
@@ -341,7 +390,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
             setValue('customerEmail', source.customerEmail || '');
             setValue('customerAddress', source.customerAddress || '');
 
-            // Add source items
+            // Add source items (pre-tax line totals)
             const sourceItems = source.items.map((item: any) => ({
                 id: generateId(),
                 description: item.description,
@@ -351,6 +400,21 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 total: item.total,
             }));
             replace(sourceItems);
+
+            // Inherit IVA breakdown from the source. The form discount/tax inputs
+            // mirror the contract; the totals card below shows the same numbers
+            // the customer agreed to on the order.
+            setValue('discount', Number(source.discount || 0));
+            setValue('tax', Number(source.taxAmount || 0));
+
+            setLockedSource({
+                type: source.type as 'pharmacy' | 'commercial',
+                subtotal: Number(source.subtotal || 0),
+                discount: Number(source.discount || 0),
+                taxRate: Number(source.taxRate || 0),
+                taxAmount: Number(source.taxAmount || 0),
+                total: Number(source.total || 0),
+            });
 
             toast.success(`${source.type === 'pharmacy' ? 'Venda de Farmácia' : 'Encomenda'} ${source.number} carregada!`);
         }
@@ -384,7 +448,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
     // Auto-fill when availableSources matches the search param (for the "Gerar Fatura" flow)
     useEffect(() => {
         if (showFormModal && search && availableSources.length > 0 && !selectedOrderNumber) {
-            const match = availableSources.find(s => s.number === search);
+            const match = availableSources.find((s: any) => s.number === search);
             if (match) {
                 handleOrderSelect(match.id);
             }
@@ -490,6 +554,8 @@ export default function Invoices({ originModule }: InvoicesProps) {
         setShowFormModal(false);
         setEditingInvoice(null);
         setSelectedOrderNumber('');
+        setLockedSource(null);
+        setSourceSearch('');
         reset();
     };
 
@@ -536,8 +602,8 @@ export default function Invoices({ originModule }: InvoicesProps) {
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Facturação & Crédito"
-                subtitle="Gestão de Facturas, Notas de Crédito e Fluxos de Recebimento"
+                title={`Facturação & Crédito ${originModule === 'pharmacy' ? 'Farmácia' : ''}`}
+                subtitle={`Gestão de Facturas ${originModule === 'pharmacy' ? 'da Farmácia' : ''}, Notas de Crédito e Fluxos de Recebimento`}
                 icon={<HiOutlineDocumentText className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
@@ -608,30 +674,29 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 ))}
                             </div>
                         </div>
-                        {/* Metrics Layer - Standardized */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                            <StatCard 
+                            <MetricCard 
                                 label="Total Facturado"
                                 value={formatCurrency(metrics.total)}
-                                icon={<HiOutlineDocumentText className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
+                                icon={<HiOutlineDocumentText className="w-5 h-5" />}
                                 color="primary"
                             />
-                            <StatCard 
+                            <MetricCard 
                                 label="Total Recebido"
                                 value={formatCurrency(metrics.received)}
-                                icon={<HiOutlineCheck className="w-6 h-6 text-green-600 dark:text-green-400" />}
+                                icon={<HiOutlineCheck className="w-5 h-5" />}
                                 color="green"
                             />
-                            <StatCard 
+                            <MetricCard 
                                 label="Valor Pendente"
                                 value={formatCurrency(metrics.pending)}
-                                icon={<HiOutlineClock className="w-6 h-6" />}
+                                icon={<HiOutlineClock className="w-5 h-5" />}
                                 color="yellow"
                             />
-                            <StatCard 
+                            <MetricCard 
                                 label="Valor Vencido"
                                 value={formatCurrency(metrics.overdue)}
-                                icon={<HiOutlineExclamationTriangle className="w-6 h-6" />}
+                                icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
                                 color="red"
                             />
                         </div>
@@ -645,8 +710,8 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                         <ResponsiveContainer width="100%" height={160}>
                                             <PieChart>
                                                 <Pie data={statusDistribution} cx="50%" cy="50%" innerRadius={35} outerRadius={60} dataKey="value">
-                                                    {statusDistribution.map((_, index) => (
-                                                        <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                                    {statusDistribution.map((entry, index) => (
+                                                        <Cell key={index} fill={entry.color} />
                                                     ))}
                                                 </Pie>
                                                 <Tooltip />
@@ -663,7 +728,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                             <div key={index} className="flex items-center gap-2 text-sm">
                                                 <div
                                                     className="w-3 h-3 rounded-full flex-shrink-0"
-                                                    style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                                                    style={{ backgroundColor: item.color }}
                                                 />
                                                 <span className="text-gray-600 dark:text-gray-400 truncate">{item.name}: {item.value}</span>
                                             </div>
@@ -693,7 +758,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                     </div>
                                 </div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
-                                    {filteredInvoices.length} facturas encontradas no período
+                                    {pagination?.total || invoices.length} facturas encontradas no período
                                 </p>
                             </Card>
                         </div>
@@ -736,8 +801,15 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                                 <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(inv.total)}</td>
                                                 <td className="px-4 py-3 text-right text-green-600">{formatCurrency(inv.amountPaid)}</td>
                                                 <td className="px-4 py-3 text-center">
-                                                    <span className={cn('px-2 py-1 rounded-full text-xs font-medium', statusConfig[inv.status].bgColor, statusConfig[inv.status].color)}>
-                                                        {statusConfig[inv.status].label}
+                                                    <span 
+                                                        className="px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                                                        style={{ 
+                                                            backgroundColor: statusConfig[inv.status.toLowerCase()]?.hex + '20' || '#e2e8f0', 
+                                                            color: statusConfig[inv.status.toLowerCase()]?.hex || '#64748b',
+                                                            border: `1px solid ${statusConfig[inv.status.toLowerCase()]?.hex}40`
+                                                        }}
+                                                    >
+                                                        {statusConfig[inv.status.toLowerCase()]?.label || inv.status}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">
@@ -780,28 +852,132 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     {/* Source Selection */}
                     {!editingInvoice && (
                         <Card padding="md" className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800">
-                            <h4 className="font-semibold text-primary-700 dark:text-primary-300 mb-3">Vincular Venda ou Encomenda</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Select
-                                    label="Selecionar Fonte"
-                                    options={[
-                                        { value: '', label: 'Criação Manual (Sem vínculo)' },
-                                        ...availableSources.map(source => ({
-                                            value: source.id,
-                                            label: `${source.type === 'pharmacy' ? 'Farmácia' : 'Comercial'} - ${source.number} - ${source.customerName} (${formatCurrency(source.total)})`,
-                                        })),
-                                    ]}
-                                    value={availableSources.find(s => s.number === selectedOrderNumber)?.id || ''}
-                                    onChange={(e) => handleOrderSelect(e.target.value)}
-                                />
-                                <div className="flex items-end">
+                            <div className="flex items-center justify-between mb-3">
+                                <h4 className="font-semibold text-primary-700 dark:text-primary-300">Vincular Venda ou Encomenda</h4>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary-500">
+                                    {availableSources.length} disponíveis
+                                </span>
+                            </div>
+
+                            <div className="relative" ref={sourceContainerRef}>
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Pesquisar Encomenda / Venda</label>
+                                <div className="relative">
+                                    <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+                                    <Input
+                                        placeholder="Pesquisar por número, cliente ou tipo..."
+                                        value={sourceSearch}
+                                        onChange={(e) => {
+                                            setSourceSearch(e.target.value);
+                                            setShowSourceResults(true);
+                                        }}
+                                        onFocus={() => setShowSourceResults(true)}
+                                        className="pl-10 bg-white dark:bg-dark-900"
+                                    />
                                     {selectedOrderNumber && (
-                                        <div className="text-sm text-primary-600 dark:text-primary-400">
-                                            <p className="font-medium font-mono text-xs">Fatura vinculada a: {selectedOrderNumber}</p>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                handleOrderSelect('');
+                                                setSourceSearch('');
+                                            }}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-red-500 font-medium"
+                                        >
+                                            Limpar
+                                        </button>
                                     )}
                                 </div>
+
+                                {showSourceResults && (
+                                    <div className="relative z-10 w-full mt-1 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                handleOrderSelect('');
+                                                setSourceSearch('');
+                                                setShowSourceResults(false);
+                                            }}
+                                            className="w-full text-left p-3 border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 text-sm text-gray-600 dark:text-gray-300"
+                                        >
+                                            <span className="italic">Criação Manual (Sem vínculo)</span>
+                                        </button>
+                                        {filteredSources.length === 0 ? (
+                                            <div className="p-6 text-center text-sm text-gray-500">
+                                                {availableSources.length === 0
+                                                    ? 'Nenhuma venda ou encomenda pendente de faturação encontrada.'
+                                                    : `Nenhum resultado para "${sourceSearch}"`}
+                                            </div>
+                                        ) : (
+                                            <div className="p-2 space-y-1">
+                                                {filteredSources.map((source: any) => (
+                                                    <button
+                                                        key={source.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            handleOrderSelect(source.id);
+                                                            setSourceSearch('');
+                                                            setShowSourceResults(false);
+                                                        }}
+                                                        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-left transition-colors group"
+                                                    >
+                                                        <div className="flex flex-col min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={cn(
+                                                                    'text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded',
+                                                                    source.type === 'pharmacy'
+                                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                                                )}>
+                                                                    {source.type === 'pharmacy' ? 'Farmácia' : 'Comercial'}
+                                                                </span>
+                                                                <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">{source.number}</span>
+                                                                {source.status && source.status !== 'completed' && (
+                                                                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                                                        {source.status}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate mt-0.5">{source.customerName}</span>
+                                                        </div>
+                                                        <div className="text-right ml-3">
+                                                            <span className="font-bold text-primary-600 dark:text-primary-400">{formatCurrency(source.total)}</span>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {selectedOrderNumber && (
+                                    <div className="mt-3 flex items-center gap-2 text-sm text-primary-700 dark:text-primary-300 bg-primary-100/50 dark:bg-primary-900/30 px-3 py-2 rounded-lg">
+                                        <HiOutlineCheck className="w-4 h-4 flex-shrink-0" />
+                                        <span className="font-medium">Fatura vinculada a:</span>
+                                        <span className="font-mono font-bold">{selectedOrderNumber}</span>
+                                    </div>
+                                )}
                             </div>
+
+                            {lockedSource && (
+                                <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 bg-white dark:bg-dark-900 rounded-lg p-3 border border-primary-200 dark:border-primary-800">
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-widest text-gray-400">Subtotal</p>
+                                        <p className="font-bold text-gray-900 dark:text-white">{formatCurrency(lockedSource.subtotal)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-widest text-gray-400">Desconto</p>
+                                        <p className="font-bold text-red-600">-{formatCurrency(lockedSource.discount)}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-widest text-gray-400">IVA ({lockedSource.taxRate}%)</p>
+                                        <p className="font-bold text-blue-600">+{formatCurrency(lockedSource.taxAmount)}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <p className="text-[10px] uppercase tracking-widest text-gray-400">Total da Encomenda</p>
+                                        <p className="font-bold text-primary-600 dark:text-primary-400 text-lg">{formatCurrency(lockedSource.total)}</p>
+                                    </div>
+                                </div>
+                            )}
+
                             {availableSources.length === 0 && (
                                 <p className="text-xs text-amber-600 mt-2 italic">Nenhuma venda ou encomenda pendente de faturação encontrada.</p>
                             )}
@@ -820,9 +996,26 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <Input label="Emissão *" type="date" {...register('issueDate')} error={errors.issueDate?.message} />
                         <Input label="Vencimento *" type="date" {...register('dueDate')} error={errors.dueDate?.message} />
-                        <Input label="Desconto" type="number" step="0.01" {...register('discount')} />
-                        <Input label="Impostos" type="number" step="0.01" {...register('tax')} />
+                        <Input
+                            label={lockedSource ? 'Desconto (da encomenda)' : 'Desconto'}
+                            type="number"
+                            step="0.01"
+                            disabled={!!lockedSource}
+                            {...register('discount')}
+                        />
+                        <Input
+                            label={lockedSource ? `IVA (${lockedSource.taxRate}% — congelado)` : 'IVA'}
+                            type="number"
+                            step="0.01"
+                            disabled={!!lockedSource}
+                            {...register('tax')}
+                        />
                     </div>
+                    {lockedSource && (
+                        <p className="text-xs text-amber-600 italic -mt-2">
+                            Os valores foram herdados da {lockedSource.type === 'pharmacy' ? 'venda' : 'encomenda'}. Para alterar preços ou IVA, remova o vínculo acima.
+                        </p>
+                    )}
 
                     {/* Items */}
                     <div className="border rounded-lg p-4 space-y-3 bg-gray-50 dark:bg-dark-800">
@@ -832,13 +1025,21 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                     <HiOutlineTag className="w-5 h-5" />
                                 </span>
                                 Itens da Fatura
+                                {lockedSource && (
+                                    <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                        Herdado
+                                    </span>
+                                )}
                             </h4>
-                            <Button type="button" variant="outline" size="sm" onClick={() => append({ id: generateId(), description: '', quantity: 1, unitPrice: 0, discount: 0, total: 0 })}>
-                                <HiOutlinePlus className="w-4 h-4 mr-1" />Item Manual
-                            </Button>
+                            {!lockedSource && (
+                                <Button type="button" variant="outline" size="sm" onClick={() => append({ id: generateId(), description: '', quantity: 1, unitPrice: 0, discount: 0, total: 0 })}>
+                                    <HiOutlinePlus className="w-4 h-4 mr-1" />Item Manual
+                                </Button>
+                            )}
                         </div>
 
                         {/* Search Product Input */}
+                        {!lockedSource && (
                         <div className="relative">
                             <Input
                                 placeholder="esquisar produto no inventário por nome ou código..."
@@ -886,28 +1087,29 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 </div>
                             )}
                         </div>
+                        )}
                         {fields.map((field, index) => (
                             <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
                                 <div className="col-span-5">
-                                    <Input placeholder="Descrição" {...register(`items.${index}.description`)} />
+                                    <Input placeholder="Descrição" disabled={!!lockedSource} {...register(`items.${index}.description`)} />
                                 </div>
                                 <div className="col-span-2">
-                                    <Input type="number" placeholder="Qtd" {...register(`items.${index}.quantity`)} onChange={() => updateItemTotal(index)} />
+                                    <Input type="number" placeholder="Qtd" disabled={!!lockedSource} {...register(`items.${index}.quantity`)} onChange={() => updateItemTotal(index)} />
                                 </div>
                                 <div className="col-span-2">
-                                    <Input type="number" step="0.01" placeholder="Preço" {...register(`items.${index}.unitPrice`)} onChange={() => updateItemTotal(index)} />
+                                    <Input type="number" step="0.01" placeholder="Preço" disabled={!!lockedSource} {...register(`items.${index}.unitPrice`)} onChange={() => updateItemTotal(index)} />
                                 </div>
                                 <div className="col-span-2">
                                     <p className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(watchItems?.[index]?.total || 0)}</p>
                                 </div>
                                 <div className="col-span-1">
-                                    {fields.length > 1 && <button type="button" onClick={() => remove(index)} className="p-2 text-red-500 hover:bg-red-50 rounded"><HiOutlineTrash className="w-4 h-4" /></button>}
+                                    {!lockedSource && fields.length > 1 && <button type="button" onClick={() => remove(index)} className="p-2 text-red-500 hover:bg-red-50 rounded"><HiOutlineTrash className="w-4 h-4" /></button>}
                                 </div>
                             </div>
                         ))}
                         <div className="pt-3 border-t flex justify-end gap-4">
-                            <span className="text-gray-600">Subtotal: {formatCurrency(calculateTotals.subtotal)}</span>
-                            <span className="font-bold text-gray-900 dark:text-white">Total: {formatCurrency(calculateTotals.total)}</span>
+                            <span className="text-gray-600">Subtotal: {formatCurrency(lockedSource ? lockedSource.subtotal : calculateTotals.subtotal)}</span>
+                            <span className="font-bold text-gray-900 dark:text-white">Total: {formatCurrency(lockedSource ? lockedSource.total : calculateTotals.total)}</span>
                         </div>
                     </div>
 

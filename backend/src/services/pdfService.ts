@@ -7,6 +7,8 @@ export class PDFService {
     private uploadsDir = path.join(__dirname, '../../uploads/reports');
     // Fonte Arial do Windows para suporte a UTF-8 (acentuação em Português)
     private primaryFont = 'C:\\Windows\\Fonts\\arial.ttf';
+    private PHARMACY_COLOR = '#0d9488'; // Professional Medical Teal
+    private PRIMARY_BLUE = '#1e40af';
 
     constructor() {
         // Criar diretório se não existir
@@ -75,6 +77,11 @@ export class PDFService {
                         year: 'numeric'
                     })}`, { align: 'right' });
 
+                // Pharmacy branding icon if applicable
+                if (type.startsWith('pharmacy') || type.includes('medication')) {
+                    this.drawMedicalCross(doc, 500, 45, 20);
+                }
+
                 // Linha separadora
                 doc.moveDown(1);
                 doc.strokeColor('#e5e7eb')
@@ -130,8 +137,10 @@ export class PDFService {
             hr: 'Recursos Humanos',
             order_cancellation: 'Documento de Cancelamento de Encomenda',
             quotation: 'Cotação / Orçamento',
-            inventory_table: 'Tabela Geral de Inventrio',
-            price_list: 'Catlogo de Preços'
+            inventory_table: 'Tabela Geral de Inventário',
+            price_list: 'Catálogo de Preços',
+            pharmacy_inventory: 'Relatório de Stock Farmacêutico',
+            pharmacy_sale: 'Comprovativo de Venda de Medicamentos'
         };
         return names[type] || type;
     }
@@ -165,9 +174,26 @@ export class PDFService {
             case 'price_list':
                 this.addPriceListContent(doc, data);
                 break;
+            case 'pharmacy_inventory':
+                this.addPharmacyInventoryContent(doc, data);
+                break;
+            case 'pharmacy_sale':
+                this.addPharmacySaleContent(doc, data);
+                break;
             default:
                 this.addGenericContent(doc, data);
         }
+    }
+
+    private drawMedicalCross(doc: PDFKit.PDFDocument, x: number, y: number, size: number) {
+        doc.save();
+        doc.translate(x, y);
+        doc.fillColor(this.PHARMACY_COLOR).opacity(0.15);
+        // Vertical bar
+        doc.rect(-size / 4, -size / 2, size / 2, size).fill();
+        // Horizontal bar
+        doc.rect(-size / 2, -size / 4, size, size / 2).fill();
+        doc.restore();
     }
 
     private addSalesContent(doc: PDFKit.PDFDocument, data: any) {
@@ -519,6 +545,104 @@ export class PDFService {
         });
     }
 
+    private addPharmacyInventoryContent(doc: PDFKit.PDFDocument, data: any) {
+        doc.fontSize(16).fillColor(this.PHARMACY_COLOR).text('📋 Relatório de Stock Farmacêutico', { underline: true });
+        doc.moveDown();
+
+        // Safety Header
+        doc.fontSize(9).fillColor('#666666').font('Helvetica-Oblique')
+           .text('Aviso: Verifique as datas de validade regularmente para garantir a segurança dos pacientes.', { align: 'center' });
+        doc.font(fs.existsSync(this.primaryFont) ? this.primaryFont : 'Helvetica'); // Reset font
+        doc.moveDown();
+
+        const tableTop = doc.y;
+        doc.fontSize(9).fillColor(this.PHARMACY_COLOR).font(fs.existsSync(this.primaryFont) ? this.primaryFont : 'Helvetica-Bold')
+            .text('Medicamento', 50, tableTop, { width: 180 })
+            .text('Lote', 240, tableTop, { width: 80 })
+            .text('Validade', 330, tableTop, { width: 80 })
+            .text('Stock', 420, tableTop, { width: 60, align: 'right' })
+            .text('Preço', 490, tableTop, { width: 55, align: 'right' });
+
+        doc.moveDown(0.5);
+        doc.strokeColor(this.PHARMACY_COLOR).lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+        doc.moveDown(0.5);
+
+        doc.font(fs.existsSync(this.primaryFont) ? this.primaryFont : 'Helvetica').fillColor('#000000');
+
+        (data.products_summary || data.products || []).forEach((p: any) => {
+            if (doc.y > 720) doc.addPage().moveDown(2);
+
+            const currentY = doc.y;
+            const isExpiring = p.daysToExpiry && p.daysToExpiry <= 90;
+            
+            doc.fontSize(8)
+                .fillColor(isExpiring ? '#dc2626' : '#000000')
+                .text(p.name, 50, currentY, { width: 180 })
+                .fillColor('#000000')
+                .text(p.batchNumber || 'N/A', 240, currentY, { width: 80 })
+                .text(p.expiryDate ? new Date(p.expiryDate).toLocaleDateString('pt-MZ') : '---', 330, currentY, { width: 80 })
+                .text(String(p.currentStock || 0), 420, currentY, { width: 60, align: 'right' })
+                .text(this.formatCurrency(p.price || 0), 490, currentY, { width: 55, align: 'right' });
+            
+            doc.moveDown(0.6);
+            doc.strokeColor('#f1f5f9').lineWidth(0.3).moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+            doc.moveDown(0.4);
+        });
+    }
+
+    private addPharmacySaleContent(doc: PDFKit.PDFDocument, data: any) {
+        doc.fontSize(16).fillColor(this.PHARMACY_COLOR).text('💊 Comprovativo de Dispensa', { underline: true });
+        doc.moveDown();
+
+        const sale = data.sale || data;
+        
+        doc.fontSize(10).fillColor('#000000');
+        doc.text(`Venda Nº: ${sale.saleNumber}`, { continued: true });
+        doc.text(` | Data: ${new Date(sale.createdAt).toLocaleString('pt-MZ')}`, { align: 'right' });
+        doc.text(`Paciente: ${sale.customerName || 'Cliente Balcão'}`);
+        if (sale.prescription?.prescriptionNo) {
+            doc.fillColor(this.PHARMACY_COLOR).text(`Receita: ${sale.prescription.prescriptionNo}`);
+        }
+        doc.moveDown();
+
+        const tableTop = doc.y;
+        doc.fontSize(9).fillColor(this.PHARMACY_COLOR).font(fs.existsSync(this.primaryFont) ? this.primaryFont : 'Helvetica-Bold')
+            .text('Medicamento / Lote', 50, tableTop, { width: 250 })
+            .text('Qtd', 310, tableTop, { width: 40, align: 'right' })
+            .text('Unit.', 360, tableTop, { width: 80, align: 'right' })
+            .text('Subtotal', 450, tableTop, { width: 95, align: 'right' });
+
+        doc.moveDown(0.5);
+        doc.strokeColor(this.PHARMACY_COLOR).lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+        doc.moveDown(0.5);
+
+        doc.font(fs.existsSync(this.primaryFont) ? this.primaryFont : 'Helvetica').fillColor('#000000');
+
+        (sale.items || []).forEach((item: any) => {
+            const currentY = doc.y;
+            doc.fontSize(9).text(`${item.productName} \nLote: ${item.batch?.batchNumber || 'N/A'}`, 50, currentY, { width: 250 });
+            doc.text(String(item.quantity), 310, currentY, { width: 40, align: 'right' });
+            doc.text(this.formatCurrency(item.unitPrice), 360, currentY, { width: 80, align: 'right' });
+            doc.text(this.formatCurrency(item.total), 450, currentY, { width: 95, align: 'right' });
+            
+            if (item.posologyLabel) {
+                doc.moveDown(1.5);
+                doc.fontSize(8).fillColor(this.PHARMACY_COLOR).font('Helvetica-Oblique').text(`Posologia: ${item.posologyLabel}`, 60);
+                doc.font(fs.existsSync(this.primaryFont) ? this.primaryFont : 'Helvetica'); // Reset font
+            }
+            doc.moveDown(1);
+        });
+
+        doc.moveDown();
+        doc.strokeColor(this.PHARMACY_COLOR).lineWidth(1.5).moveTo(350, doc.y).lineTo(545, doc.y).stroke();
+        doc.moveDown(0.5);
+        doc.fontSize(14).font(fs.existsSync(this.primaryFont) ? this.primaryFont : 'Helvetica-Bold')
+           .text(`TOTAL: ${this.formatCurrency(sale.total)}`, { align: 'right' });
+
+        doc.moveDown(3);
+        doc.fontSize(8).fillColor('#999999').text('Este documento serve apenas como comprovativo de dispensa farmacêutica.', { align: 'center' });
+    }
+
     private addGenericContent(doc: PDFKit.PDFDocument, data: any) {
         doc.fontSize(12).fillColor('#000000');
         doc.text(JSON.stringify(data, null, 2));
@@ -536,6 +660,9 @@ export class PDFService {
      * Gera PDF de uma Fatura -- retorna Buffer pronto para HTTP
      */
     async generateInvoicePDF(invoice: any, company: any): Promise<Buffer> {
+        const isPharmacy = invoice.originModule === 'pharmacy' || invoice.saleNumber?.startsWith('PH-');
+        const themeColor = isPharmacy ? this.PHARMACY_COLOR : this.PRIMARY_BLUE;
+
         return new Promise((resolve, reject) => {
             try {
                 const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -553,7 +680,11 @@ export class PDFService {
                 const black = '#1a1a1a';
 
                 // ── CABEÇALHO ──────────────────────────────────────────────
-                doc.fontSize(20).fillColor('#1e40af')
+                if (isPharmacy) {
+                    this.drawMedicalCross(doc, 520, 60, 40);
+                }
+
+                doc.fontSize(20).fillColor(themeColor)
                     .text(company?.tradeName || company?.companyName || 'Empresa', 50, 50);
                 doc.fontSize(9).fillColor(gray)
                     .text(company?.address || '', 50)
@@ -609,11 +740,12 @@ export class PDFService {
                 doc.fillColor('#f8fafc').rect(50, tableY, 495, 18).fill();
                 doc.fontSize(8).font(fs.existsSync(this.primaryFont) ? this.primaryFont : 'Helvetica-Bold').fillColor(black)
                     .text('Descrição', 56, tableY + 5)
+                    .text(isPharmacy ? 'Lote/Val.' : '', 240, tableY + 5, { width: 90 })
                     .text('Qtd', 340, tableY + 5, { width: 40, align: 'right' })
                     .text('V. Unit.', 385, tableY + 5, { width: 60, align: 'right' })
                     .text('Total', 450, tableY + 5, { width: 90, align: 'right' });
 
-                doc.strokeColor('#e5e7eb').lineWidth(0.5)
+                doc.strokeColor(themeColor).lineWidth(1)
                     .moveTo(50, tableY + 18).lineTo(545, tableY + 18).stroke();
 
                 if (fs.existsSync(this.primaryFont)) {
@@ -624,11 +756,26 @@ export class PDFService {
                 
                 let rowY = tableY + 22;
                 for (const item of (invoice.items || [])) {
+                    const itemName = item.description || item.productName || '-';
+                    const batchInfo = isPharmacy && item.batch ? 
+                        `${item.batch.batchNumber || 'N/A'} \nExp: ${item.batch.expiryDate ? new Date(item.batch.expiryDate).toLocaleDateString('pt-MZ') : '-'}` : '';
+
                     doc.fontSize(9).fillColor(black)
-                        .text(item.description || item.productName || '-', 56, rowY, { width: 280 })
+                        .text(itemName, 56, rowY, { width: 180 })
+                        .fontSize(7).fillColor(gray).text(batchInfo, 240, rowY, { width: 90 })
+                        .fontSize(9).fillColor(black)
                         .text(String(item.quantity), 340, rowY, { width: 40, align: 'right' })
                         .text(formatN(Number(item.unitPrice)), 385, rowY, { width: 60, align: 'right' })
                         .text(formatN(Number(item.total)), 450, rowY, { width: 90, align: 'right' });
+                    
+                    // Posology if pharmacy
+                    if (isPharmacy && item.posologyLabel) {
+                        rowY += 14;
+                        doc.fontSize(7).fillColor(themeColor).font('Helvetica-Oblique')
+                           .text(`Modo de uso: ${item.posologyLabel}`, 65, rowY);
+                        doc.font(fs.existsSync(this.primaryFont) ? this.primaryFont : 'Helvetica'); // Reset font
+                    }
+
                     rowY += 18;
                     doc.strokeColor('#f1f5f9').lineWidth(0.3)
                         .moveTo(50, rowY - 2).lineTo(545, rowY - 2).stroke();
@@ -636,7 +783,7 @@ export class PDFService {
 
                 // ── TOTAIS ────────────────────────────────────────────────
                 const totY = rowY + 10;
-                doc.strokeColor('#1a1a1a').lineWidth(1)
+                doc.strokeColor(themeColor).lineWidth(1)
                     .moveTo(360, totY).lineTo(545, totY).stroke();
 
                 const subtotal = Number(invoice.subtotal);

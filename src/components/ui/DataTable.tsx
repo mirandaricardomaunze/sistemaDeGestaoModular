@@ -1,6 +1,6 @@
-import { type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { flexRender, type Table as TanStackTable } from '@tanstack/react-table';
-import { LoadingSpinner, Button } from './index';
+import { Button, LoadingOverlay } from './index';
 import { EmptyState } from './EmptyState';
 import { cn } from '../../utils/helpers';
 import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
@@ -39,8 +39,8 @@ export function TableContainer({
     return (
         <div className={cn("overflow-x-auto relative transition-all duration-300", className)} style={{ minHeight }}>
             {isLoading ? (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-dark-800/50 z-10 backdrop-blur-[1px]">
-                    <LoadingSpinner size="lg" />
+                <div className="absolute inset-0 z-10">
+                    <LoadingOverlay fullScreen={false} />
                 </div>
             ) : isError ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-white dark:bg-dark-900 border-2 border-red-50/50 dark:border-red-900/10">
@@ -80,12 +80,18 @@ export function TableContainer({
 
 interface DataTableProps<TData> extends Omit<TableContainerProps, 'children'> {
     table: TanStackTable<TData>;
+    /** Função para renderizar o conteúdo expandido de uma linha */
+    renderExpandedRow?: (data: TData) => ReactNode;
+    /** Função para determinar se uma linha está expandida */
+    isRowExpanded?: (data: TData) => boolean;
 }
 
 export function DataTable<TData>({
     table,
     isLoading,
     isEmpty,
+    renderExpandedRow,
+    isRowExpanded,
     ...props
 }: DataTableProps<TData>) {
     const isDataEmpty = isEmpty || table.getRowModel().rows.length === 0;
@@ -117,18 +123,33 @@ export function DataTable<TData>({
                     ))}
                 </thead>
                 <tbody className="divide-y divide-slate-200/60 dark:divide-dark-700/50">
-                    {table.getRowModel().rows.map((row) => (
-                        <tr
-                            key={row.id}
-                            className="bg-white dark:bg-dark-900 hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors"
-                        >
-                            {row.getVisibleCells().map((cell) => (
-                                <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
-                            ))}
-                        </tr>
-                    ))}
+                    {table.getRowModel().rows.map((row) => {
+                        const isExpanded = isRowExpanded?.(row.original);
+                        
+                        return (
+                            <React.Fragment key={row.id}>
+                                <tr
+                                    className={cn(
+                                        "bg-white dark:bg-dark-900 transition-colors",
+                                        isExpanded ? "bg-primary-50/20 dark:bg-primary-900/5" : "hover:bg-primary-50/30 dark:hover:bg-primary-900/10"
+                                    )}
+                                >
+                                    {row.getVisibleCells().map((cell) => (
+                                        <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </td>
+                                    ))}
+                                </tr>
+                                {isExpanded && renderExpandedRow && (
+                                    <tr>
+                                        <td colSpan={row.getVisibleCells().length} className="px-0 py-0 border-none">
+                                            {renderExpandedRow(row.original)}
+                                        </td>
+                                    </tr>
+                                )}
+                            </React.Fragment>
+                        );
+                    })}
                 </tbody>
             </table>
         </TableContainer>

@@ -1,9 +1,9 @@
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../middleware/error.middleware';
-import { cacheService } from '../cacheService';
 import { getPaginationParams, createPaginatedResponse } from '../../utils/pagination';
 import { stockService } from '../stockService';
 import { ResultHandler, Result } from '../../utils/result';
+import { invalidateCommercialCache } from './shared';
 
 export class CommercialPurchaseOrderService {
 
@@ -50,7 +50,37 @@ export class CommercialPurchaseOrderService {
         return ResultHandler.success(order);
     }
 
-    async updatePurchaseOrderStatus(id: string, status: string, companyId: string, userId?: string): Promise<Result<any>> {
+    // Resolve a destination warehouse:
+    //   - explicit ID wins (must belong to company and be active)
+    //   - if multiple active warehouses exist, an explicit ID is mandatory to avoid silent misrouting
+    //   - single-warehouse companies fall back to that warehouse
+    private async resolveWarehouseId(companyId: string, explicitId?: string): Promise<string | undefined> {
+        if (explicitId) {
+            const exists = await prisma.warehouse.findFirst({
+                where: { id: explicitId, companyId, isActive: true },
+                select: { id: true }
+            });
+            if (!exists) throw ApiError.badRequest('Armazém não encontrado ou inactivo');
+            return exists.id;
+        }
+        const active = await prisma.warehouse.findMany({
+            where: { companyId, isActive: true },
+            orderBy: { createdAt: 'asc' },
+            select: { id: true }
+        });
+        if (active.length > 1) {
+            throw ApiError.badRequest('Seleccione o armazém de destino — esta empresa tem múltiplos armazéns activos');
+        }
+        return active[0]?.id;
+    }
+
+    async updatePurchaseOrderStatus(
+        id: string,
+        status: string,
+        companyId: string,
+        userId?: string,
+        warehouseId?: string
+    ): Promise<Result<any>> {
         const validTransitions: Record<string, string[]> = {
             draft:     ['ordered', 'cancelled'],
             ordered:   ['partial', 'received', 'cancelled'],
@@ -70,26 +100,33 @@ export class CommercialPurchaseOrderService {
             throw ApiError.badRequest(`Transição de "${order.status}" para "${status}" não é permitida`);
         }
 
+        const targetWarehouseId = status === 'received'
+            ? await this.resolveWarehouseId(companyId, warehouseId)
+            : undefined;
+
+        // Receiving stock fans out into multiple recordMovement queries per item;
+        // bumping the txn timeout from Prisma's 5s default avoids 504s on slow DBs.
         const result = await prisma.$transaction(async (tx) => {
-            const updated = await tx.purchaseOrder.update({
-                where: { id },
+            // Atomic guard: only update if status hasn't changed since we read it.
+            const updated = await tx.purchaseOrder.updateMany({
+                where: { id, companyId, status: order.status as any, deletedAt: null },
                 data: {
                     status: status as any,
                     ...(status === 'received' ? { receivedDate: new Date() } : {}),
                 },
-                include: {
-                    supplier: { select: { id: true, name: true } },
-                    items: { include: { product: { select: { id: true, name: true } } } }
-                }
             });
+            if (updated.count === 0) {
+                throw ApiError.badRequest('A ordem de compra foi alterada por outro utilizador. Recarregue.');
+            }
 
-            if (status === 'received' && order.status !== 'received') {
+            if (status === 'received') {
                 for (const item of order.items) {
                     const qtyToAdd = item.quantity - item.receivedQty;
                     if (qtyToAdd > 0) {
                         await stockService.recordMovement({
                             productId: item.productId,
                             companyId,
+                            warehouseId: targetWarehouseId,
                             quantity: qtyToAdd,
                             movementType: 'purchase',
                             originModule: 'COMMERCIAL',
@@ -104,19 +141,33 @@ export class CommercialPurchaseOrderService {
                 }
             }
 
-            return updated;
-        });
+            return tx.purchaseOrder.findUnique({
+                where: { id },
+                include: {
+                    supplier: { select: { id: true, name: true } },
+                    items: { include: { product: { select: { id: true, name: true } } } }
+                }
+            });
+        }, { timeout: 30000, maxWait: 10000 });
 
-        cacheService.invalidatePattern(`commercial:analytics:${companyId}`);
+        invalidateCommercialCache(companyId);
         return ResultHandler.success(result, `Estado da OC actualizado para ${status}`);
     }
 
-    async registerPartialDelivery(id: string, deliveries: Array<{ itemId: string; receivedQty: number }>, companyId: string, userId?: string): Promise<Result<any>> {
+    async registerPartialDelivery(
+        id: string,
+        deliveries: Array<{ itemId: string; receivedQty: number }>,
+        companyId: string,
+        userId?: string,
+        warehouseId?: string
+    ): Promise<Result<any>> {
         const order = await prisma.purchaseOrder.findFirst({
             where: { id, companyId, deletedAt: null, status: { in: ['ordered', 'partial'] } },
             include: { items: true }
         });
         if (!order) throw ApiError.notFound('Ordem de compra não encontrada ou já concluída');
+
+        const targetWarehouseId = await this.resolveWarehouseId(companyId, warehouseId);
 
         const result = await prisma.$transaction(async (tx) => {
             let allReceived = true;
@@ -133,6 +184,7 @@ export class CommercialPurchaseOrderService {
                     await stockService.recordMovement({
                         productId: item.productId,
                         companyId,
+                        warehouseId: targetWarehouseId,
                         quantity: addedQty,
                         movementType: 'purchase',
                         originModule: 'COMMERCIAL',
@@ -155,9 +207,9 @@ export class CommercialPurchaseOrderService {
                     items: { include: { product: { select: { id: true, name: true } } } }
                 }
             });
-        });
+        }, { timeout: 30000, maxWait: 10000 });
 
-        cacheService.invalidatePattern(`commercial:analytics:${companyId}`);
+        invalidateCommercialCache(companyId);
         return ResultHandler.success(result, 'Entrega parcial registada');
     }
 
@@ -165,18 +217,8 @@ export class CommercialPurchaseOrderService {
         const order = await prisma.purchaseOrder.findFirst({ where: { id, companyId, status: 'draft', deletedAt: null } });
         if (!order) throw ApiError.badRequest('Apenas ordens em rascunho podem ser eliminadas');
         await prisma.purchaseOrder.update({ where: { id }, data: { deletedAt: new Date() } });
+        invalidateCommercialCache(companyId);
         return ResultHandler.success(true, 'Ordem de compra eliminada');
-    }
-
-    async validateSupplierProducts(supplierId: string, productIds: string[], companyId: string): Promise<void> {
-        if (!productIds.length) return;
-        const mismatched = await prisma.product.findMany({
-            where: { id: { in: productIds }, companyId, supplierId: { not: supplierId } },
-            select: { name: true }
-        });
-        if (mismatched.length > 0) {
-            throw ApiError.badRequest(`Os seguintes produtos não pertencem a este fornecedor: ${mismatched.map(p => p.name).join(', ')}`);
-        }
     }
 }
 

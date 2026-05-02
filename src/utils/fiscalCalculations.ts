@@ -7,7 +7,7 @@ import type {
     ValidationResult,
     ValidationError,
 } from '../types/fiscal';
-import type { Invoice, CompanyInfo } from '../types';
+import type { CompanyInfo, Invoice } from '../types';
 
 // ============================================================================
 // Fiscal Calculations
@@ -183,13 +183,13 @@ export function generateSAFTHeader(
 ): SAFTHeader {
     return {
         auditFileVersion: '1.04_01',
-        companyID: companyInfo.taxId,
-        taxRegistrationNumber: companyInfo.taxId,
+        companyID: companyInfo.taxId || companyInfo.nuit || '',
+        taxRegistrationNumber: companyInfo.taxId || companyInfo.nuit || '',
         companyName: companyInfo.name,
         companyAddress: {
             addressDetail: companyInfo.address,
-            city: 'Maputo', // Default
-            country: 'MZ',
+            city: companyInfo.city || 'Maputo', // Default
+            country: companyInfo.country || 'MZ',
         },
         fiscalYear,
         startDate,
@@ -197,7 +197,7 @@ export function generateSAFTHeader(
         currencyCode: 'MZN',
         dateCreated: new Date().toISOString().split('T')[0],
         taxEntity: 'Global',
-        productCompanyTaxID: companyInfo.taxId,
+        productCompanyTaxID: companyInfo.taxId || companyInfo.nuit || '',
         productID: 'ERP Multicore',
         productVersion: '1.0',
     };

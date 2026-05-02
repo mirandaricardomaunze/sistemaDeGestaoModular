@@ -17,45 +17,54 @@ import { useNotifications } from './hooks/useNotifications';
 import { LoadingOverlay } from './components/ui/Loading';
 import { useIdleLogout } from './hooks/useIdleLogout';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
+import { useEffect } from 'react';
+import { prefetchCatalog } from './services/offline/catalogPrefetch';
 
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   useIdleLogout(15); // Auto-logout after 15 minutes of inactivity
   useNotifications(); // Initialize real-time notification listeners
   useRealtimeSync();  // Invalidate query cache on any backend data change
+
+  // Warm the offline cache once authenticated and whenever we come back online.
+  useEffect(() => {
+    const isAuthed = () => Boolean(localStorage.getItem('auth_token'));
+    if (isAuthed()) prefetchCatalog().catch(() => {});
+    const onOnline = () => { if (isAuthed()) prefetchCatalog().catch(() => {}); };
+    window.addEventListener('online', onOnline);
+    return () => window.removeEventListener('online', onOnline);
+  }, []);
+
   return <>{children}</>;
 };
 
 // Auth Pages (Lazy)
-const Login = lazy(() => import('./pages/login'));
-const Register = lazy(() => import('./pages/register'));
-const ForgotPassword = lazy(() => import('./pages/forgotPassword'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 
 // Protected Pages (Lazy)
-const Home = lazy(() => import('./pages/home'));
-const Dashboard = lazy(() => import('./pages/dashboard'));
-const Inventory = lazy(() => import('./pages/inventory'));
-const POS = lazy(() => import('./pages/pos'));
-const Employees = lazy(() => import('./pages/employees'));
-const Financial = lazy(() => import('./pages/financial'));
-const Invoices = lazy(() => import('./pages/invoices'));
-const Orders = lazy(() => import('./pages/orders'));
-const Alerts = lazy(() => import('./pages/alerts'));
-const Reports = lazy(() => import('./pages/reports'));
+const Home = lazy(() => import('./pages/Home'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const POS = lazy(() => import('./pages/POS'));
+const Financial = lazy(() => import('./pages/Financial'));
+const Invoices = lazy(() => import('./pages/Invoices'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Alerts = lazy(() => import('./pages/Alerts'));
+const Reports = lazy(() => import('./pages/Reports'));
 const Settings = lazy(() => import('./pages/UserSettings'));
-const Customers = lazy(() => import('./pages/customers'));
-const Suppliers = lazy(() => import('./pages/suppliers'));
-const Categories = lazy(() => import('./pages/categories'));
-const Fiscal = lazy(() => import('./pages/fiscal'));
-const Audit = lazy(() => import('./pages/audit'));
-const CRM = lazy(() => import('./pages/crm'));
-const BackupManagement = lazy(() => import('./pages/backupManagement'));
-const Help = lazy(() => import('./pages/help'));
-const Pharmacy = lazy(() => import('./pages/pharmacy'));
+const Customers = lazy(() => import('./pages/Customers'));
+const Suppliers = lazy(() => import('./pages/Suppliers'));
+const Categories = lazy(() => import('./pages/Categories'));
+const Fiscal = lazy(() => import('./pages/Fiscal'));
+const Audit = lazy(() => import('./pages/Audit'));
+const CRM = lazy(() => import('./pages/CRM'));
+const BackupManagement = lazy(() => import('./pages/BackupManagement'));
+const Help = lazy(() => import('./pages/Help'));
+const Pharmacy = lazy(() => import('./pages/Pharmacy'));
 const PharmacyDashboard = lazy(() => import('./pages/pharmacy/PharmacyDashboard'));
 const PharmacyPOS = lazy(() => import('./pages/pharmacy/PharmacyPOS'));
 const PharmacyEmployees = lazy(() => import('./pages/pharmacy/PharmacyEmployees'));
-const PharmacyCategories = lazy(() => import('./pages/pharmacy/PharmacyCategories'));
-const PharmacySuppliers = lazy(() => import('./pages/pharmacy/PharmacySuppliers'));
 const PharmacyReports = lazy(() => import('./pages/pharmacy/PharmacyReports'));
 const PharmacyPatients = lazy(() => import('./pages/pharmacy/PharmacyPatients'));
 
@@ -64,25 +73,15 @@ const PharmacyAlerts = lazy(() => import('./pages/pharmacy/PharmacyAlerts'));
 const PharmacyHistory = lazy(() => import('./pages/pharmacy/PharmacyHistory'));
 const PharmacyShiftHistory = lazy(() => import('./pages/pharmacy/PharmacyShiftHistory'));
 // Logistics Dashboard
-const CommercialDashboard = lazy(() => import('./pages/commercial/CommercialDashboard'));
 const CommercialInventory = lazy(() => import('./pages/commercial/CommercialInventory'));
-const CommercialCategories = lazy(() => import('./pages/commercial/CommercialCategories'));
-const CommercialSuppliers = lazy(() => import('./pages/commercial/CommercialSuppliers'));
-const CommercialReports = lazy(() => import('./pages/commercial/CommercialReports'));
 const CommercialPurchaseOrders = lazy(() => import('./pages/commercial/PurchaseOrders'));
-const CommercialMarginAnalysis = lazy(() => import('./pages/commercial/MarginAnalysis'));
 const CommercialQuotes = lazy(() => import('./pages/commercial/CommercialQuotes'));
-const AccountsReceivable = lazy(() => import('./pages/commercial/AccountsReceivable'));
+const CommercialFinanceHub = lazy(() => import('./pages/commercial/CommercialFinanceHub'));
 const CommercialPOS = lazy(() => import('./pages/commercial/CommercialPOS'));
-const CommercialHistory = lazy(() => import('./pages/commercial/CommercialHistory'));
-const CommercialInvoices = lazy(() => import('./pages/commercial/CommercialInvoices'));
-const CommercialStockMovements = lazy(() => import('./pages/commercial/CommercialStockMovements'));
-const CommercialOrders = lazy(() => import('./pages/commercial/CommercialOrders'));
-const CommercialCustomers = lazy(() => import('./pages/commercial/CommercialCustomers'));
-const CommercialAuditLogs = lazy(() => import('./pages/commercial/CommercialAuditLogs'));
-const CommercialShiftHistory = lazy(() => import('./pages/commercial/CommercialShiftHistory'));
+const CommercialHistoryHub = lazy(() => import('./pages/commercial/CommercialHistoryHub'));
+const CommercialInsightHub = lazy(() => import('./pages/commercial/CommercialInsightHub'));
 
-const Hospitality = lazy(() => import('./pages/hospitality'));
+const Hospitality = lazy(() => import('./pages/Hospitality'));
 const BottleStoreDashboard = lazy(() => import('./pages/bottlestore/BottleStoreDashboard'));
 const BottleStorePOS = lazy(() => import('./pages/bottlestore/BottleStorePOS'));
 const BottleStoreInventory = lazy(() => import('./pages/bottlestore/BottleStoreInventory'));
@@ -91,9 +90,9 @@ const BottleStoreReports = lazy(() => import('./pages/bottlestore/BottleStoreRep
 const BottleReturns = lazy(() => import('./pages/bottlestore/BottleReturns'));
 const CashRegister = lazy(() => import('./pages/bottlestore/CashRegister'));
 const CreditSales = lazy(() => import('./pages/bottlestore/CreditSales'));
-const StockMovements = lazy(() => import('./pages/stockMovements'));
-const WarehousesPage = lazy(() => import('./pages/warehousesPage'));
-const TransfersPage = lazy(() => import('./pages/transfersPage'));
+const StockMovements = lazy(() => import('./pages/StockMovements'));
+const WarehousesPage = lazy(() => import('./pages/WarehousesPage'));
+const TransfersPage = lazy(() => import('./pages/TransfersPage'));
 const SuperAdminDashboard = lazy(() => import('./pages/SuperAdmin/SuperAdminDashboard'));
 
 // Hotel Module Pages (Lazy)
@@ -105,9 +104,10 @@ const RestaurantMenuPage = lazy(() => import('./pages/restaurant/RestaurantMenuP
 const RestaurantKitchenPage = lazy(() => import('./pages/restaurant/RestaurantKitchenPage'));
 const RestaurantReservationsPage = lazy(() => import('./pages/restaurant/RestaurantReservationsPage'));
 const RestaurantReports = lazy(() => import('./pages/restaurant/RestaurantReports'));
+const RestaurantFinance = lazy(() => import('./pages/restaurant/RestaurantFinance'));
 
 // Pharmacy additional pages
-const PharmacyControl = lazy(() => import('./pages/pharmacyControl'));
+const PharmacyControl = lazy(() => import('./pages/PharmacyControl'));
 const PharmacyPartners = lazy(() => import('./pages/pharmacy/PharmacyPartners'));
 const PharmacyStockReconciliation = lazy(() => import('./pages/pharmacy/PharmacyStockReconciliation'));
 const PharmacyFinance = lazy(() => import('./pages/pharmacy/PharmacyFinance'));
@@ -138,12 +138,10 @@ const DriverPanelPage = lazy(() => import('./pages/logistics/DriverPanelPage'));
 const LogisticsHRPage = lazy(() => import('./pages/logistics/LogisticsHRPage'));
 const LogisticsFinance = lazy(() => import('./pages/logistics/LogisticsFinance'));
 const BottleStoreFinance = lazy(() => import('./pages/bottlestore/BottleStoreFinance'));
-const RestaurantFinance = lazy(() => import('./pages/restaurant/RestaurantFinance'));
-const CommercialFinance = lazy(() => import('./pages/commercial/CommercialFinance'));
-const CommercialEmployees = lazy(() => import('./pages/commercial/CommercialEmployees'));
+const HRHub = lazy(() => import('./pages/hr/HRHub'));
 const RestaurantEmployees = lazy(() => import('./pages/restaurant/RestaurantEmployees'));
 const BottleStoreEmployees = lazy(() => import('./pages/bottlestore/BottleStoreEmployees'));
-const CalendarPage = lazy(() => import('./pages/calendar'));
+const CalendarPage = lazy(() => import('./pages/Calendar'));
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -172,7 +170,8 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="transfers" element={<TransfersPage />} />
                     <Route path="stock-movements" element={<StockMovements />} />
                     <Route path="pos" element={<POS />} />
-                    <Route path="employees" element={<Employees />} />
+                    <Route path="employees" element={<HRHub />} />
+                    <Route path="hr" element={<HRHub />} />
                     <Route path="financial" element={<Financial />} />
                     <Route path="invoices" element={<Invoices />} />
                     <Route path="orders" element={<Orders />} />
@@ -202,8 +201,8 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="pharmacy/finance" element={<PharmacyFinance />} />
                     {/* Legacy routes kept for backwards compatibility */}
                     <Route path="pharmacy/employees" element={<PharmacyEmployees />} />
-                    <Route path="pharmacy/categories" element={<PharmacyCategories />} />
-                    <Route path="pharmacy/suppliers" element={<PharmacySuppliers />} />
+                    <Route path="pharmacy/categories" element={<Categories originModule="pharmacy" />} />
+                    <Route path="pharmacy/suppliers" element={<Suppliers originModule="pharmacy" />} />
                     <Route path="pharmacy/control" element={<PharmacyControl />} />
                     <Route path="pharmacy/narcotics" element={<Navigate to="/pharmacy/compliance" replace />} />
                     <Route path="pharmacy/recalls" element={<Navigate to="/pharmacy/compliance" replace />} />
@@ -227,26 +226,27 @@ createRoot(document.getElementById('root')!).render(
 
                     {/* Commercial Module Routes */}
                     <Route path="commercial" element={<Navigate to="/commercial/dashboard" replace />} />
-                    <Route path="commercial/dashboard" element={<CommercialDashboard />} />
+                    <Route path="commercial/dashboard" element={<CommercialInsightHub />} />
+                    <Route path="commercial/reports" element={<CommercialInsightHub />} />
+                    <Route path="commercial/margins" element={<CommercialInsightHub />} />
+                    <Route path="commercial/insights" element={<CommercialInsightHub />} />
                     <Route path="commercial/pos" element={<CommercialPOS />} />
-                    <Route path="commercial/history" element={<CommercialHistory />} />
-                    <Route path="commercial/stock" element={<CommercialStockMovements />} />
+                    <Route path="commercial/history" element={<CommercialHistoryHub />} />
+                    <Route path="commercial/stock" element={<CommercialHistoryHub />} />
                     <Route path="commercial/inventory" element={<CommercialInventory />} />
-                    <Route path="commercial/invoices" element={<CommercialInvoices />} />
-                    <Route path="commercial/orders" element={<CommercialOrders />} />
-                    <Route path="commercial/customers" element={<CommercialCustomers />} />
-                    <Route path="commercial/categories" element={<CommercialCategories />} />
-                    <Route path="commercial/suppliers" element={<CommercialSuppliers />} />
-                    <Route path="commercial/reports" element={<CommercialReports />} />
+                    <Route path="commercial/invoices" element={<Invoices originModule="commercial" />} />
+                    <Route path="commercial/orders" element={<Orders originModule="commercial" />} />
+                    <Route path="commercial/customers" element={<Customers originModule="commercial" />} />
+                    <Route path="commercial/categories" element={<Categories originModule="commercial" />} />
+                    <Route path="commercial/suppliers" element={<Suppliers originModule="commercial" />} />
                     <Route path="commercial/purchase-orders" element={<CommercialPurchaseOrders />} />
-                    <Route path="commercial/margins" element={<CommercialMarginAnalysis />} />
                     <Route path="commercial/quotes" element={<CommercialQuotes />} />
-                    <Route path="commercial/accounts-receivable" element={<AccountsReceivable />} />
-                    <Route path="commercial/finance" element={<CommercialFinance />} />
-                    <Route path="commercial/employees" element={<CommercialEmployees />} />
+                    <Route path="commercial/accounts-receivable" element={<CommercialFinanceHub />} />
+                    <Route path="commercial/finance" element={<CommercialFinanceHub />} />
+                    <Route path="commercial/employees" element={<HRHub />} />
                     <Route path="commercial/settings" element={<Navigate to="/settings" replace />} />
-                    <Route path="commercial/audit" element={<CommercialAuditLogs />} />
-                    <Route path="commercial/shifts" element={<CommercialShiftHistory />} />
+                    <Route path="commercial/audit" element={<CommercialHistoryHub />} />
+                    <Route path="commercial/shifts" element={<CommercialHistoryHub />} />
 
                     {/* Restaurant Module */}
                     <Route path="restaurant" element={<Navigate to="/restaurant/dashboard" replace />} />

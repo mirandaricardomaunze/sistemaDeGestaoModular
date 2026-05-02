@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { cn } from '../../utils/helpers';
-import PharmacyNarcoticRegister from './PharmacyNarcoticRegister';
-import PharmacyRecalls from './PharmacyRecalls';
-import PharmacyDrugInteractions from './PharmacyDrugInteractions';
 import { HiOutlineClipboardDocumentList, HiOutlineExclamationCircle, HiOutlineBolt } from 'react-icons/hi2';
+
+const PharmacyNarcoticRegister = lazy(() => import('./PharmacyNarcoticRegister'));
+const PharmacyRecalls = lazy(() => import('./PharmacyRecalls'));
+const PharmacyDrugInteractions = lazy(() => import('./PharmacyDrugInteractions'));
 
 const TABS = [
     { id: 'narcotics', label: 'Registo de Narcóticos', icon: HiOutlineClipboardDocumentList },
@@ -48,9 +49,11 @@ export default function PharmacyCompliance() {
 
             {/* Strip the sub-page headers since we already have the header above */}
             <div>
-                {tab === 'narcotics' && <PharmacyNarcoticRegister />}
-                {tab === 'recalls' && <PharmacyRecalls />}
-                {tab === 'interactions' && <PharmacyDrugInteractions />}
+                <Suspense fallback={<div className="py-12 text-center text-sm text-gray-400">A carregar...</div>}>
+                    {tab === 'narcotics' && <PharmacyNarcoticRegister />}
+                    {tab === 'recalls' && <PharmacyRecalls />}
+                    {tab === 'interactions' && <PharmacyDrugInteractions />}
+                </Suspense>
             </div>
         </div>
     );

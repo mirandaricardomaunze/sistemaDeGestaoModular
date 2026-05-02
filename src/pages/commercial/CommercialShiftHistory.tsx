@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
+import { Menu, Transition } from '@headlessui/react';
 import { 
     HiOutlineClock,
     HiOutlineArrowDownTray,
@@ -11,46 +12,281 @@ import {
     HiOutlineArrowTrendingDown,
     HiOutlineCurrencyDollar,
     HiOutlineArrowPath,
-    HiOutlineCalculator
+    HiOutlineDocumentText
 } from 'react-icons/hi2';
 import { shiftAPI, type ShiftSession as CashSession } from '../../services/api';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Button } from '../../components/ui/Button';
-import { Card, Badge } from '../../components/ui';
+import { Card, Badge, Input } from '../../components/ui';
+import Pagination from '../../components/ui/Pagination';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn, formatCurrency } from '../../utils/helpers';
+import { formatCurrency, cn } from '../../utils/helpers';
 import { CommercialShiftDetailsModal } from '../../components/commercial/pos/CommercialShiftDetailsModal';
 import { logger } from '../../utils/logger';
+import { useTenant } from '../../contexts/TenantContext';
+import { useDebounce } from '../../hooks/useDebounce';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
+import { PAGE_SIZE } from '../../utils/constants';
 
 const CommercialShiftHistory: React.FC = () => {
+    const { company } = useTenant();
     const [sessions, setSessions] = useState<CashSession[]>([]);
     const [loading, setLoading] = useState(true);
-    const [dateRange, setDateRange] = useState({ 
-        start: format(new Date(), 'yyyy-MM-01'), 
-        end: format(new Date(), 'yyyy-MM-dd') 
+    const [page, setPage] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [dateRange, setDateRange] = useState({
+        start: format(new Date(), 'yyyy-MM-01'),
+        end: format(new Date(), 'yyyy-MM-dd')
     });
+    const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 300);
 
     const [selectedSession, setSelectedSession] = useState<CashSession | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     useEffect(() => {
-        loadHistory();
-    }, []);
+        loadHistory(page);
+    }, [page, debouncedSearch]);
 
-    const loadHistory = async () => {
+    const loadHistory = async (pageNum = 1) => {
         try {
             setLoading(true);
             const response = await shiftAPI.getHistory({
                 startDate: dateRange.start,
-                endDate: dateRange.end
+                endDate: dateRange.end,
+                page: pageNum,
+                limit: PAGE_SIZE,
+                search: debouncedSearch || undefined
             });
             const sessionsData = response?.data || (Array.isArray(response) ? response : []);
             setSessions(sessionsData);
+            setTotal(response?.pagination?.total || sessionsData.length);
         } catch (error) {
             toast.error('Erro ao carregar histórico de turnos');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const applyFilters = () => {
+        if (page === 1) loadHistory(1);
+        else setPage(1);
+    };
+
+    const handleExport = () => {
+        if (!sessions || sessions.length === 0) {
+            toast.error('Nenhum dado para exportar');
+            return;
+        }
+
+        const headers = ['Abertura', 'Fecho', 'Responsavel', 'Fundo Maneio', 'Total Vendas', 'Saldo Final', 'Diferenca'];
+        const csvContent = [
+            headers.join(','),
+            ...sessions.map(s => {
+                const diff = Number(s.difference || 0);
+                return [
+                    format(new Date(s.openedAt), 'dd/MM/yyyy HH:mm'),
+                    s.closedAt ? format(new Date(s.closedAt), 'dd/MM/yyyy HH:mm') : 'Em aberto',
+                    s.openedBy?.name || '',
+                    Number(s.openingBalance || 0).toFixed(2),
+                    Number(s.totalSales || 0).toFixed(2),
+                    Number(s.closingBalance || 0).toFixed(2),
+                    diff.toFixed(2)
+                ].map(v => `"${v}"`).join(',');
+            })
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `historico_turnos_${dateRange.start}_${dateRange.end}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success('Histórico exportado para CSV com sucesso');
+    };
+
+    const handleExportPDF = () => {
+        if (!sessions || sessions.length === 0) {
+            toast.error('Nenhum dado para exportar');
+            return;
+        }
+
+        try {
+            const doc = new jsPDF('p', 'mm', 'a4');
+            
+            // Header
+            doc.setFontSize(18);
+            doc.setTextColor(59, 84, 255); // Primary color
+            doc.text(company?.name || "SISTEMA DE GESTÃO MODULAR", 14, 22);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            let yPos = 30;
+            if (company?.nuit) {
+                doc.text(`NUIT: ${company.nuit}`, 14, yPos);
+                yPos += 5;
+            }
+            if (company?.address) {
+                doc.text(`${company.address}${company?.city ? `, ${company.city}` : ''}`, 14, yPos);
+                yPos += 7;
+            } else {
+                yPos += 5;
+            }
+            
+            doc.setFontSize(10);
+            doc.text(`Data de Emissão: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, yPos);
+            yPos += 10;
+            
+            doc.setFontSize(12);
+            doc.setTextColor(0, 0, 0);
+            doc.text("Relatório Oficial de Fechos de Caixa", 14, yPos);
+            yPos += 5;
+            doc.setFontSize(9);
+            doc.text(`Período de Referência: ${format(new Date(dateRange.start), 'dd/MM/yyyy')} a ${format(new Date(dateRange.end), 'dd/MM/yyyy')}`, 14, yPos);
+
+            const totalFundo = sessions.reduce((acc, s) => acc + Number(s.openingBalance || 0), 0);
+            const totalVendas = sessions.reduce((acc, s) => acc + Number(s.totalSales || 0), 0);
+            const totalDiscrepancia = sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0);
+
+            // Summary Table
+            autoTable(doc, {
+                startY: yPos + 5,
+                head: [['Métricas do Período', 'Valores Acumulados']],
+                body: [
+                    ['Total de Fundo de Maneio', formatCurrency(totalFundo)],
+                    ['Total de Vendas (Turnos)', formatCurrency(totalVendas)],
+                    ['Balanço de Discrepâncias', formatCurrency(totalDiscrepancia)]
+                ],
+                theme: 'grid',
+                headStyles: { fillColor: [59, 84, 255], fontSize: 10 },
+                columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+                margin: { left: 14, right: 100 }
+            });
+
+            // Details Table
+            const tableData = sessions.map(s => {
+                const diff = Number(s.difference || 0);
+                return [
+                    format(new Date(s.openedAt), 'dd/MM/yyyy HH:mm'),
+                    s.closedAt ? format(new Date(s.closedAt), 'dd/MM/yyyy HH:mm') : 'Em aberto',
+                    s.openedBy?.name || '-',
+                    formatCurrency(s.openingBalance),
+                    formatCurrency(s.totalSales),
+                    formatCurrency(s.closingBalance || 0),
+                    formatCurrency(diff)
+                ];
+            });
+
+            autoTable(doc, {
+                startY: (doc as any).lastAutoTable.finalY + 15,
+                head: [['Abertura', 'Fecho', 'Operador', 'Fundo', 'Vendas', 'Caixa Final', 'Auditoria']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [40, 40, 40], fontSize: 8 },
+                styles: { fontSize: 7, cellPadding: 2 },
+                columnStyles: {
+                    3: { halign: 'right' },
+                    4: { halign: 'right' },
+                    5: { halign: 'right' },
+                    6: { halign: 'right', fontStyle: 'bold' }
+                },
+                didParseCell: function(data) {
+                    if (data.section === 'body' && data.column.index === 6) {
+                        const rawVal = sessions[data.row.index].difference || 0;
+                        if (rawVal < 0) {
+                            data.cell.styles.textColor = [239, 68, 68];
+                        } else if (rawVal > 0) {
+                            data.cell.styles.textColor = [16, 185, 129];
+                        }
+                    }
+                }
+            });
+
+            doc.save(`Relatorio_Turnos_${dateRange.start}_a_${dateRange.end}.pdf`);
+            toast.success('Relatório PDF gerado com sucesso');
+        } catch (error) {
+            logger.error('Error generating PDF:', error);
+            toast.error('Erro ao gerar ficheiro PDF');
+        }
+    };
+
+    const handlePrintList = () => {
+        if (!sessions || sessions.length === 0) {
+            toast.error('Nenhum dado para imprimir');
+            return;
+        }
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Histórico de Turnos</title>
+                <style>
+                    body { font-family: sans-serif; font-size: 12px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                    th { background-color: #f2f2f2; }
+                    .text-right { text-align: right; }
+                    .text-center { text-align: center; }
+                    .text-red { color: #ef4444; }
+                    .text-green { color: #10b981; }
+                </style>
+            </head>
+            <body>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h1 style="margin: 0; color: #3b54ff;">${company?.name || 'SISTEMA DE GESTÃO MODULAR'}</h1>
+                    ${company?.nuit ? `<p style="margin: 2px 0; color: #666; font-size: 14px;">NUIT: ${company.nuit}</p>` : ''}
+                    ${company?.address ? `<p style="margin: 2px 0; color: #666; font-size: 14px;">${company.address}</p>` : ''}
+                </div>
+                <h2>Histórico de Turnos (${format(new Date(dateRange.start), 'dd/MM/yyyy')} - ${format(new Date(dateRange.end), 'dd/MM/yyyy')})</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Abertura</th>
+                            <th>Fecho</th>
+                            <th>Responsável</th>
+                            <th class="text-right">Fundo de Maneio</th>
+                            <th class="text-right">Total Vendas</th>
+                            <th class="text-right">Saldo Final</th>
+                            <th class="text-right">Diferença</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sessions.map(s => {
+                            const diff = Number(s.difference || 0);
+                            return `
+                                <tr>
+                                    <td>${format(new Date(s.openedAt), 'dd/MM/yyyy HH:mm')}</td>
+                                    <td>${s.closedAt ? format(new Date(s.closedAt), 'dd/MM/yyyy HH:mm') : 'Em aberto'}</td>
+                                    <td>${s.openedBy?.name || '-'}</td>
+                                    <td class="text-right">${formatCurrency(s.openingBalance)}</td>
+                                    <td class="text-right">${formatCurrency(s.totalSales)}</td>
+                                    <td class="text-right">${formatCurrency(s.closingBalance || 0)}</td>
+                                    <td class="text-right ${diff < 0 ? 'text-red' : diff > 0 ? 'text-green' : ''}">${formatCurrency(diff)}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+                <script>
+                    window.onload = function() { window.print(); setTimeout(function(){ window.close(); }, 500); }
+                </script>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(html);
+            printWindow.document.close();
+            toast.success('A abrir janela de impressão...');
+        } else {
+            toast.error('Por favor, permita pop-ups para imprimir');
         }
     };
 
@@ -60,9 +296,118 @@ const CommercialShiftHistory: React.FC = () => {
     };
 
     const handlePrintZReport = (session: CashSession) => {
-        toast.success(`Relatório Z gerado para o turno de ${session.openedBy?.name}`);
-        // Mock print logic similar to ReceiptModal
-        logger.debug('Printing Z-Report for shift:', session.id);
+        try {
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const opened = session.openedAt ? new Date(session.openedAt) : null;
+            const closed = session.closedAt ? new Date(session.closedAt) : null;
+            const fmtDate = (d: Date | null) => d ? format(d, "dd/MM/yyyy HH:mm", { locale: ptBR }) : '—';
+            const fmt = (n: number | undefined) => formatCurrency(Number(n || 0));
+            const diff = Number(session.difference || 0);
+            
+            // Header
+            doc.setFontSize(22);
+            doc.setTextColor(59, 84, 255); // Primary color
+            doc.text(company?.name || "SISTEMA DE GESTÃO MODULAR", 14, 22);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            let yPos = 30;
+            if (company?.nuit) {
+                doc.text(`NUIT: ${company.nuit}`, 14, yPos);
+                yPos += 5;
+            }
+            if (company?.address) {
+                doc.text(`${company.address}${company?.city ? `, ${company.city}` : ''}`, 14, yPos);
+                yPos += 7;
+            } else {
+                yPos += 5;
+            }
+            
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text(`Relatório Oficial de Fecho de Turno (Z-Report)`, 14, yPos);
+            yPos += 6;
+            
+            doc.setFontSize(10);
+            doc.text(`Emitido em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, yPos);
+            yPos += 10;
+
+            // Session Info
+            autoTable(doc, {
+                startY: yPos,
+                head: [['Detalhes da Sessão', '']],
+                body: [
+                    ['Aberto por', session.openedBy?.name || '—'],
+                    ['Aberto em', fmtDate(opened)],
+                    ['Fechado por', session.closedBy?.name || '—'],
+                    ['Fechado em', fmtDate(closed)],
+                    ['Total de Vendas Registadas', `${session._count?.sales || 0} Vendas`]
+                ],
+                theme: 'plain',
+                headStyles: { fillColor: [240, 240, 240], textColor: [0,0,0] },
+                columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+                margin: { left: 14, right: 14 }
+            });
+
+            const diffColor = diff < 0 ? [239, 68, 68] : diff > 0 ? [16, 185, 129] : [100, 100, 100];
+            const diffText = diff < 0 ? 'Falta no Caixa' : diff > 0 ? 'Sobra no Caixa' : 'Sem Discrepâncias';
+
+            // Financial Summary
+            autoTable(doc, {
+                startY: (doc as any).lastAutoTable.finalY + 10,
+                head: [['Resumo Financeiro', 'Valor']],
+                body: [
+                    ['Fundo de Maneio Inicial', fmt(session.openingBalance)],
+                    ['(+) Suprimentos (Entradas)', fmt(session.deposits)],
+                    ['(-) Sangrias (Saídas)', fmt(session.withdrawals)],
+                    ['Receitas (Numerário)', fmt(session.cashSales)],
+                    ['Receitas (M-Pesa)', fmt(session.mpesaSales)],
+                    ['Receitas (e-Mola)', fmt(session.emolaSales)],
+                    ['Receitas (Cartão/TPA)', fmt(session.cardSales)],
+                    ['Receitas (Crédito)', fmt(session.creditSales)],
+                    ['TOTAL FACTURADO', fmt(session.totalSales)],
+                    ['', ''],
+                    ['Saldo Esperado no Sistema', fmt(session.expectedBalance)],
+                    ['Saldo Contado Fisicamente', fmt(session.closingBalance)],
+                    [diffText, fmt(Math.abs(diff))]
+                ],
+                theme: 'striped',
+                headStyles: { fillColor: [59, 84, 255] },
+                columnStyles: { 1: { halign: 'right' } },
+                didParseCell: function(data) {
+                    if (data.row.index === 8) { // TOTAL FACTURADO
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = [0, 0, 0];
+                    }
+                    if (data.row.index === 10 || data.row.index === 11) { // Esperado / Contado
+                        data.cell.styles.fontStyle = 'bold';
+                    }
+                    if (data.row.index === 12) { // Diferença
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.textColor = diffColor as [number, number, number];
+                    }
+                },
+                margin: { left: 14, right: 14 }
+            });
+
+            if (session.notes) {
+                const finalY = (doc as any).lastAutoTable.finalY;
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                doc.text("Notas do Operador:", 14, finalY + 15);
+                doc.setFontSize(9);
+                doc.setTextColor(80, 80, 80);
+                const splitNotes = doc.splitTextToSize(session.notes.replace(/<[^>]*>?/gm, ''), 180);
+                doc.text(splitNotes, 14, finalY + 20);
+            }
+
+            window.open(doc.output('bloburl'), '_blank');
+            toast.success(`Relatório Z profissional gerado com sucesso`);
+            logger.debug('Generated professional Z-Report PDF for shift:', session.id);
+        } catch (err) {
+            logger.error('Professional Z-Report generation failed', err);
+            toast.error('Erro ao gerar Relatório Z');
+        }
     };
 
     const getStatusBadge = (session: CashSession) => {
@@ -94,102 +439,141 @@ const CommercialShiftHistory: React.FC = () => {
 
     return (
         <div className="space-y-4 animate-fade-in pb-10">
-            {/* Premium Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white dark:bg-dark-900 p-6 rounded-lg border border-gray-100 dark:border-dark-700 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -mr-16 -mt-16" />
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-1">
-                        <div className="w-10 h-10 rounded-lg bg-indigo-600/10 flex items-center justify-center">
-                            <HiOutlineCalculator className="text-indigo-600 w-6 h-6" />
-                        </div>
-                        <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
-                            Historial de Turnos
-                        </h2>
+            {/* High Density Filters & Actions */}
+            <Card padding="md" className="border-none shadow-none bg-white dark:bg-dark-900 border border-gray-100 dark:border-dark-700 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    <div className="md:col-span-3">
+                        <Input 
+                            label="Operador"
+                            placeholder="Filtrar por nome..."
+                            leftIcon={<HiOutlineUser className="h-4 w-4" />}
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                if (page !== 1) setPage(1);
+                            }}
+                            className="bg-gray-50 dark:bg-dark-800 border-none"
+                            size="sm"
+                        />
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Controlo de fecho de caixa, suprimentos e performance de operadores</p>
-                </div>
-                
-                <div className="flex items-center gap-2 relative z-10">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={loadHistory} 
-                        className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-indigo-600"
-                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
-                    >
-                        Actualizar
-                    </Button>
-                    <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="rounded-lg border-gray-100 dark:border-dark-700 font-bold text-xs"
-                    >
-                        <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
-                        Exportar
-                    </Button>
-                </div>
-            </div>
-
-            {/* High Density Filters */}
-            <Card padding="md" className="border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50 rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                    <div className="md:col-span-1">
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">Operador</label>
-                        <div className="relative group">
-                            <HiOutlineUser className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
-                            <input 
-                                type="text" 
-                                placeholder="Filtrar por nome..."
-                                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">Início</label>
-                        <input 
-                            type="date" 
-                            className="w-full px-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    <div className="md:col-span-2">
+                        <Input
+                            label="Início"
+                            type="date"
                             value={dateRange.start}
-                            onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                            onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setPage(1); }}
+                            className="bg-gray-50 dark:bg-dark-800 border-none"
+                            size="sm"
                         />
                     </div>
-                    <div>
-                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">Fim</label>
-                        <input 
-                            type="date" 
-                            className="w-full px-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all"
+                    <div className="md:col-span-2">
+                        <Input
+                            label="Fim"
+                            type="date"
                             value={dateRange.end}
-                            onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                            onChange={(e) => { setDateRange({...dateRange, end: e.target.value}); setPage(1); }}
+                            className="bg-gray-50 dark:bg-dark-800 border-none"
+                            size="sm"
                         />
                     </div>
-                    <Button onClick={loadHistory} className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg h-10 font-black uppercase text-[10px] tracking-widest">
-                        Processar Filtros
-                    </Button>
+                    <div className="md:col-span-2">
+                        <Button 
+                            onClick={applyFilters} 
+                            size="sm"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-indigo-500/20 border-none"
+                        >
+                            Filtrar
+                        </Button>
+                    </div>
+                    
+                    <div className="md:col-span-3 flex justify-end gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => loadHistory(page)}
+                            className="h-10 px-3 bg-gray-50 dark:bg-dark-800 text-gray-400 hover:text-indigo-600"
+                        >
+                            <HiOutlineArrowPath className={cn("w-5 h-5", loading && "animate-spin")} />
+                        </Button>
+
+                        <Menu as="div" className="relative inline-block text-left">
+                            <Menu.Button as="div">
+                                <Button 
+                                    variant="primary" 
+                                    className="h-10 rounded-lg font-bold text-xs bg-gray-900 dark:bg-dark-700 text-white hover:bg-black"
+                                >
+                                    <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
+                                    Exportar
+                                </Button>
+                            </Menu.Button>
+                            <Transition
+                                as={Fragment}
+                                enter="transition ease-out duration-100"
+                                enterFrom="transform opacity-0 scale-95"
+                                enterTo="transform opacity-100 scale-100"
+                                leave="transition ease-in duration-75"
+                                leaveFrom="transform opacity-100 scale-100"
+                                leaveTo="transform opacity-0 scale-95"
+                            >
+                                <Menu.Items className="absolute right-0 mt-2 w-48 origin-top-right divide-y divide-gray-100 dark:divide-dark-700 rounded-md bg-white dark:bg-dark-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                                    <div className="px-1 py-1">
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <button onClick={handleExportPDF} className={cn(active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100', 'group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium transition-colors')}>
+                                                    <HiOutlineDocumentText className="mr-2 h-5 w-5" aria-hidden="true" /> Exportar PDF
+                                                </button>
+                                            )}
+                                        </Menu.Item>
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <button onClick={handleExport} className={cn(active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100', 'group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium transition-colors')}>
+                                                    <HiOutlineArrowDownTray className="mr-2 h-5 w-5" aria-hidden="true" /> Exportar CSV
+                                                </button>
+                                            )}
+                                        </Menu.Item>
+                                    </div>
+                                    <div className="px-1 py-1">
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <button onClick={handlePrintList} className={cn(active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100', 'group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium transition-colors')}>
+                                                    <HiOutlinePrinter className="mr-2 h-5 w-5" aria-hidden="true" /> Imprimir Lista
+                                                </button>
+                                            )}
+                                        </Menu.Item>
+                                    </div>
+                                </Menu.Items>
+                            </Transition>
+                        </Menu>
+                    </div>
                 </div>
             </Card>
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {[
-                    { label: 'Total em Caixa', val: sessions.reduce((acc, s) => acc + Number(s.closingBalance || 0), 0), icon: HiOutlineCurrencyDollar, color: 'text-green-500', bg: 'bg-green-500/10' },
-                    { label: 'Total Suprimentos', val: sessions.reduce((acc, s) => acc + Number(s.deposits || 0), 0), icon: HiOutlineArrowTrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                    { label: 'Total Sangrias', val: sessions.reduce((acc, s) => acc + Number(s.withdrawals || 0), 0), icon: HiOutlineArrowTrendingDown, color: 'text-red-500', bg: 'bg-red-500/10' },
-                    { label: 'Discrepâncias', val: sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0), icon: HiOutlineXCircle, color: sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0) < 0 ? 'text-red-500' : 'text-emerald-500', bg: sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0) < 0 ? 'bg-red-500/10' : 'bg-emerald-500/10' }
-                ].map((stat, i) => (
-                    <Card key={i} padding="md" className="border-gray-100 dark:border-dark-700/50 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex items-center gap-4">
-                            <div className={cn("p-2.5 rounded-lg shrink-0", stat.bg)}>
-                                <stat.icon className={cn("w-5 h-5", stat.color)} />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{stat.label}</p>
-                                <p className={cn("text-lg font-black tracking-tighter truncate", i === 3 ? stat.color : "text-gray-900 dark:text-white")}>
-                                    {formatCurrency(stat.val)}
-                                </p>
-                            </div>
-                        </div>
-                    </Card>
-                ))}
+                <MetricCard
+                    icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
+                    color="primary"
+                    value={formatCurrency(sessions.reduce((acc, s) => acc + Number(s.closingBalance || 0), 0))}
+                    label="Total em Caixa"
+                />
+                <MetricCard
+                    icon={<HiOutlineArrowTrendingUp className="w-5 h-5" />}
+                    color="info"
+                    value={formatCurrency(sessions.reduce((acc, s) => acc + Number(s.deposits || 0), 0))}
+                    label="Total Suprimentos"
+                />
+                <MetricCard
+                    icon={<HiOutlineArrowTrendingDown className="w-5 h-5" />}
+                    color="warning"
+                    value={formatCurrency(sessions.reduce((acc, s) => acc + Number(s.withdrawals || 0), 0))}
+                    label="Total Sangrias"
+                />
+                <MetricCard
+                    icon={<HiOutlineXCircle className="w-5 h-5" />}
+                    color={sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0) < 0 ? 'danger' : 'success'}
+                    value={formatCurrency(sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0))}
+                    label="Discrepâncias"
+                />
             </div>
 
             {/* Main Data Table */}
@@ -296,9 +680,21 @@ const CommercialShiftHistory: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+
+                {!loading && total > 0 && (
+                    <div className="px-6 pb-4">
+                        <Pagination
+                            currentPage={page}
+                            totalItems={total}
+                            itemsPerPage={PAGE_SIZE}
+                            onPageChange={setPage}
+                            showItemsPerPage={false}
+                        />
+                    </div>
+                )}
             </Card>
 
-            <CommercialShiftDetailsModal 
+            <CommercialShiftDetailsModal
                 isOpen={showDetailsModal}
                 session={selectedSession}
                 onClose={() => setShowDetailsModal(false)}

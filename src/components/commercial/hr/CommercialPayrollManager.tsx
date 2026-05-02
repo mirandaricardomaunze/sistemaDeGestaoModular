@@ -6,7 +6,7 @@ import {
     HiOutlineArrowPath,
     HiOutlineCalculator,
 } from 'react-icons/hi2';
-import { Card, Button, Select, Badge, LoadingSpinner, ConfirmationModal } from '../../ui';
+import { Card, Button, Select, Badge, LoadingSpinner, ConfirmationModal, Pagination, usePagination } from '../../ui';
 import { useEmployees, usePayroll } from '../../../hooks/useData';
 import { formatCurrency } from '../../../utils/helpers';
 import PayslipGenerator from '../../employees/PayslipGenerator';
@@ -60,6 +60,15 @@ export const CommercialPayrollManager: React.FC = () => {
         totalINSS: data.reduce((a, p) => a + Number(p.inssDeduction || 0), 0),
         totalCommissions: data.reduce((a, p) => a + Number(p.bonus || 0), 0),
     }), [data]);
+
+    const {
+        paginatedItems: paginatedData,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(data, 10);
 
     const handleUpdateStatus = async (id: string, status: 'processed' | 'paid') => {
         try {
@@ -149,13 +158,13 @@ export const CommercialPayrollManager: React.FC = () => {
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700/50">
                             {isLoading ? (
                                 <tr><td colSpan={8} className="py-20 text-center"><LoadingSpinner size="lg" /></td></tr>
-                            ) : data.length === 0 ? (
+                            ) : paginatedData.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className="py-20 text-center text-gray-400 italic">
                                         Nenhum registo para {MONTHS[month - 1]?.label} / {year}
                                     </td>
                                 </tr>
-                            ) : data.map(p => {
+                            ) : paginatedData.map(p => {
                                 const emp = employees.find(e => e.id === p.employeeId);
                                 const inss = Number(p.inssDeduction) || calcINSS(Number(p.baseSalary));
                                 const irt = Number(p.irtDeduction) || calcIRT(Number(p.totalEarnings || p.baseSalary));
@@ -212,6 +221,17 @@ export const CommercialPayrollManager: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                {!isLoading && data.length > 0 && (
+                    <div className="p-4 border-t border-gray-100 dark:border-dark-700/50 bg-white/50 dark:bg-dark-900/50">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
+                    </div>
+                )}
             </Card>
 
             {/* Process All Confirmation */}

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../components/ui';
-import Categories from '../categories';
+import Categories from '../Categories';
 import { HiOutlineTag } from 'react-icons/hi2';
 
 export default function HotelCategories() {

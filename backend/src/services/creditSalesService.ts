@@ -64,9 +64,12 @@ export class CreditSalesService {
         saleId: string;
         amount: number;
         paymentMethod: string;
+        sessionId: string; // Mandatory for operational tracking
         reference?: string;
         notes?: string;
     }) {
+        if (!data.sessionId) throw ApiError.badRequest('Sessão de caixa é obrigatória para registar recebimentos');
+
         const sale = await prisma.sale.findFirst({
             where: { id: data.saleId, companyId, isCredit: true }
         });
@@ -74,6 +77,12 @@ export class CreditSalesService {
         if (!sale) {
             throw ApiError.notFound('Venda a crédito não encontrada');
         }
+
+        // Verify active session
+        const session = await prisma.cashSession.findFirst({
+            where: { id: data.sessionId, companyId, status: 'open' }
+        });
+        if (!session) throw ApiError.badRequest('Sessão de caixa não encontrada ou já encerrada');
 
         const remaining = Number(sale.total) - Number(sale.paidAmount);
         if (data.amount > remaining) {

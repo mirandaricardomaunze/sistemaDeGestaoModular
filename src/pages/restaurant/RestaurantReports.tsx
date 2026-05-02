@@ -369,7 +369,16 @@ export default function RestaurantReports() {
             ? `${customDates.startDate} a ${customDates.endDate}` 
             : PRESETS.find(p => p.value === preset)?.label || '';
 
-        addProfessionalHeader(doc, 'Relatório de Restaurante', companySettings, periodStr);
+        addProfessionalHeader(doc, 'Relatório de Restaurante', {
+            name: companySettings.companyName,
+            companyName: companySettings.companyName,
+            address: companySettings.address,
+            phone: companySettings.phone,
+            email: companySettings.email,
+            logo: companySettings.logo,
+            nuit: companySettings.taxId,
+            taxId: companySettings.taxId
+        }, periodStr);
 
         autoTable(doc, {
             startY: 45,

@@ -1,6 +1,7 @@
 import { logger } from '../utils/logger';
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { invoicesAPI } from '../services/api';
 import { useInvoiceTaxes, getCurrentFiscalPeriod } from '../utils/fiscalIntegration';
 import type { Invoice } from '../types';
@@ -24,160 +25,126 @@ interface UseInvoicesParams {
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
     originModule?: string;
+    fields?: string;
 }
 
+const QK = ['invoices'] as const;
+const SOURCES_QK = ['invoices', 'available-sources'] as const;
+
 export function useInvoices(params?: UseInvoicesParams) {
-    const [invoices, setInvoices] = useState<Invoice[]>([]);
-    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [availableSources, setAvailableSources] = useState<any[]>([]);
+    const queryClient = useQueryClient();
     const { calculateInvoiceIVA } = useInvoiceTaxes();
 
-    const fetchAvailableSources = useCallback(async () => {
-        try {
-            const sources = await invoicesAPI.getAvailableSources();
-            setAvailableSources(sources);
-        } catch (err) {
-            logger.error('Error fetching available sources:', err);
-        }
-    }, []);
-
-    const fetchInvoices = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await invoicesAPI.getAll(params);
-
-            let invoicesData: Invoice[] = [];
-            if (response.data && response.pagination) {
+    const query = useQuery({
+        queryKey: [...QK, params ?? {}],
+        queryFn: async () => {
+            const response = await invoicesAPI.getAll(params as any);
+            let invoicesData: Invoice[];
+            let pagination: PaginationMeta;
+            let summary: { total: number; paid: number; pending: number; overdue: number } | null = null;
+            if (response?.data && response?.pagination) {
                 invoicesData = response.data;
-                setPagination(response.pagination);
+                pagination = {
+                    ...response.pagination,
+                    hasMore: response.pagination.hasMore ?? response.pagination.hasNext ?? false,
+                };
+                if (response.summary) summary = response.summary;
             } else {
                 invoicesData = Array.isArray(response) ? response : (response.data || []);
-                setPagination({
+                pagination = {
                     page: params?.page || 1,
                     limit: params?.limit || invoicesData.length,
                     total: invoicesData.length,
                     totalPages: 1,
-                    hasMore: false
-                });
+                    hasMore: false,
+                };
             }
+            return { invoices: invoicesData, pagination, summary };
+        },
+        placeholderData: keepPreviousData,
+    });
 
-            setInvoices(invoicesData);
-        } catch (err) {
-            setError('Erro ao carregar facturas');
-            logger.error('Error fetching invoices:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [
-        params?.status,
-        params?.customerId,
-        params?.search,
-        params?.startDate,
-        params?.endDate,
-        params?.page,
-        params?.limit,
-        params?.sortBy,
-        params?.sortOrder,
-        params?.originModule
-    ]);
+    const sourcesQuery = useQuery({
+        queryKey: SOURCES_QK,
+        queryFn: () => invoicesAPI.getAvailableSources(),
+        enabled: false, // user calls fetchAvailableSources to opt in
+    });
 
-    useEffect(() => {
-        fetchInvoices();
-    }, [fetchInvoices]);
-
-    const createInvoice = async (data: Parameters<typeof invoicesAPI.create>[0]) => {
-        try {
+    const createMutation = useMutation({
+        mutationFn: async (data: Parameters<typeof invoicesAPI.create>[0]) => {
             const newInvoice = await invoicesAPI.create(data);
-
-            // 📊 Auto-register IVA in Fiscal module
             calculateInvoiceIVA(
-                newInvoice.total - (newInvoice.tax || 0), // Base amount (approx)
+                newInvoice.total - (newInvoice.tax || 0),
                 newInvoice.customerId || 'anonymous',
                 newInvoice.customerName,
                 newInvoice.customerDocument || '',
                 newInvoice.invoiceNumber,
                 newInvoice.issueDate || new Date().toISOString().split('T')[0],
                 getCurrentFiscalPeriod(),
-                true // createRetention
+                true,
             );
-
-            setInvoices((prev) => [newInvoice, ...prev]);
-            toast.success('Factura criada e IVA registado na Gestão Fiscal!');
             return newInvoice;
-        } catch (err) {
-            logger.error('Error creating invoice:', err);
-            throw err;
-        }
-    };
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
+            toast.success('Factura criada e IVA registado na Gestão Fiscal!');
+        },
+        onError: (err) => logger.error('Error creating invoice:', err),
+    });
 
-    const updateInvoice = async (id: string, data: Parameters<typeof invoicesAPI.update>[1]) => {
-        try {
-            const updated = await invoicesAPI.update(id, data);
-            setInvoices((prev) => prev.map((i) => (i.id === id ? updated : i)));
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Parameters<typeof invoicesAPI.update>[1] }) =>
+            invoicesAPI.update(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Factura actualizada com sucesso!');
-            return updated;
-        } catch (err) {
-            logger.error('Error updating invoice:', err);
-            throw err;
-        }
-    };
+        },
+        onError: (err) => logger.error('Error updating invoice:', err),
+    });
 
-    const addPayment = async (
-        invoiceId: string,
-        data: Parameters<typeof invoicesAPI.addPayment>[1]
-    ) => {
-        try {
-            const updated = await invoicesAPI.addPayment(invoiceId, data);
-            setInvoices((prev) => prev.map((i) => (i.id === invoiceId ? updated : i)));
+    const paymentMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Parameters<typeof invoicesAPI.addPayment>[1] }) =>
+            invoicesAPI.addPayment(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Pagamento registado com sucesso!');
-            return updated;
-        } catch (err) {
-            logger.error('Error adding payment:', err);
-            throw err;
-        }
-    };
+        },
+        onError: (err) => logger.error('Error adding payment:', err),
+    });
 
-    const cancelInvoice = async (id: string) => {
-        try {
-            const updated = await invoicesAPI.cancel(id);
-            setInvoices((prev) => prev.map((i) => (i.id === id ? updated : i)));
+    const cancelMutation = useMutation({
+        mutationFn: (id: string) => invoicesAPI.cancel(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Factura cancelada com sucesso!');
-            return updated;
-        } catch (err) {
-            logger.error('Error canceling invoice:', err);
-            throw err;
-        }
-    };
+        },
+        onError: (err) => logger.error('Error canceling invoice:', err),
+    });
 
     const getInvoiceById = useCallback(async (id: string) => {
-        setIsLoading(true);
         try {
-            const invoice = await invoicesAPI.getById(id);
-            return invoice;
+            return await invoicesAPI.getById(id);
         } catch (err) {
             logger.error('Error fetching invoice details:', err);
             toast.error('Erro ao carregar detalhes da factura');
             return null;
-        } finally {
-            setIsLoading(false);
         }
     }, []);
 
     return {
-        invoices,
-        pagination,
-        isLoading,
-        error,
-        availableSources,
-        refetch: fetchInvoices,
-        fetchAvailableSources,
-        createInvoice,
-        updateInvoice,
-        addPayment,
-        cancelInvoice,
+        invoices: query.data?.invoices ?? [],
+        pagination: query.data?.pagination ?? null,
+        summary: query.data?.summary ?? null,
+        isLoading: query.isLoading || query.isFetching,
+        isPlaceholderData: query.isPlaceholderData,
+        error: query.error ? 'Erro ao carregar facturas' : null,
+        availableSources: sourcesQuery.data ?? [],
+        refetch: query.refetch,
+        fetchAvailableSources: () => sourcesQuery.refetch(),
+        createInvoice: createMutation.mutateAsync,
+        updateInvoice: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
+        addPayment: (invoiceId: string, data: any) => paymentMutation.mutateAsync({ id: invoiceId, data }),
+        cancelInvoice: cancelMutation.mutateAsync,
         getInvoiceById,
     };
 }

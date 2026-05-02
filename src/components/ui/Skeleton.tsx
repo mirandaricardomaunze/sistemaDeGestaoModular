@@ -25,7 +25,7 @@ export function Skeleton({
 
     const animationClasses = {
         pulse: 'animate-pulse',
-        wave: 'animate-shimmer bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-dark-700 dark:via-dark-600 dark:to-dark-700 bg-[length:200%_100%]',
+        wave: 'relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent dark:before:via-white/5',
     };
 
     const style: React.CSSProperties = {};

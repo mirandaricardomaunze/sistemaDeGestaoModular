@@ -11,6 +11,7 @@ import {
 } from 'react-icons/hi2';
 import { Card, Button, Input, Badge, TableContainer, Pagination, Modal, PageHeader, Select, Textarea } from '../../components/ui';
 import { usePharmacySales } from '../../hooks/usePharmacySales';
+import { useDebounce } from '../../hooks/useDebounce';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { format, parseISO } from 'date-fns';
 import { CommercialReceiptModal, type ReceiptData } from '../../components/commercial/pos/CommercialReceiptModal';
@@ -20,12 +21,13 @@ export default function PharmacyHistory() {
     const [page, setPage] = useState(1);
     const [pageSize] = useState(12);
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 350);
     const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
     const [endDate, setEndDate] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
 
     const { sales, pagination, isLoading, error, refetch, voidSale } = usePharmacySales({
-        search,
+        search: debouncedSearch,
         startDate,
         endDate,
         status: statusFilter || undefined,
@@ -136,7 +138,8 @@ export default function PharmacyHistory() {
                                 value={search}
                                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                                 leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
-                                className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
+                                className="bg-white dark:bg-dark-900 border-none shadow-sm text-sm font-medium"
+                                size="sm"
                             />
                         </div>
                         <div>
@@ -145,7 +148,8 @@ export default function PharmacyHistory() {
                                 label="Início"
                                 value={startDate}
                                 onChange={e => { setStartDate(e.target.value); setPage(1); }}
-                                className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm"
+                                className="bg-white dark:bg-dark-900 border-none shadow-sm text-sm"
+                                size="sm"
                             />
                         </div>
                         <div>
@@ -154,7 +158,8 @@ export default function PharmacyHistory() {
                                 label="Fim"
                                 value={endDate}
                                 onChange={e => { setEndDate(e.target.value); setPage(1); }}
-                                className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm"
+                                className="bg-white dark:bg-dark-900 border-none shadow-sm text-sm"
+                                size="sm"
                             />
                         </div>
                         <div>
@@ -167,7 +172,8 @@ export default function PharmacyHistory() {
                                     { value: 'active', label: 'Activas' },
                                     { value: 'voided', label: 'Anuladas' }
                                 ]}
-                                className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
+                                className="bg-white dark:bg-dark-900 border-none shadow-sm text-sm font-medium"
+                                size="sm"
                             />
                         </div>
                     </div>

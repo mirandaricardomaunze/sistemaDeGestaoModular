@@ -5,7 +5,7 @@ import {
     HiOutlineCheckCircle,
     HiOutlineArrowPath
 } from 'react-icons/hi2';
-import { Card, Button, Select, Badge, LoadingSpinner } from '../../ui';
+import { Card, Button, Select, Badge, LoadingSpinner, Pagination, usePagination } from '../../ui';
 import { useStaffPayroll, useUpdateStaffPayrollStatus } from '../../../hooks/useLogistics';
 import { formatCurrency } from '../../../utils/helpers';
 
@@ -19,6 +19,15 @@ export const LogisticsPayrollManager: React.FC = () => {
         year,
         status: statusFilter || undefined
     });
+
+    const {
+        paginatedItems: paginatedPayroll,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(payroll || [], 10);
 
     const updateMutation = useUpdateStaffPayrollStatus();
 
@@ -132,7 +141,7 @@ export const LogisticsPayrollManager: React.FC = () => {
                             ) : payroll?.length === 0 ? (
                                 <tr><td colSpan={7} className="py-20 text-center text-gray-400 font-medium">Nenhum registo para este período</td></tr>
                             ) : (
-                                payroll?.map((p) => (
+                                paginatedPayroll.map((p) => (
                                     <tr key={p.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-700/30 transition-all">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
@@ -179,6 +188,17 @@ export const LogisticsPayrollManager: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                {!isLoading && (payroll?.length || 0) > 0 && (
+                    <div className="p-4 border-t border-gray-100 dark:border-dark-700 bg-white/50 dark:bg-dark-900/50">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
+                    </div>
+                )}
             </Card>
         </div>
     );

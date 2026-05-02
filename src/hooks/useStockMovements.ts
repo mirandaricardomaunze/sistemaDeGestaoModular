@@ -1,5 +1,4 @@
-import { logger } from '../utils/logger';
-import { useState, useEffect, useCallback } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { productsAPI } from '../services/api';
 import type { StockMovement } from '../types';
 
@@ -11,44 +10,37 @@ interface PaginationMeta {
     hasMore: boolean;
 }
 
-export function useStockMovements(productId: string | null, params?: { page?: number; limit?: number }) {
-    const [movements, setMovements] = useState<StockMovement[]>([]);
-    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchMovements = useCallback(async () => {
-        if (!productId) return;
-
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await productsAPI.getMovements(productId, params);
-            if (response.data && response.pagination) {
-                setMovements(response.data);
-                setPagination(response.pagination);
+export function useStockMovements(
+    productId: string | null,
+    params?: { page?: number; limit?: number; fields?: string }
+) {
+    const query = useQuery({
+        queryKey: ['stock-movements', productId, params ?? {}],
+        queryFn: async () => {
+            const response = await productsAPI.getMovements(productId!, params);
+            let movements: StockMovement[];
+            let pagination: PaginationMeta | null = null;
+            if (response?.data && response?.pagination) {
+                movements = response.data;
+                pagination = {
+                    ...response.pagination,
+                    hasMore: response.pagination.hasMore ?? response.pagination.hasNext ?? false,
+                };
             } else {
-                setMovements(Array.isArray(response) ? response : []);
+                movements = Array.isArray(response) ? response : [];
             }
-        } catch (err) {
-            setError('Erro ao carregar histórico de stock');
-            logger.error('Error fetching movements:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [productId, params?.page, params?.limit]);
-
-    useEffect(() => {
-        if (productId) {
-            fetchMovements();
-        }
-    }, [fetchMovements]);
+            return { movements, pagination };
+        },
+        enabled: !!productId,
+        placeholderData: keepPreviousData,
+    });
 
     return {
-        movements,
-        pagination,
-        isLoading,
-        error,
-        refetch: fetchMovements,
+        movements: query.data?.movements ?? [],
+        pagination: query.data?.pagination ?? null,
+        isLoading: query.isLoading || query.isFetching,
+        isPlaceholderData: query.isPlaceholderData,
+        error: query.error ? 'Erro ao carregar histórico de stock' : null,
+        refetch: query.refetch,
     };
 }

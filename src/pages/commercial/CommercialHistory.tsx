@@ -1,20 +1,17 @@
-import { useState } from 'react';
-import {
-    HiOutlineMagnifyingGlass,
-    HiOutlineEye,
-    HiOutlineTrash,
-    HiOutlineArrowPath,
-    HiOutlineTicket,
-} from 'react-icons/hi2';
-import { Card, Button, Input, Badge, TableContainer, Pagination, PageHeader, Textarea, ConfirmationModal } from '../../components/ui';
+import { Button, Input, Badge, Textarea, ConfirmationModal, SmartTable } from '../../components/ui';
 import { useSales } from '../../hooks/useSales';
-import { formatCurrency, cn } from '../../utils/helpers';
+import { formatCurrency } from '../../utils/helpers';
+import { PAGE_SIZE } from '../../utils/constants';
 import { format, parseISO } from 'date-fns';
 import { CommercialReceiptModal, type ReceiptData } from '../../components/commercial/pos/CommercialReceiptModal';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { HiOutlineEye, HiOutlineTrash } from 'react-icons/hi2';
 
 export default function CommercialHistory() {
     const [page, setPage] = useState(1);
-    const [pageSize] = useState(12);
+    const [pageSize, setPageSize] = useState(PAGE_SIZE);
     const [search, setSearch] = useState('');
     const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-01'));
     const [endDate, setEndDate] = useState(''); // Empty end date means "up to now" by default
@@ -39,8 +36,10 @@ export default function CommercialHistory() {
         return labels[method] || method.toUpperCase();
     };
 
-    const { sales, pagination, isLoading, error, refetch, voidSale } = useSales({
-        search,
+    const debouncedSearch = useDebounce(search, 300);
+
+    const { sales, pagination, isLoading, refetch, voidSale } = useSales({
+        search: debouncedSearch || undefined,
         startDate,
         endDate,
         page,
@@ -56,6 +55,21 @@ export default function CommercialHistory() {
     const [isVoiding, setIsVoiding] = useState(false);
 
     const handleViewReceipt = (sale: any) => {
+        let parsedPayments = [{ method: sale.paymentMethod as any, amount: sale.amountPaid, reference: sale.paymentRef }];
+
+        if (sale.paymentRef && sale.paymentRef.startsWith('[') && sale.paymentRef.includes('method')) {
+            try {
+                const arr = JSON.parse(sale.paymentRef);
+                if (Array.isArray(arr) && arr.length > 0) {
+                    parsedPayments = arr.map((p: any) => ({
+                        method: p.method,
+                        amount: p.amount,
+                        reference: p.reference
+                    }));
+                }
+            } catch (e) {}
+        }
+
         const receiptData: ReceiptData = {
             saleNumber: sale.receiptNumber || `SALE-${sale.id.slice(-6)}`,
             date: new Date(sale.createdAt),
@@ -73,7 +87,7 @@ export default function CommercialHistory() {
             discount: sale.discount,
             tax: sale.tax,
             total: sale.total,
-            payments: [{ method: sale.paymentMethod as any, amount: sale.amountPaid, reference: sale.paymentRef }],
+            payments: parsedPayments,
             change: sale.change || 0,
             isCredit: sale.paymentMethod === 'credit'
         };
@@ -101,194 +115,196 @@ export default function CommercialHistory() {
         }
     };
 
+    const columns = useMemo<ColumnDef<any, any>[]>(() => [
+        {
+            accessorKey: 'receiptNumber',
+            header: 'Recibo / Referência',
+            cell: ({ row }: any) => {
+                const sale = row.original;
+                return (
+                    <div className="flex flex-col">
+                        <span className="font-black font-mono text-gray-900 dark:text-white text-xs tracking-tight group-hover:text-blue-600 transition-colors">
+                            {sale.receiptNumber || `SALE-${sale.id.slice(-6)}`}
+                        </span>
+                        <span className="text-[9px] text-gray-400 font-mono uppercase truncate w-24">
+                            {sale.paymentRef && !sale.paymentRef.startsWith('[') ? sale.paymentRef : ''}
+                        </span>
+                    </div>
+                );
+            }
+        },
+        {
+            accessorKey: 'createdAt',
+            header: 'Data & Hora',
+            cell: (info: any) => (
+                <div className="flex flex-col">
+                    <span className="font-bold text-gray-700 dark:text-gray-300">
+                        {format(parseISO(info.getValue()), 'dd/MM/yyyy')}
+                    </span>
+                    <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider">
+                        {format(parseISO(info.getValue()), 'HH:mm')}
+                    </span>
+                </div>
+            )
+        },
+        {
+            accessorKey: 'customer.name',
+            header: 'Identificação',
+            cell: ({ row }: any) => (
+                <div className="flex flex-col">
+                    <span className="font-black text-gray-800 dark:text-gray-200 text-xs uppercase tracking-tight truncate max-w-[140px]">
+                        {row.original.customer?.name || 'Consumidor Geral'}
+                    </span>
+                    <span className="text-[9px] text-gray-500 font-medium">#{row.original.id.slice(-4).toUpperCase()}</span>
+                </div>
+            )
+        },
+        {
+            accessorKey: 'total',
+            header: 'Valor Total',
+            cell: (info: any) => (
+                <div className="flex flex-col items-end">
+                    <span className="font-black text-gray-900 dark:text-white text-base tracking-tighter">
+                        {formatCurrency(info.getValue())}
+                    </span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{info.row.original.items?.length || 0} Itens</span>
+                </div>
+            )
+        },
+        {
+            accessorKey: 'paymentMethod',
+            header: 'Método',
+            cell: (info: any) => (
+                <Badge variant="gray" size="sm" className="font-black text-[9px] uppercase tracking-widest bg-gray-100 text-gray-700 dark:bg-dark-800 dark:text-gray-300 px-3 py-1 border-none">
+                    {getPaymentMethodLabel(info.getValue(), info.row.original.paymentRef)}
+                </Badge>
+            )
+        },
+        {
+            accessorKey: 'voidStatus',
+            header: 'Status',
+            cell: (info: any) => {
+                const vs = info.getValue() ?? info.row.original.status;
+                if (vs === 'voided') {
+                    return (
+                        <Badge variant="danger" className="text-[9px] font-black uppercase px-2 py-0.5 border-none bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            ANULADA
+                        </Badge>
+                    );
+                }
+                if (vs === 'pending_void') {
+                    return (
+                        <Badge variant="warning" className="text-[9px] font-black uppercase px-2 py-0.5 border-none bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            PEND. APROVAÇÃO
+                        </Badge>
+                    );
+                }
+                return (
+                    <Badge variant="success" className="text-[9px] font-black uppercase px-2 py-0.5 border-none bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        CONCLUÍDA
+                    </Badge>
+                );
+            }
+        },
+        {
+            id: 'actions',
+            header: 'Gestão',
+            cell: ({ row }: any) => {
+                const vs = row.original.voidStatus ?? row.original.status;
+                const canRequestVoid = vs !== 'voided' && vs !== 'pending_void';
+                return (
+                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="sm" onClick={() => handleViewReceipt(row.original)} className="text-blue-600 hover:bg-blue-600 hover:text-white" title="Reimprimir Recibo">
+                            <HiOutlineEye className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                        </Button>
+                        {canRequestVoid && (
+                            <Button variant="ghost" size="sm" onClick={() => handleOpenVoidModal(row.original)} className="text-red-500 hover:bg-red-500 hover:text-white" title="Solicitar Anulação">
+                                <HiOutlineTrash className="w-4 h-4 text-red-500 dark:text-red-400" />
+                            </Button>
+                        )}
+                    </div>
+                );
+            }
+        }
+    ], []);
+
     return (
         <div className="space-y-4 animate-fade-in pb-10">
-            <PageHeader 
-                title="Vendas Realizadas"
-                subtitle="Consulte, reimprima recibos ou anule transações comerciais"
-                icon={<HiOutlineTicket className="text-primary-600 dark:text-primary-400" />}
-                actions={
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => refetch()} 
-                        className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
-                        leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
-                    >
-                        Actualizar
-                    </Button>
-                }
-            />
-
-            {/* Filters Bar - High Density */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <Card padding="md" className="md:col-span-12 border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                        <div className="md:col-span-2">
-                            <Input 
-                                label="Filtros Rápidos"
-                                placeholder="Nº Recibo, Nome do Cliente ou Código..." 
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
-                                className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
-                            />
-                        </div>
-                        <div>
+            <SmartTable
+                data={sales}
+                columns={columns}
+                isLoading={isLoading}
+                search={{
+                    value: search,
+                    onChange: (val) => { setSearch(val); setPage(1); },
+                    placeholder: "Nº Recibo, Nome do Cliente ou Código..."
+                }}
+                renderFilters={
+                    <>
+                        <div className="w-full lg:w-44">
                             <Input 
                                 type="date" 
                                 label="Início" 
                                 value={startDate}
-                                onChange={e => setStartDate(e.target.value)}
-                                className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm"
+                                onChange={e => { setStartDate(e.target.value); setPage(1); }}
+                                size="sm"
                             />
                         </div>
-                        <div>
+                        <div className="w-full lg:w-44">
                             <Input 
                                 type="date" 
                                 label="Fim" 
                                 value={endDate}
-                                onChange={e => setEndDate(e.target.value)}
-                                className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm"
+                                onChange={e => { setEndDate(e.target.value); setPage(1); }}
+                                size="sm"
                             />
                         </div>
-                    </div>
-                </Card>
-            </div>
+                    </>
+                }
+                pagination={{
+                    currentPage: page,
+                    totalItems: pagination?.total || 0,
+                    itemsPerPage: pageSize,
+                    onPageChange: setPage,
+                    onItemsPerPageChange: (size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    }
+                }}
+                onRefresh={refetch}
+                exportConfig={{
+                    filename: 'historico_vendas',
+                    title: 'Relatório de Vendas',
+                    orientation: 'landscape',
+                    columns: [
+                        { key: 'receiptNumber', header: 'Nº Recibo', width: 15 },
+                        { key: 'createdAt', header: 'Data', format: 'datetime', width: 20 },
+                        { key: 'customer.name', header: 'Cliente', width: 25 },
+                        { key: 'total', header: 'Total', format: 'currency', width: 15, align: 'right' },
+                        { key: 'paymentMethod', header: 'Pagamento', width: 15 },
+                        { key: 'status', header: 'Estado', width: 12 }
+                    ]
+                }}
+                emptyTitle="Nenhuma venda encontrada"
+                emptyDescription="Ajuste os filtros de data ou pesquisa para encontrar registos."
+            />
 
-            {/* Table / Error State - High Density */}
-            <Card padding="none" className="border-none shadow-xl shadow-blue-500/5 bg-white dark:bg-dark-900 group">
-                <TableContainer 
-                    isLoading={isLoading} 
-                    isEmpty={!isLoading && sales.length === 0 && !error}
-                >
-                    <table className="w-full text-sm border-collapse">
-                        <thead>
-                            <tr className="text-[10px] text-gray-400 border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50 uppercase tracking-[0.2em] font-black">
-                                <th className="px-6 py-4 text-left">Recibo / Referência</th>
-                                <th className="px-6 py-4 text-left">Data & Hora</th>
-                                <th className="px-6 py-4 text-left">Identificação</th>
-                                <th className="px-6 py-4 text-right">Valor Total</th>
-                                <th className="px-6 py-4 text-center">Método</th>
-                                <th className="px-6 py-4 text-center">Status</th>
-                                <th className="px-6 py-4 text-right pr-10">Gestão</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                            {sales.map((sale: any) => (
-                                <tr key={sale.id} className={cn(
-                                    "hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-all duration-200 group",
-                                    sale.status === 'voided' && "bg-red-50/20 dark:bg-red-900/5"
-                                )}>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="font-black font-mono text-gray-900 dark:text-white text-xs tracking-tight group-hover:text-blue-600 transition-colors">
-                                                {sale.receiptNumber || `SALE-${sale.id.slice(-6)}`}
-                                            </span>
-                                                <span className="text-[9px] text-gray-400 font-mono uppercase truncate w-24">
-                                                    {sale.paymentRef && !sale.paymentRef.startsWith('[') ? sale.paymentRef : ''}
-                                                </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold text-gray-700 dark:text-gray-300">
-                                                {format(parseISO(sale.createdAt), 'dd/MM/yyyy')}
-                                            </span>
-                                            <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider">
-                                                {format(parseISO(sale.createdAt), 'HH:mm')}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="font-black text-gray-800 dark:text-gray-200 text-xs uppercase tracking-tight truncate max-w-[140px]">
-                                                {sale.customer?.name || 'Consumidor Geral'}
-                                            </span>
-                                            <span className="text-[9px] text-gray-500 font-medium">#{sale.id.slice(-4).toUpperCase()}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex flex-col items-end">
-                                            <span className="font-black text-gray-900 dark:text-white text-base tracking-tighter">
-                                                {formatCurrency(sale.total)}
-                                            </span>
-                                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{sale.items?.length || 0} Itens</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <Badge variant="gray" size="sm" className="font-black text-[9px] uppercase tracking-widest bg-gray-100 dark:bg-dark-800 px-3 py-1 border-none">
-                                            {getPaymentMethodLabel(sale.paymentMethod, sale.paymentRef)}
-                                        </Badge>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        {sale.status === 'voided' ? (
-                                            <Badge variant="danger" className="text-[9px] font-black uppercase px-2 py-0.5 border-none bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                                                ANULADA
-                                            </Badge>
-                                        ) : (
-                                            <Badge variant="success" className="text-[9px] font-black uppercase px-2 py-0.5 border-none bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                                                CONCLUÍDA
-                                            </Badge>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 pr-10">
-                                        <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                                            <Button 
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleViewReceipt(sale)}
-                                                className="text-blue-600 hover:bg-blue-600 hover:text-white"
-                                                title="Reimprimir Recibo"
-                                            >
-                                                <HiOutlineEye className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                                            </Button>
-                                            {sale.status !== 'voided' && (
-                                                <Button 
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleOpenVoidModal(sale)}
-                                                    className="text-red-500 hover:bg-red-500 hover:text-white"
-                                                    title="Anular Venda"
-                                                >
-                                                    <HiOutlineTrash className="w-4 h-4 text-red-500 dark:text-red-400" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </TableContainer>
-                
-                {pagination && pagination.totalPages > 1 && (
-                    <div className="px-6 py-4 bg-gray-50/50 dark:bg-dark-900/50 border-t border-gray-100 dark:border-dark-700">
-                        <Pagination 
-                            currentPage={page}
-                            totalItems={pagination.total}
-                            itemsPerPage={pageSize}
-                            onPageChange={setPage}
-                        />
-                    </div>
-                )}
-            </Card>
-
-            {/* Void Confirmation Modal */}
+            {/* Void Request Modal -- step 1 of two-step flow */}
             <ConfirmationModal
                 isOpen={showVoidModal}
                 onClose={() => !isVoiding && setShowVoidModal(false)}
                 onConfirm={handleConfirmVoid}
-                title="Protocolo de Anulação"
-                message={`Tem certeza que deseja anular a venda "${selectedSale?.receiptNumber || selectedSale?.id?.slice(-6)}"? Esta ação devolverá os itens ao stock.`}
-                confirmText="Confirmar Anulação"
-                cancelText="Abortar"
+                title="Solicitar Anulação"
+                message={`Pedir anulação da venda "${selectedSale?.receiptNumber || selectedSale?.id?.slice(-6)}"? A venda fica pendente até ser aprovada por um gestor — o stock só é devolvido após aprovação.`}
+                confirmText="Enviar Pedido"
+                cancelText="Cancelar"
                 variant="danger"
                 isLoading={isVoiding}
+                disabled={voidReason.trim().length < 5}
             >
                 <div className="mt-4">
                     <Textarea
-                        label="Motivo Justificativo"
+                        label="Motivo Justificativo (mín. 5 caracteres)"
                         value={voidReason}
                         onChange={e => setVoidReason(e.target.value)}
                         rows={3}

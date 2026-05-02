@@ -16,7 +16,7 @@ import {
     HiOutlineCpuChip,
 } from 'react-icons/hi2';
 import { adminAPI } from '../../services/api';
-import { Card } from '../../components/ui';
+import { Card, Pagination } from '../../components/ui';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -467,15 +467,15 @@ const SuperAdminDashboard: React.FC = () => {
                                 </table>
                             </div>
 
-                            {/* Pagination */}
                             {companies?.pagination && companies.pagination.totalPages > 1 && (
-                                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                                    <span>{companies.pagination.total} empresas no total</span>
-                                    <div className="flex gap-2">
-                                        <button disabled={companyPage <= 1} onClick={() => setCompanyPage(p => p - 1)} className="px-3 py-1.5 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 disabled:opacity-40">Anterior</button>
-                                        <span className="px-3 py-1.5">{companyPage} / {companies.pagination.totalPages}</span>
-                                        <button disabled={companyPage >= companies.pagination.totalPages} onClick={() => setCompanyPage(p => p + 1)} className="px-3 py-1.5 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 disabled:opacity-40">Seguinte</button>
-                                    </div>
+                                <div className="px-4 py-3 bg-gray-50/50 dark:bg-dark-900/50 border-t border-gray-100 dark:border-dark-700 rounded-b-xl">
+                                    <Pagination
+                                        currentPage={companyPage}
+                                        totalItems={companies.pagination.total}
+                                        itemsPerPage={15}
+                                        onPageChange={setCompanyPage}
+                                        showItemsPerPage={false}
+                                    />
                                 </div>
                             )}
                         </>
@@ -554,13 +554,14 @@ const SuperAdminDashboard: React.FC = () => {
                             </div>
 
                             {users?.pagination && users.pagination.totalPages > 1 && (
-                                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                                    <span>{users.pagination.total} utilizadores no total</span>
-                                    <div className="flex gap-2">
-                                        <button disabled={userPage <= 1} onClick={() => setUserPage(p => p - 1)} className="px-3 py-1.5 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 disabled:opacity-40">Anterior</button>
-                                        <span className="px-3 py-1.5">{userPage} / {users.pagination.totalPages}</span>
-                                        <button disabled={userPage >= users.pagination.totalPages} onClick={() => setUserPage(p => p + 1)} className="px-3 py-1.5 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 disabled:opacity-40">Seguinte</button>
-                                    </div>
+                                <div className="px-4 py-3 bg-gray-50/50 dark:bg-dark-900/50 border-t border-gray-100 dark:border-dark-700 rounded-b-xl">
+                                    <Pagination
+                                        currentPage={userPage}
+                                        totalItems={users.pagination.total}
+                                        itemsPerPage={20}
+                                        onPageChange={setUserPage}
+                                        showItemsPerPage={false}
+                                    />
                                 </div>
                             )}
                         </>
@@ -611,13 +612,14 @@ const SuperAdminDashboard: React.FC = () => {
                             </div>
 
                             {activity?.pagination && activity.pagination.totalPages > 1 && (
-                                <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                                    <span>{activity.pagination.total} registos no total</span>
-                                    <div className="flex gap-2">
-                                        <button disabled={activityPage <= 1} onClick={() => setActivityPage(p => p - 1)} className="px-3 py-1.5 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 disabled:opacity-40">Anterior</button>
-                                        <span className="px-3 py-1.5">{activityPage} / {activity.pagination.totalPages}</span>
-                                        <button disabled={activityPage >= activity.pagination.totalPages} onClick={() => setActivityPage(p => p + 1)} className="px-3 py-1.5 border border-gray-300 dark:border-dark-600 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-700 disabled:opacity-40">Seguinte</button>
-                                    </div>
+                                <div className="px-4 py-3 bg-gray-50/50 dark:bg-dark-900/50 border-t border-gray-100 dark:border-dark-700 rounded-b-xl">
+                                    <Pagination
+                                        currentPage={activityPage}
+                                        totalItems={activity.pagination.total}
+                                        itemsPerPage={30}
+                                        onPageChange={setActivityPage}
+                                        showItemsPerPage={false}
+                                    />
                                 </div>
                             )}
                         </>

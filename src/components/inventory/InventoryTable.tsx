@@ -1,26 +1,23 @@
 import { logger } from '../../utils/logger';
 import { useState, useMemo, useEffect } from 'react';
 import {
-    useReactTable,
-    getCoreRowModel,
-    getSortedRowModel,
     createColumnHelper,
     type SortingState,
-    type ColumnFiltersState,
+    type ColumnDef,
 } from '@tanstack/react-table';
-import { HiOutlineMagnifyingGlass, HiOutlinePencilSquare, HiOutlineTrash, HiOutlineEye, HiOutlineBuildingOffice, HiOutlineArrowPath, HiOutlinePlusCircle, HiOutlineClock, HiOutlineCube } from 'react-icons/hi2';
-import { Button, Badge, Modal, Card, Input, Select, Pagination, DataTable, ConfirmationModal } from '../ui';
+import { HiOutlinePencilSquare, HiOutlineTrash, HiOutlineEye, HiOutlinePlusCircle, HiOutlineClock, HiOutlineCube, HiOutlineBuildingOffice } from 'react-icons/hi2';
+import { Button, Badge, Modal, Select, ConfirmationModal, SmartTable } from '../ui';
 import StockAdjustmentModal from './StockAdjustmentModal';
 import ProductValiditiesSection from './ProductValiditiesSection';
 import { ProductStockHistory } from './ProductStockHistory';
-import { ExportProductsButton } from '../common/ExportButton';
 import { formatCurrency, cn } from '../../utils/helpers';
-import { categoryLabels, statusLabels } from '../../utils/constants';
+import { statusLabels, categoryLabels } from '../../utils/constants';
 import type { Product, StockStatus } from '../../types';
 
 import { useProducts, useWarehouses } from '../../hooks/useData';
-import { useCategories, useCompanySettings } from '../../hooks/useSettings';
+import { useCategories } from '../../hooks/useSettings';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
+import { useDebounce } from '../../hooks/useDebounce';
 import { playScanSound } from '../../utils/audio';
 import toast from 'react-hot-toast';
 
@@ -59,7 +56,6 @@ export default function InventoryTable({
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [sorting, setSorting] = useState<SortingState>([]);
-    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [globalFilter, setGlobalFilter] = useState(initialSearch || '');
     
     // Internal states for local fallback if not controlled
@@ -106,9 +102,12 @@ export default function InventoryTable({
         }
     }, [initialSearch]);
 
-    // Use API hooks with pagination and filters
+    // Debounced search avoids one network call per keystroke. Filters/page/sort
+    // change immediately because they're not character-by-character.
+    const debouncedSearch = useDebounce(globalFilter, 350);
+
     const { products, pagination, isLoading, refetch, deleteProduct } = useProducts({
-        search: globalFilter,
+        search: debouncedSearch,
         category: selectedCategory === 'all' ? undefined : selectedCategory,
         status: selectedStatus === 'all' ? undefined : selectedStatus,
         warehouseId: selectedWarehouse === 'all' ? undefined : selectedWarehouse,
@@ -116,11 +115,11 @@ export default function InventoryTable({
         limit: pageSize,
         sortBy: sorting[0]?.id || 'name',
         sortOrder: sorting[0]?.desc ? 'desc' : 'asc',
-        origin_module: originModule
+        originModule
     });
+
     const { warehouses } = useWarehouses();
     const { categories, isLoading: categoriesLoading } = useCategories();
-    const { settings: companySettings } = useCompanySettings();
 
     // Barcode Scanner Integration for Inventory Management
     useBarcodeScanner({
@@ -156,7 +155,7 @@ export default function InventoryTable({
     };
 
     // Define columns
-    const columns = useMemo(
+    const columns = useMemo<ColumnDef<Product, any>[]>(
         () => [
             columnHelper.accessor('barcode', {
                 header: 'Código de Barras',
@@ -306,24 +305,6 @@ export default function InventoryTable({
         [onEdit]
     );
 
-    // React Table instance
-    const table = useReactTable({
-        data: products,
-        columns,
-        state: {
-            sorting,
-            columnFilters,
-            globalFilter,
-        },
-        onSortingChange: setSorting,
-        onColumnFiltersChange: setColumnFilters,
-        onGlobalFilterChange: setGlobalFilter,
-        getCoreRowModel: getCoreRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        manualPagination: true,
-        manualFiltering: true,
-        manualSorting: true,
-    });
 
     const handleView = (product: Product) => {
         setSelectedProduct(product);
@@ -368,103 +349,98 @@ export default function InventoryTable({
 
     // Loading logic handled by DataTable
 
+    const actions = (
+        <Button 
+            size="sm" 
+            onClick={onAddProduct}
+            leftIcon={<HiOutlinePlusCircle className="w-4 h-4" />}
+            className="h-10 px-6 bg-primary-600 hover:bg-primary-700 shadow-lg shadow-primary-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none"
+        >
+            Novo Produto
+        </Button>
+    );
+
     return (
         <div className="space-y-4">
-            {/* Filters */}
-            <Card padding="md" className="overflow-visible">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    {/* Search */}
-                    <div className="flex-1">
-                        <Input
-                            placeholder="Buscar por código, nome..."
-                            value={globalFilter ?? ''}
-                            onChange={(e) => handleSearchChange(e.target.value)}
-                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
-                        />
+            {/* Smart Table with integrated Filters, Search and Export */}
+            <SmartTable
+                data={products}
+                columns={columns}
+                isLoading={isLoading}
+                search={{
+                    value: globalFilter,
+                    onChange: handleSearchChange,
+                    placeholder: "Buscar por código, nome..."
+                }}
+                pagination={{
+                    currentPage: page,
+                    totalItems: pagination?.total || 0,
+                    itemsPerPage: pageSize,
+                    onPageChange: setPage,
+                    onItemsPerPageChange: (size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    }
+                }}
+                sorting={sorting}
+                onSortingChange={setSorting}
+                onRefresh={refetch}
+                exportConfig={{
+                    filename: 'inventario',
+                    title: 'Relatório de Inventário',
+                    columns: [
+                        { key: 'barcode', header: 'Código de Barras', width: 15 },
+                        { key: 'sku', header: 'Referência', width: 15 },
+                        { key: 'name', header: 'Nome', width: 30 },
+                        { key: 'currentStock', header: 'Stock Atual', format: 'number', width: 10, align: 'right' },
+                        { key: 'price', header: 'Preço Venda', format: 'currency', width: 15, align: 'right' },
+                        { key: 'status', header: 'Estado', width: 12 },
+                    ]
+                }}
+                renderFilters={
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Category Filter */}
+                        <div className="w-full lg:w-48">
+                            <Select
+                                options={categoryOptions}
+                                value={selectedCategory}
+                                onChange={(e) => handleCategoryChange(e.target.value)}
+                                disabled={categoriesLoading}
+                                size="sm"
+                                className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
+                            />
+                        </div>
+
+                        {/* Status Filter */}
+                        <div className="w-full lg:w-48">
+                            <Select
+                                options={statusOptions}
+                                value={selectedStatus}
+                                onChange={(e) => handleStatusChange(e.target.value)}
+                                size="sm"
+                                className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
+                            />
+                        </div>
+
+                        {/* Warehouse Filter */}
+                        <div className="w-full lg:w-48">
+                            <Select
+                                options={warehouseOptions}
+                                value={selectedWarehouse}
+                                onChange={(e) => handleWarehouseChange(e.target.value)}
+                                size="sm"
+                                className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
+                            />
+                        </div>
                     </div>
-
-                    {/* Category Filter */}
-                    <div className="w-full lg:w-48">
-                        <Select
-                            options={categoryOptions}
-                            value={selectedCategory}
-                            onChange={(e) => handleCategoryChange(e.target.value)}
-                            disabled={categoriesLoading}
-                        />
-                    </div>
-
-                    {/* Status Filter */}
-                    <div className="w-full lg:w-48">
-                        <Select
-                            options={statusOptions}
-                            value={selectedStatus}
-                            onChange={(e) => handleStatusChange(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Warehouse Filter */}
-                    <div className="w-full lg:w-48">
-                        <Select
-                            options={warehouseOptions}
-                            value={selectedWarehouse}
-                            onChange={(e) => handleWarehouseChange(e.target.value)}
-                        />
-                    </div>
-
-                    {/* Export Button */}
-                    <div className="flex gap-2">
-                        <Button
-                            variant="ghost"
-                            size="md"
-                            onClick={() => refetch()}
-                            isLoading={isLoading}
-                            title="Atualizar dados"
-                            className="bg-gray-50 dark:bg-dark-800"
-                        >
-                            <HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                        </Button>
-                        <ExportProductsButton 
-                            data={products} 
-                            companyInfo={companySettings ? {
-                                name: companySettings.companyName,
-                                nuit: companySettings.nuit,
-                                address: companySettings.address,
-                                phone: companySettings.phone,
-                                email: companySettings.email
-                            } : undefined}
-                        />
-                    </div>
-                </div>
-            </Card>
-
-            {/* Table */}
-            <Card padding="none">
-                <DataTable
-                    table={table}
-                    isLoading={isLoading}
-                    isEmpty={products.length === 0}
-                    emptyTitle="Nenhum produto encontrado"
-                    emptyDescription="Tente ajustar seus filtros ou termos de busca."
-                    onEmptyAction={onAddProduct}
-                    emptyActionLabel="Novo Produto"
-                    minHeight="450px"
-                />
-
-                {/* Pagination */}
-                <div className="px-6">
-                    <Pagination
-                        currentPage={page}
-                        totalItems={pagination?.total || 0}
-                        itemsPerPage={pageSize}
-                        onPageChange={setPage}
-                        onItemsPerPageChange={(size) => {
-                            setPageSize(size);
-                            setPage(1);
-                        }}
-                        itemsPerPageOptions={[5, 10, 25, 50]}
-                    />
-                </div>
-            </Card>
+                }
+                actions={actions}
+                emptyTitle="Nenhum produto encontrado"
+                emptyDescription="Tente ajustar seus filtros ou termos de busca."
+                onEmptyAction={onAddProduct}
+                emptyActionLabel="Novo Produto"
+                minHeight="500px"
+            />
 
             {/* Delete Confirmation Modal */}
             <Modal

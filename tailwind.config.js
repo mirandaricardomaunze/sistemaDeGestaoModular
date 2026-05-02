@@ -100,14 +100,17 @@ export default {
                 },
             },
             boxShadow: {
-                'glass': '0 8px 32px 0 rgba(15, 23, 42, 0.15)',
-                'card': '0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
-                'card-hover': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                'premium': '0 0 0 1px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -4px rgba(0, 0, 0, 0.03)',
-                'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
+                'glass': '0 8px 32px 0 rgba(15, 23, 42, 0.25)',
+                'card': '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
+                'card-hover': '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
+                'premium': '0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08), 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.08)',
+                'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.12)',
             },
             backdropBlur: {
                 'glass': '12px',
+            },
+            gridTemplateColumns: {
+                '15': 'repeat(15, minmax(0, 1fr))',
             },
         },
     },

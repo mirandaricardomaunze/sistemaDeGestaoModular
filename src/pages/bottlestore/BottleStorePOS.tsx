@@ -1,8 +1,9 @@
 import { logger } from '../../utils/logger';
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Card, Button, Input, Badge, LoadingSpinner, EmptyState, Modal, ConfirmationModal } from '../../components/ui';
+import { Card, Button, Input, Badge, LoadingSpinner, EmptyState, Modal, ConfirmationModal, LoadingOverlay } from '../../components/ui';
 import ThermalReceiptPreview from '../../components/pos/ThermalReceiptPreview';
-import { useProducts, useSales, useCustomers } from '../../hooks/useData';
+import CustomerAutocomplete from '../../components/common/CustomerAutocomplete';
+import { useProducts, useSales } from '../../hooks/useData';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { playScanSound } from '../../utils/audio';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -15,15 +16,12 @@ import {
     HiOutlineRefresh,
     HiOutlinePlus,
     HiOutlineMinus,
-    HiOutlineUserCircle,
-    HiOutlineScale,
-    HiOutlineX
+    HiOutlineScale
 } from 'react-icons/hi';
 import { salesAPI } from '../../services/api';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
 import { useScale } from '../../hooks/useScale';
 import { PrinterService } from '../../services/printer.service';
-import { searchCustomersForPOS } from '../../utils/crmIntegration';
 import { formatCurrency } from '../../utils/helpers';
 
 export default function BottleStorePOS() {
@@ -38,14 +36,13 @@ export default function BottleStorePOS() {
         isLoading,
         refetch: refetchProducts
     } = useProducts({
-        origin_module: 'bottle_store',
+        originModule: 'bottle_store',
         search: debouncedSearch,
         page: prodPage,
         limit: 100 // More items for POS view
     });
 
     const { sales, refetch: refetchSales } = useSales({ limit: 100 });
-    const { customers } = useCustomers();
 
     // Hardware Hooks
     const { connect: connectScale, weight: scaleWeight, isConnected: isScaleConnected } = useScale();
@@ -90,9 +87,6 @@ export default function BottleStorePOS() {
 
     // Customer Selection State
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-    const [customerSearchQuery, setCustomerSearchQuery] = useState('');
-    const [showCustomerSearch, setShowCustomerSearch] = useState(false);
-    const customerDropdownRef = useRef<HTMLDivElement>(null);
     const productSearchRef = useRef<HTMLInputElement>(null);
 
     // Calculate customer purchase history
@@ -115,26 +109,7 @@ export default function BottleStorePOS() {
         };
     }, [selectedCustomer, sales]);
 
-    const customerSearchResults = useMemo(() => {
-        if (!customerSearchQuery || !showCustomerSearch) return [];
-        return searchCustomersForPOS(customerSearchQuery, customers || []);
-    }, [customerSearchQuery, customers, showCustomerSearch]);
-
-    // Close customer dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (customerDropdownRef.current && !customerDropdownRef.current.contains(event.target as Node)) {
-                setShowCustomerSearch(false);
-            }
-        };
-
-        if (showCustomerSearch) {
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => {
-                document.removeEventListener('mousedown', handleClickOutside);
-            };
-        }
-    }, [showCustomerSearch]);
+    // Customer search now handled inside CustomerAutocomplete
 
     // Keyboard shortcuts
     useEffect(() => {
@@ -177,7 +152,6 @@ export default function BottleStorePOS() {
     const clearCart = () => {
         setCart([]);
         setSelectedCustomer(null);
-        setCustomerSearchQuery('');
         setGlobalDiscount('0');
     };
 
@@ -406,44 +380,18 @@ export default function BottleStorePOS() {
                             </div>
                             <p className="text-sm text-gray-500">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</p>
 
-                            <div className="mt-3 relative" ref={customerDropdownRef}>
-                                {selectedCustomer ? (
-                                    <div className="flex items-center justify-between p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
-                                        <div className="flex items-center gap-2">
-                                            <HiOutlineUserCircle className="w-5 h-5 text-primary-600" />
-                                            <div>
-                                                <p className="text-sm font-medium text-primary-700">{selectedCustomer.name}</p>
-                                                {customerHistory && (
-                                                    <p className="text-[10px] text-primary-600">{customerHistory.purchaseCount} compras | {formatCurrency(customerHistory.totalSpent)}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <button onClick={() => setSelectedCustomer(null)} className="p-1 text-primary-400 hover:text-red-500"><HiOutlineX className="w-4 h-4" /></button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <Input
-                                            placeholder="Selecionar cliente..."
-                                            value={customerSearchQuery}
-                                            onChange={(e) => { setCustomerSearchQuery(e.target.value); setShowCustomerSearch(true); }}
-                                            onFocus={() => setShowCustomerSearch(true)}
-                                            leftIcon={<HiOutlineUserCircle className="w-5 h-5 text-gray-400" />}
-                                        />
-                                        {showCustomerSearch && customerSearchResults.length > 0 && (
-                                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 max-h-48 overflow-y-auto">
-                                                {customerSearchResults.map((customer: any) => (
-                                                    <button
-                                                        key={customer.id}
-                                                        onClick={() => { setSelectedCustomer(customer); setShowCustomerSearch(false); setCustomerSearchQuery(''); }}
-                                                        className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-dark-700"
-                                                    >
-                                                        <p className="text-sm font-medium">{customer.name}</p>
-                                                        <p className="text-xs text-gray-500">{customer.phone || 'Sem telefone'}</p>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </>
+                            <div className="mt-3">
+                                <CustomerAutocomplete
+                                    selectedId={selectedCustomer?.id || null}
+                                    selectedName={selectedCustomer?.name}
+                                    onSelect={(_id, customer) => setSelectedCustomer(customer)}
+                                    label=""
+                                    placeholder="Selecionar cliente..."
+                                />
+                                {selectedCustomer && customerHistory && (
+                                    <p className="mt-1 text-[10px] text-primary-600">
+                                        {customerHistory.purchaseCount} compras · {formatCurrency(customerHistory.totalSpent)}
+                                    </p>
                                 )}
                             </div>
                         </div>
@@ -565,6 +513,10 @@ export default function BottleStorePOS() {
                 message="Tem certeza que deseja remover todos os itens do carrinho?"
                 variant="warning"
             />
+
+            {processingSale && (
+                <LoadingOverlay message="A processar a venda... Por favor, aguarde." fullScreen />
+            )}
         </div>
     );
 }

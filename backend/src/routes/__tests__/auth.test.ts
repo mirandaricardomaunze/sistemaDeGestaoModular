@@ -83,9 +83,16 @@ describe('POST /api/auth/login', () => {
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 
 describe('POST /api/auth/register', () => {
+    const REG_NUIT = `REG-NUIT-${Date.now()}`;
+    const REG_EMAIL = `newreg-${Date.now()}@example.com`;
+
     afterEach(async () => {
-        await prisma.user.deleteMany({ where: { email: 'newreg@example.com' } }).catch(() => {});
-        await prisma.company.deleteMany({ where: { nuit: 'REG-NUIT-999' } }).catch(() => {});
+        const user = await prisma.user.findUnique({ where: { email: REG_EMAIL } }).catch(() => null);
+        if (user) {
+            await prisma.companyModule.deleteMany({ where: { companyId: user.companyId! } }).catch(() => {});
+            await prisma.user.deleteMany({ where: { companyId: user.companyId! } }).catch(() => {});
+            await prisma.company.deleteMany({ where: { id: user.companyId! } }).catch(() => {});
+        }
     });
 
     it('returns 400 when required fields are missing', async () => {
@@ -120,16 +127,16 @@ describe('POST /api/auth/register', () => {
 
     it('creates user and company on valid data', async () => {
         const res = await request(app).post('/api/auth/register').send({
-            email: 'newreg@example.com',
+            email: REG_EMAIL,
             password: 'ValidPass1',
             name: 'New User',
             companyName: 'New Company',
-            companyNuit: 'REG-NUIT-999',
+            companyNuit: REG_NUIT,
             moduleCode: 'COMMERCIAL'
         });
         expect(res.status).toBe(201);
         expect(res.body).toHaveProperty('token');
-        expect(res.body.user.email).toBe('newreg@example.com');
+        expect(res.body.user.email).toBe(REG_EMAIL);
         expect(res.body.user.password).toBeUndefined();
     });
 });

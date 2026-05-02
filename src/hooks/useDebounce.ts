@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 /**
  * Hook para debounce de valores
@@ -41,4 +41,18 @@ export function useDebouncedCallback<T extends (...args: any[]) => any>(
 
         setTimeoutId(newTimeoutId);
     };
+}
+
+/**
+ * Search-input pair: a `term` you bind to the input and a `debounced` value
+ * you feed into a query. Avoids firing one network request per keystroke.
+ *
+ *   const { term, setTerm, debounced } = useDebouncedSearch('', 350);
+ *   const { data } = useQuery({ queryKey: ['x', debounced], ... });
+ */
+export function useDebouncedSearch(initial: string = '', delay: number = 350) {
+    const [term, setTerm] = useState(initial);
+    const debounced = useDebounce(term, delay);
+    const reset = useCallback(() => setTerm(''), []);
+    return { term, setTerm, debounced, reset };
 }

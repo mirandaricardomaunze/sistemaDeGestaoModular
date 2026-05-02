@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PageHeader, Card, TableContainer, Badge, Button, LoadingSpinner, Modal, Input, Select } from '../../components/ui';
+import { PageHeader, Card, TableContainer, Badge, Button, LoadingSpinner, Modal, Input, Select, Pagination } from '../../components/ui';
+import { usePagination } from '../../components/ui/Pagination';
 import { hospitalityAPI } from '../../services/api';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import {
@@ -40,6 +41,22 @@ export default function HotelFinance() {
     const [financeData, setFinanceData] = useState<any>(null);
     const [revenues, setRevenues] = useState<any[]>([]);
     const [expenses, setExpenses] = useState<any[]>([]);
+    
+    const {
+        currentPage: revenuePage,
+        paginatedItems: paginatedRevenues,
+        setCurrentPage: setRevenuePage,
+        itemsPerPage: revenueLimit,
+        setItemsPerPage: setRevenueLimit
+    } = usePagination(revenues, 6);
+
+    const {
+        currentPage: expensePage,
+        paginatedItems: paginatedExpenses,
+        setCurrentPage: setExpensePage,
+        itemsPerPage: expenseLimit,
+        setItemsPerPage: setExpenseLimit
+    } = usePagination(expenses, 6);
 
     // Modal state
     const [modal, setModal] = useState<{ open: boolean; type: 'expense' | 'revenue' }>({ open: false, type: 'expense' });
@@ -71,8 +88,8 @@ export default function HotelFinance() {
         try {
             const [summary, revs, exps] = await Promise.all([
                 hospitalityAPI.getFinanceDashboard(),
-                hospitalityAPI.getRevenues({ limit: 10 }),
-                hospitalityAPI.getExpenses({ limit: 10 })
+                hospitalityAPI.getRevenues({ limit: 100 }),
+                hospitalityAPI.getExpenses({ limit: 100 })
             ]);
             setFinanceData(summary);
             setRevenues(revs.data || []);
@@ -233,7 +250,7 @@ export default function HotelFinance() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                                    {revenues.slice(0, 6).map((rev: any) => (
+                                    {paginatedRevenues.map((rev: any) => (
                                         <tr key={rev.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
                                             <td className="px-4 py-3">
                                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{rev.description || rev.customerName}</p>
@@ -249,6 +266,18 @@ export default function HotelFinance() {
                                     ))}
                                 </tbody>
                             </table>
+                            {revenues.length > revenueLimit && (
+                                <div className="px-4 py-3 border-t border-gray-100 dark:border-dark-700">
+                                    <Pagination 
+                                        currentPage={revenuePage}
+                                        totalItems={revenues.length}
+                                        itemsPerPage={revenueLimit}
+                                        onPageChange={setRevenuePage}
+                                        onItemsPerPageChange={setRevenueLimit}
+                                        showItemsPerPage={false}
+                                    />
+                                </div>
+                            )}
                         </Card>
                     </TableContainer>
                 </div>
@@ -270,7 +299,7 @@ export default function HotelFinance() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                                    {expenses.slice(0, 6).map((exp: any) => (
+                                    {paginatedExpenses.map((exp: any) => (
                                         <tr key={exp.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
                                             <td className="px-4 py-3">
                                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{exp.description}</p>
@@ -286,6 +315,18 @@ export default function HotelFinance() {
                                     ))}
                                 </tbody>
                             </table>
+                            {expenses.length > expenseLimit && (
+                                <div className="px-4 py-3 border-t border-gray-100 dark:border-dark-700">
+                                    <Pagination 
+                                        currentPage={expensePage}
+                                        totalItems={expenses.length}
+                                        itemsPerPage={expenseLimit}
+                                        onPageChange={setExpensePage}
+                                        onItemsPerPageChange={setExpenseLimit}
+                                        showItemsPerPage={false}
+                                    />
+                                </div>
+                            )}
                         </Card>
                     </TableContainer>
                 </div>

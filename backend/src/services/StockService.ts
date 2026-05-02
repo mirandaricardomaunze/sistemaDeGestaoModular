@@ -81,22 +81,14 @@ export class StockService {
                 throw ApiError.notFound('Armazém não encontrado ou não pertence a esta empresa');
             }
 
-            await tx.warehouseStock.upsert({
-                where: {
-                    warehouseId_productId: {
-                        warehouseId,
-                        productId
-                    }
-                },
-                update: {
-                    quantity: { increment: quantity }
-                },
-                create: {
-                    warehouseId,
-                    productId,
-                    quantity: quantity
-                }
-            });
+            // Atomic upsert via INSERT ... ON CONFLICT to avoid P2002 race
+            // when two concurrent transactions try to create the same (warehouseId, productId) row.
+            await tx.$executeRaw(Prisma.sql`
+                INSERT INTO warehouse_stocks ("id", "warehouseId", "productId", "quantity", "companyId", "createdAt", "updatedAt")
+                VALUES (gen_random_uuid()::text, ${warehouseId}, ${productId}, ${quantity}, ${companyId}, NOW(), NOW())
+                ON CONFLICT ("warehouseId", "productId")
+                DO UPDATE SET "quantity" = warehouse_stocks."quantity" + EXCLUDED."quantity", "updatedAt" = NOW()
+            `);
         }
 
         // 4. Create Detailed Stock Movement Record

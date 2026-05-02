@@ -60,6 +60,7 @@ import { rateLimiters } from './middleware/rateLimit';
 import path from 'path';
 
 import { auditMiddleware } from './middleware/audit';
+import { idempotency } from './middleware/idempotency';
 import { logger } from './utils/logger';
 
 // ── Startup Validation ──────────────────────────────────────────────────────
@@ -161,6 +162,9 @@ app.use((req, _res, next) => {
     next();
 });
 
+// Idempotency replay for offline-queue retries (must run before route handlers)
+app.use('/api', idempotency);
+
 // Audit mutations (POST, PUT, DELETE, PATCH)
 app.use(auditMiddleware as any);
 
@@ -229,6 +233,7 @@ app.use(errorHandler);
 import { startCronJobs } from './cron/automation';
 import { initRedis } from './config/redis';
 import { createEmailWorker } from './workers/emailWorker';
+import { backupService } from './services/backupService';
 
 const PORT = process.env.PORT || 3001;
 const httpServer = createServer(app);
@@ -245,6 +250,9 @@ const start = async () => {
 
         // Start background tasks
         startCronJobs();
+
+        // Automatic DB backups (cron + Drive upload)
+        await backupService.initialize();
 
         // BullMQ email worker (only when Redis is available)
         emailWorker = createEmailWorker();

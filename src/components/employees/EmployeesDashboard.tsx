@@ -35,10 +35,11 @@ import {
     Tooltip,
 } from 'recharts';
 import { format } from 'date-fns';
-import { Card, Button, Badge, Input, Select, Pagination } from '../ui';
+import { Card, Button, Badge, Input, Select, Pagination, PageHeader } from '../ui';
 import { useEmployees, useAttendance } from '../../hooks/useData';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { SmartInsightCard } from '../common/SmartInsightCard';
+import { MetricCard } from '../common/ModuleMetricCard';
 import { HiOutlineLightBulb } from 'react-icons/hi';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { Employee, EmployeeRole, EducationLevel } from '../../types';
@@ -465,43 +466,45 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
-                        Gestão de Capital Humano
-                    </h2>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
-                        Controlo de assiduidade, qualificações e folha salarial
-                    </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    {/* Period Filter */}
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
-                        {periodOptions.map((option) => (
-                            <button
-                                key={option.value}
-                                onClick={() => setSelectedPeriod(option.value)}
-                                className={cn(
-                                    'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                                    selectedPeriod === option.value
-                                        ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm'
-                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                                )}
-                            >
-                                {option.label}
-                            </button>
-                        ))}
+            <PageHeader
+                title="Gestão de Capital Humano"
+                subtitle="Controlo de assiduidade, qualificações e folha salarial"
+                icon={<HiOutlineUsers />}
+                actions={
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Period Filter */}
+                        <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-800 p-1 rounded-xl border border-gray-200 dark:border-dark-700">
+                            {periodOptions.map((option) => (
+                                <button
+                                    key={option.value}
+                                    onClick={() => setSelectedPeriod(option.value)}
+                                    className={cn(
+                                        'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all',
+                                        selectedPeriod === option.value
+                                            ? 'bg-white dark:bg-dark-700 text-primary-600 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    )}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            className="h-10 px-6 bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none"
+                            leftIcon={<HiOutlineUserPlus className="w-4 h-4" />}
+                            onClick={onAddEmployee}
+                        >
+                            Admitir Funcionário
+                        </Button>
                     </div>
-                    <Button onClick={onAddEmployee} variant="primary" className="shadow-lg shadow-primary-500/20 px-6 font-black uppercase tracking-widest text-[10px]">
-                        <HiOutlineUserPlus className="w-4 h-4 mr-2" />
-                        Admitir Funcionário
-                    </Button>
-                </div>
-            </div>
+                }
+            />
 
             {/* Smart Insights / Intelligent Advisor */}
             {insights.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-4 animate-slide-up">
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
                             <HiOutlineLightBulb className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -519,164 +522,80 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                 </div>
             )}
 
-            {/* Metric Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
-                <Card padding="md" className="border-l-4 border-l-primary-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Total</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                                {metrics.total}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineUsers className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-green-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Ativos</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-green-600">
-                                {metrics.active}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineCheck className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-blue-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Presentes</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-blue-600">
-                                {metrics.presentToday}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineClock className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-purple-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Qualificados</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-purple-600">
-                                {metrics.withQualifications}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineAcademicCap className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-indigo-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Ens.Superior</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-indigo-600">
-                                {metrics.withHigherEd}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineAcademicCap className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-yellow-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Folha</p>
-                            <p className="text-lg sm:text-xl font-bold text-yellow-600 truncate">
-                                {formatCurrency(metrics.totalSalary)}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineCurrencyDollar className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
-                        </div>
-                    </div>
-                </Card>
+            {/* Metric Cards Row 1 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                <MetricCard
+                    icon={<HiOutlineUsers />}
+                    color="primary"
+                    value={metrics.total}
+                    label="Total Equipa"
+                />
+                <MetricCard
+                    icon={<HiOutlineCheck />}
+                    color="success"
+                    value={metrics.active}
+                    label="Colaboradores Activos"
+                />
+                <MetricCard
+                    icon={<HiOutlineClock />}
+                    color="blue"
+                    value={metrics.presentToday}
+                    label="Presentes Hoje"
+                />
+                <MetricCard
+                    icon={<HiOutlineAcademicCap />}
+                    color="purple"
+                    value={metrics.withQualifications}
+                    label="Qualificados"
+                />
+                <MetricCard
+                    icon={<HiOutlineAcademicCap />}
+                    color="indigo"
+                    value={metrics.withHigherEd}
+                    label="Ensino Superior"
+                />
+                <MetricCard
+                    icon={<HiOutlineCurrencyDollar />}
+                    color="warning"
+                    value={metrics.totalSalary}
+                    label="Massa Salarial"
+                    isCurrency
+                />
             </div>
 
-            {/* Second Row - HR Metrics */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-4">
-                <Card padding="md" className="border-l-4 border-l-cyan-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Jovens (&lt;30)</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-cyan-600">
-                                {metrics.youngEmployees}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineUsers className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-orange-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Veteranos (&gt;50)</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-orange-600">
-                                {metrics.seniorEmployees}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineUsers className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-teal-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Tempo Médio</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-teal-600">
-                                {metrics.avgYearsOfService}<span className="text-sm">anos</span>
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineCalendarDays className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-emerald-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Pontuais</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-emerald-600">
-                                {metrics.punctualEmployees}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-rose-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Com Faltas</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-rose-600">
-                                {metrics.absentEmployees}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineExclamationTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-rose-600" />
-                        </div>
-                    </div>
-                </Card>
+            {/* Metric Cards Row 2 - HR Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <MetricCard
+                    icon={<HiOutlineUsers />}
+                    color="cyan"
+                    value={metrics.youngEmployees}
+                    label="Jovens (<30)"
+                />
+                <MetricCard
+                    icon={<HiOutlineUsers />}
+                    color="orange"
+                    value={metrics.seniorEmployees}
+                    label="Veteranos (>50)"
+                />
+                <MetricCard
+                    icon={<HiOutlineCalendarDays />}
+                    color="teal"
+                    value={metrics.avgYearsOfService}
+                    label="Tempo Médio"
+                    badge={<span className="text-[10px] font-black uppercase">Anos</span>}
+                />
+                <MetricCard
+                    icon={<HiOutlineCheck />}
+                    color="emerald"
+                    value={metrics.punctualEmployees}
+                    label="Pontuais"
+                />
+                <MetricCard
+                    icon={<HiOutlineExclamationTriangle />}
+                    color="danger"
+                    value={metrics.absentEmployees}
+                    label="Com Faltas"
+                />
             </div>
 
             {/* Charts */}

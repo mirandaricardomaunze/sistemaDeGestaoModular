@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Button, Input, Modal, Badge, ConfirmationModal } from '../ui';
+import { Card, Button, Input, Modal, Badge, ConfirmationModal, Pagination, usePagination } from '../ui';
 import {
     HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineRefresh,
     HiOutlineCheckCircle, HiOutlineChartBar, HiOutlineCurrencyDollar,
@@ -166,6 +166,16 @@ export default function IvaManager() {
     const deleteRate = useDeleteIvaRate();
 
     const rates: IvaRate[] = ratesData?.data || [];
+    
+    const {
+        paginatedItems: paginatedRates,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(rates, 10);
+
     const summary = dashboard?.summary;
     const breakdown = dashboard?.breakdown || [];
 
@@ -293,7 +303,7 @@ export default function IvaManager() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                                {rates.map((rate) => (
+                                {paginatedRates.map((rate) => (
                                     <tr key={rate.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
                                         <td className="py-3 pr-4 font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">{rate.code}</td>
                                         <td className="py-3 pr-4">
@@ -328,6 +338,18 @@ export default function IvaManager() {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                )}
+                
+                {!isLoading && rates.length > 0 && (
+                    <div className="pt-4 mt-4 border-t border-gray-200 dark:border-dark-700">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
                     </div>
                 )}
             </Card>

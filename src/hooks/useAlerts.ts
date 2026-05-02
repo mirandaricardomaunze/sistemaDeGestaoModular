@@ -1,11 +1,7 @@
 import { logger } from '../utils/logger';
-import { useState, useEffect, useCallback, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { alertsAPI, type Alert, type AlertModule, type AlertsSummary, type UnreadCount } from '../services/api';
-
-// ============================================================================
-// useAlerts Hook - Module-aware alerts management
-// ============================================================================
 
 interface PaginationMeta {
     page: number;
@@ -23,148 +19,108 @@ interface UseAlertsParams {
     isResolved?: boolean;
     autoRefresh?: boolean;
     refreshInterval?: number;
+    page?: number;
+    limit?: number;
+    fields?: string;
 }
+
+const QK = ['alerts'] as const;
 
 export function useAlerts(params: UseAlertsParams = {}) {
     const {
-        module,
-        type,
-        priority,
-        isRead,
-        isResolved,
         autoRefresh = true,
-        refreshInterval = 60000 // 1 minute default
+        refreshInterval = 60000,
+        ...filters
     } = params;
+    const queryClient = useQueryClient();
 
-    const [alerts, setAlerts] = useState<Alert[]>([]);
-    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const paramsRef = useRef({ module, type, priority: priority as any, isRead, isResolved });
-    paramsRef.current = { module, type, priority: priority as any, isRead, isResolved };
-
-    const fetchAlerts = useCallback(async (isSilent = false) => {
-        if (!isSilent) setIsLoading(true);
-        setError(null);
-        try {
-            const response = await alertsAPI.getAll(paramsRef.current);
-
-            if (response && response.data && response.pagination) {
-                setAlerts(response.data);
-                setPagination(response.pagination);
+    const query = useQuery({
+        queryKey: [...QK, filters],
+        queryFn: async () => {
+            const response = await alertsAPI.getAll(filters as any);
+            let alerts: Alert[];
+            let pagination: PaginationMeta;
+            if (response?.data && response?.pagination) {
+                alerts = response.data;
+                pagination = {
+                    ...response.pagination,
+                    hasMore: response.pagination.hasMore ?? response.pagination.hasNext ?? false,
+                };
             } else {
-                const alertsData = Array.isArray(response) ? response : (response?.data || []);
-                setAlerts(alertsData);
-                setPagination({
+                alerts = Array.isArray(response) ? response : (response?.data || []);
+                pagination = {
                     page: 1,
-                    limit: alertsData.length,
-                    total: alertsData.length,
+                    limit: alerts.length,
+                    total: alerts.length,
                     totalPages: 1,
-                    hasMore: false
-                });
+                    hasMore: false,
+                };
             }
-        } catch (err) {
-            setError('Erro ao carregar alertas');
-            logger.error('Error fetching alerts:', err);
-        } finally {
-            if (!isSilent) setIsLoading(false);
-        }
-    }, []);
+            return { alerts, pagination };
+        },
+        placeholderData: keepPreviousData,
+        refetchInterval: autoRefresh ? refreshInterval : false,
+    });
 
-    useEffect(() => {
-        fetchAlerts();
-
-        if (autoRefresh) {
-            const interval = setInterval(() => {
-                fetchAlerts(true);
-            }, refreshInterval);
-
-            return () => clearInterval(interval);
-        }
-    }, [fetchAlerts, autoRefresh, refreshInterval, module]);
-
-    const generateAlerts = async (targetModule?: AlertModule) => {
-        try {
-            if (targetModule) {
-                await alertsAPI.generateForModule(targetModule);
-            } else {
-                await alertsAPI.generate();
-            }
-            await fetchAlerts();
+    const generateMutation = useMutation({
+        mutationFn: async (targetModule?: AlertModule) => {
+            if (targetModule) await alertsAPI.generateForModule(targetModule);
+            else await alertsAPI.generate();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Alertas atualizados');
-        } catch (err) {
+        },
+        onError: (err) => {
             logger.error('Error generating alerts:', err);
             toast.error('Erro ao gerar alertas');
-            throw err;
-        }
-    };
+        },
+    });
 
-    const markAsRead = async (id: string) => {
-        try {
-            await alertsAPI.markAsRead(id);
-            setAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, isRead: true } : a)));
-        } catch (err) {
-            logger.error('Error marking alert as read:', err);
-            throw err;
-        }
-    };
+    const markReadMutation = useMutation({
+        mutationFn: (id: string) => alertsAPI.markAsRead(id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: QK }),
+        onError: (err) => logger.error('Error marking alert as read:', err),
+    });
 
-    const markAsResolved = async (id: string) => {
-        try {
-            await alertsAPI.markAsResolved(id);
-            setAlerts((prev) =>
-                prev.map((a) =>
-                    a.id === id ? { ...a, isResolved: true, resolvedAt: new Date().toISOString() } : a
-                )
-            );
+    const markResolvedMutation = useMutation({
+        mutationFn: (id: string) => alertsAPI.markAsResolved(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Alerta resolvido');
-        } catch (err) {
-            logger.error('Error resolving alert:', err);
-            throw err;
-        }
-    };
+        },
+        onError: (err) => logger.error('Error resolving alert:', err),
+    });
 
-    const deleteAlert = async (id: string) => {
-        try {
-            await alertsAPI.delete(id);
-            setAlerts((prev) => prev.filter((a) => a.id !== id));
-        } catch (err) {
-            logger.error('Error deleting alert:', err);
-            throw err;
-        }
-    };
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => alertsAPI.delete(id),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: QK }),
+        onError: (err) => logger.error('Error deleting alert:', err),
+    });
 
-    const markAllAsRead = async (targetModule?: AlertModule) => {
-        try {
-            await alertsAPI.markAllAsRead(targetModule);
-            setAlerts((prev) =>
-                prev.map((a) => (targetModule && a.module !== targetModule ? a : { ...a, isRead: true }))
-            );
+    const markAllReadMutation = useMutation({
+        mutationFn: (targetModule?: AlertModule) => alertsAPI.markAllAsRead(targetModule),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Alertas marcados como lidos');
-        } catch (err) {
-            logger.error('Error marking all alerts as read:', err);
-            throw err;
-        }
-    };
+        },
+        onError: (err) => logger.error('Error marking all alerts as read:', err),
+    });
 
-    const clearResolved = async () => {
-        try {
-            await alertsAPI.clearResolved();
-            setAlerts((prev) => prev.filter((a) => !a.isResolved));
+    const clearResolvedMutation = useMutation({
+        mutationFn: () => alertsAPI.clearResolved(),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Alertas resolvidos limpos');
-        } catch (err) {
-            logger.error('Error clearing resolved alerts:', err);
-            throw err;
-        }
-    };
+        },
+        onError: (err) => logger.error('Error clearing resolved alerts:', err),
+    });
 
-    // Computed values
-    const unreadCount = (alerts || []).filter((a) => !a.isRead && !a.isResolved).length;
-    const criticalCount = (alerts || []).filter((a) => a.priority === 'critical' && !a.isResolved).length;
-    const highCount = (alerts || []).filter((a) => a.priority === 'high' && !a.isResolved).length;
-
-    const alertsByModule = (alerts || []).reduce((acc, alert) => {
+    const alerts = query.data?.alerts ?? [];
+    const unreadCount = alerts.filter(a => !a.isRead && !a.isResolved).length;
+    const criticalCount = alerts.filter(a => a.priority === 'critical' && !a.isResolved).length;
+    const highCount = alerts.filter(a => a.priority === 'high' && !a.isResolved).length;
+    const alertsByModule = alerts.reduce((acc, alert) => {
         const mod = alert.module || 'general';
         if (!acc[mod]) acc[mod] = [];
         acc[mod].push(alert);
@@ -173,75 +129,37 @@ export function useAlerts(params: UseAlertsParams = {}) {
 
     return {
         alerts,
-        isLoading,
-        error,
-        refetch: fetchAlerts,
-        generateAlerts,
-        markAsRead,
-        markAsResolved,
-        deleteAlert,
-        markAllAsRead,
-        clearResolved,
+        isLoading: query.isLoading || query.isFetching,
+        error: query.error ? 'Erro ao carregar alertas' : null,
+        refetch: query.refetch,
+        generateAlerts: (targetModule?: AlertModule) => generateMutation.mutateAsync(targetModule),
+        markAsRead: markReadMutation.mutateAsync,
+        markAsResolved: markResolvedMutation.mutateAsync,
+        deleteAlert: deleteMutation.mutateAsync,
+        markAllAsRead: (targetModule?: AlertModule) => markAllReadMutation.mutateAsync(targetModule),
+        clearResolved: () => clearResolvedMutation.mutateAsync(),
         unreadCount,
         criticalCount,
         highCount,
         alertsByModule,
-        pagination,
+        pagination: query.data?.pagination ?? null,
     };
 }
 
-// ============================================================================
-// useAlertsSummary Hook - Quick summary for dashboards
-// ============================================================================
-
 export function useAlertsSummary() {
-    const [summary, setSummary] = useState<AlertsSummary | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const fetchSummary = useCallback(async () => {
-        try {
-            const data = await alertsAPI.getSummary();
-            setSummary(data);
-        } catch (err) {
-            logger.error('Error fetching alerts summary:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchSummary();
-        const interval = setInterval(fetchSummary, 60000);
-        return () => clearInterval(interval);
-    }, [fetchSummary]);
-
-    return { summary, isLoading, refetch: fetchSummary };
+    const q = useQuery<AlertsSummary>({
+        queryKey: ['alerts', 'summary'],
+        queryFn: () => alertsAPI.getSummary(),
+        refetchInterval: 60000,
+    });
+    return { summary: q.data ?? null, isLoading: q.isLoading, refetch: q.refetch };
 }
 
-// ============================================================================
-// useUnreadCount Hook - Badge counts
-// ============================================================================
-
 export function useUnreadCount(module?: AlertModule) {
-    const [counts, setCounts] = useState<UnreadCount | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const fetchCounts = useCallback(async () => {
-        try {
-            const data = await alertsAPI.getUnreadCount(module);
-            setCounts(data);
-        } catch (err) {
-            logger.error('Error fetching unread counts:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [module]);
-
-    useEffect(() => {
-        fetchCounts();
-        const interval = setInterval(fetchCounts, 30000);
-        return () => clearInterval(interval);
-    }, [fetchCounts]);
-
-    return { counts, isLoading, refetch: fetchCounts };
+    const q = useQuery<UnreadCount>({
+        queryKey: ['alerts', 'unread-count', module],
+        queryFn: () => alertsAPI.getUnreadCount(module),
+        refetchInterval: 30000,
+    });
+    return { counts: q.data ?? null, isLoading: q.isLoading, refetch: q.refetch };
 }

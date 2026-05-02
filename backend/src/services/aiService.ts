@@ -51,7 +51,7 @@ export class AIService {
         }
     }
 
-    async generateResponse(originalMessage: string, _companyId: string, context?: any): Promise<{ message: string; toolCall?: { name: string; args: any } }> {
+    async generateResponse(originalMessage: string, _companyId: string, context?: any, module?: string): Promise<{ message: string; toolCall?: { name: string; args: any } }> {
         this.init();
 
         if (!this.model) {
@@ -59,7 +59,7 @@ export class AIService {
         }
 
         try {
-            const systemPrompt = this.buildSystemPrompt(context);
+            const systemPrompt = this.buildSystemPrompt(context, module);
             const prompt = `${systemPrompt}\n\nPergunta do Usuário: ${originalMessage}\n\nResposta do Assistente:`;
             
             const result = await this.model.generateContent(prompt);
@@ -92,14 +92,28 @@ export class AIService {
         }
     }
 
-    private buildSystemPrompt(context?: any) {
+    private buildSystemPrompt(context?: any, module?: string) {
         const businessInfo = context?.companyInfo 
             ? `Empresa: ${context.companyInfo.name} (${context.companyInfo.businessType}). `
             : '';
             
-        return `Você é o "Multicore AI", um assistente virtual de inteligência de negócios para o sistema ERP Multicore.
+        let modulePersona = 'Você é o "Multicore AI", um assistente virtual de inteligência de negócios para o sistema ERP Multicore.';
+        
+        if (module === 'pharmacy') {
+            modulePersona = 'Você é o "Assistente de Farmácia Multicore". Você é um especialista em gestão farmacêutica, controle de medicamentos e conformidade sanitária.';
+        } else if (module === 'hospitality' || module === 'hotel') {
+            modulePersona = 'Você é o "Assistente de Hospitalidade Multicore". Você é um especialista em gestão hoteleira, ocupação de quartos e experiência do hóspede.';
+        } else if (module === 'commercial') {
+            modulePersona = 'Você é o "Assistente Comercial Multicore". Você é um especialista em vendas, margens de lucro, análise de stock e gestão de retalho.';
+        } else if (module === 'restaurant') {
+            modulePersona = 'Você é o "Assistente de Restaurante Multicore". Você é um especialista em gestão de F&B (Food & Beverage), controlo de mesas e performance de cozinha.';
+        } else if (module === 'logistics') {
+            modulePersona = 'Você é o "Assistente de Logística Multicore". Você é um especialista em gestão de frotas, rotas de entrega e eficiência operacional.';
+        }
+
+        return `${modulePersona}
 ${businessInfo}
-Objetivo: Fornecer resumos executivos profissionais, precisos e baseados nos dados reais fornecidos.
+Objetivo: Fornecer resumos executivos profissionais, precisos e baseados nos dados reais fornecidos para o módulo específico: ${module || 'Geral'}.
 
 Diretrizes de Resposta:
 1. Tom: Profissional, executivo, direto e útil.

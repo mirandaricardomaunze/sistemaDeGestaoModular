@@ -1,6 +1,13 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
-import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+
+const CUSTOMER_FIELD_ALLOWLIST = [
+    'id', 'code', 'name', 'type', 'document', 'taxId',
+    'phone', 'email', 'address', 'city', 'province',
+    'creditLimit', 'currentBalance', 'isActive',
+    'createdAt', 'updatedAt'
+] as const;
 
 export class CustomersService {
     async list(params: any, companyId: string) {
@@ -27,14 +34,18 @@ export class CustomersService {
         if (type) where.type = type;
         if (isActive !== undefined) where.isActive = isActive === 'true';
 
+        const projection = parseFields(params.fields, CUSTOMER_FIELD_ALLOWLIST);
+        const findArgs: any = {
+            where,
+            orderBy: { [sortBy as string]: sortOrder },
+            skip,
+            take: limit
+        };
+        if (projection) findArgs.select = projection;
+
         const [total, customers] = await Promise.all([
             prisma.customer.count({ where }),
-            prisma.customer.findMany({
-                where,
-                orderBy: { [sortBy as string]: sortOrder },
-                skip,
-                take: limit
-            })
+            prisma.customer.findMany(findArgs)
         ]);
 
         return createPaginatedResponse(customers, page, limit, total);

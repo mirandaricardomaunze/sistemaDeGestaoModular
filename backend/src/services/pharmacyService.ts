@@ -53,15 +53,45 @@ export class PharmacyService {
             where.product.currentStock = { lte: 10 };
         }
 
-        // Optimized pagination at DB level
+        // Optimized pagination + field selection at DB level
+        // We only fetch what list views actually need (no raw description/imageUrl etc.)
         const [medications, total] = await Promise.all([
             prisma.medication.findMany({
                 where,
-                include: {
-                    product: true,
+                select: {
+                    id: true,
+                    productId: true,
+                    activeIngredient: true,
+                    dosage: true,
+                    pharmaceuticalForm: true,
+                    requiresPrescription: true,
+                    isControlled: true,
+                    controlLevel: true,
+                    storageTemp: true,
+                    product: {
+                        select: {
+                            id: true,
+                            name: true,
+                            code: true,
+                            barcode: true,
+                            price: true,
+                            costPrice: true,
+                            currentStock: true,
+                            minStock: true,
+                            packSize: true
+                        }
+                    },
                     batches: {
                         where: { status: { not: 'depleted' } },
-                        orderBy: { expiryDate: 'asc' }
+                        orderBy: { expiryDate: 'asc' },
+                        select: {
+                            id: true,
+                            batchNumber: true,
+                            expiryDate: true,
+                            quantityAvailable: true,
+                            sellingPrice: true,
+                            status: true
+                        }
                     }
                 },
                 orderBy: {
@@ -184,7 +214,7 @@ export class PharmacyService {
     }
 
     async getBatches(companyId: string, query: PharmacyQuery) {
-        const { status, expiringDays, medicationId } = query;
+        const { status, expiringDays, medicationId, page = 1, limit = 50 } = query;
 
         const where: Record<string, any> = {
             medication: {
@@ -194,24 +224,45 @@ export class PharmacyService {
         if (status) where.status = status;
         if (medicationId) where.medicationId = medicationId;
 
-        let batches = await prisma.medicationBatch.findMany({
-            where,
-            include: {
-                medication: {
-                    include: { product: true }
-                }
-            },
-            orderBy: { expiryDate: 'asc' }
-        });
-
+        // Push expiringDays into the SQL where (instead of post-filtering in JS).
         if (expiringDays) {
             const days = parseInt(expiringDays as string);
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() + days);
-            batches = batches.filter(b => new Date(b.expiryDate) <= cutoffDate);
+            where.expiryDate = { lte: cutoffDate };
         }
 
-        return ResultHandler.success(batches);
+        const [batches, total] = await Promise.all([
+            prisma.medicationBatch.findMany({
+                where,
+                select: {
+                    id: true,
+                    batchNumber: true,
+                    quantity: true,
+                    quantityAvailable: true,
+                    expiryDate: true,
+                    sellingPrice: true,
+                    costPrice: true,
+                    supplier: true,
+                    status: true,
+                    medication: {
+                        select: {
+                            id: true,
+                            product: {
+                                select: { id: true, name: true, code: true, currentStock: true }
+                            }
+                        }
+                    }
+                },
+                orderBy: { expiryDate: 'asc' },
+                skip: (Number(page) - 1) * Number(limit),
+                take: Number(limit)
+            }),
+            prisma.medicationBatch.count({ where })
+        ]);
+
+        const pagination = buildPaginationMeta(Number(page), Number(limit), total);
+        return ResultHandler.success({ data: batches, pagination });
     }
 
     async createBatch(companyId: string, data: Record<string, any>, performedBy: string) {
@@ -291,11 +342,43 @@ export class PharmacyService {
         const [sales, total] = await Promise.all([
             prisma.pharmacySale.findMany({
                 where,
-                include: {
-                    customer: true,
-                    prescription: true,
+                select: {
+                    id: true,
+                    saleNumber: true,
+                    customerId: true,
+                    customerName: true,
+                    subtotal: true,
+                    discount: true,
+                    insuranceAmount: true,
+                    total: true,
+                    paymentMethod: true,
+                    paymentDetails: true,
+                    status: true,
+                    soldBy: true,
+                    createdAt: true,
+                    customer: { select: { id: true, name: true, phone: true } },
+                    prescription: { select: { id: true, prescriptionNo: true, status: true } },
                     items: {
-                        include: { batch: { include: { medication: { include: { product: true } } } } }
+                        select: {
+                            id: true,
+                            quantity: true,
+                            unitPrice: true,
+                            discount: true,
+                            total: true,
+                            productName: true,
+                            batch: {
+                                select: {
+                                    id: true,
+                                    batchNumber: true,
+                                    medication: {
+                                        select: {
+                                            id: true,
+                                            product: { select: { id: true, name: true, code: true } }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
                 orderBy: { createdAt: 'desc' },
@@ -320,12 +403,27 @@ export class PharmacyService {
         const {
             items, customerId, customerName, partnerId,
             prescriptionId: prescriptionIdRaw, prescriptionNumber,
-            discount, insuranceAmount, paymentMethod, paymentDetails, notes
+            discount, insuranceAmount, paymentMethod, paymentDetails, notes,
+            sessionId // Mandatory for POS sales
         } = data;
 
         if (!items || items.length === 0) throw ApiError.badRequest('A venda deve ter pelo menos um item');
 
         const result = await prisma.$transaction(async (tx) => {
+            // ====================================================================
+            // OPERATIONAL PREREQUISITE: CASH SESSION
+            // Ensure sale is linked to an active cash session
+            // ====================================================================
+            if (!sessionId) {
+                throw ApiError.badRequest('Sessão de caixa é obrigatória para vendas POS');
+            }
+            const session = await tx.cashSession.findFirst({
+                where: { id: sessionId, companyId, status: 'open' }
+            });
+            if (!session) {
+                throw ApiError.badRequest('Sessão de caixa não encontrada ou já encerrada');
+            }
+
             // Resolve prescriptionId -- accept either UUID or human-readable number (PRE-XXXXXX)
             let resolvedPrescriptionId: string | null = prescriptionIdRaw || null;
             if (!resolvedPrescriptionId && prescriptionNumber) {
@@ -349,7 +447,7 @@ export class PharmacyService {
             const nextNumber = lastSale ? parseInt(lastSale.saleNumber.replace('PH-', '')) + 1 : 1;
             const saleNumber = `PH-${String(nextNumber).padStart(6, '0')}`;
 
-            let subtotal = 0;
+            let computedSubtotal = 0;
             const saleItems = [];
 
             for (const item of items) {
@@ -371,16 +469,24 @@ export class PharmacyService {
                     throw ApiError.badRequest(`Venda Recusada: "${batch.medication.product.name}" é controlado e exige Receita Médica válida.`);
                 }
 
-                const itemTotal = Number(batch.sellingPrice) * item.quantity - (item.discount || 0);
-                subtotal += itemTotal;
+                // ====================================================================
+                // AUTHORITATIVE CALCULATION
+                // Use batch.sellingPrice from DB, not client-provided price.
+                // ====================================================================
+                const dbPrice = Number(batch.sellingPrice);
+                const itemTotal = Math.round(dbPrice * item.quantity * 100) / 100;
+                const itemDiscount = item.discount || 0;
+                const finalItemTotal = Math.round((itemTotal - itemDiscount) * 100) / 100;
+                
+                computedSubtotal += finalItemTotal;
 
                 saleItems.push({
                     batchId: item.batchId,
                     productName: batch.medication.product.name,
                     quantity: item.quantity,
-                    unitPrice: batch.sellingPrice,
-                    discount: item.discount || 0,
-                    total: itemTotal,
+                    unitPrice: dbPrice,
+                    discount: itemDiscount,
+                    total: finalItemTotal,
                     posologyLabel: item.posologyLabel
                 });
 
@@ -409,17 +515,18 @@ export class PharmacyService {
             }
 
             const resolvedInsuranceAmount = insuranceAmount || 0;
-            const total = subtotal - (discount || 0) - resolvedInsuranceAmount;
+            const finalSubtotal = Math.round(computedSubtotal * 100) / 100;
+            const finalTotal = Math.round((finalSubtotal - (discount || 0) - resolvedInsuranceAmount) * 100) / 100;
 
             const sale = await tx.pharmacySale.create({
                 data: {
                     saleNumber, companyId, customerId, partnerId,
                     customerName: customerName || 'Cliente Balcão',
                     prescriptionId: resolvedPrescriptionId,
-                    subtotal,
+                    subtotal: finalSubtotal,
                     discount: discount || 0,
                     insuranceAmount: resolvedInsuranceAmount,
-                    total,
+                    total: finalTotal,
                     paymentMethod: paymentMethod || 'cash',
                     paymentDetails, soldBy: performedBy, notes,
                     items: { create: saleItems }
@@ -478,7 +585,7 @@ export class PharmacyService {
                     type: 'income',
                     category: 'Pharmacy Sales',
                     description: `Venda Farmácia: ${saleNumber}`,
-                    amount: total,
+                    amount: finalTotal,
                     date: new Date(),
                     status: 'completed',
                     paymentMethod: paymentMethod || 'cash',
@@ -489,12 +596,12 @@ export class PharmacyService {
             });
 
             if (customerId) {
-                const pointsEarned = Math.floor(Number(total) / 100);
+                const pointsEarned = Math.floor(Number(finalTotal) / 100);
                 await tx.customer.update({
                     where: { id: customerId },
                     data: {
                         loyaltyPoints: { increment: pointsEarned },
-                        totalPurchases: { increment: total }
+                        totalPurchases: { increment: finalTotal }
                     }
                 });
             }

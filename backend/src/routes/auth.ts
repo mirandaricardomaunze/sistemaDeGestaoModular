@@ -172,7 +172,7 @@ router.post('/register', rateLimiters.auth, async (req, res) => {
             { expiresIn: '7d', algorithm: 'HS256' }
         );
 
-        res.json({ user: sanitizeUser(result.user), token });
+        res.status(201).json({ user: sanitizeUser(result.user), token });
     } catch (error: any) {
         // Handle Prisma unique constraint violations
         if (error?.code === 'P2002') {

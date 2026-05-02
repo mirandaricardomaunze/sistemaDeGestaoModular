@@ -25,10 +25,10 @@ export default function NotificationBadge({ className = '' }: NotificationBadgeP
         <div className={`relative ${className}`}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`relative p-2 rounded-lg transition-all
+                className={`relative p-2.5 rounded-xl transition-all duration-300 ring-1 shadow-sm
                     ${isOpen
-                        ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                        : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dark-700'}
+                        ? 'bg-primary-50 text-primary-600 ring-primary-200 dark:bg-primary-900/30 dark:text-primary-400 dark:ring-primary-800 shadow-inner'
+                        : 'text-gray-500 hover:bg-gray-100 ring-gray-200/50 dark:text-gray-400 dark:hover:bg-dark-800 dark:ring-dark-700/50 hover:shadow-md hover:scale-105'}
                     ${hasCritical ? 'animate-pulse' : ''}`}
                 title="Notificações"
             >
@@ -37,9 +37,9 @@ export default function NotificationBadge({ className = '' }: NotificationBadgeP
                 {/* Badge counter */}
                 {total > 0 && (
                     <span
-                        className={`absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] 
-                            flex items-center justify-center text-[10px] font-bold text-white 
-                            rounded-full px-1
+                        className={`absolute -top-1 -right-1 min-w-[20px] h-[20px] 
+                            flex items-center justify-center text-[10px] font-black text-white 
+                            rounded-full px-1 border-2 border-white dark:border-dark-900 shadow-sm
                             ${hasCritical
                                 ? 'bg-red-500 animate-bounce'
                                 : 'bg-primary-600'}`}
@@ -50,7 +50,7 @@ export default function NotificationBadge({ className = '' }: NotificationBadgeP
 
                 {/* Critical indicator ring */}
                 {hasCritical && (
-                    <span className="absolute inset-0 rounded-lg border-2 border-red-500 animate-ping opacity-75" />
+                    <span className="absolute inset-0 rounded-xl border-2 border-red-500 animate-ping opacity-75" />
                 )}
             </button>
 

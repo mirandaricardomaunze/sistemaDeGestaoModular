@@ -4,10 +4,11 @@ import {
     HiOutlineChevronRight, HiOutlineFunnel, HiOutlineCamera
 } from 'react-icons/hi2';
 import { Card, Button, Input, Modal, Badge, LoadingSpinner, Select, Textarea } from '../../components/ui';
-import { 
-    useRestaurantMenu, useCreateMenuItem, useUpdateMenuItem, 
-    useDeleteMenuItem, useToggleMenuItemAvailability 
+import {
+    useRestaurantMenu, useCreateMenuItem, useUpdateMenuItem,
+    useDeleteMenuItem, useToggleMenuItemAvailability
 } from '../../hooks/useRestaurant';
+import { useDebounce } from '../../hooks/useDebounce';
 import type { RestaurantMenuItem } from '../../services/api/restaurant.api';
 import { cn, formatCurrency } from '../../utils';
 
@@ -223,9 +224,10 @@ export default function RestaurantMenuPage() {
     const [editing, setEditing] = useState<RestaurantMenuItem | null>(null);
     const [deleting, setDeleting] = useState<RestaurantMenuItem | null>(null);
 
-    const { data: menuData, isLoading, refetch } = useRestaurantMenu({ 
-        search: search || undefined, 
-        category: category || undefined 
+    const debouncedSearch = useDebounce(search, 350);
+    const { data: menuData, isLoading, refetch } = useRestaurantMenu({
+        search: debouncedSearch || undefined,
+        category: category || undefined
     });
     
     const deleteMutation = useDeleteMenuItem();

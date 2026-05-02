@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { hospitalityService } from '../services/hospitalityService';
-import { createRoomSchema, updateRoomSchema, checkInSchema } from '../validation';
+import { createRoomSchema, updateRoomSchema, checkInSchema, createHousekeepingTaskSchema } from '../validation';
 import { ApiError } from '../middleware/error.middleware';
 import { emitToCompany, emitToModule } from '../lib/socket';
 import { requireModule } from '../middleware/module';
@@ -58,6 +58,7 @@ router.get('/bookings', authenticate, async (req: AuthRequest, res) => {
 
     const result = await hospitalityService.getBookings(req.companyId, {
         status: req.query.status as string,
+        search: typeof req.query.search === 'string' ? req.query.search : undefined,
         page: parseInt(String(req.query.page)) || 1,
         limit: parseInt(String(req.query.limit)) || 10
     });
@@ -269,14 +270,19 @@ router.get('/housekeeping', authenticate, async (req: AuthRequest, res) => {
 
 router.post('/housekeeping', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const { roomId, type, priority, assignedTo, notes, scheduledAt } = req.body;
+    const validated = createHousekeepingTaskSchema.parse(req.body);
+    const { roomId, type, priority, assignedTo, notes, scheduledFor } = validated;
 
     const task = await prisma.housekeepingTask.create({
         data: {
-            roomId, type: type || 'checkout_cleaning',
-            priority: priority || 1, assignedTo, notes,
-            scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
-            status: 'pending', companyId: req.companyId
+            roomId,
+            type,
+            priority: typeof priority === 'number' ? priority : 1,
+            assignedTo: assignedTo ?? null,
+            notes: notes ?? null,
+            scheduledAt: scheduledFor ? new Date(scheduledFor) : null,
+            status: 'pending',
+            companyId: req.companyId,
         },
         include: { room: true }
     });

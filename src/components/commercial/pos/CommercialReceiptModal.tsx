@@ -97,26 +97,27 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-sm mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                {/* Header */}
-                <div className="bg-slate-900 px-6 py-4 flex items-center justify-between flex-shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white/10 rounded-lg backdrop-blur-md">
+            <div className="relative z-10 w-full max-w-sm mx-4 bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                {/* Header - Modern Style */}
+                <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4 flex items-center justify-between flex-shrink-0 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-16 -mt-16" />
+                    <div className="flex items-center gap-3 relative z-10">
+                        <div className="p-2.5 bg-white/5 rounded-xl border border-white/10 backdrop-blur-md">
                             <HiOutlinePrinter className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                            <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Recibo Digital</h2>
-                            <p className="text-white/40 text-[10px] font-bold">VENDA Nº {receipt.saleNumber}</p>
+                            <h2 className="text-white font-black text-xs uppercase tracking-[0.2em] italic">Recibo Digital</h2>
+                            <p className="text-white/30 text-[9px] font-bold uppercase tracking-widest mt-0.5">VENDA Nº {receipt.saleNumber}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 text-white transition-colors">
+                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-white transition-all active:scale-90 relative z-10">
                         <HiOutlineX className="w-4 h-4" />
                     </button>
                 </div>
 
                 {/* Receipt body */}
-                <div className="overflow-y-auto flex-1 p-4">
-                    <div ref={printRef} className="font-mono text-xs text-gray-800 dark:text-gray-200 space-y-1">
+                <div className="overflow-y-auto flex-1 p-4 bg-white dark:bg-[#111214]">
+                    <div ref={printRef} className="font-mono text-xs text-slate-800 dark:text-slate-200 space-y-1 bg-white p-4 rounded-xl shadow-inner dark:shadow-none dark:bg-transparent">
 
                         {/* ── Cabeçalho Customizado ── */}
                         {company.receiptHeader && (
@@ -260,29 +261,31 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="px-4 py-3 border-t dark:border-dark-700 flex gap-2 flex-shrink-0">
-                    {onSendEmail && (
+                {/* Actions - Premium Modern Look */}
+                <div className="px-5 py-5 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#0a0b0d] flex flex-col gap-3 flex-shrink-0 shadow-sm">
+                    <div className="flex gap-2">
+                        {onSendEmail && (
+                            <button
+                                onClick={onSendEmail}
+                                className="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/40 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-all italic flex items-center justify-center gap-2 shadow-sm"
+                            >
+                                <HiOutlineMail className="w-4 h-4" />
+                                Email
+                            </button>
+                        )}
                         <button
-                            onClick={onSendEmail}
-                            className="flex-1 py-2.5 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-xs uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors flex items-center justify-center gap-1.5"
+                            onClick={handlePrint}
+                            className="flex-1 py-3.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all hover:bg-slate-200 dark:hover:bg-white/10 italic shadow-sm"
                         >
-                            <HiOutlineMail className="w-4 h-4" />
-                            Email
+                            <HiOutlinePrinter className="w-4 h-4" />
+                            Imprimir
                         </button>
-                    )}
-                    <button
-                        onClick={handlePrint}
-                        className="flex-1 py-2.5 rounded-lg bg-gray-900 hover:bg-gray-800 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-lg"
-                    >
-                        <HiOutlinePrinter className="w-4 h-4" />
-                        Imprimir
-                    </button>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="flex-1 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest transition-colors shadow-lg shadow-blue-500/20"
+                        className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-500/20 hover:-translate-y-1 active:scale-95 h-14 italic"
                     >
-                        Nova Venda
+                        Nova Venda · ESC
                     </button>
                 </div>
             </div>

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { cacheService } from '../cacheService';
@@ -39,7 +40,11 @@ export class CommercialAnalyticsService {
                         include: { product: { select: { costPrice: true } } }
                     }),
                     prisma.product.findMany({
-                        where: { companyId, isActive: true, originModule: 'commercial' },
+                        // Include products from the commercial flow AND the
+                        // generic inventory bucket (the default originModule).
+                        // Excluding 'inventory' would zero out valuations on
+                        // every catalog created before originModule was wired up.
+                        where: { companyId, isActive: true, originModule: { in: ['commercial', 'inventory'] } },
                         select: { id: true, costPrice: true, price: true, currentStock: true, minStock: true, category: true }
                     }),
                     prisma.purchaseOrder.count({
@@ -54,13 +59,19 @@ export class CommercialAnalyticsService {
                     })
                 ]);
 
+            // Prefer the costPrice snapshot stored on the SaleItem at sale time;
+            // fall back to the live product cost only for legacy rows that
+            // pre-date the snapshot column.
+            const itemCogs = (i: any) =>
+                Number(i.costPrice ?? i.product?.costPrice ?? 0) * i.quantity;
+
             const revenue = monthItems.reduce((s, i) => s + Number(i.total), 0);
-            const cogs = monthItems.reduce((s, i) => s + Number(i.product?.costPrice ?? 0) * i.quantity, 0);
+            const cogs = monthItems.reduce((s, i) => s + itemCogs(i), 0);
             const grossProfit = revenue - cogs;
             const grossMargin = calcMargin(revenue, cogs);
 
             const lastRevenue = lastMonthItems.reduce((s, i) => s + Number(i.total), 0);
-            const lastCogs = lastMonthItems.reduce((s, i) => s + Number(i.product?.costPrice ?? 0) * i.quantity, 0);
+            const lastCogs = lastMonthItems.reduce((s, i) => s + itemCogs(i), 0);
             const lastMargin = calcMargin(lastRevenue, lastCogs);
 
             const inventoryValue = allActiveProducts.reduce((s, p) => s + Number(p.costPrice) * p.currentStock, 0);
@@ -92,79 +103,118 @@ export class CommercialAnalyticsService {
 
         const startDate = daysAgo(periodDays);
         const sixMonthsAgo = monthStart(-5);
+        const userClause = userId ? Prisma.sql`AND s."userId" = ${userId}` : Prisma.empty;
 
-        const saleFilter: SaleFilter = { companyId };
-        if (userId) saleFilter.userId = userId;
+        // Aggregate categories in SQL — one row per category.
+        // Subquery normalises blanks/NULLs into UNCATEGORISED so GROUP BY can reference the alias directly
+        // (Postgres treats parameterised expressions as distinct between SELECT and GROUP BY otherwise).
+        const categoryRows = await prisma.$queryRaw<Array<{
+            category: string | null;
+            revenue: number;
+            cogs: number;
+            qty: number;
+        }>>`
+            SELECT category,
+                   COALESCE(SUM(total), 0)::float AS revenue,
+                   COALESCE(SUM(cost), 0)::float AS cogs,
+                   COALESCE(SUM(quantity), 0)::int AS qty
+            FROM (
+                SELECT COALESCE(NULLIF(TRIM(p.category), ''), ${UNCATEGORISED}) AS category,
+                       si.total AS total,
+                       (COALESCE(si."cost_price", p."costPrice", 0) * si.quantity) AS cost,
+                       si.quantity AS quantity
+                FROM sale_items si
+                JOIN sales s ON s.id = si."saleId"
+                LEFT JOIN products p ON p.id = si."productId"
+                WHERE s."companyId" = ${companyId}
+                  AND s."createdAt" >= ${startDate}
+                  ${userClause}
+            ) sub
+            GROUP BY category
+        `;
 
-        // Single query from sixMonthsAgo covers both the analysis period and the trend window
-        const allItems = await prisma.saleItem.findMany({
-            where: { sale: { ...saleFilter, createdAt: { gte: sixMonthsAgo } } as any },
-            include: {
-                product: { select: { id: true, name: true, code: true, costPrice: true, category: true, categoryId: true } },
-                sale: { select: { createdAt: true } }
-            }
-        });
+        // Aggregate products in SQL — one row per product
+        const productRows = await prisma.$queryRaw<Array<{
+            id: string;
+            name: string | null;
+            code: string | null;
+            category: string | null;
+            revenue: number;
+            cogs: number;
+            qty: number;
+        }>>`
+            SELECT p.id AS id,
+                   p.name AS name,
+                   p.code AS code,
+                   COALESCE(NULLIF(TRIM(p.category), ''), ${UNCATEGORISED}) AS category,
+                   COALESCE(SUM(si.total), 0)::float AS revenue,
+                   COALESCE(SUM(COALESCE(si."cost_price", p."costPrice", 0) * si.quantity), 0)::float AS cogs,
+                   COALESCE(SUM(si.quantity), 0)::int AS qty
+            FROM sale_items si
+            JOIN sales s ON s.id = si."saleId"
+            JOIN products p ON p.id = si."productId"
+            WHERE s."companyId" = ${companyId}
+              AND s."createdAt" >= ${startDate}
+              ${userClause}
+            GROUP BY p.id, p.name, p.code, p.category
+        `;
 
-        // Partition: periodItems for category/product analysis, allItems for trend
-        const periodItems = allItems.filter(i => i.sale.createdAt >= startDate);
+        // Monthly trend — one row per (year, month) over the last 6 months
+        const trendRows = await prisma.$queryRaw<Array<{
+            month: string;
+            revenue: number;
+            cogs: number;
+        }>>`
+            SELECT TO_CHAR(s."createdAt", 'YYYY-MM') AS month,
+                   COALESCE(SUM(si.total), 0)::float AS revenue,
+                   COALESCE(SUM(COALESCE(si."cost_price", p."costPrice", 0) * si.quantity), 0)::float AS cogs
+            FROM sale_items si
+            JOIN sales s ON s.id = si."saleId"
+            LEFT JOIN products p ON p.id = si."productId"
+            WHERE s."companyId" = ${companyId}
+              AND s."createdAt" >= ${sixMonthsAgo}
+              ${userClause}
+            GROUP BY TO_CHAR(s."createdAt", 'YYYY-MM')
+        `;
+        const trendMap = new Map(trendRows.map(r => [r.month, { revenue: Number(r.revenue), cogs: Number(r.cogs) }]));
 
-        const categoryMap: Record<string, { revenue: number; cogs: number; qty: number; name: string }> = {};
-        const productMap: Record<string, { id: string; name: string; code: string; category: string; revenue: number; cogs: number; qty: number }> = {};
-
-        for (const item of periodItems) {
-            const rev = Number(item.total);
-            const cost = Number(item.product?.costPrice ?? 0) * item.quantity;
-            const cat = item.product?.category?.trim() || UNCATEGORISED;
-
-            if (!categoryMap[cat]) categoryMap[cat] = { revenue: 0, cogs: 0, qty: 0, name: cat };
-            categoryMap[cat].revenue += rev;
-            categoryMap[cat].cogs += cost;
-            categoryMap[cat].qty += item.quantity;
-
-            const pid = item.productId || '';
-            if (pid) {
-                if (!productMap[pid]) productMap[pid] = {
-                    id: pid, name: item.product?.name || '', code: item.product?.code || '',
-                    category: cat, revenue: 0, cogs: 0, qty: 0
+        const byCategory = categoryRows
+            .map(c => {
+                const revenue = Number(c.revenue);
+                const cogs = Number(c.cogs);
+                return {
+                    category: c.category ?? UNCATEGORISED,
+                    revenue: Math.round(revenue),
+                    cogs: Math.round(cogs),
+                    profit: Math.round(revenue - cogs),
+                    margin: calcMargin(revenue, cogs),
+                    qty: Number(c.qty)
                 };
-                productMap[pid].revenue += rev;
-                productMap[pid].cogs += cost;
-                productMap[pid].qty += item.quantity;
-            }
-        }
+            })
+            .sort((a, b) => b.profit - a.profit);
 
-        const byCategory = Object.values(categoryMap).map(c => ({
-            category: c.name,
-            revenue: Math.round(c.revenue),
-            cogs: Math.round(c.cogs),
-            profit: Math.round(c.revenue - c.cogs),
-            margin: calcMargin(c.revenue, c.cogs),
-            qty: c.qty
-        })).sort((a, b) => b.profit - a.profit);
-
-        const byProduct = Object.values(productMap).map(p => ({
-            id: p.id, name: p.name, code: p.code, category: p.category,
-            revenue: Math.round(p.revenue),
-            cogs: Math.round(p.cogs),
-            profit: Math.round(p.revenue - p.cogs),
-            margin: calcMargin(p.revenue, p.cogs),
-            qty: p.qty
-        })).sort((a, b) => b.profit - a.profit);
-
-        // Trend: aggregate all items by month
-        const trendMap: Record<string, { revenue: number; cogs: number }> = {};
-        for (const item of allItems) {
-            const d = item.sale.createdAt;
-            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            if (!trendMap[key]) trendMap[key] = { revenue: 0, cogs: 0 };
-            trendMap[key].revenue += Number(item.total);
-            trendMap[key].cogs += Number(item.product?.costPrice ?? 0) * item.quantity;
-        }
+        const byProduct = productRows
+            .map(p => {
+                const revenue = Number(p.revenue);
+                const cogs = Number(p.cogs);
+                return {
+                    id: p.id,
+                    name: p.name ?? '',
+                    code: p.code ?? '',
+                    category: p.category ?? UNCATEGORISED,
+                    revenue: Math.round(revenue),
+                    cogs: Math.round(cogs),
+                    profit: Math.round(revenue - cogs),
+                    margin: calcMargin(revenue, cogs),
+                    qty: Number(p.qty)
+                };
+            })
+            .sort((a, b) => b.profit - a.profit);
 
         const monthlyTrend = Array.from({ length: 6 }, (_, i) => {
             const d = monthStart(i - 5);
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            const { revenue = 0, cogs = 0 } = trendMap[key] ?? {};
+            const { revenue = 0, cogs = 0 } = trendMap.get(key) ?? {};
             return { month: key, revenue: Math.round(revenue), cogs: Math.round(cogs), margin: calcMargin(revenue, cogs) };
         });
 
@@ -183,13 +233,19 @@ export class CommercialAnalyticsService {
         });
 
         const today = new Date();
-        const lastSales = await prisma.saleItem.findMany({
-            where: { productId: { in: products.map(p => p.id) }, sale: { companyId } },
-            select: { productId: true, sale: { select: { createdAt: true } } },
-            orderBy: { sale: { createdAt: 'desc' } },
-            distinct: ['productId']
-        });
-        const lastSaleMap = new Map(lastSales.map(s => [s.productId, s.sale.createdAt]));
+        // Aggregate last-sale dates in SQL — avoids loading every saleItem into memory
+        // and the expensive `distinct` planner path on large catalogs.
+        const lastSaleRows = products.length > 0
+            ? await prisma.$queryRaw<Array<{ productId: string; lastSale: Date }>>`
+                SELECT si."productId" as "productId", MAX(s."createdAt") as "lastSale"
+                FROM sale_items si
+                JOIN sales s ON s.id = si."saleId"
+                WHERE s."companyId" = ${companyId}
+                  AND si."productId" = ANY(${products.map(p => p.id)}::text[])
+                GROUP BY si."productId"
+              `
+            : [];
+        const lastSaleMap = new Map(lastSaleRows.map(r => [r.productId, r.lastSale]));
 
         const aged = products.map(p => {
             const lastSale = lastSaleMap.get(p.id);
@@ -404,34 +460,77 @@ export class CommercialAnalyticsService {
         const cacheKey = `commercial:warehouse-distribution:${companyId}`;
         return cacheService.getOrSet(cacheKey, async () => {
 
+        // 1. List warehouses (no embedded stock — avoids loading every WarehouseStock row).
         const warehouses = await prisma.warehouse.findMany({
             where: { companyId, isActive: true },
-            include: {
-                stocks: {
-                    include: { product: { select: { costPrice: true, name: true, code: true } } }
-                }
-            }
+            select: { id: true, name: true, location: true }
         });
+        if (warehouses.length === 0) return ResultHandler.success([]);
 
-        const data = warehouses.map(w => {
-            const totalValue = w.stocks.reduce((sum, ws) => sum + Number(ws.product.costPrice || 0) * ws.quantity, 0);
-            const topProducts = w.stocks
-                .map(ws => ({
-                    id: ws.id, name: ws.product.name, code: ws.product.code,
-                    quantity: ws.quantity,
-                    value: Math.round(Number(ws.product.costPrice || 0) * ws.quantity)
-                }))
-                .sort((a, b) => b.value - a.value)
-                .slice(0, 5);
+        const warehouseIds = warehouses.map(w => w.id);
 
-            return {
-                id: w.id, name: w.name, location: w.location,
-                valuation: Math.round(totalValue),
-                volume: w.stocks.reduce((sum, ws) => sum + ws.quantity, 0),
-                productCount: w.stocks.length,
-                topProducts
-            };
-        }).sort((a, b) => b.valuation - a.valuation);
+        // 2. Aggregate totals per warehouse in SQL.
+        const totals = await prisma.$queryRaw<Array<{
+            warehouseId: string;
+            valuation: number;
+            volume: number;
+            productCount: number;
+        }>>`
+            SELECT ws."warehouseId" AS "warehouseId",
+                   COALESCE(SUM(p."costPrice" * ws.quantity), 0)::float AS valuation,
+                   COALESCE(SUM(ws.quantity), 0)::int AS volume,
+                   COUNT(*)::int AS "productCount"
+            FROM warehouse_stocks ws
+            JOIN products p ON p.id = ws."productId"
+            WHERE ws."warehouseId" = ANY(${warehouseIds}::text[])
+            GROUP BY ws."warehouseId"
+        `;
+        const totalsMap = new Map(totals.map(t => [t.warehouseId, t]));
+
+        // 3. Top-5 products per warehouse via window function — bounded result set.
+        const topRows = await prisma.$queryRaw<Array<{
+            warehouseId: string;
+            id: string;
+            name: string;
+            code: string;
+            quantity: number;
+            value: number;
+        }>>`
+            SELECT * FROM (
+                SELECT ws."warehouseId" AS "warehouseId",
+                       ws.id AS id,
+                       p.name AS name,
+                       p.code AS code,
+                       ws.quantity AS quantity,
+                       (p."costPrice" * ws.quantity)::float AS value,
+                       ROW_NUMBER() OVER (PARTITION BY ws."warehouseId" ORDER BY (p."costPrice" * ws.quantity) DESC) AS rn
+                FROM warehouse_stocks ws
+                JOIN products p ON p.id = ws."productId"
+                WHERE ws."warehouseId" = ANY(${warehouseIds}::text[])
+            ) ranked
+            WHERE rn <= 5
+        `;
+        const topByWarehouse = new Map<string, Array<{ id: string; name: string; code: string; quantity: number; value: number }>>();
+        for (const r of topRows) {
+            const list = topByWarehouse.get(r.warehouseId) ?? [];
+            list.push({ id: r.id, name: r.name, code: r.code, quantity: r.quantity, value: Math.round(r.value) });
+            topByWarehouse.set(r.warehouseId, list);
+        }
+
+        const data = warehouses
+            .map(w => {
+                const t = totalsMap.get(w.id);
+                return {
+                    id: w.id,
+                    name: w.name,
+                    location: w.location,
+                    valuation: Math.round(Number(t?.valuation ?? 0)),
+                    volume: Number(t?.volume ?? 0),
+                    productCount: Number(t?.productCount ?? 0),
+                    topProducts: topByWarehouse.get(w.id) ?? []
+                };
+            })
+            .sort((a, b) => b.valuation - a.valuation);
 
         return ResultHandler.success(data);
         }, ANALYTICS_CACHE_TTL);

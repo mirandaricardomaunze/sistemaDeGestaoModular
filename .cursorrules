@@ -44,6 +44,14 @@ We follow a strict 6-layer methodology for every feature:
 - **Services/APIs**: **camelCase** ending with `API` (`inventoryAPI`) or `Service` (`salesService`).
 - **Booleans**: Prefixed with `is`, `has`, `can`, `should`.
 
+## 🛡️ 5. Safety & Reliability (Stability First)
+
+- **Stability Protocol**: For every change, first RESEARCH the impacts, PLAN the execution, and VERIFY the results.
+- **Incremental Refactoring**: Avoid massive "big bang" changes. Refactor in logical, testable chunks.
+- **Validation**: Every new feature or refactor MUST be accompanied by verification (e.g. running build, checking logs, or manual validation via browser tool).
+- **Error Handling**: Use explicit error boundaries and standardized error logging (`logger.error`).
+- **No Residual Errors**: Never consider a task finished if there are known linting or compilation errors.
+
 ---
 
 > [!IMPORTANT]

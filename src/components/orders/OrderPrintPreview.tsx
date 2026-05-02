@@ -13,9 +13,6 @@ import { useStore } from '../../stores/useStore';
 import type { Product } from '../../types';
 import toast from 'react-hot-toast';
 
-/** Taxa de IVA padrão em Moçambique (16%) */
-const IVA_RATE = 0.16;
-
 interface OrderItem {
     product: Product;
     quantity: number;
@@ -30,6 +27,10 @@ interface OrderData {
     priority: 'low' | 'normal' | 'high' | 'urgent';
     items: OrderItem[];
     notes?: string;
+    subtotal?: number;
+    discount?: number;
+    taxRate?: number;
+    taxAmount?: number;
     total: number;
     status: string;
 }
@@ -291,8 +292,8 @@ export default function OrderPrintPreview({
                                                         <td style={{ padding: '10px 12px', fontSize: '11px', backgroundColor: 'white' }}>
                                                             <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{item.product.name}</div>
                                                             {item.product.code && <div style={{ fontSize: '9px', color: '#64748b' }}>#{item.product.code}</div>}
-                                                            {item.product.weight && item.product.weight > 0 && (
-                                                                <div style={{ fontSize: '9px', color: '#94a3b8' }}>{item.product.weight.toFixed(3)} kg/un</div>
+                                                            {Number(item.product.weight) > 0 && (
+                                                                <div style={{ fontSize: '9px', color: '#94a3b8' }}>{Number(item.product.weight).toFixed(3)} kg/un</div>
                                                             )}
                                                         </td>
                                                         <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: '11px', color: '#1a1a1a', backgroundColor: 'white' }}>{item.quantity}</td>
@@ -357,20 +358,36 @@ export default function OrderPrintPreview({
                         </div>
 
                         {/* Right: Totals */}
-                        <div style={{ width: '220px', backgroundColor: '#ffffff', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}>
-                                <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '9px' }}>Subtotal</span>
-                                <span style={{ color: '#1e293b', fontWeight: 500 }}>{formatCurrency(order.total)}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}>
-                                <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '9px' }}>IVA (16%)</span>
-                                <span style={{ color: '#1e293b', fontWeight: 500 }}>{formatCurrency(order.total * IVA_RATE)}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0 4px', marginTop: '6px', borderTop: '1.5px solid #1a1a1a' }}>
-                                <span style={{ fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', fontSize: '10px' }}>Total Estimado</span>
-                                <span style={{ color: '#0f172a', fontWeight: 900, fontSize: '14px' }}>{formatCurrency(order.total * (1 + IVA_RATE))}</span>
-                            </div>
-                        </div>
+                        {(() => {
+                            // Use stored breakdown when available; fall back to deriving from total
+                            // for legacy orders where subtotal/taxAmount weren't captured.
+                            const taxRate = order.taxRate ?? 16;
+                            const taxAmount = order.taxAmount ?? Math.round((order.total - order.total / (1 + taxRate / 100)) * 100) / 100;
+                            const subtotal = order.subtotal ?? Math.round((order.total - taxAmount) * 100) / 100;
+                            const discount = order.discount ?? 0;
+                            return (
+                                <div style={{ width: '220px', backgroundColor: '#ffffff', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}>
+                                        <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '9px' }}>Subtotal</span>
+                                        <span style={{ color: '#1e293b', fontWeight: 500 }}>{formatCurrency(subtotal)}</span>
+                                    </div>
+                                    {discount > 0 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}>
+                                            <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '9px' }}>Desconto</span>
+                                            <span style={{ color: '#dc2626', fontWeight: 500 }}>-{formatCurrency(discount)}</span>
+                                        </div>
+                                    )}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}>
+                                        <span style={{ fontWeight: 600, color: '#64748b', textTransform: 'uppercase', fontSize: '9px' }}>IVA ({taxRate}%)</span>
+                                        <span style={{ color: '#1e293b', fontWeight: 500 }}>{formatCurrency(taxAmount)}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0 4px', marginTop: '6px', borderTop: '1.5px solid #1a1a1a' }}>
+                                        <span style={{ fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', fontSize: '10px' }}>Total</span>
+                                        <span style={{ color: '#0f172a', fontWeight: 900, fontSize: '14px' }}>{formatCurrency(order.total)}</span>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     {/* ─────────────────── */}

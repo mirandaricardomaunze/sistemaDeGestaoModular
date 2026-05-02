@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { commercialAPI } from '../services/api/commercial.api';
 import type {
@@ -16,32 +17,24 @@ import { logger } from '../utils/logger';
 
 // ── Commercial Analytics Hook ────────────────────────────────────────────────
 
-export function useCommercialAnalytics() {
-    const [data, setData] = useState<CommercialAnalytics | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+export function useCommercialAnalytics(warehouseId?: string) {
+    const query = useQuery<CommercialAnalytics>({
+        queryKey: ['commercial', 'analytics', warehouseId ?? 'all'],
+        queryFn: () => commercialAPI.getAnalytics(warehouseId),
+        staleTime: 60_000,
+    });
 
-    const fetch = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            setData(await commercialAPI.getAnalytics());
-        } catch (err) {
-            logger.error('Error fetching commercial analytics:', err);
-            setError('Erro ao carregar analytics comercial');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { fetch(); }, [fetch]);
-
-    return { data, isLoading, error, refetch: fetch };
+    return {
+        data: query.data ?? null,
+        isLoading: query.isLoading,
+        error: query.error ? 'Erro ao carregar analytics comercial' : null,
+        refetch: query.refetch,
+    };
 }
 
 // ── Margin Analysis Hook ─────────────────────────────────────────────────────
 
-export function useMarginAnalysis(period: number = 30) {
+export function useMarginAnalysis(period: number = 30, warehouseId?: string) {
     const [data, setData] = useState<MarginAnalysis | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -50,14 +43,14 @@ export function useMarginAnalysis(period: number = 30) {
         setIsLoading(true);
         setError(null);
         try {
-            setData(await commercialAPI.getMargins(period));
+            setData(await commercialAPI.getMargins(period, warehouseId));
         } catch (err) {
             logger.error('Error fetching margin analysis:', err);
             setError('Erro ao carregar análise de margens');
         } finally {
             setIsLoading(false);
         }
-    }, [period]);
+    }, [period, warehouseId]);
 
     useEffect(() => { fetch(); }, [fetch]);
 
@@ -66,7 +59,7 @@ export function useMarginAnalysis(period: number = 30) {
 
 // ── Stock Aging Hook ─────────────────────────────────────────────────────────
 
-export function useStockAging() {
+export function useStockAging(warehouseId?: string) {
     const [data, setData] = useState<StockAgingReport | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -75,14 +68,14 @@ export function useStockAging() {
         setIsLoading(true);
         setError(null);
         try {
-            setData(await commercialAPI.getStockAging());
+            setData(await commercialAPI.getStockAging(warehouseId));
         } catch (err) {
             logger.error('Error fetching stock aging:', err);
             setError('Erro ao carregar envelhecimento de stock');
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [warehouseId]);
 
     useEffect(() => { fetch(); }, [fetch]);
 
@@ -116,7 +109,7 @@ export function useSupplierPerformance() {
 
 // ── Inventory Turnover Hook ──────────────────────────────────────────────────
 
-export function useInventoryTurnover(period: number = 90) {
+export function useInventoryTurnover(period: number = 90, warehouseId?: string) {
     const [data, setData] = useState<InventoryTurnoverItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -125,14 +118,14 @@ export function useInventoryTurnover(period: number = 90) {
         setIsLoading(true);
         setError(null);
         try {
-            setData(await commercialAPI.getInventoryTurnover(period));
+            setData(await commercialAPI.getInventoryTurnover(period, warehouseId));
         } catch (err) {
             logger.error('Error fetching inventory turnover:', err);
             setError('Erro ao carregar rotação de inventário');
         } finally {
             setIsLoading(false);
         }
-    }, [period]);
+    }, [period, warehouseId]);
 
     useEffect(() => { fetch(); }, [fetch]);
 
@@ -141,7 +134,7 @@ export function useInventoryTurnover(period: number = 90) {
 
 // ── Sales Report Hook ────────────────────────────────────────────────────────
 
-export function useSalesReport(period: number = 30) {
+export function useSalesReport(period: number = 30, warehouseId?: string) {
     const [data, setData] = useState<SalesReport | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -150,14 +143,14 @@ export function useSalesReport(period: number = 30) {
         setIsLoading(true);
         setError(null);
         try {
-            setData(await commercialAPI.getSalesReport(period));
+            setData(await commercialAPI.getSalesReport(period, warehouseId));
         } catch (err) {
             logger.error('Error fetching sales report:', err);
             setError('Erro ao carregar relatório de vendas');
         } finally {
             setIsLoading(false);
         }
-    }, [period]);
+    }, [period, warehouseId]);
 
     useEffect(() => { fetch(); }, [fetch]);
 
@@ -292,6 +285,8 @@ export function useAccountsReceivable(params?: UseAccountsReceivableParams) {
             setIsLoading(false);
         }
     }, [params?.filter, params?.search, params?.page, params?.limit]);
+
+    useEffect(() => { fetch(); }, [fetch]);
 
     return { data, isLoading, error, refetch: fetch };
 }

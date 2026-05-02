@@ -21,7 +21,7 @@ export const hospitalityAPI = {
         const response = await api.delete(`/hospitality/rooms/${id}`);
         return response.data;
     },
-    getBookings: async (params?: { page?: number; limit?: number; status?: string }) => {
+    getBookings: async (params?: { page?: number; limit?: number; status?: string; search?: string }) => {
         const response = await api.get('/hospitality/bookings', { params });
         return response.data;
     },

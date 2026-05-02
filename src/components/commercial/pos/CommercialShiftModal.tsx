@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { formatCurrency } from '../../../utils/helpers';
+import { formatCurrency, cn } from '../../../utils/helpers';
 import { HiOutlineX, HiOutlineCheck, HiOutlineCash, HiOutlineDocumentReport, HiOutlineHome } from 'react-icons/hi';
+import { Button } from '../../../components/ui/Button';
 import { useQuery } from '@tanstack/react-query';
 import { warehousesAPI } from '../../../services/api';
 
@@ -24,9 +25,10 @@ interface CommercialShiftModalProps {
     onOpenShift: (openingBalance: number, warehouseId?: string) => void;
     onCloseShift: (countedCash: number) => void;
     onClose: () => void;
+    isLoading?: boolean;
 }
 
-export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onCloseShift, onClose }: CommercialShiftModalProps) {
+export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onCloseShift, onClose, isLoading = false }: CommercialShiftModalProps) {
     const [amount, setAmount] = useState('');
     const [warehouseId, setWarehouseId] = useState('');
 
@@ -46,6 +48,7 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
     const diff = counted - expectedCash;
 
     const handleConfirm = () => {
+        if (isLoading) return;
         if (mode === 'open') {
             const balance = Number(amount);
             if (isNaN(balance) || balance < 0) return;
@@ -60,70 +63,72 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-md mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden">
-                {/* Header */}
-                <div className={`px-6 py-4 flex items-center justify-between ${mode === 'open' ? 'bg-green-600' : 'bg-slate-700'}`}>
-                    <div>
-                        <h2 className="text-white font-black text-lg uppercase tracking-tight">
-                            {mode === 'open' ? 'Abertura de Turno' : 'Fecho de Turno'}
+            <div className="relative z-10 w-full max-w-xl mx-4 bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                {/* Header - Premium Style */}
+                <div className={cn(
+                    "px-6 py-5 flex items-center justify-between relative overflow-hidden",
+                    mode === 'open' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700' : 'bg-gradient-to-r from-slate-600 to-slate-700'
+                )}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16" />
+                    <div className="relative z-10">
+                        <h2 className="text-white font-black text-xl uppercase tracking-tighter italic">
+                            {mode === 'open' ? 'ABERTURA DE TURNO' : 'FECHO DE TURNO'}
                         </h2>
                         {shift && mode === 'close' && (
-                            <p className="text-white/70 text-xs mt-0.5">
+                            <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1 italic">
                                 Aberto às {shift.openedAt.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                         )}
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors">
+                    <button onClick={onClose} className="p-2.5 rounded-xl hover:bg-white/10 text-white transition-all active:scale-90 relative z-10">
                         <HiOutlineX className="w-5 h-5" />
                     </button>
                 </div>
 
-                <div className="p-6 space-y-5">
-                    {/* Close shift: show sales report */}
+                <div className="p-6 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
+                    {/* Close shift: show sales report - High Contrast */}
                     {mode === 'close' && shift && (
-                        <div className="bg-gray-50 dark:bg-dark-900 rounded-lg p-4 space-y-2">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5 mb-3">
-                                <HiOutlineDocumentReport className="w-3.5 h-3.5" />
+                        <div className="bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl p-5 space-y-3">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/20 flex items-center gap-2 mb-4 italic">
+                                <HiOutlineDocumentReport className="w-4 h-4 text-blue-500" />
                                 Resumo do Turno
                             </p>
                             {[
-                                { label: 'Vendas (Dinheiro)', value: shift.cashSales, color: 'text-green-600' },
-                                { label: 'Suprimentos (+)', value: shift.deposits, color: 'text-blue-600' },
-                                { label: 'Sangrias (-)', value: shift.withdrawals, color: 'text-red-500' },
-                                { label: 'Vendas (M-Pesa)', value: shift.mpesaSales, color: 'text-red-600' },
-                                { label: 'Vendas (Cartão)', value: shift.cardSales, color: 'text-blue-600' },
-                                { label: 'Vendas (Crédito)', value: shift.creditSales, color: 'text-amber-600' },
+                                { label: 'Vendas (Dinheiro)', value: shift.cashSales, color: 'text-emerald-400' },
+                                { label: 'Suprimentos (+)', value: shift.deposits, color: 'text-blue-400' },
+                                { label: 'Sangrias (-)', value: shift.withdrawals, color: 'text-rose-500' },
+                                { label: 'Vendas (M-Pesa)', value: shift.mpesaSales, color: 'text-rose-400' },
+                                { label: 'Vendas (Cartão)', value: shift.cardSales, color: 'text-blue-400' },
+                                { label: 'Vendas (Crédito)', value: shift.creditSales, color: 'text-amber-500' },
                             ].map(row => (
-                                <div key={row.label} className="flex justify-between items-center text-xs">
-                                    <span className="text-gray-500 font-medium">{row.label}</span>
-                                    <span className={`font-black ${row.color}`}>{formatCurrency(row.value)}</span>
+                                <div key={row.label} className="flex justify-between items-center text-[11px]">
+                                    <span className="text-slate-500 dark:text-white/40 font-bold uppercase tracking-wider">{row.label}</span>
+                                    <span className={`font-black tracking-tight ${row.color}`}>{formatCurrency(row.value)}</span>
                                 </div>
                             ))}
-                            <div className="pt-2 border-t dark:border-dark-700 flex justify-between items-center">
-                                <span className="text-sm font-black text-gray-700 dark:text-white uppercase tracking-wide">
+                            <div className="pt-4 mt-2 border-t border-white/5 flex justify-between items-center">
+                                <span className="text-xs font-black text-white/30 uppercase tracking-[0.2em] italic">
                                     Total ({shift.saleCount} vendas)
                                 </span>
-                                <span className="text-lg font-black text-blue-600 dark:text-blue-400">{formatCurrency(shift.totalSales)}</span>
+                                <span className="text-2xl font-black text-blue-400 italic tracking-tighter drop-shadow-[0_0_10px_rgba(96,165,250,0.3)]">
+                                    {formatCurrency(shift.totalSales)}
+                                </span>
                             </div>
-                            <div className="flex justify-between items-center text-xs pt-1">
-                                <span className="text-gray-400">Fundo de abertura</span>
-                                <span className="font-bold text-gray-500">{formatCurrency(shift.openingBalance)}</span>
-                            </div>
-                            <div className="flex justify-between items-center text-xs">
-                                <span className="text-gray-400">Esperado em caixa</span>
-                                <span className="font-black text-gray-700 dark:text-white">{formatCurrency(expectedCash)}</span>
+                            <div className="flex justify-between items-center text-[10px] pt-2 border-t border-white/5">
+                                <span className="text-slate-400 dark:text-white/20 uppercase font-black tracking-widest italic">Esperado em caixa</span>
+                                <span className="font-black text-slate-900 dark:text-white tracking-tight">{formatCurrency(expectedCash)}</span>
                             </div>
                         </div>
                     )}
 
-                    {/* Amount input */}
-                    <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2 flex items-center gap-1.5">
-                            <HiOutlineCash className="w-3.5 h-3.5" />
-                            {mode === 'open' ? 'Fundo de Caixa Inicial (MTn)' : 'Contagem de Caixa (MTn)'}
+                    {/* Amount input - Tech Style */}
+                    <div className="space-y-4">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20 block flex items-center gap-2 italic">
+                            <HiOutlineCash className="w-4 h-4 text-blue-500" />
+                            {mode === 'open' ? 'Fundo de Caixa Inicial' : 'Contagem de Caixa'}
                         </label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-400 text-sm">MTn</span>
+                            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-300 dark:text-white/20 text-xs tracking-widest">MTN</span>
                             <input
                                 type="number"
                                 value={amount}
@@ -131,26 +136,36 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
                                 onKeyDown={e => { if (e.key === 'Enter') handleConfirm(); }}
                                 placeholder="0.00"
                                 autoFocus
-                                className="w-full pl-14 pr-4 py-4 text-right text-3xl font-black rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
+                                className="w-full pl-16 pr-6 py-5 text-right text-4xl font-black rounded-2xl border border-slate-200 dark:border-white/5 bg-white dark:bg-black/40 text-slate-900 dark:text-white focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all tracking-tighter shadow-sm"
                             />
                         </div>
 
                         {/* Diff indicator */}
                         {mode === 'close' && counted > 0 && (
-                            <div className={`mt-2 flex items-center justify-between px-3 py-2 rounded-lg text-xs font-black ${diff >= 0 ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600'}`}>
-                                <span>{diff >= 0 ? 'Sobra' : 'Falta'}</span>
-                                <span>{diff >= 0 ? '+' : ''}{formatCurrency(diff)}</span>
+                            <div className={cn(
+                                "flex items-center justify-between px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                                diff >= 0 
+                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                                    : "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                            )}>
+                                <span>{diff >= 0 ? 'SOBRA EM CAIXA' : 'FALTA EM CAIXA'}</span>
+                                <span className="text-sm">{diff >= 0 ? '+' : ''}{formatCurrency(diff)}</span>
                             </div>
                         )}
 
                         {/* Quick amounts for opening */}
                         {mode === 'open' && (
-                            <div className="flex gap-2 mt-2 flex-wrap">
+                            <div className="flex gap-2 flex-wrap">
                                 {[1000, 2000, 5000, 10000].map(v => (
                                     <button
                                         key={v}
                                         onClick={() => setAmount(String(v))}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-black border-2 transition-all ${amount === String(v) ? 'bg-green-600 text-white border-green-600' : 'bg-gray-100 dark:bg-dark-700 text-gray-500 border-transparent hover:border-gray-300'}`}
+                                        className={cn(
+                                            "px-4 py-2 rounded-xl text-[10px] font-black border transition-all uppercase tracking-widest",
+                                            amount === String(v)
+                                                ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-600/20"
+                                                : "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/30 border-transparent hover:border-slate-200 dark:hover:border-white/10 hover:text-slate-900 dark:hover:text-white"
+                                        )}
                                     >
                                         {v.toLocaleString()}
                                     </button>
@@ -159,48 +174,50 @@ export function CommercialShiftModal({ isOpen, mode, shift, onOpenShift, onClose
                         )}
                     </div>
 
-                    {/* Warehouse selection for opening */}
+                    {/* Warehouse selection - Modern Select */}
                     {mode === 'open' && warehouses.length > 0 && (
-                        <div>
-                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2 flex items-center gap-1.5">
-                                <HiOutlineHome className="w-3.5 h-3.5" />
-                                Armazém / Loja de Venda
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20 block flex items-center gap-2 italic">
+                                <HiOutlineHome className="w-4 h-4 text-blue-500" />
+                                Armazém de Venda
                             </label>
                             <select
                                 value={warehouseId}
                                 onChange={e => setWarehouseId(e.target.value)}
-                                className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-blue-500 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white text-sm font-bold"
+                                className="w-full px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/5 bg-white dark:bg-black/40 text-slate-900 dark:text-white focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all text-xs font-black uppercase tracking-widest cursor-pointer appearance-none shadow-sm"
                             >
-                                <option value="">Seleccione o armazém...</option>
+                                <option value="" className="bg-[#111214]">Seleccione o armazém...</option>
                                 {warehouses.map((w: any) => (
-                                    <option key={w.id} value={w.id}>{w.name}</option>
+                                    <option key={w.id} value={w.id} className="bg-[#111214]">{w.name}</option>
                                 ))}
                             </select>
                         </div>
                     )}
 
-                    {/* Actions */}
-                    <div className="flex gap-3">
+                    {/* Actions - Premium Buttons */}
+                    <div className="flex gap-4 pt-4">
                         <button
                             onClick={onClose}
-                            className="flex-1 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                            className="flex-1 py-4 rounded-2xl border border-white/10 text-white/40 font-black text-xs uppercase tracking-[0.2em] hover:bg-white/5 hover:text-white transition-all active:scale-95 italic"
                         >
                             Cancelar
                         </button>
-                        <button
+                        <Button
                             onClick={handleConfirm}
-                            disabled={mode === 'open' ? (isNaN(Number(amount)) || Number(amount) < 0) : counted < 0}
-                            className={`flex-1 py-3 rounded-lg font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-lg transition-all ${
-                                (mode === 'open' && (isNaN(Number(amount)) || Number(amount) < 0))
-                                    ? 'bg-gray-300 dark:bg-dark-600 cursor-not-allowed shadow-none'
+                            disabled={isLoading || (mode === 'open' ? (isNaN(Number(amount)) || Number(amount) < 0) : counted < 0)}
+                            isLoading={isLoading}
+                            className={cn(
+                                "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all shadow-2xl h-14 italic",
+                                (mode === 'open' && (isNaN(Number(amount)) || Number(amount) < 0)) || (mode === 'close' && counted < 0)
+                                    ? "bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/10 border border-slate-200 dark:border-white/5 cursor-not-allowed"
                                     : mode === 'open'
-                                        ? 'bg-green-600 hover:bg-green-700 shadow-green-500/20'
-                                        : 'bg-slate-700 hover:bg-slate-800 shadow-slate-500/20'
-                            }`}
+                                        ? "bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20 hover:-translate-y-1 active:scale-95"
+                                        : "bg-slate-700 text-white hover:bg-slate-600 shadow-slate-500/20 hover:-translate-y-1 active:scale-95"
+                            )}
                         >
                             <HiOutlineCheck className="w-5 h-5" />
-                            {mode === 'open' ? 'Abrir Turno' : 'Fechar Turno'}
-                        </button>
+                            {mode === 'open' ? 'ABRIR TURNO' : 'FECHAR TURNO'}
+                        </Button>
                     </div>
                 </div>
             </div>

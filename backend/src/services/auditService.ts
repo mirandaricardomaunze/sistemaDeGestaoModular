@@ -1,4 +1,11 @@
 import { prisma } from '../lib/prisma';
+import { parseFields } from '../utils/pagination';
+
+const AUDIT_FIELD_ALLOWLIST = [
+    'id', 'userId', 'userName', 'action', 'entity', 'entityId',
+    'ipAddress', 'createdAt',
+    'user.name', 'user.email'
+] as const;
 
 export interface AuditLogParams {
     userId?: string;
@@ -36,7 +43,7 @@ export class AuditService {
         }
     }
 
-    async list(params: { companyId: string, page?: number, limit?: number, action?: string, entity?: string }) {
+    async list(params: { companyId: string, page?: number, limit?: number, action?: string, entity?: string, fields?: string }) {
         const page = params.page || 1;
         const limit = params.limit || 20;
         const skip = (page - 1) * limit;
@@ -45,15 +52,22 @@ export class AuditService {
         if (params.action) where.action = params.action;
         if (params.entity) where.entity = params.entity;
 
+        const projection = parseFields(params.fields, AUDIT_FIELD_ALLOWLIST);
+        const findArgs: any = {
+            where,
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: limit,
+        };
+        if (projection) {
+            findArgs.select = projection;
+        } else {
+            findArgs.include = { user: { select: { name: true, email: true } } };
+        }
+
         const [total, logs] = await Promise.all([
             prisma.auditLog.count({ where }),
-            prisma.auditLog.findMany({
-                where,
-                orderBy: { createdAt: 'desc' },
-                skip,
-                take: limit,
-                include: { user: { select: { name: true, email: true } } }
-            })
+            prisma.auditLog.findMany(findArgs)
         ]);
 
         return {

@@ -1,6 +1,17 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { ResultHandler } from '../utils/result';
+import { parseFields } from '../utils/pagination';
+
+const ROOM_FIELDS = [
+    'id', 'number', 'type', 'status', 'price',
+    'priceBreakfast', 'priceHalfBoard', 'priceFullBoard', 'priceNoMeal',
+    'notes', 'createdAt', 'updatedAt'
+] as const;
+const BOOKING_FIELDS = [
+    'id', 'checkIn', 'checkOut', 'status', 'totalAmount',
+    'guestName', 'guestPhone', 'roomId', 'createdAt'
+] as const;
 
 export class HospitalityService {
 
@@ -8,7 +19,7 @@ export class HospitalityService {
     // ROOMS MANAGEMENT
     // ============================================================================
 
-    async getRooms(companyId: string, filters: { status?: string; type?: string; search?: string; page?: number; limit?: number }) {
+    async getRooms(companyId: string, filters: { status?: string; type?: string; search?: string; page?: number; limit?: number; fields?: string }) {
         const { status, type, search, page = 1, limit = 100 } = filters;
         const skip = (page - 1) * limit;
 
@@ -19,25 +30,27 @@ export class HospitalityService {
             where.number = { contains: search, mode: 'insensitive' };
         }
 
+        const projection = parseFields(filters.fields, ROOM_FIELDS);
+        const findArgs: any = { where, orderBy: { number: 'asc' }, skip, take: limit };
+        if (projection) {
+            findArgs.select = projection;
+        } else {
+            findArgs.include = {
+                bookings: {
+                    where: { status: 'checked_in' },
+                    include: {
+                        consumptions: {
+                            include: { product: { select: { id: true, name: true, code: true, price: true } } }
+                        }
+                    },
+                    orderBy: { checkIn: 'desc' },
+                    take: 1
+                }
+            };
+        }
+
         const [rooms, total, allRooms] = await Promise.all([
-            prisma.room.findMany({
-                where,
-                include: {
-                    bookings: {
-                        where: { status: 'checked_in' },
-                        include: {
-                            consumptions: {
-                                include: { product: { select: { id: true, name: true, code: true, price: true } } }
-                            }
-                        },
-                        orderBy: { checkIn: 'desc' },
-                        take: 1
-                    }
-                },
-                orderBy: { number: 'asc' },
-                skip,
-                take: limit
-            }),
+            prisma.room.findMany(findArgs),
             prisma.room.count({ where }),
             prisma.room.groupBy({
                 by: ['status'],
@@ -67,20 +80,32 @@ export class HospitalityService {
     }
 
     async createRoom(companyId: string, data: any) {
+        const { pricePerNight, floor, capacity, name, description, amenities, images, isActive, ...rest } = data;
         const room = await prisma.room.create({
             data: {
-                ...data,
+                number: rest.number,
+                type: rest.type,
+                price: pricePerNight,
+                notes: description ?? rest.notes,
+                priceBreakfast: rest.priceBreakfast,
+                priceHalfBoard: rest.priceHalfBoard,
+                priceFullBoard: rest.priceFullBoard,
+                priceNoMeal: rest.priceNoMeal,
                 status: 'available',
-                companyId
+                companyId,
             }
         });
         return ResultHandler.success(room, 'Quarto criado com sucesso');
     }
 
     async updateRoom(companyId: string, roomId: string, data: any) {
+        const { pricePerNight, floor, capacity, name, description, amenities, images, isActive, ...rest } = data;
+        const updateData: any = { ...rest };
+        if (pricePerNight !== undefined) updateData.price = pricePerNight;
+        if (description !== undefined) updateData.notes = description;
         const updated = await prisma.room.update({
             where: { id: roomId, companyId },
-            data
+            data: updateData,
         });
         return ResultHandler.success(updated, 'Quarto actualizado');
     }
@@ -96,8 +121,8 @@ export class HospitalityService {
     // BOOKINGS OPERATIONS
     // ============================================================================
 
-    async getBookings(companyId: string, filters: { status?: string; page?: number; limit?: number }) {
-        const { status, page = 1, limit = 10 } = filters;
+    async getBookings(companyId: string, filters: { status?: string; search?: string; page?: number; limit?: number; fields?: string }) {
+        const { status, search, page = 1, limit = 10 } = filters;
         const skip = (page - 1) * limit;
 
         const where: any = { room: { companyId } };
@@ -105,19 +130,33 @@ export class HospitalityService {
             where.status = status;
         }
 
+        if (search && typeof search === 'string') {
+            const term = search.trim();
+            if (term) {
+                where.OR = [
+                    { customerName: { contains: term, mode: 'insensitive' } },
+                    { guestPhone: { contains: term, mode: 'insensitive' } },
+                    { guestDocumentNumber: { contains: term, mode: 'insensitive' } },
+                    { room: { number: { contains: term, mode: 'insensitive' } } }
+                ];
+            }
+        }
+
+        const projection = parseFields(filters.fields, BOOKING_FIELDS);
+        const findArgs: any = { where, orderBy: { checkIn: 'desc' }, skip, take: limit };
+        if (projection) {
+            findArgs.select = projection;
+        } else {
+            findArgs.include = {
+                room: true,
+                consumptions: {
+                    include: { product: { select: { id: true, name: true, code: true, price: true } } }
+                }
+            };
+        }
+
         const [bookings, total] = await Promise.all([
-            prisma.booking.findMany({
-                where,
-                include: {
-                    room: true,
-                    consumptions: {
-                        include: { product: { select: { id: true, name: true, code: true, price: true } } }
-                    }
-                },
-                orderBy: { checkIn: 'desc' },
-                skip,
-                take: limit
-            }),
+            prisma.booking.findMany(findArgs as any),
             prisma.booking.count({ where })
         ]);
 
@@ -139,27 +178,34 @@ export class HospitalityService {
                 throw ApiError.badRequest('Quarto não disponível para ocupação');
             }
 
-            let finalPrice = data.totalPrice || room.price;
-            if (data.mealPlan && !data.totalPrice) {
-                switch (data.mealPlan) {
-                    case 'none': finalPrice = room.priceNoMeal || room.price; break;
-                    case 'breakfast': finalPrice = room.priceBreakfast || room.price; break;
-                    case 'half_board': finalPrice = room.priceHalfBoard || room.price; break;
-                    case 'full_board': finalPrice = room.priceFullBoard || room.price; break;
-                }
+            // ====================================================================
+            // AUTHORITATIVE CALCULATION
+            // Ignore frontend totalPrice and use DB prices from room configuration
+            // ====================================================================
+            let finalPrice = Number(room.price);
+            const mealPlan = data.mealPlan || 'none';
+
+            switch (mealPlan) {
+                case 'none': finalPrice = Number(room.priceNoMeal || room.price); break;
+                case 'breakfast': finalPrice = Number(room.priceBreakfast || room.price); break;
+                case 'half_board': finalPrice = Number(room.priceHalfBoard || room.price); break;
+                case 'full_board': finalPrice = Number(room.priceFullBoard || room.price); break;
             }
 
+            const { guestName, guestEmail, ...rest } = data;
             const booking = await (tx.booking as any).create({
                 data: {
-                    ...data,
-                    guestCount: parseInt(data.guestCount) || 1,
-                    checkIn: new Date(data.checkIn),
-                    checkOut: data.checkOut ? new Date(data.checkOut) : null,
-                    expectedCheckout: data.checkOut ? new Date(data.checkOut) : null,
+                    ...rest,
+                    customerName: rest.customerName ?? guestName,
+                    guestCount: parseInt(rest.guestCount) || 1,
+                    checkIn: new Date(rest.checkIn),
+                    checkOut: rest.checkOut ? new Date(rest.checkOut) : null,
+                    expectedCheckout: rest.checkOut ? new Date(rest.checkOut) : null,
                     totalPrice: finalPrice,
                     status: 'checked_in',
                     companyId
-                }
+                },
+                include: { room: true }
             });
 
             await tx.room.update({
@@ -171,8 +217,21 @@ export class HospitalityService {
         });
     }
 
-    async checkout(companyId: string, bookingId: string, userId: string) {
+    async checkout(companyId: string, bookingId: string, userId: string, sessionId?: string) {
         return prisma.$transaction(async (tx) => {
+            // ====================================================================
+            // OPERATIONAL PREREQUISITE: CASH SESSION
+            // ====================================================================
+            if (!sessionId) {
+                throw ApiError.badRequest('Sessão de caixa é obrigatória para processar check-outs');
+            }
+            const session = await tx.cashSession.findFirst({
+                where: { id: sessionId, companyId, status: 'open' }
+            });
+            if (!session) {
+                throw ApiError.badRequest('Sessão de caixa não encontrada ou já encerrada');
+            }
+
             const booking = await tx.booking.findUnique({
                 where: { id: bookingId },
                 include: { room: true, consumptions: true }
@@ -203,7 +262,7 @@ export class HospitalityService {
             // 💰 Global Transaction Record
             const roomBill = Number(booking.totalPrice);
             const consumptionBill = booking.consumptions.reduce((acc, c) => acc + Number(c.total), 0);
-            const totalBill = roomBill + consumptionBill;
+            const totalBill = Math.round((roomBill + consumptionBill) * 100) / 100;
 
             await tx.transaction.create({
                 data: {

@@ -16,6 +16,7 @@ import {
 } from 'react-icons/hi2';
 import { subDays, parseISO } from 'date-fns';
 import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, ResponsiveValue, PageHeader } from '../components/ui';
+import { StatCard } from '../components/common/ModuleMetricCard';
 import { formatDate, generateId, cn } from '../utils/helpers';
 import type { Transaction, TransactionType, TransactionStatus } from '../types';
 import toast from 'react-hot-toast';
@@ -251,14 +252,14 @@ export default function Financial() {
                         <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-blue-600"
+                            className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-gray-400 hover:text-primary-600 transition-all"
                             leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
                         >
                             Actualizar
                         </Button>
                         <Button 
                             size="sm" 
-                            className="font-black text-[10px] uppercase tracking-widest"
+                            className="font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all"
                             leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />} 
                             onClick={() => setShowFormModal(true)}
                         >
@@ -316,57 +317,33 @@ export default function Financial() {
 
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <Card padding="md" className="border-l-4 border-l-green-500">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-500/15 border border-transparent dark:border-green-500/30 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
-                                        <HiOutlineArrowTrendingUp className="w-6 h-6 text-green-600 dark:text-green-300" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Receitas</p>
-                                        <ResponsiveValue value={summary.income} size="md" className="text-green-600" />
-                                    </div>
-                                </div>
-                            </Card>
+                            <StatCard
+                                label="Receitas"
+                                value={<ResponsiveValue value={summary.income} size="md" className="text-emerald-900 dark:text-white" />}
+                                icon={<HiOutlineArrowTrendingUp className="w-6 h-6" />}
+                                color="success"
+                            />
 
-                            <Card padding="md" className="border-l-4 border-l-red-500">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-500/15 border border-transparent dark:border-red-500/30 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
-                                        <HiOutlineArrowTrendingDown className="w-6 h-6 text-red-600 dark:text-red-300" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Despesas</p>
-                                        <ResponsiveValue value={summary.expenses} size="md" className="text-red-600" />
-                                    </div>
-                                </div>
-                            </Card>
+                            <StatCard
+                                label="Despesas"
+                                value={<ResponsiveValue value={summary.expenses} size="md" className="text-rose-900 dark:text-white" />}
+                                icon={<HiOutlineArrowTrendingDown className="w-6 h-6" />}
+                                color="danger"
+                            />
 
-                            <Card padding="md" className="border-l-4 border-l-primary-500">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-500/15 border border-transparent dark:border-primary-500/30 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
-                                        <HiOutlineArrowTrendingUp className="w-6 h-6 text-primary-600 dark:text-primary-300" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Saldo</p>
-                                        <ResponsiveValue
-                                            value={summary.balance}
-                                            size="md"
-                                            className={summary.balance >= 0 ? 'text-green-600' : 'text-red-600'}
-                                        />
-                                    </div>
-                                </div>
-                            </Card>
+                            <StatCard
+                                label="Saldo"
+                                value={<ResponsiveValue value={summary.balance} size="md" className={summary.balance >= 0 ? 'text-emerald-900 dark:text-white' : 'text-rose-900 dark:text-white'} />}
+                                icon={<HiOutlineArrowTrendingUp className="w-6 h-6" />}
+                                color="primary"
+                            />
 
-                            <Card padding="md" className="border-l-4 border-l-yellow-500">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-500/15 border border-transparent dark:border-yellow-500/30 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
-                                        <HiOutlineArrowTrendingDown className="w-6 h-6 text-yellow-600 dark:text-yellow-300" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">Pendentes</p>
-                                        <ResponsiveValue value={summary.pending} size="md" className="text-yellow-600" />
-                                    </div>
-                                </div>
-                            </Card>
+                            <StatCard
+                                label="Pendentes"
+                                value={<ResponsiveValue value={summary.pending} size="md" className="text-amber-900 dark:text-white" />}
+                                icon={<HiOutlineArrowTrendingDown className="w-6 h-6" />}
+                                color="warning"
+                            />
                         </div>
 
                         {/* Filters */}

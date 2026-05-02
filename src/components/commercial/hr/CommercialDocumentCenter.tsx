@@ -144,7 +144,7 @@ export const CommercialDocumentCenter: React.FC = () => {
                     <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <Input placeholder="Pesquisar colaborador..." className="pl-10 h-11" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
-                <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={refetch} className="h-11 font-black text-[10px] uppercase tracking-widest">
+                <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()} className="h-11 font-black text-[10px] uppercase tracking-widest">
                     Actualizar
                 </Button>
             </div>

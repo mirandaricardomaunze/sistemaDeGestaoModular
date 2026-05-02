@@ -7,7 +7,7 @@ import {
     HiOutlinePrinter,
     HiOutlineCalculator
 } from 'react-icons/hi2';
-import { Card, Button, Select, Badge, LoadingSpinner, Modal, ConfirmationModal } from '../../ui';
+import { Card, Button, Select, Badge, LoadingSpinner, Modal, ConfirmationModal, Pagination, usePagination } from '../../ui';
 import { useEmployees, usePayroll } from '../../../hooks/useData';
 import { formatCurrency, formatDate } from '../../../utils/helpers';
 import toast from 'react-hot-toast';
@@ -39,6 +39,15 @@ export const PharmacyPayrollManager: React.FC = () => {
         year,
         status: statusFilter || undefined,
     });
+
+    const {
+        paginatedItems: paginatedPayroll,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(payrollData || [], 10);
 
     const handleUpdateStatus = async (id: string, status: 'processed' | 'paid') => {
         try {
@@ -204,7 +213,7 @@ export const PharmacyPayrollManager: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                payrollData.map((p) => {
+                                paginatedPayroll.map((p) => {
                                     const employee = employees?.find(e => e.id === p.employeeId);
                                     // Use stored values from backend; fallback to local calculation only if missing
                                     const inss = Number(p.inssDeduction) || calculateINSS(Number(p.baseSalary));
@@ -277,6 +286,17 @@ export const PharmacyPayrollManager: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                {!isLoading && (payrollData?.length || 0) > 0 && (
+                    <div className="p-4 border-t border-gray-100 dark:border-dark-700/50 bg-white/50 dark:bg-dark-900/50">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
+                    </div>
+                )}
             </Card>
 
             {/* Payslip Modal */}

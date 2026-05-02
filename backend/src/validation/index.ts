@@ -33,6 +33,7 @@ export {
 } from './fiscal';
 export * from './pharmacy';
 export * from './cashSession';
+export * from './restaurant';
 
 // Legacy compatibility - re-export sales schemas from old location
 // TODO: Migrate sales schemas to validation/sales.ts

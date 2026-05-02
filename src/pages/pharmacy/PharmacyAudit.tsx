@@ -11,6 +11,7 @@ import {
     HiOutlineCurrencyDollar,
     HiOutlineArchiveBox as HiOutlineArchive
 } from 'react-icons/hi2';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { usePharmacy } from '../../hooks/usePharmacy';
 import { usePharmacySales } from '../../hooks/usePharmacySales';
 import { formatDate, formatCurrency, formatDateTime } from '../../utils/helpers';
@@ -275,65 +276,39 @@ export default function PharmacyAudit() {
 
             {/* Key Metrics Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Card className="p-5 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/10">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">Itens Controlados</p>
-                            <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                                {isLoading ? '...' : controlledMedications.length}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">Substâncias SARR em stock</p>
-                        </div>
-                        <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center">
-                            <HiOutlineExclamationCircle className="w-6 h-6 text-red-600" />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Itens Controlados"
+                    value={controlledMedications.length}
+                    icon={<HiOutlineExclamationCircle className="w-5 h-5" />}
+                    color="rose"
+                    isLoading={isLoading}
+                />
 
-                <Card className="p-5 border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-900/10">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Vendas (Período)</p>
-                            <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                                {isLoading ? '...' : sarrRecords.length}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">Transações com controlados</p>
-                        </div>
-                        <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                            <HiOutlineArchive className="w-6 h-6 text-blue-600" />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Vendas (Período)"
+                    value={sarrRecords.length}
+                    icon={<HiOutlineArchive className="w-5 h-5" />}
+                    color="blue"
+                    isLoading={isLoading}
+                />
 
-                <Card className="p-5 border-l-4 border-emerald-500 bg-emerald-50 dark:bg-emerald-900/10">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Lucro Bruto</p>
-                            <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                                {isLoading ? '...' : formatCurrency(profitabilityMetrics.profit)}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">Margem: {profitabilityMetrics.margin.toFixed(1)}%</p>
-                        </div>
-                        <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
-                            <HiOutlineCurrencyDollar className="w-6 h-6 text-emerald-600" />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Lucro Bruto"
+                    value={profitabilityMetrics.profit}
+                    icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
+                    color="emerald"
+                    isCurrency
+                    isLoading={isLoading}
+                    badge={`${profitabilityMetrics.margin.toFixed(1)}%`}
+                />
 
-                <Card className="p-5 border-l-4 border-purple-500 bg-purple-50 dark:bg-purple-900/10">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Total Vendas</p>
-                            <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                                {isLoading ? '...' : profitabilityMetrics.transactions}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">Transações no período</p>
-                        </div>
-                        <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
-                            <HiOutlineTrendingUp className="w-6 h-6 text-purple-600" />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Total Vendas"
+                    value={profitabilityMetrics.transactions}
+                    icon={<HiOutlineTrendingUp className="w-5 h-5" />}
+                    color="purple"
+                    isLoading={isLoading}
+                />
             </div>
 
             {/* Report Actions Grid */}

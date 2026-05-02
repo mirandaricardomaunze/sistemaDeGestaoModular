@@ -64,7 +64,8 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         req.companyId,
         req.userId!,
         req.userName!,
-        (req as any).ip || req.socket.remoteAddress || ''
+        (req as any).ip || req.socket.remoteAddress || '',
+        req.userRole
     ) as any;
 
     emitToCompany(req.companyId, 'sale:created', { id: sale.id, total: sale.total, receiptNumber: sale.receiptNumber });
@@ -81,23 +82,88 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
     res.status(201).json(sale);
 });
 
-// Cancel/Void sale (POS)
-router.post('/:id/cancel', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res: Response) => {
+// Cancel/Void sale -- LEGACY: now creates a pending_void request (step 1 of two-step flow)
+router.post('/:id/cancel', authenticate, authorize('admin', 'manager', 'operator', 'cashier'), async (req: AuthRequest, res: Response) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     const { reason } = req.body;
     if (!reason) throw ApiError.badRequest('Motivo é obrigatório');
 
-    const result = await salesService.cancel(
+    const result = await salesService.requestVoid(
         req.params.id,
         reason,
         req.companyId,
         req.userId!,
-        req.userName || 'Admin',
+        req.userName || 'User',
         (req as any).ip || req.socket.remoteAddress || ''
     );
 
+    emitToCompany(req.companyId, 'sale:void_requested', { id: req.params.id });
     res.json(result);
+});
+
+// Step 1: Request void (any operator can request, with reason)
+router.post('/:id/void/request', authenticate, authorize('super_admin', 'admin', 'manager', 'operator', 'cashier'), async (req: AuthRequest, res: Response) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+
+    const { reason } = req.body;
+    if (!reason) throw ApiError.badRequest('Motivo é obrigatório');
+
+    const result = await salesService.requestVoid(
+        req.params.id,
+        reason,
+        req.companyId,
+        req.userId!,
+        req.userName || 'User',
+        (req as any).ip || req.socket.remoteAddress || ''
+    );
+
+    emitToCompany(req.companyId, 'sale:void_requested', { id: req.params.id });
+    res.json(result);
+});
+
+// Step 2a: Approve void (must be different user; manager+ only)
+router.post('/:id/void/approve', authenticate, authorize('super_admin', 'admin', 'manager'), async (req: AuthRequest, res: Response) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+
+    const result = await salesService.approveVoid(
+        req.params.id,
+        req.companyId,
+        req.userId!,
+        req.userName || 'Approver',
+        (req as any).ip || req.socket.remoteAddress || ''
+    );
+
+    emitToCompany(req.companyId, 'sale:voided', { id: req.params.id });
+    res.json(result);
+});
+
+// Step 2b: Reject void (manager+ only, must be different user)
+router.post('/:id/void/reject', authenticate, authorize('super_admin', 'admin', 'manager'), async (req: AuthRequest, res: Response) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+
+    const { reason } = req.body;
+    if (!reason) throw ApiError.badRequest('Motivo da rejeição é obrigatório');
+
+    const result = await salesService.rejectVoid(
+        req.params.id,
+        reason,
+        req.companyId,
+        req.userId!,
+        req.userName || 'Approver',
+        (req as any).ip || req.socket.remoteAddress || ''
+    );
+
+    emitToCompany(req.companyId, 'sale:void_rejected', { id: req.params.id });
+    res.json(result);
+});
+
+// List pending void requests (for managers' inbox)
+router.get('/voids/pending', authenticate, authorize('super_admin', 'admin', 'manager'), async (req: AuthRequest, res: Response) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+
+    const sales = await salesService.listPendingVoids(req.companyId);
+    res.json(sales);
 });
 
 export default router;

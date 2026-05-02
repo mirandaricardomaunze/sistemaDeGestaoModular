@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { PageHeader, Button } from '../../components/ui';
 import EmployeeList from '../../components/employees/EmployeeList';
 import EmployeeForm from '../../components/employees/EmployeeForm';
@@ -22,9 +23,10 @@ import {
     HiOutlineAdjustmentsHorizontal,
 } from 'react-icons/hi2';
 import type { Employee } from '../../types';
+import { cn } from '../../utils/helpers';
 
 const TABS = [
-    { id: 'dashboard', label: 'dashboard', icon: HiOutlineChartPie },
+    { id: 'dashboard', label: 'Dashboard', icon: HiOutlineChartPie },
     { id: 'performance', label: 'Performance', icon: HiOutlineChartBar },
     { id: 'team', label: 'Equipa', icon: HiOutlineUsers },
     { id: 'payroll', label: 'Processamento', icon: HiOutlineBanknotes },
@@ -36,10 +38,16 @@ const TABS = [
 
 type TabId = typeof TABS[number]['id'];
 
-export default function CommercialEmployees() {
-    const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+export default function HRHub() {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = (searchParams.get('tab') as TabId) || 'dashboard';
+    
     const [showForm, setShowForm] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+
+    const setActiveTab = (tab: TabId) => {
+        setSearchParams({ tab });
+    };
 
     const handleEdit = (employee: Employee) => {
         setEditingEmployee(employee);
@@ -53,16 +61,16 @@ export default function CommercialEmployees() {
 
     return (
         <div className="space-y-6 animate-fade-in pb-10">
-            {/* Component imports will be added when created */}
             <PageHeader
-                title="RH Comercial &amp; Professional"
-                subtitle="Gestão avançada de talentos, performance e comissões"
-                icon={<HiOutlineUsers />}
+                title="Recursos Humanos"
+                subtitle="Gestão estratégica de talentos, performance e processamento"
+                icon={<HiOutlineUsers className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex gap-2">
                         {activeTab === 'team' && (
                             <Button
                                 variant="primary"
+                                size="sm"
                                 leftIcon={<HiOutlinePlus />}
                                 onClick={handleAdd}
                             >
@@ -70,8 +78,9 @@ export default function CommercialEmployees() {
                             </Button>
                         )}
                         <Button
-                            variant="outline"
-                            leftIcon={<HiOutlineArrowPath />}
+                            variant="ghost"
+                            size="sm"
+                            leftIcon={<HiOutlineArrowPath className="text-primary-600" />}
                             onClick={() => window.location.reload()}
                         >
                             Sincronizar
@@ -80,22 +89,24 @@ export default function CommercialEmployees() {
                 }
             />
 
-            {/* Tab Navigation */}
-            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-dark-800 rounded-lg overflow-x-auto scroller-hidden">
+            {/* Premium Tab Navigation (Segmented Control style) */}
+            <div className="flex p-1 bg-gray-100/80 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-gray-200/50 dark:border-dark-700/50 shadow-inner overflow-x-auto scroller-hidden">
                 {TABS.map(tab => {
                     const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
                     return (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all duration-200 flex-1 justify-center
-                                ${activeTab === tab.id
-                                    ? 'bg-white dark:bg-dark-700 text-primary-600 shadow-sm border border-primary-50 dark:border-primary-900/30'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                                }`}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex-1 justify-center whitespace-nowrap",
+                                isActive
+                                    ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]"
+                                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            )}
                         >
-                            <Icon className="w-4 h-4" />
-                            <span className="hidden sm:inline">{tab.label}</span>
+                            <Icon className={cn("w-4 h-4", isActive ? "text-primary-600 dark:text-primary-400" : "opacity-50")} />
+                            <span>{tab.label}</span>
                         </button>
                     );
                 })}

@@ -8,6 +8,7 @@ import ChatWidget from '../chat/ChatWidget';
 import { useEffect, Suspense } from 'react';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import { LoadingOverlay } from '../ui/Loading';
+import { PageTransitionLoader } from '../ui/PageTransitionLoader';
 
 import { useLocation } from 'react-router-dom';
 
@@ -75,10 +76,11 @@ export default function Layout() {
                 <main
                     className={
                         isPOSPage
-                            ? "flex-1 flex flex-col min-h-0 overflow-y-auto bg-gray-50 dark:bg-dark-900 p-4 lg:p-6 scrollbar-thin"
-                            : "flex-1 overflow-y-auto p-4 lg:p-6 pb-16 scrollbar-thin"
+                            ? "flex-1 flex flex-col min-h-0 overflow-y-auto bg-gray-50 dark:bg-dark-900 p-4 lg:p-6 scrollbar-thin relative"
+                            : "flex-1 overflow-y-auto p-4 lg:p-6 pb-16 scrollbar-thin relative"
                     }
                 >
+                    <PageTransitionLoader />
                     <Suspense fallback={<LoadingOverlay />}>
                         <Outlet />
                     </Suspense>

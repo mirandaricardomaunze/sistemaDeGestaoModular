@@ -127,7 +127,7 @@ describe('Customer search and filtering', () => {
         // create a customer in a DIFFERENT company
         const otherCo = 'other-co-id-' + Date.now();
         await prisma.company.create({ data: { id: otherCo, name: 'Other Co', nuit: `NUIT-${Date.now()}` } });
-        await prisma.customer.create({ data: { name: 'Outsider', companyId: otherCo } });
+        await prisma.customer.create({ data: { name: 'Outsider', code: `OUT-${Date.now()}`, phone: '999999999', companyId: otherCo } });
 
         const res = await request(app).get('/api/customers?search=Outsider').expect(200);
         const names = res.body.data.map((c: any) => c.name);

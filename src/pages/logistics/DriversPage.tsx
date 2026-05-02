@@ -18,6 +18,7 @@ import {
     HiOutlineExclamationTriangle
 } from 'react-icons/hi2';
 import { useDrivers, useCreateDriver, useUpdateDriver, useDeleteDriver } from '../../hooks/useLogistics';
+import { useDebounce } from '../../hooks/useDebounce';
 import type { Driver } from '../../services/api/logistics.api';
 import { PageHeader } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
@@ -79,8 +80,9 @@ export default function DriversPage() {
     ];
 
     const [pageSize, setPageSize] = useState(12);
+    const debouncedSearch = useDebounce(search, 350);
     const { data, isLoading, refetch } = useDrivers({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         status: statusFilter || undefined,
         page,
         limit: pageSize

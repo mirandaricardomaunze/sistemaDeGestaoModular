@@ -1,6 +1,6 @@
 import { logger } from '../utils/logger';
-import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { suppliersAPI } from '../services/api';
 import type { Supplier } from '../types';
 
@@ -18,97 +18,84 @@ interface UseSuppliersParams {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
+    fields?: string;
+    originModule?: string;
 }
 
+const QK = ['suppliers'] as const;
+
 export function useSuppliers(params?: UseSuppliersParams) {
-    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-    const [pagination, setPagination] = useState<PaginationMeta | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const queryClient = useQueryClient();
 
-    const fetchSuppliers = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await suppliersAPI.getAll(params);
+    const query = useQuery({
+        queryKey: [...QK, params ?? {}],
+        queryFn: async () => {
+            const response = await suppliersAPI.getAll(params as any);
 
-            let suppliersData: Supplier[] = [];
-            if (response.data && response.pagination) {
+            let suppliersData: Supplier[];
+            let pagination: PaginationMeta;
+            if (response?.data && response?.pagination) {
                 suppliersData = response.data;
-                setPagination(response.pagination);
+                pagination = {
+                    ...response.pagination,
+                    hasMore: response.pagination.hasMore ?? response.pagination.hasNext ?? false,
+                };
             } else {
                 suppliersData = Array.isArray(response) ? response : (response.data || []);
-                setPagination({
+                pagination = {
                     page: params?.page || 1,
                     limit: params?.limit || suppliersData.length,
                     total: suppliersData.length,
                     totalPages: 1,
-                    hasMore: false
-                });
+                    hasMore: false,
+                };
             }
 
-            setSuppliers(suppliersData);
-        } catch (err) {
-            setError('Erro ao carregar fornecedores');
-            logger.error('Error fetching suppliers:', err);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [
-        params?.search,
-        params?.page,
-        params?.limit,
-        params?.sortBy,
-        params?.sortOrder
-    ]);
+            return { suppliers: suppliersData, pagination };
+        },
+        placeholderData: keepPreviousData,
+    });
 
-    useEffect(() => {
-        fetchSuppliers();
-    }, [fetchSuppliers]);
-
-    const addSupplier = async (data: Parameters<typeof suppliersAPI.create>[0]) => {
-        try {
-            const newSupplier = await suppliersAPI.create(data);
-            setSuppliers((prev) => [newSupplier, ...prev]);
+    const addMutation = useMutation({
+        mutationFn: (data: Parameters<typeof suppliersAPI.create>[0]) => suppliersAPI.create(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Fornecedor criado com sucesso!');
-            return newSupplier;
-        } catch (err) {
+        },
+        onError: (err) => {
             logger.error('Error creating supplier:', err);
-            throw err;
-        }
-    };
+            toast.error('Erro ao criar fornecedor');
+        },
+    });
 
-    const updateSupplier = async (id: string, data: Parameters<typeof suppliersAPI.update>[1]) => {
-        try {
-            const updated = await suppliersAPI.update(id, data);
-            setSuppliers((prev) => prev.map((s) => (s.id === id ? updated : s)));
+    const updateMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Parameters<typeof suppliersAPI.update>[1] }) =>
+            suppliersAPI.update(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Fornecedor actualizado com sucesso!');
-            return updated;
-        } catch (err) {
-            logger.error('Error updating supplier:', err);
-            throw err;
-        }
-    };
+        },
+        onError: (err) => logger.error('Error updating supplier:', err),
+    });
 
-    const deleteSupplier = async (id: string) => {
-        try {
-            await suppliersAPI.delete(id);
-            setSuppliers((prev) => prev.filter((s) => s.id !== id));
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => suppliersAPI.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Fornecedor removido com sucesso!');
-        } catch (err) {
-            logger.error('Error deleting supplier:', err);
-            throw err;
-        }
-    };
+        },
+        onError: (err) => logger.error('Error deleting supplier:', err),
+    });
 
     return {
-        suppliers,
-        pagination,
-        isLoading,
-        error,
-        refetch: fetchSuppliers,
-        addSupplier,
-        updateSupplier,
-        deleteSupplier,
+        suppliers: query.data?.suppliers ?? [],
+        pagination: query.data?.pagination ?? null,
+        isLoading: query.isLoading || query.isFetching,
+        isPlaceholderData: query.isPlaceholderData,
+        error: query.error ? 'Erro ao carregar fornecedores' : null,
+        refetch: query.refetch,
+        addSupplier: addMutation.mutateAsync,
+        updateSupplier: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
+        deleteSupplier: deleteMutation.mutateAsync,
     };
 }

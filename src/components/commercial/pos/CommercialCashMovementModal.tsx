@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { HiOutlineX, HiOutlineCheck, HiOutlineCash, HiOutlineLogin, HiOutlineLogout } from 'react-icons/hi';
+import { Button } from '../../ui/Button';
 
 interface CommercialCashMovementModalProps {
     isOpen: boolean;
     type: 'cash_in' | 'cash_out';
     onConfirm: (amount: number, reason: string) => void;
     onClose: () => void;
+    isLoading?: boolean;
 }
 
-export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose }: CommercialCashMovementModalProps) {
+export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose, isLoading = false }: CommercialCashMovementModalProps) {
     const [amount, setAmount] = useState('');
     const [reason, setReason] = useState('');
 
@@ -84,14 +86,15 @@ export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose }
                         >
                             Cancelar
                         </button>
-                        <button
+                        <Button
                             onClick={handleConfirm}
-                            disabled={!amount || !reason.trim()}
+                            disabled={!amount || !reason.trim() || isLoading}
+                            isLoading={isLoading}
                             className={`flex-1 py-3 rounded-lg font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed ${isCashIn ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/20' : 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/20'}`}
                         >
                             <HiOutlineCheck className="w-5 h-5" />
                             Confirmar
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

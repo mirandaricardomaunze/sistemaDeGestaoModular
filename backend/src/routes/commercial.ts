@@ -2,8 +2,9 @@ import { Router } from 'express';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { commercialService } from '../services/commercialService';
 import { cashSessionService } from '../services/cashSessionService';
+import { predictiveService } from '../services/predictiveService';
 import { ApiError } from '../middleware/error.middleware';
-import { emitToCompany, emitToModule } from '../lib/socket';
+import { emitToModule } from '../lib/socket';
 import { prisma } from '../lib/prisma';
 import { requireModule } from '../middleware/module';
 import { openSessionSchema, closeSessionSchema, cashMovementSchema } from '../validation/cashSession';
@@ -11,19 +12,21 @@ import { openSessionSchema, closeSessionSchema, cashMovementSchema } from '../va
 const router = Router();
 router.use(authenticate, requireModule('COMMERCIAL'));
 
+const STAFF_ROLES = ['super_admin', 'admin', 'manager', 'operator'] as const;
+
 // ============================================================================
 // Commercial Module -- Premium Analytics Routes
 // ============================================================================
 
 // GET /api/commercial/analytics -- Dashboard KPIs
-router.get('/analytics', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/analytics', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const userId = req.query.userId ? String(req.query.userId) : undefined;
     res.json(await commercialService.getAnalytics(req.companyId, userId));
 });
 
 // GET /api/commercial/margins?period=30&userId=xxx
-router.get('/margins', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/margins', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const period = Math.min(Math.max(parseInt(String(req.query.period || '30')) || 30, 1), 365);
     const userId = req.query.userId ? String(req.query.userId) : undefined;
@@ -31,26 +34,26 @@ router.get('/margins', authenticate, authorize('super_admin', 'admin', 'manager'
 });
 
 // GET /api/commercial/stock-aging
-router.get('/stock-aging', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/stock-aging', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await commercialService.getStockAging(req.companyId));
 });
 
 // GET /api/commercial/supplier-performance
-router.get('/supplier-performance', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/supplier-performance', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await commercialService.getSupplierPerformance(req.companyId));
 });
 
 // GET /api/commercial/inventory-turnover?period=90
-router.get('/inventory-turnover', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/inventory-turnover', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const period = Math.min(Math.max(parseInt(String(req.query.period || '90')) || 90, 1), 365);
     res.json(await commercialService.getInventoryTurnover(req.companyId, period));
 });
 
 // GET /api/commercial/sales-report?period=30&userId=xxx
-router.get('/sales-report', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/sales-report', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const period = Math.min(Math.max(parseInt(String(req.query.period || '30')) || 30, 1), 365);
     const userId = req.query.userId ? String(req.query.userId) : undefined;
@@ -58,49 +61,48 @@ router.get('/sales-report', authenticate, authorize('super_admin', 'admin', 'man
 });
 
 // GET /api/commercial/warehouse-distribution
-router.get('/warehouse-distribution', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/warehouse-distribution', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await commercialService.getWarehouseDistribution(req.companyId));
 });
 
 // GET /api/commercial/predictive/forecast
-router.get('/predictive/forecast', authenticate, async (req: AuthRequest, res) => {
+router.get('/predictive/forecast', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-    const { predictiveService } = require('../services/predictiveService');
     res.json(await predictiveService.getInventoryForecast(req.companyId));
 });
 
 // POST /api/commercial/predictive/create-orders
-router.post('/predictive/create-orders', authenticate, async (req: AuthRequest, res) => {
+router.post('/predictive/create-orders', authorize('super_admin', 'admin', 'manager'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-    const { predictiveService } = require('../services/predictiveService');
     res.json(await predictiveService.createDraftOrdersFromSuggestions(req.companyId, req.body.suggestions));
 });
 
 // ── Purchase Orders ───────────────────────────────────────────────────────────
 
 // GET /api/commercial/purchase-orders -- restricted to manager+
-router.get('/purchase-orders', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/purchase-orders', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await commercialService.listPurchaseOrders(req.companyId, req.query));
 });
 
 // GET /api/commercial/purchase-orders/:id
-router.get('/purchase-orders/:id', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/purchase-orders/:id', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await commercialService.getPurchaseOrderById(req.params.id, req.companyId));
 });
 
 // PATCH /api/commercial/purchase-orders/:id/status
-router.patch('/purchase-orders/:id/status', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.patch('/purchase-orders/:id/status', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-    const { status } = req.body;
+    const { status, warehouseId } = req.body;
     if (!status) throw ApiError.badRequest('Status obrigatório');
 
-    const result = await commercialService.updatePurchaseOrderStatus(req.params.id, status, req.companyId, req.userId);
+    const result = await commercialService.updatePurchaseOrderStatus(
+        req.params.id, status, req.companyId, req.userId, warehouseId
+    );
 
     if (result.success && result.data) {
-        // Socket notification on PO status change
         emitToModule(req.companyId, 'commercial', 'commercial:po_status_changed', {
             id: result.data.id,
             status: result.data.status,
@@ -114,14 +116,16 @@ router.patch('/purchase-orders/:id/status', authenticate, authorize('super_admin
 });
 
 // PATCH /api/commercial/purchase-orders/:id/partial-delivery
-router.patch('/purchase-orders/:id/partial-delivery', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.patch('/purchase-orders/:id/partial-delivery', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-    const { deliveries } = req.body;
+    const { deliveries, warehouseId } = req.body;
     if (!deliveries || !Array.isArray(deliveries) || deliveries.length === 0) {
         throw ApiError.badRequest('Lista de entregas parciais é obrigatória');
     }
 
-    const result = await commercialService.registerPartialDelivery(req.params.id, deliveries, req.companyId, req.userId);
+    const result = await commercialService.registerPartialDelivery(
+        req.params.id, deliveries, req.companyId, req.userId, warehouseId
+    );
 
     if (result.success && result.data) {
         emitToModule(req.companyId, 'commercial', 'commercial:po_partial_delivery', {
@@ -136,7 +140,7 @@ router.patch('/purchase-orders/:id/partial-delivery', authenticate, authorize('s
 });
 
 // DELETE /api/commercial/purchase-orders/:id -- Soft delete (draft only)
-router.delete('/purchase-orders/:id', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
+router.delete('/purchase-orders/:id', authorize('admin', 'manager'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await commercialService.deletePurchaseOrder(req.params.id, req.companyId);
     res.json({ message: 'Ordem de compra eliminada com sucesso' });
@@ -145,7 +149,7 @@ router.delete('/purchase-orders/:id', authenticate, authorize('admin', 'manager'
 // ── Accounts Receivable ───────────────────────────────────────────────────────
 
 // GET /api/commercial/accounts-receivable
-router.get('/accounts-receivable', authenticate, authorize('super_admin', 'admin', 'manager'), async (req: AuthRequest, res) => {
+router.get('/accounts-receivable', authorize('super_admin', 'admin', 'manager'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await commercialService.getAccountsReceivable(req.companyId, req.query));
 });
@@ -153,13 +157,13 @@ router.get('/accounts-receivable', authenticate, authorize('super_admin', 'admin
 // ── Quotations ────────────────────────────────────────────────────────────────
 
 // GET /api/commercial/quotations
-router.get('/quotations', authenticate, async (req: AuthRequest, res) => {
+router.get('/quotations', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     res.json(await commercialService.listQuotations(req.companyId, req.query));
 });
 
 // POST /api/commercial/quotations -- Create quotation
-router.post('/quotations', authenticate, async (req: AuthRequest, res) => {
+router.post('/quotations', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     const result = await commercialService.createQuotation(req.body, req.companyId);
@@ -177,7 +181,7 @@ router.post('/quotations', authenticate, async (req: AuthRequest, res) => {
 });
 
 // POST /api/commercial/quotations/:id/convert-to-invoice
-router.post('/quotations/:id/convert-to-invoice', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.post('/quotations/:id/convert-to-invoice', authorize('super_admin', 'admin', 'manager'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     const result = await commercialService.convertQuotationToInvoice(req.params.id, req.body, req.companyId);
@@ -199,21 +203,21 @@ router.post('/quotations/:id/convert-to-invoice', authenticate, authorize('super
 // ── Cash Sessions (Turnos de Caixa) ──────────────────────────────────────────
 
 // GET /api/commercial/shift
-router.get('/shift', authenticate, async (req: AuthRequest, res) => {
+router.get('/shift', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const session = await cashSessionService.getCurrentSession(req.companyId);
     res.json(session || null);
 });
 
 // GET /api/commercial/shift/summary
-router.get('/shift/summary', authenticate, async (req: AuthRequest, res) => {
+router.get('/shift/summary', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const summary = await cashSessionService.getDailySummary(req.companyId);
     res.json(summary || null);
 });
 
 // POST /api/commercial/shift/open
-router.post('/shift/open', authenticate, async (req: AuthRequest, res) => {
+router.post('/shift/open', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const userId = req.userId || '';
     const { openingBalance, warehouseId, terminalId } = openSessionSchema.parse(req.body);
@@ -237,7 +241,7 @@ router.post('/shift/open', authenticate, async (req: AuthRequest, res) => {
 });
 
 // POST /api/commercial/shift/close
-router.post('/shift/close', authenticate, async (req: AuthRequest, res) => {
+router.post('/shift/close', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const userId = req.userId || '';
     const validated = closeSessionSchema.parse(req.body);
@@ -246,7 +250,7 @@ router.post('/shift/close', authenticate, async (req: AuthRequest, res) => {
 });
 
 // POST /api/commercial/shift/movement
-router.post('/shift/movement', authenticate, async (req: AuthRequest, res) => {
+router.post('/shift/movement', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const userId = req.userId || '';
     const validated = cashMovementSchema.parse(req.body);
@@ -255,21 +259,21 @@ router.post('/shift/movement', authenticate, async (req: AuthRequest, res) => {
 });
 
 // GET /api/commercial/shift/history
-router.get('/shift/history', authenticate, async (req: AuthRequest, res) => {
+router.get('/shift/history', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const data = await cashSessionService.getHistory(req.companyId, req.query);
     res.json(data);
 });
 
 // GET /api/commercial/shift/z-report
-router.get('/shift/z-report', authenticate, authorize('super_admin', 'admin', 'manager', 'operator'), async (req: AuthRequest, res) => {
+router.get('/shift/z-report', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const report = await cashSessionService.getZReport(req.companyId);
     res.json(report);
 });
 
 // GET /api/commercial/shift/:id
-router.get('/shift/:id', authenticate, async (req: AuthRequest, res) => {
+router.get('/shift/:id', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const session = await cashSessionService.getSessionDetails(req.params.id, req.companyId);
     res.json(session);
@@ -278,24 +282,24 @@ router.get('/shift/:id', authenticate, async (req: AuthRequest, res) => {
 // ── Real-time Stock Reservations ──────────────────────────────────────────
 
 // POST /api/commercial/reserve
-router.post('/reserve', authenticate, async (req: AuthRequest, res) => {
+router.post('/reserve', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const { productId, quantity, sessionId } = req.body;
-    
+
     if (!productId || !quantity) throw ApiError.badRequest('Produto e quantidade são obrigatórios');
-    
+
     const result = await commercialService.reserveItem({
         productId,
         quantity: Number(quantity),
         sessionId,
         companyId: req.companyId
     });
-    
+
     res.status(201).json(result);
 });
 
 // POST /api/commercial/release/:id
-router.post('/release/:id', authenticate, async (req: AuthRequest, res) => {
+router.post('/release/:id', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     await commercialService.releaseItem(req.params.id, req.companyId);
     res.json({ success: true });

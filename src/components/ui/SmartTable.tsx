@@ -1,0 +1,256 @@
+import { type ReactNode, useMemo } from 'react';
+import { 
+    useReactTable, 
+    getCoreRowModel, 
+    getSortedRowModel, 
+    type ColumnDef, 
+    type SortingState, 
+    type OnChangeFn,
+    type Table as TanStackTable
+} from '@tanstack/react-table';
+import { 
+    DataTable, 
+    Pagination, 
+    Card, 
+    Input, 
+    Button,
+} from './index';
+import { ExportButton } from '../common/ExportButton';
+import { HiOutlineMagnifyingGlass, HiOutlineArrowPath } from 'react-icons/hi2';
+import { useCompanySettings } from '../../hooks/useSettings';
+import type { ExportColumn } from '../../utils/exportUtils';
+import { cn } from '../../utils/helpers';
+
+interface SmartTableProps<TData> {
+    /** Dados a serem exibidos */
+    data: TData[];
+    /** Definição das colunas */
+    columns: ColumnDef<any, any>[];
+    /** Estado de carregamento */
+    isLoading?: boolean;
+    
+    /** Configuração de pesquisa */
+    search?: {
+        value: string;
+        onChange: (value: string) => void;
+        placeholder?: string;
+    };
+    
+    /** Configuração de paginação */
+    pagination?: {
+        currentPage: number;
+        totalItems: number;
+        itemsPerPage: number;
+        onPageChange: (page: number) => void;
+        onItemsPerPageChange?: (size: number) => void;
+        itemsPerPageOptions?: number[];
+    };
+    
+    /** Estado de ordenação (controlado) */
+    sorting?: SortingState;
+    /** Callback para mudança de ordenação */
+    onSortingChange?: OnChangeFn<SortingState>;
+    
+    /** Configuração de exportação */
+    exportConfig?: {
+        filename: string;
+        title: string;
+        columns: ExportColumn[];
+        orientation?: 'portrait' | 'landscape';
+    };
+    
+    /** Slot para filtros adicionais (Selects, DatePickers, etc) */
+    renderFilters?: ReactNode;
+    /** Slot para acções adicionais no cabeçalho */
+    actions?: ReactNode;
+    
+    /** Título quando a tabela está vazia */
+    emptyTitle?: string;
+    /** Descrição quando a tabela está vazia */
+    emptyDescription?: string;
+    /** Acção a executar quando vazia (ex: "Novo Item") */
+    onEmptyAction?: () => void;
+    /** Label para o botão de acção vazia */
+    emptyActionLabel?: string;
+    /** Altura mínima do contentor da tabela */
+    minHeight?: string | number;
+    /** Classes CSS adicionais para o contentor */
+    className?: string;
+    
+    /** Instância de tabela externa (opcional, para casos complexos) */
+    tableInstance?: TanStackTable<TData>;
+    
+    /** Callback para botão de refresh manual */
+    onRefresh?: () => void;
+    
+    /** Se deve esconder a barra de filtros/pesquisa */
+    hideToolbar?: boolean;
+    
+    /** Função para renderizar o conteúdo expandido de uma linha */
+    expandedRowRender?: (data: TData) => ReactNode;
+    /** ID da linha que está expandida */
+    expandedId?: string | number | null;
+}
+
+/**
+ * SmartTable - Um componente de alto nível que unifica as funcionalidades padrão de tabelas do sistema.
+ * 
+ * Integra automaticamente:
+ * - DataTable (TanStack Table)
+ * - Barra de Pesquisa
+ * - Filtros (via slots)
+ * - Botão de Exportação (PDF/Excel)
+ * - Paginação
+ * - Estados de Carregamento e Vazio
+ */
+export function SmartTable<TData extends { id?: string | number }>({
+    data,
+    columns,
+    isLoading = false,
+    search,
+    pagination,
+    sorting,
+    onSortingChange,
+    exportConfig,
+    renderFilters,
+    actions,
+    emptyTitle,
+    emptyDescription,
+    onEmptyAction,
+    emptyActionLabel,
+    minHeight = '450px',
+    className,
+    tableInstance,
+    onRefresh,
+    hideToolbar = false,
+    expandedRowRender,
+    expandedId
+}: SmartTableProps<TData>) {
+    const { settings: companySettings } = useCompanySettings();
+
+    // Criar instância da tabela se não for fornecida externamente
+    const internalTable = useReactTable({
+        data,
+        columns,
+        state: {
+            sorting,
+        },
+        onSortingChange,
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        manualPagination: true,
+        manualFiltering: true,
+        manualSorting: true,
+    });
+
+    const table = tableInstance || internalTable;
+
+    // Colunas formatadas para exportação (se configurado)
+    const exportOptions = useMemo(() => {
+        if (!exportConfig) return null;
+        return {
+            columns: exportConfig.columns,
+            data: data as any[],
+            orientation: exportConfig.orientation,
+            companyName: companySettings?.companyName,
+        };
+    }, [exportConfig, data, companySettings]);
+
+    return (
+        <div className={cn("space-y-4", className)}>
+            {/* ── Toolbar: Search, Filters & Actions ────────────────────────── */}
+            {!hideToolbar && (
+                <Card padding="md" className="overflow-visible border-none shadow-sm bg-slate-50/50 dark:bg-dark-900/50">
+                    <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-4">
+                        {/* Pesquisa */}
+                        {search && (
+                            <div className="flex-1">
+                                <Input
+                                    placeholder={search.placeholder || "Pesquisar..."}
+                                    value={search.value}
+                                    onChange={(e) => search.onChange(e.target.value)}
+                                    leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-500" />}
+                                    className="bg-white dark:bg-dark-800"
+                                    size="sm"
+                                />
+                            </div>
+                        )}
+
+                        {/* Filtros Personalizados */}
+                        {renderFilters && (
+                            <div className="flex flex-wrap items-end gap-3">
+                                {renderFilters}
+                            </div>
+                        )}
+
+                        {/* Acções, Refresh & Exportação */}
+                        <div className="flex items-center gap-2 ml-auto">
+                            {actions}
+                            
+                            {onRefresh && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={onRefresh}
+                                    isLoading={isLoading}
+                                    title="Actualizar dados"
+                                    className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-dark-700 shadow-sm"
+                                >
+                                    <HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                                </Button>
+                            )}
+
+                            {exportConfig && exportOptions && (
+                                <ExportButton
+                                    filename={exportConfig.filename}
+                                    title={exportConfig.title}
+                                    variant="outline"
+                                    size="sm"
+                                    options={exportOptions}
+                                    className="shadow-sm"
+                                    companyInfo={{
+                                        name: companySettings?.companyName || 'MULTICORE',
+                                        nuit: companySettings?.nuit,
+                                        address: companySettings?.address,
+                                        phone: companySettings?.phone,
+                                        email: companySettings?.email
+                                    }}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </Card>
+            )}
+
+            {/* ── Table Container ───────────────────────────────────────────── */}
+            <Card padding="none" className="border-none shadow-sm overflow-hidden">
+                <DataTable
+                    table={table}
+                    isLoading={isLoading}
+                    isEmpty={!isLoading && data.length === 0}
+                    emptyTitle={emptyTitle}
+                    emptyDescription={emptyDescription}
+                    onEmptyAction={onEmptyAction}
+                    emptyActionLabel={emptyActionLabel}
+                    minHeight={minHeight}
+                    renderExpandedRow={expandedRowRender}
+                    isRowExpanded={(row) => row.id === expandedId}
+                />
+
+                {/* Paginação */}
+                {pagination && pagination.totalItems > 0 && (
+                    <div className="px-6 border-t border-slate-100 dark:border-dark-700 bg-slate-50/30 dark:bg-dark-900/30">
+                        <Pagination
+                            currentPage={pagination.currentPage}
+                            totalItems={pagination.totalItems}
+                            itemsPerPage={pagination.itemsPerPage}
+                            onPageChange={pagination.onPageChange}
+                            onItemsPerPageChange={pagination.onItemsPerPageChange}
+                            itemsPerPageOptions={pagination.itemsPerPageOptions || [10, 25, 50, 100]}
+                        />
+                    </div>
+                )}
+            </Card>
+        </div>
+    );
+}

@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { cn } from '../../utils/helpers';
+import { toCents, toMoney, applyPercent } from '../../utils/money';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Badge, Skeleton, Button } from '../../components/ui';
+import { Button, LoadingOverlay } from '../../components/ui';
 import { productsAPI, customersAPI, salesAPI, shiftAPI, warehousesAPI } from '../../services/api';
 import type { ShiftSession, ShiftSummary } from '../../services/api';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -9,13 +11,49 @@ import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { playScanSound } from '../../utils/audio';
 import toast from 'react-hot-toast';
+
+// ── Internal types ──────────────────────────────────────────────────────────
+interface POSProduct {
+    id: string;
+    code: string;
+    name: string;
+    price: number | string;
+    currentStock: number;
+    packSize?: number | string;
+    barcode?: string;
+    unit?: string;
+    warehouseStocks?: Array<{ warehouseId: string; quantity: number }>;
+}
+
+interface POSCustomer {
+    id: string;
+    name: string;
+    phone?: string;
+    code?: string;
+}
+
+interface CartReservation { id: string }
+
+interface CartItem {
+    productId: string;
+    product: POSProduct;
+    packSize: number;
+    unitMode: 'box' | 'unit';
+    quantity: number;
+    unitPrice: number;
+    discountPct: number;
+    discount: DiscountInfo | null;
+    total: number;
+    reservations?: CartReservation[];
+}
+
+interface PriceTier { minQty: number; price: number }
 import {
     calculatePOSDiscounts,
-    recordCampaignUsages,
-    applyPromoCode
+    recordCampaignUsages
 } from '../../utils/crmIntegration';
 import { usePagination } from '../../components/ui/Pagination';
-import { HiOutlinePlay, HiOutlineStop, HiOutlineLockClosed, HiOutlineBanknotes, HiOutlineBuildingOffice, HiOutlineCloud, HiOutlineCloudArrowUp } from 'react-icons/hi2';
+import { HiOutlinePlay, HiOutlineStop, HiOutlineLockClosed, HiOutlineBanknotes, HiOutlineCloudArrowUp } from 'react-icons/hi2';
 import { useSyncManager } from '../../hooks/commercial/useSyncManager';
 import { offlineDB } from '../../services/offline/offlineDB';
 import { commercialAPI } from '../../services/api/commercial.api';
@@ -33,6 +71,8 @@ import type { ReceiptData } from '../../components/commercial/pos/CommercialRece
 import { CommercialScaleModal } from '../../components/commercial/pos/CommercialScaleModal';
 import { CommercialCashMovementModal } from '../../components/commercial/pos/CommercialCashMovementModal';
 import { CommercialShortcutsHUD, ShortcutsHintBadge } from '../../components/commercial/pos/CommercialShortcutsHUD';
+import { CommercialDiscountModal } from '../../components/commercial/pos/CommercialDiscountModal';
+import type { DiscountInfo } from '../../components/commercial/pos/CommercialDiscountModal';
 
 export default function CommercialPOS() {
     const location = useLocation();
@@ -79,8 +119,8 @@ export default function CommercialPOS() {
         queryKey: ['commercial', 'products', shiftWarehouseId ?? 'global'],
         queryFn: async () => {
             const data = await productsAPI.getAll({
-                origin_module: 'commercial',
-                limit: 999,
+                originModule: 'commercial',
+                limit: 5000,
                 ...(shiftWarehouseId ? { warehouseId: shiftWarehouseId } : {})
             });
             return Array.isArray(data) ? data : (data?.data || []);
@@ -88,7 +128,7 @@ export default function CommercialPOS() {
         enabled: !loadingShift && isOnline,
     });
 
-    const { data: customers = [], isLoading: loadingCustomers } = useQuery({
+    const { data: customers = [] } = useQuery({
         queryKey: ['commercial', 'customers'],
         queryFn: async () => {
             const data = await customersAPI.getAll();
@@ -98,22 +138,22 @@ export default function CommercialPOS() {
     });
 
     // Offline data fallbacks
-    const [offlineProducts, setOfflineProducts] = useState<any[]>([]);
-    const [offlineCustomers, setOfflineCustomers] = useState<any[]>([]);
+    const [offlineProducts, setOfflineProducts] = useState<POSProduct[]>([]);
+    const [offlineCustomers, setOfflineCustomers] = useState<POSCustomer[]>([]);
 
     useEffect(() => {
         if (!isOnline) {
-            offlineDB.products.toArray().then(setOfflineProducts);
-            offlineDB.customers.toArray().then(setOfflineCustomers);
+            offlineDB.products.toArray().then(rows => setOfflineProducts(rows as POSProduct[]));
+            offlineDB.customers.toArray().then(rows => setOfflineCustomers(rows as POSCustomer[]));
         }
     }, [isOnline]);
 
-    const displayProducts = isOnline ? products : offlineProducts;
-    const displayCustomers = isOnline ? customers : offlineCustomers;
+    const displayProducts: POSProduct[] = isOnline ? (products as POSProduct[]) : offlineProducts;
+    const displayCustomers: POSCustomer[] = isOnline ? (customers as POSCustomer[]) : offlineCustomers;
 
     // Carregar price tiers de todos os produtos em batch (1 request)
-    const productIds = useMemo(() => (products as any[]).map((p: any) => p.id), [products]);
-    const { data: priceTiersMap = {} } = useQuery({
+    const productIds = useMemo(() => (products as POSProduct[]).map(p => p.id), [products]);
+    const { data: priceTiersMap = {} } = useQuery<Record<string, PriceTier[]>>({
         queryKey: ['commercial', 'price-tiers', productIds],
         queryFn: () => productsAPI.getPriceTiersBatch(productIds),
         enabled: productIds.length > 0,
@@ -122,7 +162,7 @@ export default function CommercialPOS() {
 
     /** Retorna o preço escalonado para uma quantidade, ou o preço base. */
     const resolvePrice = useCallback((productId: string, basePrice: number, qty: number): number => {
-        const tiers = (priceTiersMap as Record<string, { minQty: number; price: number }[]>)[productId];
+        const tiers = (priceTiersMap as Record<string, PriceTier[]>)[productId];
         if (!tiers || tiers.length === 0) return basePrice;
         const applicable = tiers.filter(t => qty >= t.minQty).sort((a, b) => b.minQty - a.minQty);
         return applicable.length > 0 ? applicable[0].price : basePrice;
@@ -134,12 +174,17 @@ export default function CommercialPOS() {
 
     // ── POS State ────────────────────────────────────────────────────────────
     const [posSearch, setPosSearch] = useState('');
-    const [cart, setCart] = useState<any[]>([]);
-    const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [selectedCustomer, setSelectedCustomer] = useState<POSCustomer | null>(null);
     const [customerName, setCustomerName] = useState('');
-    const [promoCode, setPromoCode] = useState('');
-    const [promoCodeApplied, setPromoCodeApplied] = useState(false);
-    const [appliedCampaign, setAppliedCampaign] = useState<any>(null);
+
+
+    // Track processing state for each action (e.g., product addition, qty change)
+    const [processingActions, setProcessingActions] = useState<Record<string, boolean>>({});
+
+    const setActionLoading = (id: string, isLoading: boolean) => {
+        setProcessingActions(prev => ({ ...prev, [id]: isLoading }));
+    };
 
     // ── Hardware State ──────────────────────────────────────────────────────-
     const [cashDrawerOpen, setCashDrawerOpen] = useState(false);
@@ -152,8 +197,24 @@ export default function CommercialPOS() {
         } catch { return []; }
     });
 
+    const heldSalesQuotaWarned = useRef(false);
     useEffect(() => {
-        try { localStorage.setItem('pos_held_sales', JSON.stringify(heldSales)); } catch { /* quota exceeded */ }
+        try {
+            localStorage.setItem('pos_held_sales', JSON.stringify(heldSales));
+            heldSalesQuotaWarned.current = false;
+        } catch (err) {
+            // QuotaExceededError → show once, don't spam on each re-render
+            if (!heldSalesQuotaWarned.current) {
+                heldSalesQuotaWarned.current = true;
+                const isQuota = err instanceof DOMException && err.name === 'QuotaExceededError';
+                toast.error(
+                    isQuota
+                        ? 'Espaço local cheio: vendas suspensas não puderam ser persistidas. Finalize ou descarte algumas.'
+                        : 'Falha ao gravar vendas suspensas no armazenamento local.',
+                    { duration: 6000 }
+                );
+            }
+        }
     }, [heldSales]);
 
 
@@ -190,12 +251,21 @@ export default function CommercialPOS() {
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [lastReceipt, setLastReceipt] = useState<ReceiptData | null>(null);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
+    const [shiftLoading, setShiftLoading] = useState(false);
+    const [movementLoading, setMovementLoading] = useState(false);
     const [showMovementModal, setShowMovementModal] = useState(false);
     const [movementType, setMovementType] = useState<'cash_in' | 'cash_out'>('cash_in');
     const [showShortcutsHUD, setShowShortcutsHUD] = useState(false);
 
-    // ── Global discount (desconto global sobre o total, com controlo de permissão) -
-    const [globalDiscountPct, setGlobalDiscountPct] = useState(0);
+    // ── Discount state ──────────────────────────────────────────────────────
+    const [globalDiscount, setGlobalDiscount] = useState<DiscountInfo | null>(null);
+    const [discountModal, setDiscountModal] = useState<
+        | { scope: 'line'; productId: string }
+        | { scope: 'global' }
+        | null
+    >(null);
+
+
 
     // ── Filtering & Pagination ──────────────────────────────────────────────-
     const filteredProducts = useMemo(() => {
@@ -220,28 +290,35 @@ export default function CommercialPOS() {
 
     // ── Pre-fill from Quote ──────────────────────────────────────────────────
     useEffect(() => {
-        const state = location.state as any;
+        const state = location.state as { fromQuote?: { items?: Array<{ productId: string; productName: string; price: number; quantity: number }>; customerId?: string; customerName: string; orderNumber: string } } | null;
         if (state?.fromQuote && products.length > 0) {
             const quote = state.fromQuote;
-            
-            // Map items
-            const newCart = (quote.items || []).map((item: any) => {
-                const product = products.find((p: any) => p.id === item.productId);
+
+            // Map items — cotações vêm com preço/quantidade em UNIDADES, então fixamos unitMode='unit'.
+            const newCart: CartItem[] = (quote.items || []).map(item => {
+                const product = (products as POSProduct[]).find(p => p.id === item.productId);
+                const packSize = Number(product?.packSize) || 1;
+                const unitPrice = toMoney(toCents(item.price));
+                const total = toMoney(Math.round(toCents(unitPrice) * item.quantity));
                 return {
                     productId: item.productId,
-                    product: product || { name: item.productName, price: item.price, currentStock: 999 }, // fallback
+                    product: product || { id: item.productId, code: '', name: item.productName, price: item.price, currentStock: 999 },
+                    packSize,
+                    unitMode: 'unit',
                     quantity: item.quantity,
-                    unitPrice: Number(item.price),
+                    unitPrice,
                     discountPct: 0,
-                    total: item.quantity * Number(item.price)
+                    discount: null,
+                    total,
+                    reservations: [],
                 };
             });
-            
+
             setCart(newCart);
-            
+
             // Set customer
             if (quote.customerId) {
-                const foundCustomer = customers.find((c: any) => c.id === quote.customerId);
+                const foundCustomer = (customers as POSCustomer[]).find(c => c.id === quote.customerId);
                 if (foundCustomer) setSelectedCustomer(foundCustomer);
                 else setCustomerName(quote.customerName);
             } else {
@@ -256,162 +333,259 @@ export default function CommercialPOS() {
     }, [location.state, products, customers, navigate, location.pathname]);
 
     // ── Cart Logic ──────────────────────────────────────────────────────────-
-    const addToCart = useCallback(async (product: any, qty = 1) => {
-        let reservation: any = null;
-        if (isOnline) {
-            try {
-                reservation = await commercialAPI.reserveItem(product.id, qty, activeShift?.id);
-            } catch {
-                // Reservation is best-effort — stock is validated again at checkout.
-                // A failed reservation must NOT prevent the product from being added.
-            }
+    // product.price = preço de venda DA CAIXA. unidade = price / packSize.
+    // O carrinho permite alternar entre 'box' (caixa) e 'unit' (unidade) por linha.
+    // Stock está sempre em unidades — convertemos qty × packSize quando o modo é 'box'.
+    const priceForMode = useCallback((product: POSProduct, mode: 'box' | 'unit', qty: number) => {
+        const boxPrice = Number(product.price) || 0;
+        const packSize = Number(product.packSize) || 1;
+        if (mode === 'box') {
+            return resolvePrice(product.id, boxPrice, qty);
+        }
+        const unitBase = boxPrice / packSize;
+        return resolvePrice(product.id, unitBase, qty);
+    }, [resolvePrice]);
+
+    /** Compute line total with line-discount applied, using cents to avoid float drift. */
+    const lineTotal = useCallback((quantity: number, unitPrice: number, discountPct: number): number => {
+        const gross = Math.round(toCents(unitPrice) * quantity);
+        const net = gross - applyPercent(gross, discountPct || 0);
+        return toMoney(Math.max(0, net));
+    }, []);
+
+    const addToCart = useCallback(async (product: POSProduct, qty = 1) => {
+        const packSize = Number(product.packSize) || 1;
+        const defaultMode: 'box' | 'unit' = 'unit';
+
+        // Determine factor based on existing item's mode (or default for new items)
+        const existing = cart.find(item => item.productId === product.id);
+        const effectiveMode = existing?.unitMode || defaultMode;
+        const factor = effectiveMode === 'box' ? (existing?.packSize || packSize) : 1;
+        const unitsNeeded = qty * factor;
+        const totalUnitsAfterAdd = ((existing?.quantity || 0) + qty) * factor;
+
+        if (totalUnitsAfterAdd > product.currentStock) {
+            toast.error('Stock insuficiente');
+            return;
+        }
+
+        const newQty = (existing?.quantity || 0) + qty;
+        const tieredPrice = priceForMode(product, effectiveMode, newQty);
+
+        if (existing && tieredPrice !== existing.unitPrice) {
+            toast(`Preço escalonado: ${tieredPrice.toLocaleString()} MTn/${effectiveMode === 'box' ? 'cx' : 'un'}`);
         }
 
         setCart(prev => {
-            const existing = prev.find(item => item.productId === product.id);
-            if (existing) {
-                const newQty = existing.quantity + qty;
-                if (newQty > product.currentStock) { 
-                    toast.error('Stock insuficiente'); 
-                    if (reservation) commercialAPI.releaseItem(reservation.id);
-                    return prev; 
-                }
-                const tieredPrice = resolvePrice(product.id, Number(product.price), newQty);
-                const hasTier = tieredPrice !== existing.unitPrice;
-                if (hasTier) toast(`Preço escalonado aplicado: ${tieredPrice.toLocaleString()} MTn/un`, { icon: '' });
+            const idx = prev.findIndex(i => i.productId === product.id);
+            if (idx >= 0) {
                 return prev.map(item =>
                     item.productId === product.id
-                        ? { 
-                            ...item, 
-                            quantity: newQty, 
-                            unitPrice: tieredPrice, 
-                            total: newQty * tieredPrice * (1 - (item.discountPct || 0) / 100),
-                            reservations: [...(item.reservations || []), reservation].filter(Boolean)
+                        ? {
+                            ...item,
+                            quantity: newQty,
+                            unitPrice: tieredPrice,
+                            total: lineTotal(newQty, tieredPrice, item.discountPct || 0),
                           }
                         : item
                 );
             }
-            if (qty > product.currentStock) { 
-                toast.error('Stock insuficiente'); 
-                if (reservation) commercialAPI.releaseItem(reservation.id);
-                return prev; 
-            }
-            const unitPrice = resolvePrice(product.id, Number(product.price), qty);
             return [...prev, {
                 productId: product.id,
                 product,
+                packSize,
+                unitMode: defaultMode,
                 quantity: qty,
-                unitPrice,
+                unitPrice: tieredPrice,
                 discountPct: 0,
-                total: qty * unitPrice,
-                reservations: reservation ? [reservation] : []
+                discount: null,
+                total: lineTotal(qty, tieredPrice, 0),
+                reservations: []
             }];
         });
         playScanSound();
-    }, [resolvePrice, isOnline, activeShift?.id]);
+
+        if (!isOnline) return;
+        setActionLoading(product.id, true);
+        try {
+            const reservation = await commercialAPI.reserveItem(product.id, unitsNeeded, activeShift?.id);
+            if (reservation) {
+                setCart(prev => prev.map(item =>
+                    item.productId === product.id
+                        ? { ...item, reservations: [...(item.reservations || []), reservation as CartReservation] }
+                        : item
+                ));
+            }
+        } catch {
+            // Reservation is best-effort — stock is validated again at checkout.
+        } finally {
+            setActionLoading(product.id, false);
+        }
+    }, [priceForMode, lineTotal, isOnline, activeShift?.id, cart]);
 
     const updateQuantity = useCallback(async (productId: string, qty: number) => {
         const item = cart.find(i => i.productId === productId);
         if (!item) return;
 
-        if (qty <= 0) { 
-            if (isOnline && item.reservations) {
-                item.reservations.forEach((r: any) => commercialAPI.releaseItem(r.id));
-            }
-            setCart(c => c.filter(i => i.productId !== productId)); 
-            return; 
-        }
-
-        if (qty > item.product.currentStock) { toast.error('Stock insuficiente'); return; }
-
-        let newReservation: any = null;
-        let replaceReservations = false;
-        if (isOnline && qty > item.quantity) {
-            try {
-                newReservation = await commercialAPI.reserveItem(productId, qty - item.quantity, activeShift?.id);
-            } catch (err: any) {
-                toast.error('Erro ao ajustar reserva de stock');
+        setActionLoading(productId, true);
+        try {
+            if (qty <= 0) {
+                if (isOnline && item.reservations) {
+                    for (const r of (item.reservations || [])) {
+                        await commercialAPI.releaseItem(r.id);
+                    }
+                }
+                setCart(c => c.filter(i => i.productId !== productId));
                 return;
             }
-        } else if (isOnline && qty < item.quantity) {
-            // Release all existing reservations and re-reserve the new lower quantity
-            try {
+
+            const factor = item.unitMode === 'box' ? (item.packSize || 1) : 1;
+            const unitsNeeded = qty * factor;
+            if (unitsNeeded > item.product.currentStock) { toast.error('Stock insuficiente'); return; }
+
+            let newReservation: CartReservation | null = null;
+            let replaceReservations = false;
+            if (isOnline && qty > item.quantity) {
+                try {
+                    newReservation = await commercialAPI.reserveItem(productId, (qty - item.quantity) * factor, activeShift?.id) as CartReservation;
+                } catch {
+                    toast.error('Erro ao ajustar reserva de stock');
+                    return;
+                }
+            } else if (isOnline && qty < item.quantity) {
+                // Release all existing reservations and re-reserve the new lower quantity
+                try {
+                    for (const r of (item.reservations || [])) {
+                        await commercialAPI.releaseItem(r.id);
+                    }
+                    replaceReservations = true;
+                    if (qty > 0) {
+                        newReservation = await commercialAPI.reserveItem(productId, qty * factor, activeShift?.id) as CartReservation;
+                    }
+                } catch {
+                    // Non-blocking: continue with cart update even if release fails
+                }
+            }
+
+            setCart(c => c.map(it => {
+                if (it.productId !== productId) return it;
+                const tieredPrice = priceForMode(it.product, it.unitMode, qty);
+                const total = lineTotal(qty, tieredPrice, it.discountPct || 0);
+                const updatedReservations = replaceReservations
+                    ? (newReservation ? [newReservation] : [])
+                    : (newReservation ? [...(it.reservations || []), newReservation] : it.reservations);
+                return {
+                    ...it,
+                    quantity: qty,
+                    unitPrice: tieredPrice,
+                    total,
+                    reservations: updatedReservations
+                };
+            }));
+        } finally {
+            setActionLoading(productId, false);
+        }
+    }, [priceForMode, lineTotal, cart, isOnline, activeShift?.id]);
+
+
+
+    const removeFromCart = async (productId: string) => {
+        const item = cart.find(i => i.productId === productId);
+        setActionLoading(productId, true);
+        try {
+            if (isOnline && item?.reservations) {
                 for (const r of (item.reservations || [])) {
                     await commercialAPI.releaseItem(r.id);
                 }
-                replaceReservations = true;
-                if (qty > 0) {
-                    newReservation = await commercialAPI.reserveItem(productId, qty, activeShift?.id);
-                }
-            } catch {
-                // Non-blocking: continue with cart update even if release fails
             }
+            setCart(c => c.filter(i => i.productId !== productId));
+        } finally {
+            setActionLoading(productId, false);
         }
-
-        setCart(c => c.map(item => {
-            if (item.productId !== productId) return item;
-            const tieredPrice = resolvePrice(productId, item.product.price, qty);
-            const total = qty * tieredPrice * (1 - (item.discountPct || 0) / 100);
-            const updatedReservations = replaceReservations
-                ? (newReservation ? [newReservation] : [])
-                : (newReservation ? [...(item.reservations || []), newReservation] : item.reservations);
-            return {
-                ...item,
-                quantity: qty,
-                unitPrice: tieredPrice,
-                total,
-                reservations: updatedReservations
-            };
-        }));
-    }, [resolvePrice, cart, isOnline, activeShift?.id]);
-
-    const updateItemDiscount = useCallback((productId: string, discountPct: number) => {
-        setCart(c => c.map(item => {
-            if (item.productId !== productId) return item;
-            const validDiscount = Math.min(Math.max(discountPct || 0, 0), 100);
-            const total = item.quantity * item.unitPrice * (1 - validDiscount / 100);
-            return {
-                ...item,
-                discountPct: validDiscount,
-                total
-            };
-        }));
-    }, []);
-
-    const removeFromCart = (productId: string) => {
-        const item = cart.find(i => i.productId === productId);
-        if (isOnline && item?.reservations) {
-            item.reservations.forEach((r: any) => commercialAPI.releaseItem(r.id));
-        }
-        setCart(c => c.filter(i => i.productId !== productId));
     };
 
-    // ── Calculations ────────────────────────────────────────────────────────-
-    const cartSubtotal = useMemo(() => cart.reduce((s, i) => s + i.quantity * i.unitPrice, 0), [cart]);
-    const itemDiscounts = useMemo(() => cart.reduce((s, i) => s + i.quantity * i.unitPrice * ((i.discountPct || 0) / 100), 0), [cart]);
+    // ── Calculations (cents-based to avoid float drift) ─────────────────────
+    const cartSubtotalCents = useMemo(
+        () => cart.reduce((s, i) => s + Math.round(toCents(i.unitPrice) * i.quantity), 0),
+        [cart]
+    );
+    const itemDiscountsCents = useMemo(
+        () => cart.reduce((s, i) => {
+            const lineCents = Math.round(toCents(i.unitPrice) * i.quantity);
+            return s + applyPercent(lineCents, i.discountPct || 0);
+        }, 0),
+        [cart]
+    );
+
+    const cartSubtotal = toMoney(cartSubtotalCents);
+    const itemDiscounts = toMoney(itemDiscountsCents);
 
     const { totalDiscount: crmDiscount, appliedCampaigns } = useMemo(() =>
         calculatePOSDiscounts(selectedCustomer?.id || null, cartSubtotal, customers),
         [selectedCustomer, cartSubtotal, customers]
     );
+    const crmDiscountCents = toCents(crmDiscount);
 
-    const manualDiscount = appliedCampaign?.calculatedDiscount || 0;
-    const globalDiscountAmt = cartSubtotal * (globalDiscountPct / 100);
-    const cartDiscount = crmDiscount + manualDiscount + itemDiscounts + globalDiscountAmt;
-    const cartTax = (cartSubtotal - cartDiscount) * (ivaRate / 100);
-    const cartTotal = cartSubtotal - cartDiscount + cartTax;
+    // Subtotal já com descontos de linha aplicados — base para desconto global
+    const subtotalAfterLineCents = Math.max(0, cartSubtotalCents - itemDiscountsCents);
+    const subtotalAfterLine = toMoney(subtotalAfterLineCents);
 
-    // ── Promo code ────────────────────────────────────────────────────────────
-    const handleApplyPromoCode = () => {
-        const result = applyPromoCode(promoCode, cartSubtotal);
-        if (result.success && result.campaign) {
-            setAppliedCampaign(result.campaign);
-            setPromoCodeApplied(true);
-            toast.success(result.message);
+    const globalDiscountCents = useMemo(() => {
+        if (!globalDiscount) return 0;
+        const raw = globalDiscount.kind === 'percent'
+            ? applyPercent(subtotalAfterLineCents, globalDiscount.value)
+            : toCents(globalDiscount.value);
+        return Math.min(Math.max(0, raw), subtotalAfterLineCents);
+    }, [globalDiscount, subtotalAfterLineCents]);
+    const globalDiscountAmount = toMoney(globalDiscountCents);
+
+    const cartDiscountCents = crmDiscountCents + itemDiscountsCents + globalDiscountCents;
+    const taxBaseCents = Math.max(0, cartSubtotalCents - cartDiscountCents);
+    const cartTaxCents = applyPercent(taxBaseCents, ivaRate);
+    const cartTotalCents = Math.max(0, cartSubtotalCents - cartDiscountCents + cartTaxCents);
+
+    const cartDiscount = toMoney(cartDiscountCents);
+    const cartTax = toMoney(cartTaxCents);
+    const cartTotal = toMoney(cartTotalCents);
+
+
+
+    // ── Discount handlers ────────────────────────────────────────────────────
+    const handleOpenLineDiscount = useCallback((productId: string) => {
+        setDiscountModal({ scope: 'line', productId });
+    }, []);
+
+    const handleOpenGlobalDiscount = useCallback(() => {
+        setDiscountModal({ scope: 'global' });
+    }, []);
+
+    const handleConfirmDiscount = useCallback((discount: DiscountInfo | null) => {
+        if (!discountModal) return;
+        if (discountModal.scope === 'global') {
+            setGlobalDiscount(discount);
+            toast.success(discount ? 'Desconto global aplicado' : 'Desconto global removido');
         } else {
-            toast.error(result.message);
+            const { productId } = discountModal;
+            setCart(prev => prev.map(item => {
+                if (item.productId !== productId) return item;
+                if (!discount) {
+                    return { ...item, discountPct: 0, discount: null, total: lineTotal(item.quantity, item.unitPrice, 0) };
+                }
+                const lineBaseCents = Math.round(toCents(item.unitPrice) * item.quantity);
+                const pct = discount.kind === 'percent'
+                    ? discount.value
+                    : Math.min(100, (toCents(discount.value) / Math.max(lineBaseCents, 1)) * 100);
+                return { ...item, discountPct: pct, discount, total: lineTotal(item.quantity, item.unitPrice, pct) };
+            }));
+            toast.success(discount ? 'Desconto aplicado ao item' : 'Desconto removido');
         }
-    };
+        setDiscountModal(null);
+    }, [discountModal, lineTotal]);
+
+    const lineDiscountTarget = useMemo(() => {
+        if (!discountModal || discountModal.scope !== 'line') return null;
+        return cart.find(i => i.productId === discountModal.productId) || null;
+    }, [discountModal, cart]);
 
     // ── Checkout flow ────────────────────────────────────────────────────────-
     const handleOpenCheckout = () => {
@@ -430,7 +604,6 @@ export default function CommercialPOS() {
         setCheckoutLoading(true);
         try {
             const totalPaid = payments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-            const change = Math.max(0, totalPaid - cartTotal);
             const primaryMethod = isCredit ? 'credit' : payments[0]?.method || 'cash';
 
             // Build structured payment reference (JSON) for mixed/reference payments
@@ -440,15 +613,28 @@ export default function CommercialPOS() {
                 ...(p.reference ? { reference: p.reference } : {})
             }));
 
-            // Recompute values safely avoiding floating point discrepancies before sending to backend
+            // Recompute values safely avoiding floating point discrepancies before sending to backend.
+            // Backend opera SEMPRE em unidades — convertemos qty/unitPrice quando o item está em modo 'box'.
             const sanitizedItems = cart.map(item => {
-                const discountAmount = item.discountPct > 0 ? (item.quantity * item.unitPrice * (item.discountPct / 100)) : 0;
+                const qty = Number(item.quantity) || 0;
+                const unitPrice = Number(item.unitPrice) || 0;
+                const total = Number(item.total) || 0;
+                const discountPct = Number(item.discountPct) || 0;
+                const factor = item.unitMode === 'box' ? (Number(item.packSize) || 1) : 1;
+                const qtyUnits = qty * factor;
+                const unitPriceUnits = factor > 1 ? unitPrice / factor : unitPrice;
+                const discountAmount = discountPct > 0 ? (qtyUnits * unitPriceUnits * (discountPct / 100)) : 0;
                 return {
                     productId: item.productId,
-                    quantity: Number(item.quantity),
-                    unitPrice: Number(item.unitPrice.toFixed(2)),
+                    quantity: qtyUnits,
+                    unitPrice: Number(unitPriceUnits.toFixed(4)),
                     discount: Number(discountAmount.toFixed(2)),
-                    total: Number(item.total.toFixed(2))
+                    total: Number(total.toFixed(2)),
+                    ...(item.discount ? {
+                        discountReason: item.discount.reason,
+                        discountKind: item.discount.kind,
+                        discountAppliedBy: item.discount.appliedBy,
+                    } : {})
                 };
             });
             const validItemsSubtotal = Number(sanitizedItems.reduce((acc, item) => acc + item.total, 0).toFixed(2));
@@ -457,6 +643,30 @@ export default function CommercialPOS() {
             const validTotal = Number((validItemsSubtotal - validGlobalDiscount + validTax).toFixed(2));
             const validAmountPaid = isCredit ? 0 : Number(totalPaid.toFixed(2));
             const validChange = isCredit ? 0 : Math.max(0, Number((validAmountPaid - validTotal).toFixed(2)));
+
+            // Audit trail estruturado para o backend (persistido em colunas dedicadas)
+            const discountAuditPayload: any = {
+                global: globalDiscount ? {
+                    kind: globalDiscount.kind,
+                    value: globalDiscount.value,
+                    amount: Number(globalDiscountAmount.toFixed(2)),
+                    reason: globalDiscount.reason,
+                    appliedBy: globalDiscount.appliedBy,
+                } : null,
+                lines: cart
+                    .filter((i): i is CartItem & { discount: DiscountInfo } => i.discount !== null)
+                    .map(i => ({
+                        productId: i.productId,
+                        productName: i.product?.name,
+                        kind: i.discount.kind,
+                        value: i.discount.value,
+                        amount: Number((i.quantity * i.unitPrice * ((i.discountPct || 0) / 100)).toFixed(2)),
+                        pct: Number((i.discountPct || 0).toFixed(2)),
+                        reason: i.discount.reason,
+                        appliedBy: i.discount.appliedBy,
+                    })),
+            };
+            const hasAnyDiscount = !!discountAuditPayload.global || discountAuditPayload.lines.length > 0;
 
             const saleData = {
                 customerId: selectedCustomer?.id,
@@ -472,6 +682,11 @@ export default function CommercialPOS() {
                 paymentRef: JSON.stringify(paymentRefData),
                 warehouseId: activeShift?.warehouseId || undefined,
                 originModule: 'commercial',
+                ...(globalDiscount ? {
+                    discountReason: globalDiscount.reason,
+                    discountKind: globalDiscount.kind,
+                } : {}),
+                ...(hasAnyDiscount ? { discountAudit: discountAuditPayload } : {}),
                 notes: [
                     selectedCustomer ? `Cliente: ${selectedCustomer.name}` : customerName ? `Cliente: ${customerName}` : 'Consumidor Geral',
                     isCredit ? `CRÉDITO - Vence em ${creditDueDays} dias` : ''
@@ -494,8 +709,10 @@ export default function CommercialPOS() {
                 for (const item of cart) {
                     const productToUpdate = await offlineDB.products.get(item.productId);
                     if (productToUpdate) {
+                        const factor = item.unitMode === 'box' ? (Number(item.packSize) || 1) : 1;
+                        const unitsToDeduct = item.quantity * factor;
                         await offlineDB.products.update(item.productId, {
-                            currentStock: Math.max(0, productToUpdate.currentStock - item.quantity)
+                            currentStock: Math.max(0, productToUpdate.currentStock - unitsToDeduct)
                         });
                     }
                 }
@@ -522,7 +739,9 @@ export default function CommercialPOS() {
                 customerName: selectedCustomer?.name || customerName || 'Consumidor Geral',
                 customerPhone: selectedCustomer?.phone,
                 items: cart.map(i => ({
-                    name: i.product.name,
+                    name: i.unitMode === 'box' && (i.packSize || 1) > 1
+                        ? `${i.product.name} (cx ${i.packSize}un)`
+                        : i.product.name,
                     code: i.product.code,
                     quantity: i.quantity,
                     unitPrice: i.unitPrice,
@@ -534,7 +753,7 @@ export default function CommercialPOS() {
                 tax: cartTax,
                 total: cartTotal,
                 payments,
-                change,
+                change: validChange,
                 isCredit,
                 creditDueDays: isCredit ? creditDueDays : undefined
             };
@@ -545,9 +764,7 @@ export default function CommercialPOS() {
             setCart([]);
             setCustomerName('');
             setSelectedCustomer(null);
-            setPromoCode('');
-            setPromoCodeApplied(false);
-            setAppliedCampaign(null);
+            setGlobalDiscount(null);
             
             // Invalidate products to update stock quantities immediately
             if (isOnline) {
@@ -582,16 +799,15 @@ export default function CommercialPOS() {
             cart: [...cart],
             customerName,
             selectedCustomer,
-            createdAt: new Date()
+            createdAt: new Date(),
+            globalDiscount
         };
         setHeldSales(prev => [...prev, held]);
         setCart([]);
         setCustomerName('');
         setSelectedCustomer(null);
-        setPromoCode('');
-        setPromoCodeApplied(false);
-        setAppliedCampaign(null);
-        toast.success('Venda suspensa', { icon: '️' });
+        setGlobalDiscount(null);
+        toast.success('Venda suspensa');
     };
 
     const handleResumeSale = (held: HeldSale) => {
@@ -599,11 +815,18 @@ export default function CommercialPOS() {
             toast('Finalize ou suspenda a venda actual antes de retomar', { icon: '⚠️' });
             return;
         }
-        setCart(held.cart);
+        // Garantir compatibilidade com vendas suspensas antes do toggle Cx/Un
+        const restored = (held.cart || []).map((item: any) => ({
+            ...item,
+            packSize: Number(item.packSize) || Number(item.product?.packSize) || 1,
+            unitMode: item.unitMode || ((Number(item.product?.packSize) || 1) > 1 ? 'box' : 'unit'),
+        }));
+        setCart(restored);
         setCustomerName(held.customerName);
         setSelectedCustomer(held.selectedCustomer);
+        setGlobalDiscount(held.globalDiscount || null);
         setHeldSales(prev => prev.filter(h => h.id !== held.id));
-        toast.success(`Venda "${held.label}" retomada`, { icon: '▶️' });
+        toast.success(`Venda "${held.label}" retomada`);
     };
 
     const handleDeleteHeld = (id: string) => {
@@ -620,17 +843,22 @@ export default function CommercialPOS() {
 
     // ── Shift ────────────────────────────────────────────────────────────────-
     const handleOpenShift = async (openingBalance: number, warehouseId?: string) => {
+        setShiftLoading(true);
         try {
             await shiftAPI.open(openingBalance, warehouseId);
             queryClient.invalidateQueries({ queryKey: ['commercial', 'shift'] });
             setShowShiftModal(false);
             toast.success('Turno aberto!', { icon: '✅' });
         } catch (err: any) {
-            toast.error(err.message || 'Erro ao abrir turno');
+            const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Erro ao abrir turno';
+            toast.error(msg);
+        } finally {
+            setShiftLoading(false);
         }
     };
 
     const handleCloseShift = async (countedCash: number) => {
+        setShiftLoading(true);
         try {
             const closed = await shiftAPI.close(countedCash);
             const diff = Number(closed.difference) || 0;
@@ -642,11 +870,15 @@ export default function CommercialPOS() {
             queryClient.invalidateQueries({ queryKey: ['commercial', 'shift'] });
             setShowShiftModal(false);
         } catch (err: any) {
-            toast.error(err.message || 'Erro ao fechar turno');
+            const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Erro ao fechar turno';
+            toast.error(msg);
+        } finally {
+            setShiftLoading(false);
         }
     };
 
     const handleConfirmMovement = async (amount: number, reason: string) => {
+        setMovementLoading(true);
         try {
             await shiftAPI.addMovement({ 
                 amount, 
@@ -658,6 +890,8 @@ export default function CommercialPOS() {
             toast.success(movementType === 'cash_in' ? 'Entrada registada' : 'Sangria registada');
         } catch (err: any) {
             toast.error(err.message || 'Erro ao registar movimento');
+        } finally {
+            setMovementLoading(false);
         }
     };
 
@@ -679,6 +913,21 @@ export default function CommercialPOS() {
         }
     }, [lastReceipt]);
 
+    const handleClearCart = useCallback(() => {
+        if (cart.length > 0) {
+            const ok = window.confirm('Limpar carrinho? A venda actual será descartada.');
+            if (!ok) return;
+            if (isOnline) {
+                cart.forEach(item => {
+                    (item.reservations || []).forEach((r: any) => commercialAPI.releaseItem(r.id));
+                });
+            }
+        }
+        setCart([]);
+        setPosSearch('');
+        setGlobalDiscount(null);
+    }, [cart, isOnline]);
+
     const shortcuts = useMemo(() => [
         { key: 'F1',     action: () => setShowShortcutsHUD(v => !v), description: 'Atalhos' },
         { key: 'F2',     action: () => searchInputRef.current?.focus(), description: 'Busca' },
@@ -687,15 +936,8 @@ export default function CommercialPOS() {
         { key: 'F8',     action: handleToggleCashDrawer, description: 'Gaveta'      },
         { key: 'F9',     action: handleReprintLast,    description: 'Reimprimir'    },
         { key: 'F10',    action: handleToggleShift,    description: 'Turno'         },
-        { key: 'Escape', action: () => {
-            if (isOnline) {
-                cart.forEach(item => {
-                    (item.reservations || []).forEach((r: any) => commercialAPI.releaseItem(r.id));
-                });
-            }
-            setCart([]); setPosSearch(''); setGlobalDiscountPct(0);
-        }, description: 'Limpar' }
-    ], [handleOpenCheckout, handleToggleCashDrawer, handleHoldSale, handleReprintLast, handleToggleShift]);
+        { key: 'Escape', action: handleClearCart,      description: 'Limpar'        }
+    ], [handleOpenCheckout, handleToggleCashDrawer, handleHoldSale, handleReprintLast, handleToggleShift, handleClearCart]);
 
     useKeyboardShortcuts(shortcuts);
 
@@ -717,44 +959,46 @@ export default function CommercialPOS() {
         enabled: true
     });
 
-    if (loadingProducts || loadingCustomers || loadingShift) {
+    if (loadingProducts || loadingShift) {
         return (
-            <div className="space-y-6 max-w-full">
+            <div className="min-h-screen bg-slate-100 dark:bg-dark-900 p-6 space-y-6">
                 {/* Header Skeleton */}
-                <div className="h-24 bg-white dark:bg-dark-900 rounded-lg p-4 flex gap-4 animate-pulse">
-                    <Skeleton className="w-64 h-full" />
-                    <Skeleton className="flex-1 h-full" />
-                    <Skeleton className="w-32 h-full" />
+            <div className="h-32 bg-white dark:bg-dark-800 border border-slate-200 dark:border-white/5 rounded-2xl p-6 flex gap-6 animate-pulse shadow-sm dark:shadow-2xl">
+                    <div className="space-y-3 flex-1">
+                        <div className="h-8 bg-slate-100 dark:bg-white/5 rounded-lg w-1/3" />
+                        <div className="h-4 bg-slate-100 dark:bg-white/5 rounded-lg w-1/4" />
+                    </div>
+                    <div className="w-40 h-12 bg-slate-100 dark:bg-white/5 rounded-xl" />
                 </div>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     <div className="lg:col-span-3 space-y-6">
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                             {[1, 2, 3, 4, 5, 6].map(i => (
-                                <div key={i} className="bg-white dark:bg-dark-800 h-48 rounded-xl p-2 flex flex-col gap-2">
-                                    <Skeleton className="flex-1 w-full rounded-md" />
-                                    <Skeleton className="h-4 w-3/4" />
-                                    <Skeleton className="h-6 w-1/2" />
+                                <div key={i} className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-white/5 h-48 rounded-2xl p-4 flex flex-col gap-4 animate-pulse">
+                                    <div className="flex-1 bg-slate-100 dark:bg-white/5 rounded-xl" />
+                                    <div className="h-4 bg-slate-100 dark:bg-white/5 rounded-lg w-3/4" />
+                                    <div className="h-6 bg-slate-100 dark:bg-white/5 rounded-lg w-1/2" />
                                 </div>
                             ))}
                         </div>
                     </div>
-                    <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white dark:bg-dark-800 h-[600px] rounded-xl flex flex-col p-4 space-y-4">
-                            <Skeleton className="h-10 w-full" />
-                            <div className="flex-1 space-y-2">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="flex gap-2">
-                                        <Skeleton className="h-12 w-12 rounded-lg" />
-                                        <div className="flex-1 space-y-1">
-                                            <Skeleton className="h-4 w-3/4" />
-                                            <Skeleton className="h-3 w-1/4" />
+                    <div className="lg:col-span-2">
+                        <div className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-white/5 h-[600px] rounded-2xl p-6 space-y-6 animate-pulse shadow-sm dark:shadow-2xl">
+                            <div className="h-10 bg-slate-100 dark:bg-white/5 rounded-xl w-full" />
+                            <div className="flex-1 space-y-4">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i} className="flex gap-4 items-center">
+                                        <div className="h-14 w-14 bg-slate-100 dark:bg-white/5 rounded-xl" />
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-4 bg-slate-100 dark:bg-white/5 rounded-lg w-3/4" />
+                                            <div className="h-3 bg-slate-100 dark:bg-white/5 rounded-lg w-1/4" />
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                            <Skeleton className="h-24 w-full" />
-                            <Skeleton className="h-12 w-full rounded-xl" />
+                            <div className="h-32 bg-slate-100 dark:bg-white/5 rounded-2xl w-full" />
+                            <div className="h-14 bg-slate-100 dark:bg-white/5 rounded-xl w-full" />
                         </div>
                     </div>
                 </div>
@@ -763,82 +1007,75 @@ export default function CommercialPOS() {
     }
 
     return (
-        <div className="space-y-4">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-white dark:bg-dark-900 rounded-lg border border-gray-100 dark:border-dark-700 shadow-sm relative overflow-hidden transition-all">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-3xl -mr-32 -mt-32" />
-                <div className="relative z-10">
-                    <h1 className="text-3xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none mb-1">
-                        PDV Comercial
-                    </h1>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        {isOnline ? (
-                            <Badge variant="success" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 flex items-center gap-1">
-                                <HiOutlineCloud className="w-3 h-3" />
-                                Online
-                            </Badge>
-                        ) : (
-                            <Badge variant="danger" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest flex items-center gap-1">
-                                <HiOutlineCloudArrowUp className="w-3 h-3" />
-                                Modo Offline
-                            </Badge>
-                        )}
-
-                        {pendingCount > 0 && (
-                            <Badge variant="warning" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest animate-pulse">
-                                {pendingCount} Pendentes
-                            </Badge>
-                        )}
-
-                        {shift ? (
-                            <Badge variant="success" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
-                                Turno Activo
-                            </Badge>
-                        ) : (
-                            <Badge variant="danger" size="sm" className="font-black px-1.5 py-0.5 uppercase tracking-widest">
-                                Turno Fechado
-                            </Badge>
-                        )}
-                        {/* Warehouse indicator — shows which warehouse stock is being sold from */}
-                        {activeWarehouse && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
-                                <HiOutlineBuildingOffice className="w-3 h-3" />
-                                {activeWarehouse.name}
+        <div className="min-h-screen bg-slate-100 dark:bg-dark-950 text-slate-900 dark:text-white space-y-2 pb-10 p-1 lg:p-1 transition-colors duration-500 overflow-x-hidden">
+            {/* Header Redesign - Gaming/Modern Style */}
+            <div className="relative group overflow-hidden bg-white dark:bg-gradient-to-br dark:from-dark-800 dark:to-dark-900 border border-slate-200 dark:border-white/5 rounded-2xl p-3 mb-2 shadow-sm dark:shadow-2xl">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/5 rounded-full blur-[80px] pointer-events-none" />
+                
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white drop-shadow-sm">
+                            PDV COMERCIAL
+                        </h1>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Sistema Online</span>
+                            </div>
+                            
+                            {shift ? (
+                                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                                    <HiOutlinePlay className="w-3 h-3 text-blue-400" />
+                                    <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
+                                        Terminal: {activeWarehouse?.name || 'Geral'}
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                                    <HiOutlineLockClosed className="w-3 h-3 text-rose-500" />
+                                    <span className="text-[10px] font-bold text-rose-500 uppercase tracking-wider">Turno Fechado</span>
+                                </div>
+                            )}
+                            
+                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em] ml-2">
+                                Abra o turno para iniciar vendas
                             </span>
-                        )}
-                        <p className="text-gray-400 dark:text-gray-500 font-bold text-[10px] uppercase tracking-wider">
-                            {shift
-                                ? `${shift.openedAt.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} · ${shift.saleCount} vendas · ${shift.totalSales.toLocaleString()} MTn`
-                                : 'Abra o turno para iniciar vendas'}
-                        </p>
+                        </div>
                     </div>
-                </div>
-                <div className="flex items-center gap-2 relative z-10">
-                    {shift ? (
-                        <Button
-                            onClick={() => { setShiftModalMode('close'); setShowShiftModal(true); }}
-                            variant="secondary"
-                            className="px-6 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all shadow-sm hover:-translate-y-0.5"
-                            leftIcon={<HiOutlineStop className="w-4 h-4 text-red-500" />}
-                        >
-                            Encerrar Turno
-                        </Button>
-                    ) : (
-                        <Button
-                            onClick={() => { setShiftModalMode('open'); setShowShiftModal(true); }}
-                            variant="primary"
-                            className="bg-blue-600 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 hover:-translate-y-0.5"
-                            leftIcon={<HiOutlinePlay className="w-4 h-4" />}
-                        >
-                            Abrir Turno
-                        </Button>
-                    )}
+
+                    <div className="flex items-center gap-3">
+                        {!shift ? (
+                            <Button
+                                variant="primary"
+                                onClick={() => { setShiftModalMode('open'); setShowShiftModal(true); }}
+                                leftIcon={<HiOutlinePlay className="w-4 h-4" />}
+                            >
+                                Abrir Turno
+                            </Button>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => { setShiftModalMode('close'); setShowShiftModal(true); }}
+                                    leftIcon={<HiOutlineStop className="w-4 h-4" />}
+                                >
+                                    Fechar Turno
+                                </Button>
+                            </div>
+                        )}
+                        
+                        <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-white/10 transition-colors cursor-pointer group/sync">
+                            <HiOutlineCloudArrowUp className={cn("w-5 h-5 text-slate-400 dark:text-white/30 group-hover/sync:text-blue-500 dark:group-hover/sync:text-blue-400 transition-colors", pendingCount > 0 && "animate-bounce text-blue-500")} />
+                        </div>
+                    </div>
                 </div>
             </div>
 
             {/* Layout 60/40 */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-                <div className="lg:col-span-3">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-220px)]">
+                <div className="lg:col-span-3 overflow-y-auto pr-2 scrollbar-none">
                     <CommercialProductGrid
                         searchInputRef={searchInputRef}
                         posSearch={posSearch}
@@ -848,6 +1085,7 @@ export default function CommercialPOS() {
                         posPagination={posPagination}
                         addToCart={addToCart}
                         handleBarcodeSearch={handleBarcodeSearch}
+                        processingActions={processingActions}
                     />
                 </div>
 
@@ -856,8 +1094,8 @@ export default function CommercialPOS() {
                         cart={cart}
                         setCart={setCart}
                         updateQuantity={updateQuantity}
-                        updateItemDiscount={updateItemDiscount}
                         removeFromCart={removeFromCart}
+                        processingActions={processingActions}
                         cartTotal={cartTotal}
                         cartSubtotal={cartSubtotal}
                         cartTax={cartTax}
@@ -866,18 +1104,16 @@ export default function CommercialPOS() {
                         setSelectedCustomer={setSelectedCustomer}
                         customerName={customerName}
                         setCustomerName={setCustomerName}
-                        promoCode={promoCode}
-                        setPromoCode={setPromoCode}
-                        promoCodeApplied={promoCodeApplied}
-                        handleApplyPromoCode={handleApplyPromoCode}
-                        globalDiscountPct={globalDiscountPct}
-                        onGlobalDiscountChange={setGlobalDiscountPct}
                         onCheckout={handleOpenCheckout}
                         checkoutLoading={checkoutLoading}
                         customers={displayCustomers}
                         cashDrawerOpen={cashDrawerOpen}
                         handleToggleCashDrawer={handleToggleCashDrawer}
                         cashDrawerBalance={cashDrawerBalance}
+                        onOpenLineDiscount={handleOpenLineDiscount}
+                        onOpenGlobalDiscount={handleOpenGlobalDiscount}
+                        globalDiscount={globalDiscount}
+                        crmDiscount={crmDiscount}
                         handleScaleAction={() => {
                             // Se h um item no carrinho, pré-selecciona o último para pesagem
                             const last = cart.at(-1);
@@ -885,7 +1121,6 @@ export default function CommercialPOS() {
                             setShowScaleModal(true);
                         }}
                         heldSales={heldSales}
-                        onHoldSale={handleHoldSale}
                         onResumeSale={handleResumeSale}
                         onDeleteHeld={handleDeleteHeld}
                         onCashMovement={(type) => {
@@ -907,6 +1142,7 @@ export default function CommercialPOS() {
                 cartTax={cartTax}
                 customerName={selectedCustomer?.name || customerName}
                 selectedCustomer={selectedCustomer}
+                isLoading={checkoutLoading}
             />
 
             <CommercialShiftModal
@@ -916,6 +1152,7 @@ export default function CommercialPOS() {
                 onOpenShift={handleOpenShift}
                 onCloseShift={handleCloseShift}
                 onClose={() => setShowShiftModal(false)}
+                isLoading={shiftLoading}
             />
 
             <CommercialReceiptModal
@@ -944,6 +1181,7 @@ export default function CommercialPOS() {
                 type={movementType}
                 onClose={() => setShowMovementModal(false)}
                 onConfirm={handleConfirmMovement}
+                isLoading={movementLoading}
             />
 
             {/* Atalhos de teclado - overlay F1 */}
@@ -952,8 +1190,38 @@ export default function CommercialPOS() {
                 onClose={() => setShowShortcutsHUD(false)}
             />
 
+            {/* Modal de desconto profissional */}
+            <CommercialDiscountModal
+                isOpen={!!discountModal}
+                onClose={() => setDiscountModal(null)}
+                onConfirm={handleConfirmDiscount}
+                scope={discountModal?.scope || 'global'}
+                productName={lineDiscountTarget?.product?.name}
+                baseAmount={
+                    discountModal?.scope === 'line' && lineDiscountTarget
+                        ? lineDiscountTarget.quantity * lineDiscountTarget.unitPrice
+                        : subtotalAfterLine
+                }
+                currentDiscount={
+                    discountModal?.scope === 'line'
+                        ? (lineDiscountTarget?.discount || null)
+                        : globalDiscount
+                }
+            />
+
             {/* Badge flutuante de atalhos */}
             <ShortcutsHintBadge onClick={() => setShowShortcutsHUD(true)} />
+
+            {(() => {
+                const busy = checkoutLoading || shiftLoading || movementLoading;
+                if (!busy) return null;
+                const message = checkoutLoading
+                    ? 'A processar a venda... Por favor, aguarde.'
+                    : shiftLoading
+                        ? 'A processar turno...'
+                        : 'A processar movimento de caixa...';
+                return <LoadingOverlay message={message} fullScreen />;
+            })()}
         </div>
     );
 }

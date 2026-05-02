@@ -1,19 +1,26 @@
 import { useState, useCallback } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useNavigate } from 'react-router-dom';
 import {
-    HiOutlineDocumentText, HiOutlinePlus, HiOutlineArrowPath,
+    HiOutlineDocumentText, HiOutlinePlus,
     HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock,
-    HiOutlineChevronDown, HiOutlinePaperAirplane, HiOutlineArrowRight,
+    HiOutlineEye, HiOutlinePaperAirplane, HiOutlineArrowRight,
+    HiOutlinePrinter, HiOutlineTrash, HiOutlineArrowDownTray
 } from 'react-icons/hi2';
-import { Card, Badge, Button, Input, Select, Textarea, Modal } from '../../components/ui';
+import { Badge, Button, Input, Select, Textarea, Modal, SmartTable } from '../../components/ui';
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { CustomerSearchInput, type CustomerOption } from '../../components/commercial/CustomerSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
+import { generateQuotationPDF, generateQuotationsListPDF } from '../../utils/documentGenerator';
 import { useQuotations } from '../../hooks/useCommercial';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { ordersAPI } from '../../services/api';
 import { commercialAPI } from '../../services/api/commercial.api';
+import { getDocumentWorkflow, type WorkflowTransitions } from '../../hooks/commercial/useDocumentWorkflow';
 import toast from 'react-hot-toast';
+import { PAGE_SIZE } from '../../utils/constants';
+
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 
 // ── Status display ────────────────────────────────────────────────────────────
 
@@ -28,20 +35,21 @@ const QUOTE_STATUS = {
 type QuoteStatus = keyof typeof QUOTE_STATUS;
 
 // Actions available per status
-const QUOTE_TRANSITIONS: Record<string, Array<{ next: string; label: string; variant: 'primary'|'success'|'danger'|'ghost' }>> = {
-    created:   [{ next: 'sale',      label: 'Converter em Venda', variant: 'primary' },
-                { next: 'printed',   label: 'Marcar Enviada',     variant: 'ghost'   },
-                { next: 'cancelled', label: 'Cancelar',           variant: 'danger'  }],
-    printed:   [{ next: 'sale',      label: 'Converter em Venda', variant: 'primary' },
-                { next: 'separated', label: 'Marcar Aceite',      variant: 'success' },
-                { next: 'cancelled', label: 'Cancelar',           variant: 'danger'  }],
-    separated: [{ next: 'sale',    label: 'Vender (PDV)',         variant: 'primary' },
-                { next: 'invoice', label: 'Gerar Factura',        variant: 'success' }],
+const QUOTE_TRANSITIONS: WorkflowTransitions<QuoteStatus> = {
+    created:   [{ next: 'sale',      label: 'Converter em Venda', variant: 'primary', icon: <HiOutlineArrowRight     className="w-3.5 h-3.5" /> },
+                { next: 'printed',   label: 'Marcar Enviada',     variant: 'ghost',   icon: <HiOutlinePaperAirplane  className="w-3.5 h-3.5" /> },
+                { next: 'cancelled', label: 'Cancelar',           variant: 'danger',  icon: <HiOutlineXCircle        className="w-3.5 h-3.5" /> }],
+    printed:   [{ next: 'sale',      label: 'Converter em Venda', variant: 'primary', icon: <HiOutlineArrowRight     className="w-3.5 h-3.5" /> },
+                { next: 'separated', label: 'Marcar Aceite',      variant: 'success', icon: <HiOutlineCheckCircle    className="w-3.5 h-3.5" /> },
+                { next: 'cancelled', label: 'Cancelar',           variant: 'danger',  icon: <HiOutlineXCircle        className="w-3.5 h-3.5" /> }],
+    separated: [{ next: 'sale',    label: 'Vender (PDV)',         variant: 'primary', icon: <HiOutlineArrowRight     className="w-3.5 h-3.5" /> },
+                { next: 'invoice', label: 'Gerar Factura',        variant: 'success', icon: <HiOutlineDocumentText   className="w-3.5 h-3.5" /> }],
     completed: [],
     cancelled: [],
 };
 
-type LineItem = { product: ProductOption | null; quantity: number; price: number };
+type SaleUnit = 'box' | 'unit';
+type LineItem = { product: ProductOption | null; quantity: number; price: number; saleUnit: SaleUnit };
 
 // ── CreateQuoteModal ──────────────────────────────────────────────────────────
 
@@ -53,13 +61,13 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
     const [manualPhone, setManualPhone] = useState('');
     const [validUntil, setValidUntil]   = useState('');
     const [notes, setNotes]             = useState('');
-    const [lines, setLines]             = useState<LineItem[]>([{ product: null, quantity: 1, price: 0 }]);
+    const [lines, setLines]             = useState<LineItem[]>([{ product: null, quantity: 1, price: 0, saleUnit: 'box' }]);
     const [saving, setSaving]           = useState(false);
 
     const { settings } = useCompanySettings();
     const ivaRate = settings?.ivaRate || 16;
 
-    const addLine    = () => setLines(p => [...p, { product: null, quantity: 1, price: 0 }]);
+    const addLine    = () => setLines(p => [...p, { product: null, quantity: 1, price: 0, saleUnit: 'box' }]);
     const removeLine = (i: number) => setLines(p => p.filter((_, idx) => idx !== i));
 
     const updateLine = useCallback(<K extends keyof LineItem>(i: number, k: K, v: LineItem[K]) =>
@@ -67,8 +75,17 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
 
     const handleProductSelect = useCallback((i: number, product: ProductOption) => {
         setLines(p => p.map((l, idx) =>
-            idx === i ? { ...l, product, price: product.price } : l
+            idx === i ? { ...l, product, price: product.price, saleUnit: 'box' } : l
         ));
+    }, []);
+
+    const toggleSaleUnit = useCallback((i: number, next: SaleUnit) => {
+        setLines(p => p.map((l, idx) => {
+            if (idx !== i || !l.product) return l;
+            const packSize = Math.max(1, Number(l.product.packSize) || 1);
+            const nextPrice = next === 'unit' ? l.product.price / packSize : l.product.price;
+            return { ...l, saleUnit: next, price: Number(nextPrice.toFixed(2)) };
+        }));
     }, []);
 
     const subtotal = lines.reduce((s, l) => s + l.quantity * l.price, 0);
@@ -92,12 +109,15 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                 customerEmail: customer?.email,
                 customerId:    customer?.id,
                 validUntil,
-                notes:         `${notes} __QUOTE__`, // Ensure tag is preserved
+                notes,
                 items: valid.map(l => ({
                     productId:   l.product!.id,
-                    productName: l.product!.name,
+                    productName: l.saleUnit === 'unit'
+                        ? `${l.product!.name} (un)`
+                        : l.product!.name,
                     quantity:    l.quantity,
                     price:       l.price,
+                    barcode:     l.product!.barcode,
                 })),
             });
             toast.success('Cotação criada com sucesso!');
@@ -170,10 +190,10 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
 
                     <div className="space-y-4 overflow-visible">
                         {lines.map((line, i) => (
-                            <div key={i} 
+                            <div key={i}
                                 style={{ zIndex: (lines.length - i) * 10 }}
                                 className="relative overflow-visible grid grid-cols-12 gap-2 items-end p-3 rounded-lg border border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-700/30">
-                                <div className="col-span-6">
+                                <div className="col-span-5">
                                     <ProductSearchInput
                                         label={i === 0 ? 'Produto' : undefined}
                                         originModule="commercial"
@@ -185,6 +205,39 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                     />
                                 </div>
                                 <div className="col-span-2">
+                                    {i === 0 && (
+                                        <label className="block text-[11px] font-medium text-gray-600 dark:text-gray-400 mb-1">Tipo</label>
+                                    )}
+                                    <div className="flex rounded-md border border-gray-200 dark:border-dark-600 overflow-hidden h-[34px]">
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleSaleUnit(i, 'box')}
+                                            disabled={!line.product}
+                                            className={cn(
+                                                "flex-1 text-[11px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50",
+                                                line.saleUnit === 'box'
+                                                    ? "bg-primary-500 text-white"
+                                                    : "bg-white dark:bg-dark-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-dark-600"
+                                            )}
+                                        >
+                                            Cx
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleSaleUnit(i, 'unit')}
+                                            disabled={!line.product || !line.product.packSize || line.product.packSize <= 1}
+                                            className={cn(
+                                                "flex-1 text-[11px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                                                line.saleUnit === 'unit'
+                                                    ? "bg-primary-500 text-white"
+                                                    : "bg-white dark:bg-dark-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-dark-600"
+                                            )}
+                                        >
+                                            Un
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="col-span-1">
                                     <Input
                                         label={i === 0 ? 'Qtd' : undefined}
                                         size="sm" type="number" min="1"
@@ -194,7 +247,7 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                 </div>
                                 <div className="col-span-3">
                                     <Input
-                                        label={i === 0 ? 'Preço unit.' : undefined}
+                                        label={i === 0 ? (line.saleUnit === 'unit' ? 'Preço/un' : 'Preço/cx') : undefined}
                                         size="sm" type="number" min="0" step="0.01"
                                         value={line.price}
                                         onChange={e => updateLine(i, 'price', parseFloat(e.target.value) || 0)}
@@ -209,7 +262,10 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
                                 </div>
                                 {line.product && (
                                     <p className="col-span-12 text-right text-xs text-gray-500 -mt-1">
-                                        Subtotal: <strong>{formatCurrency(line.quantity * line.price)}</strong>
+                                        {line.saleUnit === 'unit'
+                                            ? `${line.quantity} un × ${formatCurrency(line.price)}`
+                                            : `${line.quantity} cx × ${formatCurrency(line.price)}`}
+                                        {' · Subtotal: '}<strong>{formatCurrency(line.quantity * line.price)}</strong>
                                     </p>
                                 )}
                             </div>
@@ -246,6 +302,110 @@ function CreateQuoteModal({ onClose, onSuccess }: CreateQuoteModalProps) {
     );
 }
 
+// ── QuoteDetailsModal (reusable) ─────────────────────────────────────────────
+
+interface QuoteDetailsModalProps {
+    quote: any | null;
+    ivaRate: number;
+    onClose: () => void;
+}
+
+function QuoteDetailsModal({ quote, ivaRate, onClose }: QuoteDetailsModalProps) {
+    if (!quote) return null;
+    const subtotal = (quote.items || []).reduce(
+        (s: number, i: any) => s + Number(i.price) * Number(i.quantity), 0
+    );
+    const ivaValue = subtotal * (ivaRate / 100);
+
+    return (
+        <Modal
+            isOpen
+            onClose={onClose}
+            title={`Cotação ${quote.orderNumber} — ${quote.customerName}`}
+            size="xl"
+        >
+            <div className="space-y-5">
+                <div>
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Itens da Cotação</h4>
+                    <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
+                        <table className="w-full text-[11px]">
+                            <thead>
+                                <tr className="bg-gray-50 dark:bg-dark-700/50 text-gray-400">
+                                    <th className="text-left p-3 font-black uppercase tracking-widest">Produto</th>
+                                    <th className="text-left p-3 font-black uppercase tracking-widest">Cód. Barra</th>
+                                    <th className="text-right p-3 font-black uppercase tracking-widest">Qtd</th>
+                                    <th className="text-right p-3 font-black uppercase tracking-widest">Preço</th>
+                                    <th className="text-right p-3 font-black uppercase tracking-widest">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(quote.items ?? []).map((item: any) => (
+                                    <tr key={item.id} className="border-t border-gray-50 dark:border-dark-700/50">
+                                        <td className="p-3 font-bold text-gray-700 dark:text-gray-300 uppercase">{item.productName}</td>
+                                        <td className="p-3 text-gray-500">{item.barcode || item.product?.barcode || '---'}</td>
+                                        <td className="p-3 text-right text-gray-500">{item.quantity}</td>
+                                        <td className="p-3 text-right text-gray-500">{formatCurrency(Number(item.price))}</td>
+                                        <td className="p-3 text-right font-black text-gray-900 dark:text-white">{formatCurrency(Number(item.total))}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Informações Adicionais</h4>
+                    <div className="p-4 rounded-xl bg-gray-50/50 dark:bg-dark-900/30 border border-gray-100 dark:border-dark-700 space-y-2">
+                        <div className="flex justify-between text-xs">
+                            <span className="text-gray-400">Data de Emissão:</span>
+                            <span className="font-bold text-gray-700 dark:text-gray-300">
+                                {new Date(quote.createdAt).toLocaleDateString('pt-MZ')}
+                            </span>
+                        </div>
+                        {quote.deliveryDate && (
+                            <div className="flex justify-between text-xs">
+                                <span className="text-gray-400">Válida até:</span>
+                                <span className="font-bold text-gray-700 dark:text-gray-300">
+                                    {new Date(quote.deliveryDate).toLocaleDateString('pt-MZ')}
+                                </span>
+                            </div>
+                        )}
+                        <div className="pt-2 mt-2 border-t border-gray-100 dark:border-dark-700 space-y-1">
+                            <div className="flex justify-between text-xs">
+                                <span className="text-gray-400">Subtotal:</span>
+                                <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(subtotal)}</span>
+                            </div>
+                            <div className="flex justify-between text-xs">
+                                <span className="text-gray-400">IVA ({ivaRate}%):</span>
+                                <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(ivaValue)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm pt-1 border-t border-gray-100 dark:border-dark-700/50">
+                                <span className="text-gray-400 font-bold">Total Final:</span>
+                                <span className="font-black text-primary-600 dark:text-primary-400">
+                                    {formatCurrency(Number(quote.total))}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {(quote.notes ?? '').trim() && (
+                    <div>
+                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Observações</h4>
+                        <div className="p-3 rounded-lg bg-primary-50/30 dark:bg-primary-900/10 border border-primary-100/30 dark:border-primary-500/10 text-[11px] text-gray-600 dark:text-gray-400 italic">
+                            {quote.notes}
+                        </div>
+                    </div>
+                )}
+
+                <div className="flex justify-end pt-2">
+                    <Button variant="ghost" onClick={onClose}>Fechar</Button>
+                </div>
+            </div>
+        </Modal>
+    );
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────-
 
 export default function CommercialQuotes() {
@@ -254,18 +414,19 @@ export default function CommercialQuotes() {
     const [search, setSearch]             = useState('');
     const [page, setPage]                 = useState(1);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [expandedId, setExpandedId]           = useState<string | null>(null);
+    const [viewingQuote, setViewingQuote]       = useState<any | null>(null);
     const [converting, setConverting]           = useState<string | null>(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [quoteToDelete, setQuoteToDelete]     = useState<string | null>(null);
     const [deleting, setDeleting]               = useState(false);
+    const { settings: companySettings }         = useCompanySettings();
 
     // Server-side filtered + paginated quotations via /commercial/quotations
     const { quotes, pagination, isLoading, refetch } = useQuotations({
         status: statusFilter || undefined,
         search: search || undefined,
         page,
-        limit: 20,
+        limit: PAGE_SIZE,
     });
 
     const handleStatusUpdate = async (id: string, next: string) => {
@@ -325,9 +486,138 @@ export default function CommercialQuotes() {
         ...Object.entries(QUOTE_STATUS).map(([k, v]) => ({ value: k, label: v.label })),
     ];
 
+    const columns: ColumnDef<any>[] = [
+        {
+            accessorKey: 'orderNumber',
+            header: 'Nº COTAÇÃO',
+            cell: ({ row }) => (
+                <div className="flex flex-col">
+                    <span className="font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                        {row.original.orderNumber}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-medium">
+                        {new Date(row.original.createdAt).toLocaleDateString('pt-MZ')}
+                    </span>
+                </div>
+            )
+        },
+        {
+            accessorKey: 'customerName',
+            header: 'CLIENTE',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />
+                    <span className="font-bold text-gray-700 dark:text-gray-300 uppercase tracking-tight truncate max-w-[200px]">
+                        {row.original.customerName}
+                    </span>
+                </div>
+            )
+        },
+        {
+            accessorKey: 'total',
+            header: 'TOTAL',
+            cell: ({ row }) => (
+                <span className="font-black text-primary-600 dark:text-primary-400">
+                    {formatCurrency(Number(row.original.total))}
+                </span>
+            )
+        },
+        {
+            accessorKey: 'status',
+            header: 'ESTADO',
+            cell: ({ row }) => {
+                const { config: cfg } = getDocumentWorkflow(row.original.status as QuoteStatus, QUOTE_STATUS, QUOTE_TRANSITIONS, 'created');
+                return (
+                    <Badge variant={cfg.variant} size="sm" className="font-black text-[9px] uppercase tracking-widest">
+                        {cfg.label}
+                    </Badge>
+                );
+            }
+        },
+        {
+            id: 'actions',
+            header: 'ACÇÕES',
+            cell: ({ row }) => {
+                const quote = row.original;
+                const { transitions: actions } = getDocumentWorkflow(quote.status as QuoteStatus, QUOTE_STATUS, QUOTE_TRANSITIONS, 'created');
+                
+                return (
+                    <div className="flex items-center gap-2">
+                        {actions.map(action => (
+                            <Button
+                                key={action.next}
+                                size="xs"
+                                variant={action.variant === 'ghost' ? 'outline' : action.variant}
+                                className="text-[10px] font-black uppercase tracking-widest"
+                                leftIcon={action.icon}
+                                isLoading={converting === quote.id && action.next === 'invoice'}
+                                onClick={() => handleStatusUpdate(quote.id, action.next)}
+                            >
+                                {action.label}
+                            </Button>
+                        ))}
+
+                        {quote.status === 'created' && (
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                className="p-1.5 h-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                onClick={() => handleDeleteRequest(quote.id)}
+                            >
+                                <HiOutlineTrash className="w-4 h-4" />
+                            </Button>
+                        )}
+
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="p-1.5 h-auto text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                            onClick={() => setViewingQuote(quote)}
+                            title="Ver detalhes"
+                        >
+                            <HiOutlineEye className="w-4 h-4" />
+                        </Button>
+
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="p-1.5 h-auto text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            onClick={() => generateQuotationPDF(quote, companySettings, 'print')}
+                            title="Imprimir Cotação"
+                        >
+                            <HiOutlinePrinter className="w-4 h-4" />
+                        </Button>
+
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="p-1.5 h-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            onClick={() => generateQuotationPDF(quote, companySettings, 'save')}
+                            title="Exportar PDF"
+                        >
+                            <HiOutlineArrowDownTray className="w-4 h-4" />
+                        </Button>
+                    </div>
+                );
+            }
+        }
+    ];
+
     const totalQuotes   = pagination?.total ?? quotes.length;
     const totalValue    = quotes.reduce((s: number, q: any) => s + Number(q.total), 0);
     const acceptedValue = quotes.filter((q: any) => q.status === 'separated').reduce((s: number, q: any) => s + Number(q.total), 0);
+
+    const statusLabelOf = (s: string) => QUOTE_STATUS[s as QuoteStatus]?.label ?? s;
+
+    const handleExportPDF = () => {
+        if (!quotes.length) return toast.error('Sem cotações para exportar');
+        generateQuotationsListPDF(quotes, companySettings, statusLabelOf, 'save');
+    };
+
+    const handlePrintList = () => {
+        if (!quotes.length) return toast.error('Sem cotações para imprimir');
+        generateQuotationsListPDF(quotes, companySettings, statusLabelOf, 'print');
+    };
 
     return (
         <div className="space-y-6">
@@ -335,199 +625,107 @@ export default function CommercialQuotes() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineDocumentText className="text-primary-600 dark:text-primary-400" />
-                        Cotações / Orçamentos
+                        <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
+                            <HiOutlineDocumentText className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span>Cotações / Orçamentos</span>
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Gestão de Propostas Comerciais</span>
+                        </div>
                     </h2>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                        Fluxo: Rascunho → Enviada → Aceite → Factura
-                    </p>
                 </div>
-                <Button variant="primary" onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest">
+                <Button variant="primary" onClick={() => setShowCreateModal(true)} className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20">
                     <HiOutlinePlus className="w-4 h-4 text-white" /> Nova Cotação
                 </Button>
             </div>
 
-            {/* Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                    { label: 'Total Cotações',  value: String(totalQuotes),              color: 'border-l-primary-500' },
-                    { label: 'Pendentes',        value: String(quotes.filter((q: any) => ['created','printed'].includes(q.status)).length), color: 'border-l-yellow-500' },
-                    { label: 'Valor Total',      value: formatCurrency(totalValue),       color: 'border-l-blue-500'    },
-                    { label: 'Aceites',          value: formatCurrency(acceptedValue),    color: 'border-l-green-500'   },
-                ].map(c => (
-                    <Card key={c.label} padding="md" className={`border-l-4 ${c.color}`}>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{c.label}</p>
-                        <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{c.value}</p>
-                    </Card>
-                ))}
+            {/* Summary Panel */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard 
+                    icon={<HiOutlineDocumentText className="w-5 h-5" />}
+                    color="blue"
+                    label="Total Cotações"
+                    value={totalQuotes}
+                />
+                <MetricCard 
+                    icon={<HiOutlineClock className="w-5 h-5" />}
+                    color="amber"
+                    label="Pendentes"
+                    value={quotes.filter((q: any) => ['created','printed'].includes(q.status)).length}
+                />
+                <MetricCard 
+                    icon={<HiOutlinePlus className="w-5 h-5" />}
+                    color="primary"
+                    label="Valor Total"
+                    value={formatCurrency(totalValue)}
+                />
+                <MetricCard 
+                    icon={<HiOutlineCheckCircle className="w-5 h-5" />}
+                    color="emerald"
+                    label="Aceites"
+                    value={formatCurrency(acceptedValue)}
+                />
             </div>
 
-            {/* Filters */}
-            <Card padding="md">
-                <div className="flex flex-col md:flex-row gap-3">
-                    <div className="flex-1">
-                        <Input placeholder="Pesquisar por número ou cliente..."
-                            value={search} onChange={e => handleSearchChange(e.target.value)}
-                            leftIcon={<HiOutlineDocumentText className="w-4 h-4 text-primary-600 dark:text-primary-400" />} />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-44">
-                            <Select options={statusOptions} value={statusFilter}
-                                onChange={e => handleFilterChange(e.target.value)} />
-                        </div>
-                        <button onClick={refetch} title="Actualizar"
-                            className="p-2.5 rounded-lg border border-primary-100/50 dark:border-primary-500/20 bg-primary-50/50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 transition-colors">
-                            <HiOutlineArrowPath className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            </Card>
-
-            {/* Quotes list */}
-            <div className="space-y-3">
-                {isLoading ? (
-                    Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="h-20 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
-                    ))
-                ) : quotes.length === 0 ? (
-                    <Card padding="lg" className="text-center py-16">
-                        <HiOutlineDocumentText className="w-12 h-12 text-primary-600 dark:text-primary-400 mx-auto mb-3 opacity-50" />
-                        <p className="text-gray-500 font-medium">Nenhuma cotação encontrada</p>
-                        <Button variant="primary" className="mt-4" onClick={() => setShowCreateModal(true)}>
-                            <HiOutlinePlus className="w-4 h-4 mr-1" /> Nova Cotação
-                        </Button>
-                    </Card>
-                ) : (
-                    quotes.map((quote: any) => {
-                        const cfg        = QUOTE_STATUS[quote.status as QuoteStatus] ?? QUOTE_STATUS.created;
-                        const Icon       = cfg.icon;
-                        const isExpanded = expandedId === quote.id;
-                        const actions    = QUOTE_TRANSITIONS[quote.status] ?? [];
-                        const cleanNotes = (quote.notes ?? '').replace('__QUOTE__', '').trim();
-
-                        return (
-                            <Card key={quote.id} padding="md" className="hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-4">
-                                    <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', cfg.bg)}>
-                                        <Icon className={cn('w-5 h-5', cfg.color)} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-bold text-gray-900 dark:text-white text-sm">
-                                                {quote.orderNumber}
-                                            </span>
-                                            <Badge variant={cfg.variant} size="sm">{cfg.label}</Badge>
-                                            {quote.deliveryDate && new Date(quote.deliveryDate) < new Date() && quote.status !== 'completed' && (
-                                                <Badge variant="warning" size="sm">
-                                                    <HiOutlineClock className="w-3 h-3 mr-1" /> Expirada
-                                                </Badge>
-                                            )}
-                                        </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                                            {quote.customerName}
-                                            {quote.deliveryDate && (
-                                                <span className="ml-2 text-xs">
-                                                    · Válida até: {new Date(quote.deliveryDate).toLocaleDateString('pt-MZ')}
-                                                </span>
-                                            )}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <span className="font-bold text-gray-900 dark:text-white">
-                                            {formatCurrency(Number(quote.total))}
-                                        </span>
-                                        <button onClick={() => setExpandedId(isExpanded ? null : quote.id)}
-                                            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 transition-colors">
-                                            <HiOutlineChevronDown className={cn('w-4 h-4 transition-transform', isExpanded && 'rotate-180')} />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {isExpanded && (
-                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-dark-700 space-y-4">
-                                        {/* Items */}
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-xs">
-                                                <thead>
-                                                    <tr className="text-gray-400 border-b border-gray-100 dark:border-dark-700">
-                                                        <th className="text-left py-2 font-medium">Produto</th>
-                                                        <th className="text-right py-2 font-medium">Qtd</th>
-                                                        <th className="text-right py-2 font-medium">Preço Unit.</th>
-                                                        <th className="text-right py-2 font-medium">Total</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {(quote.items ?? []).map((item: any) => (
-                                                        <tr key={item.id} className="border-b border-gray-50 dark:border-dark-700/50">
-                                                            <td className="py-2 font-medium text-gray-700 dark:text-gray-300">{item.productName}</td>
-                                                            <td className="py-2 text-right">{item.quantity}</td>
-                                                            <td className="py-2 text-right">{formatCurrency(Number(item.price))}</td>
-                                                            <td className="py-2 text-right font-bold">{formatCurrency(Number(item.total))}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-
-                                        {cleanNotes && (
-                                            <p className="text-xs text-gray-500 bg-gray-50 dark:bg-dark-700/50 rounded-lg px-3 py-2">
-                                                <strong>Condições:</strong> {cleanNotes}
-                                            </p>
-                                        )}
-
-                                        <div className="flex flex-wrap gap-2">
-                                            {actions.map(action => (
-                                                <Button key={action.next} size="sm" variant={action.variant}
-                                                    isLoading={converting === quote.id && action.next === 'invoice'}
-                                                    onClick={() => handleStatusUpdate(quote.id, action.next)}>
-                                                    {action.label}
-                                                </Button>
-                                            ))}
-                                            {quote.status === 'created' && (
-                                                <Button size="sm" variant="danger" onClick={() => handleDeleteRequest(quote.id)}>
-                                                    Eliminar
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </Card>
-                        );
-                    })
-                )}
+            {/* Toolbar: Print + Export */}
+            <div className="flex justify-end gap-2">
+                <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handlePrintList}
+                    className="flex items-center gap-2"
+                >
+                    <HiOutlinePrinter className="w-4 h-4" />
+                    Imprimir
+                </Button>
+                <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleExportPDF}
+                    className="flex items-center gap-2"
+                >
+                    <HiOutlineArrowDownTray className="w-4 h-4" />
+                    Exportar PDF
+                </Button>
             </div>
 
-            {/* Pagination */}
-            {pagination && pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between px-1 py-2">
-                    <p className="text-xs text-gray-400">
-                        Mostrando {quotes.length} de {pagination.total} Cotações
-                    </p>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setPage(p => Math.max(p - 1, 1))}
-                            disabled={page === 1}
-                            className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-dark-600 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
-                        >
-                            Anterior
-                        </button>
-                        <span className="px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400">
-                            {page} / {pagination.totalPages}
-                        </span>
-                        <button
-                            onClick={() => setPage(p => Math.min(p + 1, pagination.totalPages))}
-                            disabled={page === pagination.totalPages}
-                            className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-dark-600 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
-                        >
-                            Próxima
-                        </button>
+            {/* List with SmartTable */}
+            <SmartTable
+                data={quotes}
+                columns={columns}
+                isLoading={isLoading}
+                pagination={{
+                    currentPage: page,
+                    totalItems: pagination?.total || 0,
+                    itemsPerPage: PAGE_SIZE,
+                    onPageChange: setPage
+                }}
+                search={{
+                    value: search,
+                    onChange: handleSearchChange,
+                    placeholder: "Pesquisar por número ou cliente..."
+                }}
+                renderFilters={
+                    <div className="w-44">
+                        <Select 
+                            options={statusOptions} 
+                            value={statusFilter}
+                            onChange={e => handleFilterChange(e.target.value)} 
+                        />
                     </div>
-                </div>
-            )}
+                }
+                onRefresh={refetch}
+            />
 
             {showCreateModal && (
                 <CreateQuoteModal onClose={() => setShowCreateModal(false)} onSuccess={refetch} />
             )}
+
+            <QuoteDetailsModal
+                quote={viewingQuote}
+                ivaRate={companySettings?.ivaRate || 16}
+                onClose={() => setViewingQuote(null)}
+            />
 
             <Modal
                 isOpen={deleteModalOpen}

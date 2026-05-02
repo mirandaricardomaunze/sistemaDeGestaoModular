@@ -11,6 +11,7 @@ import { HiOutlineDownload, HiOutlineDocumentText, HiOutlineTable } from 'react-
 import { Button } from '../ui';
 import type { ExportOptions, ExportFormat } from '../../utils/exportUtils';
 import { exportData } from '../../utils/exportUtils';
+import { useStore } from '../../stores/useStore';
 
 interface ExportButtonProps {
     /** Export options including columns and data */
@@ -172,16 +173,17 @@ interface QuickExportProps {
     size?: 'sm' | 'md' | 'lg';
 }
 
-export function ExportProductsButton({ data, companyInfo, className, size = 'md' }: QuickExportProps) {
+export function ExportProductsButton({ data, className, size = 'md' }: Omit<QuickExportProps, 'companyInfo'>) {
+    const { companySettings } = useStore();
     const formattedData = data.map(p => {
         const packSize = p.packSize && p.packSize > 1 ? p.packSize : 1;
         const boxes = Math.floor(p.currentStock / packSize);
-        const units = p.currentStock % packSize;
 
         return {
             ...p,
             boxCount: boxes,
-            unitRemainder: units,
+            totalUnits: p.currentStock,
+            totalValue: p.currentStock * p.price,
             categoryName: p.categoryModel?.name || p.category
         };
     });
@@ -192,18 +194,24 @@ export function ExportProductsButton({ data, companyInfo, className, size = 'md'
             title="Inventário"
             className={className}
             size={size}
-            companyInfo={companyInfo}
+            companyInfo={{
+                name: companySettings?.companyName || 'MULTICORE',
+                nuit: companySettings?.taxId,
+                address: companySettings?.address,
+                phone: companySettings?.phone,
+                email: companySettings?.email
+            }}
             options={{
                 columns: [
-                    { key: 'barcode', header: 'Código de Barras', width: 15 },
-                    { key: 'sku', header: 'Referência', width: 15 },
-                    { key: 'name', header: 'Nome', width: 30 },
-                    { key: 'boxCount', header: 'Caixas', format: 'number', width: 10, align: 'right' },
-                    { key: 'unitRemainder', header: 'Unidades', format: 'number', width: 10, align: 'right' },
-                    { key: 'price', header: 'Preço Venda', format: 'currency', width: 15 },
+                    { key: 'barcode', header: 'Código de Barras', width: 12 },
+                    { key: 'sku', header: 'Referência', width: 12 },
+                    { key: 'name', header: 'Nome', width: 28 },
+                    { key: 'boxCount', header: 'Caixas', format: 'number', width: 8, align: 'right' },
+                    { key: 'totalUnits', header: 'Qtd. (Un)', format: 'number', width: 8, align: 'right' },
+                    { key: 'price', header: 'Preço Unit', format: 'currency', width: 16, align: 'right' },
+                    { key: 'totalValue', header: 'Valor Total', format: 'currency', width: 16, align: 'right' },
                 ],
-                data: formattedData,
-                subtitle: "Gestão avançada de produtos, referências e valor de stock"
+                data: formattedData
             }}
         />
     );
@@ -421,6 +429,36 @@ export function ExportRoomsButton({ data, companyName, className }: QuickExportP
                     { key: 'notes', header: 'Notas', width: 30 },
                 ],
                 data
+            }}
+        />
+    );
+}
+export function ExportBatchesButton({ data, companyInfo, className, size = 'md' }: QuickExportProps) {
+    const formattedData = data.map(b => ({
+        ...b,
+        warehouseName: b.warehouse?.name || 'N/A',
+        productName: b.product?.name || 'N/A',
+        expiryDate: b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : 'N/A'
+    }));
+
+    return (
+        <ExportButton
+            filename="lotes_inventario"
+            title="Relatório de Lotes e Validades"
+            className={className}
+            size={size}
+            companyInfo={companyInfo}
+            options={{
+                columns: [
+                    { key: 'productName', header: 'Produto', width: 25 },
+                    { key: 'batchNumber', header: 'Lote', width: 15 },
+                    { key: 'warehouseName', header: 'Armazém', width: 15 },
+                    { key: 'quantity', header: 'Qtd Atual', format: 'number', width: 10, align: 'right' },
+                    { key: 'expiryDate', header: 'Validade', width: 15 },
+                    { key: 'status', header: 'Estado', width: 12 },
+                ],
+                data: formattedData,
+                subtitle: "Rastreio completo de lotes, armazéns e datas de expiração"
             }}
         />
     );

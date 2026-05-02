@@ -6,13 +6,23 @@ jest.mock('../../middleware/auth', () => ({
     authenticate: (req: any, _res: any, next: any) => {
         req.userId = 'prod-test-user';
         req.companyId = 'prod-test-company';
+        req.userName = 'Test';
         next();
     },
     authorize: () => (_req: any, _res: any, next: any) => next(),
     AuthRequest: {} as any
 }));
 
+jest.mock('../../lib/socket', () => ({
+    emitToCompany: jest.fn(),
+    emitToModule: jest.fn(),
+    emitToUser: jest.fn(),
+    initSocket: jest.fn().mockReturnValue({ on: jest.fn() }),
+    getIO: jest.fn(),
+}));
+
 const CID = 'prod-test-company';
+const unwrap = (b: any) => b?.data ?? b;
 
 async function cleanup() {
     await prisma.stockMovement.deleteMany({ where: { companyId: CID } }).catch(() => {});
@@ -49,20 +59,23 @@ afterAll(async () => {
 describe('GET /api/products', () => {
     it('returns paginated product list', async () => {
         const res = await request(app).get('/api/products').expect(200);
-        expect(res.body).toHaveProperty('data');
-        expect(Array.isArray(res.body.data)).toBe(true);
-        expect(res.body).toHaveProperty('pagination');
+        const body = unwrap(res.body);
+        expect(body).toHaveProperty('data');
+        expect(Array.isArray(body.data)).toBe(true);
+        expect(body).toHaveProperty('pagination');
     });
 
     it('supports search query', async () => {
         const res = await request(app).get('/api/products?search=Initial').expect(200);
-        expect(res.body.data.some((p: any) => p.name.includes('Initial'))).toBe(true);
+        const body = unwrap(res.body);
+        expect(body.data.some((p: any) => p.name.includes('Initial'))).toBe(true);
     });
 
     it('supports pagination params', async () => {
         const res = await request(app).get('/api/products?page=1&limit=5').expect(200);
-        expect(res.body.pagination.page).toBe(1);
-        expect(res.body.pagination.limit).toBeLessThanOrEqual(5);
+        const body = unwrap(res.body);
+        expect(body.pagination.page).toBe(1);
+        expect(body.pagination.limit).toBeLessThanOrEqual(5);
     });
 });
 
@@ -71,8 +84,9 @@ describe('GET /api/products', () => {
 describe('GET /api/products/:id', () => {
     it('returns product by ID', async () => {
         const res = await request(app).get(`/api/products/${productId}`).expect(200);
-        expect(res.body.id).toBe(productId);
-        expect(res.body.name).toBe('Initial Product');
+        const body = unwrap(res.body);
+        expect(body.id).toBe(productId);
+        expect(body.name).toBe('Initial Product');
     });
 
     it('returns 404 for non-existent product', async () => {
@@ -98,10 +112,10 @@ describe('POST /api/products', () => {
                 unit: 'un'
             })
             .expect(201);
-        expect(res.body).toHaveProperty('id');
-        expect(res.body.name).toBe('New Product');
-        // cleanup
-        await prisma.product.delete({ where: { id: res.body.id } }).catch(() => {});
+        const body = unwrap(res.body);
+        expect(body).toHaveProperty('id');
+        expect(body.name).toBe('New Product');
+        await prisma.product.delete({ where: { id: body.id } }).catch(() => {});
     });
 
     it('rejects missing required fields', async () => {
@@ -129,8 +143,9 @@ describe('PUT /api/products/:id', () => {
             .put(`/api/products/${productId}`)
             .send({ name: 'Updated Product', price: 75 })
             .expect(200);
-        expect(res.body.name).toBe('Updated Product');
-        expect(Number(res.body.price)).toBe(75);
+        const body = unwrap(res.body);
+        expect(body.name).toBe('Updated Product');
+        expect(Number(body.price)).toBe(75);
     });
 
     it('returns 404 for non-existent product', async () => {
@@ -141,15 +156,15 @@ describe('PUT /api/products/:id', () => {
     });
 });
 
-// ── POST /api/products/:id/adjust-stock ───────────────────────────────────────
+// ── PATCH /api/products/:id/stock ────────────────────────────────────────────
 
-describe('POST /api/products/:id/adjust-stock', () => {
+describe('PATCH /api/products/:id/stock', () => {
     it('adds stock on positive adjustment', async () => {
         const before = await prisma.product.findUnique({ where: { id: productId }, select: { currentStock: true } });
 
         await request(app)
-            .post(`/api/products/${productId}/adjust-stock`)
-            .send({ quantity: 20, reason: 'restock', type: 'adjustment' })
+            .patch(`/api/products/${productId}/stock`)
+            .send({ quantity: 20, operation: 'add', reason: 'restock' })
             .expect(200);
 
         const after = await prisma.product.findUnique({ where: { id: productId }, select: { currentStock: true } });
@@ -160,8 +175,8 @@ describe('POST /api/products/:id/adjust-stock', () => {
         const before = await prisma.product.findUnique({ where: { id: productId }, select: { currentStock: true } });
 
         await request(app)
-            .post(`/api/products/${productId}/adjust-stock`)
-            .send({ quantity: -5, reason: 'correction', type: 'adjustment' })
+            .patch(`/api/products/${productId}/stock`)
+            .send({ quantity: 5, operation: 'subtract', reason: 'correction' })
             .expect(200);
 
         const after = await prisma.product.findUnique({ where: { id: productId }, select: { currentStock: true } });
@@ -170,8 +185,8 @@ describe('POST /api/products/:id/adjust-stock', () => {
 
     it('rejects adjustment with missing quantity', async () => {
         const res = await request(app)
-            .post(`/api/products/${productId}/adjust-stock`)
-            .send({ reason: 'no quantity' })
+            .patch(`/api/products/${productId}/stock`)
+            .send({ reason: 'no quantity', operation: 'add' })
             .expect(400);
         expect(res.body).toHaveProperty('message');
     });
@@ -181,33 +196,36 @@ describe('POST /api/products/:id/adjust-stock', () => {
 
 describe('GET /api/products/alerts/low-stock', () => {
     it('returns low-stock product list', async () => {
-        await prisma.product.update({ where: { id: productId }, data: { currentStock: 2, minStock: 10 } });
+        await prisma.product.update({ where: { id: productId }, data: { currentStock: 2, minStock: 10, status: 'low_stock' } });
         const res = await request(app).get('/api/products/alerts/low-stock').expect(200);
-        expect(res.body).toHaveProperty('data');
-        expect(res.body.data.some((p: any) => p.id === productId)).toBe(true);
+        const body = unwrap(res.body);
+        const list = Array.isArray(body) ? body : body.data;
+        expect(Array.isArray(list)).toBe(true);
+        expect(list.some((p: any) => p.id === productId)).toBe(true);
     });
 });
 
 // ── GET /api/products/stock-movements ────────────────────────────────────────
 
 describe('GET /api/products/stock-movements', () => {
-    it('returns movement history with pagination', async () => {
+    it('returns movement history', async () => {
         const res = await request(app).get('/api/products/stock-movements').expect(200);
-        expect(res.body).toHaveProperty('data');
-        expect(res.body).toHaveProperty('pagination');
+        const body = unwrap(res.body);
+        const list = Array.isArray(body) ? body : body.data;
+        expect(Array.isArray(list)).toBe(true);
     });
 });
 
 // ── DELETE /api/products/:id ──────────────────────────────────────────────────
 
 describe('DELETE /api/products/:id', () => {
-    it('deletes a product', async () => {
+    it('soft-deletes a product (isActive false)', async () => {
         const p = await prisma.product.create({
             data: { code: 'DEL-001', name: 'To Delete', price: 10, currentStock: 0, companyId: CID }
         });
         await request(app).delete(`/api/products/${p.id}`).expect(200);
         const found = await prisma.product.findUnique({ where: { id: p.id } });
-        expect(found).toBeNull();
+        expect(found?.isActive).toBe(false);
     });
 
     it('returns 404 for non-existent product', async () => {

@@ -1,4 +1,6 @@
 import api from './client';
+import { commercialAnalyticsSchema, purchaseOrderSchema } from '../../lib/validation';
+import { logger } from '../../utils/logger';
 
 // ============================================================================
 // Commercial Analytics API
@@ -239,34 +241,50 @@ export interface CreateQuotationPayload {
 }
 
 export const commercialAPI = {
+    // Helper to normalize empty warehouseId
+    _normalizeWarehouseId: (id?: string) => (id === '' ? undefined : id),
+
     // Analytics & KPIs
-    getAnalytics: async (): Promise<CommercialAnalytics> => {
-        const res = await api.get('/commercial/analytics');
+    getAnalytics: async (warehouseId?: string): Promise<CommercialAnalytics> => {
+        const id = commercialAPI._normalizeWarehouseId(warehouseId);
+        const res = await api.get('/commercial/analytics', { params: { warehouseId: id } });
+        
+        // Soft Validation
+        const validation = commercialAnalyticsSchema.safeParse(res.data);
+        if (!validation.success) {
+            logger.warn('Validation mismatch in getAnalytics', validation.error.format());
+        }
+        
         return res.data;
     },
 
-    getMargins: async (period: number = 30): Promise<MarginAnalysis> => {
-        const res = await api.get('/commercial/margins', { params: { period } });
+    getMargins: async (period: number = 30, warehouseId?: string): Promise<MarginAnalysis> => {
+        const id = commercialAPI._normalizeWarehouseId(warehouseId);
+        const res = await api.get('/commercial/margins', { params: { period, warehouseId: id } });
         return res.data;
     },
 
-    getStockAging: async (): Promise<StockAgingReport> => {
-        const res = await api.get('/commercial/stock-aging');
+    getStockAging: async (warehouseId?: string): Promise<StockAgingReport> => {
+        const id = commercialAPI._normalizeWarehouseId(warehouseId);
+        const res = await api.get('/commercial/stock-aging', { params: { warehouseId: id } });
         return res.data;
     },
 
-    getSupplierPerformance: async (): Promise<SupplierPerformance[]> => {
-        const res = await api.get('/commercial/supplier-performance');
+    getSupplierPerformance: async (warehouseId?: string): Promise<SupplierPerformance[]> => {
+        const id = commercialAPI._normalizeWarehouseId(warehouseId);
+        const res = await api.get('/commercial/supplier-performance', { params: { warehouseId: id } });
         return res.data;
     },
 
-    getInventoryTurnover: async (period: number = 90): Promise<InventoryTurnoverItem[]> => {
-        const res = await api.get('/commercial/inventory-turnover', { params: { period } });
+    getInventoryTurnover: async (period: number = 90, warehouseId?: string): Promise<InventoryTurnoverItem[]> => {
+        const id = commercialAPI._normalizeWarehouseId(warehouseId);
+        const res = await api.get('/commercial/inventory-turnover', { params: { period, warehouseId: id } });
         return res.data;
     },
 
-    getSalesReport: async (period: number = 30): Promise<SalesReport> => {
-        const res = await api.get('/commercial/sales-report', { params: { period } });
+    getSalesReport: async (period: number = 30, warehouseId?: string): Promise<SalesReport> => {
+        const id = commercialAPI._normalizeWarehouseId(warehouseId);
+        const res = await api.get('/commercial/sales-report', { params: { period, warehouseId: id } });
         return res.data;
     },
 
@@ -294,6 +312,15 @@ export const commercialAPI = {
         limit?: number;
     }) => {
         const res = await api.get('/commercial/purchase-orders', { params });
+        
+        // Soft Validation for list
+        // Note: The interceptor might have already unwrapped 'data' if it matches the pattern
+        // But here we check the raw response if possible or the unwrapped data
+        const validation = purchaseOrderSchema.array().safeParse(res.data);
+        if (!validation.success) {
+            logger.warn('Validation mismatch in listPurchaseOrders', validation.error.format());
+        }
+        
         return res.data;
     },
 
@@ -444,7 +471,7 @@ export const shiftAPI = {
         return res.data;
     },
 
-    getHistory: async (params?: { page?: number; limit?: number; startDate?: string; endDate?: string; openedById?: string }) => {
+    getHistory: async (params?: { page?: number; limit?: number; startDate?: string; endDate?: string; openedById?: string; search?: string }) => {
         const res = await api.get('/commercial/shift/history', { params });
         return res.data;
     },

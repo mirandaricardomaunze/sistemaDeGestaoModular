@@ -60,7 +60,7 @@ export const StatsWidget = ({ metrics, stats }: any) => {
                 <div className="absolute bottom-0 left-0 h-0.5 bg-indigo-500 transition-all duration-500 group-hover:w-full w-8" />
             </div>
 
-            <Card padding="md" color="slate">
+            <Card padding="md">
                 <div className="flex items-center justify-between mb-3 text-gray-900 dark:text-white">
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Desempenho por Módulo</h3>
                     <Badge variant="outline" size="sm" className="text-[10px]">Mensal</Badge>
@@ -185,7 +185,7 @@ export const RevenueChartWidget = ({ salesData }: { salesData: any[] }) => {
 export const CategoryPieWidget = ({ categoryData }: { categoryData: any[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" color="slate" className="w-full">
+        <Card padding="md" className="w-full">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{t('dashboard.productsByCategory')}</h2>
             <div className="h-64">
                 <ResponsiveContainer width="100%" height={256}>
@@ -195,7 +195,15 @@ export const CategoryPieWidget = ({ categoryData }: { categoryData: any[] }) => 
                                 <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                             ))}
                         </Pie>
-                        <Tooltip />
+                        <Tooltip
+                            contentStyle={{
+                                backgroundColor: 'var(--tooltip-bg, #fff)',
+                                border: 'none',
+                                borderRadius: '12px',
+                                boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                                color: 'var(--tooltip-text, #1e293b)'
+                            }}
+                        />
                     </PieChart>
                 </ResponsiveContainer>
             </div>
@@ -217,7 +225,7 @@ export const CategoryPieWidget = ({ categoryData }: { categoryData: any[] }) => 
 export const RecentAlertsWidget = ({ alerts, metrics }: any) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" color="slate" className="w-full">
+        <Card padding="md" className="w-full">
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('dashboard.pendingAlerts')}</h2>
                 <Link to="/alerts"><Badge variant="danger">{metrics.pendingAlerts}</Badge></Link>
@@ -227,7 +235,7 @@ export const RecentAlertsWidget = ({ alerts, metrics }: any) => {
                     <p className="text-center text-gray-500 dark:text-gray-400 py-8">{t('dashboard.noPendingAlerts')}</p>
                 ) : (
                     alerts.slice(0, 5).map((alert: any) => (
-                        <div key={alert.id} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
+                        <div key={alert.id} className="flex items-start gap-3 p-3 bg-gray-100/50 dark:bg-dark-700 rounded-lg border border-gray-200/50 dark:border-transparent">
                             <div className={cn(
                                 'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
                                 alert.priority === 'critical' ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600'
@@ -250,7 +258,7 @@ export const RecentAlertsWidget = ({ alerts, metrics }: any) => {
 export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: any[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" color="slate" className="w-full">
+        <Card padding="md" className="w-full">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                 {t('dashboard.weeklySales')}
             </h2>
@@ -262,10 +270,11 @@ export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: any[] }) => {
                         <YAxis stroke="#94a3b8" fontSize={12} />
                         <Tooltip
                             contentStyle={{
-                                backgroundColor: '#fff',
+                                backgroundColor: 'var(--tooltip-bg, #fff)',
                                 border: 'none',
                                 borderRadius: '8px',
                                 boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                color: 'var(--tooltip-text, #1e293b)'
                             }}
                         />
                         <Bar dataKey="valor" fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -279,7 +288,7 @@ export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: any[] }) => {
 export const RecentActivityWidget = ({ recentActivities }: { recentActivities: any[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" color="slate" className="w-full">
+        <Card padding="md" className="w-full">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 {t('dashboard.recentActivity')}
             </h2>
@@ -289,8 +298,8 @@ export const RecentActivityWidget = ({ recentActivities }: { recentActivities: a
                         {t('dashboard.noRecentActivity')}
                     </p>
                 ) : recentActivities.map((activity) => (
-                    <div key={activity.id} className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center flex-shrink-0">
+                    <div key={activity.id} className="flex items-start gap-3 p-2 hover:bg-gray-100/50 dark:hover:bg-dark-700 rounded-lg transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-gray-200/50 dark:bg-dark-700 flex items-center justify-center flex-shrink-0">
                             <span className="text-sm">{activity.icon}</span>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -314,7 +323,7 @@ export const RecentActivityWidget = ({ recentActivities }: { recentActivities: a
 export const QuickActionsWidget = () => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" color="slate" className="w-full">
+        <Card padding="md" className="w-full">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                 {t('dashboard.quickActions')}
             </h2>

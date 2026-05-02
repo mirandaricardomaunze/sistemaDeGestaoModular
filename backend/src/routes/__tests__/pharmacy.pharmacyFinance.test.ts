@@ -13,7 +13,7 @@ jest.mock('../../middleware/auth', () => ({
     authorize: () => (_: any, __: any, next: any) => next(),
     AuthRequest: {} as any,
 }));
-jest.mock('../../lib/socket', () => ({ emitToCompany: jest.fn(), initSocket: jest.fn().mockReturnValue({ on: jest.fn() }) }));
+jest.mock('../../lib/socket', () => ({ emitToCompany: jest.fn(), emitToModule: jest.fn(), emitToUser: jest.fn(), getIO: jest.fn(), initSocket: jest.fn().mockReturnValue({ on: jest.fn() }) }));
 
 let productId: string;
 let medicationId: string;
@@ -42,7 +42,7 @@ beforeAll(async () => {
     const p = await prisma.product.create({ data: { name: 'Paracetamol 500mg', code: `MED-${Date.now()}`, price: 25, unit: 'cx', companyId: CO, originModule: 'pharmacy', currentStock: 100 } });
     productId = p.id;
 
-    const med = await prisma.medication.create({ data: { productId, companyId: CO, activeIngredient: 'Paracetamol', dosage: '500mg', dosageForm: 'comprimido', storageTemp: 'ambiente' } });
+    const med = await prisma.medication.create({ data: { productId, companyId: CO, activeIngredient: 'Paracetamol', dosage: '500mg', pharmaceuticalForm: 'comprimido', storageTemp: 'ambiente' } });
     medicationId = med.id;
 
     const b = await prisma.medicationBatch.create({ data: { medicationId, companyId: CO, batchNumber: `BT-${Date.now()}`, quantity: 100, quantityAvailable: 100, expiryDate: new Date(Date.now() + 365 * 86400000), costPrice: 10, sellingPrice: 25 } });

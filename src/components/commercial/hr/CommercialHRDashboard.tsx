@@ -3,7 +3,6 @@ import {
     HiOutlineUsers,
     HiOutlineClock,
     HiOutlineBanknotes,
-    HiOutlineArrowTrendingUp,
     HiOutlineExclamationTriangle,
     HiOutlineCalendar,
     HiOutlineChartBar,
@@ -11,13 +10,13 @@ import {
     HiOutlineTrophy,
 } from 'react-icons/hi2';
 import {
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-    PieChart, Pie, Cell,
+    XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
 import { Card, Badge, LoadingSpinner } from '../../ui';
 import { formatCurrency } from '../../../utils/helpers';
 import { useEmployees, useAttendance, usePayroll } from '../../../hooks/useData';
-import { CHART_COLORS } from '../../../components/common/ModuleMetricCard';
+import { MetricCard, CHART_COLORS } from '../../../components/common/ModuleMetricCard';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -88,7 +87,6 @@ export const CommercialHRDashboard: React.FC = () => {
         ];
     }, [payroll]);
 
-    // Top performers by commission
     const topPerformers = useMemo(() => {
         return (payroll || [])
             .map(p => {
@@ -120,75 +118,42 @@ export const CommercialHRDashboard: React.FC = () => {
         });
         return items.slice(0, 5);
     }, [attendance, deptEmployees, payroll]);
-
-    const stats = [
-        {
-            label: 'Equipa Comercial', value: metrics.total.toString(),
-            sub: `${metrics.active} activos`, icon: HiOutlineUsers,
-            color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20', badge: 'success',
-            cardBg: 'bg-blue-50/60 dark:bg-blue-950/30',
-            cardBorder: 'border border-blue-200/70 dark:border-blue-800/40',
-            accent: 'bg-blue-500',
-        },
-        {
-            label: 'Taxa de Assiduidade', value: metrics.attendanceRate > 0 ? `${metrics.attendanceRate.toFixed(1)}%` : '',
-            sub: `${metrics.presentToday} presentes hoje`, icon: HiOutlineClock,
-            color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20', badge: 'success',
-            cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30',
-            cardBorder: 'border border-emerald-200/70 dark:border-emerald-800/40',
-            accent: 'bg-emerald-500',
-        },
-        {
-            label: 'Massa Salarial Mensal', value: metrics.monthlyCost > 0 ? formatCurrency(metrics.monthlyCost) : '',
-            sub: `${payroll?.length || 0} registos`, icon: HiOutlineBanknotes,
-            color: 'text-violet-600', bg: 'bg-violet-50 dark:bg-violet-900/20', badge: 'success',
-            cardBg: 'bg-violet-50/60 dark:bg-violet-950/30',
-            cardBorder: 'border border-violet-200/70 dark:border-violet-800/40',
-            accent: 'bg-violet-500',
-        },
-        {
-            label: 'Comissões do Mês', value: metrics.totalCommissions > 0 ? formatCurrency(metrics.totalCommissions) : '',
-            sub: `${topPerformers.length} vendedores c/ comissão`, icon: HiOutlineCurrencyDollar,
-            color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20', badge: metrics.totalCommissions > 0 ? 'success' : 'gray',
-            cardBg: 'bg-amber-50/60 dark:bg-amber-950/30',
-            cardBorder: 'border border-amber-200/70 dark:border-amber-800/40',
-            accent: 'bg-amber-500',
-        },
-    ];
-
     if (isLoading) return <div className="h-96 flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
 
     return (
         <div className="space-y-6 animate-fade-in pb-8">
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((s, i) => (
-                    <div
-                        key={i}
-                        className={`relative group overflow-hidden rounded-xl ${s.cardBg} ${s.cardBorder} shadow-sm hover:shadow-md transition-all duration-300`}
-                    >
-                        {/* Top accent bar */}
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className={`p-3 rounded-xl ${s.bg} ${s.color} transition-transform group-hover:scale-110 duration-300`}>
-                                    <s.icon className="w-6 h-6" />
-                                </div>
-                                <Badge variant={s.badge as any} size="sm">
-                                    {i === 3 && metrics.totalCommissions === 0 ? 'SEM DADOS' : 'ACTIVO'}
-                                </Badge>
-                            </div>
-                            <h3 className="text-gray-500 dark:text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">{s.label}</h3>
-                            <p className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white mb-2">{s.value || '—'}</p>
-                            <p className="text-[10px] font-medium text-gray-400 flex items-center gap-1">
-                                <HiOutlineArrowTrendingUp className="w-3 h-3 text-green-500" />
-                                {s.sub}
-                            </p>
-                        </div>
-
-                        {/* Bottom hover bar */}
-                        <div className={`absolute bottom-0 left-0 h-0.5 transition-all duration-500 group-hover:w-full w-8 ${s.accent}`} />
-                    </div>
-                ))}
+                <MetricCard
+                    icon={<HiOutlineUsers />}
+                    color="blue"
+                    value={metrics.total}
+                    label="Equipa Comercial"
+                    badge={<Badge variant="success" size="sm">{metrics.active} ACTIVOS</Badge>}
+                />
+                <MetricCard
+                    icon={<HiOutlineClock />}
+                    color="emerald"
+                    value={metrics.attendanceRate > 0 ? `${metrics.attendanceRate.toFixed(1)}%` : '0%'}
+                    label="Taxa de Assiduidade"
+                    badge={<span className="text-[10px] font-black uppercase text-emerald-600">{metrics.presentToday} PRESENTES</span>}
+                />
+                <MetricCard
+                    icon={<HiOutlineBanknotes />}
+                    color="violet"
+                    value={metrics.monthlyCost}
+                    label="Massa Salarial"
+                    isCurrency
+                    badge={<span className="text-[10px] font-black uppercase text-violet-600">{payroll?.length || 0} REGISTOS</span>}
+                />
+                <MetricCard
+                    icon={<HiOutlineCurrencyDollar />}
+                    color="amber"
+                    value={metrics.totalCommissions}
+                    label="Comissões do Mês"
+                    isCurrency
+                    badge={<span className="text-[10px] font-black uppercase text-amber-600">{topPerformers.length} VENDEDORES</span>}
+                />
             </div>
 
             {/* Charts */}

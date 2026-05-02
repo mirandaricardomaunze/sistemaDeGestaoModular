@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productsAPI } from '../services/api';
 import { useAuthStore } from '../stores/useAuthStore';
-import { db } from '../db/offlineDB';
+import { db, cryptoRandomId } from '../db/offlineDB';
 import type { Product } from '../types';
 
 interface PaginationMeta {
@@ -23,7 +23,7 @@ interface UseProductsParams {
     limit?: number;
     sortBy?: string;
     sortOrder?: 'asc' | 'desc';
-    origin_module?: string;
+    originModule?: string;
 }
 
 export function useProducts(params?: UseProductsParams) {
@@ -34,6 +34,7 @@ export function useProducts(params?: UseProductsParams) {
         data,
         isLoading,
         error,
+        isFetching,
         refetch,
         isPlaceholderData
     } = useQuery({
@@ -114,12 +115,16 @@ export function useProducts(params?: UseProductsParams) {
         mutationFn: async (newData: Parameters<typeof productsAPI.create>[0]) => {
             if (!navigator.onLine) {
                 await db.pendingOperations.add({
+                    clientId: cryptoRandomId(),
                     module: 'inventory',
                     endpoint: '/products',
                     method: 'POST',
                     data: newData,
                     timestamp: Date.now(),
-                    synced: false as any
+                    status: 'pending',
+                    synced: false,
+                    attempts: 0,
+                    nextRetryAt: Date.now(),
                 });
                 toast('Produto guardado localmente (Offline)', { icon: '💾' });
                 return { ...newData, id: `offline-${Date.now()}` } as any;
@@ -140,12 +145,16 @@ export function useProducts(params?: UseProductsParams) {
         mutationFn: async ({ id, data }: { id: string, data: Parameters<typeof productsAPI.update>[1] }) => {
             if (!navigator.onLine) {
                 await db.pendingOperations.add({
+                    clientId: cryptoRandomId(),
                     module: 'inventory',
                     endpoint: `/products/${id}`,
                     method: 'PUT',
                     data,
                     timestamp: Date.now(),
-                    synced: false as any
+                    status: 'pending',
+                    synced: false,
+                    attempts: 0,
+                    nextRetryAt: Date.now(),
                 });
                 toast('Actualização guardada localmente (Offline)', { icon: '💾' });
                 return { ...data, id } as any;
@@ -187,12 +196,16 @@ export function useProducts(params?: UseProductsParams) {
 
             if (!navigator.onLine) {
                 await db.pendingOperations.add({
+                    clientId: cryptoRandomId(),
                     module: 'inventory',
                     endpoint: `/products/${id}/stock`,
                     method: 'PUT',
                     data: { quantity, operation, warehouseId, reason, performedBy },
                     timestamp: Date.now(),
-                    synced: false as any
+                    status: 'pending',
+                    synced: false,
+                    attempts: 0,
+                    nextRetryAt: Date.now(),
                 });
                 toast('Ajuste de stock guardado (Offline)', { icon: '💾' });
                 return;
@@ -212,7 +225,7 @@ export function useProducts(params?: UseProductsParams) {
     return {
         products: data?.products || [],
         pagination: data?.pagination || null,
-        isLoading,
+        isLoading: isLoading || isFetching,
         error: error ? 'Erro ao carregar produtos' : null,
         refetch,
         isPlaceholderData,

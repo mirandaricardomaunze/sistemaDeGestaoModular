@@ -93,10 +93,14 @@ export const updateReservationStatusSchema = z.object({
 // Housekeeping Schemas
 // ============================================================================
 
+const PRIORITY_MAP: Record<string, number> = { low: 0, medium: 1, high: 2, urgent: 3 };
 export const createHousekeepingTaskSchema = z.object({
     roomId: z.string().uuid('ID do quarto inválido'),
-    type: z.enum(['cleaning', 'maintenance', 'inspection', 'turndown', 'deep_clean']),
-    priority: z.enum(['low', 'medium', 'high', 'urgent']).optional().default('medium'),
+    type: z.enum(['checkout_cleaning', 'stay_cleaning', 'deep_cleaning', 'maintenance_prep']),
+    priority: z.union([z.number().int(), z.enum(['low', 'medium', 'high', 'urgent'])])
+        .optional()
+        .default(1)
+        .transform((v) => typeof v === 'string' ? PRIORITY_MAP[v] ?? 1 : v),
     assignedTo: z.string().uuid('ID do funcionário inválido').optional().nullable(),
     scheduledFor: z.string().datetime({ message: 'Data agendada inválida' }).optional().nullable(),
     notes: z.string().max(500, 'Notas muito longas').optional().nullable()

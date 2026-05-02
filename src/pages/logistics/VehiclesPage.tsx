@@ -17,10 +17,12 @@ import {
     HiOutlineExclamationTriangle
 } from 'react-icons/hi2';
 import { useVehicles, useCreateVehicle, useUpdateVehicle, useDeleteVehicle } from '../../hooks/useLogistics';
+import { useDebounce } from '../../hooks/useDebounce';
 import type { Vehicle } from '../../services/api/logistics.api';
 import { ExportVehiclesButton } from '../../components/common/ExportButton';
 import { PageHeader } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
+import { cn } from '../../utils/helpers';
 
 const getStatusBadge = (status: string, t: any) => {
     const variants: Record<string, any> = {
@@ -91,8 +93,9 @@ export default function VehiclesPage() {
         { value: 'inactive', label: t('logistics_module.vehicles.statuses.inactive') }
     ];
 
+    const debouncedSearch = useDebounce(search, 350);
     const { data, isLoading, refetch } = useVehicles({
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         status: statusFilter || undefined,
         type: typeFilter || undefined,
         page,

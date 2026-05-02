@@ -1,11 +1,20 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
+import { enqueueOperation, IDEMPOTENCY_HEADER } from '../offline/offlineQueue';
+import { cryptoRandomId } from '../../db/offlineDB';
 
 // ============================================================================
 // API Configuration
 // ============================================================================
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+// Endpoints that must NEVER be queued offline (reads, auth, payments).
+const NON_QUEUEABLE = [
+    /\/auth\//,
+    /\/mpesa\//,
+    /\/payments\/.*\/confirm/,
+];
 
 // Create axios instance with default config
 export const api = axios.create({
@@ -25,6 +34,12 @@ api.interceptors.request.use(
         const token = localStorage.getItem('auth_token');
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
+        }
+        // Stamp every mutating request with an idempotency key so the
+        // backend can dedupe replays from the offline queue.
+        const method = (config.method || 'get').toLowerCase();
+        if (method !== 'get' && config.headers && !config.headers[IDEMPOTENCY_HEADER]) {
+            config.headers[IDEMPOTENCY_HEADER] = cryptoRandomId();
         }
         return config;
     },
@@ -49,9 +64,49 @@ api.interceptors.response.use(
         }
         return response;
     },
-    (error: AxiosError<{ error?: string; message?: string }>) => {
+    async (error: AxiosError<{ error?: string; message?: string }>) => {
         // Check if this request should skip automatic error toasts
         const skipErrorToast = (error.config as any)?.skipErrorToast;
+        const skipOfflineQueue = (error.config as any)?.skipOfflineQueue;
+
+        // Network failure on a mutating request → enqueue for later sync.
+        const method = (error.config?.method || 'get').toUpperCase();
+        const isMutation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+        const url = error.config?.url || '';
+        const isQueueable = !NON_QUEUEABLE.some((re) => re.test(url));
+
+        if (
+            !error.response &&        // no response → network/offline
+            isMutation &&
+            isQueueable &&
+            !skipOfflineQueue &&
+            error.config
+        ) {
+            try {
+                const clientId =
+                    (error.config.headers?.[IDEMPOTENCY_HEADER] as string) ||
+                    cryptoRandomId();
+                await enqueueOperation({
+                    module: inferModuleFromUrl(url),
+                    endpoint: url,
+                    method: method as 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+                    data: parseRequestBody(error.config.data),
+                    clientId,
+                });
+                if (!skipErrorToast) {
+                    toast(
+                        'Sem ligação. Operação guardada e será sincronizada automaticamente.',
+                        { icon: '📥' }
+                    );
+                }
+                // Surface a typed error so callers can branch on it.
+                return Promise.reject(
+                    Object.assign(error, { isOfflineQueued: true })
+                );
+            } catch (e) {
+                // Fall through to normal error handling if enqueue fails.
+            }
+        }
 
         // Handle specific error codes
         if (error.response?.status === 401) {
@@ -90,5 +145,29 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+// ─── Utility Helpers ─────────────────────────────────────────────────────────
+
+function inferModuleFromUrl(url: string): string {
+    if (url.includes('/pharmacy/')) return 'pharmacy';
+    if (url.includes('/commercial/')) return 'commercial';
+    if (url.includes('/logistics/')) return 'logistics';
+    if (url.includes('/restaurant/')) return 'restaurant';
+    if (url.includes('/hotel/')) return 'hotel';
+    if (url.includes('/inventory/')) return 'inventory';
+    return 'general';
+}
+
+function parseRequestBody(data: any): any {
+    if (!data) return null;
+    if (typeof data === 'string') {
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            return data;
+        }
+    }
+    return data;
+}
 
 export default api;

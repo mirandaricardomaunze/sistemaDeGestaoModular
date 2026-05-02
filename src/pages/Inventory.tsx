@@ -139,6 +139,7 @@ export default function Inventory() {
                             onClose={handleCloseForm}
                             product={editingProduct}
                             onSuccess={handleProductSuccess}
+                            originModule="inventory"
                         />
                         <InventoryPrintReport
                             isOpen={showPrintReport}

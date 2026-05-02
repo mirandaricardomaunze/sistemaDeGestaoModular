@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Card, Button, Input, Select } from '../../ui';
 import {
-    HiOutlineShoppingCart, HiOutlineTrash, HiOutlineCheck,
-    HiOutlineTag, HiOutlinePlus, HiOutlineMinus,
+    HiOutlineShoppingCart, HiOutlineTrash,
+    HiOutlinePlus, HiOutlineMinus,
     HiOutlineScale, HiOutlineLockOpen, HiOutlineLockClosed, HiOutlineBanknotes,
-    HiOutlinePause, HiOutlinePlay, HiOutlineEllipsisHorizontal,
+    HiOutlinePause, HiOutlinePlay, HiOutlineTag, HiOutlineReceiptPercent
 } from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../../utils/helpers';
-import { usePermissions } from '../../../hooks/usePermissions';
+import type { DiscountInfo } from './CommercialDiscountModal';
 
 export interface HeldSale {
     id: string;
@@ -16,13 +16,13 @@ export interface HeldSale {
     customerName: string;
     selectedCustomer: any;
     createdAt: Date;
+    globalDiscount?: DiscountInfo | null;
 }
 
 interface CommercialCartPanelProps {
     cart: any[];
     setCart: (v: any[]) => void;
     updateQuantity: (id: string, q: number) => void;
-    updateItemDiscount: (id: string, discount: number) => void;
     removeFromCart: (id: string) => void;
     cartTotal: number;
     cartSubtotal: number;
@@ -32,10 +32,6 @@ interface CommercialCartPanelProps {
     setSelectedCustomer: (v: any) => void;
     customerName: string;
     setCustomerName: (v: string) => void;
-    promoCode: string;
-    setPromoCode: (v: string) => void;
-    promoCodeApplied: boolean;
-    handleApplyPromoCode: () => void;
     onCheckout: () => void;
     checkoutLoading?: boolean;
     customers: any[];
@@ -43,90 +39,76 @@ interface CommercialCartPanelProps {
     handleToggleCashDrawer: () => void;
     cashDrawerBalance: number;
     handleScaleAction: () => void;
-    // Global discount (desconto global sobre o total da venda)
-    globalDiscountPct: number;
-    onGlobalDiscountChange: (pct: number) => void;
-    // Held sales (parking)
     heldSales: HeldSale[];
-    onHoldSale: () => void;
     onResumeSale: (sale: HeldSale) => void;
     onDeleteHeld: (id: string) => void;
     onCashMovement: (type: 'cash_in' | 'cash_out') => void;
+    processingActions?: Record<string, boolean>;
+    onOpenLineDiscount: (productId: string) => void;
+    onOpenGlobalDiscount: () => void;
+    globalDiscount?: DiscountInfo | null;
+    crmDiscount: number;
 }
 
 export function CommercialCartPanel({
     cart, setCart,
-    updateQuantity, updateItemDiscount, removeFromCart,
-    cartTotal, cartSubtotal, cartTax: _cartTax, cartDiscount,
+    updateQuantity, removeFromCart,
+    cartTotal, cartSubtotal, cartTax, cartDiscount,
     selectedCustomer, setSelectedCustomer,
     customerName, setCustomerName,
-    promoCode, setPromoCode, promoCodeApplied, handleApplyPromoCode,
-    globalDiscountPct, onGlobalDiscountChange,
     onCheckout, checkoutLoading = false, customers,
     cashDrawerOpen, handleToggleCashDrawer, cashDrawerBalance, handleScaleAction,
-    heldSales, onHoldSale, onResumeSale, onDeleteHeld,
-    onCashMovement
+    heldSales, onResumeSale, onDeleteHeld,
+    onCashMovement,
+    processingActions = {},
+    onOpenLineDiscount, onOpenGlobalDiscount,
+    globalDiscount, crmDiscount,
 }: CommercialCartPanelProps) {
 
-    const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
     const [showHeld, setShowHeld] = useState(false);
-    const [editingGlobalDiscount, setEditingGlobalDiscount] = useState(false);
 
-    // Only managers and above can apply global discounts
-    const { isManager } = usePermissions();
+
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] sticky top-4 mb-6 transition-all duration-300">
-            <Card className="flex flex-col flex-1 overflow-hidden p-0 border-none shadow-2xl shadow-blue-500/10 bg-white dark:bg-dark-900 rounded-lg relative">
-                {/* Header */}
-                <div className="bg-slate-50 dark:bg-black px-3 py-2 text-slate-900 dark:text-white flex items-center justify-between flex-shrink-0 shadow-sm relative z-20 border-b border-slate-200 dark:border-white/5">
-                    <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                            <HiOutlineShoppingCart className="w-3.5 h-3.5 text-white" />
-                        </div>
-                        <div className="flex items-baseline gap-1.5">
-                            <h3 className="font-black text-[10px] uppercase tracking-widest leading-none">Voucher</h3>
+        <div className="flex flex-col h-full transition-all duration-500">
+            <Card padding="none" className="flex flex-col flex-1 overflow-hidden border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-2xl bg-white dark:bg-[#111214] rounded-2xl relative">
+                {/* Header - Professional & Clean */}
+                <div className="bg-white dark:bg-[#111214] px-4 py-4 text-slate-900 dark:text-white flex items-center justify-between flex-shrink-0 relative z-20 border-b border-slate-200 dark:border-white/5">
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-baseline gap-2">
+                            <h3 className="font-bold text-sm uppercase tracking-wider">Carrinho de Venda</h3>
                             {cart.length > 0 && (
-                                <span className="text-[10px] font-black text-blue-400 leading-none">
-                                    #{cart.length}
+                                <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                    {cart.length} {cart.length === 1 ? 'item' : 'itens'}
                                 </span>
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                        {/* Held sales button */}
-                        <button
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant={showHeld ? 'primary' : 'ghost'}
+                            size="sm"
                             onClick={() => setShowHeld(v => !v)}
-                            className={cn(
-                                'relative p-1.5 rounded-lg transition-all active:scale-95 border border-white/5',
-                                showHeld ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white/5 hover:bg-white/10 text-gray-400'
-                            )}
                             title="Vendas suspensas"
+                            className="relative"
                         >
-                            <HiOutlinePause className="w-3 h-3" />
+                            <HiOutlinePause className="w-3.5 h-3.5" />
                             {heldSales.length > 0 && (
-                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 text-black text-[8px] font-black rounded-full flex items-center justify-center shadow-md">
+                                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-400 text-black text-[9px] font-black rounded-full flex items-center justify-center shadow-lg">
                                     {heldSales.length}
                                 </span>
                             )}
-                        </button>
+                        </Button>
                         {cart.length > 0 && (
-                            <>
-                                <button
-                                    onClick={onHoldSale}
-                                    className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-all border border-white/5"
-                                    title="Suspender venda"
-                                >
-                                    <HiOutlineEllipsisHorizontal className="w-3 h-3" />
-                                </button>
-                                <button
-                                    onClick={() => setCart([])}
-                                    className="p-1.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg transition-all border border-red-500/20"
-                                    title="Limpar carrinho"
-                                >
-                                    <HiOutlineTrash className="w-3 h-3" />
-                                </button>
-                            </>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setCart([])}
+                                title="Limpar carrinho"
+                                className="text-rose-500 hover:text-rose-600"
+                            >
+                                <HiOutlineTrash className="w-3.5 h-3.5" />
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -143,7 +125,7 @@ export function CommercialCartPanel({
                                     <div key={held.id} className="flex items-center justify-between bg-white dark:bg-dark-800 rounded-lg px-2.5 py-1.5 border border-amber-100 dark:border-dark-700 gap-2">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-black text-gray-800 dark:text-white truncate">{held.label}</p>
-                                            <p className="text-[9px] text-gray-400">{held.cart.length} itens · {held.createdAt.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</p>
+                                            <p className="text-[9px] text-gray-400">{held.cart.length} itens · {(held.createdAt instanceof Date ? held.createdAt : new Date(held.createdAt)).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</p>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <button
@@ -168,140 +150,107 @@ export function CommercialCartPanel({
                     </div>
                 )}
 
-                {/* Customer & Promo */}
-                <div className="flex-shrink-0 bg-white dark:bg-dark-900 border-b border-gray-100 dark:border-dark-800 p-2 space-y-2 relative z-10">
+                {/* Customer & Promo - Re-styled for Dark */}
+                <div className="flex-shrink-0 bg-slate-50/50 dark:bg-[#0a0b0d] border-b border-slate-200 dark:border-white/5 p-4 space-y-3 relative z-10">
                     <div className="grid grid-cols-1 gap-2">
-                        <div className="flex gap-1.5 items-center">
+                        <div className="flex flex-col gap-2">
                             <Select
                                 value={selectedCustomer?.id || ''}
                                 onChange={(e: any) => {
                                     const found = customers.find((c: any) => c.id === e.target.value);
                                     setSelectedCustomer(found || null);
                                 }}
-                                size="xs"
-                                className="w-1/2 rounded-lg bg-gray-50 dark:bg-dark-800 border-gray-200 dark:border-dark-700 font-bold shadow-sm text-gray-900 dark:text-gray-100 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+                                size="md"
+                                className="w-full h-10 rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white font-semibold focus:ring-4 focus:ring-blue-500/5 shadow-sm"
                                 options={[
-                                    { value: '', label: 'Consumidor Geral' },
+                                    { value: '', label: 'Selecionar Cliente' },
                                     ...customers.map((c: any) => ({ value: c.id, label: c.name }))
                                 ]}
                             />
                             <Input
-                                placeholder="Nome avulso..."
+                                placeholder="Nome do cliente (opcional)..."
                                 value={customerName}
                                 onChange={(e) => setCustomerName(e.target.value)}
-                                size="xs"
-                                className="w-1/2 rounded-lg bg-gray-50 dark:bg-dark-800 border-gray-200 dark:border-dark-700 font-medium"
+                                size="md"
+                                className="w-full h-10 rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white focus:ring-4 focus:ring-blue-500/5 shadow-sm"
                             />
-                        </div>
-                        <div className="flex gap-1.5 items-center">
-                            <div className="relative flex-1">
-                                <HiOutlineTag className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-primary-500/60" />
-                                <Input
-                                    placeholder="PROMO"
-                                    value={promoCode}
-                                    onChange={(e) => setPromoCode(e.target.value)}
-                                    size="xs"
-                                    className="rounded-lg bg-gray-50 dark:bg-dark-800 border-gray-200 dark:border-dark-700 pl-7 shadow-sm font-black tracking-widest uppercase"
-                                    disabled={promoCodeApplied}
-                                />
-                            </div>
-                            <Button
-                                variant={promoCodeApplied ? 'success' : 'primary'}
-                                onClick={handleApplyPromoCode}
-                                disabled={!promoCode.trim()}
-                                size="xs"
-                                className="rounded-lg px-3 font-black uppercase tracking-widest"
-                            >
-                                {promoCodeApplied ? <HiOutlineCheck className="w-3 h-3" /> : 'OK'}
-                            </Button>
                         </div>
                     </div>
                 </div>
 
-                {/* Cart items */}
-                <div className="flex-1 overflow-y-auto px-2 py-3 space-y-2 scrollbar-thin bg-gray-100/50 dark:bg-dark-950/20">
+                {/* Cart items container - Fits at least 3 items before scroll */}
+                <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2 bg-slate-50/30 dark:bg-[#0a0b0d] min-h-[280px]">
                     {cart.length === 0 ? (
-                        <div className="py-20 flex flex-col items-center justify-center text-center opacity-10">
-                            <HiOutlineShoppingCart className="w-16 h-16 mb-2" />
-                            <p className="font-black uppercase text-[10px] tracking-widest">Aguardando Produtos</p>
+                        <div className="py-20 flex flex-col items-center justify-center text-center gap-4">
+                            <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center ring-1 ring-white/10 shadow-inner">
+                                <HiOutlineShoppingCart className="w-12 h-12 text-slate-200 dark:text-white/10" />
+                            </div>
+                            <div className="space-y-1">
+                                <p className="font-black uppercase text-xs tracking-[0.2em] text-slate-300 dark:text-white/30 italic">Aguardando Produtos</p>
+                                <p className="text-[10px] text-slate-200 dark:text-white/10 font-bold uppercase tracking-widest">Clique num produto para começar</p>
+                            </div>
                         </div>
                     ) : (
-                        cart.map((item: any) => (
-                            <div key={item.productId} className="group px-3 py-2 bg-white dark:bg-dark-800 rounded-lg border border-gray-100 dark:border-dark-700/50 hover:border-blue-500/50 hover:shadow-xl hover:shadow-black/5 transition-all">
-                                <div className="flex items-center justify-between gap-3">
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-black text-gray-900 dark:text-white text-xs truncate leading-none mb-2">
-                                            {item.product.name}
-                                        </h4>
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-dark-900 p-1 rounded-lg border border-gray-100 dark:border-dark-700 leading-none">
-                                                <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white dark:hover:bg-dark-800 rounded-lg font-bold transition-all active:scale-95 shadow-sm">
-                                                    <HiOutlineMinus className="w-3 h-3 text-gray-400 hover:text-red-500" />
-                                                </button>
-                                                <span className="w-6 text-center font-black text-gray-900 dark:text-white text-xs">{item.quantity}</span>
-                                                <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white dark:hover:bg-dark-800 rounded-lg font-bold transition-all active:scale-95 shadow-sm">
-                                                    <HiOutlinePlus className="w-3 h-3 text-gray-400 hover:text-blue-500" />
+                        cart.map((item: any) => {
+                            const isProcessing = processingActions[item.productId];
+                            return (
+                                <div key={item.productId} className={cn(
+                                    "group px-4 py-3 bg-white dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-blue-500/30 hover:bg-slate-50 dark:hover:bg-white/[0.08] transition-all relative overflow-hidden shadow-sm",
+                                    isProcessing && "opacity-60 pointer-events-none"
+                                )}>
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-slate-900 dark:text-white text-[11px] truncate uppercase tracking-wide mb-2">
+                                                {item.product.name}
+                                            </h4>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2 bg-slate-100 dark:bg-black/20 px-2 py-1 rounded-lg border border-slate-200 dark:border-white/5 leading-none">
+                                                    <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white/10 rounded-md transition-all active:scale-90">
+                                                        <HiOutlineMinus className="w-2.5 h-2.5 text-slate-400 dark:text-white/20 hover:text-rose-500" />
+                                                    </button>
+                                                    <span className="w-5 text-center font-bold text-slate-900 dark:text-white text-[11px]">{item.quantity}</span>
+                                                    <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white/10 rounded-md transition-all active:scale-90">
+                                                        <HiOutlinePlus className="w-2.5 h-2.5 text-slate-400 dark:text-white/20 hover:text-blue-500" />
+                                                    </button>
+                                                </div>
+                                                
+                                                <button
+                                                    onClick={() => onOpenLineDiscount(item.productId)}
+                                                    title={item.discount?.reason ? `Motivo: ${item.discount.reason}` : 'Aplicar desconto'}
+                                                    className={cn(
+                                                        "flex items-center gap-1.5 text-[8px] font-bold px-2 py-1 rounded-lg transition-all border uppercase tracking-wider",
+                                                        item.discountPct > 0
+                                                            ? 'bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20'
+                                                            : 'bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/20 border-transparent hover:text-rose-500 hover:border-rose-500/20'
+                                                    )}
+                                                >
+                                                    <HiOutlineTag className="w-2.5 h-2.5" />
+                                                    {item.discountPct > 0 ? `${Number(item.discountPct).toFixed(item.discountPct % 1 ? 1 : 0)}% DESC.` : 'DESC.'}
                                                 </button>
                                             </div>
-                                            {/* Item discount */}
-                                            {editingDiscountId === item.productId ? (
-                                                <div className="flex items-center gap-1">
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max="100"
-                                                        autoFocus
-                                                        value={item.discountPct || 0}
-                                                        onChange={e => updateItemDiscount(item.productId, Math.min(100, Math.max(0, Number(e.target.value))))}
-                                                        onBlur={() => setEditingDiscountId(null)}
-                                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingDiscountId(null); }}
-                                                        className="w-12 text-center text-xs font-black border border-blue-400 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-dark-800"
-                                                    />
-                                                    <span className="text-[10px] text-gray-400 font-black">%</span>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setEditingDiscountId(item.productId)}
-                                                    className={cn(
-                                                        "flex items-center gap-1 text-[9px] font-black px-2 py-1 rounded-lg transition-all border",
-                                                        item.discountPct > 0
-                                                            ? 'bg-red-500/10 text-red-600 border-red-500/20'
-                                                            : 'bg-gray-50 dark:bg-dark-900 text-gray-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 border-transparent'
-                                                    )}
-                                                    title="Desconto por item"
-                                                >
-                                                    <HiOutlineTag className="w-3 h-3" />
-                                                    {item.discountPct > 0 ? `${item.discountPct}%` : 'DESC.'}
-                                                </button>
-                                            )}
+                                        </div>
+                                        <div className="text-right flex flex-col items-end gap-1">
+                                            <p className="font-bold text-blue-400 text-sm tracking-tight">
+                                                {formatCurrency(item.total)}
+                                            </p>
+                                            <button onClick={() => removeFromCart(item.productId)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 dark:text-white/10 hover:text-rose-500 transition-all">
+                                                <HiOutlineTrash className="w-4 h-4" />
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="text-right flex flex-col items-end">
-                                        <p className="font-black text-blue-600 dark:text-blue-400 text-sm leading-none mb-1.5 tracking-tight">
-                                            {formatCurrency(item.total)}
-                                        </p>
-                                        {item.discountPct > 0 && (
-                                            <p className="text-[9px] text-gray-400 line-through leading-none mb-1 opacity-50 font-bold">
-                                                {formatCurrency(item.quantity * item.unitPrice)}
-                                            </p>
-                                        )}
-                                        <button onClick={() => removeFromCart(item.productId)} className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all active:scale-90">
-                                            <HiOutlineTrash className="w-3.5 h-3.5" />
-                                        </button>
-                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )}
                 </div>
 
                 {/* Hardware bar */}
                 <div className="px-3 py-1 bg-gray-50/5 dark:bg-dark-900/5 border-t border-gray-100 dark:border-dark-700 flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1">
-                        <button onClick={handleScaleAction} className="p-1 bg-white dark:bg-dark-800 text-gray-400 rounded hover:text-blue-500 border border-gray-100 dark:border-dark-700 shadow-sm transition-colors" title="Balança">
+                        <button onClick={handleScaleAction} className="p-1 bg-white dark:bg-dark-800 text-gray-400 rounded hover:text-blue-500 border border-gray-100 dark:border-dark-700 shadow-sm transition-colors">
                             <HiOutlineScale className="w-3 h-3" />
                         </button>
-                        <button onClick={handleToggleCashDrawer} className={`p-1 rounded border shadow-sm transition-all ${cashDrawerOpen ? 'bg-amber-500 text-white border-amber-500' : 'bg-white dark:bg-dark-800 text-gray-400 border-gray-100 dark:border-dark-700'}`} title="Gaveta">
+                        <button onClick={handleToggleCashDrawer} className={`p-1 rounded border shadow-sm transition-all ${cashDrawerOpen ? 'bg-amber-500 text-white border-amber-500' : 'bg-white dark:bg-dark-800 text-gray-400 border-gray-100 dark:border-dark-700'}`}>
                             {cashDrawerOpen ? <HiOutlineLockOpen className="w-3 h-3" /> : <HiOutlineLockClosed className="w-3 h-3" />}
                         </button>
                     </div>
@@ -311,109 +260,74 @@ export function CommercialCartPanel({
                             {formatCurrency(cashDrawerBalance)}
                         </div>
                         <div className="flex border-l border-green-500/10 dark:border-emerald-500/30">
-                            <button
-                                onClick={() => onCashMovement('cash_in')}
-                                className="p-1 hover:bg-green-500/10 dark:hover:bg-emerald-500/20 text-green-600 dark:text-emerald-300 transition-colors"
-                                title="Suprimento (Entrada)"
-                            >
+                            <button onClick={() => onCashMovement('cash_in')} className="p-1 hover:bg-green-500/10 text-green-600 transition-colors">
                                 <HiOutlinePlus className="w-2.5 h-2.5" />
                             </button>
-                            <button
-                                onClick={() => onCashMovement('cash_out')}
-                                className="p-1 hover:bg-orange-500/10 dark:hover:bg-orange-500/20 text-orange-600 dark:text-orange-300 transition-colors"
-                                title="Sangria (Saída)"
-                            >
+                            <button onClick={() => onCashMovement('cash_out')} className="p-1 hover:bg-orange-500/10 text-orange-600 transition-colors">
                                 <HiOutlineMinus className="w-2.5 h-2.5" />
                             </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Footer totals */}
-                <div className="flex-shrink-0 bg-white dark:bg-dark-900 p-3 pt-2 pb-3 border-t dark:border-dark-800 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] relative z-20">
-
-                    {/* Global discount row - only managers/admins */}
-                    <div className="flex items-center justify-between mb-2 px-1">
-                        <div className="flex items-center gap-1.5 opacity-60">
-                            <HiOutlineTag className="w-3 h-3 text-red-500" />
-                            <span className="text-[9px] font-black uppercase tracking-tighter text-gray-400">DESC. GLOBAL</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            {!isManager ? (
-                                <span
-                                    title="Apenas gerentes podem aplicar descontos globais"
-                                    className="flex items-center gap-1 text-[9px] text-gray-300 dark:text-gray-600 border border-gray-100 dark:border-dark-700 px-2 py-0.5 rounded cursor-not-allowed select-none"
-                                >
-                                    <HiOutlineLockClosed className="w-2.5 h-2.5" />
-                                    Restrito
+                {/* Footer totals - Compact & Clean */}
+                <div className="flex-shrink-0 bg-white dark:bg-[#111214] px-5 py-4 border-t border-slate-200 dark:border-white/5 shadow-sm relative z-20">
+                    {cart.length > 0 && (
+                        <Button
+                            variant={globalDiscount ? 'danger' : 'ghost'}
+                            size="sm"
+                            onClick={onOpenGlobalDiscount}
+                            className="w-full justify-between"
+                            title={globalDiscount?.reason ? `${globalDiscount.reason} · ${globalDiscount.appliedBy}` : 'Aplicar desconto global'}
+                        >
+                            <span className="flex items-center gap-2">
+                                <HiOutlineReceiptPercent className="w-4 h-4" />
+                                {globalDiscount
+                                    ? `Desc. global: ${globalDiscount.kind === 'percent' ? `${globalDiscount.value}%` : formatCurrency(globalDiscount.value)}`
+                                    : 'Aplicar Desconto Global'}
+                            </span>
+                            {globalDiscount && (
+                                <span className="text-[9px] font-bold opacity-80 truncate max-w-[160px]">
+                                    {globalDiscount.reason}
                                 </span>
-                            ) : editingGlobalDiscount ? (
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="100"
-                                    step="1"
-                                    autoFocus
-                                    value={globalDiscountPct || ''}
-                                    onChange={e => {
-                                        const v = Number(e.target.value);
-                                        if (!isNaN(v)) onGlobalDiscountChange(Math.min(100, Math.max(0, v)));
-                                    }}
-                                    onBlur={() => setEditingGlobalDiscount(false)}
-                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingGlobalDiscount(false); }}
-                                    className="w-10 text-center text-[9px] font-black border border-primary-500/50 rounded bg-white dark:bg-dark-800 h-6"
-                                />
-                            ) : (
-                                <button
-                                    onClick={() => setEditingGlobalDiscount(true)}
-                                    className={cn(
-                                        "text-[9px] font-black px-2 py-0.5 rounded transition-all border",
-                                        globalDiscountPct > 0 ? 'bg-red-500 text-white' : 'text-gray-400 border-gray-100 hover:border-gray-300'
-                                    )}
-                                >
-                                    {globalDiscountPct > 0 ? `-${globalDiscountPct}%` : '+ ADD'}
-                                </button>
                             )}
-                            {isManager && globalDiscountPct > 0 && !editingGlobalDiscount && (
-                                <button onClick={() => onGlobalDiscountChange(0)} className="text-gray-300 hover:text-red-500">
-                                    <HiOutlineTrash className="w-3 h-3" />
-                                </button>
-                            )}
-                        </div>
-                    </div>
+                        </Button>
+                    )}
 
-                    <div className="flex justify-between items-end mb-3 bg-gray-50/50 dark:bg-dark-800/20 p-2 rounded-lg border border-gray-100 dark:border-dark-700/50">
-                        <div className="flex flex-col gap-0.5">
-                            <div className="flex justify-between gap-4 text-[9px] text-gray-400 uppercase font-black whitespace-nowrap leading-none">
-                                <span>Sub</span>
-                                <span className="text-gray-900 dark:text-gray-300">{formatCurrency(cartSubtotal)}</span>
+                    <div className="flex justify-between items-center mb-4 bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-inner">
+                        <div className="space-y-2">
+                            <div className="flex justify-between gap-6 text-[10px] text-slate-400 dark:text-white/30 uppercase font-bold tracking-wider leading-none">
+                                <span>Subtotal</span>
+                                <span className="text-slate-900 dark:text-white">{formatCurrency(cartSubtotal)}</span>
                             </div>
                             {cartDiscount > 0 && (
-                                <div className="flex justify-between gap-4 text-[9px] text-red-500 uppercase font-black whitespace-nowrap leading-none">
-                                    <span>Poupas</span>
+                                <div className="flex justify-between gap-6 text-[10px] text-rose-600 dark:text-rose-500 uppercase font-bold tracking-wider leading-none">
+                                    <span>{crmDiscount > 0 ? 'Descontos (linha+global+CRM)' : 'Descontos'}</span>
                                     <span>-{formatCurrency(cartDiscount)}</span>
                                 </div>
                             )}
+                            <div className="flex justify-between gap-6 text-[10px] text-slate-400 dark:text-white/30 uppercase font-bold tracking-wider leading-none">
+                                <span>IVA (16%)</span>
+                                <span className="text-slate-900 dark:text-white">{formatCurrency(cartTax)}</span>
+                            </div>
                         </div>
-                        <div className="text-right flex flex-col items-end">
-                            <span className="text-[9px] font-black text-primary-500 uppercase tracking-tighter leading-none mb-1">TOTAL</span>
-                            <span className="text-xl font-black text-gray-900 dark:text-white leading-none tracking-tighter">
+                        <div className="text-right flex flex-col items-end gap-1">
+                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">TOTAL</span>
+                            <span className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                                 {formatCurrency(cartTotal)}
                             </span>
                         </div>
                     </div>
 
                     <Button
-                        className={cn(
-                            "w-full py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all shadow-xl",
-                            cart.length === 0 || checkoutLoading 
-                                ? 'bg-gray-100 text-gray-400' 
-                                : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20'
-                        )}
+                        variant="primary"
+                        isLoading={checkoutLoading}
+                        size="lg"
+                        className="w-full"
                         onClick={onCheckout}
-                        disabled={cart.length === 0 || checkoutLoading}
+                        disabled={cart.length === 0}
                     >
-                        {checkoutLoading ? '...' : cart.length === 0 ? 'LISTA VAZIA' : 'PAGAR AGORA (F4)'}
+                        {cart.length === 0 ? 'LISTA VAZIA' : 'PAGAR AGORA · F4'}
                     </Button>
                 </div>
             </Card>

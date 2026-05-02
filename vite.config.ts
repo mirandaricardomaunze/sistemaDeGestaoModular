@@ -29,20 +29,42 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api/],
+        // Allow large bundles to be precached so the app cold-boots offline.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
+          // Read-only API calls: serve cached response immediately, then refresh.
           {
-            urlPattern: /^https:\/\/api\.*/i,
-            handler: 'NetworkFirst',
+            urlPattern: ({ url, request }) =>
+              request.method === 'GET' && /\/api\//.test(url.pathname),
+            handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'api-cache',
+              cacheName: 'api-get-cache',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24, // 24h
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          // Static fonts / images: cache-first with long TTL.
+          {
+            urlPattern: ({ request }) =>
+              request.destination === 'image' ||
+              request.destination === 'font',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'static-assets-cache',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              }
-            }
-          }
-        ]
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: false

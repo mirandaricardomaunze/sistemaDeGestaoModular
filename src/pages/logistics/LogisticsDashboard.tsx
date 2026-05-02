@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Button, Badge, Modal, Select, Input, PageHeader, Skeleton } from '../../components/ui';
+import { Card, Button, Badge, Modal, Select, Input, Skeleton } from '../../components/ui';
 import { useWarehouses } from '../../hooks/useWarehouses';
 import { useProducts } from '../../hooks/useProducts';
 import {
@@ -13,11 +13,9 @@ import {
     HiOutlineArrowRight,
     HiOutlineChartBar,
     HiOutlineSquares2X2,
-    HiOutlineFunnel,
     HiOutlineBanknotes,
     HiOutlineFlag,
     HiOutlineLightBulb,
-    HiOutlineTableCells,
     HiOutlineArrowPath
 } from 'react-icons/hi2';
 import { 
@@ -31,12 +29,10 @@ import { ExpiryAlertsPanel } from '../../components/logistics/ExpiryAlertsPanel'
 import LogisticsMap from '../../components/logistics/LogisticsMap';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { SmartInsightCard } from '../../components/common/SmartInsightCard';
+import { SegmentedControl } from '../../components/common/SegmentedControl';
 import toast from 'react-hot-toast';
-import { generateGuiaRemessa, addProfessionalHeader, addProfessionalFooter } from '../../utils/documentGenerator';
+import { generateGuiaRemessa } from '../../utils/documentGenerator';
 import { useStore } from '../../stores/useStore';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import {
     AreaChart,
     Area,
@@ -50,21 +46,28 @@ import {
     Cell,
     Legend
 } from 'recharts';
-import { subMonths, isAfter, startOfDay } from 'date-fns';
+import { subMonths, isAfter } from 'date-fns';
 import { CHART_COLORS, MetricCard } from '../../components/common/ModuleMetricCard';
 
-type TimePeriod = 'today' | 'month' | '2months' | '3months' | 'year' | 'all';
+type TimePeriod = 30 | 90 | 180 | 365;
+
+const PERIOD_OPTIONS = [
+    { label: '1 Mês', value: 30 },
+    { label: '3 Meses', value: 90 },
+    { label: '6 Meses', value: 180 },
+    { label: '1 Ano', value: 365 },
+];
 
 export default function LogisticsDashboard() {
     const { t } = useTranslation();
     const { companySettings } = useStore();
     const { warehouses } = useWarehouses();
-    const { products } = useProducts();
+    const { products } = useProducts({ page: 1, limit: 100 });
     const { data: dashboard, isLoading: isLoadingDashboard, refetch: refetchDashboard } = useLogisticsDashboard();
     const { insights } = useSmartInsights();
     const { alerts: expiryAlerts } = useExpiryAlerts();
     
-    const [period, setPeriod] = useState<TimePeriod>('all');
+    const [selectedDays, setSelectedDays] = useState<TimePeriod>(30);
     
     const { data: allTransfers, isLoading: isLoadingTransfers } = useTransfers();
     const createTransferMutation = useCreateTransfer();
@@ -81,36 +84,15 @@ export default function LogisticsDashboard() {
     const filteredTransfers = useMemo(() => {
         const transfersArray = Array.isArray(allTransfers) ? allTransfers : (allTransfers as any)?.data || [];
         if (transfersArray.length === 0) return [];
-        if (period === 'all') return transfersArray;
 
         const now = new Date();
-        let startDate: Date;
-
-        switch (period) {
-            case 'today':
-                startDate = startOfDay(now);
-                break;
-            case 'month':
-                startDate = subMonths(now, 1);
-                break;
-            case '2months':
-                startDate = subMonths(now, 2);
-                break;
-            case '3months':
-                startDate = subMonths(now, 3);
-                break;
-            case 'year':
-                startDate = subMonths(now, 12);
-                break;
-            default:
-                startDate = new Date(0);
-        }
+        const startDate = subMonths(now, selectedDays / 30);
 
         return transfersArray.filter((tr: StockTransfer) => {
             const trDate = new Date(tr.date || tr.createdAt);
             return isAfter(trDate, startDate);
         });
-    }, [allTransfers, period]);
+    }, [allTransfers, selectedDays]);
 
     const handleRefresh = async () => {
         const promise = refetchDashboard();
@@ -156,75 +138,10 @@ export default function LogisticsDashboard() {
         });
     };
 
-    const exportToExcel = () => {
-        if (!Array.isArray(filteredTransfers) || filteredTransfers.length === 0) {
-            return toast.error('Nenhum dado para exportar');
-        }
-        const data = filteredTransfers.map((tr: StockTransfer) => ({
-            'Guia': tr.number,
-            'Origem': tr.sourceWarehouse?.name,
-            'Destino': tr.targetWarehouse?.name,
-            'Estado': tr.status,
-            'Responsável': tr.responsible,
-            'Data': new Date(tr.date || tr.createdAt).toLocaleDateString(),
-            'Total Itens': tr.items?.length
-        }));
-        const worksheet = XLSX.utils.json_to_sheet(data);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Transferencias');
-        XLSX.writeFile(workbook, `Logistica_Transferencias_${period}_${new Date().toISOString().split('T')[0]}.xlsx`);
-    };
-
-    const exportToPDF = () => {
-        const doc = new jsPDF();
-        const periodLabel = period === 'all' ? t('logistics_module.dashboard.periods.all') :
-            period === 'today' ? t('logistics_module.dashboard.periods.today') :
-            period === 'month' ? t('logistics_module.dashboard.periods.month') :
-            period === '2months' ? t('logistics_module.dashboard.periods.2months') :
-            period === '3months' ? t('logistics_module.dashboard.periods.3months') : t('logistics_module.dashboard.periods.year');
-
-        addProfessionalHeader(doc, t('logistics_module.dashboard.reports.logisticsReport'), companySettings, periodLabel);
-
-        doc.setFontSize(9);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`${t('common.period')}: ${periodLabel}`, 15, 52);
-        doc.text(`${t('logistics_module.dashboard.reports.totalTransfers')}: ${filteredTransfers.length}`, 15, 57);
-
-        if (!Array.isArray(filteredTransfers)) return;
-
-        const tableData = filteredTransfers.map((tr: StockTransfer) => [
-            tr.number,
-            tr.sourceWarehouse?.name || '-',
-            tr.targetWarehouse?.name || '-',
-            tr.status === 'completed' ? t('common.completed').toUpperCase() : t('logistics_module.deliveries.status.pending').toUpperCase(),
-            tr.responsible || '-',
-            new Date(tr.date || tr.createdAt).toLocaleDateString('pt-MZ'),
-            tr.items?.length || 0
-        ]);
-
-        autoTable(doc, {
-            startY: 65,
-            head: [[t('logistics_module.deliveries.number'), t('common.origin'), t('common.destination'), t('common.status'), t('common.responsible'), t('common.date'), t('common.items')]],
-            body: tableData,
-            theme: 'striped',
-            headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
-            bodyStyles: { fontSize: 8 },
-            alternateRowStyles: { fillColor: [239, 246, 255] },
-            columnStyles: {
-                3: { halign: 'center' },
-                5: { halign: 'center' },
-                6: { halign: 'center' }
-            },
-            margin: { left: 15, right: 15 }
-        });
-
-        addProfessionalFooter(doc, companySettings);
-        doc.save(`Logistica_Relatorio_${period}_${new Date().toISOString().split('T')[0]}.pdf`);
-        toast.success(t('messages.success'));
-    };
 
 
-    const totalStock = warehouses.reduce((acc, w) => acc + ((w as any).totalItems || 0), 0);
+
+    const totalStock = (warehouses || []).reduce((acc, w) => acc + ((w as any).totalItems || 0), 0);
 
     const transferStats = [
         { name: 'Seg', valor: 4 },
@@ -317,62 +234,45 @@ export default function LogisticsDashboard() {
                 <ExpiryAlertsPanel alerts={expiryAlerts} />
             )}
 
-            <PageHeader
-                title={t('logistics_module.dashboard.title')}
-                subtitle={t('logistics_module.dashboard.subtitle')}
-                icon={<HiOutlineTruck className="text-primary-600 dark:text-primary-400" />}
-                actions={
-                    <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                            variant="ghost"
-                            onClick={handleRefresh}
-                            leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
-                        >
-                            {t('common.refresh')}
-                        </Button>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                <div>
+                    <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+                        <span className="w-10 h-10 rounded-2xl bg-primary-100 dark:bg-primary-500/15 border border-primary-200 dark:border-primary-500/25 flex items-center justify-center">
+                            <HiOutlineTruck className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                        </span>
+                        {t('logistics_module.dashboard.title')}
+                    </h1>
+                    <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1 ml-1">
+                        {t('logistics_module.dashboard.subtitle')}
+                    </p>
+                </div>
 
-                        <div className="w-48">
-                            <Select
-                                value={period}
-                                onChange={(e) => setPeriod(e.target.value as TimePeriod)}
-                                leftIcon={<HiOutlineFunnel className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
-                                className="bg-gray-50 dark:bg-dark-900/50 text-xs font-bold"
-                                options={[
-                                    { value: 'today', label: t('logistics_module.dashboard.periods.today') },
-                                    { value: 'month', label: t('logistics_module.dashboard.periods.month') },
-                                    { value: '2months', label: t('logistics_module.dashboard.periods.2months') },
-                                    { value: '3months', label: t('logistics_module.dashboard.periods.3months') },
-                                    { value: 'year', label: t('logistics_module.dashboard.periods.year') },
-                                    { value: 'all', label: t('logistics_module.dashboard.periods.all') }
-                                ]}
-                            />
-                        </div>
+                <div className="flex flex-wrap items-center gap-3 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
+                    <SegmentedControl
+                        options={PERIOD_OPTIONS}
+                        value={selectedDays}
+                        onChange={setSelectedDays}
+                    />
 
-                        <Button
-                            variant="outline"
-                            leftIcon={<HiOutlinePrinter className="w-5 h-5" />}
-                            onClick={exportToPDF}
-                        >
-                            PDF
-                        </Button>
-                        <Button
-                            variant="outline"
-                            leftIcon={<HiOutlineTableCells className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
-                            onClick={exportToExcel}
-                        >
-                            Excel
-                        </Button>
-                        <Button
-                            variant="primary"
-                            className="rounded-lg shadow-lg shadow-primary-500/25"
-                            leftIcon={<HiOutlinePlus className="w-5 h-5 text-white" />}
-                            onClick={() => setIsTransferModalOpen(true)}
-                        >
-                            {t('logistics_module.dashboard.newTransfer')}
-                        </Button>
-                    </div>
-                }
-            />
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRefresh}
+                        leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600" />}
+                    >
+                        {t('common.refresh')}
+                    </Button>
+
+                    <Button
+                        variant="primary"
+                        size="sm"
+                        leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
+                        onClick={() => setIsTransferModalOpen(true)}
+                    >
+                        {t('logistics_module.dashboard.newTransfer')}
+                    </Button>
+                </div>
+            </div>
 
             {/* Smart Insights / Intelligent Advisor */}
             {insights.length > 0 && (
@@ -403,7 +303,7 @@ export default function LogisticsDashboard() {
                     </h2>
                     <Badge variant="success" className="animate-pulse">Live Tracking</Badge>
                 </div>
-                <Card className="p-0 overflow-hidden border-none shadow-xl">
+                <Card className="p-0 overflow-hidden border border-white/20 dark:border-white/10 shadow-xl backdrop-blur-xl bg-white/80 dark:bg-dark-800/80">
                     <LogisticsMap 
                         locations={mapLocations} 
                         className="h-[500px] w-full"
@@ -474,7 +374,7 @@ export default function LogisticsDashboard() {
                     </div>
                 </Card>
 
-                <Card color="slate" className="p-6 h-[400px] flex flex-col">
+                <Card className="p-6 h-[400px] flex flex-col bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
                             <HiOutlineSquares2X2 className="text-indigo-600 dark:text-indigo-400 w-5 h-5" />
@@ -619,7 +519,16 @@ export default function LogisticsDashboard() {
                                                             variant="ghost"
                                                             size="sm"
                                                             className="h-8 w-8 p-0"
-                                                            onClick={() => generateGuiaRemessa(tr, companySettings)}
+                                                            onClick={() => generateGuiaRemessa(tr, {
+                                                                name: companySettings.companyName,
+                                                                companyName: companySettings.companyName,
+                                                                address: companySettings.address,
+                                                                phone: companySettings.phone,
+                                                                email: companySettings.email,
+                                                                logo: companySettings.logo,
+                                                                nuit: companySettings.taxId,
+                                                                taxId: companySettings.taxId
+                                                            })}
                                                         >
                                                             <HiOutlinePrinter className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                                                         </Button>

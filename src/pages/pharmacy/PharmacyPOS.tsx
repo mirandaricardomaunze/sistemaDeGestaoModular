@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button, Input, Skeleton, Card, Textarea } from '../../components/ui';
+import { Button, Input, Skeleton, Card, Textarea, LoadingOverlay } from '../../components/ui';
 import { usePharmacyPartners } from '../../hooks/usePharmacyPartners';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { playScanSound } from '../../utils/audio';
@@ -50,7 +50,8 @@ export default function PharmacyPOS() {
     const queryClient = useQueryClient();
     const { companySettings } = useStore();
     const { partners } = usePharmacyPartners();
-    const { customers } = useCustomers();
+    // Customer selector now uses CustomerAutocomplete (search-on-type) — no preload needed
+    const { customers } = useCustomers({ page: 1, limit: 1 });
 
     // Replaced manual useQuery with revamped hook
     const { data: medsResponse, isLoading, refetch: fetchMedications } = useMedications();
@@ -434,7 +435,6 @@ export default function PharmacyPOS() {
                                 variant="outline" 
                                 size="sm" 
                                 onClick={() => { setShiftModalMode('close'); setShowShiftModal(true); }} 
-                                className="flex-1 md:flex-none rounded-lg font-bold uppercase tracking-widest text-[10px] h-10 px-4"
                             >
                                 Encerrar Turno
                             </Button>
@@ -443,7 +443,6 @@ export default function PharmacyPOS() {
                                 variant="primary" 
                                 size="sm" 
                                 onClick={() => { setShiftModalMode('open'); setShowShiftModal(true); }} 
-                                className="flex-1 md:flex-none rounded-lg font-bold uppercase tracking-widest text-[10px] h-10 px-4"
                             >
                                 Abrir Turno
                             </Button>
@@ -453,7 +452,6 @@ export default function PharmacyPOS() {
                             size="sm" 
                             leftIcon={<HiOutlineRefresh className="w-4 h-4 text-white" />} 
                             onClick={() => setShowRefundModal(true)} 
-                            className="rounded-lg font-bold uppercase tracking-widest text-[10px] h-10 px-3"
                         />
                     </div>
                 </div>
@@ -599,7 +597,7 @@ export default function PharmacyPOS() {
                 </div>
             )}
 
-            <PharmacyShiftModal 
+            <PharmacyShiftModal
                 isOpen={showShiftModal}
                 mode={shiftModalMode}
                 shift={shift}
@@ -607,6 +605,15 @@ export default function PharmacyPOS() {
                 onCloseShift={handleCloseShift}
                 onClose={() => setShowShiftModal(false)}
             />
+
+            {(() => {
+                const busy = createSaleMutation.isPending || isRefunding;
+                if (!busy) return null;
+                const message = createSaleMutation.isPending
+                    ? 'A processar a venda... Por favor, aguarde.'
+                    : 'A processar reembolso...';
+                return <LoadingOverlay message={message} fullScreen />;
+            })()}
         </div>
     );
 }

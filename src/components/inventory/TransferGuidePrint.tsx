@@ -249,9 +249,9 @@ export default function TransferGuidePrint({ isOpen, onClose, transfer }: Transf
                                                         <td style={{ fontFamily: 'monospace', color: '#64748b' }}>{productCode}</td>
                                                         <td style={{ fontWeight: '600', color: '#1e293b' }}>
                                                             {productName}
-                                                            {item.product?.weight && item.product.weight > 0 && (
+                                                            {Number(item.product?.weight) > 0 && (
                                                                 <span style={{ display: 'block', fontSize: '9px', color: '#94a3b8', fontWeight: 400 }}>
-                                                                    {item.product.weight.toFixed(3)} kg/un
+                                                                    {Number(item.product!.weight).toFixed(3)} kg/un
                                                                 </span>
                                                             )}
                                                         </td>

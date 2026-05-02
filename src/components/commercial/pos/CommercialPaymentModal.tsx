@@ -1,9 +1,10 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     HiOutlineCash, HiOutlineCheck, HiOutlineX, HiOutlinePlus,
     HiOutlineTrash
 } from 'react-icons/hi';
-import { formatCurrency } from '../../../utils/helpers';
+import { formatCurrency, cn } from '../../../utils/helpers';
+import { Button } from '../../ui/Button';
 
 // ──-Icons ──────────────────────────────────────────────────────────────────-
 function PhoneIcon({ className }: { className?: string }) {
@@ -47,6 +48,7 @@ interface CommercialPaymentModalProps {
     cartTax: number;
     customerName: string;
     selectedCustomer: any;
+    isLoading?: boolean;
 }
 
 const METHOD_CONFIG: Record<PaymentMethodType, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
@@ -83,7 +85,8 @@ const QUICK_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 export function CommercialPaymentModal({
     isOpen, onClose, onConfirm,
     cartTotal, cartSubtotal, cartDiscount, cartTax,
-    customerName, selectedCustomer
+    customerName, selectedCustomer,
+    isLoading = false
 }: CommercialPaymentModalProps) {
 
     const [payments, setPayments] = useState<PaymentEntry[]>([{ method: 'cash', amount: cartTotal, reference: '' }]);
@@ -154,71 +157,83 @@ export function CommercialPaymentModal({
             {/* Backdrop */}
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-            <div className="relative z-10 w-full max-w-xl mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                {/* Header */}
-                <div className="bg-blue-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
-                    <div>
-                        <h2 className="text-white font-black text-lg uppercase tracking-tight">Pagamento</h2>
-                        <p className="text-blue-200 text-xs mt-0.5">
+            <div className="relative z-10 w-full max-w-xl mx-4 bg-white dark:bg-[#111214] border border-slate-200 dark:border-white/5 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                {/* Header - Modern Style */}
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-5 flex items-center justify-between flex-shrink-0 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16" />
+                    <div className="relative z-10">
+                        <h2 className="text-white font-black text-xl uppercase tracking-tighter italic">PAGAMENTO</h2>
+                        <p className="text-white/60 text-[10px] font-bold uppercase tracking-[0.2em] mt-1 italic">
                             {selectedCustomer?.name || customerName || 'Consumidor Geral'}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors">
+                    <button onClick={onClose} className="p-2.5 rounded-xl hover:bg-white/10 text-white transition-all active:scale-90 relative z-10">
                         <HiOutlineX className="w-5 h-5" />
                     </button>
                 </div>
 
                 <div className="overflow-y-auto flex-1">
-                    {/* Summary */}
-                    <div className="px-6 py-4 bg-gray-50 dark:bg-dark-900/50 border-b dark:border-dark-700">
-                        <div className="grid grid-cols-3 gap-4 text-center">
-                            <div>
-                                <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Subtotal</p>
-                                <p className="font-bold text-gray-700 dark:text-gray-300 text-sm">{formatCurrency(cartSubtotal)}</p>
+                    {/* Summary Section - High Contrast */}
+                    <div className="px-6 py-6 bg-slate-50/50 dark:bg-black/40 border-b border-slate-200 dark:border-white/5">
+                        <div className="grid grid-cols-3 gap-6 text-center">
+                            <div className="space-y-1">
+                                <p className="text-[10px] uppercase font-black text-slate-400 dark:text-white/20 tracking-[0.2em]">Subtotal</p>
+                                <p className="font-black text-slate-900 dark:text-white text-sm tracking-tight">{formatCurrency(cartSubtotal)}</p>
                             </div>
-                            <div>
-                                <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">IVA (16%)</p>
-                                <p className="font-bold text-gray-700 dark:text-gray-300 text-sm">{formatCurrency(cartTax)}</p>
+                            <div className="space-y-1">
+                                <p className="text-[10px] uppercase font-black text-slate-400 dark:text-white/20 tracking-[0.2em]">IVA (16%)</p>
+                                <p className="font-black text-slate-900 dark:text-white text-sm tracking-tight">{formatCurrency(cartTax)}</p>
                             </div>
-                            <div>
-                                <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest mb-1">Desconto</p>
-                                <p className="font-bold text-red-500 text-sm">- {formatCurrency(cartDiscount)}</p>
+                            <div className="space-y-1">
+                                <p className="text-[10px] uppercase font-black text-slate-400 dark:text-white/20 tracking-[0.2em]">Poupas</p>
+                                <p className="font-black text-rose-500 text-sm tracking-tight">- {formatCurrency(cartDiscount)}</p>
                             </div>
                         </div>
-                        <div className="mt-3 pt-3 border-t dark:border-dark-700 flex items-center justify-between">
-                            <span className="text-sm font-black uppercase tracking-widest text-gray-500">Total a Pagar</span>
-                            <span className="text-3xl font-black text-blue-600 dark:text-blue-400">{formatCurrency(cartTotal)}</span>
+                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-white/5 flex items-center justify-between">
+                            <span className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 dark:text-white/30 italic">Total Final</span>
+                            <span className="text-4xl font-black text-blue-600 dark:text-blue-400 italic tracking-tighter drop-shadow-[0_0_15px_rgba(96,165,250,0.3)]">
+                                {formatCurrency(cartTotal)}
+                            </span>
                         </div>
                     </div>
 
-                    {/* Credit toggle */}
-                    <div className="px-6 pt-4">
+                    {/* Credit toggle - Modern Style */}
+                    <div className="px-6 pt-6">
                         <button
                             onClick={handleCredit}
-                            className={`w-full flex items-center justify-between p-3 rounded-lg border-2 transition-all ${isCredit
-                                ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
-                                : 'border-gray-100 dark:border-dark-700 bg-gray-50 dark:bg-dark-900 text-gray-500 hover:border-amber-300'}`}
+                            className={cn(
+                                "w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
+                                isCredit
+                                    ? "bg-amber-500/10 border-amber-500/50 text-amber-600 dark:text-amber-500 shadow-lg shadow-amber-500/5"
+                                    : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-400 dark:text-white/40 hover:border-amber-500/30 hover:text-amber-600 dark:hover:text-white"
+                            )}
                         >
-                            <div className="flex items-center gap-2">
-                                <DocumentIcon className="w-4 h-4" />
-                                <span className="text-xs font-black uppercase tracking-widest">Venda a Crédito / Fiado</span>
+                            <div className="flex items-center gap-3">
+                                <DocumentIcon className="w-5 h-5" />
+                                <span className="text-[11px] font-black uppercase tracking-[0.2em] italic">Venda a Crédito</span>
                             </div>
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${isCredit ? 'bg-amber-500 border-amber-500' : 'border-gray-300'}`}>
-                                {isCredit && <HiOutlineCheck className="w-3 h-3 text-white" />}
+                            <div className={cn(
+                                "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+                                isCredit ? "bg-amber-500 border-amber-500" : "border-white/10"
+                            )}>
+                                {isCredit && <HiOutlineCheck className="w-4 h-4 text-black font-black" />}
                             </div>
                         </button>
 
                         {isCredit && (
-                            <div className="mt-2 flex items-center gap-3 px-1">
-                                <p className="text-xs text-gray-500 font-medium whitespace-nowrap">Vence em</p>
+                            <div className="mt-4 flex items-center gap-4 px-1">
+                                <p className="text-[10px] text-slate-400 dark:text-white/30 font-black uppercase tracking-widest italic">Vence em</p>
                                 <div className="flex gap-2">
                                     {[15, 30, 45, 60].map(d => (
                                         <button
                                             key={d}
                                             onClick={() => setCreditDueDays(d)}
-                                            className={`px-3 py-1 rounded-lg text-xs font-black border transition-all ${creditDueDays === d
-                                                ? 'bg-amber-500 text-white border-amber-500'
-                                                : 'bg-gray-100 dark:bg-dark-700 text-gray-500 border-transparent'}`}
+                                            className={cn(
+                                                "px-4 py-1.5 rounded-xl text-[10px] font-black border transition-all uppercase tracking-widest",
+                                                creditDueDays === d
+                                                    ? "bg-amber-500 text-black border-amber-500"
+                                                    : "bg-white/5 text-white/40 border-transparent hover:bg-white/10"
+                                            )}
                                         >
                                             {d}d
                                         </button>
@@ -228,12 +243,12 @@ export function CommercialPaymentModal({
                         )}
                     </div>
 
-                    {/* Payment lines */}
+                    {/* Payment methods - Tech Style */}
                     {!isCredit && (
-                        <div className="px-6 pt-4 space-y-3">
-                            <div className="flex items-center justify-between mb-1">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Métodos de Pagamento</p>
-                                <div className="flex gap-1">
+                        <div className="px-6 pt-6 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-white/20 italic">Métodos Adicionais</p>
+                                <div className="flex gap-2">
                                     {(['cash', 'mpesa', 'emola', 'card'] as PaymentMethodType[]).map(m => {
                                         const conf = METHOD_CONFIG[m];
                                         const active = payments.some(p => p.method === m);
@@ -242,9 +257,12 @@ export function CommercialPaymentModal({
                                                 key={m}
                                                 onClick={() => addPayment(m)}
                                                 disabled={active}
-                                                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black uppercase border transition-all ${active
-                                                    ? `${conf.bg} ${conf.color} ${conf.border} border opacity-60`
-                                                    : 'bg-gray-100 dark:bg-dark-700 text-gray-400 border-transparent hover:border-gray-300'}`}
+                                                className={cn(
+                                                    "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase border transition-all tracking-widest",
+                                                    active
+                                                        ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 opacity-50 cursor-default"
+                                                        : "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/30 border-transparent hover:border-slate-200 dark:border-white/10 hover:text-slate-900 dark:hover:text-white"
+                                                )}
                                             >
                                                 {!active && <HiOutlinePlus className="w-3 h-3" />}
                                                 {conf.label}
@@ -254,73 +272,73 @@ export function CommercialPaymentModal({
                                 </div>
                             </div>
 
-                            {payments.filter(p => p.method !== 'credit').map((payment, idx) => {
-                                const conf = METHOD_CONFIG[payment.method];
-                                return (
-                                    <div key={idx} className={`p-3 rounded-lg border-2 ${conf.border} ${conf.bg} space-y-2`}>
-                                        <div className="flex items-center justify-between">
-                                            <div className={`flex items-center gap-2 ${conf.color} font-black text-xs uppercase tracking-wider`}>
-                                                {conf.icon}
-                                                {conf.label}
+                            <div className="space-y-3">
+                                {payments.filter(p => p.method !== 'credit').map((payment, idx) => {
+                                    const conf = METHOD_CONFIG[payment.method];
+                                    return (
+                                        <div key={idx} className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-2xl p-4 space-y-4 relative group/item shadow-sm">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3 text-slate-900 dark:text-white font-black text-[11px] uppercase tracking-[0.2em] italic">
+                                                    <div className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-blue-600 dark:text-blue-400">
+                                                        {conf.icon}
+                                                    </div>
+                                                    {conf.label}
+                                                </div>
+                                                {payments.length > 1 && (
+                                                    <button onClick={() => removePayment(idx)} className="p-2 rounded-xl hover:bg-rose-500/20 text-slate-300 dark:text-white/20 hover:text-rose-500 transition-all">
+                                                        <HiOutlineTrash className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
-                                            {payments.length > 1 && (
-                                                <button onClick={() => removePayment(idx)} className="text-gray-400 hover:text-red-500 transition-colors">
-                                                    <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
+
+                                            <div className="flex gap-4 items-center">
+                                                <div className="relative flex-1">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-white/20 tracking-widest">MTN</span>
+                                                    <input
+                                                        type="number"
+                                                        value={payment.amount || ''}
+                                                        onChange={e => updatePayment(idx, 'amount', Number(e.target.value))}
+                                                        className="w-full pl-14 pr-4 py-3 text-right text-xl font-black rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-black/40 text-slate-900 dark:text-white focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
+                                                        placeholder="0.00"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Quick amounts for cash */}
+                                            {payment.method === 'cash' && (
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button
+                                                        onClick={() => updatePayment(idx, 'amount', cartTotal)}
+                                                        className="px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl text-[9px] font-black text-blue-400 hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest"
+                                                    >
+                                                        Valor Exato
+                                                    </button>
+                                                    {QUICK_AMOUNTS.filter(a => a >= cartTotal - 1).slice(0, 4).map(a => (
+                                                        <button
+                                                            key={a}
+                                                            onClick={() => setQuickAmount(idx, a)}
+                                                            className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl text-[9px] font-black text-slate-500 dark:text-white/30 hover:border-slate-300 dark:hover:border-white/20 hover:text-slate-900 dark:hover:text-white transition-all uppercase tracking-widest"
+                                                        >
+                                                            {a.toLocaleString()}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Reference input */}
+                                            {(payment.method === 'mpesa' || payment.method === 'emola' || payment.method === 'card') && (
+                                                <input
+                                                    type="text"
+                                                    value={payment.reference || ''}
+                                                    onChange={e => updatePayment(idx, 'reference', e.target.value)}
+                                                    placeholder="Referência da transação..."
+                                                    className="w-full px-4 py-2 text-[11px] rounded-xl border border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-black/20 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/20 focus:border-blue-500/30 transition-all font-medium uppercase tracking-wider shadow-sm"
+                                                />
                                             )}
                                         </div>
-
-                                        <div className="flex gap-2 items-center">
-                                            <div className="relative flex-1">
-                                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400">MTn</span>
-                                                <input
-                                                    type="number"
-                                                    value={payment.amount || ''}
-                                                    onChange={e => updatePayment(idx, 'amount', Number(e.target.value))}
-                                                    className="w-full pl-11 pr-3 py-2 text-right text-lg font-black rounded-lg border dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                                    placeholder="0.00"
-                                                />
-                                            </div>
-                                        </div>
-
-                                        {/* Quick amounts for cash */}
-                                        {payment.method === 'cash' && (
-                                            <div className="flex flex-wrap gap-1.5">
-                                                <button
-                                                    onClick={() => updatePayment(idx, 'amount', cartTotal)}
-                                                    className="px-2 py-0.5 bg-white dark:bg-dark-700 border dark:border-dark-600 rounded text-[10px] font-black text-green-600 hover:bg-green-50 transition-colors"
-                                                >
-                                                    Exato
-                                                </button>
-                                                {QUICK_AMOUNTS.filter(a => a >= cartTotal - 1).slice(0, 5).map(a => (
-                                                    <button
-                                                        key={a}
-                                                        onClick={() => setQuickAmount(idx, a)}
-                                                        className="px-2 py-0.5 bg-white dark:bg-dark-700 border dark:border-dark-600 rounded text-[10px] font-black text-gray-600 hover:bg-gray-50 transition-colors"
-                                                    >
-                                                        {a.toLocaleString()}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Reference for M-Pesa / E-Mola / Card */}
-                                        {(payment.method === 'mpesa' || payment.method === 'emola' || payment.method === 'card') && (
-                                            <input
-                                                type="text"
-                                                value={payment.reference || ''}
-                                                onChange={e => updatePayment(idx, 'reference', e.target.value)}
-                                                placeholder={
-                                                    payment.method === 'mpesa' ? 'Referência M-Pesa (ex: BC12345)...'
-                                                    : payment.method === 'emola' ? 'Referência E-Mola (ex: EM12345)...'
-                                                    : 'Nº aprovação cartão...'
-                                                }
-                                                className="w-full px-3 py-1.5 text-xs rounded-lg border dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                                            />
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
 
@@ -349,24 +367,28 @@ export function CommercialPaymentModal({
                     )}
                 </div>
 
-                {/* Footer */}
-                <div className="px-6 py-4 border-t dark:border-dark-700 flex gap-3 flex-shrink-0">
+                {/* Footer Actions - Premium Modern Look */}
+                <div className="px-6 py-6 bg-slate-50 dark:bg-[#0a0b0d] border-t border-slate-200 dark:border-white/5 flex gap-4 flex-shrink-0">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                        className="flex-1 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/40 font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-all active:scale-95 italic shadow-sm"
                     >
                         Cancelar
                     </button>
-                    <button
+                    <Button
                         onClick={handleConfirm}
                         disabled={!isFullyPaid}
-                        className={`flex-1 py-3 rounded-lg font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg ${isFullyPaid
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
-                            : 'bg-gray-100 dark:bg-dark-700 text-gray-400 cursor-not-allowed shadow-none'}`}
+                        isLoading={isLoading}
+                        className={cn(
+                            "flex-1 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all shadow-2xl h-14 italic",
+                            isFullyPaid 
+                                ? "bg-blue-600 text-white hover:bg-blue-500 shadow-blue-500/20 hover:-translate-y-1 active:scale-95" 
+                                : "bg-slate-100 dark:bg-white/5 text-slate-300 dark:text-white/10 border border-slate-200 dark:border-white/5 cursor-not-allowed"
+                        )}
                     >
                         <HiOutlineCheck className="w-5 h-5" />
-                        {isCredit ? 'Confirmar Crédito' : 'Confirmar Pagamento'}
-                    </button>
+                        {isCredit ? 'Confirmar Crédito' : 'Finalizar Venda'}
+                    </Button>
                 </div>
             </div>
         </div>

@@ -26,7 +26,8 @@ import {
 } from 'recharts';
 import { format, isToday, subDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Card, Button, Badge, Input, Select, Pagination, TableContainer } from '../ui';
+import { Card, Button, Badge, Input, Select, Pagination, TableContainer, PageHeader } from '../ui';
+import { MetricCard } from '../common/ModuleMetricCard';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { OrderStatus } from './OrderStatusTracker';
 
@@ -236,97 +237,74 @@ export default function OrdersDashboard({
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Dashboard de Encomendas
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        Visão geral e gerenciamento de pedidos
-                    </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-3">
-                    {/* Period Filter */}
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
-                        {periodOptions.map((option) => (
-                            <button
-                                key={option.value}
-                                onClick={() => setSelectedPeriod(option.value)}
-                                className={cn(
-                                    'px-3 py-1.5 rounded-md text-sm font-medium transition-all',
-                                    selectedPeriod === option.value
-                                        ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm'
-                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                                )}
-                            >
-                                {option.label}
-                            </button>
-                        ))}
+            <PageHeader
+                title="Dashboard de Encomendas"
+                subtitle="Visão geral e gerenciamento de pedidos"
+                icon={<HiOutlineClipboardList className="text-primary-600 dark:text-primary-400" />}
+                actions={
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Period Filter */}
+                        <div className="flex items-center h-10 bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm">
+                            {periodOptions.map((option) => (
+                                <button
+                                    key={option.value}
+                                    onClick={() => setSelectedPeriod(option.value)}
+                                    className={cn(
+                                        'px-3 h-full rounded-md text-[10px] font-black uppercase tracking-widest transition-all',
+                                        selectedPeriod === option.value
+                                            ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
+                                            : 'text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400'
+                                    )}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                        <Button 
+                            size="sm" 
+                            className="h-10 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+                            onClick={onNewOrder}
+                            leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                        >
+                            Nova Encomenda
+                        </Button>
                     </div>
-                    <Button onClick={onNewOrder}>
-                        <HiOutlinePlus className="w-5 h-5 mr-2" />
-                        Nova Encomenda
-                    </Button>
-                </div>
-            </div>
+                }
+            />
 
             {/* Metric Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-                <Card padding="md" className="border-l-4 border-l-blue-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Hoje</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                                {metrics.today}
-                            </p>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                    label="Hoje"
+                    value={metrics.today}
+                    color="primary"
+                    icon={<HiOutlineClipboardList className="w-5 h-5" />}
+                />
+                <MetricCard
+                    label="Pendentes"
+                    value={metrics.pending}
+                    color="yellow"
+                    icon={<HiOutlineClock className="w-5 h-5" />}
+                />
+                <MetricCard
+                    label="Urgentes"
+                    value={metrics.urgent}
+                    color="red"
+                    icon={<HiOutlineExclamation className="w-5 h-5" />}
+                    badge={metrics.urgent > 0 ? (
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[8px] font-black text-red-500 dark:text-red-400 uppercase tracking-tighter animate-pulse">Crítico</span>
+                            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                         </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineClipboardList className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-yellow-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Pendentes</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-                                {metrics.pending}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineClock className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-red-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Urgentes</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-red-600">
-                                {metrics.urgent}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineExclamation className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
-                        </div>
-                    </div>
-                </Card>
-
-                <Card padding="md" className="border-l-4 border-l-green-500 overflow-hidden">
-                    <div className="flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">Completas</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-green-600">
-                                {metrics.completed}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
-                            <HiOutlineCheck className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-                        </div>
-                    </div>
-                </Card>
+                    ) : undefined}
+                />
+                <MetricCard
+                    label="Completas"
+                    value={metrics.completed}
+                    color="success"
+                    icon={<HiOutlineCheck className="w-5 h-5" />}
+                    badge={<span className="text-[9px] font-bold text-emerald-500 dark:text-emerald-400 uppercase tracking-tight">Finalizadas</span>}
+                />
             </div>
 
             {/* Charts */}

@@ -35,8 +35,8 @@ export const settingsAPI = {
         return response.data;
     },
 
-    getCategories: async () => {
-        const response = await api.get('/settings/categories');
+    getCategories: async (params?: { originModule?: string }) => {
+        const response = await api.get('/settings/categories', { params });
         return response.data;
     },
 

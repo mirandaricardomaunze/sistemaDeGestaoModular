@@ -14,13 +14,14 @@ import {
     HiOutlineCalculator
 } from 'react-icons/hi2';
 import { shiftAPI, type ShiftSession as CashSession } from '../../services/api';
-import { Button, Card, Badge, Input } from '../../components/ui';
+import { Button, Card, Badge, Input, Pagination, usePagination } from '../../components/ui';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn, formatCurrency } from '../../utils/helpers';
+import { formatCurrency } from '../../utils/helpers';
 import { PharmacyShiftDetailsModal } from '../../components/pharmacy/pos/PharmacyShiftDetailsModal';
 import { logger } from '../../utils/logger';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 
 const PharmacyShiftHistory: React.FC = () => {
     const [sessions, setSessions] = useState<CashSession[]>([]);
@@ -32,6 +33,15 @@ const PharmacyShiftHistory: React.FC = () => {
 
     const [selectedSession, setSelectedSession] = useState<CashSession | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    
+    const {
+        paginatedItems: paginatedSessions,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(sessions, 10);
 
     const loadHistory = useCallback(async () => {
         try {
@@ -136,31 +146,34 @@ const PharmacyShiftHistory: React.FC = () => {
                             label="Operador"
                             placeholder="Filtrar por nome..."
                             leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4 text-gray-400" />}
-                            className="bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
+                            className="bg-white dark:bg-dark-900 border-none shadow-sm"
+                            size="sm"
                         />
                     </div>
                     <div>
                         <Input
                             label="Início"
                             type="date"
-                            size="md"
+                            size="sm"
                             value={dateRange.start}
                             onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                            className="bg-white dark:bg-dark-900 border-none shadow-sm"
                         />
                     </div>
                     <div>
                         <Input
                             label="Fim"
                             type="date"
-                            size="md"
+                            size="sm"
                             value={dateRange.end}
                             onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                            className="bg-white dark:bg-dark-900 border-none shadow-sm"
                         />
                     </div>
                     <Button 
                         onClick={loadHistory} 
-                        size="md"
-                        className="bg-teal-600 hover:bg-teal-700 text-white font-black uppercase text-[10px] tracking-widest border-none"
+                        size="sm"
+                        className="bg-teal-600 hover:bg-teal-700 text-white font-black uppercase text-[10px] tracking-widest border-none w-full"
                     >
                         Processar Filtros
                     </Button>
@@ -169,26 +182,30 @@ const PharmacyShiftHistory: React.FC = () => {
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {[
-                    { label: 'Total em Caixa', val: sessions.reduce((acc, s) => acc + Number(s.closingBalance || 0), 0), icon: HiOutlineCurrencyDollar, color: 'text-green-500', bg: 'bg-green-500/10' },
-                    { label: 'Total Suprimentos', val: sessions.reduce((acc, s) => acc + Number(s.deposits || 0), 0), icon: HiOutlineArrowTrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                    { label: 'Total Sangrias', val: sessions.reduce((acc, s) => acc + Number(s.withdrawals || 0), 0), icon: HiOutlineArrowTrendingDown, color: 'text-red-500', bg: 'bg-red-500/10' },
-                    { label: 'Discrepâncias', val: sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0), icon: HiOutlineXCircle, color: sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0) < 0 ? 'text-red-500' : 'text-emerald-500', bg: sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0) < 0 ? 'bg-red-500/10' : 'bg-emerald-500/10' }
-                ].map((stat, i) => (
-                    <Card key={i} padding="md" className="border-gray-100 dark:border-dark-700/50 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex items-center gap-4">
-                            <div className={cn("p-2.5 rounded-lg shrink-0", stat.bg)}>
-                                <stat.icon className={cn("w-5 h-5", stat.color)} />
-                            </div>
-                            <div className="min-w-0">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{stat.label}</p>
-                                <p className={cn("text-lg font-black tracking-tighter truncate", i === 3 ? stat.color : "text-gray-900 dark:text-white")}>
-                                    {formatCurrency(stat.val)}
-                                </p>
-                            </div>
-                        </div>
-                    </Card>
-                ))}
+                <MetricCard
+                    icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
+                    color="primary"
+                    value={formatCurrency(sessions.reduce((acc, s) => acc + Number(s.closingBalance || 0), 0))}
+                    label="Total em Caixa"
+                />
+                <MetricCard
+                    icon={<HiOutlineArrowTrendingUp className="w-5 h-5" />}
+                    color="info"
+                    value={formatCurrency(sessions.reduce((acc, s) => acc + Number(s.deposits || 0), 0))}
+                    label="Total Suprimentos"
+                />
+                <MetricCard
+                    icon={<HiOutlineArrowTrendingDown className="w-5 h-5" />}
+                    color="warning"
+                    value={formatCurrency(sessions.reduce((acc, s) => acc + Number(s.withdrawals || 0), 0))}
+                    label="Total Sangrias"
+                />
+                <MetricCard
+                    icon={<HiOutlineXCircle className="w-5 h-5" />}
+                    color={sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0) < 0 ? 'danger' : 'success'}
+                    value={formatCurrency(sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0))}
+                    label="Discrepâncias"
+                />
             </div>
 
             {/* Main Data Table */}
@@ -215,7 +232,7 @@ const PharmacyShiftHistory: React.FC = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : sessions.length === 0 ? (
+                            ) : paginatedSessions.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-3 opacity-20">
@@ -225,7 +242,7 @@ const PharmacyShiftHistory: React.FC = () => {
                                     </td>
                                 </tr>
                             ) : (
-                                sessions.map((session) => (
+                                paginatedSessions.map((session) => (
                                     <tr key={session.id} className="hover:bg-teal-50/30 dark:hover:bg-teal-900/10 transition-all group">
                                         <td className="px-6 py-4 font-mono">
                                             <div className="flex flex-col">
@@ -299,6 +316,18 @@ const PharmacyShiftHistory: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                
+                {!loading && sessions.length > 0 && (
+                    <div className="p-4 border-t border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
+                    </div>
+                )}
             </Card>
 
             <PharmacyShiftDetailsModal 

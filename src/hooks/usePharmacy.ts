@@ -85,7 +85,7 @@ export function useDeleteMedication() {
 // ============================================================================
 
 export function usePharmacyBatches(params?: any) {
-    return useQuery<PharmacyBatch[]>({
+    return useQuery<{ data: PharmacyBatch[]; pagination: any }>({
         queryKey: ['pharmacy', 'batches', params],
         queryFn: () => pharmacyAPI.getBatches(params),
     });
@@ -187,7 +187,7 @@ export function usePharmacy(params?: any) {
 
     return {
         medications: medsQuery.data?.data || [],
-        batches: batchesQuery.data || [],
+        batches: batchesQuery.data?.data || [],
         pagination: medsQuery.data?.pagination || null,
         metrics: {
             totalMedications: dashboardQuery.data?.salesCount || 0, // Placeholder mapping

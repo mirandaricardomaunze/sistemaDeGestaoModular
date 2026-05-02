@@ -63,8 +63,34 @@ export const warehousesAPI = {
         items: Array<{ productId: string; quantity: number }>;
         responsible: string;
         reason?: string;
+        notes?: string;
     }) => {
         const response = await api.post('/warehouses/transfers', data);
+        return response.data;
+    },
+
+    submitTransfer: async (id: string) => {
+        const response = await api.post(`/warehouses/transfers/${id}/submit`);
+        return response.data;
+    },
+
+    approveTransfer: async (id: string) => {
+        const response = await api.post(`/warehouses/transfers/${id}/approve`);
+        return response.data;
+    },
+
+    rejectTransfer: async (id: string, reason: string) => {
+        const response = await api.post(`/warehouses/transfers/${id}/reject`, { reason });
+        return response.data;
+    },
+
+    dispatchTransfer: async (id: string) => {
+        const response = await api.post(`/warehouses/transfers/${id}/dispatch`);
+        return response.data;
+    },
+
+    receiveTransfer: async (id: string, items?: Array<{ productId: string; receivedQuantity: number }>) => {
+        const response = await api.post(`/warehouses/transfers/${id}/receive`, { items });
         return response.data;
     },
 

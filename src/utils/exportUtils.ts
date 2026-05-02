@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import type { Product, Customer, Sale, Invoice, Employee, Booking } from '../types';
 
 // ============================================================================
 // Types
@@ -177,6 +178,7 @@ export const exportToPDF = (options: ExportOptions): void => {
     const {
         filename,
         title,
+        subtitle,
         columns,
         data,
         companyName,
@@ -184,10 +186,10 @@ export const exportToPDF = (options: ExportOptions): void => {
         companyAddress,
         companyPhone,
         companyEmail,
+        companyLogo,
         currency = 'MZN',
         locale = 'pt-MZ',
         orientation = 'portrait',
-        showDate = true,
         footerText
     } = options;
 
@@ -195,59 +197,87 @@ export const exportToPDF = (options: ExportOptions): void => {
     const doc = new jsPDF({
         orientation,
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
+        putOnlyUsedFonts: true,
+        floatPrecision: 16
     });
 
     const pageWidth = doc.internal.pageSize.getWidth();
-    let yPosition = 15;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    // 1. Top Accent Bar
+    doc.setFillColor(79, 70, 229); // primary-600
+    doc.rect(0, 0, pageWidth, 5, 'F');
 
-    // Add professional lateral header
-    if (companyName) {
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text(companyName, 10, yPosition);
-        yPosition += 6;
+    let yPos = 15;
 
-        doc.setFontSize(9);
+    // 2. Logo and Company Info
+    if (companyLogo) {
+        try {
+            doc.addImage(companyLogo, 'PNG', 10, yPos, 40, 20, undefined, 'FAST');
+            // If logo exists, we might need to skip some space or put text next to it
+            // For now let's put text below if it's too large, or next to it
+        } catch (e) {
+            console.warn('Could not add logo to PDF', e);
+        }
+    }
+
+    // Company Details (Left)
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text(companyName || 'MULTICORE', 10, yPos + 25);
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139); // slate-500
+    
+    let detailsY = yPos + 30;
+    if (companyNUIT) {
+        doc.text(`NUIT: ${companyNUIT}`, 10, detailsY);
+        detailsY += 4;
+    }
+    if (companyAddress) {
+        doc.text(companyAddress, 10, detailsY);
+        detailsY += 4;
+    }
+    if (companyPhone || companyEmail) {
+        const contact = [companyPhone, companyEmail].filter(Boolean).join(' | ');
+        doc.text(contact, 10, detailsY);
+        detailsY += 4;
+    }
+
+    // 3. Document Title (Right)
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text((title || 'RELATÓRIO').toUpperCase(), pageWidth - 10, yPos + 10, { align: 'right' });
+    
+    if (subtitle) {
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(100);
-
-        if (companyNUIT) {
-            doc.text(`NUIT: ${companyNUIT}`, 10, yPosition);
-            yPosition += 4;
-        }
-        if (companyAddress) {
-            doc.text(companyAddress, 10, yPosition);
-            yPosition += 4;
-        }
-        if (companyPhone || companyEmail) {
-            const contact = [companyPhone, companyEmail].filter(Boolean).join(' | ');
-            doc.text(contact, 10, yPosition);
-            yPosition += 4;
-        }
-        
-        doc.setTextColor(0); // Reset color
-        yPosition += 4;
+        doc.setTextColor(100, 116, 139);
+        doc.text(subtitle, pageWidth - 10, yPos + 16, { align: 'right' });
     }
 
-    // Add title on the right
-    if (title) {
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text(title, pageWidth - 10, 20, { align: 'right' });
-    }
+    // Emitted at Box
+    doc.setDrawColor(226, 232, 240);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(pageWidth - 70, yPos + 22, 60, 15, 2, 2, 'FD');
+    
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(148, 163, 184);
+    doc.text('DATA DE EMISSÃO', pageWidth - 65, yPos + 27);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(51, 65, 85);
+    doc.text(new Date().toLocaleString(locale), pageWidth - 65, yPos + 32);
 
-    // Add date below title
-    if (showDate) {
-        doc.setFontSize(9);
-        doc.setFont('helvetica', 'italic');
-        doc.text(`Gerado em: ${new Date().toLocaleString(locale)}`, pageWidth - 10, 26, { align: 'right' });
-    }
+    yPos = Math.max(detailsY + 10, yPos + 45);
 
-    // Adjust yPosition if title/date occupied space
-    yPosition = Math.max(yPosition, 35);
-
-    // Prepare table data
+    // 4. Table
     const headers = columns.map(col => col.header);
     const rows = data.map(row =>
         columns.map(col => {
@@ -256,69 +286,69 @@ export const exportToPDF = (options: ExportOptions): void => {
         })
     );
 
-    // Add summary row
-    const numericColumns = columns.filter(col =>
-        col.format === 'currency' || col.format === 'number'
-    );
-
-    if (numericColumns.length > 0) {
-        const summaryRow = columns.map(col => {
+    // Prepare Summary (Footer) Row
+    const numericKeys = columns.filter(col => col.format === 'currency' || col.format === 'number');
+    let summaryRow: string[] = [];
+    if (numericKeys.length > 0) {
+        summaryRow = columns.map(col => {
             if (col.format === 'currency' || col.format === 'number') {
-                const sum = data.reduce((acc, row) => {
-                    const value = getNestedValue(row, col.key);
-                    return acc + (Number(value) || 0);
-                }, 0);
-                return formatValue(sum, col.format, currency, locale);
+                const total = data.reduce((sum, row) => sum + (Number(getNestedValue(row, col.key)) || 0), 0);
+                return formatValue(total, col.format, currency, locale);
             }
-            return col.key === columns[0].key ? 'TOTAL' : '';
+            if (col.key === columns[0].key) return 'TOTAL';
+            return '';
         });
-        rows.push(summaryRow);
     }
 
-    // Generate table
     autoTable(doc, {
         head: [headers],
         body: rows,
-        startY: yPosition,
+        foot: summaryRow.length > 0 ? [summaryRow] : undefined,
+        startY: yPos,
         theme: 'striped',
+        styles: {
+            font: 'helvetica',
+            fontSize: 8,
+            cellPadding: 3,
+        },
         headStyles: {
-            fillColor: [41, 128, 185],
+            fillColor: [30, 41, 59], // slate-800
             textColor: 255,
             fontStyle: 'bold',
             halign: 'center'
         },
-        bodyStyles: {
-            fontSize: 9
+        footStyles: {
+            fillColor: [241, 245, 249], // slate-100
+            textColor: [15, 23, 42], // slate-900
+            fontStyle: 'bold',
+            halign: 'right'
         },
-        alternateRowStyles: {
-            fillColor: [245, 245, 245]
-        },
-        columnStyles: columns.reduce((acc, col, index) => {
-            acc[index] = {
-                halign: col.align || (col.format === 'currency' || col.format === 'number' ? 'right' : 'left')
+        columnStyles: columns.reduce((acc, col, idx) => {
+            const usableWidth = pageWidth - 20; // 10mm margin on each side
+            acc[idx] = { 
+                halign: col.align || (col.format === 'currency' || col.format === 'number' ? 'right' : 'left'),
+                cellWidth: col.width ? (col.width * usableWidth / 100) : 'auto'
             };
             return acc;
-        }, {} as Record<number, { halign: 'left' | 'center' | 'right' }>),
-        didDrawPage: (data) => {
-            // Footer
-            const pageHeight = doc.internal.pageSize.getHeight();
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-
-            if (footerText) {
-                doc.text(footerText, pageWidth / 2, pageHeight - 10, { align: 'center' });
-            }
-
-            // Page number
-            const pageNumber = (doc as any).internal.getNumberOfPages();
-            doc.text(
-                `Página ${data.pageNumber} de ${pageNumber}`,
-                pageWidth - 15,
-                pageHeight - 10,
-                { align: 'right' }
-            );
+        }, {} as any),
+        alternateRowStyles: {
+            fillColor: [249, 250, 251]
         },
-        margin: { top: 15, left: 10, right: 10, bottom: 20 }
+        margin: { left: 10, right: 10 },
+        didDrawPage: (d) => {
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(148, 163, 184);
+            const pText = `Página ${d.pageNumber}`;
+            doc.text(pText, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            
+            if (footerText) {
+                doc.setFontSize(7);
+                doc.text(footerText, 10, pageHeight - 10);
+            }
+            
+            doc.text('Multicore ERP Solutions', pageWidth - 10, pageHeight - 10, { align: 'right' });
+        }
     });
 
     // Save PDF
@@ -344,7 +374,7 @@ export const exportData = (options: ExportOptions, format: ExportFormat): void =
 // ============================================================================
 
 export const exportProducts = (
-    products: any[],
+    products: Product[],
     format: ExportFormat,
     companyName?: string
 ): void => {
@@ -366,7 +396,7 @@ export const exportProducts = (
 };
 
 export const exportCustomers = (
-    customers: any[],
+    customers: Customer[],
     format: ExportFormat,
     companyName?: string
 ): void => {
@@ -387,7 +417,7 @@ export const exportCustomers = (
 };
 
 export const exportSales = (
-    sales: any[],
+    sales: Sale[],
     format: ExportFormat,
     companyName?: string
 ): void => {
@@ -411,7 +441,7 @@ export const exportSales = (
 };
 
 export const exportInvoices = (
-    invoices: any[],
+    invoices: Invoice[],
     format: ExportFormat,
     companyName?: string
 ): void => {
@@ -435,7 +465,7 @@ export const exportInvoices = (
 };
 
 export const exportEmployees = (
-    employees: any[],
+    employees: Employee[],
     format: ExportFormat,
     companyName?: string
 ): void => {
@@ -457,7 +487,7 @@ export const exportEmployees = (
 };
 
 export const exportBookings = (
-    bookings: any[],
+    bookings: Booking[],
     format: ExportFormat,
     companyName?: string
 ): void => {

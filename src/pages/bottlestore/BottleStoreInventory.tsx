@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Card, Button, Input, Badge, EmptyState, Modal, Select, PageHeader } from '../../components/ui';
 import { HiOutlineSearch, HiOutlineRefresh, HiOutlineCube, HiOutlinePlus, HiOutlineMinus, HiOutlinePrinter, HiOutlineDownload, HiOutlineArchive, HiOutlineTag, HiOutlineTrash } from 'react-icons/hi';
 import { useProducts } from '../../hooks/useData';
+import { useDebounce } from '../../hooks/useDebounce';
 import Pagination from '../../components/ui/Pagination';
 import { formatCurrency } from '../../utils/helpers';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
@@ -135,8 +136,8 @@ export default function BottleStoreInventory() {
         isLoading,
         refetch
     } = useProducts({
-        origin_module: 'bottle_store',
-        search,
+        originModule: 'bottle_store',
+        search: useDebounce(search, 350),
         status: stockFilter === 'all' ? undefined : stockFilter === 'low' ? 'low_stock' : 'out_of_stock',
         page,
         limit: pageSize

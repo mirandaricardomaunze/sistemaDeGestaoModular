@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { HiOutlineSearch, HiOutlineX, HiOutlineCube } from 'react-icons/hi';
@@ -26,6 +26,8 @@ export interface ProductOption {
     unit: string;
     category: string;
     status: string;
+    barcode?: string;
+    packSize?: number;
 }
 
 interface ProductSearchInputProps {
@@ -123,7 +125,7 @@ export function ProductSearchInput({
                 search: debouncedQuery || undefined,
                 limit: 50, // Increased limit for better initial visibility
                 // Relax filter: commercial module sees everything except specialized modules
-                ...(originModule && originModule !== 'commercial' ? { origin_module: originModule } : {}),
+                ...(originModule && originModule !== 'commercial' ? { originModule } : {}),
             })
             .then((res: any) => {
                 if (cancelled) return;
@@ -138,6 +140,8 @@ export function ProductSearchInput({
                     unit:         p.unit || 'un',
                     category:     p.category || 'other',
                     status:       p.status || 'in_stock',
+                    barcode:      p.barcode,
+                    packSize:     Number(p.packSize || 1),
                 }));
                 setResults(requireStock ? items.filter(p => p.currentStock > 0) : items);
                 if (items.length > 0) {

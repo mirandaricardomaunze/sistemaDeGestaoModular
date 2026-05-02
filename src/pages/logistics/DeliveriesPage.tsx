@@ -230,7 +230,16 @@ export default function DeliveriesPage() {
         const driver = driversData?.data.find((d: Driver) => d.id === manifestDriverId);
         
         const doc = new jsPDF();
-        addProfessionalHeader(doc, t('logistics_module.deliveries.manifest').toUpperCase(), companySettings, `${t('common.date')}: ${new Date().toLocaleDateString()}`);
+        addProfessionalHeader(doc, t('logistics_module.deliveries.manifest').toUpperCase(), {
+            name: companySettings.companyName,
+            companyName: companySettings.companyName,
+            address: companySettings.address,
+            phone: companySettings.phone,
+            email: companySettings.email,
+            logo: companySettings.logo,
+            nuit: companySettings.taxId,
+            taxId: companySettings.taxId
+        }, `${t('common.date')}: ${new Date().toLocaleDateString()}`);
 
         doc.setFontSize(10);
         doc.setTextColor(50, 50, 50);
@@ -263,7 +272,16 @@ export default function DeliveriesPage() {
 
         // Add a global manifest QR code for tracking this manifest in a future iteration
 
-        addProfessionalFooter(doc, companySettings);
+        addProfessionalFooter(doc, {
+            name: companySettings.companyName,
+            companyName: companySettings.companyName,
+            address: companySettings.address,
+            phone: companySettings.phone,
+            email: companySettings.email,
+            logo: companySettings.logo,
+            nuit: companySettings.taxId,
+            taxId: companySettings.taxId
+        });
         doc.save(`${t('logistics_module.deliveries.manifest')}_${driver?.name}_${new Date().toISOString().split('T')[0]}.pdf`);
         toast.success(t('common.success'));
         setIsManifestModalOpen(false);

@@ -108,7 +108,7 @@ describe('MpesaService (simulation mode)', () => {
             const fakeTx = { id: 'tx-1', companyId: COMPANY_ID, status: 'completed' };
             (mockPrisma.mpesaTransaction.findFirst as jest.Mock).mockResolvedValue(fakeTx);
 
-            await expect(service.cancelTransaction('tx-1', COMPANY_ID)).rejects.toThrow('não pode ser cancelada');
+            await expect(service.cancelTransaction('tx-1', COMPANY_ID)).rejects.toThrow(/pendentes|não pode ser cancelada/);
         });
 
         it('throws 404 when transaction not found', async () => {

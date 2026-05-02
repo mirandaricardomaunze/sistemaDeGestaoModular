@@ -1,6 +1,11 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
-import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+
+const EMPLOYEE_FIELD_ALLOWLIST = [
+    'id', 'code', 'name', 'email', 'phone', 'role', 'department',
+    'position', 'salary', 'hireDate', 'isActive', 'createdAt', 'updatedAt'
+] as const;
 import { ResultHandler } from '../utils/result';
 
 export class EmployeesService {
@@ -29,24 +34,31 @@ export class EmployeesService {
         if (department) where.department = department;
         if (isActive !== undefined) where.isActive = isActive === 'true';
 
+        const projection = parseFields(params.fields, EMPLOYEE_FIELD_ALLOWLIST);
+        const findArgs: any = {
+            where,
+            orderBy: { [sortBy as string]: sortOrder },
+            skip,
+            take: limit
+        };
+        if (projection) {
+            findArgs.select = projection;
+        } else {
+            findArgs.include = {
+                qualifications: true,
+                _count: {
+                    select: {
+                        attendanceRecords: true,
+                        payrollRecords: true,
+                        vacationRequests: true
+                    }
+                }
+            };
+        }
+
         const [total, employees] = await Promise.all([
             prisma.employee.count({ where }),
-            prisma.employee.findMany({
-                where,
-                include: {
-                    qualifications: true,
-                    _count: {
-                        select: {
-                            attendanceRecords: true,
-                            payrollRecords: true,
-                            vacationRequests: true
-                        }
-                    }
-                },
-                orderBy: { [sortBy as string]: sortOrder },
-                skip,
-                take: limit
-            })
+            prisma.employee.findMany(findArgs)
         ]);
 
         const response = createPaginatedResponse(employees, page, limit, total);

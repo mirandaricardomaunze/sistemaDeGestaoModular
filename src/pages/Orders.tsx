@@ -18,6 +18,7 @@ import type { OrderStatus, StatusTransition } from '../components/orders';
 import type { Product } from '../types';
 import toast from 'react-hot-toast';
 import { formatCurrency } from '../utils/helpers';
+import { PAGE_SIZE } from '../utils/constants';
 
 interface OrderItem {
     product: Product;
@@ -50,6 +51,10 @@ interface ApiOrder {
     customerEmail?: string;
     customerAddress?: string;
     items?: ApiOrderItem[];
+    subtotal?: number | string;
+    discount?: number | string;
+    taxRate?: number | string;
+    taxAmount?: number | string;
     total: number | string;
     status: string;
     priority: 'low' | 'normal' | 'high' | 'urgent';
@@ -68,6 +73,10 @@ interface Order {
     customerEmail?: string;
     customerAddress?: string;
     items: OrderItem[];
+    subtotal?: number;
+    discount?: number;
+    taxRate?: number;
+    taxAmount?: number;
     total: number;
     status: OrderStatus;
     priority: 'low' | 'normal' | 'high' | 'urgent';
@@ -91,7 +100,7 @@ export default function Orders({ originModule }: OrdersProps) {
     const responsibleName = user?.name || 'Sistema';
 
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(20);
+    const [pageSize, setPageSize] = useState(PAGE_SIZE);
     const [statusFilter, setStatusFilter] = useState<string>('all');
 
     // Use real orders from API with pagination
@@ -136,6 +145,10 @@ export default function Orders({ originModule }: OrdersProps) {
                 } as Product,
                 quantity: item.quantity,
             })),
+            subtotal: o.subtotal !== undefined ? Number(o.subtotal) : undefined,
+            discount: o.discount !== undefined ? Number(o.discount) : undefined,
+            taxRate: o.taxRate !== undefined ? Number(o.taxRate) : undefined,
+            taxAmount: o.taxAmount !== undefined ? Number(o.taxAmount) : undefined,
             total: Number(o.total),
             status: o.status as OrderStatus,
             priority: o.priority,
@@ -358,6 +371,10 @@ export default function Orders({ originModule }: OrdersProps) {
                         priority: selectedOrder.priority,
                         items: selectedOrder.items,
                         notes: selectedOrder.notes,
+                        subtotal: selectedOrder.subtotal,
+                        discount: selectedOrder.discount,
+                        taxRate: selectedOrder.taxRate,
+                        taxAmount: selectedOrder.taxAmount,
                         total: selectedOrder.total,
                         status: selectedOrder.status,
                     }}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, Button, Input, Modal, Badge, Textarea, PageHeader } from '../../components/ui';
+import { Card, Button, Input, Modal, Badge, Textarea, PageHeader, Pagination, usePagination } from '../../components/ui';
 import {
     HiOutlinePlus, HiOutlineRefresh, HiOutlinePencil, HiOutlineTrash,
     HiOutlineSearch, HiOutlineUsers, HiOutlineCheckCircle,
@@ -175,6 +175,15 @@ export default function RestaurantTables() {
         t.section?.toLowerCase().includes(search.toLowerCase())
     );
 
+    const {
+        paginatedItems: paginatedTables,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(filtered, 12);
+
     const handleEdit = (table: RestaurantTable) => { setEditing(table); setModalOpen(true); };
     const handleCloseModal = () => { setModalOpen(false); setEditing(null); refetch(); };
     const handleDelete = async () => {
@@ -253,10 +262,23 @@ export default function RestaurantTables() {
                     </div>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filtered.map(table => (
-                        <TableCard key={table.id} table={table} onEdit={() => handleEdit(table)} onDelete={() => setDeleting(table)} />
-                    ))}
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {paginatedTables.map(table => (
+                            <TableCard key={table.id} table={table} onEdit={() => handleEdit(table)} onDelete={() => setDeleting(table)} />
+                        ))}
+                    </div>
+                    {filtered.length > 0 && (
+                        <div className="p-4 bg-white dark:bg-dark-800 rounded-lg border border-gray-200 dark:border-dark-700">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={totalItems}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                onItemsPerPageChange={setItemsPerPage}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 

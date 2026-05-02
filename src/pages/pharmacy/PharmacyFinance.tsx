@@ -15,9 +15,11 @@ import {
     HiOutlineCurrencyDollar,
     HiOutlineClipboardDocumentList,
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, ResponsiveValue, PageHeader } from '../../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, Pagination, PageHeader } from '../../components/ui';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
 import { pharmacyAPI } from '../../services/api';
+import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { logger } from '../../utils/logger';
 
@@ -56,6 +58,7 @@ export default function PharmacyFinance() {
     });
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 350);
     const [filterType, setFilterType] = useState<string>('all');
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
     const [showFormModal, setShowFormModal] = useState(false);
@@ -73,12 +76,12 @@ export default function PharmacyFinance() {
         try {
             const [dashboardData, transData] = await Promise.all([
                 pharmacyAPI.getFinanceDashboard(selectedPeriod),
-                pharmacyAPI.getTransactions({ 
-                    page, 
-                    limit, 
-                    search, 
+                pharmacyAPI.getTransactions({
+                    page,
+                    limit,
+                    search: debouncedSearch,
                     type: filterType !== 'all' ? filterType : undefined,
-                    period: selectedPeriod 
+                    period: selectedPeriod
                 })
             ]);
             setSummary(dashboardData.summary);
@@ -94,7 +97,7 @@ export default function PharmacyFinance() {
 
     useEffect(() => {
         fetchData();
-    }, [page, limit, search, filterType, selectedPeriod]);
+    }, [page, limit, debouncedSearch, filterType, selectedPeriod]);
 
     const {
         register,
@@ -200,6 +203,7 @@ export default function PharmacyFinance() {
                             variant="ghost" 
                             size="sm" 
                             onClick={fetchData}
+                            className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-gray-400 hover:text-primary-600 transition-all"
                             leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4', loading && 'animate-spin')} />}
                         >
                             Actualizar
@@ -213,6 +217,7 @@ export default function PharmacyFinance() {
                                 reset();
                                 setShowFormModal(true);
                             }}
+                            className="font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all"
                         >
                             Nova Despesa/Receita
                         </Button>
@@ -222,55 +227,36 @@ export default function PharmacyFinance() {
 
             {/* Quick Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card padding="md" className="bg-emerald-100/40 dark:bg-emerald-900/20 border border-emerald-200/50 dark:border-emerald-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-200/60 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineArrowTrendingUp className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70 dark:text-emerald-400/60 mb-1">Total Receitas</p>
-                            <ResponsiveValue value={summary.totalRevenue} size="md" className="text-emerald-900 dark:text-white font-black" />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Total Receitas"
+                    value={summary.totalRevenue}
+                    icon={<HiOutlineArrowTrendingUp className="w-6 h-6" />}
+                    color="emerald"
+                    isCurrency
+                />
 
-                <Card padding="md" className="bg-rose-100/40 dark:bg-rose-900/20 border border-rose-200/50 dark:border-rose-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-rose-200/60 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineArrowTrendingDown className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-600/70 dark:text-rose-400/60 mb-1">Total Despesas</p>
-                            <ResponsiveValue value={summary.totalExpenses} size="md" className="text-rose-900 dark:text-white font-black" />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Total Despesas"
+                    value={summary.totalExpenses}
+                    icon={<HiOutlineArrowTrendingDown className="w-6 h-6" />}
+                    color="rose"
+                    isCurrency
+                />
 
-                <Card padding="md" className="bg-primary-100/40 dark:bg-primary-900/20 border border-primary-200/50 dark:border-primary-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary-200/60 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineCurrencyDollar className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60 mb-1">Lucro Líquido</p>
-                            <ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-rose-700 dark:text-rose-400')} />
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Lucro Líquido"
+                    value={summary.netProfit}
+                    icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                    color="teal"
+                    isCurrency
+                />
 
-                <Card padding="md" className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-amber-200/60 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineClipboardDocumentList className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60 mb-1">Margem de Lucro</p>
-                            <span className="text-xl font-black text-amber-900 dark:text-white leading-none block">
-                                {summary.profitMargin.toFixed(1)}%
-                            </span>
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Margem de Lucro"
+                    value={`${summary.profitMargin.toFixed(1)}%`}
+                    icon={<HiOutlineClipboardDocumentList className="w-6 h-6" />}
+                    color="amber"
+                />
             </div>
 
             {/* Filter & Period Header */}

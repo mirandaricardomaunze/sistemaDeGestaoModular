@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
-    HiOutlineDocumentChartBar,
     HiOutlineChartBar,
     HiOutlineArrowTrendingUp,
     HiOutlineCube,
@@ -8,18 +8,16 @@ import {
     HiOutlineClock,
     HiOutlineArrowPath,
     HiOutlineExclamationTriangle,
-    HiOutlineCheckCircle,
     HiOutlineCircleStack,
-    HiOutlineSparkles,
 } from 'react-icons/hi2';
 import {
     PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import { Card, Badge, Button } from '../../components/ui';
+import { Card, Badge, Button, SmartTable } from '../../components/ui';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useStockAging, useSupplierPerformance, useSalesReport, useWarehouseDistribution } from '../../hooks/useCommercial';
-import { usePredictiveForecast } from '../../hooks/usePredictive';
 import { useCategories } from '../../hooks/useData';
 
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
@@ -37,7 +35,7 @@ const AGING_CONFIG = {
     critical: { label: 'Crítico (>90d)', color: 'bg-red-600 text-white', bar: 'bg-red-400', badgeVariant: 'danger' as const },
 };
 
-type ReportTab = 'sales' | 'aging' | 'suppliers' | 'warehouses' | 'predictive';
+type ReportTab = 'sales' | 'aging' | 'suppliers' | 'warehouses';
 
 export default function CommercialReports() {
     const [activeTab, setActiveTab] = useState<ReportTab>('sales');
@@ -48,10 +46,8 @@ export default function CommercialReports() {
     const { data: agingData, isLoading: agingLoading, refetch: refetchAging } = useStockAging();
     const { data: supplierData, isLoading: supplierLoading, refetch: refetchSuppliers } = useSupplierPerformance();
     const { data: warehouseData, isLoading: warehouseLoading, refetch: refetchWarehouses } = useWarehouseDistribution();
-    const { data: predictiveData, isLoading: predictiveLoading, refetch: refetchPredictive, createOrders, isCreating } = usePredictiveForecast();
     const { categories } = useCategories();
 
-    const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
     const categoryProductData = useMemo(() => {
         if (!categories || categories.length === 0) return [];
@@ -66,48 +62,167 @@ export default function CommercialReports() {
         if (activeTab === 'sales') refetchSales();
         else if (activeTab === 'aging') refetchAging();
         else if (activeTab === 'suppliers') refetchSuppliers();
-        else if (activeTab === 'warehouses') refetchWarehouses();
-        else refetchPredictive();
+        else refetchWarehouses();
     };
 
     const filteredAgingProducts = agingData?.products.filter(p =>
         !agingFilter || p.agingBucket === agingFilter
     ) || [];
 
+    const agingColumns = useMemo<ColumnDef<any, any>[]>(() => [
+        {
+            accessorKey: 'name',
+            header: 'Produto',
+            cell: (info: any) => (
+                <div className="flex flex-col">
+                    <span className="font-medium text-gray-900 dark:text-white">{info.getValue()}</span>
+                    <span className="text-xs text-gray-400">{info.row.original.code}</span>
+                </div>
+            )
+        },
+        {
+            accessorKey: 'category',
+            header: 'Categoria',
+            cell: (info: any) => <span className="capitalize text-xs text-gray-500">{info.getValue()}</span>
+        },
+        {
+            accessorKey: 'currentStock',
+            header: 'Stock',
+            meta: { align: 'right' }
+        },
+        {
+            accessorKey: 'stockValue',
+            header: 'Valor',
+            cell: (info: any) => formatCurrency(info.getValue()),
+            meta: { align: 'right' }
+        },
+        {
+            accessorKey: 'daysSinceLastSale',
+            header: 'Dias sem venda',
+            cell: (info: any) => {
+                const p = info.row.original;
+                return (
+                    <span className={cn(
+                        'font-bold',
+                        p.agingBucket === 'critical' ? 'text-red-500' :
+                        p.agingBucket === 'aging' ? 'text-orange-500' :
+                        p.agingBucket === 'slow' ? 'text-yellow-500' : 'text-green-500'
+                    )}>
+                        {info.getValue()}d
+                    </span>
+                );
+            },
+            meta: { align: 'right' }
+        },
+        {
+            accessorKey: 'agingBucket',
+            header: 'Estado',
+            cell: (info: any) => {
+                const cfg = AGING_CONFIG[info.getValue() as keyof typeof AGING_CONFIG];
+                return <Badge variant={cfg.badgeVariant} size="sm">{cfg.label}</Badge>;
+            },
+            meta: { align: 'center' }
+        }
+    ], []);
+
+    const supplierColumns = useMemo<ColumnDef<any, any>[]>(() => [
+        {
+            accessorKey: 'name',
+            header: 'Fornecedor',
+            cell: (info: any) => (
+                <div className="flex flex-col">
+                    <p className="font-medium text-gray-900 dark:text-white">{info.getValue()}</p>
+                    {info.row.original.contactPerson && <p className="text-xs text-gray-400">{info.row.original.contactPerson}</p>}
+                </div>
+            )
+        },
+        {
+            accessorKey: 'totalOrders',
+            header: 'Ordens',
+            meta: { align: 'right' }
+        },
+        {
+            accessorKey: 'totalSpend',
+            header: 'Gasto Total',
+            cell: (info: any) => formatCurrency(info.getValue()),
+            meta: { align: 'right' }
+        },
+        {
+            accessorKey: 'avgOrderValue',
+            header: 'Média/Ordem',
+            cell: (info: any) => formatCurrency(info.getValue()),
+            meta: { align: 'right' }
+        },
+        {
+            accessorKey: 'onTimeRate',
+            header: 'Pontualidade',
+            cell: (info: any) => (
+                info.getValue() !== null ? (
+                    <Badge
+                        variant={info.getValue() >= 80 ? 'success' : info.getValue() >= 50 ? 'warning' : 'danger'}
+                        size="sm"
+                    >
+                        {info.getValue().toFixed(0)}%
+                    </Badge>
+                ) : <span className="text-gray-400 text-xs">--</span>
+            ),
+            meta: { align: 'right' }
+        },
+        {
+            accessorKey: 'pendingOrders',
+            header: 'Pendentes',
+            cell: (info: any) => {
+                const s = info.row.original;
+                return info.getValue() > 0 ? (
+                    <span className={cn(
+                        'font-medium',
+                        s.overdueOrders > 0 ? 'text-red-500' : 'text-yellow-500'
+                    )}>
+                        {info.getValue()}
+                        {s.overdueOrders > 0 && ` (${s.overdueOrders} atraso)`}
+                    </span>
+                ) : <span className="text-gray-400">0</span>;
+            },
+            meta: { align: 'right' }
+        },
+        {
+            accessorKey: 'productCount',
+            header: 'Produtos',
+            meta: { align: 'right' }
+        }
+    ], []);
+
     return (
         <div className="space-y-6 pb-10">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineDocumentChartBar className="text-primary-600 dark:text-primary-400" />
-                        Relatórios Comerciais
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-0.5">Análise detalhada de vendas, stock envelhecido e fornecedores</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    {activeTab === 'sales' && (
-                        <div className="flex bg-slate-100 dark:bg-dark-700 rounded-lg p-1.5 gap-1.5 shadow-inner">
-                            {PERIOD_OPTIONS.map(opt => (
-                                <button
-                                    key={opt.value}
-                                    onClick={() => setPeriod(opt.value)}
-                                    className={cn(
-                                        'px-4 py-1.5 text-xs font-black uppercase tracking-widest rounded-md transition-all duration-300',
-                                        period === opt.value
-                                            ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-primary-400 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                                    )}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    <button onClick={handleRefetch} className="p-2 text-gray-400 hover:text-primary-600 transition-colors">
-                        <HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                    </button>
-                </div>
+            {/* Report Actions */}
+            <div className="flex flex-wrap items-center justify-end gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
+                {activeTab === 'sales' && (
+                    <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm h-10">
+                        {PERIOD_OPTIONS.map(opt => (
+                            <button
+                                key={opt.value}
+                                onClick={() => setPeriod(opt.value)}
+                                className={cn(
+                                    'px-4 h-full text-[10px] font-black uppercase tracking-widest rounded-md transition-all duration-300',
+                                    period === opt.value
+                                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
+                                        : 'text-gray-500 hover:text-primary-600 dark:hover:text-primary-400'
+                                )}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefetch}
+                    className="p-2 h-10 w-10 flex items-center justify-center text-gray-400 hover:text-primary-600"
+                >
+                    <HiOutlineArrowPath className={cn("w-5 h-5", (salesLoading || agingLoading || supplierLoading || warehouseLoading) && "animate-spin")} />
+                </Button>
             </div>
 
             <div className="flex gap-1 bg-slate-100/70 dark:bg-dark-700/50 rounded-lg p-1 shadow-inner">
@@ -116,7 +231,6 @@ export default function CommercialReports() {
                     { key: 'aging', label: 'Stock Envelhecido', icon: HiOutlineClock, color: 'text-amber-500' },
                     { key: 'suppliers', label: 'Fornecedores', icon: HiOutlineTruck, color: 'text-indigo-500' },
                     { key: 'warehouses', label: 'Distribuição', icon: HiOutlineCircleStack, color: 'text-emerald-500' },
-                    { key: 'predictive', label: 'IA Preditiva', icon: HiOutlineSparkles, color: 'text-purple-500' },
                 ].map(tab => {
                     const Icon = tab.icon;
                     return (
@@ -378,87 +492,51 @@ export default function CommercialReports() {
 
                         {/* Value at risk */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Card padding="md" className="bg-slate-50/50 dark:bg-dark-800/50 border-none">
-                                <p className="text-xs text-gray-500">Valor Total em Stock</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                    {formatCurrency(agingData?.summary.totalStockValue || 0)}
-                                </p>
-                            </Card>
-                            <Card padding="md" className="bg-red-50/50 dark:bg-red-900/10 border-none">
-                                <p className="text-xs text-gray-500">Valor em Stock Crítico (&gt;90 dias)</p>
-                                <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
-                                    {formatCurrency(agingData?.summary.criticalValue || 0)}
-                                </p>
-                            </Card>
+                            <MetricCard
+                                label="Valor Total em Stock"
+                                value={formatCurrency(agingData?.summary.totalStockValue || 0)}
+                                color="primary"
+                                icon={<HiOutlineCircleStack className="w-5 h-5" />}
+                            />
+                            <MetricCard
+                                label="Valor em Stock Crítico (>90 dias)"
+                                value={formatCurrency(agingData?.summary.criticalValue || 0)}
+                                color="red"
+                                icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
+                            />
                         </div>
 
                         {/* Products table */}
-                        <Card padding="lg">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="font-bold text-gray-900 dark:text-white">
-                                    Produtos por Envelhecimento
-                                    {agingFilter && (
-                                        <span className="ml-2 text-sm text-primary-500">
-                                            "" {AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.label}
-                                        </span>
-                                    )}
-                                </h3>
-                                {agingFilter && (
-                                    <Button size="sm" variant="ghost" onClick={() => setAgingFilter('')}>
-                                        Limpar filtro
-                                    </Button>
-                                )}
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="text-xs text-gray-400 border-b border-gray-100 dark:border-dark-700">
-                                            <th className="text-left py-2 font-medium">Produto</th>
-                                            <th className="text-left py-2 font-medium hidden md:table-cell">Categoria</th>
-                                            <th className="text-right py-2 font-medium">Stock</th>
-                                            <th className="text-right py-2 font-medium">Valor</th>
-                                            <th className="text-right py-2 font-medium">Dias sem venda</th>
-                                            <th className="text-center py-2 font-medium">Estado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredAgingProducts.slice(0, 50).map(p => {
-                                            const cfg = AGING_CONFIG[p.agingBucket];
-                                            return (
-                                                <tr key={p.id} className="border-b border-gray-50 dark:border-dark-700/50 hover:bg-gray-50 dark:hover:bg-dark-700/30">
-                                                    <td className="py-2.5">
-                                                        <span className="font-medium text-gray-900 dark:text-white">{p.name}</span>
-                                                        <span className="ml-1 text-xs text-gray-400">{p.code}</span>
-                                                    </td>
-                                                    <td className="py-2.5 hidden md:table-cell text-gray-500 capitalize text-xs">{p.category}</td>
-                                                    <td className="py-2.5 text-right text-gray-700 dark:text-gray-300">{p.currentStock}</td>
-                                                    <td className="py-2.5 text-right font-medium text-gray-900 dark:text-white">{formatCurrency(p.stockValue)}</td>
-                                                    <td className="py-2.5 text-right">
-                                                        <span className={cn(
-                                                            'font-bold',
-                                                            p.agingBucket === 'critical' ? 'text-red-500' :
-                                                            p.agingBucket === 'aging' ? 'text-orange-500' :
-                                                            p.agingBucket === 'slow' ? 'text-yellow-500' : 'text-green-500'
-                                                        )}>
-                                                            {p.daysSinceLastSale}d
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-2.5 text-center">
-                                                        <Badge variant={cfg.badgeVariant} size="sm">{cfg.label}</Badge>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                                {filteredAgingProducts.length === 0 && (
-                                    <div className="text-center py-12">
-                                        <HiOutlineCheckCircle className="w-10 h-10 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                                        <p className="text-gray-500">Nenhum produto nesta categoria de envelhecimento</p>
+                        <SmartTable
+                            data={filteredAgingProducts}
+                            columns={agingColumns}
+                            isLoading={agingLoading}
+                            onRefresh={refetchAging}
+                            renderFilters={
+                                agingFilter && (
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.badgeVariant} size="sm">
+                                            Filtrando por: {AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.label}
+                                        </Badge>
+                                        <Button size="xs" variant="ghost" onClick={() => setAgingFilter('')} className="h-6 px-2">Limpar</Button>
                                     </div>
-                                )}
-                            </div>
-                        </Card>
+                                )
+                            }
+                            exportConfig={{
+                                filename: `stock_aging_${agingFilter || 'all'}`,
+                                title: `Relatório de Envelhecimento de Stock - ${agingFilter ? AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.label : 'Todos'}`,
+                                columns: [
+                                    { key: 'code', header: 'Código', width: 15 },
+                                    { key: 'name', header: 'Produto', width: 30 },
+                                    { key: 'category', header: 'Categoria', width: 20 },
+                                    { key: 'currentStock', header: 'Stock', format: 'number', width: 10, align: 'right' },
+                                    { key: 'stockValue', header: 'Valor', format: 'currency', width: 15, align: 'right' },
+                                    { key: 'daysSinceLastSale', header: 'Dias s/ Venda', width: 12, align: 'right' },
+                                    { key: 'agingBucket', header: 'Estado', width: 15 }
+                                ]
+                            }}
+                            emptyTitle="Nenhum produto nesta categoria"
+                        />
                     </div>
                 )
             )}
@@ -516,59 +594,25 @@ export default function CommercialReports() {
                         </div>
 
                         {/* Full table */}
-                        <Card padding="lg">
-                            <h3 className="font-bold text-gray-900 dark:text-white mb-4">Todos os Fornecedores</h3>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="text-xs text-gray-400 border-b border-gray-100 dark:border-dark-700">
-                                            <th className="text-left py-2 font-medium">Fornecedor</th>
-                                            <th className="text-right py-2 font-medium">Ordens</th>
-                                            <th className="text-right py-2 font-medium">Gasto Total</th>
-                                            <th className="text-right py-2 font-medium">Média/Ordem</th>
-                                            <th className="text-right py-2 font-medium">Pontualidade</th>
-                                            <th className="text-right py-2 font-medium">Pendentes</th>
-                                            <th className="text-right py-2 font-medium hidden md:table-cell">Produtos</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {supplierData.map(s => (
-                                            <tr key={s.id} className="border-b border-gray-50 dark:border-dark-700/50 hover:bg-gray-50 dark:hover:bg-dark-700/30">
-                                                <td className="py-2.5">
-                                                    <p className="font-medium text-gray-900 dark:text-white">{s.name}</p>
-                                                    {s.contactPerson && <p className="text-xs text-gray-400">{s.contactPerson}</p>}
-                                                </td>
-                                                <td className="py-2.5 text-right text-gray-700 dark:text-gray-300">{s.totalOrders}</td>
-                                                <td className="py-2.5 text-right font-bold text-gray-900 dark:text-white">{formatCurrency(s.totalSpend)}</td>
-                                                <td className="py-2.5 text-right text-gray-600 dark:text-gray-400">{formatCurrency(s.avgOrderValue)}</td>
-                                                <td className="py-2.5 text-right">
-                                                    {s.onTimeRate !== null ? (
-                                                        <Badge
-                                                            variant={s.onTimeRate >= 80 ? 'success' : s.onTimeRate >= 50 ? 'warning' : 'danger'}
-                                                            size="sm"
-                                                        >
-                                                            {s.onTimeRate.toFixed(0)}%
-                                                        </Badge>
-                                                    ) : <span className="text-gray-400 text-xs">--</span>}
-                                                </td>
-                                                <td className="py-2.5 text-right">
-                                                    {s.pendingOrders > 0 ? (
-                                                        <span className={cn(
-                                                            'font-medium',
-                                                            s.overdueOrders > 0 ? 'text-red-500' : 'text-yellow-500'
-                                                        )}>
-                                                            {s.pendingOrders}
-                                                            {s.overdueOrders > 0 && ` (${s.overdueOrders} atraso)`}
-                                                        </span>
-                                                    ) : <span className="text-gray-400">0</span>}
-                                                </td>
-                                                <td className="py-2.5 text-right hidden md:table-cell text-gray-600 dark:text-gray-400">{s.productCount}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </Card>
+                        <SmartTable
+                            data={supplierData}
+                            columns={supplierColumns}
+                            isLoading={supplierLoading}
+                            onRefresh={refetchSuppliers}
+                            exportConfig={{
+                                filename: 'performance_fornecedores',
+                                title: 'Relatório de Performance de Fornecedores',
+                                columns: [
+                                    { key: 'name', header: 'Fornecedor', width: 30 },
+                                    { key: 'totalOrders', header: 'Ordens', width: 10, align: 'right' },
+                                    { key: 'totalSpend', header: 'Gasto Total', format: 'currency', width: 20, align: 'right' },
+                                    { key: 'onTimeRate', header: 'Pontualidade (%)', width: 15, align: 'right' },
+                                    { key: 'pendingOrders', header: 'Ordens Pendentes', width: 15, align: 'right' },
+                                    { key: 'productCount', header: 'Produtos', width: 10, align: 'right' }
+                                ]
+                            }}
+                            emptyTitle="Nenhum fornecedor com dados"
+                        />
                     </div>
                 )
             )}
@@ -587,24 +631,24 @@ export default function CommercialReports() {
                     <div className="space-y-6">
                         {/* Summary Metrics */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                            <Card padding="lg" className="border-l-4 border-l-primary-500">
-                                <p className="text-xs text-gray-500 font-medium">Valoração Total em Stock</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                    {formatCurrency(warehouseData.reduce((s, w) => s + w.valuation, 0))}
-                                </p>
-                            </Card>
-                            <Card padding="lg" className="border-l-4 border-l-green-500">
-                                <p className="text-xs text-gray-500 font-medium">Volume Físico (Itens)</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                    {warehouseData.reduce((s, w) => s + w.volume, 0).toLocaleString()}
-                                </p>
-                            </Card>
-                            <Card padding="lg" className="border-l-4 border-l-blue-500">
-                                <p className="text-xs text-gray-500 font-medium">Localizaces Activas</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                    {warehouseData.length}
-                                </p>
-                            </Card>
+                            <MetricCard
+                                label="Valoração Total em Stock"
+                                value={formatCurrency(warehouseData.reduce((s, w) => s + w.valuation, 0))}
+                                color="primary"
+                                icon={<HiOutlineCircleStack className="w-5 h-5" />}
+                            />
+                            <MetricCard
+                                label="Volume Físico (Itens)"
+                                value={warehouseData.reduce((s, w) => s + w.volume, 0).toLocaleString()}
+                                color="green"
+                                icon={<HiOutlineCube className="w-5 h-5" />}
+                            />
+                            <MetricCard
+                                label="Localizaces Activas"
+                                value={warehouseData.length}
+                                color="blue"
+                                icon={<HiOutlineTruck className="w-5 h-5" />}
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -725,184 +769,6 @@ export default function CommercialReports() {
                 )
             )}
 
-            {/* ── AI Predictive Analytics ────────────────────────────────── */}
-            {activeTab === 'predictive' && (
-                predictiveLoading ? (
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}
-                        </div>
-                        <div className="h-96 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {/* Summary Cards */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <Card padding="lg" className="border-l-4 border-l-red-500">
-                                <p className="text-xs text-gray-500 font-medium">Produtos em Risco Crítico</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                    {predictiveData.filter(p => p.status === 'critical').length}
-                                </p>
-                                <p className="text-[10px] text-red-500 mt-1">Ruptura iminente (&lt; 7 dias)</p>
-                            </Card>
-                            <Card padding="lg" className="border-l-4 border-l-orange-500">
-                                <p className="text-xs text-gray-500 font-medium">Sugestões de Recompra</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                    {predictiveData.filter(p => p.suggestedPurchase > 0).length}
-                                </p>
-                                <p className="text-[10px] text-gray-400 mt-1">Baseado na procura 30d</p>
-                            </Card>
-                            <Card padding="lg" className="border-l-4 border-l-blue-500">
-                                <p className="text-xs text-gray-500 font-medium">Precisão da IA</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                    {(predictiveData.reduce((s, p) => s + p.confidence, 0) / (predictiveData.length || 1) * 100).toFixed(0)}%
-                                </p>
-                                <p className="text-[10px] text-gray-400 mt-1">Confiança média do modelo</p>
-                            </Card>
-                            <Card padding="lg" className="border-l-4 border-l-green-500">
-                                <p className="text-xs text-gray-500 font-medium">Investimento Necessário</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                                    {formatCurrency(predictiveData.reduce((s, p) => s + (p.suggestedPurchase * p.costPrice), 0))}
-                                </p>
-                                <p className="text-[10px] text-gray-400 mt-1">Para suprir 30 dias de procura</p>
-                            </Card>
-                        </div>
-
-                        {/* Forecasting & Action Table */}
-                        <Card padding="none">
-                            <div className="p-6 border-b border-gray-100 dark:border-dark-700 flex justify-between items-center">
-                                <div>
-                                    <h3 className="font-bold text-gray-900 dark:text-white">Análise Preditiva e Reposição</h3>
-                                    <p className="text-xs text-gray-500 mt-1">Procura estimada para os próximos 30 dias com base no histórico real</p>
-                                </div>
-                                <div className="flex gap-2">
-                                    {selectedItems.length > 0 && (
-                                        <Button 
-                                            size="sm" 
-                                            onClick={async () => {
-                                                const suggestions = predictiveData
-                                                    .filter(p => selectedItems.includes(p.productId))
-                                                    .map(p => ({ productId: p.productId, quantity: p.suggestedPurchase || p.minStock }));
-                                                await createOrders(suggestions);
-                                                setSelectedItems([]);
-                                            }}
-                                            isLoading={isCreating}
-                                            leftIcon={<HiOutlineTruck className="text-white" />}
-                                        >
-                                            Gerar OCs ({selectedItems.length})
-                                        </Button>
-                                    )}
-                                    <Badge variant="success" className="bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400">
-                                        IA Active (Gemini 1.5)
-                                    </Badge>
-                                </div>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead>
-                                        <tr className="bg-gray-50 dark:bg-dark-800 text-gray-500 uppercase text-[10px] font-bold tracking-wider">
-                                            <th className="px-6 py-4 w-10">
-                                                <input 
-                                                    type="checkbox" 
-                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                                    checked={selectedItems.length === predictiveData.length && predictiveData.length > 0}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) setSelectedItems(predictiveData.map(p => p.productId));
-                                                        else setSelectedItems([]);
-                                                    }}
-                                                />
-                                            </th>
-                                            <th className="px-6 py-4">Produto</th>
-                                            <th className="px-6 py-4">Tendência 6M</th>
-                                            <th className="px-6 py-4">Stock Atual/Mín</th>
-                                            <th className="px-6 py-4">Procura 30d (IA)</th>
-                                            <th className="px-6 py-4">Sugestão</th>
-                                            <th className="px-6 py-4">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                                        {predictiveData.map(item => (
-                                            <tr key={item.productId} className={cn(
-                                                "hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors",
-                                                selectedItems.includes(item.productId) && "bg-primary-50/30 dark:bg-primary-900/10"
-                                            )}>
-                                                <td className="px-6 py-4">
-                                                    <input 
-                                                        type="checkbox" 
-                                                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                                        checked={selectedItems.includes(item.productId)}
-                                                        onChange={() => {
-                                                            setSelectedItems(prev => 
-                                                                prev.includes(item.productId) 
-                                                                    ? prev.filter(id => id !== item.productId)
-                                                                    : [...prev, item.productId]
-                                                            );
-                                                        }}
-                                                    />
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="font-medium text-gray-900 dark:text-white">{item.productName}</div>
-                                                    <div className="text-[10px] text-gray-400">{item.productCode}</div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-end gap-1 h-8 w-24">
-                                                        {item.history.map((h: any, i: number) => (
-                                                            <div 
-                                                                key={i} 
-                                                                className="w-full bg-gray-200 dark:bg-dark-600 rounded-t-sm transition-all hover:bg-primary-400"
-                                                                style={{ height: `${Math.min(100, (h / (Math.max(...item.history) || 1)) * 100)}%` }}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={cn(
-                                                            "font-bold",
-                                                            item.currentStock <= item.minStock ? "text-red-500" : "text-gray-900 dark:text-white"
-                                                        )}>
-                                                            {item.currentStock}
-                                                        </span>
-                                                        <span className="text-gray-400">/ {item.minStock}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-primary-500">{item.forecasted30d} un.</span>
-                                                        <span className="text-[10px] text-gray-400">{(item.confidence * 100).toFixed(0)}% confiança</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {item.suggestedPurchase > 0 ? (
-                                                        <div className="flex flex-col">
-                                                            <span className="text-xs font-bold text-green-600">Comprar {item.suggestedPurchase}</span>
-                                                            <span className="text-[10px] text-gray-400">{formatCurrency(item.suggestedPurchase * item.costPrice)}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-gray-400 italic">Suficiente</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <Badge variant={
-                                                        item.status === 'critical' ? 'danger' :
-                                                        item.status === 'high_risk' ? 'danger' :
-                                                        item.status === 'low_risk' ? 'warning' : 'success'
-                                                    }>
-                                                        {item.status.toUpperCase()}
-                                                    </Badge>
-                                                    <p className="text-[10px] text-gray-500 mt-1 max-w-[150px] leading-tight truncate" title={item.reasoning}>
-                                                        {item.reasoning}
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </Card>
-                    </div>
-                )
-            )}
         </div>
     );
 }

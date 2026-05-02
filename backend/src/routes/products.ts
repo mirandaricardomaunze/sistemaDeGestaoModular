@@ -38,7 +38,7 @@ const router = Router();
 router.get('/', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await assertOriginModuleAllowed(req.companyId, req.query.originModule as string | undefined);
-    const result = await productsService.list(req.query, req.companyId);
+    const result = await productsService.list(req.companyId, req.query);
     res.json(result);
 });
 

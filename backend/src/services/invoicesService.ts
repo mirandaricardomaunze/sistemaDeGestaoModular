@@ -1,6 +1,13 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
-import { buildPaginationMeta } from '../utils/pagination';
+import { buildPaginationMeta, parseFields } from '../utils/pagination';
+
+const INVOICE_FIELD_ALLOWLIST = [
+    'id', 'invoiceNumber', 'orderId', 'customerId', 'issueDate', 'dueDate',
+    'subtotal', 'discount', 'taxAmount', 'total', 'amountPaid', 'amountDue',
+    'status', 'paymentMethod', 'createdAt', 'updatedAt',
+    'customer.id', 'customer.name', 'customer.code'
+] as const;
 import { stockService } from './stockService';
 import { logger } from '../utils/logger';
 import { ResultHandler } from '../utils/result';
@@ -21,20 +28,53 @@ export class InvoicesService {
             if (endDate) where.issueDate.lte = new Date(String(endDate));
         }
 
-        const [total, invoices] = await Promise.all([
+        // Base where for summary stats (ignore status filter but keep other filters)
+        const summaryWhere = { ...where };
+        delete summaryWhere.status;
+
+        const projection = parseFields(params.fields, INVOICE_FIELD_ALLOWLIST);
+        const findArgs: any = {
+            where,
+            orderBy: { [sortBy as string]: sortOrder },
+            skip,
+            take: limitNum
+        };
+        if (projection) {
+            findArgs.select = projection;
+        } else {
+            findArgs.include = { customer: { select: { id: true, name: true, code: true } }, _count: { select: { items: true, payments: true } } };
+        }
+
+        const [total, invoices, stats] = await Promise.all([
             prisma.invoice.count({ where }),
-            prisma.invoice.findMany({
-                where,
-                include: { customer: { select: { id: true, name: true, code: true } }, _count: { select: { items: true, payments: true } } },
-                orderBy: { [sortBy as string]: sortOrder },
-                skip,
-                take: limitNum
+            prisma.invoice.findMany(findArgs),
+            prisma.invoice.aggregate({
+                where: summaryWhere,
+                _sum: { total: true, amountPaid: true, amountDue: true }
+            })
+        ]);
+
+        // Calculate specific pending/overdue stats for the entire set (ignoring status filter)
+        const [pendingStats, overdueStats] = await Promise.all([
+            prisma.invoice.aggregate({
+                where: { ...summaryWhere, status: { in: ['sent', 'partial'] } },
+                _sum: { amountDue: true }
+            }),
+            prisma.invoice.aggregate({
+                where: { ...summaryWhere, status: 'overdue' },
+                _sum: { amountDue: true }
             })
         ]);
 
         return ResultHandler.success({
             data: invoices,
-            pagination: buildPaginationMeta(pageNum, limitNum, total)
+            pagination: buildPaginationMeta(pageNum, limitNum, total),
+            summary: {
+                total: Number(stats._sum.total || 0),
+                paid: Number(stats._sum.amountPaid || 0),
+                pending: Number(pendingStats._sum.amountDue || 0),
+                overdue: Number(overdueStats._sum.amountDue || 0)
+            }
         });
     }
 
@@ -53,9 +93,9 @@ export class InvoicesService {
                 orderBy: { createdAt: 'desc' }, take: 50
             }),
             prisma.customerOrder.findMany({
-                where: { companyId, status: 'completed', id: { notIn: invoicedOrderIds } },
+                where: { companyId, status: { not: 'cancelled' }, id: { notIn: invoicedOrderIds } },
                 include: { items: true },
-                orderBy: { createdAt: 'desc' }, take: 50
+                orderBy: { createdAt: 'desc' }, take: 100
             })
         ]);
 
@@ -63,18 +103,37 @@ export class InvoicesService {
             ...availableSales.map(s => ({
                 id: s.id, number: s.saleNumber, type: 'pharmacy', customerId: s.customerId,
                 customerName: s.customerName || s.customer?.name || 'Cliente Balcão',
+                customerPhone: s.customer?.phone || '',
+                customerEmail: s.customer?.email || '',
+                customerAddress: s.customer?.address || '',
+                status: s.status,
+                createdAt: s.createdAt,
                 items: s.items.map(i => ({
                     productId: i.batch?.medication?.productId, description: i.productName,
                     quantity: i.quantity, unitPrice: Number(i.unitPrice), total: Number(i.total)
                 })),
+                subtotal: Number(s.subtotal),
+                discount: Number(s.discount),
+                taxRate: 0,
+                taxAmount: 0,
                 total: Number(s.total)
             })),
             ...availableOrders.map(o => ({
                 id: o.id, number: o.orderNumber, type: 'commercial',
-                customerName: o.customerName, items: o.items.map(i => ({
+                customerName: o.customerName,
+                customerPhone: o.customerPhone || '',
+                customerEmail: o.customerEmail || '',
+                customerAddress: o.customerAddress || '',
+                status: o.status,
+                createdAt: o.createdAt,
+                items: o.items.map(i => ({
                     productId: i.productId, description: i.productName,
                     quantity: i.quantity, unitPrice: Number(i.price), total: Number(i.total)
                 })),
+                subtotal: Number(o.subtotal),
+                discount: Number(o.discount),
+                taxRate: Number(o.taxRate),
+                taxAmount: Number(o.taxAmount),
                 total: Number(o.total)
             }))
         ]);
@@ -87,6 +146,7 @@ export class InvoicesService {
 
         return await prisma.$transaction(async (tx) => {
             // Validate unique invoice per order
+            let sourceOrder: Awaited<ReturnType<typeof tx.customerOrder.findFirst>> & { items: any[] } | null = null;
             if (data.orderId) {
                 const existingInvoice = await tx.invoice.findFirst({
                     where: { orderId: data.orderId, companyId }
@@ -94,61 +154,88 @@ export class InvoicesService {
                 if (existingInvoice) {
                     throw ApiError.badRequest('Esta encomenda já foi faturada.');
                 }
+
+                sourceOrder = await tx.customerOrder.findFirst({
+                    where: { id: data.orderId, companyId },
+                    include: { items: true }
+                }) as any;
             }
 
             // ====================================================================
-            // SERVER-SIDE AUTHORITATIVE CALCULATION
-            // Fetch real prices from DB and recalculate all totals.
-            // Never trust frontend-provided subtotal/tax/total.
+            // PRICING SOURCE OF TRUTH
+            //   • Linked to an order: the order is the contract with the customer.
+            //     Item prices, subtotal, discount, tax rate and totals are inherited
+            //     verbatim. Current DB prices do NOT override agreed prices.
+            //   • Manual invoice (no orderId): server is authoritative — fetch
+            //     current prices, apply company IVA, recompute everything.
             // ====================================================================
-            const productIds = items.map((i: any) => i.productId).filter(Boolean);
-            const productPriceMap = new Map<string, number>();
-
-            if (productIds.length > 0) {
-                const products = await tx.product.findMany({
-                    where: { id: { in: productIds }, companyId },
-                    select: { id: true, name: true, price: true }
-                });
-                for (const p of products) {
-                    productPriceMap.set(p.id, Number(p.price));
-                }
-            }
-
-            // Fetch company IVA rate for server-side tax calculation
             const companyCfg = await tx.companySettings.findFirst({
                 where: { companyId },
                 select: { ivaRate: true }
             });
-            const ivaRate = Number(companyCfg?.ivaRate ?? 16) / 100;
 
-            // Verify and recalculate each item
-            const verifiedItems = items.map((item: any) => {
-                if (item.productId && productPriceMap.has(item.productId)) {
-                    const dbPrice = productPriceMap.get(item.productId)!;
-                    // Use DB price as authoritative when available and > 0
-                    if (dbPrice > 0 && Math.abs(dbPrice - item.unitPrice) > 0.01) {
-                        logger.warn('Invoice price mismatch detected', {
-                            productId: item.productId,
-                            frontendPrice: item.unitPrice,
-                            dbPrice,
-                            companyId
-                        });
-                        item.unitPrice = dbPrice;
+            let verifiedItems: any[];
+            let finalSubtotal: number;
+            let computedDiscount: number;
+            let finalTax: number;
+            let finalTotal: number;
+            let effectiveIvaRate: number;
+
+            if (sourceOrder) {
+                // Inherit from the order: trust the snapshot stored at order creation.
+                verifiedItems = sourceOrder.items.map((oi: any) => ({
+                    productId: oi.productId,
+                    description: oi.productName,
+                    quantity: oi.quantity,
+                    unitPrice: Number(oi.price),
+                    discount: 0,
+                    total: Number(oi.total)
+                }));
+                finalSubtotal = Number(sourceOrder.subtotal);
+                computedDiscount = Number(sourceOrder.discount);
+                finalTax = Number(sourceOrder.taxAmount);
+                finalTotal = Number(sourceOrder.total);
+                effectiveIvaRate = Number(sourceOrder.taxRate);
+            } else {
+                const productIds = items.map((i: any) => i.productId).filter(Boolean);
+                const productPriceMap = new Map<string, number>();
+
+                if (productIds.length > 0) {
+                    const products = await tx.product.findMany({
+                        where: { id: { in: productIds }, companyId },
+                        select: { id: true, name: true, price: true }
+                    });
+                    for (const p of products) {
+                        productPriceMap.set(p.id, Number(p.price));
                     }
                 }
-                const computedTotal = (item.unitPrice * item.quantity) - (item.discount || 0);
-                return { ...item, total: Math.round(computedTotal * 100) / 100 };
-            });
 
-            const computedSubtotal = verifiedItems.reduce((sum: number, item: any) => sum + item.total, 0);
-            const computedDiscount = data.discount || 0;
-            const computedTax = Math.round((computedSubtotal - computedDiscount) * ivaRate * 100) / 100;
-            const computedTotal = Math.round((computedSubtotal - computedDiscount + computedTax) * 100) / 100;
+                const ivaRate = Number(companyCfg?.ivaRate ?? 16) / 100;
 
-            // Use server-computed values
-            const finalSubtotal = computedSubtotal;
-            const finalTax = computedTax;
-            const finalTotal = computedTotal;
+                verifiedItems = items.map((item: any) => {
+                    if (item.productId && productPriceMap.has(item.productId)) {
+                        const dbPrice = productPriceMap.get(item.productId)!;
+                        if (dbPrice > 0 && Math.abs(dbPrice - item.unitPrice) > 0.01) {
+                            logger.warn('Invoice price mismatch detected', {
+                                productId: item.productId,
+                                frontendPrice: item.unitPrice,
+                                dbPrice,
+                                companyId
+                            });
+                            item.unitPrice = dbPrice;
+                        }
+                    }
+                    const computedTotal = (item.unitPrice * item.quantity) - (item.discount || 0);
+                    return { ...item, total: Math.round(computedTotal * 100) / 100 };
+                });
+
+                finalSubtotal = Math.round(verifiedItems.reduce((sum: number, item: any) => sum + item.total, 0) * 100) / 100;
+                computedDiscount = Math.max(0, Math.round(Number(data.discount || 0) * 100) / 100);
+                const taxableBase = Math.max(0, finalSubtotal - computedDiscount);
+                finalTax = Math.round(taxableBase * ivaRate * 100) / 100;
+                finalTotal = Math.round((taxableBase + finalTax) * 100) / 100;
+                effectiveIvaRate = ivaRate * 100;
+            }
 
             // Validate customer credit limit for direct invoices (not linked to an order)
             if (!data.orderId && data.customerId) {
@@ -269,19 +356,16 @@ export class InvoicesService {
                 }
             }
 
-            // Register IVA Retention
+            // Register IVA Retention. The frozen rate from the order takes
+            // precedence; for manual invoices use the rate computed above.
             if (finalTax > 0) {
                 try {
-                    const [ivaConfig] = await Promise.all([
-                        tx.taxConfig.findFirst({ where: { type: 'iva', isActive: true, companyId } })
-                    ]);
-                    const effectiveRate = ivaConfig?.rate ?? Number(companyCfg?.ivaRate ?? 16);
                     await tx.taxRetention.create({
                         data: {
                             companyId, type: 'iva', entityType: 'invoice', entityId: invoice.id,
                             period: new Date().toISOString().slice(0, 7),
                             baseAmount: finalSubtotal, retainedAmount: finalTax,
-                            rate: effectiveRate, description: `IVA da Fatura ${invoiceNumber}`
+                            rate: effectiveIvaRate, description: `IVA da Fatura ${invoiceNumber}`
                         }
                     });
                 } catch (e) { logger.error('Fiscal retention creation failed', { invoiceId: invoice.id, error: e }); }

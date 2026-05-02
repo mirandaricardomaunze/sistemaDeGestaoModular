@@ -5,4 +5,12 @@ module.exports = {
     moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/src/$1',
     },
+    setupFiles: ['<rootDir>/jest.setup.ts'],
+    transform: {
+        '^.+\\.tsx?$': ['ts-jest', { isolatedModules: true }],
+    },
+    maxWorkers: 1,
+    workerIdleMemoryLimit: '512MB',
+    testTimeout: 30000,
+    forceExit: true,
 };

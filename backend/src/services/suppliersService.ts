@@ -1,6 +1,12 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
-import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+
+const SUPPLIER_FIELD_ALLOWLIST = [
+    'id', 'code', 'name', 'nuit', 'phone', 'email', 'address',
+    'contactPerson', 'paymentTerms', 'isActive',
+    'createdAt', 'updatedAt'
+] as const;
 
 export class SuppliersService {
     async list(params: any, companyId: string) {
@@ -18,15 +24,22 @@ export class SuppliersService {
         }
         if (isActive !== undefined) where.isActive = isActive === 'true';
 
+        const projection = parseFields(params.fields, SUPPLIER_FIELD_ALLOWLIST);
+        const findArgs: any = {
+            where,
+            orderBy: { [sortBy as string]: sortOrder },
+            skip,
+            take: limit
+        };
+        if (projection) {
+            findArgs.select = projection;
+        } else {
+            findArgs.include = { _count: { select: { products: true, purchaseOrders: true } } };
+        }
+
         const [total, suppliers] = await Promise.all([
             prisma.supplier.count({ where }),
-            prisma.supplier.findMany({
-                where,
-                include: { _count: { select: { products: true, purchaseOrders: true } } },
-                orderBy: { [sortBy as string]: sortOrder },
-                skip,
-                take: limit
-            })
+            prisma.supplier.findMany(findArgs)
         ]);
 
         return createPaginatedResponse(suppliers, page, limit, total);

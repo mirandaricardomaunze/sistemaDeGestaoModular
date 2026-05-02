@@ -23,13 +23,16 @@ import {
     HiOutlineBeaker,
     HiOutlineTruck,
     HiOutlineSparkles,
+    HiOutlinePlus,
     HiOutlineBuildingOffice2,
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, ConfirmationModal, Textarea } from '../components/ui';
+import { Card, Button, Input, Select, ConfirmationModal, Textarea, Pagination, usePagination } from '../components/ui';
 import { useStore } from '../stores/useStore';
 import { useAuthStore, roleLabels } from '../stores/useAuthStore';
-import type { BusinessType } from '../types';
+import { SegmentedControl } from '../components/common/SegmentedControl';
 import { authAPI, adminAPI } from '../services/api';
+import type { BusinessType } from '../types';
+import { cn } from '../utils/helpers';
 import toast from 'react-hot-toast';
 
 // Company Schema
@@ -115,6 +118,14 @@ export default function Settings() {
 
     // Users Management State
     const [users, setUsers] = useState<any[]>([]);
+    const {
+        paginatedItems: paginatedUsers,
+        currentPage: currentUserPage,
+        setCurrentPage: setCurrentUserPage,
+        itemsPerPage: usersPerPage,
+        setItemsPerPage: setUsersPerPage,
+        totalItems: totalUsers,
+    } = usePagination(users, 10);
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -122,6 +133,9 @@ export default function Settings() {
 
     // Super Admin State
     const [companies, setCompanies] = useState<any[]>([]);
+    const {
+        paginatedItems: paginatedCompanies,
+    } = usePagination(companies, 10);
     const [adminStats, setAdminStats] = useState<any>(null);
     const [isLoadingStats, setIsLoadingStats] = useState(false);
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
@@ -470,22 +484,17 @@ export default function Settings() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 border-b border-gray-200 dark:border-dark-700 pb-4 overflow-x-auto">
+            <div className="flex gap-2 border-b border-gray-200 dark:border-dark-700 pb-4 overflow-x-auto scrollbar-hidden">
                 {tabs.map((tab) => (
-                    <button
+                    <Button
                         key={tab.id}
+                        variant={activeTab === tab.id ? 'premium' : 'ghost'}
+                        size="sm"
                         onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                        className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap
-              ${activeTab === tab.id
-                                ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
-                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700'
-                            }
-            `}
+                        leftIcon={<tab.icon className={cn("w-4 h-4", activeTab === tab.id ? "text-white" : "text-primary-600 dark:text-primary-400")} />}
                     >
-                        <tab.icon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                         {tab.label}
-                    </button>
+                    </Button>
                 ))}
             </div>
 
@@ -542,7 +551,7 @@ export default function Settings() {
                                 {...registerProfile('phone')}
                             />
                             <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-dark-700">
-                                <Button type="submit" disabled={!isProfileDirty}>
+                                <Button type="submit" variant="premium" disabled={!isProfileDirty}>
                                     Salvar Alterações
                                 </Button>
                             </div>
@@ -590,7 +599,7 @@ export default function Settings() {
                                 />
                             </div>
                             <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-dark-700">
-                                <Button type="submit">
+                                <Button type="submit" variant="premium">
                                     Alterar Senha
                                 </Button>
                             </div>
@@ -832,8 +841,9 @@ export default function Settings() {
                                     variant="outline"
                                     size="sm"
                                     onClick={() => appendBank({ bankName: '', accountNumber: '', nib: '', holderName: '' })}
+                                    leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                                 >
-                                    + Adicionar Banco
+                                    Adicionar Banco
                                 </Button>
                             </div>
 
@@ -880,7 +890,7 @@ export default function Settings() {
                         </div>
 
                         <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-dark-700">
-                            <Button type="submit" disabled={!isCompanyDirty}>
+                            <Button type="submit" variant="premium" disabled={!isCompanyDirty}>
                                 Salvar Alterações
                             </Button>
                         </div>
@@ -904,32 +914,15 @@ export default function Settings() {
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={toggleTheme}
-                                    className={`
-                    flex items-center gap-2 px-4 py-2 rounded-lg transition-all
-                    ${theme === 'light'
-                                            ? 'bg-yellow-100 text-yellow-700'
-                                            : 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-400'
-                                        }
-                  `}
-                                >
-                                    <HiOutlineSun className="w-5 h-5" />
-                                    Claro
-                                </button>
-                                <button
-                                    onClick={toggleTheme}
-                                    className={`
-                    flex items-center gap-2 px-4 py-2 rounded-lg transition-all
-                    ${theme === 'dark'
-                                            ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
-                                            : 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-400'
-                                        }
-                  `}
-                                >
-                                    <HiOutlineMoon className="w-5 h-5" />
-                                    Escuro
-                                </button>
+                                <SegmentedControl
+                                    options={[
+                                        { label: 'Claro', value: 'light', icon: HiOutlineSun },
+                                        { label: 'Escuro', value: 'dark', icon: HiOutlineMoon }
+                                    ]}
+                                    value={theme}
+                                    onChange={toggleTheme}
+                                    size="md"
+                                />
                             </div>
                         </div>
                     </Card>
@@ -1110,7 +1103,7 @@ export default function Settings() {
                         </div>
 
                         <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-dark-700">
-                            <Button type="submit" disabled={!isAlertsDirty}>
+                            <Button type="submit" variant="premium" disabled={!isAlertsDirty}>
                                 Salvar Configurações
                             </Button>
                         </div>
@@ -1437,7 +1430,7 @@ export default function Settings() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                                        {companies.map((company) => (
+                                        {paginatedCompanies.map((company) => (
                                             <tr key={company.id} className="hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors">
                                                 <td className="px-6 py-4">
                                                     <div>
@@ -1537,7 +1530,7 @@ export default function Settings() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                                        {users.map((userData) => (
+                                        {paginatedUsers.map((userData) => (
                                             <tr key={userData.id} className="hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
@@ -1604,6 +1597,18 @@ export default function Settings() {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        )}
+                        
+                        {!isLoadingUsers && users.length > 0 && (
+                            <div className="mt-6">
+                                <Pagination
+                                    currentPage={currentUserPage}
+                                    totalItems={totalUsers}
+                                    itemsPerPage={usersPerPage}
+                                    onPageChange={setCurrentUserPage}
+                                    onItemsPerPageChange={setUsersPerPage}
+                                />
                             </div>
                         )}
                     </Card>

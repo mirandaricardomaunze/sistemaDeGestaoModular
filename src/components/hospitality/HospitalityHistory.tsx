@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Card, Badge, TableContainer } from '../ui';
+import { Card, Badge, TableContainer, Pagination } from '../ui';
+import { usePagination } from '../ui/Pagination';
 import { HiOutlineUser } from 'react-icons/hi2';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 
@@ -10,6 +11,14 @@ interface HospitalityHistoryProps {
 
 export default function HospitalityHistory({ history, isLoading }: HospitalityHistoryProps) {
     const { t } = useTranslation();
+    const {
+        currentPage,
+        paginatedItems,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage
+    } = usePagination(history, 10);
+
     const isEmpty = !isLoading && (!history || history.length === 0);
 
     return (
@@ -32,7 +41,7 @@ export default function HospitalityHistory({ history, isLoading }: HospitalityHi
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                            {history.map((item) => (
+                            {paginatedItems.map((item) => (
                                 <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
@@ -64,6 +73,18 @@ export default function HospitalityHistory({ history, isLoading }: HospitalityHi
                             ))}
                         </tbody>
                     </table>
+                    {history.length > itemsPerPage && (
+                        <div className="px-6 py-4 border-t border-gray-100 dark:border-dark-700">
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={history.length}
+                                itemsPerPage={itemsPerPage}
+                                onPageChange={setCurrentPage}
+                                onItemsPerPageChange={setItemsPerPage}
+                                showItemsPerPage={false}
+                            />
+                        </div>
+                    )}
                 </div>
             </Card>
         </TableContainer>

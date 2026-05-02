@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { settingsAPI } from '../services/api';
 import type { Category } from '../types';
 
-export function useCategories() {
+export function useCategories(originModule?: string) {
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -13,7 +13,7 @@ export function useCategories() {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await settingsAPI.getCategories();
+            const result = await settingsAPI.getCategories(originModule ? { originModule } : undefined);
             setCategories(result);
         } catch (err) {
             setError('Erro ao carregar categorias');
@@ -21,7 +21,7 @@ export function useCategories() {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [originModule]);
 
     useEffect(() => {
         fetchCategories();

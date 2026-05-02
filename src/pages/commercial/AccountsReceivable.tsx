@@ -1,9 +1,10 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
-    HiOutlineCurrencyDollar, HiOutlineRefresh, HiOutlineExclamationCircle,
-    HiOutlineCheckCircle, HiOutlineClock, HiOutlineSearch,
-} from 'react-icons/hi';
-import { Card, Badge, Input, Select } from '../../components/ui';
+    HiOutlineCurrencyDollar, HiOutlineArrowPath, HiOutlineExclamationCircle,
+    HiOutlineCheckCircle, HiOutlineClock, HiOutlineMagnifyingGlass,
+} from 'react-icons/hi2';
+import { Card, Badge, Input, Select, PageHeader, Button, Pagination, LoadingOverlay, SkeletonTable } from '../../components/ui';
+import { StatCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useAccountsReceivable } from '../../hooks/useCommercial';
 
@@ -23,30 +24,6 @@ const STATUS_CONFIG = {
     overdue: { label: 'Em Atraso',   variant: 'danger'  as const, icon: HiOutlineExclamationCircle },
 };
 
-// ── Summary Card ──────────────────────────────────────────────────────────────
-
-interface SummaryCardProps {
-    label: string;
-    value: string;
-    sub?: string;
-    colorClass: string;
-    icon: React.ElementType;
-}
-
-function SummaryCard({ label, value, sub, colorClass, icon: Icon }: SummaryCardProps) {
-    return (
-        <Card padding="md" className={`border-l-4 ${colorClass}`}>
-            <div className="flex items-start justify-between">
-                <div>
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
-                    {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
-                </div>
-                <Icon className={cn('w-6 h-6 mt-1', colorClass.replace('border-l-', 'text-').replace('-500', '-400'))} />
-            </div>
-        </Card>
-    );
-}
 
 // ── Row ──────────────────────────────────────────────────────────────────────-
 
@@ -149,58 +126,56 @@ export default function AccountsReceivable() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineCurrencyDollar className="text-primary-500" />
-                        Contas a Receber
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                        Faturas em aberto e dívidas de clientes
-                    </p>
-                </div>
-                <button
+            <PageHeader
+                title="Contas a Receber"
+                subtitle="Gestão de cobranças e faturas pendentes de clientes"
+                icon={<HiOutlineCurrencyDollar className="text-primary-600 dark:text-primary-400" />}
+            />
+            {/* Actions Bar */}
+            <div className="flex flex-wrap items-center justify-end gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
+                <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={refetch}
-                    title="Actualizar"
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-dark-600 text-gray-500 hover:text-gray-700 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors text-sm"
+                    className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-gray-400 hover:text-primary-600 hover:scale-105 active:scale-95 transition-all"
+                    leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600 dark:text-primary-400", isLoading && "animate-spin")} />}
                 >
-                    <HiOutlineRefresh className="w-4 h-4" /> Actualizar
-                </button>
+                    {isLoading ? 'Actualizando...' : 'Actualizar Tudo'}
+                </Button>
             </div>
 
             {/* Summary KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <SummaryCard
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
                     label="Total a Receber"
                     value={formatCurrency(summary?.totalReceivable ?? 0)}
-                    sub={`${summary?.invoiceCount ?? 0} faturas abertas`}
-                    colorClass="border-l-blue-500"
-                    icon={HiOutlineCurrencyDollar}
+                    color="primary"
+                    icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
+                    sublabel={`${summary?.invoiceCount ?? 0} faturas`}
                 />
-                <SummaryCard
+                <StatCard
                     label="Em Atraso"
                     value={formatCurrency(summary?.overdueAmount ?? 0)}
-                    sub={`${summary?.overdueCount ?? 0} faturas vencidas`}
-                    colorClass="border-l-red-500"
-                    icon={HiOutlineExclamationCircle}
+                    color="danger"
+                    icon={<HiOutlineExclamationCircle className="w-5 h-5" />}
+                    sublabel={summary?.overdueCount ? `${summary.overdueCount} vencidas` : undefined}
                 />
-                <SummaryCard
+                <StatCard
                     label="Faturas Abertas"
                     value={String(summary?.invoiceCount ?? 0)}
-                    colorClass="border-l-yellow-500"
-                    icon={HiOutlineClock}
+                    color="warning"
+                    icon={<HiOutlineClock className="w-5 h-5" />}
                 />
-                <SummaryCard
+                <StatCard
                     label="Taxa de Atraso"
                     value={
                         summary?.invoiceCount
                             ? `${Math.round(((summary.overdueCount ?? 0) / summary.invoiceCount) * 100)}%`
                             : '0%'
                     }
-                    sub="do total de faturas"
-                    colorClass="border-l-orange-500"
-                    icon={HiOutlineExclamationCircle}
+                    color="orange"
+                    icon={<HiOutlineExclamationCircle className="w-5 h-5" />}
+                    sublabel="Risco Churn"
                 />
             </div>
 
@@ -212,7 +187,7 @@ export default function AccountsReceivable() {
                             placeholder="Pesquisar por nº de fatura ou cliente..."
                             value={search}
                             onChange={handleSearchChange}
-                            leftIcon={<HiOutlineSearch className="w-4 h-4" />}
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4" />}
                         />
                     </div>
                     <div className="w-44">
@@ -225,23 +200,32 @@ export default function AccountsReceivable() {
                 </div>
             </Card>
 
-            {/* Table */}
-            <Card padding="none">
-                {error ? (
-                    <div className="p-8 text-center">
-                        <HiOutlineExclamationCircle className="w-10 h-10 text-red-400 mx-auto mb-2" />
-                        <p className="text-sm text-red-500">{error}</p>
-                        <button onClick={refetch} className="mt-2 text-sm text-primary-500 hover:underline">
-                            Tentar novamente
-                        </button>
+            {/* Table Area */}
+            <Card padding="none" className="min-h-[500px] relative overflow-hidden">
+                {isLoading && invoices.length === 0 ? (
+                    <div className="p-6">
+                        <SkeletonTable rows={10} columns={6} />
                     </div>
-                ) : isLoading ? (
-                    <div className="p-6 space-y-3">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={i} className="h-12 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
-                        ))}
-                    </div>
-                ) : invoices.length === 0 ? (
+                ) : (
+                    <>
+                        {isLoading && (
+                            <div className="absolute inset-0 z-20">
+                                <LoadingOverlay 
+                                    fullScreen={false} 
+                                    message="A carregar contas a receber..." 
+                                />
+                            </div>
+                        )}
+
+                        {error ? (
+                            <div className="p-8 text-center">
+                                <HiOutlineExclamationCircle className="w-10 h-10 text-red-400 mx-auto mb-2" />
+                                <p className="text-sm text-red-500">{error}</p>
+                                <button onClick={refetch} className="mt-2 text-sm text-primary-500 hover:underline">
+                                    Tentar novamente
+                                </button>
+                            </div>
+                        ) : invoices.length === 0 ? (
                     <div className="p-16 text-center">
                         <HiOutlineCheckCircle className="w-12 h-12 text-green-300 mx-auto mb-3" />
                         <p className="text-gray-500 font-medium">Sem faturas em aberto</p>
@@ -274,32 +258,17 @@ export default function AccountsReceivable() {
                         </table>
                     </div>
                 )}
+                    </>
+                )}
 
-                {/* Pagination */}
                 {pagination && pagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-dark-700">
-                        <p className="text-xs text-gray-400">
-                            Mostrando {invoices.length} de {pagination.total} faturas
-                        </p>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setPage(p => Math.max(p - 1, 1))}
-                                disabled={page === 1}
-                                className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-dark-600 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
-                            >
-                                Anterior
-                            </button>
-                            <span className="px-3 py-1.5 text-xs text-gray-600 dark:text-gray-400">
-                                {page} / {pagination.totalPages}
-                            </span>
-                            <button
-                                onClick={() => setPage(p => Math.min(p + 1, pagination.totalPages))}
-                                disabled={page === pagination.totalPages}
-                                className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-dark-600 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
-                            >
-                                Próxima
-                            </button>
-                        </div>
+                    <div className="px-4 py-3 border-t border-gray-100 dark:border-dark-700">
+                        <Pagination 
+                            currentPage={page}
+                            totalItems={pagination.total}
+                            itemsPerPage={pagination.limit}
+                            onPageChange={setPage}
+                        />
                     </div>
                 )}
             </Card>

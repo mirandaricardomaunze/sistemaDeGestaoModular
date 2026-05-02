@@ -4,14 +4,14 @@ import { pdfService } from './pdfService';
 import { ApiError } from '../middleware/error.middleware';
 
 export class ChatService {
-    async processMessage(message: string, userId: string, companyId: string) {
+    async processMessage(message: string, userId: string, companyId: string, module?: string) {
         const intent = await this.detectIntent(message);
         const [data, company] = await Promise.all([
-            this.fetchRelevantData(intent, companyId),
+            this.fetchRelevantData(intent, companyId, module),
             prisma.company.findUnique({ where: { id: companyId }, select: { name: true, businessType: true, address: true, nuit: true, phone: true, email: true } })
         ]);
 
-        const result = await aiService.generateResponse(message, companyId, { ...data, companyInfo: company });
+        const result = await aiService.generateResponse(message, companyId, { ...data, companyInfo: company }, module);
         
         let pdfUrl = null;
         if (result.toolCall && result.toolCall.name === 'generate_pdf_report') {
@@ -27,17 +27,49 @@ export class ChatService {
         };
     }
 
-    async getSuggestions() {
+    async getSuggestions(module?: string) {
+        let questions = [
+            'Como estão as vendas hoje?',
+            'Quais produtos estão com stock baixo?',
+            'Análise de margem dos produtos Classe A',
+            'Lista de clientes em risco de inactividade'
+        ];
+
+        if (module === 'pharmacy') {
+            questions = [
+                'Resumo de medicamentos próximos da validade',
+                'Quais medicamentos controlados foram vendidos hoje?',
+                'Alertas de stock crítico na farmácia',
+                'Análise de vendas por farmacêutico'
+            ];
+        } else if (module === 'hospitality' || module === 'hotel') {
+            questions = [
+                'Qual a taxa de ocupação para hoje?',
+                'Quais quartos precisam de limpeza (housekeeping)?',
+                'Lista de check-ins pendentes',
+                'Resumo financeiro de reservas do mês'
+            ];
+        } else if (module === 'restaurant') {
+            questions = [
+                'Quais pratos foram mais vendidos hoje?',
+                'Resumo de pedidos em aberto na cozinha',
+                'Status de ocupação das mesas',
+                'Vendas totais do restaurante'
+            ];
+        } else if (module === 'logistics') {
+            questions = [
+                'Status das rotas de entrega hoje',
+                'Quais veículos estão em manutenção?',
+                'Resumo de combustível e despesas',
+                'Entregas pendentes por motorista'
+            ];
+        }
+
         return {
             suggestions: [
                 {
-                    category: 'Geral',
-                    questions: [
-                        'Como estão as vendas hoje?',
-                        'Quais produtos estão com stock baixo?',
-                        'Análise de margem dos produtos Classe A',
-                        'Lista de clientes em risco de inactividade'
-                    ]
+                    category: module ? `Assistente ${module.charAt(0).toUpperCase() + module.slice(1)}` : 'Geral',
+                    questions
                 }
             ]
         };
@@ -63,7 +95,7 @@ export class ChatService {
         return { type: 'general' };
     }
 
-    private async fetchRelevantData(intent: any, companyId: string) {
+    private async fetchRelevantData(intent: any, companyId: string, _module?: string) {
         try {
             const now = new Date();
             const todayStart = new Date(now.setHours(0, 0, 0, 0));
@@ -80,7 +112,7 @@ export class ChatService {
                     where: { sale: { companyId, createdAt: { gte: todayStart } } },
                     _sum: { quantity: true, total: true },
                     orderBy: { _sum: { quantity: 'desc' } },
-                    take: 5
+                    take: 10 // Increased for better analysis but still safe
                 })
             ]);
             responseData.today = { total: todaySales._sum.total || 0, count: todaySales._count };
@@ -91,21 +123,16 @@ export class ChatService {
             const totalProducts = await prisma.product.count({ where: { companyId } });
             
             if (totalProducts > 0) {
-                const [stockValue, allProducts, lowStockRecords, warehouses] = await Promise.all([
+                const [stockValue, lowStockRecords, warehouses] = await Promise.all([
                     prisma.product.aggregate({ where: { companyId }, _sum: { currentStock: true } }),
-                    prisma.product.findMany({
-                        where: { companyId },
-                        select: { name: true, code: true, barcode: true, sku: true, currentStock: true, minStock: true, costPrice: true, price: true },
-                        take: 100 // Hard limit for AI tokens
-                    }),
-                    prisma.$queryRaw<{ name: string; code: string; barcode: string | null; sku: string | null; currentStock: number; minStock: number | null; price: number }[]>`
-                        SELECT name, code, barcode, sku, "currentStock", "minStock", price
+                    prisma.$queryRaw<{ name: string; currentStock: number; minStock: number | null; price: number }[]>`
+                        SELECT name, "currentStock", "minStock", price
                         FROM products
                         WHERE "companyId" = ${companyId}
                           AND "minStock" IS NOT NULL
                           AND "currentStock" <= "minStock"
                         ORDER BY "currentStock" ASC
-                        LIMIT 20
+                        LIMIT 10
                     `,
                     prisma.warehouse.findMany({
                         where: { companyId, isActive: true },
@@ -113,38 +140,21 @@ export class ChatService {
                     })
                 ]);
 
-                // Compute Valuation
-                const valuation = allProducts.reduce((acc, p) => ({
-                    totalCost: acc.totalCost + (Number(p.currentStock) * Number(p.costPrice || 0)),
-                    totalSale: acc.totalSale + (Number(p.currentStock) * Number(p.price || 0))
-                }), { totalCost: 0, totalSale: 0 });
-
                 responseData.total_products = totalProducts;
                 responseData.total_items = stockValue._sum.currentStock || 0;
                 responseData.low_stock = lowStockRecords.length;
-                responseData.low_stock_details = lowStockRecords.map(p => ({
-                    name: p.name,
-                    reference: p.sku || p.barcode || 'S/Ref',
-                    stock: p.currentStock,
-                    min_stock: p.minStock,
-                    price: p.price
-                }));
+                responseData.low_stock_details = lowStockRecords;
                 responseData.active_warehouses = warehouses;
-                responseData.valuation = {
-                    total_cost: valuation.totalCost,
-                    total_sale: valuation.totalSale,
-                    potential_profit: valuation.totalSale - valuation.totalCost
-                };
                 
-                // 'products' alias necessary for PDF Generator (`inventory_table` / `price_list`)
-                responseData.products = allProducts.map((p: any) => ({
-                    name: p.name,
-                    code: p.code,
-                    reference: p.sku || p.barcode || 'S/Ref',
-                    stock: p.currentStock,
-                    price: p.price,
-                    category: p.category || 'Geral'
-                }));
+                // Essential product list for AI context (limited to 50 for stability)
+                const essentials = await prisma.product.findMany({
+                    where: { companyId },
+                    select: { name: true, currentStock: true, price: true },
+                    take: 50,
+                    orderBy: { currentStock: 'asc' }
+                });
+
+                responseData.products_summary = essentials;
             } else {
                 responseData.inventory_status = 'empty_inventory';
             }
@@ -182,7 +192,7 @@ export class ChatService {
             // 5. Specific Quotes if intent triggers it
             if (intent.type === 'quotation') {
                 const quote = await prisma.customerOrder.findFirst({
-                    where: { companyId, notes: { contains: '__QUOTE__' } },
+                    where: { companyId, orderType: 'quotation' },
                     include: { items: true },
                     orderBy: { createdAt: 'desc' }
                 });

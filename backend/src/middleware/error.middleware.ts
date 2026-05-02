@@ -30,6 +30,10 @@ export class ApiError extends Error {
         return new ApiError(404, msg);
     }
 
+    static conflict(msg: string) {
+        return new ApiError(409, msg);
+    }
+
     static internal(msg: string = 'Erro interno do servidor') {
         return new ApiError(500, msg);
     }
@@ -135,6 +139,12 @@ export const errorHandler = (
         }
         if (err.code === 'P2034') {
             return res.status(409).json({ message: 'Operação bloqueada por conflito. Por favor, tente novamente.' });
+        }
+        if (err.code === 'P2028') {
+            return res.status(504).json({ message: 'A operação demorou demasiado tempo (timeout de transacção). Tente novamente.' });
+        }
+        if (err.code === 'P1001' || err.code === 'P1002' || err.code === 'P1008') {
+            return res.status(503).json({ message: 'Não foi possível ligar à base de dados. Verifique a sua ligação e tente novamente.' });
         }
         return res.status(400).json({ message: 'Erro ao processar operação na base de dados. Por favor, tente novamente.' });
     }

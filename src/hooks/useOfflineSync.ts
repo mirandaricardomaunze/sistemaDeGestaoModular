@@ -1,68 +1,146 @@
 import { logger } from '../utils/logger';
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { db } from '../db/offlineDB';
+import {
+    db,
+    computeNextRetry,
+    MAX_SYNC_ATTEMPTS,
+    type PendingOperation,
+    type PendingSale,
+} from '../db/offlineDB';
 import { salesAPI, api } from '../services/api';
+import { IDEMPOTENCY_HEADER, pendingCounts } from '../services/offline/offlineQueue';
 import toast from 'react-hot-toast';
+
+const TICK_INTERVAL_MS = 15_000;
 
 export function useOfflineSync() {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [isSyncing, setIsSyncing] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
+    const [failedCount, setFailedCount] = useState(0);
 
-    // Use ref to avoid recreating functions on every render
     const isSyncingRef = useRef(false);
 
-    const updatePendingCount = useCallback(async () => {
-        const salesCount = await db.pendingSales.where('synced').equals(0).count();
-        const opsCount = await db.pendingOperations.where('synced').equals(0).count();
-        setPendingCount(salesCount + opsCount);
+    const refreshCounts = useCallback(async () => {
+        const counts = await pendingCounts();
+        setPendingCount(counts.pending);
+        setFailedCount(counts.failed);
     }, []);
 
-    const syncSales = async () => {
-        const pending = await db.pendingSales.where('synced').equals(0).toArray();
-        if (pending.length === 0) return 0;
-
-        let successCount = 0;
-        for (const sale of pending) {
-            try {
-                await salesAPI.create(sale.data);
-                await db.pendingSales.update(sale.id!, { synced: true as any });
-                successCount++;
-            } catch (error) {
-                logger.error('Failed to sync sale:', sale.id, error);
-                await db.pendingSales.update(sale.id!, { error: String(error) });
-            }
-        }
-        return successCount;
+    const markSynced = async (
+        table: 'pendingSales' | 'pendingOperations',
+        id: number
+    ) => {
+        await db[table].update(id, {
+            status: 'done' as const,
+            synced: true,
+            lastError: undefined,
+        } as any);
     };
 
-    const syncOperations = async () => {
-        const pending = await db.pendingOperations.where('synced').equals(0).toArray();
-        if (pending.length === 0) return 0;
+    const scheduleRetry = async (
+        table: 'pendingSales' | 'pendingOperations',
+        id: number,
+        attempts: number,
+        err: unknown
+    ) => {
+        const message = extractErrorMessage(err);
+        const status: 'pending' | 'failed' =
+            attempts >= MAX_SYNC_ATTEMPTS ? 'failed' : 'pending';
+        await db[table].update(id, {
+            status,
+            attempts,
+            nextRetryAt: computeNextRetry(attempts),
+            lastError: message,
+        } as any);
+    };
 
-        let successCount = 0;
-        for (const op of pending) {
+    const isPermanentFailure = (err: unknown): boolean => {
+        const status = (err as any)?.response?.status;
+        if (typeof status === 'number' && status >= 400 && status < 500) {
+            // 408/425/429 are retryable transient client errors
+            if (status === 408 || status === 425 || status === 429) return false;
+            return true;
+        }
+        return false;
+    };
+
+    const syncSales = async (): Promise<number> => {
+        const now = Date.now();
+        const due: PendingSale[] = await db.pendingSales
+            .where('status')
+            .equals('pending')
+            .filter((s) => (s.nextRetryAt ?? 0) <= now)
+            .toArray();
+
+        let success = 0;
+        for (const sale of due) {
+            const attempts = (sale.attempts ?? 0) + 1;
             try {
-                // Execute the generic operation based on endpoint and method
-                // We use the basic api instance since the endpoint is already module-prefixed
+                await db.pendingSales.update(sale.id!, { status: 'syncing' as const } as any);
+                await salesAPI.create({
+                    ...sale.data,
+                    clientId: sale.clientId,
+                } as any);
+                await markSynced('pendingSales', sale.id!);
+                success++;
+            } catch (error) {
+                logger.error('Failed to sync sale:', sale.id, error);
+                if (isPermanentFailure(error)) {
+                    await db.pendingSales.update(sale.id!, {
+                        status: 'failed' as const,
+                        attempts,
+                        lastError: extractErrorMessage(error),
+                    } as any);
+                } else {
+                    await scheduleRetry('pendingSales', sale.id!, attempts, error);
+                }
+            }
+        }
+        return success;
+    };
+
+    const syncOperations = async (): Promise<number> => {
+        const now = Date.now();
+        const due: PendingOperation[] = await db.pendingOperations
+            .where('status')
+            .equals('pending')
+            .filter((o) => (o.nextRetryAt ?? 0) <= now)
+            .sortBy('priority');
+        due.reverse(); // highest priority first
+
+        let success = 0;
+        for (const op of due) {
+            const attempts = (op.attempts ?? 0) + 1;
+            try {
+                await db.pendingOperations.update(op.id!, { status: 'syncing' as const } as any);
                 await api({
                     url: op.endpoint,
                     method: op.method,
-                    data: op.data
-                });
-                await db.pendingOperations.update(op.id!, { synced: true as any });
-                successCount++;
+                    data: op.data,
+                    headers: { [IDEMPOTENCY_HEADER]: op.clientId },
+                    skipOfflineQueue: true,
+                } as any);
+                await markSynced('pendingOperations', op.id!);
+                success++;
             } catch (error) {
                 logger.error(`Failed to sync ${op.module} operation:`, op.id, error);
-                await db.pendingOperations.update(op.id!, { error: String(error) });
+                if (isPermanentFailure(error)) {
+                    await db.pendingOperations.update(op.id!, {
+                        status: 'failed' as const,
+                        attempts,
+                        lastError: extractErrorMessage(error),
+                    } as any);
+                } else {
+                    await scheduleRetry('pendingOperations', op.id!, attempts, error);
+                }
             }
         }
-        return successCount;
+        return success;
     };
 
     const syncAll = useCallback(async () => {
         if (!navigator.onLine || isSyncingRef.current) return;
-
         isSyncingRef.current = true;
         setIsSyncing(true);
 
@@ -72,17 +150,19 @@ export function useOfflineSync() {
             const totalSuccess = salesSuccess + opsSuccess;
 
             if (totalSuccess > 0) {
-                toast.success(`${totalSuccess} operações sincronizadas com sucesso!`, { icon: '🔄' });
-                // Cleanup synced records
-                await db.pendingSales.where('synced').equals(1).delete();
-                await db.pendingOperations.where('synced').equals(1).delete();
+                toast.success(
+                    `${totalSuccess} ${totalSuccess === 1 ? 'operação sincronizada' : 'operações sincronizadas'}`,
+                    { icon: '🔄' }
+                );
+                await db.pendingSales.where('status').equals('done').delete();
+                await db.pendingOperations.where('status').equals('done').delete();
             }
         } finally {
             isSyncingRef.current = false;
             setIsSyncing(false);
-            await updatePendingCount();
+            await refreshCounts();
         }
-    }, [updatePendingCount]);
+    }, [refreshCounts]);
 
     useEffect(() => {
         const handleOnline = () => {
@@ -94,24 +174,37 @@ export function useOfflineSync() {
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
 
-        updatePendingCount();
-
-        if (navigator.onLine) {
-            syncAll();
-        }
+        refreshCounts();
+        if (navigator.onLine) syncAll();
 
         const interval = setInterval(() => {
-            if (navigator.onLine) {
-                syncAll();
-            }
-        }, 30000);
+            if (navigator.onLine) syncAll();
+            else refreshCounts();
+        }, TICK_INTERVAL_MS);
 
         return () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
             clearInterval(interval);
         };
-    }, [syncAll, updatePendingCount]);
+    }, [syncAll, refreshCounts]);
 
-    return { isOnline, isSyncing, pendingCount, syncAll };
+    return {
+        isOnline,
+        isSyncing,
+        pendingCount,
+        failedCount,
+        syncAll,
+        refreshCounts,
+    };
+}
+
+function extractErrorMessage(err: unknown): string {
+    const anyErr = err as any;
+    return (
+        anyErr?.response?.data?.error ||
+        anyErr?.response?.data?.message ||
+        anyErr?.message ||
+        String(err)
+    );
 }

@@ -313,8 +313,8 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                                                             <td className="px-4 py-3">
                                                                 <p className="font-bold text-[11px] text-gray-900 leading-tight">{item.product.name}</p>
                                                                 <p className="text-[9px] text-gray-400">{item.product.code}</p>
-                                                                {item.product?.weight && item.product.weight > 0 && (
-                                                                    <p className="text-[9px] text-gray-300">{item.product.weight.toFixed(3)} kg/un</p>
+                                                                {Number(item.product?.weight) > 0 && (
+                                                                    <p className="text-[9px] text-gray-300">{Number(item.product!.weight).toFixed(3)} kg/un</p>
                                                                 )}
                                                             </td>
                                                             <td className="px-4 py-3 text-center text-[11px] text-gray-600">{item.quantity}</td>

@@ -15,6 +15,7 @@ interface ConfirmationModalProps {
     cancelText?: string;
     variant?: ConfirmationVariant;
     isLoading?: boolean;
+    disabled?: boolean;
     children?: React.ReactNode;
 }
 
@@ -28,6 +29,7 @@ export function ConfirmationModal({
     cancelText = 'Cancelar',
     variant = 'danger',
     isLoading = false,
+    disabled = false,
     children,
 }: ConfirmationModalProps) {
     // Handle ESC key to close modal
@@ -140,7 +142,7 @@ export function ConfirmationModal({
                                 className="w-full sm:flex-1"
                                 onClick={handleConfirm}
                                 isLoading={isLoading}
-                                disabled={isLoading}
+                                disabled={isLoading || disabled}
                                 leftIcon={<HiOutlineCheck className="w-4 h-4" />}
                             >
                                 {confirmText}

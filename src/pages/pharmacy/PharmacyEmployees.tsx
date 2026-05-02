@@ -12,7 +12,7 @@ import {
 } from 'react-icons/hi2';
 import EmployeeList from '../../components/employees/EmployeeList';
 import EmployeeForm from '../../components/employees/EmployeeForm';
-import { Button, Card, PageHeader, LoadingSpinner } from '../../components/ui';
+import { Button, Card, LoadingSpinner, PageHeader } from '../../components/ui';
 import { PharmacyHRDashboard } from '../../components/pharmacy/hr/PharmacyHRDashboard';
 import { PharmacyAttendanceControl } from '../../components/pharmacy/hr/PharmacyAttendanceControl';
 import { PharmacyPayrollManager } from '../../components/pharmacy/hr/PharmacyPayrollManager';
@@ -46,7 +46,8 @@ export default function PharmacyEmployees() {
     const [showEmployeeForm, setShowEmployeeForm] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-    const { refetch, isLoading } = useEmployees();
+    // Lightweight — EmployeeList manages its own paginated fetching
+    const { refetch, isLoading } = useEmployees({ page: 1, limit: 1 });
 
     const handleAddEmployee = () => {
         setEditingEmployee(null);
@@ -80,20 +81,22 @@ export default function PharmacyEmployees() {
                 subtitle="Gestão completa de funcionários, assiduidade e conformidade farmacêutica"
                 icon={<HiOutlineUsers />}
                 actions={
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                         <Button
-                            variant="outline"
+                            variant="ghost"
+                            size="sm"
+                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-teal-600 transition-all bg-slate-50/50 dark:bg-dark-800"
+                            leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-teal-600" />}
                             onClick={() => refetch()}
-                            leftIcon={<HiOutlineArrowPath />}
-                            className="rounded-lg"
                         >
                             Actualizar
                         </Button>
                         <Button
                             variant="primary"
-                            onClick={handleAddEmployee}
-                            leftIcon={<HiOutlinePlus />}
-                            className="rounded-lg shadow-lg shadow-primary-500/20"
+                            size="sm"
+                            className="h-10 px-6 bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-500/20 rounded-xl font-black uppercase text-[10px] tracking-widest border-none"
+                            leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                            onClick={() => { setEditingEmployee(null); setShowEmployeeForm(true); }}
                         >
                             Adicionar Colaborador
                         </Button>

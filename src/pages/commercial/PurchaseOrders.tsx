@@ -1,33 +1,42 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import {
-    HiOutlineClipboardList, HiOutlinePlus, HiOutlineRefresh,
+    HiOutlineClipboardDocumentList, HiOutlinePlus, HiOutlineArrowPath,
     HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineClock,
-    HiOutlineTruck, HiOutlineExclamation, HiOutlineChevronDown,
-    HiOutlineDownload,
-} from 'react-icons/hi';
-import { Card, Badge, Button, Input, Select, Textarea, Modal } from '../../components/ui';
+    HiOutlineTruck, HiOutlineExclamationCircle, HiOutlineChevronDown,
+    HiOutlineArrowDownTray, HiOutlineCurrencyDollar, HiOutlineSparkles,
+    HiOutlineExclamationTriangle,
+} from 'react-icons/hi2';
+import { Card, Badge, Button, Input, Select, Textarea, Modal, Pagination, PageHeader } from '../../components/ui';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { usePurchaseOrders } from '../../hooks/useCommercial';
 import { useSuppliers } from '../../hooks/useSuppliers';
 import { useWarehouses } from '../../hooks/useData';
+import { getDocumentWorkflow, type WorkflowTransitions } from '../../hooks/commercial/useDocumentWorkflow';
+import { usePredictiveForecast } from '../../hooks/usePredictive';
 import toast from 'react-hot-toast';
+import { PAGE_SIZE } from '../../utils/constants';
 import { suppliersAPI } from '../../services/api';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
-    draft:     { label: 'Rascunho',  variant: 'gray'    as const, icon: HiOutlineClipboardList, color: 'text-gray-500 dark:text-gray-400',   bg: 'bg-gray-100   dark:bg-dark-700' },
+    draft:     { label: 'Rascunho',  variant: 'gray'    as const, icon: HiOutlineClipboardDocumentList, color: 'text-gray-500 dark:text-gray-400',   bg: 'bg-gray-100   dark:bg-dark-700' },
     ordered:   { label: 'Enviada',   variant: 'info'    as const, icon: HiOutlineTruck,          color: 'text-blue-600 dark:text-blue-400',   bg: 'bg-blue-100   dark:bg-blue-900/30' },
     partial:   { label: 'Parcial',   variant: 'warning' as const, icon: HiOutlineClock,           color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
     received:  { label: 'Recebida',  variant: 'success' as const, icon: HiOutlineCheckCircle,     color: 'text-green-600 dark:text-green-400',  bg: 'bg-green-100  dark:bg-green-900/30' },
     cancelled: { label: 'Cancelada', variant: 'danger'  as const, icon: HiOutlineXCircle,         color: 'text-red-600 dark:text-red-400',    bg: 'bg-red-100    dark:bg-red-900/30' },
 } as const;
 
-const STATUS_TRANSITIONS: Record<string, string[]> = {
-    draft:     ['ordered', 'cancelled'],
-    ordered:   ['partial', 'received', 'cancelled'],
-    partial:   ['received', 'cancelled'],
+const STATUS_TRANSITIONS: WorkflowTransitions<OrderStatus> = {
+    draft:     [{ next: 'ordered',   label: 'Marcar Enviada', variant: 'primary' },
+                { next: 'cancelled', label: 'Cancelar',       variant: 'danger'  }],
+    ordered:   [{ next: 'partial',   label: 'Recebimento Parcial', variant: 'warning' },
+                { next: 'received',  label: 'Marcar Recebida',      variant: 'success' },
+                { next: 'cancelled', label: 'Cancelar',            variant: 'danger'  }],
+    partial:   [{ next: 'received',  label: 'Completar Recebimento', variant: 'success' },
+                { next: 'cancelled', label: 'Cancelar',              variant: 'danger'  }],
     received:  [],
     cancelled: [],
 };
@@ -243,6 +252,10 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
             ])
         )
     );
+    // New states for batch and expiry
+    const [batchNumbers, setBatchNumbers] = useState<Record<string, string>>({});
+    const [expiryDates, setExpiryDates]   = useState<Record<string, string>>({});
+
     const { warehouses } = useWarehouses();
     const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
     const [saving, setSaving] = useState(false);
@@ -257,7 +270,12 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
     const handleReceive = async () => {
         const items = Object.entries(quantities)
             .filter(([, qty]) => qty > 0)
-            .map(([itemId, receivedQty]) => ({ itemId, receivedQty }));
+            .map(([itemId, receivedQty]) => ({ 
+                itemId, 
+                receivedQty,
+                batchNumber: batchNumbers[itemId] || undefined,
+                expiryDate: expiryDates[itemId] || undefined
+            }));
 
         if (!items.length) return toast.error('Defina pelo menos uma quantidade a receber');
 
@@ -275,60 +293,54 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
     };
 
     return (
-        <Modal isOpen onClose={onClose} title={`Receber - ${order.orderNumber}`} size="lg">
+        <Modal isOpen onClose={onClose} title={`Receber - ${order.orderNumber}`} size="xl">
             <div className="space-y-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Defina as quantidades recebidas e o armazém de destino. O stock será actualizado automaticamente.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-dark-700/30 p-4 rounded-lg border border-gray-100 dark:border-dark-700">
-                    <div>
-                        <Select
-                            label="Destino da Mercadoria"
-                            value={selectedWarehouseId}
-                            onChange={(e) => setSelectedWarehouseId(e.target.value)}
-                            options={[
-                                { value: '', label: 'Seleccione um armazém...' },
-                                ...(warehouses || []).map(w => ({ value: w.id, label: `${w.name} (${w.location})` }))
-                            ]}
-                        />
-                    </div>
+                <div className="bg-primary-50 dark:bg-primary-500/5 p-4 rounded-lg border border-primary-100 dark:border-primary-500/20">
+                    <p className="text-sm text-primary-700 dark:text-primary-400 font-medium">
+                        Registo de entrada de mercadoria. Pode definir lotes e datas de validade para um controlo profissional de inventário.
+                    </p>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Select
+                        label="Armazém de Destino *"
+                        value={selectedWarehouseId}
+                        onChange={(e) => setSelectedWarehouseId(e.target.value)}
+                        options={[
+                            { value: '', label: 'Seleccione um armazém...' },
+                            ...(warehouses || []).map(w => ({ value: w.id, label: `${w.name} (${w.location})` }))
+                        ]}
+                        required
+                    />
+                </div>
+
+                <div className="overflow-x-auto border border-gray-100 dark:border-dark-700 rounded-lg">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="text-xs text-gray-400 border-b border-gray-100 dark:border-dark-700">
-                                <th className="text-left py-2 font-medium">Produto</th>
-                                <th className="text-right py-2 font-medium">Encomendado</th>
-                                <th className="text-right py-2 font-medium">J recebido</th>
-                                <th className="text-right py-2 font-medium w-32">Receber agora</th>
+                            <tr className="text-[10px] text-gray-400 bg-gray-50 dark:bg-dark-900/50 uppercase tracking-widest font-black">
+                                <th className="text-left px-4 py-3 font-medium">Produto</th>
+                                <th className="text-right px-4 py-3 font-medium">Pendente</th>
+                                <th className="text-left px-4 py-3 font-medium w-32">Receber</th>
+                                <th className="text-left px-4 py-3 font-medium">Lote / Validade</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-gray-50 dark:divide-dark-700/50">
                             {(order.items ?? []).map((item: any) => {
                                 const pending = item.quantity - item.receivedQty;
+                                if (pending <= 0) return null;
+
                                 return (
-                                    <tr key={item.id} className="border-b border-gray-50 dark:border-dark-700/50">
-                                        <td className="py-3">
-                                            <p className="font-medium text-gray-900 dark:text-white">
+                                    <tr key={item.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-700/30 transition-colors">
+                                        <td className="px-4 py-3">
+                                            <p className="font-bold text-gray-900 dark:text-white uppercase text-xs">
                                                 {item.product?.name}
                                             </p>
-                                            <p className="text-xs text-gray-400">{item.product?.code}</p>
+                                            <p className="text-[10px] text-gray-400 font-mono">{item.product?.code}</p>
                                         </td>
-                                        <td className="py-3 text-right text-gray-600 dark:text-gray-400">
-                                            {item.quantity}
+                                        <td className="px-4 py-3 text-right">
+                                            <Badge variant="gray" size="sm">{pending} {item.product?.unit || 'un'}</Badge>
                                         </td>
-                                        <td className="py-3 text-right">
-                                            <span className={cn(
-                                                'font-medium',
-                                                item.receivedQty >= item.quantity ? 'text-green-500' :
-                                                item.receivedQty > 0 ? 'text-yellow-500' : 'text-gray-400'
-                                            )}>
-                                                {item.receivedQty}
-                                            </span>
-                                        </td>
-                                        <td className="py-3 pl-4">
+                                        <td className="px-4 py-3">
                                             <Input
                                                 size="sm"
                                                 type="number"
@@ -342,8 +354,23 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
                                                         Math.max(0, parseInt(e.target.value) || 0)
                                                     ),
                                                 }))}
-                                                helperText={pending > 0 ? `Máx: ${pending}` : 'Completo'}
                                             />
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex flex-col gap-2">
+                                                <Input
+                                                    size="xs"
+                                                    placeholder="Nº Lote"
+                                                    value={batchNumbers[item.id] || ''}
+                                                    onChange={e => setBatchNumbers(p => ({ ...p, [item.id]: e.target.value }))}
+                                                />
+                                                <Input
+                                                    size="xs"
+                                                    type="date"
+                                                    value={expiryDates[item.id] || ''}
+                                                    onChange={e => setExpiryDates(p => ({ ...p, [item.id]: e.target.value }))}
+                                                />
+                                            </div>
                                         </td>
                                     </tr>
                                 );
@@ -352,16 +379,16 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
                     </table>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-dark-700">
+                <div className="flex justify-end gap-2 pt-4 border-t border-gray-100 dark:border-dark-700">
                     <Button variant="ghost" onClick={onClose}>Cancelar</Button>
                     <Button
-                        variant="success"
+                        variant="primary"
                         onClick={handleReceive}
                         isLoading={saving}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 font-black uppercase text-[10px] tracking-widest"
                     >
-                        <HiOutlineDownload className="w-4 h-4" />
-                        Registar Recebimento
+                        <HiOutlineArrowDownTray className="w-4 h-4" />
+                        Confirmar Recebimento
                     </Button>
                 </div>
             </div>
@@ -377,12 +404,18 @@ export default function PurchaseOrders() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [receivingOrder, setReceivingOrder]   = useState<any | null>(null);
     const [expandedId, setExpandedId]           = useState<string | null>(null);
+    const [page, setPage]                       = useState(1);
+    const [activeTab, setActiveTab]             = useState<'list' | 'predictive'>('list');
 
     const { orders, pagination, isLoading, refetch, updateStatus, deletePO } = usePurchaseOrders({
         status:  statusFilter || undefined,
         search:  search || undefined,
-        limit:   20,
+        page,
+        limit:   PAGE_SIZE,
     });
+
+    const { data: predictiveData, isLoading: predictiveLoading, refetch: refetchPredictive, createOrders, isCreating } = usePredictiveForecast();
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
     const handleStatusUpdate = async (id: string, next: string) => {
         try { await updateStatus(id, next); }
@@ -400,228 +433,354 @@ export default function PurchaseOrders() {
         ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ value: k, label: v.label })),
     ];
 
-    const totalPending = orders.filter(o => ['draft', 'ordered'].includes(o.status)).length;
-    const totalValue   = orders.reduce((s, o) => s + Number(o.total), 0);
+    const stats = useMemo(() => {
+        const pending = orders.filter(o => ['draft', 'ordered', 'partial'].includes(o.status)).length;
+        const totalVal = orders.reduce((s, o) => s + Number(o.total), 0);
+        const received = orders.filter(o => o.status === 'received').length;
+        const overdue = orders.filter(o => 
+            o.expectedDeliveryDate && 
+            new Date(o.expectedDeliveryDate) < new Date() && 
+            !['received', 'cancelled'].includes(o.status)
+        ).length;
+
+        return { pending, totalVal, received, overdue };
+    }, [orders]);
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineClipboardList className="text-primary-600 dark:text-primary-400" />
-                        Ordens de Compra
-                    </h2>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                        Gestão de compras a fornecedores com recebimento parcial de stock
-                    </p>
-                </div>
-                <Button variant="primary" onClick={() => setShowCreateModal(true)} className="flex items-center gap-2">
-                    <HiOutlinePlus className="w-4 h-4" />
-                    Nova Ordem
-                </Button>
-            </div>
-
-            {/* Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                    { label: 'Total Ordens',  value: String(pagination?.total ?? orders.length),                      color: 'border-l-primary-500' },
-                    { label: 'Pendentes',     value: String(totalPending),                                             color: 'border-l-yellow-500'  },
-                    { label: 'Valor Total',   value: formatCurrency(totalValue),                                       color: 'border-l-green-500'   },
-                    { label: 'Recebidas',     value: String(orders.filter(o => o.status === 'received').length),       color: 'border-l-blue-500'    },
-                ].map(c => (
-                    <Card key={c.label} padding="md" className={`border-l-4 ${c.color}`}>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{c.label}</p>
-                        <p className="text-xl font-bold text-gray-900 dark:text-white mt-1">{c.value}</p>
-                    </Card>
-                ))}
-            </div>
-
-            {/* Filters */}
-            <Card padding="md">
-                <div className="flex flex-col md:flex-row gap-3">
-                    <div className="flex-1">
-                        <Input
-                            placeholder="Pesquisar por número ou fornecedor..."
-                            value={search}
-                            onChange={e => setSearch(e.target.value)}
-                            leftIcon={<HiOutlineClipboardList className="w-4 h-4 text-primary-600 dark:text-primary-400" />}
-                        />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-48">
-                            <Select
-                                options={statusOptions}
-                                value={statusFilter}
-                                onChange={e => setStatusFilter(e.target.value)}
-                            />
-                        </div>
-                        <Button
-                            variant="outline"
+        <div className="space-y-6 pb-10">
+            <PageHeader
+                title="Ordens de Compra"
+                subtitle="Gestão de aprovisionamento e receção de stock profissional"
+                icon={<HiOutlineClipboardDocumentList className="text-primary-600" />}
+                actions={
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
                             onClick={refetch}
-                            title="Actualizar"
-                            className="p-2.5 rounded-lg border border-gray-300 dark:border-dark-600 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                            className="font-black text-[10px] uppercase tracking-widest text-gray-400 hover:text-primary-600"
+                            leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4", isLoading && "animate-spin")} />}
                         >
-                            <HiOutlineRefresh className="w-4 h-4" />
+                            Actualizar
+                        </Button>
+                        <Button 
+                            variant="primary" 
+                            size="sm"
+                            onClick={() => setShowCreateModal(true)} 
+                            className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20"
+                            leftIcon={<HiOutlinePlus className="w-4 h-4" />}
+                        >
+                            Nova Ordem
                         </Button>
                     </div>
+                }
+            />
+
+            {/* Tab Navigation */}
+            <div className="flex p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner">
+                <button
+                    onClick={() => setActiveTab('list')}
+                    className={cn(
+                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
+                        activeTab === 'list'
+                            ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
+                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    )}
+                >
+                    <HiOutlineClipboardDocumentList className="w-4 h-4" />
+                    Lista de Ordens
+                </button>
+                <button
+                    onClick={() => setActiveTab('predictive')}
+                    className={cn(
+                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
+                        activeTab === 'predictive'
+                            ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
+                            : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    )}
+                >
+                    <HiOutlineSparkles className={cn("w-4 h-4", activeTab === 'predictive' ? "text-amber-500" : "text-amber-500 opacity-50")} />
+                    IA Preditiva & Reposição
+                </button>
+            </div>
+
+            {activeTab === 'list' ? (
+                <>
+                    {/* Summary Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                    label="Total em Aberto"
+                    value={String(stats.pending)}
+                    color="primary"
+                    icon={<HiOutlineClipboardDocumentList className="w-5 h-5" />}
+                    badge={<span className="text-[9px] font-bold uppercase tracking-tight">Pendentes</span>}
+                />
+                <MetricCard
+                    label="Investimento Total"
+                    value={formatCurrency(stats.totalVal)}
+                    color="emerald"
+                    icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
+                />
+                <MetricCard
+                    label="Atrasos na Entrega"
+                    value={String(stats.overdue)}
+                    color="red"
+                    icon={<HiOutlineExclamationCircle className="w-5 h-5" />}
+                    badge={stats.overdue > 0 ? <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /> : undefined}
+                />
+                <MetricCard
+                    label="Ordens Concluídas"
+                    value={String(stats.received)}
+                    color="blue"
+                    icon={<HiOutlineCheckCircle className="w-5 h-5" />}
+                />
+            </div>
+
+            {/* High Density Filters */}
+            <Card padding="md" className="border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div className="md:col-span-2">
+                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">
+                            Pesquisar Ordem / Fornecedor
+                        </label>
+                        <div className="relative group">
+                            <HiOutlineClipboardDocumentList className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-primary-500 transition-colors" />
+                            <input 
+                                type="text" 
+                                placeholder="Nº OC ou Nome do fornecedor..."
+                                value={search}
+                                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-1.5 uppercase tracking-widest pl-1">
+                            Estado
+                        </label>
+                        <Select
+                            options={statusOptions}
+                            value={statusFilter}
+                            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                            className="w-full bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-sm font-medium"
+                        />
+                    </div>
+                    <Button 
+                        onClick={refetch} 
+                        className="bg-primary-600 hover:bg-primary-700 text-white rounded-lg h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-500/20"
+                    >
+                        Filtrar Resultados
+                    </Button>
                 </div>
             </Card>
 
-            {/* List */}
-            <div className="space-y-3">
-                {isLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-20 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
-                    ))
-                ) : orders.length === 0 ? (
-                    <Card padding="lg" className="text-center py-16">
-                        <HiOutlineClipboardList className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 font-medium">Nenhuma ordem encontrada</p>
-                        <p className="text-sm text-gray-400 mb-4">
-                            {search || statusFilter ? 'Tente outros filtros' : 'Crie a primeira ordem de compra'}
-                        </p>
-                        <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-                            <HiOutlinePlus className="w-4 h-4 mr-1" /> Nova Ordem
-                        </Button>
-                    </Card>
-                ) : (
-                    orders.map(order => {
-                        const cfg        = STATUS_CONFIG[order.status as OrderStatus] ?? STATUS_CONFIG.draft;
-                        const Icon       = cfg.icon;
-                        const isExpanded = expandedId === order.id;
-                        const transitions = STATUS_TRANSITIONS[order.status] ?? [];
-                        const isOverdue  = order.expectedDeliveryDate
-                            && new Date(order.expectedDeliveryDate) < new Date()
-                            && !['received', 'cancelled'].includes(order.status);
-                        const canReceive = ['ordered', 'partial'].includes(order.status);
-
-                        return (
-                            <Card key={order.id} padding="md" className="hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-4">
-                                    <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', cfg.bg)}>
-                                        <Icon className={cn('w-5 h-5', cfg.color)} />
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-bold text-gray-900 dark:text-white text-sm">
-                                                {order.orderNumber}
-                                            </span>
-                                            <Badge variant={cfg.variant} size="sm">{cfg.label}</Badge>
-                                            {isOverdue && (
-                                                <Badge variant="danger" size="sm" className="flex items-center gap-1">
-                                                    <HiOutlineExclamation className="w-3 h-3" /> Atrasada
-                                                </Badge>
-                                            )}
+            {/* Orders Data Table */}
+            <Card padding="none" className="overflow-hidden border-gray-100 dark:border-dark-700 shadow-xl shadow-black/5">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                        <thead>
+                            <tr className="text-[10px] text-gray-400 border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50 uppercase tracking-[0.2em] font-black">
+                                <th className="px-6 py-4 text-left">Ordem #</th>
+                                <th className="px-6 py-4 text-left">Fornecedor</th>
+                                <th className="px-6 py-4 text-left">Estado</th>
+                                <th className="px-6 py-4 text-right">Total</th>
+                                <th className="px-6 py-4 text-right pr-10">Acções</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                                            <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Sincronizando Ordens...</span>
                                         </div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                                            {order.supplier.name}
-                                            {order.expectedDeliveryDate && (
-                                                <span className="ml-2 text-xs">
-                                                    · Entrega: {new Date(order.expectedDeliveryDate).toLocaleDateString('pt-MZ')}
-                                                </span>
-                                            )}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <span className="font-bold text-gray-900 dark:text-white">
-                                            {formatCurrency(Number(order.total))}
-                                        </span>
-                                        {canReceive && (
-                                            <Button
-                                                size="sm"
-                                                variant="success"
-                                                onClick={() => setReceivingOrder(order)}
-                                                className="flex items-center gap-1"
-                                            >
-                                                <HiOutlineDownload className="w-3.5 h-3.5" />
-                                                Receber
-                                            </Button>
-                                        )}
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setExpandedId(isExpanded ? null : order.id)}
-                                            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                                        >
-                                            <HiOutlineChevronDown className={cn('w-4 h-4 transition-transform', isExpanded && 'rotate-180')} />
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {isExpanded && (
-                                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-dark-700 space-y-4">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-xs">
-                                                <thead>
-                                                    <tr className="text-gray-400 border-b border-gray-100 dark:border-dark-700">
-                                                        <th className="text-left py-2 font-medium">Produto</th>
-                                                        <th className="text-right py-2 font-medium">Enc.</th>
-                                                        <th className="text-right py-2 font-medium">Recebido</th>
-                                                        <th className="text-right py-2 font-medium">Custo Unit.</th>
-                                                        <th className="text-right py-2 font-medium">Total</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {order.items.map((item: any) => (
-                                                        <tr key={item.id} className="border-b border-gray-50 dark:border-dark-700/50">
-                                                            <td className="py-2 font-medium text-gray-700 dark:text-gray-300">
-                                                                {item.product?.name}
-                                                                <span className="ml-1 text-gray-400 font-normal">{item.product?.code}</span>
-                                                            </td>
-                                                            <td className="py-2 text-right">{item.quantity}</td>
-                                                            <td className="py-2 text-right">
-                                                                <span className={cn(
-                                                                    'font-semibold',
-                                                                    item.receivedQty >= item.quantity ? 'text-green-500' :
-                                                                    item.receivedQty > 0 ? 'text-yellow-500' : 'text-gray-400'
-                                                                )}>
-                                                                    {item.receivedQty}/{item.quantity}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-2 text-right">{formatCurrency(Number(item.unitCost))}</td>
-                                                            <td className="py-2 text-right font-bold">{formatCurrency(Number(item.total))}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                    </td>
+                                </tr>
+                            ) : orders.length === 0 ? (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center gap-3 opacity-20">
+                                            <HiOutlineClipboardDocumentList className="w-16 h-16 text-gray-300" />
+                                            <p className="text-sm font-bold uppercase tracking-widest">Sem registos de ordens</p>
                                         </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                orders.map(order => {
+                                    const { config: cfg, transitions } = getDocumentWorkflow(order.status as OrderStatus, STATUS_CONFIG, STATUS_TRANSITIONS, 'draft');
+                                    const Icon       = cfg.icon;
+                                    const isExpanded = expandedId === order.id;
+                                    const isOverdue  = order.expectedDeliveryDate
+                                        && new Date(order.expectedDeliveryDate) < new Date()
+                                        && !['received', 'cancelled'].includes(order.status);
+                                    const canReceive = ['ordered', 'partial'].includes(order.status);
 
-                                        {order.notes && (
-                                            <p className="text-xs text-gray-500 bg-gray-50 dark:bg-dark-700/50 rounded-lg px-3 py-2">
-                                                <strong>Notas:</strong> {order.notes}
-                                            </p>
-                                        )}
-
-                                        <div className="flex flex-wrap gap-2">
-                                            {transitions.map(next => {
-                                                const ncfg = STATUS_CONFIG[next as OrderStatus];
-                                                return (
-                                                    <Button
-                                                        key={next}
-                                                        size="sm"
-                                                        variant={next === 'cancelled' ? 'danger' : next === 'received' ? 'success' : 'primary'}
-                                                        onClick={() => handleStatusUpdate(order.id, next)}
-                                                    >
-                                                        Marcar: {ncfg?.label}
-                                                    </Button>
-                                                );
-                                            })}
-                                            {order.status === 'draft' && (
-                                                <Button size="sm" variant="danger" onClick={() => handleDelete(order.id)}>
-                                                    Eliminar
-                                                </Button>
+                                    return (
+                                        <React.Fragment key={order.id}>
+                                            <tr className="hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-all group">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">
+                                                            {order.orderNumber}
+                                                        </span>
+                                                        <span className="text-[9px] text-gray-400 font-bold uppercase">
+                                                            {new Date(order.createdAt).toLocaleDateString('pt-MZ')}
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-[10px] font-black uppercase">
+                                                            {order.supplier?.name?.charAt(0)}
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase truncate max-w-[200px]">
+                                                                {order.supplier?.name}
+                                                            </span>
+                                                            <span className="text-[9px] text-gray-400 font-medium">
+                                                                ENTREGA: {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString('pt-MZ') : 'N/A'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col gap-1">
+                                                        <Badge variant={cfg.variant} size="sm" className="w-fit text-[9px] uppercase tracking-tighter">
+                                                            <Icon className="w-3 h-3 mr-1" />
+                                                            {cfg.label}
+                                                        </Badge>
+                                                        {isOverdue && (
+                                                            <Badge variant="danger" size="sm" className="w-fit text-[8px] animate-pulse">
+                                                                ATRASADA
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="text-sm font-black text-primary-600 dark:text-primary-400 tracking-tighter">
+                                                            {formatCurrency(Number(order.total))}
+                                                        </span>
+                                                        <span className="text-[9px] text-gray-400 font-black uppercase tracking-widest">
+                                                            {order.items?.length || 0} ITENS
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 pr-10">
+                                                    <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
+                                                        {canReceive && (
+                                                            <button 
+                                                                onClick={() => setReceivingOrder(order)}
+                                                                className="p-2 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all shadow-sm active:scale-95"
+                                                                title="Receber Stock"
+                                                            >
+                                                                <HiOutlineArrowDownTray className="w-5 h-5" />
+                                                            </button>
+                                                        )}
+                                                        <button 
+                                                            onClick={() => setExpandedId(isExpanded ? null : order.id)}
+                                                            className={cn(
+                                                                "p-2 rounded-lg transition-all shadow-sm active:scale-95",
+                                                                isExpanded ? "bg-primary-600 text-white" : "text-primary-600 hover:bg-primary-600 hover:text-white"
+                                                            )}
+                                                            title="Ver Detalhes"
+                                                        >
+                                                            <HiOutlineChevronDown className={cn("w-5 h-5 transition-transform", isExpanded && "rotate-180")} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {isExpanded && (
+                                                <tr>
+                                                    <td colSpan={5} className="px-6 py-4 bg-gray-50/50 dark:bg-dark-900/30">
+                                                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="bg-white dark:bg-dark-900 p-4 rounded-xl border border-gray-100 dark:border-dark-700 shadow-sm">
+                                                                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Itens da Ordem</h4>
+                                                                    <div className="space-y-2">
+                                                                        {order.items.map((item: any) => (
+                                                                            <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-dark-700/50 last:border-0">
+                                                                                <div className="flex flex-col">
+                                                                                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">{item.product?.name}</span>
+                                                                                    <span className="text-[9px] text-gray-400 font-mono">{item.product?.code}</span>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-4">
+                                                                                    <div className="text-right">
+                                                                                        <p className="text-[9px] text-gray-400 uppercase font-bold">Qtd / Rec</p>
+                                                                                        <p className="text-xs font-black text-gray-700 dark:text-gray-300">
+                                                                                            {item.quantity} / <span className={cn(item.receivedQty >= item.quantity ? "text-emerald-500" : "text-amber-500")}>{item.receivedQty}</span>
+                                                                                        </p>
+                                                                                    </div>
+                                                                                    <div className="text-right min-w-[80px]">
+                                                                                        <p className="text-[9px] text-gray-400 uppercase font-bold">Total</p>
+                                                                                        <p className="text-xs font-black text-primary-600">{formatCurrency(Number(item.total))}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex flex-col gap-4">
+                                                                    {order.notes && (
+                                                                        <div className="bg-amber-50/50 dark:bg-amber-900/10 p-4 rounded-xl border border-amber-100 dark:border-amber-900/20">
+                                                                            <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] mb-2 flex items-center gap-1">
+                                                                                <HiOutlineExclamationCircle className="w-3 h-3" /> Notas
+                                                                            </h4>
+                                                                            <p className="text-xs text-amber-800 dark:text-amber-200 font-medium italic">{order.notes}</p>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="bg-white dark:bg-dark-900 p-4 rounded-xl border border-gray-100 dark:border-dark-700 shadow-sm flex-1">
+                                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Acções de Estado</h4>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {transitions.map(action => (
+                                                                                <Button
+                                                                                    key={action.next}
+                                                                                    size="sm"
+                                                                                    variant={action.variant}
+                                                                                    onClick={() => handleStatusUpdate(order.id, action.next)}
+                                                                                    className="font-black text-[9px] uppercase tracking-widest px-4"
+                                                                                >
+                                                                                    {action.label}
+                                                                                </Button>
+                                                                            ))}
+                                                                            {order.status === 'draft' && (
+                                                                                <Button 
+                                                                                    size="sm" 
+                                                                                    variant="ghost" 
+                                                                                    onClick={() => handleDelete(order.id)}
+                                                                                    className="font-black text-[9px] uppercase tracking-widest text-red-500 hover:bg-red-50"
+                                                                                >
+                                                                                    Eliminar Rascunho
+                                                                                </Button>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
                                             )}
-                                        </div>
-                                    </div>
-                                )}
-                            </Card>
-                        );
-                    })
+                                        </React.Fragment>
+                                    );
+                                })
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {!isLoading && pagination && pagination.totalPages > 1 && (
+                    <div className="px-6 py-4 border-t border-gray-100 dark:border-dark-700">
+                        <Pagination 
+                            currentPage={page}
+                            totalItems={pagination.total}
+                            itemsPerPage={pagination.limit}
+                            onPageChange={setPage}
+                        />
+                    </div>
                 )}
-            </div>
+            </Card>
 
             {/* Modals */}
             {showCreateModal && (
@@ -634,6 +793,199 @@ export default function PurchaseOrders() {
                     onSuccess={() => { refetch(); setExpandedId(null); }}
                 />
             )}
+                </>
+            ) : null}
+
+            {activeTab === 'predictive' && (
+                predictiveLoading ? (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}
+                        </div>
+                        <div className="h-96 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                    </div>
+                ) : (
+                    <div className="space-y-6 animate-fade-in">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <MetricCard
+                                label="Risco Crítico"
+                                value={predictiveData.filter((p: any) => p.status === 'critical').length}
+                                color="red"
+                                icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
+                                badge={<span className="text-[8px] font-black text-red-500 dark:text-red-400 uppercase tracking-tighter animate-pulse">Ruptura Imínente</span>}
+                            />
+                            <MetricCard
+                                label="Sugestões Recompra"
+                                value={predictiveData.filter((p: any) => p.suggestedPurchase > 0).length}
+                                color="orange"
+                                icon={<HiOutlineTruck className="w-5 h-5" />}
+                            />
+                            <MetricCard
+                                label="Precisão da IA"
+                                value={`${(predictiveData.reduce((s: number, p: any) => s + p.confidence, 0) / (predictiveData.length || 1) * 100).toFixed(0)}%`}
+                                color="blue"
+                                icon={<HiOutlineSparkles className="w-5 h-5" />}
+                            />
+                            <MetricCard
+                                label="Investimento Necessário"
+                                value={formatCurrency(predictiveData.reduce((s: number, p: any) => s + (p.suggestedPurchase * p.costPrice), 0))}
+                                color="green"
+                                icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
+                                badge={<span className="text-[9px] font-bold text-emerald-500 dark:text-emerald-400 uppercase tracking-tight">Stock 30d</span>}
+                            />
+                        </div>
+
+                        {/* Forecasting & Action Table */}
+                        <Card padding="none" className="overflow-hidden shadow-xl shadow-black/5">
+                            <div className="p-6 border-b border-gray-100 dark:border-dark-700 flex justify-between items-center bg-gray-50/30 dark:bg-dark-900/30">
+                                <div>
+                                    <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <HiOutlineSparkles className="text-amber-500" />
+                                        Análise Preditiva e Reposição
+                                    </h3>
+                                    <p className="text-xs text-gray-500 mt-1">Procura estimada para os próximos 30 dias com base no histórico real</p>
+                                </div>
+                                <div className="flex gap-2">
+                                    {selectedItems.length > 0 && (
+                                        <Button 
+                                            size="sm" 
+                                            onClick={async () => {
+                                                const suggestions = predictiveData
+                                                    .filter((p: any) => selectedItems.includes(p.productId))
+                                                    .map((p: any) => ({ productId: p.productId, quantity: p.suggestedPurchase || p.minStock }));
+                                                await createOrders(suggestions);
+                                                setSelectedItems([]);
+                                                setActiveTab('list');
+                                                refetch();
+                                            }}
+                                            isLoading={isCreating}
+                                            className="font-black text-[10px] uppercase tracking-widest bg-primary-600 shadow-lg shadow-primary-500/20"
+                                            leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
+                                        >
+                                            Gerar OCs ({selectedItems.length})
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={refetchPredictive}
+                                        className="font-black text-[10px] uppercase tracking-widest text-gray-400"
+                                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
+                                    >
+                                        Recalcular
+                                    </Button>
+                                </div>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead>
+                                        <tr className="bg-gray-50 dark:bg-dark-800 text-gray-400 uppercase text-[10px] font-black tracking-widest">
+                                            <th className="px-6 py-4 w-10 text-center">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-dark-900"
+                                                    checked={selectedItems.length === predictiveData.length && predictiveData.length > 0}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setSelectedItems(predictiveData.map((p: any) => p.productId));
+                                                        else setSelectedItems([]);
+                                                    }}
+                                                />
+                                            </th>
+                                            <th className="px-6 py-4">Produto</th>
+                                            <th className="px-6 py-4">Tendência 6M</th>
+                                            <th className="px-6 py-4">Stock Atual/Mín</th>
+                                            <th className="px-6 py-4">Procura 30d (IA)</th>
+                                            <th className="px-6 py-4">Sugestão</th>
+                                            <th className="px-6 py-4">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
+                                        {predictiveData.map((item: any) => (
+                                            <tr key={item.productId} className={cn(
+                                                "hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors",
+                                                selectedItems.includes(item.productId) && "bg-primary-50/30 dark:bg-primary-900/10"
+                                            )}>
+                                                <td className="px-6 py-4 text-center">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-dark-900"
+                                                        checked={selectedItems.includes(item.productId)}
+                                                        onChange={() => {
+                                                            setSelectedItems(prev => 
+                                                                prev.includes(item.productId) 
+                                                                    ? prev.filter(id => id !== item.productId)
+                                                                    : [...prev, item.productId]
+                                                            );
+                                                        }}
+                                                    />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="font-black text-gray-900 dark:text-white uppercase text-xs">{item.productName}</div>
+                                                    <div className="text-[10px] text-gray-400 font-mono">{item.productCode}</div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-end gap-1 h-8 w-24">
+                                                        {item.history.map((h: any, i: number) => (
+                                                            <div 
+                                                                key={i} 
+                                                                className="w-full bg-gray-200 dark:bg-dark-600 rounded-t-sm transition-all hover:bg-primary-400"
+                                                                style={{ height: `${Math.min(100, (h / (Math.max(...item.history) || 1)) * 100)}%` }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={cn(
+                                                            "font-black text-xs",
+                                                            item.currentStock <= item.minStock ? "text-red-500" : "text-gray-900 dark:text-white"
+                                                        )}>
+                                                            {item.currentStock}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-400 font-bold">/ {item.minStock}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-black text-xs text-primary-600 dark:text-primary-400">{item.forecasted30d} un.</span>
+                                                        <span className="text-[9px] text-gray-400 font-bold uppercase">{(item.confidence * 100).toFixed(0)}% confiança</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {item.suggestedPurchase > 0 ? (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-xs font-black text-emerald-600 uppercase">Comprar {item.suggestedPurchase}</span>
+                                                            <span className="text-[10px] text-gray-400 font-bold">{formatCurrency(item.suggestedPurchase * item.costPrice)}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-400 italic text-[10px] font-bold uppercase tracking-widest">Suficiente</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col gap-1">
+                                                        <Badge variant={
+                                                            item.status === 'critical' ? 'danger' :
+                                                            item.status === 'high_risk' ? 'danger' :
+                                                            item.status === 'low_risk' ? 'warning' : 'success'
+                                                        } size="sm" className="w-fit text-[9px] font-black uppercase tracking-widest">
+                                                            {item.status.toUpperCase()}
+                                                        </Badge>
+                                                        <p className="text-[9px] text-gray-500 mt-1 max-w-[150px] leading-tight italic line-clamp-2" title={item.reasoning}>
+                                                            {item.reasoning}
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card>
+                    </div>
+                )
+            )}
         </div>
     );
 }
+

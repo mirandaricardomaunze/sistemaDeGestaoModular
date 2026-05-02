@@ -20,11 +20,13 @@ import {
     HiOutlineEye
 } from 'react-icons/hi2';
 import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer, PageHeader } from '../components/ui';
-import { StatCard } from '../components/common/ModuleMetricCard';
+import { MetricCard } from '../components/common/ModuleMetricCard';
 import { ExportCustomersButton } from '../components/common/ExportButton';
 import { formatCurrency, cn } from '../utils/helpers';
+import { PAGE_SIZE } from '../utils/constants';
 import type { Customer, CustomerType } from '../types';
 import { useCustomers } from '../hooks/useData';
+import { useDebounce } from '../hooks/useDebounce';
 import { Customer360Modal } from '../components/crm/Customer360Modal';
 
 // Validation Schema
@@ -69,7 +71,7 @@ interface CustomersProps {
 export default function Customers({ originModule }: CustomersProps) {
     const [searchParams] = useSearchParams();
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(20);
+    const [pageSize] = useState(PAGE_SIZE);
     const [search, setSearch] = useState(searchParams.get('search') || '');
     const [typeFilter, setTypeFilter] = useState<CustomerType | 'all'>((searchParams.get('type') as CustomerType) || 'all');
 
@@ -92,7 +94,7 @@ export default function Customers({ originModule }: CustomersProps) {
         updateCustomer,
         deleteCustomer
     } = useCustomers({
-        search,
+        search: useDebounce(search, 350),
         type: typeFilter === 'all' ? undefined : typeFilter,
         page,
         limit: pageSize,
@@ -232,8 +234,8 @@ export default function Customers({ originModule }: CustomersProps) {
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Gestão de Clientes"
-                subtitle="Controlo de Entidades, Histórico de Vendas e CRM"
+                title={`Gestão de Clientes ${originModule === 'pharmacy' ? 'Farmácia' : ''}`}
+                subtitle={`Controlo de Entidades ${originModule === 'pharmacy' ? 'da Farmácia' : ''}, Histórico de Vendas e CRM`}
                 icon={<HiOutlineUsers className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
@@ -261,58 +263,55 @@ export default function Customers({ originModule }: CustomersProps) {
 
             {/* Metrics Layer - Standardized */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatCard 
+                <MetricCard 
                     label="Total Clientes"
                     value={metrics.total}
-                    icon={<HiOutlineUsers className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
+                    icon={<HiOutlineUsers className="w-5 h-5" />}
                     color="primary"
                 />
-                <StatCard 
+                <MetricCard 
                     label="Pessoas Físicas"
                     value={metrics.individuals}
-                    icon={<HiOutlineUser className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
+                    icon={<HiOutlineUser className="w-5 h-5" />}
                     color="blue"
                 />
-                <StatCard 
+                <MetricCard 
                     label="Empresas"
                     value={metrics.companies}
-                    icon={<HiOutlineBuildingOffice className="w-6 h-6 text-purple-600 dark:text-purple-400" />}
+                    icon={<HiOutlineBuildingOffice className="w-5 h-5" />}
                     color="purple"
                 />
-                <StatCard 
+                <MetricCard 
                     label="Total Compras"
                     value={formatCurrency(metrics.totalPurchases)}
-                    icon={<HiOutlineCurrencyDollar className="w-6 h-6 text-green-600 dark:text-green-400" />}
+                    icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
                     color="green"
-                    sublabel="Volume total transacionado"
+                    badge={<span className="text-[9px] font-bold text-emerald-500 uppercase tracking-tight">CRM</span>}
                 />
             </div>
 
             {/* Filters Bar - High Density */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                <Card padding="md" className="md:col-span-12 bg-gray-100/50 dark:bg-dark-800/50 border-none shadow-none">
+            <div className="animate-slide-up">
+                <Card padding="md" className="bg-white/40 dark:bg-dark-900/40 border border-slate-200/60 dark:border-white/5 backdrop-blur-md rounded-2xl">
                     <div className="flex flex-col lg:flex-row gap-4">
                         <div className="flex-1 relative">
                             <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-400 w-5 h-5 z-10" />
                             <Input
-                                placeholder="Buscar clientes por nome, NUIT or contacto..."
+                                placeholder="Buscar clientes por nome, NUIT ou contacto..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10 bg-white dark:bg-dark-900 border-none shadow-sm h-11"
+                                className="pl-10 bg-white dark:bg-dark-900 border-slate-200 dark:border-dark-700 shadow-sm h-11 rounded-xl"
                             />
                         </div>
-                        <div className="w-full lg:w-48">
+                        <div className="w-full lg:w-56">
                             <Select
                                 options={typeOptions}
                                 value={typeFilter}
                                 onChange={(e) => setTypeFilter(e.target.value as CustomerType | 'all')}
-                                className="h-11 bg-white dark:bg-dark-900 border-none shadow-sm"
+                                className="h-11 bg-white dark:bg-dark-900 border-slate-200 dark:border-dark-700 shadow-sm rounded-xl font-black uppercase text-[10px] tracking-widest"
                             />
                         </div>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-2 ml-1">
-                        {metrics.total} clientes registados na base
-                    </p>
                 </Card>
             </div>
 
@@ -442,11 +441,7 @@ export default function Customers({ originModule }: CustomersProps) {
                     totalItems={pagination?.total || 0}
                     itemsPerPage={pageSize}
                     onPageChange={setPage}
-                    onItemsPerPageChange={(size) => {
-                        setPageSize(size);
-                        setPage(1);
-                    }}
-                    itemsPerPageOptions={[5, 10, 25, 50]}
+                    showItemsPerPage={false}
                 />
             </div>
 

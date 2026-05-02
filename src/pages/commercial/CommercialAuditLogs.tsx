@@ -1,10 +1,10 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Badge, Select, Button } from '../../components/ui';
 import { auditAPI } from '../../services/api/audit.api';
+import { PAGE_SIZE } from '../../utils/constants';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
-    HiOutlineShieldCheck, 
     HiOutlineChevronLeft,
     HiOutlineChevronRight
 } from 'react-icons/hi2';
@@ -30,7 +30,7 @@ export default function CommercialAuditLogs() {
         try {
             const response = await auditAPI.getAll({
                 page,
-                limit: 15,
+                limit: PAGE_SIZE,
                 action: filters.action || undefined,
                 entity: filters.entity || undefined
             });
@@ -57,24 +57,13 @@ export default function CommercialAuditLogs() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
-                        <HiOutlineShieldCheck className="text-primary-500" />
-                        Trilhas de Auditoria
-                    </h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                        Histórico completo de acções administrativas e operacionais sensíveis
-                    </p>
-                </div>
-            </div>
-
             {/* Filters */}
-            <Card padding="md" className="bg-gray-50 dark:bg-dark-900/50 border-gray-100 dark:border-dark-700">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card padding="md" className="bg-white dark:bg-dark-900 border border-gray-100 dark:border-dark-700">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <Select
                         label="Acção"
                         size="sm"
+                        className="bg-gray-50 dark:bg-dark-800"
                         value={filters.action}
                         onChange={(e) => setFilters({ ...filters, action: e.target.value })}
                         options={[
@@ -89,6 +78,7 @@ export default function CommercialAuditLogs() {
                     <Select
                         label="Entidade"
                         size="sm"
+                        className="bg-gray-50 dark:bg-dark-800"
                         value={filters.entity}
                         onChange={(e) => setFilters({ ...filters, entity: e.target.value })}
                         options={[
@@ -99,9 +89,22 @@ export default function CommercialAuditLogs() {
                             { value: 'invoices', label: 'Facturas' }
                         ]}
                     />
-                    <div className="flex items-end">
-                        <Button variant="ghost" size="sm" onClick={() => setFilters({ action: '', entity: '', search: '' })}>
-                            Limpar Filtros
+                    <div className="flex items-end gap-2">
+                        <Button 
+                            className="flex-1" 
+                            variant="primary" 
+                            size="sm" 
+                            onClick={loadLogs}
+                            isLoading={loading}
+                        >
+                            Filtrar
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => setFilters({ action: '', entity: '', search: '' })}
+                        >
+                            Limpar
                         </Button>
                     </div>
                 </div>

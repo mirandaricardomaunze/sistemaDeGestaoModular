@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
     HiOutlineSun, 
     HiOutlineCalendar, 
@@ -6,7 +6,7 @@ import {
     HiOutlineXCircle,
     HiOutlinePlus
 } from 'react-icons/hi2';
-import { Card, Button, Badge, Modal, Input, Select } from '../../ui';
+import { Card, Button, Badge, Modal, Input, Select, Pagination, usePagination } from '../../ui';
 import { employeesAPI } from '../../../services/api';
 import { logger } from '../../../utils/logger';
 import toast from 'react-hot-toast';
@@ -17,6 +17,15 @@ export function CommercialVacationManager() {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showRequestModal, setShowRequestModal] = useState(false);
+
+    const {
+        paginatedItems: paginatedRequests,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(requests, 10);
 
     useEffect(() => {
         fetchData();
@@ -129,7 +138,7 @@ export function CommercialVacationManager() {
                                     </td>
                                 </tr>
                             ) : (
-                                requests.map(req => (
+                                paginatedRequests.map(req => (
                                     <tr key={req.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-800/50 transition-colors">
                                         <td className="px-6 py-4">
                                             <p className="font-bold text-gray-900 dark:text-white">{getEmployeeName(req.employeeId)}</p>
@@ -186,6 +195,17 @@ export function CommercialVacationManager() {
                         </tbody>
                     </table>
                 </div>
+                {!isLoading && requests.length > 0 && (
+                    <div className="p-4 border-t border-gray-100 dark:border-dark-600 bg-gray-50/50 dark:bg-dark-800/50">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
+                    </div>
+                )}
             </Card>
 
             <Modal isOpen={showRequestModal} onClose={() => setShowRequestModal(false)} title="Novo Pedido de Férias">

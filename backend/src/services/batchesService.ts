@@ -1,6 +1,16 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
-import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+
+const BATCH_FIELD_ALLOWLIST = [
+    'id', 'batchNumber', 'productId', 'supplierId', 'warehouseId',
+    'initialQuantity', 'quantity', 'costPrice',
+    'manufactureDate', 'receivedDate', 'expiryDate',
+    'status', 'notes', 'createdAt', 'updatedAt',
+    'product.id', 'product.name', 'product.code', 'product.unit',
+    'supplier.id', 'supplier.name',
+    'warehouse.id', 'warehouse.name', 'warehouse.code'
+] as const;
 import { addDays, isAfter, isBefore, differenceInDays } from 'date-fns';
 import { stockService } from './stockService';
 
@@ -53,19 +63,26 @@ export class BatchesService {
             ];
         }
 
+        const projection = parseFields(params.fields, BATCH_FIELD_ALLOWLIST);
+        const findArgs: any = {
+            where,
+            orderBy: params.expiryDate ? { expiryDate: 'asc' } : { createdAt: 'desc' },
+            skip,
+            take: limit,
+        };
+        if (projection) {
+            findArgs.select = projection;
+        } else {
+            findArgs.include = {
+                product: { select: { id: true, name: true, code: true, unit: true, category: true } },
+                supplier: { select: { id: true, name: true } },
+                warehouse: { select: { id: true, name: true, code: true } },
+            };
+        }
+
         const [total, batches] = await Promise.all([
             prisma.productBatch.count({ where }),
-            prisma.productBatch.findMany({
-                where,
-                include: {
-                    product: { select: { id: true, name: true, code: true, unit: true, category: true } },
-                    supplier: { select: { id: true, name: true } },
-                    warehouse: { select: { id: true, name: true, code: true } },
-                },
-                orderBy: params.expiryDate ? { expiryDate: 'asc' } : { createdAt: 'desc' },
-                skip,
-                take: limit,
-            }),
+            prisma.productBatch.findMany(findArgs),
         ]);
 
         return createPaginatedResponse(batches, page, limit, total);
@@ -134,12 +151,20 @@ export class BatchesService {
     // =========================================================================
 
     async create(data: CreateBatchInput, companyId: string) {
+        console.log('Creating batch with data:', { ...data, companyId });
+        
         // Validate product belongs to company
         const product = await prisma.product.findFirst({ where: { id: data.productId, companyId } });
-        if (!product) throw ApiError.notFound('Produto não encontrado');
+        if (!product) {
+            console.error('Product not found or doesn\'t belong to company:', data.productId);
+            throw ApiError.notFound('Produto não encontrado');
+        }
 
         const existing = await prisma.productBatch.findFirst({ where: { companyId, batchNumber: data.batchNumber } });
-        if (existing) throw ApiError.badRequest(`Lote "${data.batchNumber}" já existe`);
+        if (existing) {
+            console.error('Batch number already exists:', data.batchNumber);
+            throw ApiError.badRequest(`Lote "${data.batchNumber}" já existe`);
+        }
 
         const batchData = {
             batchNumber: data.batchNumber,
@@ -176,7 +201,7 @@ export class BatchesService {
             }, tx as any);
 
             return b;
-        });
+        }, { timeout: 30000, maxWait: 10000 });
 
         // Update product expiry date logic (now outside transaction if needed, or inside)
         await this.syncProductExpiryDate(data.productId, companyId);
@@ -246,7 +271,7 @@ export class BatchesService {
             }
 
             await tx.productBatch.delete({ where: { id } });
-        });
+        }, { timeout: 30000, maxWait: 10000 });
 
         await this.syncProductExpiryDate(batch.productId, companyId);
         return { success: true };

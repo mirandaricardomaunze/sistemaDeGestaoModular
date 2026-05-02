@@ -123,7 +123,15 @@ export default function GuestProfileModal({
     const { companySettings } = useStore();
     const handlePrint = () => {
         if (booking) {
-            generateBookingReceipt(booking as any, companySettings);
+            generateBookingReceipt(booking as any, {
+                ...companySettings,
+                name: companySettings?.companyName ?? 'Empresa',
+                companyName: companySettings?.companyName ?? 'Empresa',
+                address: `${companySettings?.address ?? ''} - ${companySettings?.city ?? ''}/${companySettings?.state ?? ''}`,
+                phone: companySettings?.phone ?? '',
+                email: companySettings?.email ?? '',
+                taxId: companySettings?.taxId ?? '',
+            } as any);
         }
     };
 

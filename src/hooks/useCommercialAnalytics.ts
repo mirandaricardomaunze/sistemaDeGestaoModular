@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useMarginAnalysis, useSalesReport } from './useCommercial';
+import { useMarginAnalysis } from './useCommercial';
 import { useProducts, useCustomers } from './useData';
 import type { Product, Customer } from '../types';
 
@@ -21,13 +21,16 @@ export interface ReorderSuggestion extends Product {
     reason: string;
 }
 
-export function useCommercialAnalytics(abcPeriod: number = 90) {
-    const { products, isLoading: productsLoading } = useProducts();
+/**
+ * Client-side derived analytics for the commercial module.
+ * Server-backed analytics live in {@link useCommercialAnalytics} from `useCommercial.ts`.
+ */
+export function useDerivedCommercialAnalytics(abcPeriod: number = 90, warehouseId?: string) {
+    const { products, isLoading: productsLoading } = useProducts(warehouseId ? { warehouseId } : undefined);
     const { customers, isLoading: customersLoading } = useCustomers();
-    const { data: marginData, isLoading: marginsLoading } = useMarginAnalysis(abcPeriod);
-    const { isLoading: salesLoading } = useSalesReport(30);
+    const { data: marginData, isLoading: marginsLoading } = useMarginAnalysis(abcPeriod, warehouseId);
 
-    const isLoading = productsLoading || customersLoading || marginsLoading || salesLoading;
+    const isLoading = productsLoading || customersLoading || marginsLoading;
 
     // ── ABC Classification ───────────────────────────────────────────────────
     const abcData = useMemo(() => {

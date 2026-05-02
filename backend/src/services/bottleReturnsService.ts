@@ -36,20 +36,53 @@ export class BottleReturnsService {
     }
 
     async recordDeposit(companyId: string, performedBy: string, data: any) {
-        return prisma.bottleReturn.create({
-            data: {
-                companyId, customerId: data.customerId, productId: data.productId, quantity: data.quantity,
-                depositPaid: data.depositAmount, type: 'deposit', saleId: data.saleId, performedBy, notes: data.notes
-            }
+        return prisma.$transaction(async (tx) => {
+            const product = await tx.product.findFirst({
+                where: { id: data.productId, companyId }
+            });
+            if (!product) throw ApiError.notFound('Produto não encontrado');
+
+            // AUTHORITATIVE CALCULATION
+            const depositAmount = Number(product.returnPrice) * Number(data.quantity);
+
+            return tx.bottleReturn.create({
+                data: {
+                    companyId, customerId: data.customerId, productId: data.productId, quantity: data.quantity,
+                    depositPaid: depositAmount, type: 'deposit', saleId: data.saleId, performedBy, notes: data.notes
+                }
+            });
         });
     }
 
     async recordReturn(companyId: string, performedBy: string, data: any) {
-        return prisma.bottleReturn.create({
-            data: {
-                companyId, customerId: data.customerId, productId: data.productId, quantity: data.quantity,
-                depositRefunded: data.refundAmount, type: 'return', performedBy, notes: data.notes
+        return prisma.$transaction(async (tx) => {
+            // ====================================================================
+            // OPERATIONAL PREREQUISITE: CASH SESSION
+            // ====================================================================
+            if (!data.sessionId) {
+                throw ApiError.badRequest('Sessão de caixa é obrigatória para registar devoluções');
             }
+            const session = await tx.cashSession.findFirst({
+                where: { id: data.sessionId, companyId, status: 'open' }
+            });
+            if (!session) {
+                throw ApiError.badRequest('Sessão de caixa não encontrada ou já encerrada');
+            }
+
+            const product = await tx.product.findFirst({
+                where: { id: data.productId, companyId }
+            });
+            if (!product) throw ApiError.notFound('Produto não encontrado');
+
+            // AUTHORITATIVE CALCULATION
+            const refundAmount = Number(product.returnPrice) * Number(data.quantity);
+
+            return tx.bottleReturn.create({
+                data: {
+                    companyId, customerId: data.customerId, productId: data.productId, quantity: data.quantity,
+                    depositRefunded: refundAmount, type: 'return', performedBy, notes: data.notes
+                }
+            });
         });
     }
 }

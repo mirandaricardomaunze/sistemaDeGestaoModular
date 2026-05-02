@@ -127,7 +127,7 @@ export default function SupplierOrderManager() {
 
     return (
         <div className="space-y-6 relative">
-            {isLoading && <LoadingOverlay />}
+            {isLoading && <LoadingOverlay fullScreen={false} />}
             {/* Filters */}
             <Card padding="md">
                 <div className="flex flex-col md:flex-row gap-4 justify-between">

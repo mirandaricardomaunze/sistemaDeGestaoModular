@@ -65,7 +65,12 @@ export class DashboardService {
             const currentMonthTotal = Number(monthSales._sum?.total || 0) + Number(monthPharmacySales._sum?.total || 0);
             const lastMonthTotal = Number(lastMonthSales._sum?.total) || 0;
             const salesGrowth = lastMonthTotal > 0 ? ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
-            const monthProfit = salesItems.reduce((sum, item) => sum + (Number(item.total) - Number(item.product?.costPrice ?? 0) * item.quantity), 0);
+            // Prefer the costPrice snapshot stored on the SaleItem; fall back to
+            // live product cost only for legacy rows that pre-date the snapshot.
+            const monthProfit = salesItems.reduce((sum, item) => {
+                const cogs = Number((item as any).costPrice ?? item.product?.costPrice ?? 0) * item.quantity;
+                return sum + (Number(item.total) - cogs);
+            }, 0);
 
             return {
                 todaySales: {

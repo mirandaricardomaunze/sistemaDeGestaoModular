@@ -14,6 +14,7 @@ function createRateLimiter(windowMs: number, max: number, message: string) {
         message: { error: 'Too Many Requests', message },
         standardHeaders: true,
         legacyHeaders: false,
+        skip: () => process.env.NODE_ENV === 'test',
         store: redis
             ? new RedisStore({
                   sendCommand: (...args: string[]) => (redis as any).call(...args),

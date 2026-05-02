@@ -335,6 +335,7 @@ export default function Register() {
                                         <Input
                                             label="Senha Segura"
                                             type="password"
+                                            showPasswordToggle
                                             placeholder="••••••••"
                                             leftIcon={<HiOutlineLockClosed className="h-5 w-5" />}
                                             error={errors.password?.message}
@@ -344,6 +345,7 @@ export default function Register() {
                                         <Input
                                             label="Confirmar"
                                             type="password"
+                                            showPasswordToggle
                                             placeholder="••••••••"
                                             leftIcon={<HiOutlineLockClosed className="h-5 w-5" />}
                                             error={errors.confirmPassword?.message}

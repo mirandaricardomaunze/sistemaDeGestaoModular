@@ -7,6 +7,7 @@ import {
     HiOutlineCheckCircle,
     HiOutlineShieldCheck,
 } from 'react-icons/hi2';
+import { PageHeader } from '../components/ui';
 import EmployeeList from '../components/employees/EmployeeList';
 import EmployeeForm from '../components/employees/EmployeeForm';
 import EmployeeAttendance from '../components/employees/EmployeeAttendance';
@@ -44,20 +45,17 @@ export default function Employees() {
 
     return (
         <div className="space-y-6">
-            {/* Page Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Funcionários
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        Gerencie sua equipe e recursos humanos
-                    </p>
-                </div>
-                <div className="flex gap-2">
-                    <ExportEmployeesButton data={useEmployees().employees} />
-                </div>
-            </div>
+            {/* Premium Header */}
+            <PageHeader
+                title="Gestão de Funcionários"
+                subtitle="Gerencie sua equipe e recursos humanos com precisão"
+                icon={<HiOutlineUsers />}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <ExportEmployeesButton data={useEmployees().employees} />
+                    </div>
+                }
+            />
 
             {/* Responsive Tabs */}
             <div className="border-b border-gray-200 dark:border-dark-700 overflow-x-auto">

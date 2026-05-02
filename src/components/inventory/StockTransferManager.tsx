@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Button, Card, Input, Modal, Select, Pagination, usePagination, ConfirmationModal } from '../ui';
-import { HiOutlineDocumentDownload, HiOutlineSearch, HiOutlineTrash, HiOutlineCheck, HiOutlineX } from 'react-icons/hi';
+import { HiOutlineDocumentDownload, HiOutlineSearch, HiOutlineTrash, HiOutlineCheck } from 'react-icons/hi';
 import { formatDate } from '../../utils/helpers';
 import type { StockTransfer } from '../../types';
 import toast from 'react-hot-toast';
@@ -11,7 +11,17 @@ export default function StockTransferManager() {
     // Use data hooks instead of store
     const { products: productsData, refetch: refetchProducts } = useProducts();
     const { warehouses: warehousesData } = useWarehouses();
-    const { transfers: transfersData, createTransfer, completeTransfer, cancelTransfer, refetch: refetchTransfers } = useStockTransfers();
+    const { 
+        transfers: transfersData, 
+        createTransfer, 
+        submitTransfer,
+        approveTransfer,
+        rejectTransfer,
+        dispatchTransfer,
+        receiveTransfer,
+        cancelTransfer,
+        refetch: refetchTransfers 
+    } = useStockTransfers();
 
     // Ensure arrays are never undefined
     const products = Array.isArray(productsData) ? productsData : [];
@@ -21,7 +31,10 @@ export default function StockTransferManager() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [selectedTransfer, setSelectedTransfer] = useState<StockTransfer | null>(null);
-    const [transferToConfirm, setTransferToConfirm] = useState<{ type: 'complete' | 'cancel', transfer: StockTransfer } | null>(null);
+    const [transferToConfirm, setTransferToConfirm] = useState<{ 
+        type: 'submit' | 'approve' | 'reject' | 'dispatch' | 'complete' | 'cancel', 
+        transfer: StockTransfer 
+    } | null>(null);
 
     // Form State
     const [sourceId, setSourceId] = useState('');
@@ -86,18 +99,19 @@ export default function StockTransferManager() {
             if (historyWarehouse !== 'all' && t.sourceWarehouseId !== historyWarehouse && t.targetWarehouseId !== historyWarehouse) return false;
 
             // Filter by date
-            if (startDate) {
+            if (t.date) {
                 const transferDate = new Date(t.date);
-                const start = new Date(startDate);
-                start.setHours(0, 0, 0, 0);
-                if (transferDate < start) return false;
-            }
+                if (startDate) {
+                    const start = new Date(startDate);
+                    start.setHours(0, 0, 0, 0);
+                    if (transferDate < start) return false;
+                }
 
-            if (endDate) {
-                const transferDate = new Date(t.date);
-                const end = new Date(endDate);
-                end.setHours(23, 59, 59, 999);
-                if (transferDate > end) return false;
+                if (endDate) {
+                    const end = new Date(endDate);
+                    end.setHours(23, 59, 59, 999);
+                    if (transferDate > end) return false;
+                }
             }
 
             return true;
@@ -164,42 +178,40 @@ export default function StockTransferManager() {
             return;
         }
 
-        await createTransfer({
-            sourceWarehouseId: sourceId,
-            targetWarehouseId: targetId,
-            items: transferItems.map(i => ({ productId: i.productId, quantity: i.quantity })),
-            responsible,
-            reason,
-        });
-        await Promise.all([refetchProducts(), refetchTransfers()]);
-        setIsModalOpen(false);
-        resetForm();
-    };
-
-    const handleComplete = async (transfer: StockTransfer) => {
-        setTransferToConfirm({ type: 'complete', transfer });
-    };
-
-    const confirmComplete = async () => {
-        if (!transferToConfirm) return;
-        const { transfer } = transferToConfirm;
         try {
-            await completeTransfer(transfer.id);
-            await refetchTransfers();
-            setTransferToConfirm(null);
-        } catch { /* error toast handled by hook */ }
+            await createTransfer({
+                sourceWarehouseId: sourceId,
+                targetWarehouseId: targetId,
+                items: transferItems.map(i => ({ productId: i.productId, quantity: i.quantity })),
+                responsible,
+                reason,
+            });
+            await Promise.all([refetchProducts(), refetchTransfers()]);
+            setIsModalOpen(false);
+            resetForm();
+        } catch (err: any) {
+            const msg = err?.response?.data?.message || 'Erro ao criar transferência. Verifique os dados e tente novamente.';
+            toast.error(msg);
+        }
     };
 
-    const handleCancel = async (transfer: StockTransfer) => {
-        setTransferToConfirm({ type: 'cancel', transfer });
+    const handleWorkflowAction = async (type: 'submit' | 'approve' | 'reject' | 'dispatch' | 'complete' | 'cancel', transfer: StockTransfer) => {
+        setTransferToConfirm({ type, transfer });
     };
 
-    const confirmCancel = async () => {
+    const confirmWorkflowAction = async () => {
         if (!transferToConfirm) return;
-        const { transfer } = transferToConfirm;
+        const { type, transfer } = transferToConfirm;
         try {
-            await cancelTransfer(transfer.id);
-            await refetchTransfers();
+            switch (type) {
+                case 'submit': await submitTransfer(transfer.id); break;
+                case 'approve': await approveTransfer(transfer.id); break;
+                case 'reject': await rejectTransfer(transfer.id, 'Rejeitado pelo administrador'); break;
+                case 'dispatch': await dispatchTransfer(transfer.id); break;
+                case 'complete': await receiveTransfer(transfer.id); break;
+                case 'cancel': await cancelTransfer(transfer.id); break;
+            }
+            await Promise.all([refetchProducts(), refetchTransfers()]);
             setTransferToConfirm(null);
         } catch { /* error toast handled by hook */ }
     };
@@ -283,7 +295,7 @@ export default function StockTransferManager() {
                                                 {transfer.number}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                                {formatDate(transfer.date)}
+                                                {formatDate(transfer.date || transfer.createdAt)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                                 {getWarehouseName(transfer.sourceWarehouseId)}
@@ -295,19 +307,9 @@ export default function StockTransferManager() {
                                                 {transfer.items.length}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                {transfer.status === 'in_transit' && (
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                                        Em Trânsito
-                                                    </span>
-                                                )}
-                                                {transfer.status === 'completed' && (
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                                        Completada
-                                                    </span>
-                                                )}
-                                                {transfer.status === 'cancelled' && (
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                                        Cancelada
+                                                {transfer.status === 'draft' && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                                                        Rascunho
                                                     </span>
                                                 )}
                                                 {transfer.status === 'pending' && (
@@ -315,37 +317,109 @@ export default function StockTransferManager() {
                                                         Pendente
                                                     </span>
                                                 )}
+                                                {transfer.status === 'approved' && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400">
+                                                        Aprovada
+                                                    </span>
+                                                )}
+                                                {transfer.status === 'in_transit' && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                                        Em Trânsito
+                                                    </span>
+                                                )}
+                                                {(transfer.status === 'received' || transfer.status === 'completed') && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                                        Concluída
+                                                    </span>
+                                                )}
+                                                {transfer.status === 'rejected' && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+                                                        Rejeitada
+                                                    </span>
+                                                )}
+                                                {transfer.status === 'cancelled' && (
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                                        Cancelada
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    {transfer.status === 'in_transit' && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => handleComplete(transfer)}
-                                                                className="p-1.5 text-green-600 hover:text-green-900 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all"
-                                                                title="Confirmar Recepção"
-                                                            >
-                                                                <HiOutlineCheck className="w-5 h-5" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleCancel(transfer)}
-                                                                className="p-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all"
-                                                                title="Cancelar Transferência"
-                                                            >
-                                                                <HiOutlineX className="w-5 h-5" />
-                                                            </button>
-                                                        </>
+                                                <div className="flex items-center justify-end gap-2 flex-wrap">
+                                                    {/* Requested Text Actions */}
+                                                    {transfer.status === 'pending' && (
+                                                        <Button
+                                                            size="xs"
+                                                            variant="warning"
+                                                            onClick={() => handleWorkflowAction('approve', transfer)}
+                                                            leftIcon={<HiOutlineCheck className="w-4 h-4" />}
+                                                        >
+                                                            Aprovação
+                                                        </Button>
                                                     )}
-                                                    <button
+
+                                                    <Button
+                                                        size="xs"
+                                                        variant="outline"
                                                         onClick={() => {
                                                             setSelectedTransfer(transfer);
                                                             setShowPrintModal(true);
                                                         }}
-                                                        className="p-1.5 text-blue-600 hover:text-blue-900 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all"
-                                                        title="Imprimir Guia"
+                                                        leftIcon={<HiOutlineSearch className="w-4 h-4" />}
                                                     >
-                                                        <HiOutlineDocumentDownload className="w-5 h-5" />
-                                                    </button>
+                                                        Ver
+                                                    </Button>
+
+                                                    <Button
+                                                        size="xs"
+                                                        variant="ghost"
+                                                        onClick={() => {
+                                                            setSelectedTransfer(transfer);
+                                                            setShowPrintModal(true);
+                                                        }}
+                                                        leftIcon={<HiOutlineDocumentDownload className="w-4 h-4" />}
+                                                    >
+                                                        Imprimir
+                                                    </Button>
+
+                                                    {/* Contextual Secondary Actions (Icon only) */}
+                                                    <div className="flex items-center gap-1 border-l pl-2 border-gray-100 dark:border-dark-700">
+                                                        {transfer.status === 'draft' && (
+                                                            <button
+                                                                onClick={() => handleWorkflowAction('submit', transfer)}
+                                                                className="p-1 text-primary-600 hover:bg-primary-50 rounded"
+                                                                title="Submeter"
+                                                            >
+                                                                <HiOutlineCheck className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        {transfer.status === 'approved' && (
+                                                            <button
+                                                                onClick={() => handleWorkflowAction('dispatch', transfer)}
+                                                                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                                                title="Despachar"
+                                                            >
+                                                                <HiOutlineDocumentDownload className="w-4 h-4 rotate-180" />
+                                                            </button>
+                                                        )}
+                                                        {transfer.status === 'in_transit' && (
+                                                            <button
+                                                                onClick={() => handleWorkflowAction('complete', transfer)}
+                                                                className="p-1 text-green-600 hover:bg-green-50 rounded"
+                                                                title="Receber"
+                                                            >
+                                                                <HiOutlineCheck className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        {['draft', 'pending', 'approved'].includes(transfer.status) && (
+                                                            <button
+                                                                onClick={() => handleWorkflowAction('cancel', transfer)}
+                                                                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                                title="Cancelar"
+                                                            >
+                                                                <HiOutlineTrash className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -357,7 +431,7 @@ export default function StockTransferManager() {
                                         </tr>
                                     ))}
                                 </>
-                            )}
+                             )}
                         </tbody>
                     </table>
                 </div>
@@ -515,25 +589,32 @@ export default function StockTransferManager() {
 
             {/* Confirmation Modals */}
             <ConfirmationModal
-                isOpen={transferToConfirm?.type === 'complete'}
+                isOpen={!!transferToConfirm}
                 onClose={() => setTransferToConfirm(null)}
-                onConfirm={confirmComplete}
-                title="Confirmar Recepção"
-                message={`Deseja confirmar a recepção da transferência ${transferToConfirm?.transfer.number}? Esta ação irá adicionar os produtos ao armazém de destino.`}
+                onConfirm={confirmWorkflowAction}
+                title={
+                    transferToConfirm?.type === 'submit' ? 'Submeter Transferência' :
+                    transferToConfirm?.type === 'approve' ? 'Aprovar Transferência' :
+                    transferToConfirm?.type === 'reject' ? 'Rejeitar Transferência' :
+                    transferToConfirm?.type === 'dispatch' ? 'Despachar Mercadoria' :
+                    transferToConfirm?.type === 'complete' ? 'Confirmar Recepção' :
+                    'Cancelar Transferência'
+                }
+                message={
+                    transferToConfirm?.type === 'submit' ? `Deseja submeter a transferência ${transferToConfirm?.transfer.number} para aprovação?` :
+                    transferToConfirm?.type === 'approve' ? `Deseja aprovar a transferência ${transferToConfirm?.transfer.number}? O estoque será reservado no armazém de origem.` :
+                    transferToConfirm?.type === 'reject' ? `Deseja rejeitar a transferência ${transferToConfirm?.transfer.number}?` :
+                    transferToConfirm?.type === 'dispatch' ? `Deseja confirmar o despacho da mercadoria da transferência ${transferToConfirm?.transfer.number}? O estoque será deduzido da origem.` :
+                    transferToConfirm?.type === 'complete' ? `Deseja confirmar a recepção da transferência ${transferToConfirm?.transfer.number}? Os produtos serão adicionados ao armazém de destino.` :
+                    `Deseja cancelar a transferência ${transferToConfirm?.transfer.number}?`
+                }
                 confirmText="Confirmar"
-                cancelText="Cancelar"
-                variant="success"
-            />
-
-            <ConfirmationModal
-                isOpen={transferToConfirm?.type === 'cancel'}
-                onClose={() => setTransferToConfirm(null)}
-                onConfirm={confirmCancel}
-                title="Cancelar Transferência"
-                message={`Deseja cancelar a transferência ${transferToConfirm?.transfer.number}? O estoque será reposto no armazém de origem.`}
-                confirmText="Cancelar Transferência"
                 cancelText="Voltar"
-                variant="danger"
+                variant={
+                    transferToConfirm?.type === 'cancel' || transferToConfirm?.type === 'reject' ? 'danger' :
+                    transferToConfirm?.type === 'approve' || transferToConfirm?.type === 'complete' ? 'success' :
+                    'primary'
+                }
             />
 
             {/* Print Modal */}

@@ -1,9 +1,8 @@
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../middleware/error.middleware';
-import { cacheService } from '../cacheService';
 import { getPaginationParams, createPaginatedResponse } from '../../utils/pagination';
 import { ResultHandler, Result } from '../../utils/result';
-import { round2 } from './shared';
+import { round2, DEFAULT_IVA_RATE, invalidateCommercialCache, withSequenceRetry } from './shared';
 
 export class CommercialQuotationService {
 
@@ -25,13 +24,35 @@ export class CommercialQuotationService {
             prisma.customerOrder.count({ where }),
             prisma.customerOrder.findMany({
                 where,
-                include: { customer: { select: { id: true, name: true, phone: true } }, items: true },
+                include: {
+                    customer: { select: { id: true, name: true, phone: true } },
+                    items: true,
+                },
                 orderBy: { createdAt: 'desc' },
                 skip, take: limit,
             }),
         ]);
 
-        return ResultHandler.success(createPaginatedResponse(quotes, page, limit, total));
+        const productIds = Array.from(new Set(
+            quotes.flatMap(q => q.items.map(i => i.productId).filter((id): id is string => !!id))
+        ));
+        const products = productIds.length > 0
+            ? await prisma.product.findMany({
+                where: { id: { in: productIds }, companyId },
+                select: { id: true, barcode: true, code: true, name: true },
+            })
+            : [];
+        const productById = new Map(products.map(p => [p.id, p]));
+
+        const quotesWithProducts = quotes.map(q => ({
+            ...q,
+            items: q.items.map(i => ({
+                ...i,
+                product: i.productId ? productById.get(i.productId) ?? null : null,
+            })),
+        }));
+
+        return ResultHandler.success(createPaginatedResponse(quotesWithProducts, page, limit, total));
     }
 
     async createQuotation(data: any, companyId: string): Promise<Result<any>> {
@@ -58,8 +79,9 @@ export class CommercialQuotationService {
         const total = data.items.reduce((s: number, i: any) => s + Number(i.price) * Number(i.quantity), 0);
         const year = new Date().getFullYear();
 
-        const result = await prisma.$transaction(async (tx) => {
-            // Use MAX of existing numbers (safer than COUNT — handles deletions/gaps)
+        // Retry on P2002 because orderNumber generation is not atomic across concurrent
+        // transactions; the @@unique([companyId, orderNumber]) constraint catches collisions.
+        const result = await withSequenceRetry(() => prisma.$transaction(async (tx) => {
             const lastQuote = await tx.customerOrder.findFirst({
                 where: { companyId, orderType: 'quotation', orderNumber: { startsWith: `COT-${year}-` } },
                 orderBy: { orderNumber: 'desc' },
@@ -101,40 +123,60 @@ export class CommercialQuotationService {
                 },
                 include: { customer: { select: { id: true, name: true } }, items: true },
             });
-        });
+        }, { timeout: 20000, maxWait: 5000 }));
 
+        invalidateCommercialCache(companyId);
         return ResultHandler.success(result, 'Cotação criada com sucesso');
     }
 
     async convertQuotationToInvoice(quotationId: string, data: any, companyId: string): Promise<Result<any>> {
         if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
-        const quotation = await prisma.customerOrder.findFirst({
-            where: { id: quotationId, companyId, orderType: 'quotation' },
-            include: { items: true }
-        });
-        if (!quotation) throw ApiError.notFound('Cotação não encontrada');
-        if (quotation.status === 'cancelled') throw ApiError.badRequest('Não é possível converter uma cotação cancelada');
-        if (quotation.status === 'completed') throw ApiError.badRequest('Esta cotação já foi convertida em fatura');
-
         const dueDays = Number(data.dueDays ?? 30);
         if (dueDays < 1) throw ApiError.badRequest('Prazo de vencimento inválido');
 
-        const dueDate = new Date();
-        dueDate.setDate(dueDate.getDate() + dueDays);
-        const year = new Date().getFullYear();
-
-        // Resolve IVA: use provided rate, fall back to company default, then 16%
+        // Resolve IVA: explicit > company default > module default
         let resolvedTaxRate = data.taxRate !== undefined ? Number(data.taxRate) : null;
         if (resolvedTaxRate === null) {
             const defaultIva = await prisma.ivaRate.findFirst({
                 where: { companyId, isDefault: true, isActive: true },
                 select: { rate: true }
             });
-            resolvedTaxRate = defaultIva ? Number(defaultIva.rate) / 100 : 0.16;
+            resolvedTaxRate = defaultIva ? Number(defaultIva.rate) / 100 : DEFAULT_IVA_RATE;
         }
 
-        const result = await prisma.$transaction(async (tx) => {
+        const dueDate = new Date();
+        dueDate.setDate(dueDate.getDate() + dueDays);
+        const year = new Date().getFullYear();
+
+        // Retry on unique-key collisions when generating invoiceNumber under concurrency.
+        const result = await withSequenceRetry(() => prisma.$transaction(async (tx) => {
+            // Atomic claim: only proceed if quotation is still convertible. updateMany returns 0
+            // when another concurrent request already flipped the status — prevents double conversion.
+            const claim = await tx.customerOrder.updateMany({
+                where: {
+                    id: quotationId,
+                    companyId,
+                    orderType: 'quotation',
+                    status: { notIn: ['cancelled', 'completed'] },
+                },
+                data: { status: 'completed' },
+            });
+            if (claim.count === 0) {
+                const existing = await tx.customerOrder.findFirst({
+                    where: { id: quotationId, companyId, orderType: 'quotation' },
+                    select: { status: true }
+                });
+                if (!existing) throw ApiError.notFound('Cotação não encontrada');
+                if (existing.status === 'cancelled') throw ApiError.badRequest('Não é possível converter uma cotação cancelada');
+                throw ApiError.badRequest('Esta cotação já foi convertida em fatura');
+            }
+
+            const quotation = await tx.customerOrder.findFirstOrThrow({
+                where: { id: quotationId, companyId, orderType: 'quotation' },
+                include: { items: true }
+            });
+
             const lastInvoice = await tx.invoice.findFirst({
                 where: { companyId, invoiceNumber: { startsWith: `INV-${year}-` } },
                 orderBy: { invoiceNumber: 'desc' },
@@ -174,7 +216,7 @@ export class CommercialQuotationService {
                 include: { customer: { select: { id: true, name: true } }, items: true }
             });
 
-            // Release reserved stock and close quotation
+            // Release reserved stock now that quotation is converted.
             for (const item of quotation.items) {
                 if (item.productId) {
                     await tx.product.update({
@@ -183,12 +225,11 @@ export class CommercialQuotationService {
                     });
                 }
             }
-            await tx.customerOrder.update({ where: { id: quotationId }, data: { status: 'completed' } });
 
             return created;
-        });
+        }, { timeout: 30000, maxWait: 10000 }));
 
-        cacheService.invalidatePattern(`commercial:analytics:${companyId}`);
+        invalidateCommercialCache(companyId);
         return ResultHandler.success(result, 'Cotação convertida para fatura');
     }
 }

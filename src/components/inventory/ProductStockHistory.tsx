@@ -1,5 +1,5 @@
-﻿import { useState } from 'react';
-import { Modal, Badge, LoadingSpinner, Pagination } from '../ui';
+import { useState } from 'react';
+import { Modal, Badge, Pagination, LoadingOverlay } from '../ui';
 import { useStockMovements } from '../../hooks/useStockMovements';
 import { format } from 'date-fns';
 import { 
@@ -69,8 +69,10 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
 
                 {/* Content */}
                 {isLoading ? (
-                    <div className="py-12 flex justify-center">
-                        <LoadingSpinner size="lg" />
+                    <div className="relative min-h-[400px]">
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 dark:bg-dark-900/50">
+                            <LoadingOverlay fullScreen={false} />
+                        </div>
                     </div>
                 ) : movements.length > 0 ? (
                     <div className="flex flex-col gap-4">

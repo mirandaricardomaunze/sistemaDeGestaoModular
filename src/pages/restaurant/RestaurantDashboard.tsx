@@ -8,6 +8,7 @@ import {
     HiOutlineCake, HiOutlineShoppingCart, HiOutlineBanknotes,
     HiOutlineArrowTrendingUp, HiOutlineArrowRight, HiOutlineArrowPath,
     HiOutlineLightBulb, HiOutlineUserGroup, HiOutlineFire, HiOutlineBookOpen,
+    HiOutlinePlus,
 } from 'react-icons/hi2';
 import { Card, Button, Skeleton } from '../../components/ui';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
@@ -17,10 +18,19 @@ import { MetricCard, StatCard } from '../../components/common/ModuleMetricCard';
 import { QuickActionCard } from '../../components/common/QuickActionCard';
 
 
+import { SegmentedControl } from '../../components/common/SegmentedControl';
 import { cn, formatCurrency } from '../../utils';
 
-const CHART_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#0ea5e9'];
-type TimeRange = '1M' | '2M' | '3M' | '6M' | '1Y';
+const CHART_COLORS = ['#ef4444', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#0ea5e9'];
+
+const PERIOD_OPTIONS = [
+    { label: '1 Mês', value: '1M' },
+    { label: '3 Meses', value: '3M' },
+    { label: '6 Meses', value: '6M' },
+    { label: '1 Ano', value: '1Y' },
+];
+
+type TimeRange = '1M' | '3M' | '6M' | '1Y';
 
 export default function RestaurantDashboard() {
     const [range, setRange] = useState<TimeRange>('1M');
@@ -67,38 +77,44 @@ export default function RestaurantDashboard() {
 
     return (
         <div className="space-y-6 pb-12 animate-fade-in px-2">
-            {/* ── Soft Premium Header ── */}
-            <div className="relative overflow-hidden rounded-lg bg-red-100 dark:bg-red-900/30 p-8 shadow-md shadow-red-500/5 border-none text-red-950 dark:text-red-50">
-                <HiOutlineCake className="absolute right-4 top-1/2 -translate-y-1/2 w-48 h-48 opacity-10 rotate-12 text-red-600" aria-hidden="true" />
-                
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-red-100 font-bold uppercase tracking-widest text-[10px]">
-                            <HiOutlineArrowTrendingUp className="w-3 h-3" />
-                            Gestão de Excelência
-                        </div>
-                        <h1 className="text-3xl font-black">Restaurante</h1>
-                        <p className="text-red-100/70 text-sm max-w-md">Performance operacional em tempo real e análise de fluxo de clientes.</p>
-                    </div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
+                <div>
+                    <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+                        <span className="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-500/15 border border-red-200 dark:border-red-500/25 flex items-center justify-center">
+                            <HiOutlineCake className="w-6 h-6 text-red-600 dark:text-red-400" />
+                        </span>
+                        Dashboard Restaurante
+                    </h1>
+                    <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1 ml-1">
+                        Performance Operacional e Fluxo de Clientes
+                    </p>
+                </div>
 
-                    <div className="flex flex-wrap gap-3">
-                        <div className="flex items-center gap-1 bg-white/50 dark:bg-black/20 backdrop-blur-md rounded-lg p-1 border border-red-200/50 dark:border-white/10">
-                            {(['1M', '2M', '3M', '6M', '1Y'] as TimeRange[]).map(r => (
-                                <button key={r} onClick={() => setRange(r)}
-                                    className={cn('px-4 py-2 rounded-lg text-xs font-bold transition-all',
-                                        range === r ? 'bg-white text-red-700 shadow-md' : 'text-red-900/60 dark:text-white/60 hover:text-red-700 dark:hover:text-white hover:bg-white/20'
-                                    )}>{r}</button>
-                            ))}
-                        </div>
+                <div className="flex flex-wrap items-center gap-3 bg-white/40 dark:bg-dark-900/40 p-2 rounded-2xl border border-slate-200/60 dark:border-white/5 backdrop-blur-md">
+                    <SegmentedControl
+                        options={PERIOD_OPTIONS}
+                        value={range}
+                        onChange={(val) => setRange(val as TimeRange)}
+                    />
+
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => refetchStats()}
+                        leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-red-600", loading && "animate-spin")} />}
+                    >
+                        {loading ? 'A carregar...' : 'Actualizar'}
+                    </Button>
+
+                    <Link to="/restaurant/pos">
                         <Button 
-                            variant="ghost" 
-                            onClick={() => refetchStats()} 
-                            className="text-red-600 dark:text-white hover:bg-white/20"
-                            leftIcon={<HiOutlineArrowPath className={cn("w-5 h-5", loading && "animate-spin")} />}
+                            size="sm" 
+                            variant="danger"
+                            leftIcon={<HiOutlinePlus className="w-4 h-4 text-white" />}
                         >
-                            Atualizar
+                            Novo Pedido
                         </Button>
-                    </div>
+                    </Link>
                 </div>
             </div>
 
@@ -169,7 +185,7 @@ export default function RestaurantDashboard() {
 
             {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card padding="md" color="slate" className="lg:col-span-2">
+                <Card padding="lg" className="lg:col-span-2 bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Evolução de Receita</h2>
                         <Link to="/restaurant/reports">
@@ -195,7 +211,7 @@ export default function RestaurantDashboard() {
                     </div>
                 </Card>
 
-                <Card padding="md" color="slate">
+                <Card padding="lg" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Mix por Categoria</h2>
                     {categoryData.length > 0 ? (
                         <>
@@ -226,7 +242,7 @@ export default function RestaurantDashboard() {
 
             {/* Recent Activity + Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card padding="md" className="lg:col-span-2">
+                <Card padding="lg" className="lg:col-span-2 bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Pedidos Recentes</h2>
                         <Link to="/restaurant/reports"><Button variant="ghost" size="sm">Ver Tudo</Button></Link>
@@ -258,7 +274,7 @@ export default function RestaurantDashboard() {
                     </div>
                 </Card>
 
-                <Card padding="md">
+                <Card padding="lg" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Ações Rápidas</h2>
                     <div className="space-y-3">
                         <QuickActionCard

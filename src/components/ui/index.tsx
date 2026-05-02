@@ -37,23 +37,23 @@ export function Card({ children, className, variant = 'default', padding = 'md',
     };
 
     const variantClasses = {
-        default: 'bg-white/95 dark:bg-dark-800 rounded-lg shadow-card-strong border border-slate-200/80 dark:border-dark-700/50 transition-all duration-300 hover:shadow-card-hover hover:border-primary-500/30',
-        glass: 'bg-white/70 dark:bg-dark-800/80 backdrop-blur-xl rounded-lg shadow-glass border border-white dark:border-dark-700/30',
-        premium: 'bg-white dark:bg-dark-900 rounded-lg border border-slate-200/50 dark:border-dark-700 shadow-premium relative overflow-hidden',
+        default: 'bg-white dark:bg-[#12141a] rounded-2xl shadow-sm border border-slate-200/60 dark:border-white/5 transition-all duration-300 hover:shadow-card-hover hover:border-primary-500/30 hover:scale-[1.01]',
+        glass: 'bg-white/70 dark:bg-dark-900/40 backdrop-blur-xl rounded-2xl shadow-glass border border-white/40 dark:border-white/5',
+        premium: 'bg-gradient-to-br from-white to-slate-50 dark:from-dark-800 dark:to-[#0f1115] rounded-2xl border border-slate-200 dark:border-dark-700 shadow-premium relative overflow-hidden',
     };
 
     const colorClasses: Record<string, string> = {
-        primary: 'bg-primary-500 text-white border-none shadow-lg shadow-primary-500/20',
-        success: 'bg-green-600 text-white border-none shadow-lg shadow-green-500/20',
+        primary: 'bg-primary-600 text-white border-none shadow-lg shadow-primary-600/20',
+        success: 'bg-emerald-600 text-white border-none shadow-lg shadow-emerald-600/20',
         warning: 'bg-amber-500 text-white border-none shadow-lg shadow-amber-500/20',
-        danger: 'bg-red-600 text-white border-none shadow-lg shadow-red-500/20',
-        info: 'bg-blue-600 text-white border-none shadow-lg shadow-blue-500/20',
-        purple: 'bg-purple-600 text-white border-none shadow-lg shadow-purple-500/20',
-        amber: 'bg-amber-600 text-white border-none shadow-lg shadow-amber-500/20',
-        emerald: 'bg-green-600 text-white border-none shadow-lg shadow-green-500/20',
-        cyan: 'bg-cyan-600 text-white border-none shadow-lg shadow-cyan-500/20',
-        indigo: 'bg-indigo-600 text-white border-none shadow-lg shadow-indigo-500/20',
-        slate: 'bg-slate-700 text-white border-none shadow-lg shadow-slate-500/20',
+        danger: 'bg-rose-600 text-white border-none shadow-lg shadow-rose-600/20',
+        info: 'bg-blue-600 text-white border-none shadow-lg shadow-blue-600/20',
+        purple: 'bg-purple-600 text-white border-none shadow-lg shadow-purple-600/20',
+        amber: 'bg-amber-600 text-white border-none shadow-lg shadow-amber-600/20',
+        emerald: 'bg-emerald-600 text-white border-none shadow-lg shadow-emerald-600/20',
+        cyan: 'bg-cyan-600 text-white border-none shadow-lg shadow-cyan-600/20',
+        indigo: 'bg-indigo-600 text-white border-none shadow-lg shadow-indigo-600/20',
+        slate: 'bg-slate-50 dark:bg-dark-700 text-slate-900 dark:text-white border border-slate-200 dark:border-dark-600 shadow-sm',
         rose: 'bg-rose-500 text-white border-none shadow-lg shadow-rose-500/20',
         pink: 'bg-pink-500 text-white border-none shadow-lg shadow-pink-500/20',
     };
@@ -64,9 +64,9 @@ export function Card({ children, className, variant = 'default', padding = 'md',
                 variantClasses[variant],
                 color && colorClasses[color],
                 paddingClasses[padding],
-                'transition-all duration-200 relative',
+                'transition-all duration-300 relative',
                 !className?.includes('overflow-') && 'overflow-hidden',
-                onClick && 'cursor-pointer hover:shadow-lg',
+                onClick && 'cursor-pointer active:scale-95',
                 className
             )}
             onClick={onClick}
@@ -91,39 +91,48 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, subtitle, icon, actions, tabs, className }: PageHeaderProps) {
     return (
-        <Card variant="default" padding="md" className={cn("mb-6 border-none shadow-sm", className)}>
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 relative z-10">
-                <div className="flex items-center gap-4">
-                    {icon && (
-                        <div className="w-12 h-12 rounded-lg bg-primary-500/10 flex items-center justify-center shrink-0">
-                            {React.cloneElement(icon as React.ReactElement, { 
-                                className: cn('w-6 h-6 text-primary-600', (icon as any).props?.className) 
-                            } as any)}
+        <div className={cn("mb-6 relative group", className)}>
+            <div className="bg-white dark:bg-[#12141a] rounded-2xl p-6 border border-slate-200/60 dark:border-white/5 shadow-sm relative overflow-hidden transition-all duration-300 hover:shadow-card-hover">
+                {/* Subtle premium background elements */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16 transition-opacity group-hover:opacity-100 opacity-60" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-500/5 rounded-full blur-2xl -ml-12 -mb-12 transition-opacity group-hover:opacity-100 opacity-40" />
+
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+                    <div className="flex items-center gap-4">
+                        {icon && (
+                            <div className="w-12 h-12 rounded-xl bg-primary-600/10 flex items-center justify-center shrink-0 border border-primary-500/10 shadow-sm transition-transform group-hover:scale-105">
+                                {React.cloneElement(icon as React.ReactElement, { 
+                                    className: cn('w-6 h-6 text-primary-600 dark:text-primary-400', (icon as any).props?.className) 
+                                } as any)}
+                            </div>
+                        )}
+                        <div>
+                            <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-none mb-1">
+                                {title}
+                            </h1>
+                            {subtitle && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 font-medium tracking-tight opacity-80">
+                                    {subtitle}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                    {actions && (
+                        <div className="flex items-center gap-2">
+                            {actions}
                         </div>
                     )}
-                    <div>
-                        <h1 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter leading-tight">
-                            {title}
-                        </h1>
-                        {subtitle && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 italic">
-                                {subtitle}
-                            </p>
-                        )}
-                    </div>
                 </div>
-                {actions && (
-                    <div className="flex items-center gap-2">
-                        {actions}
+                {tabs && (
+                    <div className="mt-6 border-t border-slate-100 dark:border-white/5 pt-6 relative z-10">
+                        {tabs}
                     </div>
                 )}
+                
+                {/* Elegant bottom accent line */}
+                <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-primary-500 transition-all duration-700 group-hover:w-full opacity-50" />
             </div>
-            {tabs && (
-                <div className="mt-6 -mb-6 border-t border-gray-100 dark:border-dark-700 relative z-10">
-                    {tabs}
-                </div>
-            )}
-        </Card>
+        </div>
     );
 }
 
@@ -138,14 +147,19 @@ interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, '
     leftIcon?: React.ReactNode;
     rightIcon?: React.ReactNode;
     size?: 'xs' | 'sm' | 'md' | 'lg';
+    showPasswordToggle?: boolean;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ label, error, helperText, leftIcon, rightIcon, className, size, ...props }, ref) => {
+    ({ label, error, helperText, leftIcon, rightIcon, className, size, showPasswordToggle, type, ...props }, ref) => {
+        const [showPassword, setShowPassword] = React.useState(false);
+        const isPassword = type === 'password';
+        const inputType = isPassword && showPassword ? 'text' : type;
+
         return (
-            <div className="w-full">
+            <div className="w-full group">
                 {label && (
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 transition-colors group-focus-within:text-primary-600">
                         {label}
                     </label>
                 )}
@@ -157,22 +171,40 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                     )}
                     <input
                         ref={ref}
+                        type={inputType}
                         className={cn(
-                            'w-full rounded-lg border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 transition-all duration-300 shadow-sm',
-                            size === 'xs' ? 'px-2 py-1 text-[10px]' :
-                                size === 'sm' ? 'px-3 py-1.5 text-sm' :
-                                    size === 'lg' ? 'px-6 py-3 text-lg' :
-                                        'px-4 py-2',
+                            'w-full rounded-xl border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 transition-all duration-300 shadow-sm outline-none',
+                            size === 'xs' ? 'px-3 h-8 text-[10px]' :
+                                size === 'sm' ? 'px-4 h-10 text-xs' :
+                                    size === 'lg' ? 'px-6 h-14 text-lg' :
+                                        'px-4 h-12 text-sm',
                             error
-                                ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500'
-                                : 'border-slate-200 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:shadow-md',
+                                ? 'border-red-500 ring-4 ring-red-500/10 focus:border-red-500'
+                                : 'border-slate-200 dark:border-dark-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-800 shadow-inner dark:shadow-none',
                             leftIcon ? 'pl-11' : '',
-                            rightIcon ? 'pr-11' : '',
+                            (rightIcon || (isPassword && showPasswordToggle)) ? 'pr-11' : '',
                             className
                         )}
                         {...props}
                     />
-                    {rightIcon && (
+                    {isPassword && showPasswordToggle ? (
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-500 transition-colors"
+                        >
+                            {showPassword ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                </svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            )}
+                        </button>
+                    ) : rightIcon && (
                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
                             {rightIcon}
                         </div>
@@ -201,19 +233,19 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
 export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     ({ label, error, helperText, className, ...props }, ref) => {
         return (
-            <div className="w-full">
+            <div className="w-full group">
                 {label && (
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 transition-colors group-focus-within:text-primary-600">
                         {label}
                     </label>
                 )}
                 <textarea
                     ref={ref}
                     className={cn(
-                        'w-full px-4 py-2 rounded-lg border bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200 resize-none shadow-sm',
+                        'w-full px-4 py-3 rounded-xl border bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-300 resize-none shadow-inner dark:shadow-none outline-none',
                         error
-                            ? 'border-red-500 focus:ring-red-500/20 focus:border-red-500'
-                            : 'border-gray-300 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500',
+                            ? 'border-red-500 ring-4 ring-red-500/10 focus:border-red-500'
+                            : 'border-slate-200 dark:border-dark-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500',
                         className
                     )}
                     {...props}
@@ -249,9 +281,9 @@ interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     ({ label, error, options, placeholder, className, size, leftIcon, ...props }, ref) => {
         return (
-            <div className="w-full">
+            <div className="w-full group">
                 {label && (
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 transition-colors group-focus-within:text-primary-600">
                         {label}
                     </label>
                 )}
@@ -264,14 +296,14 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     <select
                         ref={ref}
                         className={cn(
-                            'w-full rounded-lg border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 transition-all duration-300 appearance-none cursor-pointer shadow-sm',
-                            size === 'xs' ? 'px-2 py-1 text-[10px]' :
-                                size === 'sm' ? 'px-3 py-1.5 text-sm' :
-                                    size === 'lg' ? 'px-6 py-3 text-lg' :
-                                        'px-4 py-2',
+                            'w-full rounded-xl border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 transition-all duration-300 appearance-none cursor-pointer shadow-inner dark:shadow-none outline-none',
+                            size === 'xs' ? 'px-3 h-8 text-[10px]' :
+                                size === 'sm' ? 'px-4 h-10 text-xs' :
+                                    size === 'lg' ? 'px-6 h-14 text-lg' :
+                                        'px-4 h-12 text-sm',
                             error
-                                ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500'
-                                : 'border-slate-200 dark:border-dark-600 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:shadow-md',
+                                ? 'border-red-500 ring-4 ring-red-500/10 focus:border-red-500'
+                                : 'border-slate-200 dark:border-dark-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500',
                             leftIcon ? 'pl-10' : '',
                             className
                         )}
@@ -330,9 +362,9 @@ export function Modal({
 
     const sizeClasses = {
         sm: 'max-w-sm',
-        md: 'max-w-lg',
-        lg: 'max-w-2xl',
-        xl: 'max-w-4xl',
+        md: 'max-w-xl',
+        lg: 'max-w-3xl',
+        xl: 'max-w-5xl',
         full: 'max-w-[95vw]',
     };
 
@@ -348,7 +380,7 @@ export function Modal({
             <div className="flex min-h-full items-center justify-center p-4">
                 <div
                     className={cn(
-                        'relative w-full rounded-lg shadow-premium animate-slide-up border border-white/50 dark:border-dark-700/50',
+                        'relative w-full rounded-2xl shadow-premium animate-slide-up border border-white/50 dark:border-dark-700/50 flex flex-col max-h-[90vh] overflow-hidden',
                         isLight ? 'bg-white text-slate-900' : 'bg-white dark:bg-dark-800',
                         sizeClasses[size],
                         className
@@ -398,7 +430,7 @@ export function Modal({
                     )}
 
                     {/* Content */}
-                    <div className="p-6">{children}</div>
+                    <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">{children}</div>
                 </div>
             </div>
         </div>
@@ -448,35 +480,7 @@ export function Badge({ children, variant = 'primary', size = 'md', className }:
     );
 }
 
-// ============================================================================
-// Skeleton Component
-// ============================================================================
-
-interface SkeletonProps {
-    className?: string;
-    variant?: 'text' | 'circular' | 'rectangular';
-    width?: string | number;
-    height?: string | number;
-}
-
-export function Skeleton({ className, variant = 'text', width, height }: SkeletonProps) {
-    const variantClasses = {
-        text: 'h-4 rounded-lg',
-        circular: 'rounded-full',
-        rectangular: 'rounded-lg',
-    };
-
-    return (
-        <div
-            className={cn(
-                'animate-pulse bg-gray-200 dark:bg-dark-700',
-                variantClasses[variant],
-                className
-            )}
-            style={{ width, height }}
-        />
-    );
-}
+export { Skeleton } from './Skeleton';
 
 // ============================================================================
 // Empty State Component
@@ -575,5 +579,8 @@ export { SkeletonText, SkeletonCard, SkeletonTable, SkeletonAvatar, SkeletonButt
 
 export { NoDataFound, NoResultsFound, ErrorState, ComingSoon, NoItems } from './EmptyState';
 export { DataTable, TableContainer } from './DataTable';
+export { VirtualTable } from './VirtualTable';
+export { VirtualList } from './VirtualList';
 export { Tabs, TabPanel, TabContent, Stepper, useTabs, useStepper } from './Tabs';
 
+export { SmartTable } from './SmartTable';

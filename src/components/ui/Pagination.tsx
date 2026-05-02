@@ -120,7 +120,7 @@ export default function Pagination({
                         title="Página anterior"
                     >
                         <HiOutlineChevronLeft className="w-4 h-4" />
-                        <span className="hidden md:inline">Anterior</span>
+                        <span className="inline">Anterior</span>
                     </button>
 
                     <div className="flex items-center gap-1">
@@ -159,7 +159,7 @@ export default function Pagination({
                         className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200 dark:border-dark-700"
                         title="Próxima página"
                     >
-                        <span className="hidden md:inline">Próximo</span>
+                        <span className="inline">Próximo</span>
                         <HiOutlineChevronRight className="w-4 h-4" />
                     </button>
 

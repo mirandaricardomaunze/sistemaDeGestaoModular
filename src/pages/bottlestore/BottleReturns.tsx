@@ -11,7 +11,8 @@ import {
     HiOutlinePrinter
 } from 'react-icons/hi';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
-import { useProducts, useCustomers } from '../../hooks/useData';
+import { useProducts } from '../../hooks/useData';
+import CustomerAutocomplete from '../../components/common/CustomerAutocomplete';
 import Pagination from '../../components/ui/Pagination';
 import { formatCurrency, formatDateTime } from '../../utils/helpers';
 import toast from 'react-hot-toast';
@@ -40,10 +41,10 @@ export default function BottleReturns() {
         notes: ''
     });
     const [submitting, setSubmitting] = useState(false);
+    const [selectedCustomerName, setSelectedCustomerName] = useState<string | null>(null);
 
-    // Hooks
-    const { products } = useProducts({ category: 'beverages' });
-    const { customers } = useCustomers();
+    // Hooks (CustomerAutocomplete handles its own search)
+    const { products } = useProducts({ category: 'beverages', page: 1, limit: 100 });
 
     const returnableProducts = products.filter((p: any) => p.isReturnable);
 
@@ -107,6 +108,7 @@ export default function BottleReturns() {
             }
             setModalOpen(false);
             setFormData({ customerId: '', productId: '', quantity: 1, depositAmount: 0, refundAmount: 0, notes: '' });
+            setSelectedCustomerName(null);
             fetchMovements();
             fetchSummary();
         } catch (error: any) {
@@ -404,14 +406,16 @@ export default function BottleReturns() {
                         ]}
                     />
 
-                    <Select
+                    <CustomerAutocomplete
                         label="Cliente (opcional)"
-                        value={formData.customerId}
-                        onChange={(e) => setFormData({ ...formData, customerId: e.target.value })}
-                        options={[
-                            { value: '', label: 'Consumidor final' },
-                            ...customers.map((c: any) => ({ value: c.id, label: c.name }))
-                        ]}
+                        placeholder="Pesquisar ou deixar vazio para consumidor final..."
+                        walkInLabel="Consumidor final"
+                        selectedId={formData.customerId || null}
+                        selectedName={selectedCustomerName}
+                        onSelect={(id, c) => {
+                            setFormData({ ...formData, customerId: id || '' });
+                            setSelectedCustomerName(c?.name || null);
+                        }}
                     />
 
                     <Input

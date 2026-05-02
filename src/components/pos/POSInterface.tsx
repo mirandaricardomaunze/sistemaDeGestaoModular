@@ -20,8 +20,8 @@ import MobilePaymentModal from './MobilePaymentModal';
 import ThermalReceiptPreview from './ThermalReceiptPreview';
 import A4InvoicePreview from './A4InvoicePreview';
 import { useStore } from '../../stores/useStore';
-import { Button, Card, Input, Modal, Badge, Select } from '../ui';
-import { formatCurrency } from '../../utils/helpers';
+import { Button, Card, Input, Modal, Badge, Select, LoadingOverlay } from '../ui';
+import { formatCurrency, cn } from '../../utils/helpers';
 import { paymentMethodLabels } from '../../utils/constants';
 import type { Product, PaymentMethod, Sale, Customer } from '../../types';
 
@@ -43,7 +43,7 @@ interface POSInterfaceProps {
 export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
     // API hooks for data — limit:999 to fetch all products for POS grid
     const { products, isLoading: isLoadingProducts, refetch: refetchProducts } = useProducts(
-        originModule ? { origin_module: originModule, limit: 999 } : { limit: 999 }
+        originModule ? { originModule, limit: 999 } : { limit: 999 }
     );
     const { customers, isLoading: isLoadingCustomers } = useCustomers();
     const { createSale } = useSales();
@@ -1175,24 +1175,18 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                             {/* ELHORIA 3: Feedback visual aprimorado no botão de checkout */}
                             <Button
                                 onClick={handleCheckout}
-                                disabled={cart.length === 0 || isProcessing}
-                                className={`w-full ${isProcessing ? 'opacity-75 cursor-not-allowed' : ''}`}
-                                size="lg"
-                            >
-                                {isProcessing ? (
-                                    <div className="flex items-center justify-center gap-2">
-                                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        <span>Processando...</span>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <HiOutlineCash className="w-5 h-5" />
-                                        Finalizar Venda ({formatCurrency(cartTotal)})
-                                    </>
+                                disabled={cart.length === 0}
+                                isLoading={isProcessing}
+                                loadingText="Processando Venda..."
+                                className={cn(
+                                    "w-full py-4 text-lg font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-xl transition-all",
+                                    cart.length === 0 
+                                        ? "bg-primary-500/10 text-primary-400 border border-primary-500/20 cursor-not-allowed shadow-none" 
+                                        : "bg-primary-600 text-white shadow-primary-500/30 hover:bg-primary-700 active:scale-95"
                                 )}
+                                leftIcon={<HiOutlineCash className={cn("w-5 h-5", cart.length === 0 ? "text-primary-400" : "text-white")} />}
+                            >
+                                {cart.length === 0 ? 'LISTA VAZIA' : `Finalizar Venda (${formatCurrency(cartTotal)})`}
                             </Button>
                         </div>
                     </Card>
@@ -1268,8 +1262,14 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         <Button variant="ghost" className="flex-1" onClick={() => setCheckoutModalOpen(false)} disabled={isProcessing}>
                             Cancelar
                         </Button>
-                        <Button className="flex-1" onClick={handleConfirmSale} disabled={isProcessing}>
-                            {isProcessing ? 'Processando...' : 'Confirmar Pagamento'}
+                        <Button 
+                            className="flex-1" 
+                            onClick={handleConfirmSale} 
+                            variant="success"
+                            isLoading={isProcessing}
+                            loadingText="Processando..."
+                        >
+                            Confirmar Pagamento
                         </Button>
                     </div>
                 </div>
@@ -1533,6 +1533,12 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     </div>
                 </div>
             </Modal>
+            {isProcessing && (
+                <LoadingOverlay 
+                    message="A processar a venda... Por favor, aguarde um momento." 
+                    fullScreen={true} 
+                />
+            )}
         </div>
     );
 }

@@ -15,6 +15,7 @@ import {
     HiOutlineClipboardDocumentList,
 } from 'react-icons/hi2';
 import { Card, Button, Input, Select, Modal, Badge, Pagination, ResponsiveValue, PageHeader } from '../../components/ui';
+import { StatCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
 import { logisticsAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -200,6 +201,7 @@ export default function LogisticsFinance() {
                             variant="ghost" 
                             size="sm" 
                             onClick={fetchData}
+                            className="font-black text-[10px] uppercase tracking-widest text-slate-500 dark:text-gray-400 hover:text-primary-600 transition-all"
                             leftIcon={<HiOutlineArrowPath className={cn('w-4 h-4', loading && 'animate-spin')} />}
                         >
                             Actualizar
@@ -213,6 +215,7 @@ export default function LogisticsFinance() {
                                 reset();
                                 setShowFormModal(true);
                             }}
+                            className="font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary-500/20 hover:scale-105 active:scale-95 transition-all"
                         >
                             Novo Registo
                         </Button>
@@ -222,55 +225,33 @@ export default function LogisticsFinance() {
 
             {/* Quick Stats Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card padding="md" className="bg-cyan-100/40 dark:bg-cyan-900/20 border border-cyan-200/50 dark:border-cyan-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-cyan-200/60 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineArrowTrendingUp className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-cyan-600/70 dark:text-cyan-400/60 mb-1">Receitas (Fretes)</p>
-                            <ResponsiveValue value={summary.totalRevenue} size="md" className="text-cyan-900 dark:text-white font-black" />
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    label="Receitas (Fretes)"
+                    value={<ResponsiveValue value={summary.totalRevenue} size="md" className="text-cyan-900 dark:text-white font-black" />}
+                    icon={<HiOutlineArrowTrendingUp className="w-6 h-6" />}
+                    color="cyan"
+                />
 
-                <Card padding="md" className="bg-orange-100/40 dark:bg-orange-900/20 border border-orange-200/50 dark:border-orange-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-orange-200/60 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineArrowTrendingDown className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-orange-600/70 dark:text-orange-400/60 mb-1">Custos Operacionais</p>
-                            <ResponsiveValue value={summary.totalExpenses} size="md" className="text-orange-900 dark:text-white font-black" />
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    label="Custos Operacionais"
+                    value={<ResponsiveValue value={summary.totalExpenses} size="md" className="text-orange-900 dark:text-white font-black" />}
+                    icon={<HiOutlineArrowTrendingDown className="w-6 h-6" />}
+                    color="orange"
+                />
 
-                <Card padding="md" className="bg-primary-100/40 dark:bg-primary-900/20 border border-primary-200/50 dark:border-primary-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary-200/60 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineCurrencyDollar className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60 mb-1">Saldo Líquido</p>
-                            <ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-rose-700 dark:text-rose-400')} />
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    label="Saldo Líquido"
+                    value={<ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-rose-700 dark:text-rose-400')} />}
+                    icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
+                    color="primary"
+                />
 
-                <Card padding="md" className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02]">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-amber-200/60 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shadow-inner">
-                            <HiOutlineClipboardDocumentList className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60 mb-1">Eficiência Provedor</p>
-                            <span className="text-lg md:text-xl font-black text-amber-900 dark:text-white">
-                                {summary.profitMargin.toFixed(1)}%
-                            </span>
-                        </div>
-                    </div>
-                </Card>
+                <StatCard
+                    label="Eficiência Provedor"
+                    value={`${summary.profitMargin.toFixed(1)}%`}
+                    icon={<HiOutlineClipboardDocumentList className="w-6 h-6" />}
+                    color="amber"
+                />
             </div>
 
             {/* Filter & Period Header */}

@@ -1,6 +1,13 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
-import { buildPaginationMeta } from '../utils/pagination';
+import { buildPaginationMeta, parseFields } from '../utils/pagination';
+
+const ORDER_FIELD_ALLOWLIST = [
+    'id', 'orderNumber', 'customerId', 'customerName', 'customerPhone',
+    'customerEmail', 'customerAddress', 'status', 'priority',
+    'subtotal', 'discount', 'total', 'paymentMethod', 'deliveryDate',
+    'notes', 'createdAt', 'updatedAt'
+] as const;
 import { pdfService } from './pdfService';
 import { stockService } from './stockService';
 import { logger } from '../utils/logger';
@@ -26,15 +33,22 @@ export class OrdersService {
         if (status && status !== 'all') where.status = status;
         if (priority && priority !== 'all') where.priority = priority;
 
+        const projection = parseFields(params.fields, ORDER_FIELD_ALLOWLIST);
+        const findArgs: any = {
+            where,
+            orderBy: { [sortBy as string]: sortOrder },
+            skip,
+            take: limitNum
+        };
+        if (projection) {
+            findArgs.select = projection;
+        } else {
+            findArgs.include = { items: true, transitions: { orderBy: { timestamp: 'asc' } } };
+        }
+
         const [total, orders] = await Promise.all([
             prisma.customerOrder.count({ where }),
-            prisma.customerOrder.findMany({
-                where,
-                include: { items: true, transitions: { orderBy: { timestamp: 'asc' } } },
-                orderBy: { [sortBy as string]: sortOrder },
-                skip,
-                take: limitNum
-            })
+            prisma.customerOrder.findMany(findArgs)
         ]);
 
         return {
@@ -59,7 +73,8 @@ export class OrdersService {
 
         const {
             customerName, customerPhone, customerEmail, customerAddress,
-            customerId, items, priority, paymentMethod, deliveryDate, notes
+            customerId, items, priority, paymentMethod, deliveryDate, notes,
+            discount: requestedDiscount
         } = data;
 
         return await prisma.$transaction(async (tx) => {
@@ -113,9 +128,24 @@ export class OrdersService {
                 };
             });
 
-            // Recalculate total from verified items
-            const computedTotal = verifiedItems.reduce((sum: number, item: any) => sum + item.total, 0);
-            const total = Math.round(computedTotal * 100) / 100;
+            // ====================================================================
+            // IVA breakdown (frozen at order creation)
+            // The order is the contract with the customer: we capture the tax
+            // rate at this moment so the invoice generated later reflects the
+            // exact totals the customer agreed to, even if the company-wide
+            // rate changes in the meantime.
+            // ====================================================================
+            const subtotal = Math.round(verifiedItems.reduce((sum: number, item: any) => sum + item.total, 0) * 100) / 100;
+            const discount = Math.max(0, Math.round(Number(requestedDiscount || 0) * 100) / 100);
+            const taxableBase = Math.max(0, subtotal - discount);
+
+            const companyCfg = await tx.companySettings.findFirst({
+                where: { companyId },
+                select: { ivaRate: true }
+            });
+            const taxRate = Number(companyCfg?.ivaRate ?? 16);
+            const taxAmount = Math.round(taxableBase * (taxRate / 100) * 100) / 100;
+            const total = Math.round((taxableBase + taxAmount) * 100) / 100;
 
             // 0. Validate customer credit limit if a customer is linked
             if (customerId) {
@@ -159,6 +189,10 @@ export class OrdersService {
                     customerEmail: customerEmail || null,
                     customerAddress: customerAddress || null,
                     customerId: customerId || null,
+                    subtotal,
+                    discount,
+                    taxRate,
+                    taxAmount,
                     total,
                     status: 'created',
                     priority: priority || 'normal',

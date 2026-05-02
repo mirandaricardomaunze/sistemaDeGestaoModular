@@ -56,7 +56,13 @@ router.delete('/stages/:id', authenticate, authorize('admin'), async (req: AuthR
 // ============================================================================
 
 router.get('/opportunities', authenticate, async (req: AuthRequest, res) => {
-    const opportunities = await crmService.getOpportunities(req.companyId!);
+    const { search, stageId, customerId, limit } = req.query;
+    const opportunities = await crmService.getOpportunities(req.companyId!, {
+        search: typeof search === 'string' ? search : undefined,
+        stageId: typeof stageId === 'string' ? stageId : undefined,
+        customerId: typeof customerId === 'string' ? customerId : undefined,
+        limit: typeof limit === 'string' ? parseInt(limit, 10) : undefined
+    });
     res.json(opportunities);
 });
 

@@ -94,7 +94,7 @@ export const crmAPI = {
     },
 
     // Opportunities
-    getOpportunities: async (params?: { stageId?: string; customerId?: string }) => {
+    getOpportunities: async (params?: { stageId?: string; customerId?: string; search?: string; limit?: number }) => {
         const response = await api.get('/crm/opportunities', { params });
         return response.data;
     },

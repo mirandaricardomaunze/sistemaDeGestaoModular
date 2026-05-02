@@ -63,21 +63,25 @@ const VALID_INVOICE = {
     status: 'draft',
 };
 
+const unwrap = (body: any) => body?.data ?? body;
+
 describe('GET /api/invoices', () => {
     it('returns paginated invoice list', async () => {
         const res = await request(app).get('/api/invoices').expect(200);
-        expect(res.body).toHaveProperty('data');
-        expect(res.body).toHaveProperty('pagination');
-        expect(Array.isArray(res.body.data)).toBe(true);
+        const body = unwrap(res.body);
+        expect(body).toHaveProperty('data');
+        expect(body).toHaveProperty('pagination');
+        expect(Array.isArray(body.data)).toBe(true);
     });
 });
 
 describe('POST /api/invoices', () => {
     it('creates invoice with valid data', async () => {
         const res = await request(app).post('/api/invoices').send(VALID_INVOICE).expect(201);
-        expect(res.body).toHaveProperty('id');
-        expect(res.body.customerName).toBe('Cliente Teste');
-        expect(res.body.status).toBe('draft');
+        const body = unwrap(res.body);
+        expect(body).toHaveProperty('id');
+        expect(body.customerName).toBe('Cliente Teste');
+        expect(body.status).toBe('draft');
     });
 
     it('rejects empty items array', async () => {
@@ -102,12 +106,12 @@ describe('Invoice lifecycle', () => {
 
     beforeEach(async () => {
         const res = await request(app).post('/api/invoices').send(VALID_INVOICE).expect(201);
-        invoiceId = res.body.id;
+        invoiceId = unwrap(res.body).id;
     });
 
     it('GET /api/invoices/:id returns the invoice', async () => {
         const res = await request(app).get(`/api/invoices/${invoiceId}`).expect(200);
-        expect(res.body.id).toBe(invoiceId);
+        expect(unwrap(res.body).id).toBe(invoiceId);
     });
 
     it('GET /api/invoices/:id/pdf returns PDF buffer', async () => {
@@ -120,13 +124,13 @@ describe('Invoice lifecycle', () => {
             .post(`/api/invoices/${invoiceId}/payments`)
             .send({ amount: 500, method: 'cash', reference: 'PAY-001', paidAt: new Date().toISOString() })
             .expect(201);
-        expect(res.body).toHaveProperty('id');
+        expect(unwrap(res.body)).toHaveProperty('id');
     });
 
     it('POST /api/invoices/:id/cancel cancels the invoice', async () => {
         await request(app).post(`/api/invoices/${invoiceId}/cancel`).expect(200);
         const check = await request(app).get(`/api/invoices/${invoiceId}`).expect(200);
-        expect(check.body.status).toBe('cancelled');
+        expect(unwrap(check.body).status).toBe('cancelled');
     });
 
     it('GET /api/invoices/:id returns 404 for unknown id', async () => {

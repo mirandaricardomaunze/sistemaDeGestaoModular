@@ -126,10 +126,11 @@ class BackupService {
 
             logger.info('Creating backup', { companyId, filename });
 
-            // Obter URL do banco de dados e remover parâmetros extras (como ?schema=public) que o pg_dump não reconhece
-            const databaseUrl = process.env.DATABASE_URL;
+            // pg_dump não funciona com pgbouncer/poolers (Supabase :6543).
+            // Preferir DIRECT_URL (conexão direta :5432) quando disponível.
+            const databaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
             if (!databaseUrl) {
-                throw new Error('DATABASE_URL não configurada');
+                throw new Error('DIRECT_URL/DATABASE_URL não configurada');
             }
 
             const sanitizedUrl = databaseUrl.split('?')[0];
@@ -273,9 +274,9 @@ class BackupService {
 
             logger.info('Restoring backup', { filename, companyId });
 
-            const databaseUrl = process.env.DATABASE_URL;
+            const databaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
             if (!databaseUrl) {
-                throw new Error('DATABASE_URL não configurada');
+                throw new Error('DIRECT_URL/DATABASE_URL não configurada');
             }
 
             const sanitizedUrl = databaseUrl.split('?')[0];

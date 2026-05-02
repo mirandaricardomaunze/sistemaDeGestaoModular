@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Input, Modal, Badge, Skeleton, ConfirmationModal } from '../ui';
+import { Card, Button, Input, Modal, Badge, Skeleton, ConfirmationModal, Pagination, LoadingOverlay } from '../ui';
 import {
     HiOutlinePlus, 
     HiOutlineArrowPath, 
@@ -20,6 +20,7 @@ import { useWarehouses } from '../../hooks/useWarehouses';
 import type { ProductBatch, CreateBatchDto } from '../../services/api';
 import { useProducts } from '../../hooks/useData';
 import { differenceInDays } from 'date-fns';
+import { MetricCard } from '../common/ModuleMetricCard';
 
 // ============================================================================
 // STATUS CONFIG
@@ -53,8 +54,9 @@ function ExpiryBadge({ expiryDate, daysToExpiry }: { expiryDate?: string | null;
 // BATCH FORM MODAL
 // ============================================================================
 
-const EMPTY_FORM: Partial<CreateBatchDto> = {
+const EMPTY_FORM: Partial<CreateBatchDto & { boxes?: number; boxPrice?: number; totalCost?: number }> = {
     batchNumber: '', productId: '', quantity: 0, costPrice: 0,
+    boxes: 0, boxPrice: 0, totalCost: 0,
     expiryDate: '', manufactureDate: '', receivedDate: new Date().toISOString().split('T')[0],
     notes: '',
 };
@@ -62,17 +64,19 @@ const EMPTY_FORM: Partial<CreateBatchDto> = {
 function BatchFormModal({ open, onClose, editing, defaultProductId }: {
     open: boolean; onClose: () => void; editing?: ProductBatch | null; defaultProductId?: string;
 }) {
-    const [form, setForm] = useState<Partial<CreateBatchDto & { status?: string; totalCost?: number }>>(
+    const [form, setForm] = useState<Partial<CreateBatchDto & { status?: string; totalCost?: number; boxes?: number; boxPrice?: number }>>(
         editing ? {
             batchNumber: editing.batchNumber, productId: editing.productId,
             quantity: editing.quantity, costPrice: Number(editing.costPrice),
             totalCost: editing.quantity * Number(editing.costPrice),
+            boxes: 0, // Will be calculated below
+            boxPrice: 0,
             expiryDate: editing.expiryDate?.split('T')[0] || '',
             manufactureDate: editing.manufactureDate?.split('T')[0] || '',
             receivedDate: editing.receivedDate?.split('T')[0] || '',
             supplierId: editing.supplierId, warehouseId: editing.warehouseId,
             notes: editing.notes || '',
-        } : { ...EMPTY_FORM, productId: defaultProductId || '', totalCost: 0 }
+        } : { ...EMPTY_FORM, productId: defaultProductId || '' }
     );
 
     const { products } = useProducts({ limit: 200 });
@@ -102,85 +106,129 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                 await create.mutateAsync(payload);
             }
             onClose();
-        } catch { /* handled by hook */ }
+        } catch (err: any) {
+            const msg = err.response?.data?.message || err.message || 'Erro ao guardar lote';
+            console.error('Erro ao guardar lote:', msg);
+            // O erro já é capturado pelo hook de mutação se houver um provedor de notificações, 
+            // mas vamos garantir que ele não quebre o fluxo.
+        }
     };
 
     const busy = create.isLoading || update.isLoading;
 
-    // Auto-preencher preço de custo do produto ao selecionar
+    // Auto-preencher preço de custo e cálculos ao selecionar produto
     useEffect(() => {
-        if (!editing && form.productId && products) {
+        if (form.productId && products) {
             const product = (products as any).find((p: any) => p.id === form.productId);
-            if (product && (!form.costPrice || form.costPrice === 0)) {
-                setForm(p => ({
-                    ...p,
-                    costPrice: Number(product.costPrice),
-                    totalCost: Number(((p.quantity || 0) * Number(product.costPrice)).toFixed(2))
-                }));
+            if (product) {
+                const packSize = product.packSize || 1;
+                
+                // Se estiver editando, calculamos as caixas iniciais apenas uma vez
+                if (editing && form.boxes === 0) {
+                    setForm(p => ({ ...p, boxes: Math.floor((p.quantity || 0) / packSize) }));
+                }
+
+                // Sempre preencher preços se for um novo lote ou se mudarmos o produto
+                if (!editing) {
+                    const bPrice = Number(product.price);
+                    const uPrice = Number((bPrice / packSize).toFixed(2));
+                    setForm(p => ({
+                        ...p,
+                        boxPrice: bPrice,
+                        costPrice: uPrice,
+                        totalCost: Number(((p.quantity || 0) * uPrice).toFixed(2))
+                    }));
+                }
             }
         }
     }, [form.productId, products, editing]);
 
     return (
-        <Modal isOpen={open} onClose={onClose} title={editing ? 'Editar Lote' : 'Registar Novo Lote'}>
+        <Modal isOpen={open} onClose={onClose} title={editing ? 'Editar Lote' : 'Registar Novo Lote'} size="xl">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <Input label="Nº Lote *" value={form.batchNumber || ''} onChange={e => setForm(p => ({ ...p, batchNumber: e.target.value.toUpperCase() }))}
                         placeholder="Ex: LT2026001" required />
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Produto *</label>
-                        <select required value={form.productId || ''} onChange={e => setForm(p => ({ ...p, productId: e.target.value }))}
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de Barras *</label>
+                        <select required value={form.productId || ''} onChange={e => {
+                            const pid = e.target.value;
+                            const product = (products || []).find((p: any) => p.id === pid);
+                            const packSize = product?.packSize || 1;
+                            
+                            setForm(p => ({ 
+                                ...p, 
+                                productId: pid,
+                                boxes: 0,
+                                quantity: 0,
+                                boxPrice: Number(Number(product?.price || 0).toFixed(2)),
+                                costPrice: Number((Number(product?.price || 0) / packSize).toFixed(2)),
+                                totalCost: 0
+                            }));
+                        }}
                             disabled={!!editing || !!defaultProductId}
-                            className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60">
+                            className="w-full rounded-lg border border-gray-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 shadow-sm">
                             <option value="">Seleccionar produto...</option>
                             {(products || []).map((p: any) => (
-                                <option key={p.id} value={p.id}>{p.code} · {p.name}</option>
+                                <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
                         </select>
+                        {form.productId && (
+                            <p className="mt-1 text-[10px] font-bold uppercase tracking-tight text-gray-500 flex justify-between">
+                                <span>Ref. Cadastro: {products?.find(p => p.id === form.productId)?.packSize || 1} un/cx</span>
+                                <span className="text-primary-600">
+                                    Custo: {products?.find(p => p.id === form.productId)?.costPrice || 0} MT | 
+                                    Venda: {products?.find(p => p.id === form.productId)?.price || 0} MT
+                                </span>
+                            </p>
+                        )}
                     </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="md:col-span-1">
-                        <Input 
-                            label="Qtd. Caixas" 
-                            type="number" 
-                            min={0} 
-                            placeholder="Caixas"
-                            onChange={e => {
-                                const boxes = parseInt(e.target.value) || 0;
-                                const product = products?.find((p: any) => p.id === form.productId);
-                                const packSize = product?.packSize || 1;
-                                const qty = boxes * packSize;
-                                
-                                setForm(p => ({ 
-                                    ...p, 
-                                    quantity: qty,
-                                    totalCost: Number((qty * (p.costPrice || 0)).toFixed(2))
-                                }));
-                            }}
-                        />
-                    </div>
-                    <div className="md:col-span-1">
-                        <Input 
-                            label="Qtd. Unidades *" 
-                            type="number" 
-                            min={0} 
-                            value={form.quantity || ''} 
-                            onChange={e => {
-                                const qty = parseInt(e.target.value) || 0;
-                                setForm(p => ({ 
-                                    ...p, 
-                                    quantity: qty,
-                                    totalCost: Number((qty * (p.costPrice || 0)).toFixed(2))
-                                }));
-                            }} 
-                            required 
-                        />
-                    </div>
-                    <div className="md:col-span-1">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Input 
+                        label="Qtd. Caixas" 
+                        type="number" 
+                        min={0} 
+                        value={form.boxes || ''}
+                        placeholder="0"
+                        onChange={e => {
+                            const boxes = parseInt(e.target.value) || 0;
+                            const product = products?.find((p: any) => p.id === form.productId);
+                            
+                            // Pegamos o valor EXATO que foi definido no cadastro do produto
+                            const unidadesPorCaixa = product?.packSize || 1;
+                            const qtyTotal = boxes * unidadesPorCaixa;
+                            
+                            setForm(p => ({ 
+                                ...p, 
+                                boxes,
+                                quantity: qtyTotal,
+                                totalCost: Number((qtyTotal * (p.costPrice || 0)).toFixed(2))
+                            }));
+                        }}
+                    />
+                    <Input 
+                        label="Qtd. Unidades *" 
+                        type="number" 
+                        min={0} 
+                        value={form.quantity || ''} 
+                        onChange={e => {
+                            const qty = parseInt(e.target.value) || 0;
+                            const product = products?.find((p: any) => p.id === form.productId);
+                            const packSize = product?.packSize || 1;
+                            setForm(p => ({ 
+                                ...p, 
+                                quantity: qty,
+                                boxes: qty % packSize === 0 ? qty / packSize : p.boxes, // Só atualiza caixas se for exato
+                                totalCost: Number((qty * (p.costPrice || 0)).toFixed(2))
+                            }));
+                        }} 
+                        required 
+                    />
+                    <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Armazém *</label>
                         <select required value={form.warehouseId || ''} onChange={e => setForm(p => ({ ...p, warehouseId: e.target.value }))}
-                            className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            className="w-full rounded-lg border border-gray-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm">
                             <option value="">Seleccionar armazém...</option>
                             {(warehouses || []).map((w: any) => (
                                 <option key={w.id} value={w.id}>{w.name}</option>
@@ -188,37 +236,54 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                         </select>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                     <Input 
+                        label="Preço por Caixa" 
+                        type="number" 
+                        min={0} 
+                        step={0.01} 
+                        value={form.boxPrice || ''} 
+                        onChange={e => {
+                            const bPrice = parseFloat(e.target.value) || 0;
+                            const product = products?.find((p: any) => p.id === form.productId);
+                            const packSize = product?.packSize || 1;
+                            const uPrice = Number((bPrice / packSize).toFixed(2));
+                            
+                            setForm(p => ({ 
+                                ...p, 
+                                boxPrice: bPrice,
+                                costPrice: uPrice,
+                                totalCost: Number(((p.quantity || 0) * uPrice).toFixed(2))
+                            }));
+                        }} 
+                    />
                     <Input 
-                        label="Custo Unitário (MZN)" 
+                        label="Custo Unitário" 
                         type="number" 
                         min={0} 
                         step={0.01} 
                         value={form.costPrice || ''} 
                         onChange={e => {
-                            const price = parseFloat(e.target.value) || 0;
+                            const uPrice = parseFloat(e.target.value) || 0;
+                            const product = products?.find((p: any) => p.id === form.productId);
+                            const packSize = product?.packSize || 1;
+                            
                             setForm(p => ({ 
                                 ...p, 
-                                costPrice: price,
-                                totalCost: Number(((p.quantity || 0) * price).toFixed(2))
+                                costPrice: uPrice,
+                                boxPrice: Number((uPrice * packSize).toFixed(2)),
+                                totalCost: Number(((p.quantity || 0) * uPrice).toFixed(2))
                             }));
                         }} 
+                        required
                     />
                     <Input 
-                        label="Custo Total (MZN)" 
+                        label="Custo Total do Lote" 
                         type="number" 
-                        min={0} 
-                        step={0.01} 
                         value={form.totalCost || ''} 
-                        onChange={e => {
-                            const total = parseFloat(e.target.value) || 0;
-                            const qty = form.quantity || 0;
-                            setForm(p => ({ 
-                                ...p, 
-                                totalCost: total,
-                                costPrice: qty > 0 ? Number((total / qty).toFixed(2)) : p.costPrice
-                            }));
-                        }} 
+                        disabled
+                        className="bg-gray-50 dark:bg-dark-900 font-bold text-primary-600"
                     />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
@@ -253,14 +318,23 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
     const [modalOpen, setModalOpen] = useState(false);
     const [editing, setEditing] = useState<ProductBatch | null>(null);
     const [deleting, setDeleting] = useState<ProductBatch | null>(null);
+    
+    // Pagination states
+    const [page, setPage] = useState(1);
+    const [pageSize] = useState(10);
+    const [expPage, setExpPage] = useState(1);
+    const [expPageSize] = useState(10);
 
     const { data: dashboard, isLoading: dashLoading, refetch: refetchDash } = useBatchesDashboard();
-    const { data: batchesData, isLoading, refetch } = useBatches({ productId: defaultProductId, status: filterStatus || undefined, search });
-    const { data: expiringData } = useExpBatches({ days: 30 });
+    const { data: batchesData, isLoading, refetch } = useBatches({ productId: defaultProductId, status: filterStatus || undefined, search, page, limit: pageSize });
+    const { data: expiringData } = useExpBatches({ days: 30, page: expPage, limit: expPageSize });
     const deleteBatch = useDeleteBatch();
 
     const batches: ProductBatch[] = batchesData?.data || [];
+    const batchesPagination = batchesData?.pagination;
+    
     const expiring: any[] = expiringData?.data || [];
+    const expiringPagination = expiringData?.pagination;
     const summary = dashboard?.summary;
 
     const handleEdit = (batch: ProductBatch) => { setEditing(batch); setModalOpen(true); };
@@ -285,7 +359,7 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                     <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Lotes & Validade</h2>
                     <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mt-0.5">Rastreio de lotes, datas de expiração e alertas</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 relative z-20">
                     <Button 
                         variant="ghost" 
                         className="text-[10px] font-black uppercase tracking-widest"
@@ -324,19 +398,42 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                     ) : summary && (
                         <>
                             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                                {[
-                                    { label: 'Total Lotes', value: summary.total, color: 'text-blue-600' },
-                                    { label: 'Activos', value: summary.active, color: 'text-emerald-600' },
-                                    { label: 'Expiram (30d)', value: summary.expiring30, color: 'text-amber-600' },
-                                    { label: 'Expiram (7d)', value: summary.expiring7, color: 'text-orange-600' },
-                                    { label: 'Expirados', value: summary.expiredCount, color: 'text-red-600' },
-                                    { label: 'Esgotados', value: summary.depleted, color: 'text-gray-500' },
-                                ].map(({ label, value, color }) => (
-                                    <Card key={label} variant="premium" padding="sm" className="hover:shadow-lg transition-all">
-                                        <p className={cn('text-2xl font-black tracking-tighter', color)}>{value}</p>
-                                        <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{label}</p>
-                                    </Card>
-                                ))}
+                                <MetricCard 
+                                    icon={<HiOutlineCube className="w-5 h-5" />}
+                                    color="blue"
+                                    label="Total Lotes"
+                                    value={summary.total}
+                                />
+                                <MetricCard 
+                                    icon={<HiOutlineCheckCircle className="w-5 h-5" />}
+                                    color="emerald"
+                                    label="Activos"
+                                    value={summary.active}
+                                />
+                                <MetricCard 
+                                    icon={<HiOutlineClock className="w-5 h-5" />}
+                                    color="amber"
+                                    label="Expiram (30d)"
+                                    value={summary.expiring30}
+                                />
+                                <MetricCard 
+                                    icon={<HiOutlineClock className="w-5 h-5" />}
+                                    color="orange"
+                                    label="Expiram (7d)"
+                                    value={summary.expiring7}
+                                />
+                                <MetricCard 
+                                    icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
+                                    color="red"
+                                    label="Expirados"
+                                    value={summary.expiredCount}
+                                />
+                                <MetricCard 
+                                    icon={<HiOutlineCube className="w-5 h-5" />}
+                                    color="slate"
+                                    label="Esgotados"
+                                    value={summary.depleted}
+                                />
                             </div>
                             {summary.valueAtRisk > 0 && (
                                 <div className="p-4 rounded-lg bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-900/50 flex items-center gap-3 animate-pulse">
@@ -397,6 +494,16 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                             </div>
                         );
                     })}
+                    {expiringPagination && expiringPagination.totalPages > 1 && (
+                        <div className="flex justify-center pt-4">
+                            <Pagination 
+                                currentPage={expPage}
+                                totalItems={expiringPagination.total}
+                                itemsPerPage={expPageSize}
+                                onPageChange={setExpPage}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -405,8 +512,8 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                 <>
                     <div className="flex flex-col sm:flex-row gap-3">
                         <Input className="flex-1" placeholder="Pesquisar lote, produto..." leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
-                            value={search} onChange={e => setSearch(e.target.value)} />
-                        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+                            value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+                        <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1); }}
                             className="rounded-lg border border-gray-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 py-2 text-xs font-black uppercase tracking-widest text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm appearance-none cursor-pointer">
                             <option value="">FILTRO: TODOS</option>
                             {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label.toUpperCase()}</option>)}
@@ -414,7 +521,11 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                     </div>
 
                     {isLoading ? (
-                        <div className="space-y-3">{[1,2,3,4].map(i => <Skeleton key={i} height={64} />)}</div>
+                        <Card padding="none" className="min-h-[400px] relative">
+                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 dark:bg-dark-900/50">
+                                <LoadingOverlay fullScreen={false} />
+                            </div>
+                        </Card>
                     ) : batches.length === 0 ? (
                         <Card padding="lg">
                             <div className="text-center py-10">
@@ -442,7 +553,6 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                                                     <td className="py-4 pr-4 font-mono text-xs font-black text-primary-600">{b.batchNumber}</td>
                                                     <td className="py-4 pr-4">
                                                         <p className="text-xs font-black text-gray-900 dark:text-white uppercase tracking-tight">{b.product?.name || ''}</p>
-                                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{b.product?.code} · {b.product?.category}</p>
                                                     </td>
                                                     <td className="py-4 pr-4 font-black text-gray-900 dark:text-white">{b.quantity} <span className="text-[10px] text-gray-400 uppercase font-black">{b.product?.unit}</span></td>
                                                     <td className="py-4 pr-4 font-black text-gray-900 dark:text-white tracking-tighter">{formatCurrency(Number(b.costPrice))}</td>
@@ -462,6 +572,16 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                                     </tbody>
                                 </table>
                             </div>
+                            {batchesPagination && batchesPagination.totalPages > 1 && (
+                                <div className="px-6 py-4 bg-gray-50/50 dark:bg-dark-900/50 border-t border-gray-100 dark:border-dark-700 mt-2 rounded-b-lg">
+                                    <Pagination 
+                                        currentPage={page}
+                                        totalItems={batchesPagination.total}
+                                        itemsPerPage={pageSize}
+                                        onPageChange={setPage}
+                                    />
+                                </div>
+                            )}
                         </Card>
                     )}
                 </>

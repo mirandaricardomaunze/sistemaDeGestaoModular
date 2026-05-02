@@ -30,7 +30,6 @@ class CommercialService {
     updatePurchaseOrderStatus  = commercialPurchaseOrderService.updatePurchaseOrderStatus.bind(commercialPurchaseOrderService);
     registerPartialDelivery    = commercialPurchaseOrderService.registerPartialDelivery.bind(commercialPurchaseOrderService);
     deletePurchaseOrder        = commercialPurchaseOrderService.deletePurchaseOrder.bind(commercialPurchaseOrderService);
-    validateSupplierProducts   = commercialPurchaseOrderService.validateSupplierProducts.bind(commercialPurchaseOrderService);
 
     // Quotations
     listQuotations             = commercialQuotationService.listQuotations.bind(commercialQuotationService);

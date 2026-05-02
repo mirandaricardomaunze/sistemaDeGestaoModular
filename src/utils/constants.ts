@@ -54,3 +54,6 @@ export const statusLabels: Record<string, string> = {
     low_stock: 'Stock Baixo',
     out_of_stock: 'Sem Estoque',
 };
+
+export const PAGE_SIZE = 20;
+export const PAGE_SIZE_GRID = 12;

@@ -10,18 +10,41 @@
   }
 
   body {
-    @apply bg-slate-100/40 text-slate-900 dark:bg-dark-900 dark:text-gray-100 transition-colors duration-300 antialiased;
-    /* Subtle mesh background for light mode */
-    background-image: radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.05) 1px, transparent 0);
-    background-size: 24px 24px;
+    @apply bg-slate-50 text-slate-900 dark:bg-dark-950 dark:text-gray-100 transition-colors duration-300 antialiased;
+    /* Premium subtle mesh background */
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 84, 255, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(213, 54, 255, 0.03) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(59, 84, 255, 0.03) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, rgba(213, 54, 255, 0.03) 0px, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  /* Professional tabular numbers for financial data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
   }
   
   .dark body {
-    background-image: none;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(59, 84, 255, 0.08) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(213, 54, 255, 0.05) 0px, transparent 50%);
   }
 
   * {
-    @apply border-slate-200/60 dark:border-dark-700/50;
+    @apply border-slate-300/60 dark:border-dark-700/50;
+  }
+
+  :root {
+    --tooltip-bg: #ffffff;
+    --tooltip-text: #0f172a;
+    --card-border: rgba(226, 232, 240, 0.8);
+  }
+
+  .dark {
+    --tooltip-bg: #080a0d;
+    --tooltip-text: #f8fafc;
+    --card-border: rgba(255, 255, 255, 0.08);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -56,9 +79,15 @@
   }
 
   .card {
-    @apply bg-white/95 dark:bg-dark-800 rounded-xl shadow-card p-4 sm:p-6 transition-all duration-300 border border-slate-200/60 dark:border-dark-700/50 hover:shadow-card-hover hover:border-primary-500/30 backdrop-blur-sm;
+    @apply bg-white/80 dark:bg-dark-800/80 rounded-2xl shadow-card p-4 sm:p-6 transition-all duration-500 border border-slate-200 dark:border-white/5 backdrop-blur-md hover:shadow-card-hover hover:border-primary-500/30;
     position: relative;
     overflow: hidden;
+  }
+
+  /* Premium Light Border Effect */
+  .card::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none rounded-2xl border border-white/40 dark:border-white/5;
   }
 
   .card::before {
@@ -77,7 +106,8 @@
   }
 
   .card-glass {
-    @apply bg-white/10 dark:bg-dark-800/20 backdrop-blur-xl rounded-lg shadow-glass p-4 sm:p-6 border border-white/20;
+    @apply bg-white/40 dark:bg-dark-900/40 backdrop-blur-2xl rounded-2xl shadow-glass p-4 sm:p-6 border border-white/50 dark:border-white/10;
+    box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.08);
   }
 
   /* Responsive card content helpers */
@@ -254,7 +284,7 @@
   }
 
   .shadow-card-strong {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.02);
+    box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.12), 0 4px 10px -4px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.05);
   }
 
   .scrollbar-thin {
@@ -294,6 +324,14 @@
   .scrollbar-hidden::-webkit-scrollbar {
     display: none;
     /* Chrome, Safari and Opera */
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 

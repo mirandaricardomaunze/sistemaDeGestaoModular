@@ -65,6 +65,10 @@ The system is a modular multi-tenant ERP/Management platform.
 - **Hooks (Logic Layer)**: Custom hooks MUST handle all API interactions, data transformations, and local state.
 - **Components (UI Layer)**: Components should be "pure" UI. NO direct API calls or complex logic inside the JSX file. If a component grows too complex, extract child components (Atoms/Molecules).
 - **Optimization**: Use `Suspense` and `lazy` for page-level imports. Keep components small.
+- **UI Standardization (Minimalist Premium)**: 
+  - **No Raw Tags**: The use of raw HTML tags like `<button>` is strictly forbidden. Always use the standardized `Button` component from `@/components/ui`.
+  - **Segmented Controls**: Always use `SegmentedControl` for toggling views, categories, or time periods (30d, 90d, etc.) to ensure a unified, premium interaction pattern.
+  - **Tactile Feedback**: All interactive elements MUST implement micro-scaling (`active:scale-95`) for physical feedback.
 
 ### 5. CI/CD & Automated Enforcement
 - **Linting & Formatting**: Ensure code is completely free of ESLint errors and is formatted correctly (Prettier) before considering a task "done". No `console.log` in production code.
@@ -89,13 +93,25 @@ The system is a modular multi-tenant ERP/Management platform.
 - **Bottle Store**: Handle returnables (garrafas vazias) and inventory specific to beverages.
 - **Fiscal/Financial**: Ensure compliance with local regulations (IVA, Invoicing). All calculations must be precision-safe.
 - **Logistics**: Manage routes, drivers, and delivery statuses.
+- **Inventory & Pricing (Stock Entries)**:
+  - **Standard Calculation**: For all stock entries (Batches/Lots), the "Price per Box" (`boxPrice`) MUST default to the product's **Selling Price** (`price`).
+  - **Unit Price Derivation**: The "Unit Price" (`costPrice`) MUST be automatically calculated by **dividing** the "Price per Box" by the "Units per Box" (`packSize`).
+  - **Reactive UI**: Any manual change to the "Price per Box" must trigger an immediate recalculation of the "Unit Price" using the division formula.
+  - **Reference Display**: Always show the registered Cost and Selling prices as a small reference label below the product selection to avoid data entry confusion.
+
+### 6. Safety & Stability First (Core Mandate)
+- **Zero-Tolerance for Compilation Errors**: Never finish a task without ensuring the project builds correctly (`tsc`).
+- **Research & Plan**: Complex changes MUST have an implementation plan before execution.
+- **Verification**: Always verify changes using terminal logs or the browser tool.
+- **Graceful Failures**: Implement try-catch blocks with standardized logging in all entry points.
 
 ## 🚀 Quality Checklist
 1. **Tenant ID**: Is the query filtered by `companyId`?
 2. **Validation**: Is there a Zod schema for this request?
 3. **Audit**: Is this action tracked in the audit trail?
 4. **Performance**: Is the query paginated and indexed?
-5. **UI**: Does it maintain the premium design system and responsiveness?
+5. **UI & UX**: Does it use the standardized `Button` and `SegmentedControl` components? Does it provide `scale-95` tactile feedback?
 6. **I18n**: Are all strings localized in the translation files?
 7. **Clean Code**: Is the code DRY, using guard clauses, and following single responsibility?
 8. **Layered Architecture**: Is business logic strictly in services and out of controllers?
+9. **Stability**: Have you verified that no new compilation errors were introduced?

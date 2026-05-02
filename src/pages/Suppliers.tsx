@@ -1,11 +1,11 @@
 import { logger } from '../utils/logger';
 import { useState, useMemo } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlinePlus,
-    HiOutlineMagnifyingGlass,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineTruck,
@@ -17,13 +17,15 @@ import {
     HiOutlineXMark,
     HiOutlineArrowPath
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, TableContainer, PageHeader } from '../components/ui';
-import { StatCard } from '../components/common/ModuleMetricCard';
+import { Button, Input, Select, Modal, Badge, PageHeader, SmartTable } from '../components/ui';
+import { MetricCard } from '../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../utils/helpers';
 import type { Supplier } from '../types';
 import { useSuppliers } from '../hooks/useData';
+import { useDebounce } from '../hooks/useDebounce';
 import { SupplierOrderManager } from '../components/suppliers';
 import { ExportSuppliersButton } from '../components/common/ExportButton';
+import { PAGE_SIZE } from '../utils/constants';
 
 // Validation Schema
 const supplierSchema = z.object({
@@ -68,11 +70,12 @@ const paymentTermsOptions = [
 
 interface SuppliersProps {
     hideHeader?: boolean;
+    originModule?: string;
 }
 
-export default function Suppliers({ hideHeader = false }: SuppliersProps) {
+export default function Suppliers({ hideHeader = false, originModule }: SuppliersProps) {
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(20);
+    const [pageSize] = useState(PAGE_SIZE);
     const [search, setSearch] = useState('');
 
     // Use API hook for real data with pagination
@@ -80,15 +83,15 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
         suppliers,
         pagination,
         isLoading,
-        error,
         refetch,
         addSupplier,
         updateSupplier,
         deleteSupplier
     } = useSuppliers({
-        search,
+        search: useDebounce(search, 350),
         page,
         limit: pageSize,
+        originModule,
     });
 
     const [showFormModal, setShowFormModal] = useState(false);
@@ -162,7 +165,8 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                     contactPerson: data.contactPerson || undefined,
                     paymentTerms: data.paymentTerms || undefined,
                     notes: data.notes || undefined,
-                });
+                    ...(originModule ? { originModule } : {})
+                } as any);
             }
             closeFormModal();
         } catch (err) {
@@ -212,14 +216,130 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
         reset();
     };
 
-    // Loading and error states handled by TableContainer
+    // Module name for labels
+    const moduleName = originModule === 'pharmacy' ? 'Farmácia' : '';
+
+    const columns = useMemo<ColumnDef<any, any>[]>(() => [
+        {
+            accessorKey: 'name',
+            header: 'Fornecedor',
+            cell: ({ row }: any) => {
+                const supplier = row.original;
+                return (
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                            <HiOutlineTruck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                        </div>
+                        <div>
+                            <p className="font-medium text-gray-900 dark:text-white">{supplier.name}</p>
+                            <p className="text-xs text-gray-500">
+                                {supplier.code} {supplier.nuit && `• NUIT: ${supplier.nuit}`}
+                            </p>
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
+            accessorKey: 'phone',
+            header: 'Contacto',
+            cell: ({ row }: any) => {
+                const supplier = row.original;
+                return (
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                            <HiOutlinePhone className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                            <span>{supplier.phone}</span>
+                        </div>
+                        {supplier.email && (
+                            <div className="flex items-center gap-1 text-sm text-gray-500">
+                                <HiOutlineEnvelope className="w-4 h-4 text-primary-500/70" />
+                                <span className="truncate max-w-[150px]">{supplier.email}</span>
+                            </div>
+                        )}
+                    </div>
+                );
+            }
+        },
+        {
+            accessorKey: 'contactPerson',
+            header: 'Pessoa de Contacto',
+            cell: (info: any) => (
+                info.getValue() ? (
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                        <HiOutlineUserCircle className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+                        <span>{info.getValue()}</span>
+                    </div>
+                ) : <span className="text-gray-400">-</span>
+            )
+        },
+        {
+            accessorKey: 'paymentTerms',
+            header: 'Prazo Pagamento',
+            cell: (info: any) => (
+                <Badge variant="info">
+                    {paymentTermsOptions.find((p) => p.value === info.getValue())?.label || '-'}
+                </Badge>
+            )
+        },
+        {
+            accessorKey: 'totalPurchases',
+            header: 'Total Compras',
+            cell: (info: any) => (
+                <span className="font-semibold text-green-600">
+                    {formatCurrency(info.getValue())}
+                </span>
+            ),
+            meta: { align: 'right' }
+        },
+        {
+            accessorKey: 'currentBalance',
+            header: 'Saldo',
+            cell: (info: any) => (
+                <span className="font-semibold text-yellow-600">
+                    {formatCurrency(info.getValue())}
+                </span>
+            ),
+            meta: { align: 'right' }
+        },
+        {
+            id: 'actions',
+            header: 'Ações',
+            cell: ({ row }: any) => (
+                <div className="flex justify-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(row.original)}
+                        className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
+                        title="Editar"
+                    >
+                        <HiOutlinePencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                             setSupplierToDelete(row.original);
+                             setDeleteModalOpen(true);
+                        }}
+                        className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
+                        title="Excluir"
+                    >
+                        <HiOutlineTrash className="w-4 h-4" />
+                    </Button>
+                </div>
+            ),
+            meta: { align: 'center' }
+        }
+    ], []);
 
     return (
         <div className="space-y-6">
             {!hideHeader && (
                 <PageHeader 
-                    title="Gestão de Fornecedores"
-                    subtitle="Controlo de Entidades, Contactos e Encomendas de Compra"
+                    title={`Fornecedores ${moduleName}`}
+                    subtitle={`Gestão de Entidades ${moduleName ? 'da ' + moduleName : ''} e Encomendas de Compra`}
                     icon={<HiOutlineTruck className="text-primary-600 dark:text-primary-400" />}
                     actions={
                         <>
@@ -248,7 +368,7 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                         </>
                     }
                     tabs={
-                        <div className="flex flex-wrap -mb-px">
+                        <nav className="flex gap-1">
                             {[
                                 { id: 'directory', label: 'Diretório', icon: <HiOutlineTruck className="w-5 h-5" /> },
                                 { id: 'orders', label: 'Encomendas', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> }
@@ -259,8 +379,8 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                                     className={cn(
                                         "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
                                         activeTab === tab.id
-                                            ? "border-primary-500 text-primary-600 dark:text-primary-400"
-                                            : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
+                                            ? "border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/10 rounded-t-lg"
+                                            : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-800 rounded-t-lg"
                                     )}
                                 >
                                     <span className="shrink-0">{tab.icon}</span>
@@ -268,7 +388,7 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                                     <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
                                 </button>
                             ))}
-                        </div>
+                        </nav>
                     }
                 />
             )}
@@ -276,181 +396,69 @@ export default function Suppliers({ hideHeader = false }: SuppliersProps) {
                 <>
                     {/* Metrics Layer - Standardized */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <StatCard 
+                        <MetricCard 
                             label="Total Fornecedores"
                             value={metrics.total}
-                            icon={<HiOutlineTruck className="w-6 h-6 text-primary-600 dark:text-primary-400" />}
+                            icon={<HiOutlineTruck className="w-5 h-5" />}
                             color="primary"
                         />
-                        <StatCard 
+                        <MetricCard 
                             label="Total Compras"
                             value={formatCurrency(metrics.totalPurchases)}
-                            icon={<HiOutlineCurrencyDollar className="w-6 h-6 text-green-600 dark:text-green-400" />}
+                            icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
                             color="green"
-                            sublabel="Volume total de aquisições"
+                            badge={<span className="text-[9px] font-bold text-emerald-500 uppercase tracking-tight">Acumulado</span>}
                         />
-                        <StatCard 
+                        <MetricCard 
                             label="Saldo Pendente"
                             value={formatCurrency(metrics.totalBalance)}
-                            icon={<HiOutlineCurrencyDollar className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />}
+                            icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
                             color="yellow"
-                            sublabel="Total em dívida a fornecedores"
+                            badge={<span className="text-[9px] font-bold text-amber-500 uppercase tracking-tight">A Pagar</span>}
                         />
-                        <StatCard 
+                        <MetricCard 
                             label="Fornecedores Activos"
                             value={metrics.active}
-                            icon={<HiOutlineTruck className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
+                            icon={<HiOutlineTruck className="w-5 h-5" />}
                             color="blue"
                         />
                     </div>
 
-                    {/* Filters Bar - High Density */}
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                        <Card padding="md" className="md:col-span-12 border-none shadow-none bg-gray-100/50 dark:bg-dark-800/50">
-                            <div className="flex items-center gap-3">
-                                <div className="relative flex-1">
-                                    <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-400 w-5 h-5 z-10" />
-                                    <Input
-                                        placeholder="Buscar fornecedores por nome, NUIT ou contacto..."
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        className="pl-10 bg-white dark:bg-dark-900 border-none shadow-sm h-10 text-sm font-medium"
-                                    />
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-
-                    {/* Supplier List */}
-                    <Card padding="none">
-                        <TableContainer
-                            isLoading={isLoading}
-                            isEmpty={suppliers.length === 0}
-                            isError={!!error}
-                            errorMessage={error || undefined}
-                            onRetry={() => refetch()}
-                            emptyTitle="Nenhum fornecedor encontrado"
-                            emptyDescription="Tente ajustar sua busca ou adicione um novo fornecedor."
-                            onEmptyAction={() => setShowFormModal(true)}
-                            emptyActionLabel="Adicionar Fornecedor"
-                            minHeight="450px"
-                        >
-                            <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                                <thead>
-                                    <tr className="bg-gray-50 dark:bg-dark-800">
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Fornecedor</th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Contacto</th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Pessoa de Contacto</th>
-                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Prazo Pagamento</th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase">Total Compras</th>
-                                        <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase">Saldo</th>
-                                        <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                                    {suppliers.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                                                Nenhum fornecedor encontrado
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        suppliers.map((supplier) => (
-                                            <tr key={supplier.id} className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                                            <HiOutlineTruck className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-medium text-gray-900 dark:text-white">{supplier.name}</p>
-                                                            <p className="text-xs text-gray-500">
-                                                                {supplier.code} {supplier.nuit && `• NUIT: ${supplier.nuit}`}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="space-y-1">
-                                                        <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                                                            <HiOutlinePhone className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                                                            <span>{supplier.phone}</span>
-                                                        </div>
-                                                        {supplier.email && (
-                                                            <div className="flex items-center gap-1 text-sm text-gray-500">
-                                                                <HiOutlineEnvelope className="w-4 h-4 text-primary-500/70" />
-                                                                <span className="truncate max-w-[150px]">{supplier.email}</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {supplier.contactPerson ? (
-                                                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                                                            <HiOutlineUserCircle className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
-                                                            <span>{supplier.contactPerson}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-gray-400">-</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <Badge variant="info">
-                                                        {paymentTermsOptions.find((p) => p.value === supplier.paymentTerms)?.label || '-'}
-                                                    </Badge>
-                                                </td>
-                                                <td className="px-6 py-4 text-right font-semibold text-green-600">
-                                                    {formatCurrency(supplier.totalPurchases)}
-                                                </td>
-                                                <td className="px-6 py-4 text-right font-semibold text-yellow-600">
-                                                    {formatCurrency(supplier.currentBalance)}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex justify-center gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => handleEdit(supplier)}
-                                                            className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
-                                                            title="Editar"
-                                                        >
-                                                            <HiOutlinePencil className="w-4 h-4" />
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => {
-                                                                 setSupplierToDelete(supplier);
-                                                                 setDeleteModalOpen(true);
-                                                            }}
-                                                            className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
-                                                            title="Excluir"
-                                                        >
-                                                            <HiOutlineTrash className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </TableContainer>
-                    </Card>
-
-                    <div className="px-6 py-4">
-                        <Pagination
-                            currentPage={page}
-                            totalItems={pagination?.total || 0}
-                            itemsPerPage={pageSize}
-                            onPageChange={setPage}
-                            onItemsPerPageChange={(size) => {
-                                setPageSize(size);
-                                setPage(1);
-                            }}
-                            itemsPerPageOptions={[5, 10, 25, 50]}
-                        />
-                    </div>
+                    <SmartTable
+                        data={suppliers}
+                        columns={columns}
+                        isLoading={isLoading}
+                        onRefresh={refetch}
+                        search={{
+                            value: search,
+                            onChange: setSearch,
+                            placeholder: "Buscar fornecedores por nome, NUIT ou contacto..."
+                        }}
+                        pagination={{
+                            currentPage: page,
+                            totalItems: pagination?.total || 0,
+                            itemsPerPage: pageSize,
+                            onPageChange: setPage
+                        }}
+                        exportConfig={{
+                            filename: `fornecedores_${originModule || 'geral'}`,
+                            title: `Relatório de Fornecedores - ${originModule ? (originModule === 'pharmacy' ? 'Farmácia' : originModule) : 'Geral'}`,
+                            columns: [
+                                { key: 'code', header: 'Código', width: 10 },
+                                { key: 'name', header: 'Fornecedor', width: 30 },
+                                { key: 'nuit', header: 'NUIT', width: 15 },
+                                { key: 'phone', header: 'Telefone', width: 15 },
+                                { key: 'email', header: 'Email', width: 25 },
+                                { key: 'contactPerson', header: 'Pessoa de Contacto', width: 20 },
+                                { key: 'paymentTerms', header: 'Prazo Pagamento', width: 15 },
+                                { key: 'totalPurchases', header: 'Total Compras', format: 'currency', width: 15, align: 'right' },
+                                { key: 'currentBalance', header: 'Saldo', format: 'currency', width: 15, align: 'right' }
+                            ]
+                        }}
+                        emptyTitle="Nenhum fornecedor encontrado"
+                        onEmptyAction={() => setShowFormModal(true)}
+                        emptyActionLabel="Adicionar Fornecedor"
+                    />
                 </>
             ) : (
                 <SupplierOrderManager />

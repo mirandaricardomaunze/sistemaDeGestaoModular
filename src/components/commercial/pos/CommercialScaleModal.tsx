@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { HiOutlineX, HiOutlineCheck, HiOutlineRefresh } from 'react-icons/hi';
+import { Button } from '../../ui/Button';
 import { useScale } from '../../../hooks/useScale';
 import { formatCurrency } from '../../../utils/helpers';
 
@@ -18,6 +19,7 @@ interface CommercialScaleModalProps {
     product: { name: string; unitPrice: number; unit?: string } | null;
     /** Callback quando o utilizador confirma o peso e quer adicionar ao carrinho */
     onConfirm: (weight: number, qty: number) => void;
+    isLoading?: boolean;
 }
 
 const STATUS_CONFIG = {
@@ -28,7 +30,7 @@ const STATUS_CONFIG = {
     error:        { label: 'Erro', color: 'text-red-500', dot: 'bg-red-500' },
 };
 
-export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: CommercialScaleModalProps) {
+export function CommercialScaleModal({ isOpen, onClose, product, onConfirm, isLoading = false }: CommercialScaleModalProps) {
     const { status, isConnected, isSupported, reading, error, connect, disconnect } = useScale();
     const [captured, setCaptured] = useState<number | null>(null);
 
@@ -209,14 +211,15 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm }: Co
                                 </button>
 
                                 {product && (
-                                    <button
+                                    <Button
                                         onClick={handleConfirm}
-                                        disabled={(captured ?? weightG) <= 0}
+                                        disabled={(captured ?? weightG) <= 0 || isLoading}
+                                        isLoading={isLoading}
                                         className="flex-1 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/20"
                                     >
                                         <HiOutlineCheck className="w-4 h-4" />
                                         Adicionar
-                                    </button>
+                                    </Button>
                                 )}
                             </>
                         )}

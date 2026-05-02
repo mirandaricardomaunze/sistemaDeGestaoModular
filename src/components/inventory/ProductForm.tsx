@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button, Modal, Input, Select } from '../ui';
-import type { Product, ProductCategory } from '../../types';
+import type { Product } from '../../types';
 import { useCategories } from '../../hooks/useCategories';
 import ProductValiditiesSection from './ProductValiditiesSection';
 
@@ -42,9 +42,10 @@ interface ProductFormProps {
     onClose: () => void;
     product?: Product | null;
     onSuccess?: () => void;
+    originModule?: string;
 }
 
-export default function ProductForm({ isOpen, onClose, product, onSuccess }: ProductFormProps) {
+export default function ProductForm({ isOpen, onClose, product, onSuccess, originModule = 'inventory' }: ProductFormProps) {
     const { suppliers } = useSuppliers();
     const { categories, isLoading: categoriesLoading } = useCategories();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,19 +147,20 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess }: Pro
                 barcode: data.barcode || undefined,
                 name: data.name,
                 description: data.description || undefined,
-                category: 'other' as ProductCategory,
+                category: 'other' as any,
                 categoryId: data.category || undefined,
-                price: data.price,
-                costPrice: data.costPrice,
-                currentStock: data.currentStock,
-                minStock: data.minStock,
+                price: Number(data.price),
+                costPrice: Number(data.costPrice),
+                currentStock: Number(data.currentStock),
+                minStock: Number(data.minStock),
                 unit: data.unit,
                 supplierId: data.supplierId || undefined,
                 location: data.location || undefined,
                 isReturnable: data.isReturnable,
-                returnPrice: data.returnPrice,
-                packSize: data.packSize,
-                weight: data.weight && data.weight > 0 ? data.weight : undefined,
+                returnPrice: Number(data.returnPrice),
+                packSize: Number(data.packSize),
+                weight: data.weight && data.weight > 0 ? Number(data.weight) : undefined,
+                originModule: product ? product.originModule : originModule
             };
 
             if (isEditing && product) {

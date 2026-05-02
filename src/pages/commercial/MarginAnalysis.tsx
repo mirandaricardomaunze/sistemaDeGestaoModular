@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Card, Badge, Button, Input, Modal, Select } from '../../components/ui';
+import { Card, Badge, Button, Input, Modal, Select, PageHeader, Pagination } from '../../components/ui';
+import { usePagination } from '../../components/ui/Pagination';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { productsAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { 
@@ -72,91 +74,87 @@ export default function MarginAnalysis() {
         p.code.toLowerCase().includes(productSearch.toLowerCase())
     );
 
+    const {
+        currentPage,
+        paginatedItems,
+        setCurrentPage: setPage,
+        itemsPerPage,
+        setItemsPerPage
+    } = usePagination(filteredProducts, 20);
+
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-tighter">
-                        <HiOutlineChartBar className="text-primary-500 w-7 h-7" />
-                        Análise de Margens
-                    </h2>
-                    <p className="text-xs text-gray-500 font-medium">Rentabilidade por categoria, produto e tendência temporal</p>
+            <PageHeader 
+                title="Análise de Margens" 
+                subtitle="Visão detalhada de rentabilidade por produto e categoria"
+                icon={<HiOutlineChartBar className="text-primary-600 dark:text-primary-400" />}
+            />
+            {/* Margin Actions */}
+            <div className="flex flex-wrap items-center justify-end gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowBulkModal(true)}
+                    className="font-black text-[10px] uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                    leftIcon={<HiOutlineAdjustmentsHorizontal className="w-4 h-4" />}
+                >
+                    Ajuste em Massa
+                </Button>
+                
+                <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm h-10">
+                    {PERIOD_OPTIONS.map(opt => (
+                        <button
+                            key={opt.value}
+                            onClick={() => setPeriod(opt.value)}
+                            className={cn(
+                                'px-3 h-full rounded-md text-[10px] font-black uppercase tracking-widest transition-all',
+                                period === opt.value
+                                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
+                                    : 'text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400'
+                            )}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
                 </div>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowBulkModal(true)}
-                        className="flex items-center gap-2 text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-bold text-[10px] uppercase tracking-wider"
-                    >
-                        <HiOutlineAdjustmentsHorizontal className="w-4 h-4" />
-                        <span className="hidden sm:inline">Ajuste em Massa</span>
-                    </Button>
-                    <div className="flex bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1 gap-1 border border-gray-200 dark:border-dark-700 shadow-sm">
-                        {PERIOD_OPTIONS.map(opt => (
-                            <button
-                                key={opt.value}
-                                onClick={() => setPeriod(opt.value)}
-                                className={cn(
-                                    'px-3 py-1 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest',
-                                    period === opt.value
-                                        ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-white shadow-md'
-                                        : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
-                                )}
-                            >
-                                {opt.label}
-                            </button>
-                        ))}
-                    </div>
-                    <button onClick={refetch} className="p-2 text-gray-400 hover:text-primary-500 transition-colors">
-                        <HiOutlineArrowPath className="w-4 h-4" />
-                    </button>
-                </div>
+
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={refetch}
+                    className="p-2 h-10 w-10 flex items-center justify-center text-gray-400 hover:text-primary-500"
+                >
+                    <HiOutlineArrowPath className={cn("w-5 h-5", isLoading && "animate-spin")} />
+                </Button>
             </div>
 
             {/* KPI Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                    {
-                        label: 'Receita Total',
-                        value: formatCurrency(totalRevenue),
-                        icon: HiOutlineArrowTrendingUp,
-                        color: 'border-l-primary-500 text-primary-500',
-                    },
-                    {
-                        label: 'COGS (Custo Vendas)',
-                        value: formatCurrency(totalCogs),
-                        icon: HiOutlineCube,
-                        color: 'border-l-orange-500 text-orange-500',
-                    },
-                    {
-                        label: 'Lucro Bruto',
-                        value: formatCurrency(totalProfit),
-                        icon: totalProfit >= 0 ? HiOutlineArrowTrendingUp : HiOutlineArrowTrendingDown,
-                        color: totalProfit >= 0 ? 'border-l-green-500 text-green-500' : 'border-l-red-500 text-red-500',
-                    },
-                    {
-                        label: 'Margem Global',
-                        value: `${overallMargin.toFixed(1)}%`,
-                        icon: HiOutlineChartBar,
-                        color: `border-l-blue-500 ${getMarginColor(overallMargin)}`,
-                    },
-                ].map(kpi => {
-                    const Icon = kpi.icon;
-                    return (
-                        <Card key={kpi.label} padding="md" className={cn(
-                            'relative overflow-hidden border-l-4 bg-white dark:bg-dark-900/40 backdrop-blur-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group',
-                            kpi.color.split(' ')[0]
-                        )}>
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-widest">{kpi.label}</p>
-                                <Icon className={cn('w-4 h-4 group-hover:scale-110 transition-transform', kpi.color.split(' ')[1])} />
-                            </div>
-                            <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{kpi.value}</p>
-                        </Card>
-                    );
-                })}
+                <MetricCard
+                    label="Receita Total"
+                    value={formatCurrency(totalRevenue)}
+                    color="primary"
+                    icon={<HiOutlineArrowTrendingUp className="w-5 h-5" />}
+                />
+                <MetricCard
+                    label="COGS (Custo Vendas)"
+                    value={formatCurrency(totalCogs)}
+                    color="orange"
+                    icon={<HiOutlineCube className="w-5 h-5" />}
+                />
+                <MetricCard
+                    label="Lucro Bruto"
+                    value={formatCurrency(totalProfit)}
+                    color={totalProfit >= 0 ? "success" : "danger"}
+                    icon={totalProfit >= 0 ? <HiOutlineArrowTrendingUp className="w-5 h-5" /> : <HiOutlineArrowTrendingDown className="w-5 h-5" />}
+                />
+                <MetricCard
+                    label="Margem Global"
+                    value={`${overallMargin.toFixed(1)}%`}
+                    color="blue"
+                    icon={<HiOutlineChartBar className="w-5 h-5" />}
+                    badge={<span className={cn("text-[9px] font-bold uppercase tracking-tight", getMarginColor(overallMargin))}>Desempenho</span>}
+                />
             </div>
 
             {/* Tabs */}
@@ -245,7 +243,7 @@ export default function MarginAnalysis() {
                                         size="sm"
                                         placeholder="Filtrar produto..."
                                         value={productSearch}
-                                        onChange={e => setProductSearch(e.target.value)}
+                                        onChange={e => { setProductSearch(e.target.value); setPage(1); }}
                                     />
                                 </div>
                             </div>
@@ -264,9 +262,9 @@ export default function MarginAnalysis() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-50 dark:divide-dark-800/50">
-                                        {filteredProducts.slice(0, 30).map((p, i) => (
+                                        {paginatedItems.map((p, i) => (
                                             <tr key={p.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
-                                                <td className="px-4 py-3 text-xs text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{i + 1}</td>
+                                                <td className="px-4 py-3 text-xs text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{(currentPage - 1) * itemsPerPage + i + 1}</td>
                                                 <td className="py-2">
                                                     <span className="font-medium text-gray-900 dark:text-white">{p.name}</span>
                                                     <span className="ml-1 text-xs text-gray-400">{p.code}</span>
@@ -289,6 +287,17 @@ export default function MarginAnalysis() {
                                         ))}
                                     </tbody>
                                 </table>
+                                {filteredProducts.length > itemsPerPage && (
+                                    <div className="px-4 py-3 border-t border-gray-100 dark:border-dark-700">
+                                        <Pagination
+                                            currentPage={currentPage}
+                                            totalItems={filteredProducts.length}
+                                            itemsPerPage={itemsPerPage}
+                                            onPageChange={setPage}
+                                            onItemsPerPageChange={setItemsPerPage}
+                                        />
+                                    </div>
+                                )}
                                 {filteredProducts.length === 0 && (
                                     <p className="text-center text-gray-500 py-8 text-sm">Sem produtos no período seleccionado</p>
                                 )}
@@ -467,7 +476,7 @@ function BulkAdjustmentModal({ isOpen, onClose, categories, onSuccess }: BulkMod
                 adjustmentType,
                 adjustmentValue,
                 operation,
-                origin_module: 'commercial'
+                originModule: 'commercial'
             });
             toast.success('Preços actualizados com sucesso!');
             onSuccess();

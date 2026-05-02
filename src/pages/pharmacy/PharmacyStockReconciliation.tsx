@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Input, PageHeader, ConfirmationModal } from '../../components/ui';
+import { Card, Button, Input, PageHeader, ConfirmationModal, Pagination } from '../../components/ui';
+import { usePagination } from '../../components/ui/Pagination';
 import { pharmacyAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
     HiOutlineClipboardDocumentCheck as HiOutlineClipboardCheck, HiOutlineArrowPath as HiOutlineRefresh, HiOutlineExclamationCircle,
     HiOutlineCheckCircle, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineArrowsRightLeft, HiOutlineMagnifyingGlass
 } from 'react-icons/hi2';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 
 interface SnapshotItem {
     medicationId: string;
@@ -87,6 +89,14 @@ export default function PharmacyStockReconciliation() {
         !search || item.name.toLowerCase().includes(search.toLowerCase()) || item.code.toLowerCase().includes(search.toLowerCase())
     );
 
+    const {
+        currentPage,
+        paginatedItems,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage
+    } = usePagination(filtered, 10);
+
     return (
         <div className="space-y-5">
             {/* Header */}
@@ -109,44 +119,26 @@ export default function PharmacyStockReconciliation() {
 
             {/* Summary stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card padding="md" className="border-none shadow-premium bg-white dark:bg-dark-900 overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-blue-500/10 transition-colors" />
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
-                            <HiOutlineClipboardCheck className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total Itens</p>
-                            <p className="text-2xl font-black text-gray-900 dark:text-white leading-none mt-1">{snapshot.length}</p>
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Total Itens"
+                    value={snapshot.length}
+                    icon={<HiOutlineClipboardCheck className="w-6 h-6" />}
+                    color="indigo"
+                />
 
-                <Card padding="md" className="border-none shadow-premium bg-white dark:bg-dark-900 overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-amber-500/10 transition-colors" />
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
-                            <HiOutlineExclamationCircle className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Com Variação</p>
-                            <p className="text-2xl font-black text-amber-600 leading-none mt-1">{variances.length}</p>
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Com Variação"
+                    value={variances.length}
+                    icon={<HiOutlineExclamationCircle className="w-6 h-6" />}
+                    color="amber"
+                />
 
-                <Card padding="md" className="border-none shadow-premium bg-white dark:bg-dark-900 overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full blur-2xl -mr-12 -mt-12 group-hover:bg-green-500/10 transition-colors" />
-                    <div className="flex items-center gap-4 relative z-10">
-                        <div className="w-12 h-12 rounded-xl bg-green-500/15 border border-green-500/20 flex items-center justify-center text-green-600 dark:text-green-400 font-black text-lg backdrop-blur-sm group-hover:scale-110 transition-transform">
-                            <HiOutlineCheckCircle className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Sem Variação</p>
-                            <p className="text-2xl font-black text-green-600 leading-none mt-1">{snapshot.length - variances.length}</p>
-                        </div>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Sem Variação"
+                    value={snapshot.length - variances.length}
+                    icon={<HiOutlineCheckCircle className="w-6 h-6" />}
+                    color="emerald"
+                />
             </div>
 
             {/* Result banner */}
@@ -196,7 +188,7 @@ export default function PharmacyStockReconciliation() {
                     <Input
                         placeholder="Pesquisar medicamento..."
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
+                        onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
                         leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4 text-emerald-600" />}
                         className="flex-1 bg-white dark:bg-dark-800"
                     />
@@ -217,7 +209,7 @@ export default function PharmacyStockReconciliation() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                                {filtered.map(item => {
+                                {paginatedItems.map(item => {
                                     const physical = parseInt(item.physicalCount) || 0;
                                     const diff = physical - item.systemStock;
                                     const hasDiff = diff !== 0;
@@ -262,6 +254,17 @@ export default function PharmacyStockReconciliation() {
                                 )}
                             </tbody>
                         </table>
+                        {filtered.length > itemsPerPage && (
+                            <div className="px-4 py-3 border-t border-gray-100 dark:border-dark-700">
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalItems={filtered.length}
+                                    itemsPerPage={itemsPerPage}
+                                    onPageChange={setCurrentPage}
+                                    onItemsPerPageChange={setItemsPerPage}
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
             </Card>

@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -267,6 +268,8 @@ model Product {
   @@unique([companyId, sku])
   @@index([originModule])
   @@index([ivaRateId])
+  @@index([companyId, originModule, isActive, name])
+  @@index([companyId, name])
   @@map("products")
 }
 
@@ -335,16 +338,17 @@ model Warehouse {
 }
 
 model WarehouseStock {
-  id          String    @id @default(uuid())
-  warehouseId String
-  productId   String
-  quantity    Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  companyId   String?
-  company     Company?  @relation(fields: [companyId], references: [id])
-  product     Product   @relation(fields: [productId], references: [id])
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  id                String    @id @default(uuid())
+  warehouseId       String
+  productId         String
+  quantity          Int       @default(0)
+  reservedQuantity  Int       @default(0) @map("reserved_quantity")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  companyId         String?
+  company           Company?  @relation(fields: [companyId], references: [id])
+  product           Product   @relation(fields: [productId], references: [id])
+  warehouse         Warehouse @relation(fields: [warehouseId], references: [id])
 
   @@unique([warehouseId, productId])
   @@index([companyId])
@@ -356,12 +360,26 @@ model StockTransfer {
   number            String
   sourceWarehouseId String
   targetWarehouseId String
-  status            TransferStatus      @default(pending)
+  status            TransferStatus      @default(draft)
   responsible       String
   reason            String?
   date              DateTime            @default(now())
   createdAt         DateTime            @default(now())
   companyId         String?
+  notes             String?
+  requestedBy       String?             @map("requested_by")
+  requestedAt       DateTime?           @map("requested_at")
+  approvedBy        String?             @map("approved_by")
+  approvedAt        DateTime?           @map("approved_at")
+  rejectedBy        String?             @map("rejected_by")
+  rejectedAt        DateTime?           @map("rejected_at")
+  rejectReason      String?             @map("reject_reason")
+  dispatchedBy      String?             @map("dispatched_by")
+  dispatchedAt      DateTime?           @map("dispatched_at")
+  receivedBy        String?             @map("received_by")
+  receivedAt        DateTime?           @map("received_at")
+  cancelledBy       String?             @map("cancelled_by")
+  cancelledAt       DateTime?           @map("cancelled_at")
   items             StockTransferItem[]
   company           Company?            @relation(fields: [companyId], references: [id])
   sourceWarehouse   Warehouse           @relation("SourceWarehouse", fields: [sourceWarehouseId], references: [id])
@@ -369,16 +387,18 @@ model StockTransfer {
 
   @@unique([companyId, number])
   @@index([companyId])
+  @@index([status])
   @@map("stock_transfers")
 }
 
 model StockTransferItem {
-  id         String        @id @default(uuid())
-  transferId String
-  productId  String
-  quantity   Int
-  product    Product       @relation(fields: [productId], references: [id])
-  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  id               String        @id @default(uuid())
+  transferId       String
+  productId        String
+  quantity         Int
+  receivedQuantity Int?          @map("received_quantity")
+  product          Product       @relation(fields: [productId], references: [id])
+  transfer         StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
 
   @@map("stock_transfer_items")
 }
@@ -539,6 +559,10 @@ model CustomerOrder {
   customerPhone      String
   customerEmail      String?
   customerAddress    String?
+  subtotal           Decimal                 @default(0) @db.Decimal(15, 2)
+  discount           Decimal                 @default(0) @db.Decimal(15, 2)
+  taxRate            Decimal                 @default(0) @db.Decimal(5, 2)
+  taxAmount          Decimal                 @default(0) @db.Decimal(15, 2)
   total              Decimal                 @db.Decimal(15, 2)
   status             OrderStatus             @default(created)
   priority           OrderPriority           @default(normal)
@@ -615,6 +639,18 @@ model Sale {
   paymentRef     String?
   sessionId      String?          @map("session_id")
   warehouseId    String?
+  discountReason String?          @map("discount_reason")
+  discountKind   String?          @map("discount_kind")
+  discountAudit  Json?            @map("discount_audit")
+  voidStatus       String?        @default("active") @map("void_status")
+  voidReason       String?        @map("void_reason")
+  voidRequestedBy  String?        @map("void_requested_by")
+  voidRequestedAt  DateTime?      @map("void_requested_at")
+  voidApprovedBy   String?        @map("void_approved_by")
+  voidApprovedAt   DateTime?      @map("void_approved_at")
+  voidRejectedBy   String?        @map("void_rejected_by")
+  voidRejectedAt   DateTime?      @map("void_rejected_at")
+  voidRejectReason String?        @map("void_reject_reason")
   bottleReturns  BottleReturn[]
   creditPayments CreditPayment[]
   items          SaleItem[]
@@ -632,6 +668,7 @@ model Sale {
   @@index([sessionId])
   @@index([userId])
   @@index([createdAt])
+  @@index([voidStatus])
   @@map("sales")
 }
 
@@ -741,17 +778,21 @@ model RestaurantReservation {
 }
 
 model SaleItem {
-  id          String        @id @default(uuid())
-  saleId      String
-  productId   String?
-  quantity    Int
-  unitPrice   Decimal       @db.Decimal(15, 2)
-  discount    Decimal       @default(0) @db.Decimal(15, 2)
-  total       Decimal       @db.Decimal(15, 2)
-  batchId     String?       @map("batch_id")
-  ivaAmount   Decimal       @default(0) @map("iva_amount") @db.Decimal(15, 2)
-  ivaRate     Decimal       @default(0) @map("iva_rate") @db.Decimal(5, 2)
-  productName String?
+  id              String        @id @default(uuid())
+  saleId          String
+  productId       String?
+  quantity        Int
+  unitPrice       Decimal       @db.Decimal(15, 2)
+  costPrice       Decimal?      @map("cost_price") @db.Decimal(15, 2)
+  discount        Decimal       @default(0) @db.Decimal(15, 2)
+  total           Decimal       @db.Decimal(15, 2)
+  batchId         String?       @map("batch_id")
+  ivaAmount       Decimal       @default(0) @map("iva_amount") @db.Decimal(15, 2)
+  ivaRate         Decimal       @default(0) @map("iva_rate") @db.Decimal(5, 2)
+  productName     String?
+  discountReason  String?       @map("discount_reason")
+  discountKind    String?       @map("discount_kind")
+  discountAppliedBy String?     @map("discount_applied_by")
   batch       ProductBatch? @relation(fields: [batchId], references: [id])
   product     Product?      @relation(fields: [productId], references: [id])
   sale        Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade)
@@ -2259,10 +2300,14 @@ enum StockStatus {
 }
 
 enum TransferStatus {
+  draft
   pending
-  completed
-  cancelled
+  approved
   in_transit
+  received
+  completed
+  rejected
+  cancelled
 }
 
 enum CustomerType {

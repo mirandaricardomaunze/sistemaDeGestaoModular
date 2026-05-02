@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDebounce } from '../../hooks/useDebounce';
 import { Card, Button, Input, Badge, LoadingSpinner, Pagination, Textarea } from '../../components/ui';
 import {
     HiOutlineUser, HiOutlineMagnifyingGlass, HiOutlineHeart, HiOutlineClipboardDocumentList,
@@ -14,10 +15,18 @@ const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const COMMON_ALLERGIES = ['Penicilina', 'Amoxicilina', 'Aspirina', 'Ibuprofeno', 'Sulfonamidas', 'Látex', 'Contraste iodado', 'Morfina'];
 const COMMON_CONDITIONS = ['Hipertensão', 'Diabetes Tipo 2', 'Diabetes Tipo 1', 'Asma', 'DPOC', 'Insuficiência Cardíaca', 'IRC', 'Epilepsia', 'Hipotiroidismo', 'Hipertiroidismo'];
 
+const PATIENTS_PAGE_SIZE = 25;
+
 export default function PharmacyPatients() {
     const queryClient = useQueryClient();
-    const { customers, isLoading: loadingCustomers } = useCustomers();
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 350);
+    const [page, setPage] = useState(1);
+    const { customers, pagination, isLoading: loadingCustomers } = useCustomers({
+        search: debouncedSearch || undefined,
+        page,
+        limit: PATIENTS_PAGE_SIZE
+    });
     const [selectedPatient, setSelectedPatient] = useState<any>(null);
     const [editMode, setEditMode] = useState(false);
     const [activeTab, setActiveTab] = useState<'profile' | 'history'>('profile');
@@ -26,11 +35,7 @@ export default function PharmacyPatients() {
     const [allergyInput, setAllergyInput] = useState('');
     const [conditionInput, setConditionInput] = useState('');
 
-    const filtered = (customers || []).filter((c: any) =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.phone?.includes(search) ||
-        c.code?.toLowerCase().includes(search.toLowerCase())
-    );
+    const filtered = customers || [];
 
     const { data: profile, isLoading: loadingProfile } = useQuery({
         queryKey: ['pharmacy', 'patient-profile', selectedPatient?.id],
@@ -94,7 +99,7 @@ export default function PharmacyPatients() {
                     <Input
                         placeholder="Pesquisar paciente..."
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
+                        onChange={e => { setSearch(e.target.value); setPage(1); }}
                         leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4 text-gray-400" />}
                         className="mb-4"
                     />
@@ -136,6 +141,17 @@ export default function PharmacyPatients() {
                                 </button>
                             ))}
                             {filtered.length === 0 && <p className="text-center text-gray-400 py-8 text-sm">Nenhum paciente encontrado</p>}
+                        </div>
+                    )}
+                    {pagination && pagination.total > PATIENTS_PAGE_SIZE && (
+                        <div className="mt-4">
+                            <Pagination
+                                currentPage={page}
+                                totalItems={pagination.total}
+                                itemsPerPage={PATIENTS_PAGE_SIZE}
+                                onPageChange={setPage}
+                                showItemsPerPage={false}
+                            />
                         </div>
                     )}
                 </Card>

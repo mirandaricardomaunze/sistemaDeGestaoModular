@@ -4,11 +4,27 @@ import { ApiError } from '../middleware/error.middleware';
 export class CRMService {
     constructor(private prisma: PrismaClient) { }
 
-    async getOpportunities(companyId: string) {
+    async getOpportunities(companyId: string, filters: { search?: string; stageId?: string; customerId?: string; limit?: number } = {}) {
+        const where: any = { companyId };
+
+        if (filters.stageId) where.stageId = filters.stageId;
+        if (filters.customerId) where.customerId = filters.customerId;
+
+        if (filters.search && typeof filters.search === 'string') {
+            const term = filters.search.trim();
+            if (term) {
+                where.OR = [
+                    { title: { contains: term, mode: 'insensitive' } },
+                    { customer: { name: { contains: term, mode: 'insensitive' } } }
+                ];
+            }
+        }
+
         return this.prisma.opportunity.findMany({
-            where: { companyId },
+            where,
             include: { customer: true, stage: true },
-            orderBy: { updatedAt: 'desc' }
+            orderBy: { updatedAt: 'desc' },
+            take: filters.limit && filters.limit > 0 && filters.limit <= 100 ? filters.limit : undefined
         });
     }
 

@@ -1,11 +1,13 @@
 import { logger } from '../utils/logger';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import type { CompanyInfo, Booking, StockTransfer, Product, HospitalityReportData, PharmacyStockReportData } from '../types';
 
 
 // Professional Header Helper
 // Professional Header Helper
-export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: any, period?: string) => {
+// Professional Header Helper
+export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: CompanyInfo, period?: string) => {
     const pageWidth = doc.internal.pageSize.width;
     let y = 20;
 
@@ -23,7 +25,7 @@ export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: an
             doc.setFontSize(10);
             doc.setTextColor(60, 60, 60);
             doc.text(companyInfo?.address || 'Endereço não configurado', 45, y + 6);
-            doc.text(`NUIT: ${companyInfo?.taxId || 'N/A'}`, 45, y + 11);
+            doc.text(`NUIT: ${companyInfo?.taxId || companyInfo?.nuit || 'N/A'}`, 45, y + 11);
             doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 45, y + 17);
         } catch (e) {
             logger.warn('Failed to add logo to PDF', e);
@@ -40,7 +42,7 @@ export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: an
         doc.setFontSize(10);
         doc.setTextColor(60, 60, 60);
         doc.text(companyInfo?.address || 'Endereço não configurado', 15, y + 6);
-        doc.text(`NUIT: ${companyInfo?.taxId || 'N/A'}`, 15, y + 11);
+        doc.text(`NUIT: ${companyInfo?.taxId || companyInfo?.nuit || 'N/A'}`, 15, y + 11);
         doc.text(`Tel: ${companyInfo?.phone || 'N/A'} | Email: ${companyInfo?.email || 'N/A'}`, 15, y + 17);
     }
 
@@ -65,7 +67,8 @@ export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: an
 };
 
 // Professional Footer Helper - Enhanced with Multicore branding
-export const addProfessionalFooter = (doc: jsPDF, companyInfo: any) => {
+// Professional Footer Helper - Enhanced with Multicore branding
+export const addProfessionalFooter = (doc: jsPDF, companyInfo: CompanyInfo) => {
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const pageCount = (doc as any).internal.getNumberOfPages();
@@ -108,11 +111,11 @@ export const addProfessionalFooter = (doc: jsPDF, companyInfo: any) => {
     }
 };
 
-export const generateGuiaRemessa = (transfer: any, companyInfo?: any) => {
+export const generateGuiaRemessa = (transfer: StockTransfer, companyInfo?: CompanyInfo) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, 'GUIA DE REMESSA', companyInfo);
+    addProfessionalHeader(doc, 'GUIA DE REMESSA', companyInfo || {} as CompanyInfo);
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(11);
@@ -168,15 +171,15 @@ export const generateGuiaRemessa = (transfer: any, companyInfo?: any) => {
     doc.line(pageWidth - 80, finalY, pageWidth - 15, finalY);
     doc.text('CONFIRMAÇÃO DE RECEPÇÃO (DESTINO)', pageWidth - 80, finalY + 5);
 
-    addProfessionalFooter(doc, companyInfo);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
     doc.save(`Guia_${transfer.number}.pdf`);
 };
 
-export const generateBookingReceipt = (booking: any, companyInfo: any) => {
+export const generateBookingReceipt = (booking: Booking, companyInfo: CompanyInfo) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, 'RECIBO DE ESTADIA', companyInfo);
+    addProfessionalHeader(doc, 'RECIBO DE ESTADIA', companyInfo || {} as CompanyInfo);
 
     // Guest Info Section
     doc.setFontSize(11);
@@ -216,14 +219,14 @@ export const generateBookingReceipt = (booking: any, companyInfo: any) => {
     doc.text('Obrigado pela sua preferência!', pageWidth / 2, finalY + 20, { align: 'center' });
     doc.text('Documento processado por computador', pageWidth / 2, finalY + 25, { align: 'center' });
 
-    addProfessionalFooter(doc, companyInfo);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
     doc.save(`Recibo_Booking_${booking.id?.slice(-8)}.pdf`);
 };
 
-export const generatePharmacyExpirationReport = (products: any[], companyInfo?: any) => {
+export const generatePharmacyExpirationReport = (products: Product[], companyInfo?: CompanyInfo) => {
     const doc = new jsPDF();
 
-    addProfessionalHeader(doc, 'RELATÓRIO DE VALIDADES', companyInfo);
+    addProfessionalHeader(doc, 'RELATÓRIO DE VALIDADES', companyInfo || {} as CompanyInfo);
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
@@ -255,15 +258,15 @@ export const generatePharmacyExpirationReport = (products: any[], companyInfo?: 
     doc.setTextColor(150, 150, 150);
     doc.text('Este documento é um alerta gerado automaticamente pelo sistema de inventário.', 15, finalY);
 
-    addProfessionalFooter(doc, companyInfo);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
     doc.save(`Relatorio_Validades_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
-export const generateHospitalityReport = (data: any, companyInfo: any) => {
+export const generateHospitalityReport = (data: HospitalityReportData, companyInfo: CompanyInfo) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, 'RELATÓRIO DE HOTELARIA', companyInfo, data.period);
+    addProfessionalHeader(doc, 'RELATÓRIO DE HOTELARIA', companyInfo || {} as CompanyInfo, data.period);
 
     // Summary Box
     doc.setFontSize(11);
@@ -332,7 +335,7 @@ export const generateHospitalityReport = (data: any, companyInfo: any) => {
         columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } }
     });
 
-    addProfessionalFooter(doc, companyInfo);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
     doc.save(`Relatorio_Hotelaria_${data.period.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -340,12 +343,12 @@ export const generateHospitalityReport = (data: any, companyInfo: any) => {
 // PHARMACY PDF REPORTS
 // =============================================================================
 
-export const generatePharmacyStockReport = (data: { items: any[]; summary: any }, companyInfo?: any) => {
+export const generatePharmacyStockReport = (data: PharmacyStockReportData, companyInfo?: CompanyInfo, action: 'save' | 'print' = 'save') => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    addProfessionalHeader(doc, 'RELATÓRIO DE STOCK', companyInfo);
+    addProfessionalHeader(doc, 'RELATÓRIO DE STOCK', companyInfo || {} as CompanyInfo);
 
     // Date & Info
     doc.setTextColor(0, 0, 0);
@@ -377,31 +380,44 @@ export const generatePharmacyStockReport = (data: { items: any[]; summary: any }
 
     // Table
     doc.setTextColor(0, 0, 0);
-    const tableData = data.items.slice(0, 40).map((item: any) => [
-        item.productCode,
-        item.productName.substring(0, 30),
-        item.dci || '-',
-        item.totalStock.toString(),
+    const tableData = data.items.slice(0, 100).map((item: any) => [
+        item.productCode || item.code || '-',
+        (item.productName || item.name || '-').substring(0, 30),
+        item.batchNumber || item.batches?.[0]?.batchNumber || '-',
+        item.expiryDate || item.batches?.[0]?.expiryDate ? new Date(item.expiryDate || item.batches[0].expiryDate).toLocaleDateString('pt-MZ') : '-',
+        (item.totalStock ?? item.currentStock ?? 0).toString(),
         item.isLowStock ? '⚠️' : '✓',
-        `${Number(item.totalValue).toLocaleString()} MT`
+        `${Number(item.totalValue || (item.price * (item.totalStock || item.currentStock)) || 0).toLocaleString()} MT`
     ]);
 
     autoTable(doc, {
         startY: 110,
-        head: [['Código', 'Medicamento', 'DCI', 'Stock', 'Status', 'Valor']],
+        head: [['Código', 'Medicamento', 'Lote', 'Validade', 'Stock', 'S', 'Valor']],
         body: tableData,
-        headStyles: { fillColor: [16, 185, 129] as [number, number, number], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-        bodyStyles: { fontSize: 9 },
-        alternateRowStyles: { fillColor: [240, 253, 244] },
+        headStyles: { fillColor: [13, 148, 136] as [number, number, number], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        alternateRowStyles: { fillColor: [240, 253, 250] },
         columnStyles: {
-            0: { cellWidth: 22 },
-            1: { cellWidth: 55 },
-            2: { cellWidth: 35 },
-            3: { halign: 'center', cellWidth: 18 },
+            0: { cellWidth: 20 },
+            1: { cellWidth: 50 },
+            2: { cellWidth: 25 },
+            3: { cellWidth: 25 },
             4: { halign: 'center', cellWidth: 15 },
-            5: { halign: 'right', cellWidth: 30 }
+            5: { halign: 'center', cellWidth: 10 },
+            6: { halign: 'right', cellWidth: 35 }
         },
-        margin: { left: 15, right: 15 }
+        margin: { left: 15, right: 15 },
+        didParseCell: (hookData: any) => {
+            if (hookData.column.index === 3) {
+                const dateStr = hookData.cell.raw as string;
+                if (dateStr !== '-') {
+                    const expiry = new Date(dateStr.split('/').reverse().join('-'));
+                    const diff = expiry.getTime() - new Date().getTime();
+                    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                    if (days <= 90) hookData.cell.styles.textColor = [220, 38, 38];
+                }
+            }
+        }
     });
 
     // Footer
@@ -413,16 +429,43 @@ export const generatePharmacyStockReport = (data: { items: any[]; summary: any }
     doc.text(`Gerado automaticamente pelo Multicore • ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, footerY, { align: 'center' });
     doc.text(`Página 1 de 1`, pageWidth - 15, footerY, { align: 'right' });
 
-    addProfessionalFooter(doc, companyInfo);
-    doc.save(`Farmacia_Stock_${new Date().toISOString().split('T')[0]}.pdf`);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    
+    if (action === 'print') {
+        doc.autoPrint();
+        const pdfBlob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        const hiddFrame = document.createElement('iframe');
+        hiddFrame.style.visibility = 'hidden';
+        hiddFrame.style.position = 'fixed';
+        hiddFrame.style.right = '0';
+        hiddFrame.style.bottom = '0';
+        hiddFrame.src = pdfUrl;
+        
+        document.body.appendChild(hiddFrame);
+        
+        hiddFrame.onload = () => {
+            setTimeout(() => {
+                hiddFrame.contentWindow?.focus();
+                hiddFrame.contentWindow?.print();
+                setTimeout(() => {
+                    document.body.removeChild(hiddFrame);
+                    URL.revokeObjectURL(pdfUrl);
+                }, 2000);
+            }, 500);
+        };
+    } else {
+        doc.save(`Farmacia_Stock_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
 };
 
-export const generatePharmacySalesReport = (sales: any[], period: string, companyInfo?: any) => {
+export const generatePharmacySalesReport = (sales: any[], period: string, companyInfo?: CompanyInfo, action: 'save' | 'print' = 'save') => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    addProfessionalHeader(doc, 'RELATÓRIO DE VENDAS', companyInfo, period);
+    addProfessionalHeader(doc, 'RELATÓRIO DE VENDAS', companyInfo || {} as CompanyInfo, period);
 
     // Calculate totals
     const totalSales = sales.reduce((sum, s) => sum + Number(s.total), 0);
@@ -482,8 +525,35 @@ export const generatePharmacySalesReport = (sales: any[], period: string, compan
     doc.setTextColor(150, 150, 150);
     doc.text(`Relatório gerado em ${new Date().toLocaleString('pt-MZ')} • Multicore`, pageWidth / 2, footerY, { align: 'center' });
 
-    addProfessionalFooter(doc, companyInfo);
-    doc.save(`Farmacia_Vendas_${period.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    
+    if (action === 'print') {
+        doc.autoPrint();
+        const pdfBlob = new Blob([doc.output('arraybuffer')], { type: 'application/pdf' });
+        const pdfUrl = URL.createObjectURL(pdfBlob);
+        
+        const hiddFrame = document.createElement('iframe');
+        hiddFrame.style.visibility = 'hidden';
+        hiddFrame.style.position = 'fixed';
+        hiddFrame.style.right = '0';
+        hiddFrame.style.bottom = '0';
+        hiddFrame.src = pdfUrl;
+        
+        document.body.appendChild(hiddFrame);
+        
+        hiddFrame.onload = () => {
+            setTimeout(() => {
+                hiddFrame.contentWindow?.focus();
+                hiddFrame.contentWindow?.print();
+                setTimeout(() => {
+                    document.body.removeChild(hiddFrame);
+                    URL.revokeObjectURL(pdfUrl);
+                }, 2000);
+            }, 500);
+        };
+    } else {
+        doc.save(`Farmacia_Vendas_${period.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
 };
 
 export const generatePharmacyExpiringReport = (data: { items: any[]; summary: any }, companyInfo?: any) => {
@@ -491,7 +561,7 @@ export const generatePharmacyExpiringReport = (data: { items: any[]; summary: an
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    addProfessionalHeader(doc, 'ALERTA DE VALIDADES', companyInfo);
+    addProfessionalHeader(doc, 'ALERTA DE VALIDADES', companyInfo || {} as CompanyInfo);
 
     // Summary Box
     doc.setTextColor(0, 0, 0);
@@ -558,7 +628,7 @@ export const generatePharmacyExpiringReport = (data: { items: any[]; summary: an
     doc.setTextColor(150, 150, 150);
     doc.text(`Documento gerado automaticamente • ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, footerY, { align: 'center' });
 
-    addProfessionalFooter(doc, companyInfo);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
     doc.save(`Farmacia_Validades_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -700,7 +770,7 @@ export const generateHotelFinanceReport = (data: {
     const pageWidth = doc.internal.pageSize.width;
     const { companyInfo } = data;
 
-    addProfessionalHeader(doc, 'RELATÓRIO FINANCEIRO', companyInfo, data.period);
+    addProfessionalHeader(doc, 'RELATÓRIO FINANCEIRO', companyInfo || {} as CompanyInfo, data.period);
 
     // Summary Section
     doc.setFontSize(12);
@@ -800,7 +870,7 @@ export const generateHotelFinanceReport = (data: {
         margin: { left: pageWidth / 2 + 5 }
     });
 
-    addProfessionalFooter(doc, companyInfo);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
     doc.save(`Financeiro_Hotel_${data.period.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -822,7 +892,7 @@ export const generateBottleStoreReport = (data: {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, data.title, companyInfo, data.period);
+    addProfessionalHeader(doc, data.title, companyInfo || {} as CompanyInfo, data.period);
 
     let currentY = 55;
 
@@ -873,7 +943,7 @@ export const generateBottleStoreReport = (data: {
         }
     });
 
-    addProfessionalFooter(doc, companyInfo);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
     doc.save(`${data.title.replace(/\s/g, '_')}_${data.period.replace(/\s/g, '_')}.pdf`);
 };
 
@@ -918,7 +988,7 @@ export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyI
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, 'RELATÓRIO MENSAL DE SALÁRIOS', companyInfo, data.period);
+    addProfessionalHeader(doc, 'RELATÓRIO MENSAL DE SALÁRIOS', companyInfo || {} as CompanyInfo, data.period);
 
     // Summary Section
     doc.setDrawColor(230, 230, 230);
@@ -1028,7 +1098,7 @@ export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyI
     doc.line(pageWidth - 80, signY, pageWidth - 15, signY);
     doc.text('Director Financeiro', pageWidth - 80, signY + 5);
 
-    addProfessionalFooter(doc, companyInfo);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
     doc.save(`Folha_Salarial_${data.period.replace(/\s/g, '_')}.pdf`);
 };
 
@@ -1076,7 +1146,7 @@ export const generatePaymentConfirmation = (data: PaymentConfirmationData, compa
 
     const period = `${months[data.payroll.month - 1]} ${data.payroll.year}`;
 
-    addProfessionalHeader(doc, 'CONFIRMAÇÃO DE PAGAMENTO', companyInfo, period);
+    addProfessionalHeader(doc, 'CONFIRMAÇÃO DE PAGAMENTO', companyInfo || {} as CompanyInfo, period);
 
     // Confirmation Reference Box
     doc.setDrawColor(22, 163, 74);
@@ -1203,10 +1273,187 @@ export const generatePaymentConfirmation = (data: PaymentConfirmationData, compa
     doc.line(pageWidth - 80, signY, pageWidth - 15, signY);
     doc.text('Carimbo e Assinatura da Empresa', pageWidth - 80, signY + 5);
 
-    addProfessionalFooter(doc, companyInfo);
+    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
 
     const filename = `Confirmacao_Pagamento_${data.employee.name.replace(/\s/g, '_')}_${period.replace(/\s/g, '_')}.pdf`;
     doc.save(filename);
 
     return filename;
+};
+export const generateQuotationPDF = (quote: any, companyInfo: any, action: 'save' | 'print' = 'save') => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+
+    const normalizedCompany = {
+        ...companyInfo,
+        taxId: companyInfo?.taxId || companyInfo?.nuit,
+        address: [companyInfo?.address, companyInfo?.city, companyInfo?.province]
+            .filter(Boolean)
+            .join(', ') || companyInfo?.address,
+    };
+
+    addProfessionalHeader(doc, 'COTAÇÃO / ORÇAMENTO', normalizedCompany || {} as CompanyInfo);
+
+    // Customer & Quote Info
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DADOS DO CLIENTE', 15, 52);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cliente: ${quote.customerName}`, 15, 59);
+    if (quote.customerPhone && quote.customerPhone !== '---') {
+        doc.text(`Telefone: ${quote.customerPhone}`, 15, 64);
+    }
+    if (quote.customerEmail) {
+        doc.text(`Email: ${quote.customerEmail}`, 15, 69);
+    }
+
+    // Quote specific info on the right
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Nº Cotação: ${quote.orderNumber}`, pageWidth - 15, 59, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Data: ${new Date(quote.createdAt).toLocaleDateString('pt-MZ')}`, pageWidth - 15, 64, { align: 'right' });
+    if (quote.deliveryDate) {
+        doc.text(`Válida até: ${new Date(quote.deliveryDate).toLocaleDateString('pt-MZ')}`, pageWidth - 15, 69, { align: 'right' });
+    }
+
+    // Items Table
+    const tableData = (quote.items || []).map((item: any) => [
+        item.barcode || item.product?.barcode || '---',
+        item.productName || item.product?.name || '---',
+        item.quantity,
+        `${Number(item.price).toLocaleString()} MT`,
+        `${Number(item.total || (item.quantity * item.price)).toLocaleString()} MT`
+    ]);
+
+    autoTable(doc, {
+        startY: 80,
+        head: [['Código', 'Descrição', 'Qtd', 'Preço Unit.', 'Total']],
+        body: tableData,
+        headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+            2: { halign: 'center' },
+            3: { halign: 'right' },
+            4: { halign: 'right', fontStyle: 'bold' }
+        },
+        margin: { left: 15, right: 15 }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const ivaRate = companyInfo?.ivaRate || 16;
+    const subtotal = (quote.items || []).reduce((sum: number, item: any) => sum + (Number(item.price) * Number(item.quantity)), 0);
+    const ivaValue = subtotal * (ivaRate / 100);
+    const grandTotal = subtotal + ivaValue;
+
+    // Totals Box
+    doc.setDrawColor(240, 240, 240);
+    doc.setFillColor(252, 252, 252);
+    doc.roundedRect(pageWidth - 85, finalY, 70, 35, 2, 2, 'FD');
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Subtotal:', pageWidth - 80, finalY + 8);
+    doc.text(`${subtotal.toLocaleString()} MT`, pageWidth - 20, finalY + 8, { align: 'right' });
+    
+    doc.text(`IVA (${ivaRate}%):`, pageWidth - 80, finalY + 16);
+    doc.text(`${ivaValue.toLocaleString()} MT`, pageWidth - 20, finalY + 16, { align: 'right' });
+
+    doc.setDrawColor(230, 230, 230);
+    doc.line(pageWidth - 80, finalY + 20, pageWidth - 20, finalY + 20);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL FINAL:', pageWidth - 80, finalY + 28);
+    doc.text(`${grandTotal.toLocaleString()} MT`, pageWidth - 20, finalY + 28, { align: 'right' });
+
+    // Notes
+    if (quote.notes) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('NOTAS E CONDIÇÕES:', 15, finalY + 10);
+        doc.setFont('helvetica', 'normal');
+        const splitNotes = doc.splitTextToSize(quote.notes, 100);
+        doc.text(splitNotes, 15, finalY + 16);
+    }
+
+    // Signatures
+    const signatureY = Math.max(finalY + 45, 250);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, signatureY, 80, signatureY);
+    doc.setFontSize(8);
+    doc.text('CARIMBO E ASSINATURA', 47.5, signatureY + 5, { align: 'center' });
+
+    addProfessionalFooter(doc, normalizedCompany);
+    if (action === 'print') {
+        doc.autoPrint();
+        const blobUrl = doc.output('bloburl');
+        window.open(blobUrl as any, '_blank');
+    } else {
+        doc.save(`Cotacao_${quote.orderNumber}.pdf`);
+    }
+};
+
+export const generateQuotationsListPDF = (
+    quotes: any[],
+    companyInfo: any,
+    statusLabelOf: (status: string) => string,
+    action: 'save' | 'print' = 'save',
+) => {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const pageWidth = doc.internal.pageSize.width;
+
+    const normalizedCompany = {
+        ...companyInfo,
+        taxId: companyInfo?.taxId || companyInfo?.nuit,
+        address: [companyInfo?.address, companyInfo?.city, companyInfo?.province]
+            .filter(Boolean)
+            .join(', ') || companyInfo?.address,
+    };
+
+    addProfessionalHeader(doc, 'LISTA DE COTAÇÕES / ORÇAMENTOS', normalizedCompany || {} as CompanyInfo);
+
+    const tableData = quotes.map(q => [
+        q.orderNumber,
+        new Date(q.createdAt).toLocaleDateString('pt-MZ'),
+        q.customerName,
+        String((q.items || []).length),
+        statusLabelOf(q.status),
+        `${Number(q.total).toLocaleString()} MT`,
+    ]);
+
+    autoTable(doc, {
+        startY: 50,
+        head: [['Nº Cotação', 'Data', 'Cliente', 'Itens', 'Estado', 'Total']],
+        body: tableData,
+        headStyles: { fillColor: [51, 65, 85], textColor: [255, 255, 255], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+            3: { halign: 'center' },
+            5: { halign: 'right', fontStyle: 'bold' },
+        },
+        margin: { left: 15, right: 15 },
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const totalSum = quotes.reduce((s, q) => s + Number(q.total), 0);
+
+    doc.setDrawColor(240, 240, 240);
+    doc.setFillColor(252, 252, 252);
+    doc.roundedRect(pageWidth - 95, finalY, 80, 18, 2, 2, 'FD');
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`TOTAL GERAL (${quotes.length}):`, pageWidth - 90, finalY + 11);
+    doc.text(`${totalSum.toLocaleString()} MT`, pageWidth - 20, finalY + 11, { align: 'right' });
+
+    addProfessionalFooter(doc, normalizedCompany);
+
+    if (action === 'print') {
+        doc.autoPrint();
+        const blobUrl = doc.output('bloburl');
+        window.open(blobUrl as any, '_blank');
+    } else {
+        doc.save(`Cotacoes_${new Date().toISOString().split('T')[0]}.pdf`);
+    }
 };

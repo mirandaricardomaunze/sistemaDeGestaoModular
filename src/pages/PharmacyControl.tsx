@@ -25,7 +25,7 @@ export default function PharmacyControl() {
     const [expiringSoonData, setExpiringSoonData] = useState<{ data: any[], pagination?: any }>({ data: [] });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const { products, isLoading: isLoadingProducts, updateProduct } = useProducts();
+    const { products, isLoading: isLoadingProducts, updateProduct } = useProducts({ page, limit: pageSize });
 
     const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
     const [batchData, setBatchData] = useState({
@@ -96,7 +96,16 @@ export default function PharmacyControl() {
                     <Button variant="outline" leftIcon={<HiOutlineRefresh className="w-5 h-5" />} onClick={fetchExpiring}>Actualizar</Button>
                     <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 gap-1 border border-gray-200 dark:border-dark-700">
                         <Button variant="ghost" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={exportToExcel}>Excel</Button>
-                        <Button variant="ghost" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => generatePharmacyExpirationReport(expiringSoonData.data, companySettings)}>PDF</Button>
+                        <Button variant="ghost" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => generatePharmacyExpirationReport(expiringSoonData.data, {
+                            name: companySettings.companyName,
+                            companyName: companySettings.companyName,
+                            address: companySettings.address,
+                            phone: companySettings.phone,
+                            email: companySettings.email,
+                            logo: companySettings.logo,
+                            nuit: companySettings.taxId,
+                            taxId: companySettings.taxId
+                        })}>PDF</Button>
                     </div>
                     <Button leftIcon={<HiOutlineViewGrid className="w-5 h-5" />} variant="outline" onClick={() => navigate('/inventory')}>Ver Inventário</Button>
                     <Button leftIcon={<HiOutlineBeaker className="w-5 h-5" />} onClick={() => setIsBatchModalOpen(true)}>Entrada de Lote</Button>

@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Card, Button, Input, Select } from '../../ui';
+import CustomerAutocomplete from '../../common/CustomerAutocomplete';
 import {
     HiOutlineShoppingCart, HiOutlineTrash, HiOutlineDocumentArrowDown,
     HiOutlineCheck, HiOutlineMagnifyingGlass, HiOutlineExclamationCircle,
@@ -123,40 +124,51 @@ export function POSCartPanel({
                     </h3>
                     <div className="flex gap-1">
                         {lastSale && (
-                            <button onClick={handlePrintLastReceipt} title="Reimprimir último recibo"
-                                className="p-1.5 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm">
+                            <Button 
+                                variant="ghost"
+                                size="xs"
+                                onClick={handlePrintLastReceipt} 
+                                title="Reimprimir último recibo"
+                            >
                                 <HiOutlineDocumentArrowDown className="w-4 h-4" />
-                            </button>
+                            </Button>
                         )}
                         {cart.length > 0 && (
-                            <button onClick={() => setCart([])} title="Limpar carrinho"
-                                className="p-1.5 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm">
+                            <Button 
+                                variant="ghost"
+                                size="xs"
+                                onClick={() => setCart([])} 
+                                title="Limpar carrinho"
+                                className="text-red-500 hover:text-red-600"
+                            >
                                 <HiOutlineTrash className="w-4 h-4" />
-                            </button>
+                            </Button>
                         )}
                     </div>
                 </div>
 
                 {/* ── Scrollable body ──────────────────────────────-*/}
                 <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-                    {/* Customer */}
+                    {/* Customer (search-on-type, no preload) */}
                     <div className="flex gap-2 items-end">
                         <div className="flex-1">
-                            <Select
+                            <CustomerAutocomplete
+                                selectedId={selectedCustomer}
+                                selectedName={customers?.find((c: any) => c.id === selectedCustomer)?.name}
+                                onSelect={(id) => setSelectedCustomer(id)}
                                 label="Cliente"
-                                options={[
-                                    { value: '', label: 'Cliente Balcão' },
-                                    ...customers.map((c: any) => ({ value: c.id, label: c.name }))
-                                ]}
-                                value={selectedCustomer || ''}
-                                onChange={(e: any) => setSelectedCustomer(e.target.value || null)}
+                                placeholder="Pesquisar paciente..."
                             />
                         </div>
                         {selectedCustomer && (
-                            <button onClick={handleViewPatientHistory}
-                                className="mb-0.5 px-2 py-2 text-xs rounded-lg border border-gray-300 dark:border-dark-600 text-gray-600 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors whitespace-nowrap">
+                            <Button 
+                                variant="outline"
+                                size="sm"
+                                onClick={handleViewPatientHistory}
+                                className="mb-0.5"
+                            >
                                 Histórico
-                            </button>
+                            </Button>
                         )}
                     </div>
 
@@ -199,18 +211,17 @@ export function POSCartPanel({
                                         onChange={(e: any) => handlePrescriptionChange(e.target.value)}
                                     />
                                 </div>
-                                <button
-                                    type="button"
+                                <Button
+                                    variant="primary"
+                                    size="sm"
                                     onClick={handleLookupPrescription}
                                     disabled={lookingUp || !prescriptionNumber.trim()}
-                                    className="mt-0.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20 flex items-center gap-1 whitespace-nowrap"
+                                    isLoading={lookingUp}
+                                    leftIcon={!lookingUp && <HiOutlineMagnifyingGlass className="w-3.5 h-3.5" />}
+                                    className="mt-0.5"
                                 >
-                                    {lookingUp
-                                        ? <span className="w-3 h-3 border-2 border-white/50 border-t-white rounded-full animate-spin" />
-                                        : <HiOutlineMagnifyingGlass className="w-3.5 h-3.5" />
-                                    }
                                     Validar
-                                </button>
+                                </Button>
                             </div>
 
                             {validatedRx && (
@@ -444,8 +455,9 @@ export function POSCartPanel({
                     )}
 
                     <Button
-                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest py-6"
+                        variant="primary"
                         size="lg"
+                        className="w-full"
                         onClick={handleCheckout}
                         disabled={cart.length === 0}
                         leftIcon={<HiOutlineCheck className="w-6 h-6" />}

@@ -3,6 +3,10 @@ import { authenticate, AuthRequest } from '../middleware/auth';
 import { restaurantService } from '../services/restaurantService';
 import { ApiError } from '../middleware/error.middleware';
 import { requireModule } from '../middleware/module';
+import { 
+    createRestaurantOrderSchema, 
+    createRestaurantReservationSchema 
+} from '../validation';
 
 const router = Router();
 router.use(authenticate, requireModule('RESTAURANT'));
@@ -119,7 +123,8 @@ router.get('/orders', authenticate, async (req: AuthRequest, res) => {
 
 router.post('/orders', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const order = await restaurantService.createOrder(req.companyId, req.body);
+    const validated = createRestaurantOrderSchema.parse(req.body);
+    const order = await restaurantService.createOrder(req.companyId, validated);
     res.status(201).json(order);
 });
 
@@ -142,7 +147,8 @@ router.get('/reservations', authenticate, async (req: AuthRequest, res) => {
 
 router.post('/reservations', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const reservation = await restaurantService.createReservation(req.companyId, req.body);
+    const validated = createRestaurantReservationSchema.parse(req.body);
+    const reservation = await restaurantService.createReservation(req.companyId, validated);
     res.status(201).json(reservation);
 });
 

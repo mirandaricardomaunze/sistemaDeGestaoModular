@@ -29,6 +29,7 @@ import {
     LoadingSpinner,
     Pagination
 } from '../../components/ui';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { 
     useDrivers, 
     useCreateDriver, 
@@ -310,34 +311,33 @@ export default function LogisticsHRPage() {
             {activeTab === 'dashboard' && (
                 <div className="space-y-6 animate-fade-in">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <StatCard
-                            title={t('logistics_module.hr.stats.attendance')}
+                        <MetricCard
+                            label={t('logistics_module.hr.stats.attendance')}
                             value="94.2%"
-                            trend="+2.1%"
-                            icon={<HiOutlineCalendar className="text-blue-500" />}
+                            growth={2.1}
+                            icon={<HiOutlineCalendar className="w-5 h-5" />}
                             color="blue"
                         />
-                        <StatCard
-                            title={t('logistics_module.hr.stats.efficiency')}
+                        <MetricCard
+                            label={t('logistics_module.hr.stats.efficiency')}
                             value="87.5%"
-                            trend="+5.4%"
-                            icon={<HiOutlineChartBar className="text-green-500" />}
+                            growth={5.4}
+                            icon={<HiOutlineChartBar className="w-5 h-5" />}
                             color="green"
                         />
-                        <StatCard
-                            title={t('logistics_module.hr.stats.safety')}
+                        <MetricCard
+                            label={t('logistics_module.hr.stats.safety')}
                             value="98/100"
-                            trend="Estvel"
-                            trendColor="gray"
-                            icon={<HiOutlineShieldCheck className="text-purple-500" />}
+                            icon={<HiOutlineShieldCheck className="w-5 h-5" />}
                             color="purple"
+                            badge={<Badge variant="gray" size="sm">Estvel</Badge>}
                         />
-                        <StatCard
-                            title={t('logistics_module.hr.stats.productivity')}
+                        <MetricCard
+                            label={t('logistics_module.hr.stats.productivity')}
                             value="12.4 dep/dia"
-                            trend="+0.8"
-                            icon={<HiOutlinePlus className="text-orange-500" />}
+                            icon={<HiOutlinePlus className="w-5 h-5" />}
                             color="orange"
+                            badge={<Badge variant="success" size="sm">+0.8</Badge>}
                         />
                     </div>
 
@@ -600,26 +600,3 @@ export default function LogisticsHRPage() {
     );
 }
 
-function StatCard({ title, value, trend, trendColor = 'green', icon, color }: any) {
-    const bgColors: Record<string, string> = {
-        blue: 'bg-blue-500/15 border-blue-500/20 text-blue-600 dark:text-blue-300',
-        green: 'bg-green-500/15 border-green-500/20 text-green-600 dark:text-green-300',
-        purple: 'bg-purple-500/15 border-purple-500/20 text-purple-600 dark:text-purple-300',
-        orange: 'bg-orange-500/15 border-orange-500/20 text-orange-600 dark:text-orange-400'
-    };
-    
-    return (
-        <Card variant="default" className="group overflow-hidden transition-all hover:shadow-premium-hover border-none bg-white dark:bg-dark-900 shadow-premium">
-            <div className="flex items-center justify-between mb-4">
-                <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center backdrop-blur-sm border group-hover:scale-110 transition-transform", bgColors[color])}>
-                    {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'w-6 h-6' })}
-                </div>
-                <Badge variant={trendColor === 'green' ? 'success' : 'gray'} className="font-black text-[9px] px-2 py-0.5 rounded-full">
-                    {trend}
-                </Badge>
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">{title}</p>
-            <h4 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{value}</h4>
-        </Card>
-    );
-}

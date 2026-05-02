@@ -6,13 +6,12 @@ import { z } from 'zod';
 import { 
     HiOutlineEnvelope, 
     HiOutlineLockClosed, 
-    HiOutlineEye, 
-    HiOutlineEyeSlash, 
     HiOutlineShieldCheck,
     HiOutlineExclamationCircle,
     HiOutlineSquares2X2,
     HiOutlineShoppingCart
 } from 'react-icons/hi2';
+import { Input } from '../components/ui';
 import { useAuthStore } from '../stores/useAuthStore';
 
 // Validation Schema
@@ -26,7 +25,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
     const navigate = useNavigate();
     const { login, isLoading } = useAuthStore();
-    const [showPassword, setShowPassword] = useState(false);
     const [loginError, setLoginError] = useState<string | null>(null);
     const [shakeForm, setShakeForm] = useState(false);
 
@@ -97,52 +95,34 @@ export default function Login() {
 
                     {/* Form */}
                     <form className={`space-y-6 ${shakeForm ? 'animate-shake' : ''}`} onSubmit={handleSubmit(onSubmit)}>
-                        <div className="space-y-2">
-                            <label htmlFor="email" className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                                Email de Acesso
-                            </label>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <HiOutlineEnvelope className={`h-5 w-5 transition-colors ${errors.email ? 'text-red-400' : 'text-slate-400 group-focus-within:text-primary-500'}`} />
-                                </div>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    className={`block w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-dark-800/50 border ${errors.email ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/60'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium`}
-                                    placeholder="exemplo@multicore.co.mz"
-                                    {...register('email')}
-                                />
-                            </div>
-                            {errors.email && <p className="text-xs font-bold text-red-500 mt-1">{errors.email.message}</p>}
-                        </div>
+                        <Input
+                            label="Email de Acesso"
+                            type="email"
+                            placeholder="exemplo@multicore.co.mz"
+                            leftIcon={<HiOutlineEnvelope className="h-5 w-5" />}
+                            error={errors.email?.message}
+                            size="lg"
+                            {...register('email')}
+                        />
 
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <label htmlFor="password" className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        <div className="space-y-1">
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                                     Palavra-passe
                                 </label>
-                                <Link to="/forgot-password" className="text-xs font-bold text-primary-600 hover:text-primary-500 dark:text-primary-400 transition-colors">
-                                    Esqueceu-se da password?
+                                <Link to="/forgot-password" title="Recuperar acesso" className="text-[10px] font-black text-primary-600 hover:text-primary-500 uppercase tracking-widest transition-colors">
+                                    Esqueceu-se?
                                 </Link>
                             </div>
-                            <div className="relative group">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <HiOutlineLockClosed className={`h-5 w-5 transition-colors ${errors.password ? 'text-red-400' : 'text-slate-400 group-focus-within:text-primary-500'}`} />
-                                </div>
-                                <input
-                                    id="password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    className={`block w-full pl-12 pr-12 py-3.5 bg-slate-50 dark:bg-dark-800/50 border ${errors.password ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/60'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all font-medium`}
-                                    placeholder="••••••••"
-                                    {...register('password')}
-                                />
-                                <div
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-primary-500 transition-colors"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                >
-                                    {showPassword ? <HiOutlineEyeSlash className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
-                                </div>
-                            </div>
+                            <Input
+                                type="password"
+                                showPasswordToggle
+                                placeholder="••••••••"
+                                leftIcon={<HiOutlineLockClosed className="h-5 w-5" />}
+                                error={errors.password?.message}
+                                size="lg"
+                                {...register('password')}
+                            />
                         </div>
 
                         <button

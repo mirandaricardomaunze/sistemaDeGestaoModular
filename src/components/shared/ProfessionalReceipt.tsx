@@ -156,8 +156,8 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
                                             <td>
                                                 <p className="font-medium text-gray-900">{item.product.name}</p>
                                                 <p className="text-[8pt] text-gray-400">{item.product.code}</p>
-                                                {item.product?.weight && item.product.weight > 0 && (
-                                                    <p className="text-[7pt] text-gray-300">{item.product.weight.toFixed(3)} kg/un</p>
+                                                {Number(item.product?.weight) > 0 && (
+                                                    <p className="text-[7pt] text-gray-300">{Number(item.product!.weight).toFixed(3)} kg/un</p>
                                                 )}
                                             </td>
                                             <td style={{ textAlign: 'center' }}>{item.quantity}</td>

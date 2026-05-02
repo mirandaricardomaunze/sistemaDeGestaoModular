@@ -113,8 +113,8 @@ export const CacheKeys = {
         `dashboard:top-products:${companyId}:${limit}:${period}:${warehouseId || 'all'}`,
 
     // Products
-    productList: (companyId: string, page: number, filters: string) =>
-        `products:list:${companyId}:${page}:${filters}`,
+    productList: (companyId: string, page: number, filters: string, limit?: number) =>
+        `products:list:${companyId}:${page}:${limit ?? 'd'}:${filters}`,
     productById: (companyId: string, id: string) => `product:${companyId}:${id}`,
     productsLowStock: (companyId: string) => `products:low-stock:${companyId}`,
     productsExpiring: (companyId: string, days: number) => `products:expiring:${companyId}:${days}`,

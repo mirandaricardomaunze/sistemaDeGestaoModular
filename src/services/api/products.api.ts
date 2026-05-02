@@ -12,7 +12,7 @@ export const productsAPI = {
         minPrice?: number;
         maxPrice?: number;
         supplierId?: string;
-        origin_module?: string;
+        originModule?: string;
         warehouseId?: string;
         page?: number;
         limit?: number;
@@ -55,8 +55,10 @@ export const productsAPI = {
         dosageForm?: string;
         strength?: string;
         manufacturer?: string;
-        origin_module?: string;
+        originModule?: string;
         taxRate?: number;
+        packSize?: number;
+        weight?: number;
     }) => {
         const response = await api.post('/products', data);
         return response.data;
@@ -85,8 +87,10 @@ export const productsAPI = {
         dosageForm: string;
         strength: string;
         manufacturer: string;
-        origin_module: string;
+        originModule: string;
         taxRate: number;
+        packSize: number;
+        weight: number;
     }>) => {
         const response = await api.put(`/products/${id}`, data);
         return response.data;
@@ -116,7 +120,7 @@ export const productsAPI = {
         adjustmentType: 'percentage' | 'fixed';
         adjustmentValue: number;
         operation: 'increase' | 'decrease';
-        origin_module?: string;
+        originModule?: string;
     }) => {
         const response = await api.post('/products/bulk-price-adjustment', data);
         return response.data;
@@ -138,7 +142,7 @@ export const productsAPI = {
         endDate?: string;
         sortBy?: string;
         sortOrder?: 'asc' | 'desc';
-        origin_module?: string;
+        originModule?: string;
     }) => {
         const response = await api.get('/products/stock-movements', { params });
         return response.data;

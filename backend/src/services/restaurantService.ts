@@ -1,7 +1,17 @@
 import { prisma } from '../lib/prisma';
 import { subMonths, format, eachDayOfInterval, startOfDay, endOfDay } from 'date-fns';
 import { ApiError } from '../middleware/error.middleware';
-import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+
+const RESTAURANT_TABLE_FIELDS = ['id', 'number', 'capacity', 'section', 'status', 'createdAt'] as const;
+const RESTAURANT_MENU_FIELDS = [
+    'id', 'name', 'description', 'category', 'price', 'imageUrl',
+    'isAvailable', 'preparationTime', 'createdAt'
+] as const;
+const RESTAURANT_RESERVATION_FIELDS = [
+    'id', 'customerName', 'customerPhone', 'partySize', 'reservationDate',
+    'status', 'tableId', 'notes', 'createdAt'
+] as const;
 import { ResultHandler } from '../utils/result';
 
 export class RestaurantService {
@@ -88,22 +98,24 @@ export class RestaurantService {
         if (params.status) where.status = params.status;
         if (params.section) where.section = params.section;
 
+        const projection = parseFields(params.fields, RESTAURANT_TABLE_FIELDS);
+        const findArgs: any = { where, orderBy: { number: 'asc' }, skip, take: limit };
+        if (projection) {
+            findArgs.select = projection;
+        } else {
+            findArgs.include = {
+                sales: {
+                    where: { originModule: 'restaurant' },
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { id: true, receiptNumber: true, total: true, createdAt: true, items: { select: { quantity: true, total: true, product: { select: { name: true } } } } },
+                },
+            };
+        }
+
         const [total, tables] = await Promise.all([
             prisma.restaurantTable.count({ where }),
-            prisma.restaurantTable.findMany({
-                where,
-                include: {
-                    sales: {
-                        where: { originModule: 'restaurant' },
-                        orderBy: { createdAt: 'desc' },
-                        take: 1,
-                        select: { id: true, receiptNumber: true, total: true, createdAt: true, items: { select: { quantity: true, total: true, product: { select: { name: true } } } } },
-                    },
-                },
-                orderBy: { number: 'asc' },
-                skip,
-                take: limit,
-            }),
+            prisma.restaurantTable.findMany(findArgs),
         ]);
 
         return ResultHandler.success(createPaginatedResponse(tables, page, limit, total));
@@ -216,9 +228,13 @@ export class RestaurantService {
         if (params.isAvailable !== undefined) where.isAvailable = params.isAvailable === 'true' || params.isAvailable === true;
         if (params.search) where.name = { contains: params.search, mode: 'insensitive' };
 
+        const projection = parseFields(params.fields, RESTAURANT_MENU_FIELDS);
+        const findArgs: any = { where, orderBy: [{ category: 'asc' }, { name: 'asc' }], skip, take: limit };
+        if (projection) findArgs.select = projection;
+
         const [total, items] = await Promise.all([
             prisma.restaurantMenuItem.count({ where }),
-            prisma.restaurantMenuItem.findMany({ where, orderBy: [{ category: 'asc' }, { name: 'asc' }], skip, take: limit }),
+            prisma.restaurantMenuItem.findMany(findArgs),
         ]);
         return createPaginatedResponse(items, page, limit, total);
     }
@@ -289,7 +305,40 @@ export class RestaurantService {
     async createOrder(companyId: string, data: any) {
         const orderNumber = await this.generateOrderNumber(companyId);
         const items = data.items || [];
-        const total = items.reduce((s: number, i: any) => s + Number(i.unitPrice) * Number(i.quantity), 0);
+        
+        // ====================================================================
+        // SERVER-SIDE AUTHORITATIVE CALCULATION
+        // Fetch real menu prices from DB and recalculate total.
+        // ====================================================================
+        const menuItemIds = items.map((i: any) => i.menuItemId).filter(Boolean);
+        const menuItems = await prisma.restaurantMenuItem.findMany({
+            where: { id: { in: menuItemIds }, companyId },
+            select: { id: true, name: true, price: true }
+        });
+        const menuMap = new Map(menuItems.map(m => [m.id, m]));
+
+        const verifiedItems = items.map((item: any) => {
+            const menuItem = menuMap.get(item.menuItemId);
+            const unitPrice = Number(item.unitPrice);
+
+            if (menuItem && Math.abs(Number(menuItem.price) - unitPrice) > 0.01) {
+                // Price mismatch detected - use DB price as authoritative
+                return {
+                    ...item,
+                    unitPrice: Number(menuItem.price),
+                    name: menuItem.name,
+                    total: Math.round(Number(menuItem.price) * Number(item.quantity) * 100) / 100
+                };
+            }
+
+            return {
+                ...item,
+                unitPrice: unitPrice,
+                total: Math.round(unitPrice * Number(item.quantity) * 100) / 100
+            };
+        });
+
+        const totalAmount = verifiedItems.reduce((sum: number, i: any) => sum + i.total, 0);
 
         const order = await prisma.restaurantOrder.create({
             data: {
@@ -297,10 +346,10 @@ export class RestaurantService {
                 orderNumber,
                 table: data.tableId ? { connect: { id: data.tableId } } : undefined,
                 notes: data.notes,
-                totalAmount: total,
+                totalAmount: Math.round(totalAmount * 100) / 100,
                 status: 'pending',
                 items: {
-                    create: items.map((i: any) => ({
+                    create: verifiedItems.map((i: any) => ({
                         menuItemId: i.menuItemId || null,
                         name: i.name,
                         quantity: Number(i.quantity),
@@ -374,15 +423,14 @@ export class RestaurantService {
             where.scheduledAt = { gte: startOfDay(d), lte: endOfDay(d) };
         }
 
+        const projection = parseFields(params.fields, RESTAURANT_RESERVATION_FIELDS);
+        const findArgs: any = { where, orderBy: { scheduledAt: 'asc' }, skip, take: limit };
+        if (projection) findArgs.select = projection;
+        else findArgs.include = { table: { select: { id: true, number: true, name: true } } };
+
         const [total, reservations] = await Promise.all([
             prisma.restaurantReservation.count({ where }),
-            prisma.restaurantReservation.findMany({
-                where,
-                include: { table: { select: { id: true, number: true, name: true } } },
-                orderBy: { scheduledAt: 'asc' },
-                skip,
-                take: limit,
-            }),
+            prisma.restaurantReservation.findMany(findArgs),
         ]);
         return createPaginatedResponse(reservations, page, limit, total);
     }

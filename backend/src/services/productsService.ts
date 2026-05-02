@@ -2,7 +2,19 @@ import { prisma } from '../lib/prisma';
 import { cacheService, CacheKeys } from './cacheService';
 import { logger } from '../utils/logger';
 import { Prisma } from '@prisma/client';
-import { getPaginationParams, buildPaginationMeta, createPaginatedResponse } from '../utils/pagination';
+import { getPaginationParams, buildPaginationMeta, createPaginatedResponse, parseFields } from '../utils/pagination';
+
+const PRODUCT_FIELD_ALLOWLIST = [
+    'id', 'code', 'name', 'description', 'category', 'categoryId',
+    'price', 'costPrice', 'currentStock', 'reservedStock',
+    'minStock', 'maxStock', 'unit', 'barcode', 'sku', 'location',
+    'status', 'imageUrl', 'isActive', 'isService', 'requiresPrescription',
+    'dosageForm', 'strength', 'manufacturer', 'originModule',
+    'isReturnable', 'packSize', 'returnPrice', 'weight',
+    'supplierId', 'createdAt', 'updatedAt',
+    'supplier.id', 'supplier.name', 'supplier.code',
+    'categoryModel.id', 'categoryModel.name'
+] as const;
 import { ApiError } from '../middleware/error.middleware';
 import { ResultHandler } from '../utils/result';
 import { logAudit } from '../middleware/audit';
@@ -11,7 +23,7 @@ export class ProductsService {
     /**
      * List products with pagination, search, and filters
      */
-    async list(params: any, companyId: string) {
+    async list(companyId: string, params: any) {
         const { page, limit, skip } = getPaginationParams(params);
         const {
             search,
@@ -22,7 +34,7 @@ export class ProductsService {
             supplierId,
             sortBy = 'name',
             sortOrder = 'asc',
-            originModule = 'inventory',
+            originModule,
             warehouseId
         } = params;
 
@@ -33,51 +45,76 @@ export class ProductsService {
             if (!warehouse) throw ApiError.notFound('Armazém não encontrado');
         }
 
-        const where: Prisma.ProductWhereInput = {
-            isActive: true,
-            companyId: companyId,
-            originModule: originModule as string
-        };
+        const andConditions: Prisma.ProductWhereInput[] = [
+            { isActive: true },
+            { companyId: companyId }
+        ];
 
-        if (search) {
-            where.OR = [
-                { name: { contains: String(search), mode: 'insensitive' } },
-                { code: { contains: String(search), mode: 'insensitive' } },
-                { barcode: { contains: String(search) } },
-                { sku: { contains: String(search), mode: 'insensitive' } }
-            ];
+        // Module filter
+        if (originModule && originModule !== 'all') {
+            andConditions.push({
+                OR: [
+                    { originModule: originModule as string },
+                    { originModule: 'inventory' }
+                ]
+            });
+        } else if (originModule !== 'all') {
+            andConditions.push({ originModule: 'inventory' });
         }
 
+        // Search filters
+        if (search) {
+            andConditions.push({
+                OR: [
+                    { name: { contains: String(search), mode: 'insensitive' } },
+                    { code: { contains: String(search), mode: 'insensitive' } },
+                    { barcode: { contains: String(search) } },
+                    { sku: { contains: String(search), mode: 'insensitive' } }
+                ]
+            });
+        }
+
+        const where: Prisma.ProductWhereInput = { AND: andConditions };
         if (category && category !== 'all') {
-            where.category = category;
+            andConditions.push({ category: category });
         }
 
         if (status && status !== 'all') {
-            where.status = status;
+            andConditions.push({ status: status as any });
         }
 
         if (minPrice || maxPrice) {
-            const priceFilter: any = typeof where.price === 'object' ? { ...where.price } : {};
+            const priceFilter: any = {};
             if (minPrice) priceFilter.gte = parseFloat(String(minPrice));
             if (maxPrice) priceFilter.lte = parseFloat(String(maxPrice));
-            where.price = priceFilter;
+            andConditions.push({ price: priceFilter });
         }
 
         if (supplierId) {
-            where.supplierId = supplierId;
+            andConditions.push({ supplierId: supplierId });
         }
 
         if (warehouseId && warehouseId !== 'all') {
-            where.warehouseStocks = {
-                some: {
-                    warehouseId: String(warehouseId),
-                    quantity: { gt: 0 }
+            andConditions.push({
+                warehouseStocks: {
+                    some: {
+                        warehouseId: String(warehouseId),
+                        quantity: { gt: 0 }
+                    }
                 }
-            };
+            });
         }
 
-        // Cache Key
-        const cacheKey = CacheKeys.productList(companyId, page, JSON.stringify(where));
+        // Optional field projection (?fields=id,name,price,...)
+        const projection = parseFields(params.fields, PRODUCT_FIELD_ALLOWLIST);
+
+        // Cache Key (include fields so partial responses don't poison full ones)
+        const cacheKey = CacheKeys.productList(
+            companyId,
+            page,
+            JSON.stringify(where) + (projection ? `|f=${params.fields}` : ''),
+            limit
+        );
 
         // Try cache
         const cached = cacheService.get(cacheKey);
@@ -87,47 +124,52 @@ export class ProductsService {
         }
 
         // Database Query
+        const findArgs: any = {
+            where,
+            orderBy: { [sortBy as string]: sortOrder },
+            skip,
+            take: limit
+        };
+
+        if (projection) {
+            // Field-select mode: warehouseStocks only included if caller wants stock-by-warehouse
+            findArgs.select = projection;
+            if (warehouseId && warehouseId !== 'all') {
+                findArgs.select.warehouseStocks = {
+                    where: { warehouseId: String(warehouseId) },
+                    select: { warehouseId: true, quantity: true }
+                };
+            }
+        } else {
+            findArgs.include = {
+                supplier: { select: { id: true, name: true, code: true } },
+                categoryModel: { select: { id: true, name: true } },
+                warehouseStocks: {
+                    include: {
+                        warehouse: { select: { id: true, name: true, code: true } }
+                    }
+                }
+            };
+        }
+
         const [total, products] = await Promise.all([
             prisma.product.count({ where }),
-            prisma.product.findMany({
-                where,
-                include: {
-                    supplier: {
-                        select: { id: true, name: true, code: true }
-                    },
-                    categoryModel: {
-                        select: { id: true, name: true }
-                    },
-                    warehouseStocks: {
-                        include: {
-                            warehouse: { select: { id: true, name: true, code: true } }
-                        }
-                    }
-                },
-                orderBy: { [sortBy as string]: sortOrder },
-                skip,
-                take: limit
-            })
+            prisma.product.findMany(findArgs)
         ]);
 
         // ── Multi-warehouse: override currentStock with warehouse-specific qty ──
         // When a warehouseId is provided (e.g. POS bound to a warehouse), the
         // frontend needs to see only the stock available in THAT warehouse, not
         // the global total across all warehouses.
-        let productsOut: typeof products;
+        let productsOut: any[];
         if (warehouseId && warehouseId !== 'all') {
-            productsOut = products.map(p => {
-                const wStock = p.warehouseStocks.find(
-                    ws => ws.warehouseId === String(warehouseId)
-                );
-                return {
-                    ...p,
-                    currentStock: wStock?.quantity ?? 0,
-                    // keep warehouseStock for reference
-                };
+            productsOut = (products as any[]).map((p: any) => {
+                const stocks = p.warehouseStocks as { warehouseId: string; quantity: number }[] | undefined;
+                const wStock = stocks?.find(ws => ws.warehouseId === String(warehouseId));
+                return { ...p, currentStock: wStock?.quantity ?? 0 };
             });
         } else {
-            productsOut = products;
+            productsOut = products as any[];
         }
 
         const response = createPaginatedResponse(productsOut, page, limit, total);
@@ -189,7 +231,8 @@ export class ProductsService {
             code, name, description, category, categoryId, price, costPrice,
             currentStock, minStock, maxStock, unit, barcode, sku,
             isActive, isService, requiresPrescription, dosageForm, strength, manufacturer,
-            originModule, location, supplierId
+            originModule, location, supplierId,
+            isReturnable, returnPrice, packSize, weight
         } = data;
 
         // Use provided code or generate one
@@ -232,7 +275,11 @@ export class ProductsService {
             companyId,
             status,
             isActive: isActive ?? true,
-            originModule: originModule || 'inventory'
+            originModule: originModule || 'inventory',
+            isReturnable: isReturnable ?? false,
+            returnPrice: returnPrice || 0,
+            packSize: packSize || 1,
+            weight: weight || null
         };
 
         const product = await prisma.product.create({
@@ -265,7 +312,7 @@ export class ProductsService {
             'price', 'costPrice', 'currentStock', 'reservedStock',
             'minStock', 'maxStock', 'unit', 'barcode', 'sku',
             'location', 'status', 'imageUrl', 'isActive',
-            'originModule', 'supplierId', 'isReturnable', 'packSize', 'returnPrice'
+            'originModule', 'supplierId', 'isReturnable', 'packSize', 'returnPrice', 'weight'
         ];
 
         const updateData: any = {};
@@ -775,13 +822,15 @@ export class ProductsService {
      * Bulk update prices for products
      */
     async bulkUpdatePrices(params: any, companyId: string, userId?: string, userName?: string) {
-        const { category, adjustmentType, adjustmentValue, operation, origin_module } = params;
+        const { category, adjustmentType, adjustmentValue, operation } = params;
+        // Accept both originModule (canonical) and legacy origin_module for back-compat with older clients.
+        const originModule = params.originModule ?? params.origin_module;
 
         const where: Prisma.ProductWhereInput = {
             companyId,
             isActive: true,
             ...(category ? { category } : {}),
-            ...(origin_module ? { originModule: origin_module } : {})
+            ...(originModule ? { originModule } : {})
         };
 
         const products = await prisma.product.findMany({ where });
@@ -818,7 +867,7 @@ export class ProductsService {
                 entity: 'products',
                 companyId,
                 details: {
-                    filter: { category, origin_module },
+                    filter: { category, originModule },
                     adjustment: { type: adjustmentType, value: adjustmentValue, operation },
                     productsAffected: products.length
                 }

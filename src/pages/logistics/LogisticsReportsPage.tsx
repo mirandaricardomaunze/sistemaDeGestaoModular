@@ -5,7 +5,8 @@
 
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Button, Badge, Select, LoadingSpinner } from '../../components/ui';
+import { Card, Button, Badge, Select, LoadingSpinner, Pagination } from '../../components/ui';
+import { usePagination } from '../../components/ui/Pagination';
 import {
     HiOutlineDocumentChartBar,
     HiOutlineTruck,
@@ -90,6 +91,20 @@ export default function LogisticsReportsPage() {
 
     const driverPerformance = reportData?.driverPerformance ?? [];
     const routeUsage = reportData?.routeUsage ?? [];
+
+    const {
+        currentPage: driverPage,
+        paginatedItems: paginatedDrivers,
+        setCurrentPage: setDriverPage,
+        itemsPerPage: driverLimit,
+    } = usePagination(driverPerformance, 5);
+
+    const {
+        currentPage: routePage,
+        paginatedItems: paginatedRoutes,
+        setCurrentPage: setRoutePage,
+        itemsPerPage: routeLimit,
+    } = usePagination(routeUsage, 5);
 
     // Province distribution
     const provinceData = useMemo(() => {
@@ -303,7 +318,7 @@ export default function LogisticsReportsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y dark:divide-dark-700">
-                                {driverPerformance.map((driver, idx) => (
+                                {paginatedDrivers.map((driver, idx) => (
                                     <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                         <td className="py-3 px-4 font-medium">{driver.name}</td>
                                         <td className="py-3 px-4 text-center">{driver.total}</td>
@@ -318,6 +333,17 @@ export default function LogisticsReportsPage() {
                                 ))}
                             </tbody>
                         </table>
+                        {driverPerformance.length > driverLimit && (
+                            <div className="mt-4">
+                                <Pagination
+                                    currentPage={driverPage}
+                                    totalItems={driverPerformance.length}
+                                    itemsPerPage={driverLimit}
+                                    onPageChange={setDriverPage}
+                                    showItemsPerPage={false}
+                                />
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="py-12 text-center text-gray-500">
@@ -343,7 +369,7 @@ export default function LogisticsReportsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y dark:divide-dark-700">
-                                {routeUsage.map((route, idx) => (
+                                {paginatedRoutes.map((route, idx) => (
                                     <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                         <td className="py-3 px-4 font-medium">{route.name}</td>
                                         <td className="py-3 px-4 text-center">{route.count}</td>
@@ -352,6 +378,17 @@ export default function LogisticsReportsPage() {
                                 ))}
                             </tbody>
                         </table>
+                        {routeUsage.length > routeLimit && (
+                            <div className="mt-4">
+                                <Pagination
+                                    currentPage={routePage}
+                                    totalItems={routeUsage.length}
+                                    itemsPerPage={routeLimit}
+                                    onPageChange={setRoutePage}
+                                    showItemsPerPage={false}
+                                />
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="py-12 text-center text-gray-500">

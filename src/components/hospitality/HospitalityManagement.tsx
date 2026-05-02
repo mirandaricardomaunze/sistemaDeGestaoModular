@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, Button, EmptyState, ConfirmationModal } from '../ui';
+import { Card, Button, EmptyState, ConfirmationModal, Pagination, usePagination } from '../ui';
 import { HiOutlineHome, HiOutlinePlus, HiOutlineTrash, HiOutlinePencil, HiOutlineCog } from 'react-icons/hi2';
 import { formatCurrency } from '../../utils/helpers';
 import { useHospitality } from '../../hooks/useHospitality';
@@ -13,6 +13,15 @@ export default function HospitalityManagement() {
     const { t } = useTranslation();
     const { rooms, isLoading, addRoom, updateRoom, deleteRoom, refetch } = useHospitality();
     const { company } = useTenant();
+
+    const {
+        paginatedItems: paginatedRooms,
+        currentPage,
+        setCurrentPage,
+        itemsPerPage,
+        setItemsPerPage,
+        totalItems,
+    } = usePagination(rooms, 10);
 
     // Modal state
     const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
@@ -148,8 +157,9 @@ export default function HospitalityManagement() {
                 </div>
 
                 {rooms.length > 0 ? (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-gray-100 dark:border-dark-700">
                                     <th className="px-4 py-3 text-xs font-bold text-gray-400 uppercase">{t('hotel_module.rooms.number')}</th>
@@ -160,7 +170,7 @@ export default function HospitalityManagement() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-dark-700/50">
-                                {rooms.map((room: any) => (
+                                {paginatedRooms.map((room: any) => (
                                     <tr key={room.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-700/20 transition-colors">
                                         <td className="px-4 py-4 font-bold text-primary-600">
                                             {t('hotel_module.rooms.types.single')} {room.number}
@@ -208,6 +218,16 @@ export default function HospitalityManagement() {
                             </tbody>
                         </table>
                     </div>
+                    <div className="p-4 border-t border-gray-100 dark:border-dark-700 bg-white/50 dark:bg-dark-900/50">
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={totalItems}
+                            itemsPerPage={itemsPerPage}
+                            onPageChange={setCurrentPage}
+                            onItemsPerPageChange={setItemsPerPage}
+                        />
+                    </div>
+                    </>
                 ) : (
                     <EmptyState
                         title={t('common.noData')}

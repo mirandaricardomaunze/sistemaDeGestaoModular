@@ -33,7 +33,10 @@ jest.mock('../../middleware/auth', () => ({
 
 jest.mock('../../lib/socket', () => ({
     initSocket: jest.fn().mockReturnValue({ on: jest.fn() }),
+    getIO: jest.fn(),
     emitToCompany: jest.fn(),
+    emitToModule: jest.fn(),
+    emitToUser: jest.fn(),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

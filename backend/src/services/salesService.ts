@@ -4,7 +4,15 @@ import { Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 import { CreateSaleInput } from '../utils/validation';
 import { ApiError } from '../middleware/error.middleware';
-import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+
+const SALE_FIELD_ALLOWLIST = [
+    'id', 'receiptNumber', 'subtotal', 'discount', 'taxAmount',
+    'total', 'paymentMethod', 'amountPaid', 'change', 'status',
+    'customerId', 'userId', 'createdAt', 'originModule',
+    'customer.id', 'customer.name', 'customer.code',
+    'user.id', 'user.name'
+] as const;
 import { stockService } from './stockService';
 import { ResultHandler } from '../utils/result';
 
@@ -20,6 +28,10 @@ export class SalesService {
             customerId,
             paymentMethod,
             warehouseId,
+            search,
+            originModule,
+            voidStatus,
+            includeVoided,
             sortBy = 'createdAt',
             sortOrder = 'desc'
         } = params;
@@ -27,6 +39,13 @@ export class SalesService {
         const where: any = {
             companyId
         };
+
+        // Hide voided sales by default; callers can opt in.
+        if (voidStatus) {
+            where.voidStatus = voidStatus;
+        } else if (!includeVoided) {
+            where.voidStatus = { not: 'voided' };
+        }
 
         if (startDate || endDate) {
             where.createdAt = {};
@@ -37,24 +56,44 @@ export class SalesService {
         if (customerId) where.customerId = customerId;
         if (paymentMethod) where.paymentMethod = paymentMethod;
         if (warehouseId) where.warehouseId = warehouseId;
+        if (originModule) where.originModule = originModule;
+
+        if (search && typeof search === 'string') {
+            const term = search.trim();
+            if (term) {
+                where.OR = [
+                    { receiptNumber: { contains: term, mode: 'insensitive' } },
+                    { customer: { name: { contains: term, mode: 'insensitive' } } }
+                ];
+            }
+        }
+
+        const projection = parseFields(params.fields, SALE_FIELD_ALLOWLIST);
+        const findArgs: any = {
+            where,
+            orderBy: { [sortBy as string]: sortOrder },
+            skip,
+            take: limit
+        };
+        if (projection) {
+            // Field-select mode skips items[] by default — callers that need them
+            // either request the full row, or fetch the sale by id.
+            findArgs.select = projection;
+        } else {
+            findArgs.include = {
+                customer: { select: { id: true, name: true, code: true } },
+                user: { select: { id: true, name: true } },
+                items: {
+                    include: {
+                        product: { select: { id: true, name: true, code: true } }
+                    }
+                }
+            };
+        }
 
         const [total, sales] = await Promise.all([
             prisma.sale.count({ where }),
-            prisma.sale.findMany({
-                where,
-                include: {
-                    customer: { select: { id: true, name: true, code: true } },
-                    user: { select: { id: true, name: true } },
-                    items: {
-                        include: {
-                            product: { select: { id: true, name: true, code: true } }
-                        }
-                    }
-                },
-                orderBy: { [sortBy as string]: sortOrder },
-                skip,
-                take: limit
-            })
+            prisma.sale.findMany(findArgs)
         ]);
 
         return ResultHandler.success(createPaginatedResponse(sales, page, limit, total));
@@ -90,7 +129,8 @@ export class SalesService {
         companyId: string,
         userId: string,
         userName: string,
-        userIp: string
+        userIp: string,
+        userRole?: string
     ) {
         const {
             customerId,
@@ -104,8 +144,41 @@ export class SalesService {
             sessionId,
             originModule,
             tableId,
-            warehouseId
+            warehouseId,
+            discountReason,
+            discountKind,
+            discountAudit
         } = data;
+
+        // ── Discount authorization (role-based ceiling) ─────────────────────
+        // Operators/cashiers can apply small discounts; managers and above unlimited.
+        // Bypass attempts (e.g. crafted curl payloads) are rejected here.
+        const DISCOUNT_LIMIT_PCT: Record<string, number> = {
+            super_admin: 100,
+            admin: 100,
+            manager: 100,
+            operator: 10,
+            cashier: 10,
+            stock_keeper: 5,
+        };
+        const role = (userRole || 'operator').toLowerCase();
+        const maxPct = DISCOUNT_LIMIT_PCT[role] ?? 10;
+        const grossSubtotal = items.reduce((s, i) => s + (Number(i.unitPrice) * Number(i.quantity)), 0);
+        const totalDiscount = (Number(inputDiscount) || 0)
+            + items.reduce((s, i) => s + (Number(i.discount) || 0), 0);
+        const effectivePct = grossSubtotal > 0 ? (totalDiscount / grossSubtotal) * 100 : 0;
+        if (effectivePct > maxPct + 0.01) {
+            logger.warn('Discount limit exceeded', { userId, role, effectivePct, maxPct, companyId });
+            throw ApiError.forbidden(
+                `O seu perfil (${role}) permite no máximo ${maxPct}% de desconto. Aplicado: ${effectivePct.toFixed(1)}%. Solicite a um gerente.`
+            );
+        }
+        // Reason is mandatory whenever any discount is applied
+        const lineHasReason = items.every(i => !i.discount || i.discount <= 0 || (i.discountReason && i.discountReason.trim().length > 0));
+        const globalHasReason = !inputDiscount || (inputDiscount || 0) <= 0 || (discountReason && discountReason.trim().length > 0);
+        if (!lineHasReason || !globalHasReason) {
+            throw ApiError.badRequest('Todo o desconto deve ter um motivo.');
+        }
 
         const POINTS_EARN_RATE = 100;
         const POINT_VALUE = 1;
@@ -153,9 +226,9 @@ export class SalesService {
             const productIds = items.map(i => i.productId);
             const products = await tx.product.findMany({
                 where: { id: { in: productIds }, companyId },
-                select: { id: true, name: true, price: true, currentStock: true }
+                select: { id: true, name: true, price: true, costPrice: true, packSize: true, currentStock: true }
             });
-            const productMap = new Map<string, { id: string; name: string; price: any; currentStock: number }>(products.map((p: any) => [p.id, p]));
+            const productMap = new Map<string, { id: string; name: string; price: any; costPrice: any; packSize: number; currentStock: number }>(products.map((p: any) => [p.id, p]));
 
             // Fetch company IVA rate for server-side tax calculation
             const companySettings = await tx.companySettings.findFirst({
@@ -164,29 +237,58 @@ export class SalesService {
             });
             const ivaRate = Number(companySettings?.ivaRate ?? 16) / 100;
 
-            // Recalculate each item total using DB prices
+            // Recalculate each item total using DB prices.
+            // product.price = preço de venda DA CAIXA. Stock e SaleItem operam em UNIDADES,
+            // por isso o preço unitário canónico é price / packSize. O frontend pode também
+            // enviar item.unitPrice = price (caixa inteira) com quantity = packSize, ou um
+            // preço escalonado/promocional — toleramos ambas as formas mas guardamos sempre
+            // por unidade.
             const verifiedItems = items.map(item => {
                 const product = productMap.get(item.productId);
                 if (!product) {
                     throw ApiError.notFound(`Produto não encontrado: ${item.productId}`);
                 }
 
-                // Verify unit price matches DB (allow 0.01 tolerance for rounding)
-                const dbPrice = Number(product.price);
-                if (dbPrice > 0 && Math.abs(dbPrice - item.unitPrice) > 0.01) {
+                const packSize = Number(product.packSize) || 1;
+                const dbBoxPrice = Number(product.price);
+                const dbUnitPrice = dbBoxPrice / packSize;
+                const sentPrice = Number(item.unitPrice) || 0;
+
+                // Aceita: (a) preço por unidade ≈ dbUnitPrice; (b) preço por caixa ≈ dbBoxPrice
+                // (cliente legado a vender em caixa); (c) qualquer preço inferior — assume-se
+                // desconto/promo válido. Rejeita apenas preços ACIMA do oficial.
+                const matchesUnit = Math.abs(dbUnitPrice - sentPrice) <= Math.max(0.01, dbUnitPrice * 0.001);
+                const matchesBox = packSize > 1 && Math.abs(dbBoxPrice - sentPrice) <= 0.01;
+                const isBelow = sentPrice <= dbUnitPrice + 0.01;
+
+                let normalizedUnitPrice = sentPrice;
+                if (matchesBox) {
+                    // Cliente enviou preço por caixa — converte para por unidade.
+                    normalizedUnitPrice = dbUnitPrice;
+                } else if (!matchesUnit && !isBelow) {
                     logger.warn('Price mismatch detected', {
                         productId: item.productId,
                         productName: product.name,
-                        frontendPrice: item.unitPrice,
-                        dbPrice,
+                        frontendPrice: sentPrice,
+                        dbUnitPrice,
+                        dbBoxPrice,
+                        packSize,
                         userId, companyId
                     });
-                    // Use DB price as authoritative source
-                    item.unitPrice = dbPrice;
+                    normalizedUnitPrice = dbUnitPrice;
                 }
 
+                item.unitPrice = Math.round(normalizedUnitPrice * 10000) / 10000;
                 const computedItemTotal = (item.unitPrice * item.quantity) - (item.discount || 0);
-                return { ...item, total: Math.round(computedItemTotal * 100) / 100 };
+                return {
+                    ...item,
+                    total: Math.round(computedItemTotal * 100) / 100,
+                    // Snapshot the cost at sale time so margin reports remain
+                    // accurate even if the product is later renamed, reposted
+                    // with a new costPrice, or soft-deleted.
+                    costPriceSnapshot: Number(product.costPrice ?? 0),
+                    productNameSnapshot: product.name,
+                };
             });
 
             const computedSubtotal = verifiedItems.reduce((sum, item) => sum + item.total, 0);
@@ -275,13 +377,21 @@ export class SalesService {
                     series,
                     fiscalNumber,
                     hashCode,
+                    discountReason: discountReason || undefined,
+                    discountKind: discountKind || undefined,
+                    discountAudit: discountAudit ? (discountAudit as any) : undefined,
                     items: {
                         create: verifiedItems.map((item) => ({
                             productId: item.productId,
+                            productName: (item as any).productNameSnapshot,
                             quantity: item.quantity,
                             unitPrice: item.unitPrice,
+                            costPrice: (item as any).costPriceSnapshot,
                             discount: item.discount || 0,
-                            total: item.total
+                            total: item.total,
+                            discountReason: (item as any).discountReason || undefined,
+                            discountKind: (item as any).discountKind || undefined,
+                            discountAppliedBy: (item as any).discountAppliedBy || undefined
                         }))
                     }
                 },
@@ -400,14 +510,62 @@ export class SalesService {
             return ResultHandler.success(createdSale);
         }, {
             isolationLevel: 'Serializable',
-            timeout: 10000
+            timeout: 30000,
+            maxWait: 10000
         });
     }
 
     /**
-     * Cancel/Void Sale
+     * Step 1: Request Void
+     * Operator/manager flags a sale for cancellation. Stock is NOT restored yet.
+     * Sale enters `pending_void` and waits for a second approver.
      */
-    async cancel(id: string, reason: string, companyId: string, userId: string, userName: string, userIp: string) {
+    async requestVoid(id: string, reason: string, companyId: string, userId: string, userName: string, userIp: string) {
+        const trimmed = (reason || '').trim();
+        if (trimmed.length < 5) throw ApiError.badRequest('Motivo deve ter pelo menos 5 caracteres');
+
+        return await prisma.$transaction(async (tx: any) => {
+            const sale = await tx.sale.findFirst({ where: { id, companyId } });
+            if (!sale) throw ApiError.notFound('Venda não encontrada');
+            if (sale.voidStatus === 'voided') throw ApiError.badRequest('Venda já foi anulada');
+            if (sale.voidStatus === 'pending_void') throw ApiError.badRequest('Já existe um pedido de anulação pendente para esta venda');
+
+            const updated = await tx.sale.update({
+                where: { id },
+                data: {
+                    voidStatus: 'pending_void',
+                    voidReason: trimmed,
+                    voidRequestedBy: userId,
+                    voidRequestedAt: new Date(),
+                    voidRejectedBy: null,
+                    voidRejectedAt: null,
+                    voidRejectReason: null
+                }
+            });
+
+            await tx.auditLog.create({
+                data: {
+                    userId,
+                    action: 'REQUEST_VOID_SALE',
+                    entity: 'Sales',
+                    entityId: id,
+                    oldData: { voidStatus: sale.voidStatus || 'active' } as any,
+                    newData: { voidStatus: 'pending_void', reason: trimmed, requestedBy: userName } as any,
+                    ipAddress: userIp
+                }
+            });
+
+            return ResultHandler.success({ message: 'Pedido de anulação registado. Aguarda aprovação.', sale: updated });
+        }, { timeout: 15000, maxWait: 10000 });
+    }
+
+    /**
+     * Step 2a: Approve Void
+     * Second approver (different user) confirms the cancellation.
+     * Restores stock, reverses customer stats and loyalty, marks sale as `voided`.
+     * The sale row is preserved for audit — never hard-deleted.
+     */
+    async approveVoid(id: string, companyId: string, approverId: string, approverName: string, userIp: string) {
         return await prisma.$transaction(async (tx: any) => {
             const sale = await tx.sale.findFirst({
                 where: { id, companyId },
@@ -415,6 +573,12 @@ export class SalesService {
             });
 
             if (!sale) throw ApiError.notFound('Venda não encontrada');
+            if (sale.voidStatus !== 'pending_void') {
+                throw ApiError.badRequest('Apenas pedidos pendentes podem ser aprovados');
+            }
+            if (sale.voidRequestedBy && sale.voidRequestedBy === approverId) {
+                throw ApiError.forbidden('O aprovador deve ser diferente de quem solicitou a anulação');
+            }
 
             // Restore Stock
             for (const item of sale.items) {
@@ -426,32 +590,18 @@ export class SalesService {
                     referenceType: 'SALE',
                     referenceContent: sale.receiptNumber,
                     reason: `Anulação de Venda ${sale.receiptNumber}`,
-                    performedBy: userName,
+                    performedBy: approverName,
                     companyId
                 }, tx);
             }
 
-            // Audit
-            await tx.auditLog.create({
-                data: {
-                    userId,
-                    action: 'VOID_SALE',
-                    entity: 'Sales',
-                    entityId: id,
-                    oldData: sale as any,
-                    newData: { reason },
-                    ipAddress: userIp
-                }
-            });
-
-            // Restore Customer Stats and reverse loyalty points
+            // Reverse customer stats and loyalty points
             if (sale.customerId) {
                 await tx.customer.update({
                     where: { id: sale.customerId },
                     data: { totalPurchases: { decrement: sale.total } }
                 });
 
-                // Reverse all loyalty transactions tied to this sale
                 const loyaltyTxs = await tx.loyaltyTransaction.findMany({
                     where: { referenceId: id },
                     select: { id: true, points: true, type: true }
@@ -465,10 +615,105 @@ export class SalesService {
                 }
             }
 
-            await tx.sale.delete({ where: { id } });
+            await tx.sale.update({
+                where: { id },
+                data: {
+                    voidStatus: 'voided',
+                    voidApprovedBy: approverId,
+                    voidApprovedAt: new Date()
+                }
+            });
 
-            return ResultHandler.success({ message: 'Venda anulada com sucesso', restoredItems: sale.items.length });
+            await tx.auditLog.create({
+                data: {
+                    userId: approverId,
+                    action: 'APPROVE_VOID_SALE',
+                    entity: 'Sales',
+                    entityId: id,
+                    oldData: { voidStatus: 'pending_void' } as any,
+                    newData: {
+                        voidStatus: 'voided',
+                        approvedBy: approverName,
+                        requestedBy: sale.voidRequestedBy,
+                        reason: sale.voidReason,
+                        restoredItems: sale.items.length,
+                        total: sale.total
+                    } as any,
+                    ipAddress: userIp
+                }
+            });
+
+            return ResultHandler.success({ message: 'Anulação aprovada. Stock e fidelização revertidos.', restoredItems: sale.items.length });
+        }, { timeout: 30000, maxWait: 10000 });
+    }
+
+    /**
+     * Step 2b: Reject Void
+     * Approver refuses the cancellation. Sale returns to `active`.
+     */
+    async rejectVoid(id: string, reason: string, companyId: string, approverId: string, approverName: string, userIp: string) {
+        const trimmed = (reason || '').trim();
+        if (trimmed.length < 5) throw ApiError.badRequest('Motivo da rejeição deve ter pelo menos 5 caracteres');
+
+        return await prisma.$transaction(async (tx: any) => {
+            const sale = await tx.sale.findFirst({ where: { id, companyId } });
+            if (!sale) throw ApiError.notFound('Venda não encontrada');
+            if (sale.voidStatus !== 'pending_void') {
+                throw ApiError.badRequest('Apenas pedidos pendentes podem ser rejeitados');
+            }
+            if (sale.voidRequestedBy && sale.voidRequestedBy === approverId) {
+                throw ApiError.forbidden('O aprovador deve ser diferente de quem solicitou a anulação');
+            }
+
+            await tx.sale.update({
+                where: { id },
+                data: {
+                    voidStatus: 'active',
+                    voidRejectedBy: approverId,
+                    voidRejectedAt: new Date(),
+                    voidRejectReason: trimmed
+                }
+            });
+
+            await tx.auditLog.create({
+                data: {
+                    userId: approverId,
+                    action: 'REJECT_VOID_SALE',
+                    entity: 'Sales',
+                    entityId: id,
+                    oldData: { voidStatus: 'pending_void', requestedBy: sale.voidRequestedBy, requestReason: sale.voidReason } as any,
+                    newData: { voidStatus: 'active', rejectedBy: approverName, rejectReason: trimmed } as any,
+                    ipAddress: userIp
+                }
+            });
+
+            return ResultHandler.success({ message: 'Pedido de anulação rejeitado.' });
+        }, { timeout: 15000, maxWait: 10000 });
+    }
+
+    /**
+     * @deprecated Backwards-compat shim. The legacy POST /:id/cancel endpoint
+     * now creates a *pending_void* request (step 1) instead of deleting the sale.
+     * A second user must call /void/approve to actually restore stock.
+     */
+    async cancel(id: string, reason: string, companyId: string, userId: string, userName: string, userIp: string) {
+        return await this.requestVoid(id, reason, companyId, userId, userName, userIp);
+    }
+
+    /**
+     * List sales currently awaiting a void approval -- managers' inbox.
+     */
+    async listPendingVoids(companyId: string) {
+        const sales = await prisma.sale.findMany({
+            where: { companyId, voidStatus: 'pending_void' },
+            include: {
+                customer: { select: { id: true, name: true, code: true } },
+                user: { select: { id: true, name: true } },
+                items: { select: { id: true, quantity: true, unitPrice: true, total: true, productId: true } }
+            },
+            orderBy: { voidRequestedAt: 'desc' }
         });
+        return ResultHandler.success(sales);
     }
 
     /**
@@ -476,7 +721,7 @@ export class SalesService {
      */
     async getStats(params: any, companyId: string) {
         const { startDate, endDate } = params;
-        const where: any = { companyId };
+        const where: any = { companyId, voidStatus: { not: 'voided' } };
 
         if (startDate || endDate) {
             where.createdAt = {};
@@ -496,7 +741,7 @@ export class SalesService {
             }),
             prisma.saleItem.groupBy({
                 by: ['productId'],
-                where: { sale: { companyId } },
+                where: { sale: { companyId, voidStatus: { not: 'voided' } } },
                 _sum: { quantity: true, total: true },
                 orderBy: { _sum: { total: 'desc' } },
                 take: 10
@@ -534,9 +779,10 @@ export class SalesService {
         const endOfDay = new Date(today);
         endOfDay.setHours(23, 59, 59, 999);
 
+        const todayWhere = { companyId, createdAt: { gte: today, lte: endOfDay }, voidStatus: { not: 'voided' as const } };
         const [sales, totals] = await Promise.all([
             prisma.sale.findMany({
-                where: { companyId, createdAt: { gte: today, lte: endOfDay } },
+                where: todayWhere,
                 include: {
                     customer: { select: { name: true } },
                     items: { select: { quantity: true } }
@@ -544,7 +790,7 @@ export class SalesService {
                 orderBy: { createdAt: 'desc' }
             }),
             prisma.sale.aggregate({
-                where: { companyId, createdAt: { gte: today, lte: endOfDay } },
+                where: todayWhere,
                 _sum: { total: true, discount: true, tax: true },
                 _count: true
             })

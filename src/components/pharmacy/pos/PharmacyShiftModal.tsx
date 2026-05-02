@@ -58,7 +58,7 @@ export function PharmacyShiftModal({ isOpen, mode, shift, onOpenShift, onCloseSh
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="relative z-10 w-full max-w-md mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden">
+            <div className="relative z-10 w-full max-w-xl mx-4 bg-white dark:bg-dark-800 rounded-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 {/* Header */}
                 <div className={`px-6 py-4 flex items-center justify-between ${mode === 'open' ? 'bg-teal-600' : 'bg-slate-700'}`}>
                     <div>
@@ -76,7 +76,7 @@ export function PharmacyShiftModal({ isOpen, mode, shift, onOpenShift, onCloseSh
                     </button>
                 </div>
 
-                <div className="p-6 space-y-5">
+                <div className="p-6 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
                     {/* Close shift: show sales report */}
                     {mode === 'close' && shift && (
                         <div className="bg-gray-50 dark:bg-dark-900 rounded-lg p-4 space-y-2">

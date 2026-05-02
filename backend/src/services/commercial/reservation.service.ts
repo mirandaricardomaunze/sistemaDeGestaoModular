@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { stockService } from '../stockService';
 import { ResultHandler } from '../../utils/result';
+import { invalidateCommercialCache } from './shared';
 
 export class CommercialReservationService {
 
@@ -11,10 +12,12 @@ export class CommercialReservationService {
         const expiresAt = new Date();
         expiresAt.setMinutes(expiresAt.getMinutes() + 15);
 
-        return prisma.$transaction(async (tx) => {
+        const reservation = await prisma.$transaction(async (tx) => {
             await tx.product.update({ where: { id: productId }, data: { reservedStock: { increment: quantity } } });
             return tx.stockReservation.create({ data: { productId, quantity, sessionId, companyId, expiresAt } });
         });
+        invalidateCommercialCache(companyId);
+        return reservation;
     }
 
     async releaseItem(reservationId: string, companyId: string) {

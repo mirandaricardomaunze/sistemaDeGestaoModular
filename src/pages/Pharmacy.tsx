@@ -1,19 +1,29 @@
 import { useState, useMemo } from 'react';
-import { Card, Button, Badge, Input, Select, Modal, ConfirmationModal, Pagination, Skeleton } from '../components/ui';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Button, Badge, Input, Select, Modal, ConfirmationModal, SmartTable, PageHeader } from '../components/ui';
 import { pharmacyAPI } from '../services/api';
 import { useProducts, useSuppliers, useCategories } from '../hooks/useData';
 import toast from 'react-hot-toast';
 import {
-    HiOutlineBeaker, HiOutlineClipboardList, HiOutlineCube, HiOutlinePlus,
-    HiOutlineShieldCheck, HiOutlinePencil, HiOutlineTrash,
-    HiOutlineExclamation, HiOutlineClock, HiOutlineDownload,
-    HiOutlineRefresh, HiOutlineSwitchHorizontal,
-} from 'react-icons/hi';
-import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
+    HiOutlineBeaker,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
+    HiOutlineCube,
+    HiOutlinePlus,
+    HiOutlineShieldCheck,
+    HiOutlinePencilSquare as HiOutlinePencil,
+    HiOutlineTrash,
+    HiOutlineExclamationTriangle as HiOutlineExclamation,
+    HiOutlineClock,
+    HiOutlineArrowDownTray as HiOutlineDownload,
+    HiOutlineArrowPath as HiOutlineRefresh
+} from 'react-icons/hi2';
 import { formatCurrency, formatDate, cn } from '../utils/helpers';
 import { usePharmacy } from '../hooks/usePharmacy';
+import { useDebounce } from '../hooks/useDebounce';
 import { usePrescriptions } from '../hooks/usePrescriptions';
+import { MetricCard } from '../components/common/ModuleMetricCard';
 import { useStore } from '../stores/useStore';
+import { SegmentedControl } from '../components/common/SegmentedControl';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -41,7 +51,7 @@ export default function Pharmacy() {
         medications: rawMeds, metrics, pagination: medPag,
         isLoading, addMedication, updateMedication, refetch, addBatch,
     } = usePharmacy({
-        page, limit: pageSize, search,
+        page, limit: pageSize, search: useDebounce(search, 350),
         lowStock: filter === 'lowStock',
         expiringDays: filter === 'expiring' ? 90 : undefined,
         isControlled: filter === 'controlled' ? true : undefined,
@@ -145,7 +155,7 @@ export default function Pharmacy() {
                 await updateMedication(selected.id, medForm);
             } else {
                 if (!productForm.name || !productForm.price) { toast.error('Nome e preço são obrigatórios'); return; }
-                const prod: any = await addProduct({ name: productForm.name, code: productForm.code, price: parseFloat(productForm.price), costPrice: parseFloat(productForm.costPrice) || 0, unit: productForm.unit, origin_module: 'pharmacy' });
+                const prod: any = await addProduct({ name: productForm.name, code: productForm.code, price: parseFloat(productForm.price), costPrice: parseFloat(productForm.costPrice) || 0, unit: productForm.unit, originModule: 'pharmacy' });
                 await addMedication({ ...medForm, productId: prod.id });
             }
             setMedModal(false); resetMedForm();
@@ -170,12 +180,189 @@ export default function Pharmacy() {
         } catch (err: any) { /* error handled in hook */ }
     };
 
+    // ── Columns: Medications ──────────────────────────────────────────────────
+    const medicationColumns = useMemo<ColumnDef<any, any>[]>(() => [
+        {
+            accessorKey: 'product.name',
+            header: 'Medicamento',
+            cell: (info: any) => (
+                <div>
+                    <div className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-xs">{info.getValue()}</div>
+                    <div className="text-[10px] text-gray-400 font-mono tracking-tighter">{info.row.original.product?.code}</div>
+                </div>
+            )
+        },
+        {
+            accessorKey: 'dci',
+            header: 'DCI / Forma',
+            cell: (info: any) => (
+                <div className="hidden md:block">
+                    <div className="text-gray-700 dark:text-gray-300 text-[11px] font-medium">{info.getValue() || ''}</div>
+                    <div className="text-[10px] text-gray-400 uppercase font-bold tracking-tight">{info.row.original.pharmaceuticalForm} {info.row.original.dosage}</div>
+                </div>
+            )
+        },
+        {
+            accessorKey: 'laboratory',
+            header: 'Laboratório',
+            cell: (info: any) => <span className="hidden lg:block text-gray-500 text-[11px] font-medium">{info.getValue() || ''}</span>
+        },
+        {
+            accessorKey: 'totalStock',
+            header: 'Stock',
+            cell: (info: any) => (
+                <div className="flex justify-center">
+                    <span className={cn('inline-flex items-center justify-center w-10 h-7 rounded-lg text-xs font-black border backdrop-blur-sm', alertColour(info.row.original.alertLevel))}>
+                        {info.getValue()}
+                    </span>
+                </div>
+            )
+        },
+        {
+            accessorKey: 'nearestExpiry',
+            header: 'Validade',
+            cell: (info: any) => {
+                const med = info.row.original;
+                if (!info.getValue()) return <span className="text-gray-300">-</span>;
+                return (
+                    <div className="hidden sm:block">
+                        <span className={cn('text-xs font-bold tracking-tighter', med.daysToExpiry !== null && med.daysToExpiry <= 30 ? 'text-red-500' : med.daysToExpiry !== null && med.daysToExpiry <= 90 ? 'text-amber-500' : 'text-gray-500')}>
+                            {formatDate(info.getValue())}
+                            {med.daysToExpiry !== null && med.daysToExpiry <= 90 && (
+                                <span className="ml-1 text-[9px] opacity-70">({med.daysToExpiry}d)</span>
+                            )}
+                        </span>
+                    </div>
+                );
+            }
+        },
+        {
+            accessorKey: 'product.price',
+            header: 'Preço',
+            cell: (info: any) => <span className="font-black text-xs text-gray-900 dark:text-white tracking-tighter">{formatCurrency(info.getValue() || 0)}</span>
+        },
+        {
+            id: 'flags',
+            header: 'Flags',
+            cell: ({ row }: any) => {
+                const med = row.original;
+                return (
+                    <div className="flex items-center justify-center gap-1">
+                        {med.requiresPrescription && <span title="Requer receita" className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 text-[9px] font-black flex items-center justify-center">Rx</span>}
+                        {med.isControlled && <span title="Substância controlada" className="w-5 h-5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 text-[9px] font-black flex items-center justify-center">C</span>}
+                    </div>
+                );
+            }
+        },
+        {
+            id: 'actions',
+            header: '',
+            cell: ({ row }: any) => (
+                <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => openEdit(row.original)} className="text-gray-400 hover:text-primary-600 p-1.5 h-auto">
+                        <HiOutlinePencil className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setSelected(row.original); setDeleteModal(true); }} className="text-gray-400 hover:text-red-600 p-1.5 h-auto">
+                        <HiOutlineTrash className="w-4 h-4 text-red-500 dark:text-red-400" />
+                    </Button>
+                </div>
+            )
+        }
+    ], []);
+
+    // ── Columns: Stock ────────────────────────────────────────────────────────
+    const movementColumns = useMemo<ColumnDef<any, any>[]>(() => [
+        {
+            accessorKey: 'createdAt',
+            header: 'Data',
+            cell: (info: any) => <span className="text-[11px] text-gray-500 font-mono">{formatDate(info.getValue())}</span>
+        },
+        {
+            accessorKey: 'productName',
+            header: 'Medicamento',
+            cell: (info: any) => <span className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-[11px]">{info.getValue() || info.row.original.product?.name}</span>
+        },
+        {
+            accessorKey: 'type',
+            header: 'Tipo',
+            cell: (info: any) => {
+                const type = info.getValue() || info.row.original.movementType;
+                return (
+                    <Badge variant={type === 'IN' ? 'success' : 'danger'} className="text-[9px] px-2 py-0.5">
+                        {type === 'IN' ? 'Entrada' : 'Saída'}
+                    </Badge>
+                );
+            }
+        },
+        {
+            accessorKey: 'quantity',
+            header: 'Qtd',
+            cell: (info: any) => <span className="font-black text-sm text-gray-900 dark:text-white">{info.getValue()}</span>
+        },
+        {
+            accessorKey: 'batchNumber',
+            header: 'Lote',
+            cell: (info: any) => <span className="font-mono text-[10px] text-gray-500 font-medium">{info.getValue() || ''}</span>
+        },
+        {
+            accessorKey: 'reference',
+            header: 'Referência',
+            cell: (info: any) => <span className="text-[10px] text-gray-400 italic">{info.getValue() || info.row.original.reason || ''}</span>
+        }
+    ], []);
+
+    // ── Columns: Prescriptions ───────────────────────────────────────────────
+    const prescriptionColumns = useMemo<ColumnDef<any, any>[]>(() => [
+        {
+            accessorKey: 'prescriptionNumber',
+            header: 'Nº Receita',
+            cell: (info: any) => <span className="font-mono text-xs font-black text-primary-600 dark:text-primary-400">{info.getValue()}</span>
+        },
+        {
+            accessorKey: 'patientName',
+            header: 'Paciente',
+            cell: (info: any) => (
+                <div>
+                    <div className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-xs">{info.getValue()}</div>
+                    {info.row.original.patientPhone && <div className="text-[10px] text-gray-500 font-medium">{info.row.original.patientPhone}</div>}
+                </div>
+            )
+        },
+        { accessorKey: 'prescriberName', header: 'Médico', cell: (info: any) => <span className="text-[11px] text-gray-500 font-medium">{info.getValue() || ''}</span> },
+        {
+            accessorKey: 'prescriptionDate',
+            header: 'Data',
+            cell: (info: any) => <span className="text-xs text-gray-500 font-mono tracking-tighter">{formatDate(info.getValue())}</span>
+        },
+        {
+            accessorKey: 'status',
+            header: 'Estado',
+            cell: (info: any) => {
+                const status = info.getValue();
+                return (
+                    <Badge variant={status === 'dispensed' ? 'success' : status === 'expired' ? 'danger' : 'warning'} className="text-[9px] px-2 py-0.5">
+                        {status === 'dispensed' ? 'Dispensado' : status === 'expired' ? 'Expirado' : 'Pendente'}
+                    </Badge>
+                );
+            }
+        },
+        {
+            id: 'items',
+            header: 'Itens',
+            cell: ({ row }: any) => (
+                <div className="flex justify-center">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 dark:bg-dark-700 text-xs font-black text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-dark-600">{row.original.items?.length || 0}</span>
+                </div>
+            )
+        }
+    ], []);
+
     // ── KPI strip ──────────────────────────────────────────────────────────────
     const kpis = [
-        { label: 'Medicamentos', value: metrics.totalMedications, icon: HiOutlineBeaker, colour: 'text-primary-600 bg-primary-50 dark:bg-primary-900/20' },
-        { label: 'Stock Baixo', value: metrics.lowStockItems, icon: HiOutlineExclamation, colour: 'text-amber-600 bg-amber-50 dark:bg-amber-900/20' },
-        { label: 'A Expirar (90d)', value: metrics.expiringSoon, icon: HiOutlineClock, colour: 'text-red-600 bg-red-50 dark:bg-red-900/20' },
-        { label: 'Controlados', value: metrics.controlledItems, icon: HiOutlineShieldCheck, colour: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' },
+        { label: 'Medicamentos', value: metrics.totalMedications, icon: HiOutlineBeaker, color: 'primary' },
+        { label: 'Stock Baixo', value: metrics.lowStockItems, icon: HiOutlineExclamation, color: 'warning' },
+        { label: 'A Expirar (90d)', value: metrics.expiringSoon, icon: HiOutlineClock, color: 'danger' },
+        { label: 'Controlados', value: metrics.controlledItems, icon: HiOutlineShieldCheck, color: 'indigo' },
     ];
 
     const FILTER_TABS = [
@@ -187,341 +374,147 @@ export default function Pharmacy() {
 
     return (
         <div className="space-y-5">
-            {/* ── Header ──────────────────────────────────────────────────────-*/}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineBeaker className="w-6 h-6 text-primary-600 dark:text-primary-400" /> Gestão de Medicamentos
-                    </h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Inventário, lotes, stock e receitas médicas</p>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={exportPDF}>PDF</Button>
-                    <Button variant="outline" size="sm" leftIcon={<HiOutlineRefresh className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={() => refetch()} />
-                    {view === 'medications' && (
-                        <Button size="sm" leftIcon={<HiOutlinePlus className="w-4 h-4" />} onClick={() => { resetMedForm(); setMedModal(true); }}>Novo Medicamento</Button>
-                    )}
-                    {view === 'stock' && (
-                        <Button size="sm" leftIcon={<HiOutlinePlus className="w-4 h-4" />} onClick={() => setBatchModal(true)}>Entrada de Lote</Button>
-                    )}
-                </div>
-            </div>
+            <PageHeader
+                title="Gestão de Medicamentos"
+                subtitle="Inventário, lotes, stock e receitas médicas"
+                icon={<HiOutlineBeaker />}
+                actions={
+                    <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800" leftIcon={<HiOutlineRefresh className={cn("w-4 h-4 text-primary-600", isLoading && "animate-spin")} />}>
+                            Actualizar
+                        </Button>
+                        <Button variant="ghost" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={exportPDF} className="h-10 rounded-xl border border-gray-100 dark:border-dark-700 font-bold text-xs bg-white dark:bg-dark-900">PDF</Button>
+                        {view === 'medications' && (
+                            <Button size="sm" leftIcon={<HiOutlinePlus className="w-4 h-4" />} onClick={() => { resetMedForm(); setMedModal(true); }} className="h-10 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-500/20">Novo Medicamento</Button>
+                        )}
+                        {view === 'stock' && (
+                            <Button size="sm" leftIcon={<HiOutlinePlus className="w-4 h-4" />} onClick={() => setBatchModal(true)} className="h-10 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-500/20">Entrada de Lote</Button>
+                        )}
+                    </div>
+                }
+            />
 
             {/* ── KPIs ────────────────────────────────────────────────────────-*/}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {kpis.map(k => {
-                    const Icon = k.icon;
-                    return (
-                        <Card key={k.label} padding="md">
-                            <div className="flex items-center gap-3">
-                                <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', k.colour)}>
-                                    <Icon className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <p className="text-xs text-gray-500">{k.label}</p>
-                                    <p className="text-xl font-black text-gray-900 dark:text-white">{k.value ?? 0}</p>
-                                </div>
-                            </div>
-                        </Card>
-                    );
-                })}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {kpis.map(k => (
+                    <MetricCard
+                        key={k.label}
+                        label={k.label}
+                        value={k.value ?? 0}
+                        icon={<k.icon className="w-5 h-5" />}
+                        color={k.color}
+                    />
+                ))}
             </div>
 
             {/* ── View toggle ────────────────────────────────────────────────── */}
-            <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1 w-fit">
-                {([
-                    { id: 'medications', label: 'Medicamentos', icon: HiOutlineBeaker },
-                    { id: 'stock', label: 'Stock / Lotes', icon: HiOutlineCube },
-                    { id: 'prescriptions', label: 'Receitas', icon: HiOutlineClipboardList },
-                ] as { id: View; label: string; icon: any }[]).map(t => {
-                    const Icon = t.icon;
-                    return (
-                        <Button 
-                            key={t.id} 
-                            onClick={() => { setView(t.id); if (t.id === 'stock') loadMovements(1); }}
-                            variant={view === t.id ? 'primary' : 'ghost'}
-                            size="sm"
-                            className={cn('flex items-center gap-2 rounded-lg text-sm font-medium transition-all px-4 py-2', view === t.id ? 'bg-white dark:bg-dark-800 text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-600 dark:text-gray-400')}
-                        >
-                            <Icon className={cn("w-4 h-4", view === t.id ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />{t.label}
-                        </Button>
-                    );
-                })}
-            </div>
+            <SegmentedControl
+                options={[
+                    { value: 'medications', label: 'Medicamentos', icon: HiOutlineBeaker },
+                    { value: 'stock', label: 'Stock / Lotes', icon: HiOutlineCube },
+                    { value: 'prescriptions', label: 'Receitas', icon: HiOutlineClipboardList },
+                ]}
+                value={view}
+                onChange={(val) => { setView(val as View); if (val === 'stock') loadMovements(1); }}
+            />
 
             {/* ─────────────────────────────────────────────────────────────────────────
                 VIEW: MEDICATIONS
             ───────────────────────────────────────────────────────────────────────── */}
             {view === 'medications' && (
-                <div className="space-y-4">
-                    {/* Search + filters */}
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <Input
-                            placeholder="Pesquisar por nome, DCI, laboratório..."
-                            value={search}
-                            onChange={e => { setSearch(e.target.value); setPage(1); }}
-                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
-                            className="bg-white dark:bg-dark-800"
+                <SmartTable
+                    data={medications}
+                    columns={medicationColumns}
+                    isLoading={isLoading}
+                    search={{
+                        value: search,
+                        onChange: (val) => { setSearch(val); setPage(1); },
+                        placeholder: "Pesquisar por nome, DCI, laboratório..."
+                    }}
+                    renderFilters={
+                        <SegmentedControl
+                            options={FILTER_TABS.map(f => ({ label: f.label, value: f.id }))}
+                            value={filter}
+                            onChange={(val) => { setFilter(val as any); setPage(1); }}
+                            size="sm"
                         />
-                        <div className="flex gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
-                            {FILTER_TABS.map(f => (
-                                <button key={f.id} onClick={() => { setFilter(f.id as any); setPage(1); }}
-                                    className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap', filter === f.id ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm' : 'text-gray-500')}>
-                                    {f.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Table */}
-                    <Card padding="none">
-                        {isLoading ? (
-                            <div className="p-4 space-y-4 animate-pulse">
-                                {[1, 2, 3, 4, 5].map(i => (
-                                    <div key={i} className="flex gap-4 items-center">
-                                        <div className="flex-1 space-y-2">
-                                            <Skeleton className="h-4 w-1/4" />
-                                            <Skeleton className="h-3 w-1/6" />
-                                        </div>
-                                        <Skeleton className="h-4 w-24" />
-                                        <Skeleton className="h-4 w-20" />
-                                        <Skeleton className="h-8 w-8 rounded-lg" />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-gray-50 dark:bg-dark-700 border-b dark:border-dark-600">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Medicamento</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">DCI / Forma</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">Laboratório</th>
-                                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Stock</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">Validade</th>
-                                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Preço</th>
-                                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Flags</th>
-                                                <th className="px-4 py-3" />
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y dark:divide-dark-700">
-                                            {medications.length === 0 ? (
-                                                <tr>
-                                                    <td colSpan={8} className="px-4 py-12 text-center">
-                                                        <HiOutlineBeaker className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                                                        <p className="text-gray-400">Nenhum medicamento encontrado</p>
-                                                        <button onClick={() => { resetMedForm(); setMedModal(true); }} className="mt-3 text-sm text-primary-600 hover:underline">+ Adicionar medicamento</button>
-                                                    </td>
-                                                </tr>
-                                            ) : medications.map((med: any) => (
-                                                <tr key={med.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
-                                                    <td className="px-4 py-3">
-                                                        <div className="font-semibold text-gray-900 dark:text-white">{med.product?.name}</div>
-                                                        <div className="text-xs text-gray-500 font-mono">{med.product?.code}</div>
-                                                    </td>
-                                                    <td className="px-4 py-3 hidden md:table-cell">
-                                                        <div className="text-gray-700 dark:text-gray-300">{med.dci || ''}</div>
-                                                        <div className="text-xs text-gray-400">{med.pharmaceuticalForm} {med.dosage}</div>
-                                                    </td>
-                                                    <td className="px-4 py-3 hidden lg:table-cell text-gray-500 text-xs">{med.laboratory || ''}</td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <span className={cn('inline-flex items-center justify-center w-10 h-7 rounded-lg text-xs font-bold', alertColour(med.alertLevel))}>
-                                                            {med.totalStock}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-4 py-3 hidden sm:table-cell">
-                                                        {med.nearestExpiry ? (
-                                                            <span className={cn('text-xs font-medium', med.daysToExpiry !== null && med.daysToExpiry <= 30 ? 'text-red-600' : med.daysToExpiry !== null && med.daysToExpiry <= 90 ? 'text-amber-600' : 'text-gray-500')}>
-                                                                {formatDate(med.nearestExpiry)}
-                                                                {med.daysToExpiry !== null && med.daysToExpiry <= 90 && (
-                                                                    <span className="ml-1 text-[10px]">({med.daysToExpiry}d)</span>
-                                                                )}
-                                                            </span>
-                                                        ) : <span className="text-gray-400 text-xs">-</span>}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
-                                                        {formatCurrency(med.product?.price || 0)}
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            {med.requiresPrescription && (
-                                                                <span title="Requer receita" className="w-5 h-5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-600 text-[9px] font-black flex items-center justify-center">Rx</span>
-                                                            )}
-                                                            {med.isControlled && (
-                                                                <span title="Substância controlada" className="w-5 h-5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 text-[9px] font-black flex items-center justify-center">C</span>
-                                                            )}
-                                                            {med.alertLevel === 'critical' && (
-                                                                <span title="Stock crítico" className="w-5 h-5 rounded bg-red-100 dark:bg-red-900/30 text-red-600 text-[9px] font-black flex items-center justify-center">!</span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex items-center justify-end gap-1">
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm" 
-                                                                onClick={() => openEdit(med)} 
-                                                                className="text-gray-400 hover:text-primary-600" 
-                                                                title="Editar"
-                                                            >
-                                                                <HiOutlinePencil className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                                                            </Button>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm" 
-                                                                onClick={() => { setSelected(med); setDeleteModal(true); }} 
-                                                                className="text-gray-400 hover:text-red-600" 
-                                                                title="Eliminar"
-                                                            >
-                                                                <HiOutlineTrash className="w-4 h-4 text-red-500 dark:text-red-400" />
-                                                            </Button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {medPag && medPag.total > 0 && (
-                                    <div className="px-4 pb-2">
-                                        <Pagination currentPage={page} totalItems={medPag.total} itemsPerPage={pageSize} onPageChange={setPage} />
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </Card>
-                </div>
+                    }
+                    pagination={{
+                        currentPage: page,
+                        totalItems: medPag?.total || 0,
+                        itemsPerPage: pageSize,
+                        onPageChange: setPage
+                    }}
+                    onRefresh={refetch}
+                    exportConfig={{
+                        filename: 'medicamentos',
+                        title: 'Inventário de Medicamentos',
+                        columns: [
+                            { key: 'product.code', header: 'Código', width: 15 },
+                            { key: 'product.name', header: 'Medicamento', width: 30 },
+                            { key: 'dci', header: 'DCI', width: 20 },
+                            { key: 'pharmaceuticalForm', header: 'Forma', width: 15 },
+                            { key: 'totalStock', header: 'Stock', format: 'number', width: 10, align: 'right' },
+                            { key: 'product.price', header: 'Preço', format: 'currency', width: 15 },
+                        ]
+                    }}
+                    emptyTitle="Nenhum medicamento encontrado"
+                    onEmptyAction={() => { resetMedForm(); setMedModal(true); }}
+                    emptyActionLabel="Novo Medicamento"
+                />
             )}
 
             {/* ─────────────────────────────────────────────────────────────────────────
                 VIEW: STOCK / LOTES
             ───────────────────────────────────────────────────────────────────────── */}
             {view === 'stock' && (
-                <Card padding="none">
-                    {movLoading ? (
-                        <div className="p-4 space-y-4">
-                            <Skeleton className="h-10 w-full" />
-                            <div className="space-y-2">
-                                {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-gray-50 dark:bg-dark-700 border-b dark:border-dark-600">
-                                        <tr>
-                                            {['Data', 'Medicamento', 'Tipo', 'Quantidade', 'Lote', 'Referência'].map(h => (
-                                                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y dark:divide-dark-700">
-                                        {movements.length === 0 ? (
-                                            <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                                                <HiOutlineSwitchHorizontal className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                                                <p>Nenhum movimento registado</p>
-                                                <button onClick={() => setBatchModal(true)} className="mt-2 text-sm text-primary-600 hover:underline">+ Entrada de Lote</button>
-                                            </td></tr>
-                                        ) : movements.map((m: any) => (
-                                            <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50">
-                                                <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(m.createdAt)}</td>
-                                                <td className="px-4 py-3 font-medium">{m.product?.name || m.productName || ''}</td>
-                                                <td className="px-4 py-3">
-                                                    <Badge variant={m.type === 'IN' || m.movementType === 'IN' ? 'success' : 'danger'}>
-                                                        {m.type === 'IN' || m.movementType === 'IN' ? 'Entrada' : 'Saída'}
-                                                    </Badge>
-                                                </td>
-                                                <td className="px-4 py-3 font-bold">{m.quantity}</td>
-                                                <td className="px-4 py-3 font-mono text-xs text-gray-500">{m.batchNumber || ''}</td>
-                                                <td className="px-4 py-3 text-xs text-gray-400">{m.reference || m.reason || ''}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {movPag && movPag.total > 0 && (
-                                <div className="px-4 pb-2">
-                                    <Pagination currentPage={movPage} totalItems={movPag.total} itemsPerPage={15}
-                                        onPageChange={p => { setMovPage(p); loadMovements(p); }} />
-                                </div>
-                            )}
-                        </>
-                    )}
-                </Card>
+                <SmartTable
+                    data={movements}
+                    columns={movementColumns}
+                    isLoading={movLoading}
+                    pagination={{
+                        currentPage: movPage,
+                        totalItems: movPag?.total || 0,
+                        itemsPerPage: 15,
+                        onPageChange: (p) => { setMovPage(p); loadMovements(p); }
+                    }}
+                    onRefresh={() => loadMovements(1)}
+                    exportConfig={{
+                        filename: 'movimentacoes_farmacia',
+                        title: 'Movimentações de Stock - Farmácia',
+                        columns: [
+                            { key: 'createdAt', header: 'Data', format: 'datetime', width: 18 },
+                            { key: 'productName', header: 'Medicamento', width: 28 },
+                            { key: 'type', header: 'Tipo', width: 12 },
+                            { key: 'quantity', header: 'Quantidade', format: 'number', width: 12, align: 'right' },
+                            { key: 'batchNumber', header: 'Lote', width: 15 },
+                            { key: 'reference', header: 'Referência', width: 20 }
+                        ]
+                    }}
+                />
             )}
 
             {/* ─────────────────────────────────────────────────────────────────────────
                 VIEW: PRESCRIPTIONS
             ───────────────────────────────────────────────────────────────────────── */}
             {view === 'prescriptions' && (
-                <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                        <Input
-                            placeholder="Pesquisar receita, paciente..."
-                            value={prescSearch}
-                            onChange={e => setPrescSearch(e.target.value)}
-                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
-                            className="max-w-sm bg-white dark:bg-dark-800"
-                        />
-                    </div>
-                    <Card padding="none">
-                        {prescLoading ? (
-                            <div className="p-4 space-y-4">
-                                <Skeleton className="h-10 w-full" />
-                                <div className="space-y-2">
-                                    {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 w-full" />)}
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-gray-50 dark:bg-dark-700 border-b dark:border-dark-600">
-                                            <tr>
-                                                {['Nº Receita', 'Paciente', 'Médico', 'Data', 'Estado', 'Itens'].map(h => (
-                                                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y dark:divide-dark-700">
-                                            {prescriptions.length === 0 ? (
-                                                <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                                                    <HiOutlineClipboardList className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                                                    <p>Nenhuma receita encontrada</p>
-                                                </td></tr>
-                                            ) : prescriptions.map((p: any) => (
-                                                <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50">
-                                                    <td className="px-4 py-3 font-mono text-xs font-bold">{p.prescriptionNumber}</td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="font-medium">{p.patientName}</div>
-                                                        {p.patientPhone && <div className="text-xs text-gray-400">{p.patientPhone}</div>}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-gray-500">{p.prescriberName || ''}</td>
-                                                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{formatDate(p.prescriptionDate)}</td>
-                                                    <td className="px-4 py-3">
-                                                        <Badge variant={p.status === 'dispensed' ? 'success' : p.status === 'expired' ? 'danger' : 'warning'}>
-                                                            {p.status === 'dispensed' ? 'Dispensado' : p.status === 'expired' ? 'Expirado' : 'Pendente'}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-dark-700 text-xs font-bold">{p.items?.length || 0}</span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {prescPag && prescPag.total > 0 && (
-                                    <div className="px-4 pb-2">
-                                        <Pagination currentPage={prescPage} totalItems={prescPag.total} itemsPerPage={15} onPageChange={setPrescPage} />
-                                    </div>
-                                )}
-                            </>
-                        )}
-                    </Card>
-                </div>
+                <SmartTable
+                    data={prescriptions}
+                    columns={prescriptionColumns}
+                    isLoading={prescLoading}
+                    search={{
+                        value: prescSearch,
+                        onChange: setPrescSearch,
+                        placeholder: "Pesquisar receita, paciente..."
+                    }}
+                    pagination={{
+                        currentPage: prescPage,
+                        totalItems: prescPag?.total || 0,
+                        itemsPerPage: 15,
+                        onPageChange: setPrescPage
+                    }}
+                    emptyTitle="Nenhuma receita encontrada"
+                />
             )}
 
             {/* ─────────────────────────────────────────────────────────────────────────

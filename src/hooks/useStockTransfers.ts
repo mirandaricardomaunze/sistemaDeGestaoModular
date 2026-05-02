@@ -36,8 +36,8 @@ export function useStockTransfers(params?: UseTransfersParams) {
     const createTransfer = async (data: Parameters<typeof warehousesAPI.createTransfer>[0]) => {
         try {
             const newTransfer = await warehousesAPI.createTransfer(data);
-            setTransfers((prev) => [...prev, newTransfer]);
-            toast.success('Transferência criada com sucesso!');
+            setTransfers((prev) => [newTransfer, ...prev]);
+            toast.success('Rascunho de transferência criado!');
             return newTransfer;
         } catch (err) {
             logger.error('Error creating transfer:', err);
@@ -45,11 +45,71 @@ export function useStockTransfers(params?: UseTransfersParams) {
         }
     };
 
+    const submitTransfer = async (id: string) => {
+        try {
+            const updated = await warehousesAPI.submitTransfer(id);
+            setTransfers((prev) => prev.map(t => t.id === id ? updated : t));
+            toast.success('Transferência submetida para aprovação!');
+            return updated;
+        } catch (err) {
+            logger.error('Error submitting transfer:', err);
+            throw err;
+        }
+    };
+
+    const approveTransfer = async (id: string) => {
+        try {
+            const updated = await warehousesAPI.approveTransfer(id);
+            setTransfers((prev) => prev.map(t => t.id === id ? updated : t));
+            toast.success('Transferência aprovada!');
+            return updated;
+        } catch (err) {
+            logger.error('Error approving transfer:', err);
+            throw err;
+        }
+    };
+
+    const rejectTransfer = async (id: string, reason: string) => {
+        try {
+            const updated = await warehousesAPI.rejectTransfer(id, reason);
+            setTransfers((prev) => prev.map(t => t.id === id ? updated : t));
+            toast.error('Transferência rejeitada.');
+            return updated;
+        } catch (err) {
+            logger.error('Error rejecting transfer:', err);
+            throw err;
+        }
+    };
+
+    const dispatchTransfer = async (id: string) => {
+        try {
+            const updated = await warehousesAPI.dispatchTransfer(id);
+            setTransfers((prev) => prev.map(t => t.id === id ? updated : t));
+            toast.success('Mercadoria despachada!');
+            return updated;
+        } catch (err) {
+            logger.error('Error dispatching transfer:', err);
+            throw err;
+        }
+    };
+
+    const receiveTransfer = async (id: string, items?: any[]) => {
+        try {
+            const updated = await warehousesAPI.receiveTransfer(id, items);
+            setTransfers((prev) => prev.map(t => t.id === id ? updated : t));
+            toast.success('Mercadoria recebida com sucesso!');
+            return updated;
+        } catch (err) {
+            logger.error('Error receiving transfer:', err);
+            throw err;
+        }
+    };
+
     const completeTransfer = async (id: string) => {
         try {
             const updated = await warehousesAPI.completeTransfer(id);
-            setTransfers((prev) => prev.map((t) => (t.id === id ? updated : t)));
-            toast.success('Transferência completada com sucesso!');
+            setTransfers((prev) => prev.map(t => t.id === id ? updated : t));
+            toast.success('Transferência concluída!');
             return updated;
         } catch (err) {
             logger.error('Error completing transfer:', err);
@@ -60,11 +120,11 @@ export function useStockTransfers(params?: UseTransfersParams) {
     const cancelTransfer = async (id: string) => {
         try {
             const updated = await warehousesAPI.cancelTransfer(id);
-            setTransfers((prev) => prev.map((t) => (t.id === id ? updated : t)));
-            toast.success('Transferência cancelada com sucesso!');
+            setTransfers((prev) => prev.map(t => t.id === id ? updated : t));
+            toast.success('Transferência cancelada.');
             return updated;
         } catch (err) {
-            logger.error('Error canceling transfer:', err);
+            logger.error('Error cancelling transfer:', err);
             throw err;
         }
     };
@@ -73,9 +133,14 @@ export function useStockTransfers(params?: UseTransfersParams) {
         transfers,
         isLoading,
         error,
-        refetch: fetchTransfers,
         createTransfer,
+        submitTransfer,
+        approveTransfer,
+        rejectTransfer,
+        dispatchTransfer,
+        receiveTransfer,
         completeTransfer,
         cancelTransfer,
+        refetch: fetchTransfers,
     };
 }

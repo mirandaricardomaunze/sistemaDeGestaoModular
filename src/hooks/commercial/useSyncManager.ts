@@ -1,14 +1,24 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { offlineDB } from '../../services/offline/offlineDB';
 import { productsAPI } from '../../services/api/products.api';
 import { customersAPI } from '../../services/api/customers.api';
 import { salesAPI } from '../../services/api/sales.api';
 import { toast } from 'react-hot-toast';
+import { logger } from '../../utils/logger';
+
+const SYNC_DEBOUNCE_MS = 1500;
+const MAX_ATTEMPTS = 5;
 
 export const useSyncManager = (companyId?: string) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Track in-flight sync to avoid concurrent runs even if state hasn't propagated yet.
+  const syncingRef = useRef(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Notify the user about cache refresh failures only once per online session.
+  const cacheErrorWarnedRef = useRef(false);
 
   // Monitor online status
   useEffect(() => {
@@ -30,7 +40,7 @@ export const useSyncManager = (companyId?: string) => {
       const count = await offlineDB.syncQueue.where('status').equals('pending').count();
       setPendingCount(count);
     };
-    
+
     updateCount();
     const interval = setInterval(updateCount, 5000);
     return () => clearInterval(interval);
@@ -68,16 +78,22 @@ export const useSyncManager = (companyId?: string) => {
           code: c.code,
         })));
       }
-      
-      console.log('Offline cache refreshed successfully');
+
+      cacheErrorWarnedRef.current = false;
     } catch (error) {
-      console.error('Failed to refresh offline cache:', error);
+      logger.error('Failed to refresh offline cache', { error });
+      if (!cacheErrorWarnedRef.current) {
+        cacheErrorWarnedRef.current = true;
+        toast.error('Falha ao actualizar dados offline. Trabalhando com a cache anterior.', {
+          duration: 5000,
+        });
+      }
     }
   }, [isOnline, companyId]);
 
   // Sync pending items
   const syncQueue = useCallback(async () => {
-    if (!isOnline || isSyncing) return;
+    if (!isOnline || syncingRef.current) return;
 
     const pendingItems = await offlineDB.syncQueue
       .where('status')
@@ -86,9 +102,11 @@ export const useSyncManager = (companyId?: string) => {
 
     if (pendingItems.length === 0) return;
 
+    syncingRef.current = true;
     setIsSyncing(true);
     const toastId = toast.loading(`Sincronizando ${pendingItems.length} itens...`);
 
+    let failures = 0;
     try {
       for (const item of pendingItems) {
         await offlineDB.syncQueue.update(item.id!, { status: 'syncing' });
@@ -98,41 +116,63 @@ export const useSyncManager = (companyId?: string) => {
             await salesAPI.create(item.data);
           }
           // Add other types if needed (e.g., CUSTOMER creation offline)
-          
+
           await offlineDB.syncQueue.delete(item.id!);
         } catch (error) {
-          console.error(`Failed to sync item ${item.id}:`, error);
+          failures++;
+          logger.error(`Failed to sync item ${item.id}`, { error });
           const nextAttempt = item.attempts + 1;
-          const newStatus = nextAttempt >= 5 ? 'failed' : 'pending';
-          
-          await offlineDB.syncQueue.update(item.id!, { 
+          const newStatus = nextAttempt >= MAX_ATTEMPTS ? 'failed' : 'pending';
+
+          await offlineDB.syncQueue.update(item.id!, {
             status: newStatus,
             attempts: nextAttempt,
-            error: String(error)
+            error: String(error),
           });
         }
       }
-      toast.success('Sincronização concluída', { id: toastId });
+      if (failures === 0) {
+        toast.success('Sincronização concluída', { id: toastId });
+      } else if (failures < pendingItems.length) {
+        toast.error(`Sincronização parcial: ${failures} de ${pendingItems.length} itens falharam`, {
+          id: toastId,
+          duration: 6000,
+        });
+      } else {
+        toast.error('Sincronização falhou. Tentaremos novamente.', { id: toastId });
+      }
     } catch (error) {
+      logger.error('Unexpected error in syncQueue', { error });
       toast.error('Erro na sincronização', { id: toastId });
     } finally {
+      syncingRef.current = false;
       setIsSyncing(false);
     }
-  }, [isOnline, isSyncing]);
+  }, [isOnline]);
+
+  // Debounced trigger to coalesce online flapping / rapid effect re-runs.
+  const scheduleSync = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void syncQueue();
+    }, SYNC_DEBOUNCE_MS);
+  }, [syncQueue]);
 
   // Periodic refresh and automatic sync when online
   useEffect(() => {
-    if (isOnline) {
-      syncQueue();
-      refreshCache();
-    }
-  }, [isOnline, syncQueue, refreshCache]);
+    if (!isOnline) return;
+    scheduleSync();
+    void refreshCache();
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [isOnline, scheduleSync, refreshCache]);
 
   return {
     isOnline,
     isSyncing,
     pendingCount,
     syncQueue,
-    refreshCache
+    refreshCache,
   };
 };

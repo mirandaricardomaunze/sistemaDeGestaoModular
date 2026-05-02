@@ -96,12 +96,12 @@ describe('GET /api/admin/companies/:id', () => {
 });
 
 describe('PATCH /api/admin/companies/:id/status', () => {
-    it('changes company status to suspended', async () => {
+    it('changes company status to blocked', async () => {
         const res = await request(app)
             .patch(`/api/admin/companies/${COMPANY_ID}/status`)
-            .send({ status: 'suspended' })
+            .send({ status: 'blocked' })
             .expect(200);
-        expect(res.body.status).toBe('suspended');
+        expect(res.body.status).toBe('blocked');
 
         // Restore
         await request(app).patch(`/api/admin/companies/${COMPANY_ID}/status`).send({ status: 'active' });
