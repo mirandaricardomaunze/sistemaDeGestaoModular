@@ -21,6 +21,10 @@ const EVENT_QUERY_MAP: Record<string, string[][]> = {
 
     // Sales
     'sale:created': [['sales'], ['dashboard'], ['products'], ['stock-movements']],
+    'sale:voided': [['sales'], ['dashboard'], ['products'], ['stock-movements']],
+    'sale:void_requested': [['sales']],
+    'sale:void_rejected': [['sales']],
+    'stock:low_stock_alert': [['alerts'], ['dashboard'], ['products'], ['low-stock']],
 
     // Invoices
     'invoice:created': [['invoices'], ['dashboard'], ['accounts-receivable']],

@@ -3,11 +3,14 @@ import RedisStore from 'rate-limit-redis';
 import { redis } from '../config/redis';
 import { logger } from '../utils/logger';
 
+type RedisCommandReply = boolean | number | string | Array<boolean | number | string>;
+
 if (!redis) {
     logger.warn('Rate limiting using in-memory store (Redis not configured)');
 }
 
 function createRateLimiter(windowMs: number, max: number, message: string) {
+    const redisClient = redis;
     const config: Parameters<typeof rateLimit>[0] = {
         windowMs,
         max,
@@ -15,9 +18,12 @@ function createRateLimiter(windowMs: number, max: number, message: string) {
         standardHeaders: true,
         legacyHeaders: false,
         skip: () => process.env.NODE_ENV === 'test',
-        store: redis
+        store: redisClient
             ? new RedisStore({
-                  sendCommand: (...args: string[]) => (redis as any).call(...args),
+                  sendCommand: (...args: string[]) => {
+                      const [command = '', ...commandArgs] = args;
+                      return redisClient.call(command, ...commandArgs) as Promise<RedisCommandReply>;
+                  },
                   prefix: 'rl:',
               })
             : undefined, // undefined → express-rate-limit uses its built-in in-memory store

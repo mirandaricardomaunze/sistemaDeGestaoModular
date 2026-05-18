@@ -1,26 +1,32 @@
 import { useMemo, useState } from 'react';
 import {
     HiOutlineDocumentText,
-    HiOutlineBanknotes as HiOutlineCash,
+    HiOutlineBanknotes as HiOutlineBanknotes,
     HiOutlineUsers,
-    HiOutlineBuildingLibrary as HiOutlineLibrary,
-    HiOutlineClipboardDocumentCheck as HiOutlineClipboardCheck,
-    HiOutlineExclamationTriangle as HiOutlineExclamation,
+    HiOutlineBuildingLibrary as HiOutlineBuildingLibrary,
+    HiOutlineClipboardDocumentCheck as HiOutlineClipboardDocumentCheck,
+    HiOutlineExclamationTriangle as HiOutlineExclamationTriangle,
     HiOutlineCalendarDays as HiOutlineCalendar,
-    HiOutlineChartBar as HiOutlineTrendingUp,
+    HiOutlineChartBar as HiOutlineArrowTrendingUp,
     HiOutlineTruck,
+    HiOutlineLockClosed,
 } from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
-import { Card, Badge } from '../ui';
+import { Card, Badge, Button } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { formatPeriod, getCurrentFiscalPeriod } from '../../utils/fiscalCalculations';
+import toast from 'react-hot-toast';
 
 export default function FiscalDashboard() {
-    const { getDashboardMetrics } = useFiscalStore();
+    const { getDashboardMetrics, commercialFiscalSummary, fiscalPeriodStatus, closeFiscalPeriod } = useFiscalStore();
 
     const [now] = useState(() => Date.now());
+    const [isClosingPeriod, setIsClosingPeriod] = useState(false);
     const metrics = useMemo(() => getDashboardMetrics(), [getDashboardMetrics]);
     const currentPeriod = getCurrentFiscalPeriod();
+    const isCurrentPeriodClosed = fiscalPeriodStatus?.period === currentPeriod
+        ? fiscalPeriodStatus.isClosed
+        : Boolean(commercialFiscalSummary?.isClosed);
 
     const getComplianceColor = (status: string) => {
         switch (status) {
@@ -48,6 +54,23 @@ export default function FiscalDashboard() {
         }
     };
 
+    const handleClosePeriod = async () => {
+        const confirmed = window.confirm(
+            `Fechar o período fiscal ${formatPeriod(currentPeriod)}? Depois do fecho, as retenções deste período ficam bloqueadas para edição manual.`
+        );
+        if (!confirmed) return;
+
+        setIsClosingPeriod(true);
+        try {
+            await closeFiscalPeriod(currentPeriod);
+            toast.success('Período fiscal fechado com sucesso.');
+        } catch {
+            toast.error('Não foi possível fechar o período fiscal.');
+        } finally {
+            setIsClosingPeriod(false);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -61,17 +84,29 @@ export default function FiscalDashboard() {
                     </p>
                 </div>
 
-                {/* Compliance Status */}
-                <div className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${getComplianceColor(metrics.complianceStatus)}`}>
-                    <HiOutlineClipboardCheck className="w-5 h-5" />
-                    {getComplianceLabel(metrics.complianceStatus)}
+                <div className="flex flex-wrap items-center gap-2">
+                    {isCurrentPeriodClosed ? (
+                        <Badge variant="success" className="px-4 py-2">
+                            <HiOutlineLockClosed className="w-4 h-4 mr-1" />
+                            Período Fechado
+                        </Badge>
+                    ) : (
+                        <Button variant="outline" size="sm" onClick={handleClosePeriod} isLoading={isClosingPeriod}>
+                            <HiOutlineLockClosed className="w-4 h-4 mr-2" />
+                            Fechar Período
+                        </Button>
+                    )}
+                    <div className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 ${getComplianceColor(metrics.complianceStatus)}`}>
+                        <HiOutlineClipboardDocumentCheck className="w-5 h-5" />
+                        {getComplianceLabel(metrics.complianceStatus)}
+                    </div>
                 </div>
             </div>
 
             {/* Current Month Summary */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                    { label: 'IVA a Pagar', value: metrics.currentMonth.ivaPayable, sub: 'Este mês', icon: HiOutlineDocumentText,
+                    { label: 'IVA a Pagar', value: metrics.currentMonth.ivaPayable, sub: `Dedutível: ${formatCurrency(metrics.currentMonth.ivaDeductible)}`, icon: HiOutlineDocumentText,
                       cardBg: 'bg-blue-50/60 dark:bg-blue-950/30', cardBorder: 'border border-blue-200/70 dark:border-blue-800/40',
                       iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400', accent: 'bg-blue-500' },
                     { label: 'INSS Total', value: metrics.currentMonth.inssEmployee + metrics.currentMonth.inssEmployer,
@@ -79,10 +114,10 @@ export default function FiscalDashboard() {
                       icon: HiOutlineUsers,
                       cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30', cardBorder: 'border border-emerald-200/70 dark:border-emerald-800/40',
                       iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', accent: 'bg-emerald-500' },
-                    { label: 'IRPS Retido', value: metrics.currentMonth.irtRetained, sub: 'Este mês', icon: HiOutlineCash,
+                    { label: 'IRPS Retido', value: metrics.currentMonth.irtRetained, sub: 'Este mês', icon: HiOutlineBanknotes,
                       cardBg: 'bg-orange-50/60 dark:bg-orange-950/30', cardBorder: 'border border-orange-200/70 dark:border-orange-800/40',
                       iconBg: 'bg-orange-100 dark:bg-orange-900/40', iconColor: 'text-orange-600 dark:text-orange-400', accent: 'bg-orange-500' },
-                    { label: 'Retenções Fonte', value: metrics.currentMonth.withholdingTotal, sub: 'Fornecedores', icon: HiOutlineLibrary,
+                    { label: 'Retenções Fonte', value: metrics.currentMonth.withholdingTotal, sub: 'Fornecedores', icon: HiOutlineBuildingLibrary,
                       cardBg: 'bg-purple-50/60 dark:bg-purple-950/30', cardBorder: 'border border-purple-200/70 dark:border-purple-800/40',
                       iconBg: 'bg-purple-100 dark:bg-purple-900/40', iconColor: 'text-purple-600 dark:text-purple-400', accent: 'bg-purple-500' },
                 ].map((s, i) => (
@@ -102,13 +137,50 @@ export default function FiscalDashboard() {
                 ))}
             </div>
 
+            {commercialFiscalSummary && (
+                <Card variant="glass" padding="md" className="border border-blue-100 dark:border-blue-900/40">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div>
+                            <h3 className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
+                                Resumo Fiscal Comercial
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Período {commercialFiscalSummary.period}: facturas, notas de crédito, compras recebidas e IVA líquido por empresa
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 min-w-0">
+                            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 px-4 py-3">
+                                <p className="text-[9px] uppercase tracking-widest font-black text-blue-500">IVA Facturas</p>
+                                <p className="font-black text-gray-900 dark:text-white">{formatCurrency(commercialFiscalSummary.currentMonth.ivaCollected)}</p>
+                            </div>
+                            <div className="rounded-lg bg-red-50 dark:bg-red-950/30 px-4 py-3">
+                                <p className="text-[9px] uppercase tracking-widest font-black text-red-500">Estornado</p>
+                                <p className="font-black text-gray-900 dark:text-white">{formatCurrency(commercialFiscalSummary.currentMonth.ivaReversed)}</p>
+                            </div>
+                            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+                                <p className="text-[9px] uppercase tracking-widest font-black text-amber-600">Dedutível</p>
+                                <p className="font-black text-gray-900 dark:text-white">{formatCurrency(commercialFiscalSummary.currentMonth.ivaDeductible)}</p>
+                            </div>
+                            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 px-4 py-3">
+                                <p className="text-[9px] uppercase tracking-widest font-black text-emerald-500">IVA Líquido</p>
+                                <p className="font-black text-gray-900 dark:text-white">{formatCurrency(commercialFiscalSummary.currentMonth.ivaPayable)}</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-50 dark:bg-dark-800 px-4 py-3">
+                                <p className="text-[9px] uppercase tracking-widest font-black text-slate-500">Documentos</p>
+                                <p className="font-black text-gray-900 dark:text-white">{commercialFiscalSummary.currentMonth.documentCount}</p>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
             {/* Two Column Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* YTD Summary */}
                 <Card variant="glass" padding="md">
                     <div className="flex items-center gap-2 mb-6">
                         <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
-                            <HiOutlineTrendingUp className="w-5 h-5 text-primary-600" />
+                            <HiOutlineArrowTrendingUp className="w-5 h-5 text-primary-600" />
                         </div>
                         <h3 className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
                             Acumulado do Ano (YTD)
@@ -172,7 +244,7 @@ export default function FiscalDashboard() {
 
                     {metrics.pendingDeadlines.length === 0 ? (
                         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                            <HiOutlineClipboardCheck className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <HiOutlineClipboardDocumentCheck className="w-12 h-12 mx-auto mb-2 opacity-50" />
                             <p>Sem prazos pendentes</p>
                         </div>
                     ) : (
@@ -234,9 +306,9 @@ export default function FiscalDashboard() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {[
-                            { label: 'Receita Logística', value: metrics.logisticsMetrics.income, sub: `${metrics.logisticsMetrics.count} transaces`, icon: HiOutlineTrendingUp, color: 'text-green-500', textColor: 'text-green-600', border: 'border-l-green-500' },
-                            { label: 'Custos Manutenção', value: metrics.logisticsMetrics.maintenanceCosts, sub: 'Dedução automática', icon: HiOutlineExclamation, color: 'text-red-500', textColor: 'text-red-600', border: 'border-l-red-500' },
-                            { label: 'Lucro Operacional', value: metrics.logisticsMetrics.profit, sub: 'Margem Bruta (EBIT)', icon: HiOutlineTrendingUp, color: 'text-blue-500', textColor: 'text-blue-600', border: 'border-l-blue-500' },
+                            { label: 'Receita Logística', value: metrics.logisticsMetrics.income, sub: `${metrics.logisticsMetrics.count} transações`, icon: HiOutlineArrowTrendingUp, color: 'text-green-500', textColor: 'text-green-600', border: 'border-l-green-500' },
+                            { label: 'Custos Manutenção', value: metrics.logisticsMetrics.maintenanceCosts, sub: 'Dedução automática', icon: HiOutlineExclamationTriangle, color: 'text-red-500', textColor: 'text-red-600', border: 'border-l-red-500' },
+                            { label: 'Lucro Operacional', value: metrics.logisticsMetrics.profit, sub: 'Margem Bruta (EBIT)', icon: HiOutlineArrowTrendingUp, color: 'text-blue-500', textColor: 'text-blue-600', border: 'border-l-blue-500' },
                         ].map((info, idx) => (
                             <Card key={idx} variant="glass" className={`p-5 border-l-4 ${info.border} group transition-all hover:scale-[1.02]`}>
                                 <div className="flex items-center justify-between mb-2">
@@ -328,7 +400,7 @@ export default function FiscalDashboard() {
             <Card padding="md" className="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-primary-100 dark:border-primary-800">
                 <div className="flex items-start gap-4">
                     <div className="p-3 bg-white dark:bg-dark-800 rounded-lg shadow-sm">
-                        <HiOutlineExclamation className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                        <HiOutlineExclamationTriangle className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                     </div>
                     <div>
                         <h4 className="font-semibold text-gray-900 dark:text-white mb-1">

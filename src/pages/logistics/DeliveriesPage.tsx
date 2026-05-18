@@ -3,13 +3,16 @@
  * List, create, track, and manage deliveries
  */
 
-import { useState } from 'react';
-import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, Pagination, PageHeader } from '../../components/ui';
+import { useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import type { TFunction } from 'i18next';
+import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, PageHeader } from '../../components/ui';
+import type { BadgeVariant } from '../../components/ui/Badge';
+import { SmartTable } from '../../components/ui/SmartTable';
 import {
     HiOutlineTruck,
     HiOutlinePlus,
     HiOutlineEye,
-    HiOutlineMagnifyingGlass,
     HiOutlineArrowPath,
     HiOutlineMapPin,
     HiOutlineClock,
@@ -29,8 +32,8 @@ import { addProfessionalHeader, addProfessionalFooter } from '../../utils/docume
 import toast from 'react-hot-toast';
 import { cn } from '../../utils/helpers';
 
-const getStatusBadge = (status: string, t: any) => {
-    const variants: Record<string, any> = {
+const getStatusBadge = (status: string, t: TFunction) => {
+    const variants: Record<string, BadgeVariant> = {
         pending: 'warning',
         scheduled: 'primary',
         in_transit: 'info',
@@ -43,8 +46,8 @@ const getStatusBadge = (status: string, t: any) => {
     return <Badge variant={variants[status] || 'gray'}>{t(`logistics_module.deliveries.status.${status}`)}</Badge>;
 };
 
-const getPriorityBadge = (priority: string, t: any) => {
-    const variants: Record<string, any> = {
+const getPriorityBadge = (priority: string, t: TFunction) => {
+    const variants: Record<string, BadgeVariant> = {
         low: 'gray',
         normal: 'primary',
         high: 'warning',
@@ -169,7 +172,7 @@ export default function DeliveriesPage() {
             items: formData.items.filter(i => i.description).map(i => ({
                 description: i.description,
                 quantity: i.quantity
-            })) as any
+            }))
         });
 
         setIsModalOpen(false);
@@ -291,6 +294,94 @@ export default function DeliveriesPage() {
     // Re-computed on every render - pure derivation, no side effects.
     const selectedDeliveryTimeline = useDeliveryStatusTimeline(selectedDelivery ?? null);
 
+    const deliveryColumns = useMemo<ColumnDef<Delivery, unknown>[]>(() => [
+        {
+            header: t('logistics_module.deliveries.number'),
+            cell: ({ row }) => (
+                <span className="font-bold text-primary-600 font-mono text-sm">
+                    {row.original.number}
+                </span>
+            ),
+        },
+        {
+            header: t('logistics_module.deliveries.recipient'),
+            cell: ({ row }) => (
+                <div>
+                    <div className="font-medium">{row.original.recipientName || '-'}</div>
+                    <div className="text-sm text-gray-500">{row.original.recipientPhone}</div>
+                </div>
+            ),
+        },
+        {
+            header: t('logistics_module.deliveries.address'),
+            cell: ({ row }) => (
+                <span className="block max-w-xs truncate text-sm" title={row.original.deliveryAddress}>
+                    {row.original.deliveryAddress}
+                </span>
+            ),
+        },
+        {
+            header: t('logistics_module.deliveries.driver'),
+            cell: ({ row }) => (
+                <span className="text-sm">{row.original.driver?.name || '-'}</span>
+            ),
+        },
+        {
+            header: t('common.status'),
+            cell: ({ row }) => getStatusBadge(row.original.status, t),
+        },
+        {
+            header: t('logistics_module.deliveries.priority'),
+            cell: ({ row }) => getPriorityBadge(row.original.priority, t),
+        },
+        {
+            header: t('logistics_module.deliveries.scheduled'),
+            cell: ({ row }) => (
+                <span className="text-sm text-gray-500">
+                    {row.original.scheduledDate ? new Date(row.original.scheduledDate).toLocaleDateString() : '-'}
+                </span>
+            ),
+        },
+        {
+            header: t('common.actions'),
+            cell: ({ row }) => (
+                <div className="flex items-center justify-end gap-2">
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => setSelectedDelivery(row.original)}
+                        className="h-9 w-9 px-0 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm"
+                        title={t('common.view')}
+                    >
+                        <HiOutlineEye className="w-5 h-5" />
+                    </Button>
+                    {row.original.status === 'pending' && (
+                        <Button
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => openStatusModal(row.original, 'in_transit')}
+                            className="h-9 w-9 px-0 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
+                            title={t('logistics_module.deliveries.status.in_transit')}
+                        >
+                            <HiOutlineTruck className="w-5 h-5" />
+                        </Button>
+                    )}
+                    {row.original.status === 'in_transit' && (
+                        <Button
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => openStatusModal(row.original, 'delivered')}
+                            className="h-9 w-9 px-0 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm"
+                            title={t('logistics_module.deliveries.status.delivered')}
+                        >
+                            <HiOutlineCheckCircle className="w-5 h-5" />
+                        </Button>
+                    )}
+                </div>
+            ),
+        },
+    ], [t]);
+
     const addItem = () => {
         setFormData({
             ...formData,
@@ -392,131 +483,62 @@ export default function DeliveriesPage() {
                 })}
             </div>
 
-            {/* Filters */}
-            <Card variant="glass" className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="relative">
-                        <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                        <Input
-                            placeholder={t('logistics_module.deliveries.searchPlaceholder')}
-                            className="pl-10"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
-                    <Select
-                        options={[{ value: '', label: t('common.all') }, ...deliveryStatuses.map(s => ({ value: s.value, label: s.label }))]}
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                    />
-                    <Select
-                        options={[{ value: '', label: t('common.all') }, ...priorityOptions.map(p => ({ value: p.value, label: p.label }))]}
-                        value={priorityFilter}
-                        onChange={(e) => setPriorityFilter(e.target.value)}
-                    />
-                    <div className="text-right text-sm text-gray-500 dark:text-gray-400 self-center">
-                        {data?.pagination.total || 0} {t('common.results_found')}
-                    </div>
-                </div>
-            </Card>
-
-            {/* Deliveries Table */}
-            <Card variant="glass" padding="none">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50 dark:bg-dark-800 text-gray-500 dark:text-gray-400 uppercase text-xs">
-                                <th className="p-4 font-semibold">{t('logistics_module.deliveries.number')}</th>
-                                <th className="p-4 font-semibold">{t('logistics_module.deliveries.recipient')}</th>
-                                <th className="p-4 font-semibold">{t('logistics_module.deliveries.address')}</th>
-                                <th className="p-4 font-semibold">{t('logistics_module.deliveries.driver')}</th>
-                                <th className="p-4 font-semibold">{t('common.status')}</th>
-                                <th className="p-4 font-semibold">{t('logistics_module.deliveries.priority')}</th>
-                                <th className="p-4 font-semibold">{t('logistics_module.deliveries.scheduled')}</th>
-                                <th className="p-4 font-semibold text-center">{t('common.actions')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y dark:divide-dark-700">
-                            {data?.deliveries.map((delivery: Delivery) => (
-                                <tr key={delivery.id} className="hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors">
-                                    <td className="p-4 font-bold text-primary-600 font-mono text-sm">{delivery.number}</td>
-                                    <td className="p-4">
-                                        <div className="font-medium">{delivery.recipientName || '-'}</div>
-                                        <div className="text-sm text-gray-500">{delivery.recipientPhone}</div>
-                                    </td>
-                                    <td className="p-4 text-sm max-w-xs truncate">{delivery.deliveryAddress}</td>
-                                    <td className="p-4 text-sm">{delivery.driver?.name || '-'}</td>
-                                    <td className="p-4">{getStatusBadge(delivery.status, t)}</td>
-                                    <td className="p-4">{getPriorityBadge(delivery.priority, t)}</td>
-                                    <td className="p-4 text-sm text-gray-500">
-                                        {delivery.scheduledDate ? new Date(delivery.scheduledDate).toLocaleDateString() : '-'}
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => setSelectedDelivery(delivery)}
-                                                className="p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm"
-                                                title={t('common.view')}
-                                            >
-                                                <HiOutlineEye className="w-5 h-5" />
-                                            </Button>
-                                            {delivery.status === 'pending' && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => openStatusModal(delivery, 'in_transit')}
-                                                    className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
-                                                    title={t('logistics_module.deliveries.status.in_transit')}
-                                                >
-                                                    <HiOutlineTruck className="w-5 h-5" />
-                                                </Button>
-                                            )}
-                                            {delivery.status === 'in_transit' && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => openStatusModal(delivery, 'delivered')}
-                                                    className="p-2 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm"
-                                                    title={t('logistics_module.deliveries.status.delivered')}
-                                                >
-                                                    <HiOutlineCheckCircle className="w-5 h-5" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {data?.deliveries.length === 0 && (
-                    <div className="p-12 text-center">
-                        <HiOutlineTruck className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('logistics_module.deliveries.noDeliveries')}</h3>
-                        <p className="text-gray-500 dark:text-gray-400">{t('messages.start_creating')}</p>
-                    </div>
+            <SmartTable
+                data={data?.deliveries || []}
+                columns={deliveryColumns}
+                search={{
+                    value: search,
+                    onChange: (value) => {
+                        setSearch(value);
+                        setPage(1);
+                    },
+                    placeholder: t('logistics_module.deliveries.searchPlaceholder'),
+                }}
+                renderFilters={(
+                    <>
+                        <div className="w-full lg:w-48">
+                            <Select
+                                options={[{ value: '', label: t('common.all') }, ...deliveryStatuses.map(s => ({ value: s.value, label: s.label }))]}
+                                value={statusFilter}
+                                onChange={(event) => {
+                                    setStatusFilter(event.target.value);
+                                    setPage(1);
+                                }}
+                                size="sm"
+                            />
+                        </div>
+                        <div className="w-full lg:w-48">
+                            <Select
+                                options={[{ value: '', label: t('common.all') }, ...priorityOptions.map(p => ({ value: p.value, label: p.label }))]}
+                                value={priorityFilter}
+                                onChange={(event) => {
+                                    setPriorityFilter(event.target.value);
+                                    setPage(1);
+                                }}
+                                size="sm"
+                            />
+                        </div>
+                        <div className="h-10 flex items-center text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                            {data?.pagination.total || 0} {t('common.results_found')}
+                        </div>
+                    </>
                 )}
-
-                {/* Pagination */}
-                {data && data.pagination.total > 0 && (
-                    <div className="p-4 border-t dark:border-dark-700">
-                        <Pagination
-                            currentPage={page}
-                            totalItems={data.pagination.total}
-                            itemsPerPage={pageSize}
-                            onPageChange={setPage}
-                            onItemsPerPageChange={(size) => {
-                                setPageSize(size);
-                                setPage(1);
-                            }}
-                            itemsPerPageOptions={[10, 20, 50, 100]}
-                        />
-                    </div>
-                )}
-            </Card>
+                pagination={data && data.pagination.total > 0 ? {
+                    currentPage: page,
+                    totalItems: data.pagination.total,
+                    itemsPerPage: pageSize,
+                    onPageChange: setPage,
+                    onItemsPerPageChange: (size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    },
+                    itemsPerPageOptions: [10, 20, 50, 100],
+                } : undefined}
+                onRefresh={() => refetch()}
+                emptyTitle={t('logistics_module.deliveries.noDeliveries')}
+                emptyDescription={t('messages.start_creating')}
+                minHeight="500px"
+            />
 
             {/* Create Modal */}
             <Modal
@@ -868,8 +890,9 @@ export default function DeliveriesPage() {
                                         a.click();
                                         window.URL.revokeObjectURL(url);
                                         toast.success(t('common.success'));
-                                    } catch (err: any) {
-                                        const message = err?.response?.data?.message ?? err?.message ?? t('common.unknown');
+                                    } catch (err) {
+                                        const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string } } };
+                                        const message = apiErr?.response?.data?.message ?? apiErr?.message ?? t('common.unknown');
                                         toast.error(`${t('messages.error')}: ${message}`);
                                     }
                                 }}

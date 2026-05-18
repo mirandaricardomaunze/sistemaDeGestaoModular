@@ -9,17 +9,17 @@ import Pagination, { usePagination } from '../ui/Pagination';
 import { useStore } from '../../stores/useStore';
 import { exportAPI } from '../../services/api';
 import {
-    HiOutlineDocumentReport,
-    HiOutlineDownload,
+    HiOutlineDocumentChartBar,
+    HiOutlineArrowDownTray,
     HiOutlinePrinter,
     HiOutlineDocument,
     HiOutlineChartPie,
-    HiOutlineRefresh,
-    HiOutlineSearch,
+    HiOutlineArrowPath,
+    HiOutlineMagnifyingGlass,
     HiOutlineHome,
     HiOutlineShoppingCart,
     HiOutlineUsers
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import type { DashboardPeriod, ReportBooking } from '../../hooks/useHospitalityDashboard';
 import useHospitalityDashboard from '../../hooks/useHospitalityDashboard';
 
@@ -277,7 +277,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary-100 dark:bg-primary-900/30 text-primary-600 rounded-lg">
-                        <HiOutlineDocumentReport className="w-5 h-5" />
+                        <HiOutlineDocumentChartBar className="w-5 h-5" />
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">Gestão de Relatórios</h3>
@@ -300,7 +300,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                             </button>
                         ))}
                     </div>
-                    <Button onClick={handleLoadReport} disabled={reportLoading} leftIcon={<HiOutlineRefresh className="w-4 h-4" />}>
+                    <Button onClick={handleLoadReport} disabled={reportLoading} leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}>
                         {reportLoading ? 'Carregando...' : isLoaded ? 'Actualizar' : 'Gerar Relatório'}
                     </Button>
                 </div>
@@ -322,7 +322,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Pronto para gerar relatório</h3>
                     <p className="text-gray-500 max-w-sm mx-auto mb-8">Seleccione o período desejado acima para consolidar todos os dados de reservas e consumos.</p>
-                    <Button size="lg" onClick={handleLoadReport} leftIcon={<HiOutlineDocumentReport className="w-5 h-5" />}>
+                    <Button size="lg" onClick={handleLoadReport} leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />}>
                         Gerar Agora
                     </Button>
                 </Card>
@@ -337,7 +337,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                             <Button variant="outline" size="sm" onClick={handleExportPDF} leftIcon={<HiOutlineDocument className="w-4 h-4" />}>
                                 PDF
                             </Button>
-                            <Button variant="outline" size="sm" onClick={handleExportExcel} leftIcon={<HiOutlineDownload className="w-4 h-4" />}>
+                            <Button variant="outline" size="sm" onClick={handleExportExcel} leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}>
                                 Excel
                             </Button>
                             <Button variant="primary" size="sm" onClick={handlePrint} leftIcon={<HiOutlinePrinter className="w-4 h-4" />}>
@@ -432,7 +432,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                                         className="w-full md:w-64"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                                        leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                                     />
                                     <Select
                                         options={[

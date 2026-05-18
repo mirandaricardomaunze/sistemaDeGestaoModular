@@ -2,26 +2,77 @@ import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge, Modal, LoadingSpinner, EmptyState, Pagination, usePagination } from '../../components/ui';
 import {
-    HiOutlineCash,
-    HiOutlineRefresh,
+    HiOutlineBanknotes,
+    HiOutlineArrowPath,
     HiOutlineLockOpen,
     HiOutlineLockClosed,
-    HiOutlineTrendingUp,
+    HiOutlineArrowTrendingUp,
     HiOutlineMinus,
     HiOutlinePlus,
-    HiOutlineDocumentReport
-} from 'react-icons/hi';
+    HiOutlineDocumentChartBar
+} from 'react-icons/hi2';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
 import { formatCurrency, formatDateTime } from '../../utils/helpers';
 import { PrinterService } from '../../services/printer.service';
 import toast from 'react-hot-toast';
 
+type PaymentMethodTotals = {
+    cash?: number;
+    mpesa?: number;
+    emola?: number;
+    card?: number;
+    credit?: number;
+};
+
+type CashSession = {
+    id: string;
+    openedAt: string;
+    closedAt?: string;
+    openedBy?: string;
+    openedByName?: string;
+    openingBalance: number | string;
+    closingBalance?: number | string;
+    withdrawals?: number | string;
+    deposits?: number | string;
+    totalSales?: number | string;
+    difference?: number | string;
+};
+
+type CashSessionSummary = {
+    totalSales?: number;
+    salesCount?: number;
+    byPaymentMethod?: PaymentMethodTotals;
+};
+
+type TopProductRow = { name: string; qty: number; total: number };
+
+type ZReport = {
+    company?: { name?: string; address?: string; phone?: string; nuit?: string };
+    session?: { id?: string; openedByName?: string; openedAt?: string; closedAt?: string };
+    byMethod?: PaymentMethodTotals;
+    totalSales?: number;
+    totalTransactions?: number;
+    totalTax?: number;
+    openingBalance?: number;
+    closingBalance?: number;
+    expectedBalance?: number;
+    difference?: number;
+    totalDeposits?: number;
+    totalWithdrawals?: number;
+    topProducts?: TopProductRow[];
+    generatedAt?: string;
+};
+
+const safeNumber = (value?: number | string | null) => Number(value ?? 0);
+const safeDateTime = (value?: string | Date | null) => value ? formatDateTime(value) : '-';
+const safeLocaleDateTime = (value?: string | Date | null) => value ? new Date(value).toLocaleString('pt-MZ') : '-';
+
 export default function CashRegister() {
     // State
-    const [currentSession, setCurrentSession] = useState<any>(null);
-    const [summary, setSummary] = useState<any>(null);
+    const [currentSession, setCurrentSession] = useState<CashSession | null>(null);
+    const [summary, setSummary] = useState<CashSessionSummary | null>(null);
     const [loading, setLoading] = useState(true);
-    const [history, setHistory] = useState<any[]>([]);
+    const [history, setHistory] = useState<CashSession[]>([]);
     const { paginatedItems: pagedHistory, currentPage: histPage, setCurrentPage: setHistPage, totalItems: histTotal, itemsPerPage: histPerPage, setItemsPerPage: setHistPerPage } = usePagination(history, 10);
 
     // Modal states
@@ -30,7 +81,7 @@ export default function CashRegister() {
     const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
     const [depositModalOpen, setDepositModalOpen] = useState(false);
     const [zReportOpen, setZReportOpen] = useState(false);
-    const [zReport, setZReport] = useState<any>(null);
+    const [zReport, setZReport] = useState<ZReport | null>(null);
     const [loadingZReport, setLoadingZReport] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -47,8 +98,8 @@ export default function CashRegister() {
         try {
             const report = await bottleStoreAPI.getZReport();
             setZReport(report);
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Erro ao gerar relatório Z');
+        } catch (error) {
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.error || 'Erro ao gerar relatório Z');
             setZReportOpen(false);
         } finally {
             setLoadingZReport(false);
@@ -69,7 +120,7 @@ export default function CashRegister() {
         <table>
             <tr><td>Turno:</td><td>${r.session?.id?.slice(-8)}</td></tr>
             <tr><td>Aberto por:</td><td>${r.session?.openedByName || '-'}</td></tr>
-            <tr><td>Abertura:</td><td>${new Date(r.session?.openedAt).toLocaleString('pt-MZ')}</td></tr>
+            <tr><td>Abertura:</td><td>${safeLocaleDateTime(r.session?.openedAt)}</td></tr>
             ${r.session?.closedAt ? `<tr><td>Fecho:</td><td>${new Date(r.session.closedAt).toLocaleString('pt-MZ')}</td></tr>` : ''}
         </table><hr/>
         <h3>VENDAS POR MÉTODO</h3>
@@ -93,9 +144,9 @@ export default function CashRegister() {
         </table><hr/>
         <h3>TOP PRODUTOS</h3>
         <table><tr><th style="text-align:left">Produto</th><th>Qtd</th><th>Total</th></tr>
-        ${(r.topProducts || []).map((p: any) => `<tr><td>${p.name}</td><td style="text-align:right">${p.qty}</td><td style="text-align:right">${p.total?.toFixed(2)} MT</td></tr>`).join('')}
+        ${(r.topProducts || []).map((p) => `<tr><td>${p.name}</td><td style="text-align:right">${p.qty}</td><td style="text-align:right">${p.total?.toFixed(2)} MT</td></tr>`).join('')}
         </table><hr/>
-        <p style="text-align:center;font-size:10px">Gerado em ${new Date(r.generatedAt).toLocaleString('pt-MZ')}</p>
+        <p style="text-align:center;font-size:10px">Gerado em ${safeLocaleDateTime(r.generatedAt)}</p>
         </body></html>`);
         w.document.close();
         w.print();
@@ -143,8 +194,8 @@ export default function CashRegister() {
             setOpenModalOpen(false);
             setOpeningBalance('');
             fetchCurrentSession();
-        } catch (error: any) {
-            toast.error(error.message || 'Erro ao abrir caixa');
+        } catch (error) {
+            toast.error((error as Error).message || 'Erro ao abrir caixa');
         } finally {
             setSubmitting(false);
         }
@@ -168,8 +219,8 @@ export default function CashRegister() {
             setClosingNotes('');
             fetchCurrentSession();
             fetchHistory();
-        } catch (error: any) {
-            toast.error(error.message || 'Erro ao fechar caixa');
+        } catch (error) {
+            toast.error((error as Error).message || 'Erro ao fechar caixa');
         } finally {
             setSubmitting(false);
         }
@@ -188,8 +239,8 @@ export default function CashRegister() {
             setWithdrawModalOpen(false);
             setWithdrawAmount('');
             fetchCurrentSession();
-        } catch (error: any) {
-            toast.error(error.message || 'Erro ao registrar levantamento');
+        } catch (error) {
+            toast.error((error as Error).message || 'Erro ao registrar levantamento');
         } finally {
             setSubmitting(false);
         }
@@ -208,8 +259,8 @@ export default function CashRegister() {
             setDepositModalOpen(false);
             setDepositAmount('');
             fetchCurrentSession();
-        } catch (error: any) {
-            toast.error(error.message || 'Erro ao registrar depósito');
+        } catch (error) {
+            toast.error((error as Error).message || 'Erro ao registrar depósito');
         } finally {
             setSubmitting(false);
         }
@@ -237,11 +288,11 @@ export default function CashRegister() {
                 </div>
                 <div className="flex gap-3">
                     <Button variant="outline" onClick={fetchZReport}>
-                        <HiOutlineDocumentReport className="w-4 h-4 mr-2" />
+                        <HiOutlineDocumentChartBar className="w-4 h-4 mr-2" />
                         Relatório Z
                     </Button>
                     <Button variant="outline" onClick={fetchCurrentSession}>
-                        <HiOutlineRefresh className="w-4 h-4 mr-2" />
+                        <HiOutlineArrowPath className="w-4 h-4 mr-2" />
                         Atualizar
                     </Button>
                     {!currentSession ? (
@@ -302,7 +353,7 @@ export default function CashRegister() {
                     <Card>
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
-                                <HiOutlineCash className="w-6 h-6" />
+                                <HiOutlineBanknotes className="w-6 h-6" />
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Saldo Inicial</p>
@@ -315,7 +366,7 @@ export default function CashRegister() {
                     <Card>
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-green-100 text-green-600 rounded-lg">
-                                <HiOutlineTrendingUp className="w-6 h-6" />
+                                <HiOutlineArrowTrendingUp className="w-6 h-6" />
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Vendas do Dia</p>
@@ -390,7 +441,7 @@ export default function CashRegister() {
                 </h3>
                 {history.length === 0 ? (
                     <EmptyState
-                        icon={<HiOutlineDocumentReport className="w-12 h-12 text-gray-300" />}
+                        icon={<HiOutlineDocumentChartBar className="w-12 h-12 text-gray-300" />}
                         title="Sem histórico"
                         description="Nenhuma sessão de caixa anterior encontrada"
                     />
@@ -409,15 +460,15 @@ export default function CashRegister() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {pagedHistory.map((session: any) => (
+                                    {pagedHistory.map((session) => (
                                         <tr key={session.id} className="border-b dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800">
-                                            <td className="py-3 px-4">{formatDateTime(session.closedAt)}</td>
+                                            <td className="py-3 px-4">{safeDateTime(session.closedAt ?? session.openedAt)}</td>
                                             <td className="py-3 px-4">{session.openedBy}</td>
                                             <td className="py-3 px-4 text-right">{formatCurrency(Number(session.openingBalance))}</td>
                                             <td className="py-3 px-4 text-right text-green-600 font-medium">
-                                                {formatCurrency(Number(session.totalSales))}
+                                                {formatCurrency(safeNumber(session.totalSales))}
                                             </td>
-                                            <td className="py-3 px-4 text-right">{formatCurrency(Number(session.closingBalance))}</td>
+                                            <td className="py-3 px-4 text-right">{formatCurrency(safeNumber(session.closingBalance))}</td>
                                             <td className="py-3 px-4 text-right">
                                                 <Badge variant={Number(session.difference) === 0 ? 'success' : Number(session.difference) > 0 ? 'primary' : 'danger'}>
                                                     {formatCurrency(Number(session.difference))}
@@ -589,7 +640,7 @@ export default function CashRegister() {
                             <div><span className="text-gray-500">Operador:</span> {zReport.session?.openedByName || '-'}</div>
                             <div><span className="text-gray-500">Abertura:</span> {zReport.session?.openedAt ? new Date(zReport.session.openedAt).toLocaleString('pt-MZ') : '-'}</div>
                             <div><span className="text-gray-500">Fecho:</span> {zReport.session?.closedAt ? new Date(zReport.session.closedAt).toLocaleString('pt-MZ') : 'Em curso'}</div>
-                            <div><span className="text-gray-500">Transaces:</span> <strong>{zReport.totalTransactions}</strong></div>
+                            <div><span className="text-gray-500">Transações:</span> <strong>{zReport.totalTransactions}</strong></div>
                             <div><span className="text-gray-500">IVA Total:</span> {formatCurrency(zReport.totalTax || 0)}</div>
                         </div>
 
@@ -625,11 +676,11 @@ export default function CashRegister() {
                             <div className="space-y-1.5 text-sm">
                                 <div className="flex justify-between"><span>Saldo inicial</span><span>{formatCurrency(zReport.openingBalance || 0)}</span></div>
                                 <div className="flex justify-between text-green-600"><span>+ Vendas dinheiro</span><span>+{formatCurrency(zReport.byMethod?.cash || 0)}</span></div>
-                                {zReport.totalDeposits > 0 && <div className="flex justify-between text-green-600"><span>+ Depósitos</span><span>+{formatCurrency(zReport.totalDeposits)}</span></div>}
-                                {zReport.totalWithdrawals > 0 && <div className="flex justify-between text-red-500"><span>- Levantamentos</span><span>-{formatCurrency(zReport.totalWithdrawals)}</span></div>}
+                                {safeNumber(zReport.totalDeposits) > 0 && <div className="flex justify-between text-green-600"><span>+ Depósitos</span><span>+{formatCurrency(safeNumber(zReport.totalDeposits))}</span></div>}
+                                {safeNumber(zReport.totalWithdrawals) > 0 && <div className="flex justify-between text-red-500"><span>- Levantamentos</span><span>-{formatCurrency(safeNumber(zReport.totalWithdrawals))}</span></div>}
                                 <div className="flex justify-between font-bold border-t pt-1.5 dark:border-blue-700"><span>Saldo esperado</span><span>{formatCurrency(zReport.expectedBalance || 0)}</span></div>
-                                {zReport.closingBalance > 0 && <>
-                                    <div className="flex justify-between"><span>Saldo contado</span><span>{formatCurrency(zReport.closingBalance)}</span></div>
+                                {safeNumber(zReport.closingBalance) > 0 && <>
+                                    <div className="flex justify-between"><span>Saldo contado</span><span>{formatCurrency(safeNumber(zReport.closingBalance))}</span></div>
                                     <div className={`flex justify-between font-bold ${zReport.difference === 0 ? 'text-green-600' : 'text-red-600'}`}>
                                         <span>Diferença</span><span>{formatCurrency(zReport.difference || 0)}</span>
                                     </div>
@@ -638,7 +689,7 @@ export default function CashRegister() {
                         </div>
 
                         {/* Top products */}
-                        {zReport.topProducts?.length > 0 && (
+                        {(zReport.topProducts?.length ?? 0) > 0 && (
                             <div>
                                 <h4 className="font-semibold mb-3">Top Produtos Vendidos</h4>
                                 <table className="w-full text-xs">
@@ -650,7 +701,7 @@ export default function CashRegister() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {zReport.topProducts.map((p: any, i: number) => (
+                                        {(zReport.topProducts ?? []).map((p, i) => (
                                             <tr key={i} className="border-b dark:border-dark-700">
                                                 <td className="py-1.5 px-3">{p.name}</td>
                                                 <td className="py-1.5 px-3 text-right">{p.qty}</td>
@@ -665,7 +716,7 @@ export default function CashRegister() {
                         <div className="flex gap-3 pt-2 border-t dark:border-dark-700">
                             <Button variant="ghost" fullWidth onClick={() => setZReportOpen(false)}>Fechar</Button>
                             <Button fullWidth onClick={printZReport}>
-                                <HiOutlineDocumentReport className="w-4 h-4 mr-2" />
+                                <HiOutlineDocumentChartBar className="w-4 h-4 mr-2" />
                                 Imprimir Relatório Z
                             </Button>
                         </div>

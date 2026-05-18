@@ -5,24 +5,25 @@ import { logger } from '../../utils/logger';
  */
 
 import { useState, useMemo, useEffect } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
-    HiOutlineMagnifyingGlass as HiOutlineSearch,
-    HiOutlineArrowDownTray as HiOutlineDownload,
+    HiOutlineMagnifyingGlass as HiOutlineMagnifyingGlass,
+    HiOutlineArrowDownTray as HiOutlineArrowDownTray,
     HiOutlineFunnel as HiOutlineFilter,
-    HiOutlineXMark as HiOutlineX,
+    HiOutlineXMark as HiOutlineXMark,
     HiOutlineDocumentText,
     HiOutlineEye,
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlineChartPie,
     HiOutlineTrash,
     HiOutlineCheckCircle,
     HiOutlineExclamationCircle,
     HiOutlineInformationCircle,
-    HiOutlineExclamationTriangle as HiOutlineExclamation,
+    HiOutlineExclamationTriangle as HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
 import { useAuditStore } from '../../stores/useAuditStore';
 import { useStore } from '../../stores/useStore';
-import { Button, Card, Input, Select, Modal, Badge, Pagination, usePagination } from '../ui';
+import { Button, Card, Input, Select, Modal, Badge, SmartTable, usePagination } from '../ui';
 import {
     MODULE_LABELS,
     ACTION_LABELS,
@@ -252,7 +253,7 @@ export default function AuditLogViewer() {
             case 'info':
                 return <HiOutlineInformationCircle className="w-5 h-5 text-blue-500" />;
             case 'warning':
-                return <HiOutlineExclamation className="w-5 h-5 text-yellow-500" />;
+                return <HiOutlineExclamationTriangle className="w-5 h-5 text-yellow-500" />;
             case 'error':
                 return <HiOutlineExclamationCircle className="w-5 h-5 text-red-500" />;
             case 'critical':
@@ -290,6 +291,87 @@ export default function AuditLogViewer() {
         return <Badge variant={variants[action] || 'gray'}>{ACTION_LABELS[action]}</Badge>;
     };
 
+    const columns: ColumnDef<AuditLog, unknown>[] = [
+        {
+            header: 'Data/Hora',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                    {getSeverityIcon(row.original.severity)}
+                    <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {new Date(row.original.timestamp).toLocaleDateString('pt-MZ')}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                            {new Date(row.original.timestamp).toLocaleTimeString('pt-MZ')}
+                        </p>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            header: 'Utilizador',
+            cell: ({ row }) => (
+                <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {row.original.userName}
+                    </p>
+                    {row.original.userRole && (
+                        <p className="text-xs text-gray-500">{row.original.userRole}</p>
+                    )}
+                </div>
+            ),
+        },
+        {
+            header: 'Modulo',
+            cell: ({ row }) => <Badge variant="gray">{MODULE_LABELS[row.original.module]}</Badge>,
+        },
+        {
+            header: 'Acao',
+            cell: ({ row }) => getActionBadge(row.original.action, row.original.success),
+        },
+        {
+            header: 'Descricao',
+            cell: ({ row }) => (
+                <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">
+                        {row.original.description}
+                    </p>
+                    {row.original.entityName && (
+                        <p className="text-xs text-gray-500">
+                            {row.original.entityType}: {row.original.entityName}
+                        </p>
+                    )}
+                </div>
+            ),
+        },
+        {
+            header: 'Estado',
+            cell: ({ row }) => (
+                <div className="flex justify-center">
+                    {row.original.success ? (
+                        <HiOutlineCheckCircle className="w-5 h-5 text-green-500" />
+                    ) : (
+                        <HiOutlineExclamationCircle className="w-5 h-5 text-red-500" />
+                    )}
+                </div>
+            ),
+        },
+        {
+            header: 'Accoes',
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <button
+                        onClick={() => handleViewDetails(row.original)}
+                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Ver Detalhes"
+                    >
+                        <HiOutlineEye className="w-5 h-5" />
+                    </button>
+                </div>
+            ),
+        },
+    ];
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -309,7 +391,7 @@ export default function AuditLogViewer() {
                         variant="outline"
                         size="sm"
                         onClick={handleRefresh}
-                        leftIcon={<HiOutlineRefresh className="w-4 h-4" />}
+                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
                     >
                         Atualizar
                     </Button>
@@ -335,7 +417,7 @@ export default function AuditLogViewer() {
                         <Button
                             variant="outline"
                             size="sm"
-                            leftIcon={<HiOutlineDownload className="w-4 h-4" />}
+                            leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}
                         >
                             Exportar
                         </Button>
@@ -370,14 +452,14 @@ export default function AuditLogViewer() {
                         <h3 className="font-semibold text-gray-900 dark:text-white">Filtros</h3>
                         <div className="flex gap-2">
                             <Button variant="ghost" size="sm" onClick={handleClearFilters}>
-                                <HiOutlineRefresh className="w-4 h-4 mr-1" />
+                                <HiOutlineArrowPath className="w-4 h-4 mr-1" />
                                 Limpar
                             </Button>
                             <button
                                 onClick={() => setShowFilters(false)}
                                 className="p-1 text-gray-400 hover:text-gray-600"
                             >
-                                <HiOutlineX className="w-5 h-5" />
+                                <HiOutlineXMark className="w-5 h-5" />
                             </button>
                         </div>
                     </div>
@@ -388,7 +470,7 @@ export default function AuditLogViewer() {
                             placeholder="Descrição, utilizador..."
                             value={filters.searchTerm || ''}
                             onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5 text-gray-400" />}
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
                         />
 
                         <Input
@@ -451,120 +533,20 @@ export default function AuditLogViewer() {
             )}
 
             {/* Logs Table */}
-            <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead className="bg-gray-50 dark:bg-dark-800">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                    Data/Hora
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                    Utilizador
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                    Módulo
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                    Ação
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                    Descrição
-                                </th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                                    Estado
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                                    Ações
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {paginatedLogs.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                                        Nenhum log encontrado
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedLogs.map((log) => (
-                                    <tr
-                                        key={log.id}
-                                        className="hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors"
-                                    >
-                                        <td className="px-4 py-3 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                {getSeverityIcon(log.severity)}
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                        {new Date(log.timestamp).toLocaleDateString('pt-MZ')}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {new Date(log.timestamp).toLocaleTimeString('pt-MZ')}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 whitespace-nowrap">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {log.userName}
-                                                </p>
-                                                {log.userRole && (
-                                                    <p className="text-xs text-gray-500">{log.userRole}</p>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 whitespace-nowrap">
-                                            <Badge variant="gray">{MODULE_LABELS[log.module]}</Badge>
-                                        </td>
-                                        <td className="px-4 py-3 whitespace-nowrap">
-                                            {getActionBadge(log.action, log.success)}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <p className="text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">
-                                                {log.description}
-                                            </p>
-                                            {log.entityName && (
-                                                <p className="text-xs text-gray-500">
-                                                    {log.entityType}: {log.entityName}
-                                                </p>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            {log.success ? (
-                                                <HiOutlineCheckCircle className="w-5 h-5 text-green-500 mx-auto" />
-                                            ) : (
-                                                <HiOutlineExclamationCircle className="w-5 h-5 text-red-500 mx-auto" />
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 whitespace-nowrap text-right">
-                                            <button
-                                                onClick={() => handleViewDetails(log)}
-                                                className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                                                title="Ver Detalhes"
-                                            >
-                                                <HiOutlineEye className="w-5 h-5" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="px-4 border-t border-gray-200 dark:border-dark-700">
-                    <Pagination
-                        currentPage={currentPage}
-                        totalItems={totalItems}
-                        itemsPerPage={itemsPerPage}
-                        onPageChange={setCurrentPage}
-                        onItemsPerPageChange={setItemsPerPage}
-                    />
-                </div>
-            </Card>
-
+            <SmartTable
+                data={paginatedLogs}
+                columns={columns}
+                hideToolbar
+                emptyTitle="Nenhum log encontrado"
+                emptyDescription="Nenhum registo de auditoria corresponde aos filtros atuais."
+                pagination={{
+                    currentPage,
+                    totalItems,
+                    itemsPerPage,
+                    onPageChange: setCurrentPage,
+                    onItemsPerPageChange: setItemsPerPage,
+                }}
+            />
             {/* Admin Actions */}
             <div className="flex justify-end">
                 <Button

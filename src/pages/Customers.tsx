@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { useState, useMemo, useEffect } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
@@ -7,7 +8,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlinePlus,
-    HiOutlineMagnifyingGlass,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineUser,
@@ -19,15 +19,13 @@ import {
     HiOutlineUsers,
     HiOutlineEye
 } from 'react-icons/hi2';
-import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
-import { Badge } from '../components/ui/Badge';
-import { Pagination } from '../components/ui/Pagination';
-import { TableContainer } from '../components/ui/DataTable';
+import { Badge, type BadgeVariant } from '../components/ui/Badge';
 import { PageHeader } from '../components/ui/PageHeader';
+import { SmartTable } from '../components/ui/SmartTable';
 import { MetricCard } from '../components/common/ModuleMetricCard';
 import { ExportCustomersButton } from '../components/common/ExportButton';
 import { formatCurrency, cn } from '../utils/helpers';
@@ -53,7 +51,7 @@ const customerSchema = z.object({
 
 type CustomerFormData = z.infer<typeof customerSchema>;
 
-const typeConfig: Record<CustomerType, { label: string; icon: typeof HiOutlineUser; color: string }> = {
+const typeConfig: Record<CustomerType, { label: string; icon: typeof HiOutlineUser; color: BadgeVariant }> = {
     individual: { label: 'Pessoa Física', icon: HiOutlineUser, color: 'primary' },
     company: { label: 'Empresa', icon: HiOutlineBuildingOffice, color: 'info' },
 };
@@ -237,7 +235,135 @@ export default function Customers({ originModule }: CustomersProps) {
         { value: 'company', label: 'Empresa' },
     ];
 
-    // Loading and error states handled by TableContainer
+    const customerColumns: ColumnDef<Customer, unknown>[] = [
+        {
+            accessorKey: 'name',
+            header: 'Cliente',
+            cell: ({ row }) => {
+                const customer = row.original;
+                const TypeIcon = typeConfig[customer.type].icon;
+
+                return (
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                            <TypeIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                        </div>
+                        <div>
+                            <p className="font-medium text-gray-900 dark:text-white">{customer.name}</p>
+                            <p className="text-xs text-gray-500">{customer.code}</p>
+                        </div>
+                    </div>
+                );
+            },
+        },
+        {
+            accessorKey: 'type',
+            header: 'Tipo',
+            cell: ({ row }) => (
+                <Badge variant={typeConfig[row.original.type].color}>
+                    {typeConfig[row.original.type].label}
+                </Badge>
+            ),
+        },
+        {
+            accessorKey: 'phone',
+            header: 'Contacto',
+            cell: ({ row }) => (
+                <div className="space-y-1">
+                    <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                        <HiOutlinePhone className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                        <span>{row.original.phone}</span>
+                    </div>
+                    {row.original.email && (
+                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <HiOutlineEnvelope className="w-4 h-4 text-primary-500/70" />
+                            <span className="truncate max-w-[150px]">{row.original.email}</span>
+                        </div>
+                    )}
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'city',
+            header: 'Localizacao',
+            cell: ({ row }) => {
+                const customer = row.original;
+
+                return (
+                    <span className="text-gray-600 dark:text-gray-400">
+                        {customer.city && customer.province
+                            ? `${customer.city}, ${customer.province}`
+                            : customer.city || customer.province || '-'}
+                    </span>
+                );
+            },
+        },
+        {
+            accessorKey: 'loyaltyPoints',
+            header: 'Pontos',
+            cell: ({ row }) => (
+                <Badge variant="warning" size="sm">
+                    {row.original.loyaltyPoints || 0} pts
+                </Badge>
+            ),
+        },
+        {
+            accessorKey: 'totalPurchases',
+            header: () => <span className="block text-right">Total Compras</span>,
+            cell: ({ row }) => (
+                <span className="block text-right font-semibold text-green-600">
+                    {formatCurrency(row.original.totalPurchases)}
+                </span>
+            ),
+        },
+        {
+            id: 'actions',
+            header: () => <span className="block text-center">Acoes</span>,
+            cell: ({ row }) => {
+                const customer = row.original;
+
+                return (
+                    <div className="flex justify-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setCustomer360(customer);
+                                setShow360Modal(true);
+                            }}
+                            className="p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm"
+                            title="Perfil 360"
+                        >
+                            <HiOutlineEye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(customer)}
+                            className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
+                            title="Editar"
+                        >
+                            <HiOutlinePencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setCustomerToDelete(customer);
+                                setDeleteModalOpen(true);
+                            }}
+                            className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
+                            title="Excluir"
+                        >
+                            <HiOutlineTrash className="w-4 h-4" />
+                        </Button>
+                    </div>
+                );
+            },
+        },
+    ];
+
+    // Loading and error states handled by SmartTable
 
     return (
         <div className="space-y-6">
@@ -256,7 +382,7 @@ export default function Customers({ originModule }: CustomersProps) {
                         >
                             Actualizar
                         </Button>
-                        <ExportCustomersButton data={customers} />
+                        <ExportCustomersButton data={customers} size="sm" />
                         <Button 
                             size="sm" 
                             className="font-black text-[10px] uppercase tracking-widest"
@@ -298,160 +424,49 @@ export default function Customers({ originModule }: CustomersProps) {
                 />
             </div>
 
-            {/* Filters Bar - High Density */}
-            <div className="animate-slide-up">
-                <Card padding="md" className="bg-white/40 dark:bg-dark-900/40 border border-slate-200/60 dark:border-white/5 backdrop-blur-md rounded-2xl">
-                    <div className="flex flex-col lg:flex-row gap-4">
-                        <div className="flex-1 relative">
-                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-600 dark:text-primary-400 w-5 h-5 z-10" />
-                            <Input
-                                placeholder="Buscar clientes por nome, NUIT ou contacto..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-10 bg-white dark:bg-dark-900 border-slate-200 dark:border-dark-700 shadow-sm h-11 rounded-xl"
-                            />
-                        </div>
-                        <div className="w-full lg:w-56">
-                            <Select
-                                options={typeOptions}
-                                value={typeFilter}
-                                onChange={(e) => setTypeFilter(e.target.value as CustomerType | 'all')}
-                                className="h-11 bg-white dark:bg-dark-900 border-slate-200 dark:border-dark-700 shadow-sm rounded-xl font-black uppercase text-[10px] tracking-widest"
-                            />
-                        </div>
-                    </div>
-                </Card>
-            </div>
-
             {/* Customer List */}
-            <Card padding="none">
-                <TableContainer
-                    isLoading={isLoading}
-                    isEmpty={customers.length === 0}
-                    isError={!!error}
-                    errorMessage={error || undefined}
-                    onRetry={() => refetch()}
-                    emptyTitle="Nenhum cliente encontrado"
-                    emptyDescription="Tente ajustar sua busca ou adicione um novo cliente."
-                    onEmptyAction={() => setShowFormModal(true)}
-                    emptyActionLabel="Adicionar Cliente"
-                    minHeight="450px"
-                >
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead>
-                            <tr className="bg-gray-50 dark:bg-dark-800">
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Cliente</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Tipo</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Contacto</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Localização</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Pontos</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase">Total Compras</th>
-                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {customers.map((customer) => {
-                                const TypeIcon = typeConfig[customer.type].icon;
-                                return (
-                                    <tr key={customer.id} className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                                                    <TypeIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-medium text-gray-900 dark:text-white">{customer.name}</p>
-                                                    <p className="text-xs text-gray-500">{customer.code}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <Badge variant={typeConfig[customer.type].color as any}>
-                                                {typeConfig[customer.type].label}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
-                                                    <HiOutlinePhone className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-                                                    <span>{customer.phone}</span>
-                                                </div>
-                                                {customer.email && (
-                                                    <div className="flex items-center gap-1 text-sm text-gray-500">
-                                                        <HiOutlineEnvelope className="w-4 h-4 text-primary-500/70" />
-                                                        <span className="truncate max-w-[150px]">{customer.email}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                                            {customer.city && customer.province
-                                                ? `${customer.city}, ${customer.province}`
-                                                : customer.city || customer.province || '-'}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <Badge variant="warning" size="sm">
-                                                {customer.loyaltyPoints || 0} pts
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-semibold text-green-600">
-                                            {formatCurrency(customer.totalPurchases)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex justify-center gap-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setCustomer360(customer);
-                                                        setShow360Modal(true);
-                                                    }}
-                                                    className="p-2 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm"
-                                                    title="Perfil 360º"
-                                                >
-                                                    <HiOutlineEye className="w-4 h-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => handleEdit(customer)}
-                                                    className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
-                                                    title="Editar"
-                                                >
-                                                    <HiOutlinePencil className="w-4 h-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setCustomerToDelete(customer);
-                                                        setDeleteModalOpen(true);
-                                                    }}
-                                                    className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
-                                                    title="Excluir"
-                                                >
-                                                    <HiOutlineTrash className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </TableContainer>
-            </Card>
-
-            {/* Pagination */}
-            <div className="px-6 py-4">
-                <Pagination
-                    currentPage={page}
-                    totalItems={pagination?.total || 0}
-                    itemsPerPage={pageSize}
-                    onPageChange={setPage}
-                    showItemsPerPage={false}
-                />
-            </div>
+            <SmartTable
+                data={customers}
+                columns={customerColumns}
+                isLoading={isLoading}
+                isError={!!error}
+                errorMessage={error || undefined}
+                onRetry={() => refetch()}
+                search={{
+                    value: search,
+                    onChange: (value) => {
+                        setSearch(value);
+                        setPage(1);
+                    },
+                    placeholder: 'Buscar clientes por nome, NUIT ou contacto...',
+                }}
+                renderFilters={
+                    <div className="w-full lg:w-56">
+                        <Select
+                            options={typeOptions}
+                            value={typeFilter}
+                            onChange={(e) => {
+                                setTypeFilter(e.target.value as CustomerType | 'all');
+                                setPage(1);
+                            }}
+                            size="sm"
+                            className="bg-white dark:bg-dark-800 font-black uppercase text-[10px] tracking-widest"
+                        />
+                    </div>
+                }
+                pagination={{
+                    currentPage: page,
+                    totalItems: pagination?.total || 0,
+                    itemsPerPage: pageSize,
+                    onPageChange: setPage,
+                }}
+                onRefresh={() => refetch()}
+                emptyTitle="Nenhum cliente encontrado"
+                emptyDescription="Tente ajustar sua busca ou adicione um novo cliente."
+                onEmptyAction={() => setShowFormModal(true)}
+                emptyActionLabel="Adicionar Cliente"
+                minHeight="450px"
+            />
 
             {/* Customer Form Modal */}
             <Modal

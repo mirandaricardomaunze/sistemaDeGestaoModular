@@ -38,7 +38,7 @@ export function useInvoices(params?: UseInvoicesParams) {
     const query = useQuery({
         queryKey: [...QK, params ?? {}],
         queryFn: async () => {
-            const response = await invoicesAPI.getAll(params as any);
+            const response = await invoicesAPI.getAll(params);
             let invoicesData: Invoice[];
             let pagination: PaginationMeta;
             let summary: { total: number; paid: number; pending: number; overdue: number } | null = null;
@@ -142,8 +142,8 @@ export function useInvoices(params?: UseInvoicesParams) {
         refetch: query.refetch,
         fetchAvailableSources: () => sourcesQuery.refetch(),
         createInvoice: createMutation.mutateAsync,
-        updateInvoice: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
-        addPayment: (invoiceId: string, data: any) => paymentMutation.mutateAsync({ id: invoiceId, data }),
+        updateInvoice: (id: string, data: Parameters<typeof invoicesAPI.update>[1]) => updateMutation.mutateAsync({ id, data }),
+        addPayment: (invoiceId: string, data: Parameters<typeof invoicesAPI.addPayment>[1]) => paymentMutation.mutateAsync({ id: invoiceId, data }),
         cancelInvoice: cancelMutation.mutateAsync,
         getInvoiceById,
     };

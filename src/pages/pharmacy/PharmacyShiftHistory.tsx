@@ -14,7 +14,7 @@ import {
     HiOutlineCalculator
 } from 'react-icons/hi2';
 import { shiftAPI, type ShiftSession as CashSession } from '../../services/api';
-import { Button, Card, Badge, Input, Pagination, usePagination } from '../../components/ui';
+import { Button, Card, Badge, Input, Pagination, TableLoadingState, usePagination } from '../../components/ui';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -210,7 +210,14 @@ const PharmacyShiftHistory: React.FC = () => {
 
             {/* Main Data Table */}
             <Card padding="none" className="overflow-hidden border-gray-100 dark:border-dark-700 shadow-xl shadow-black/5">
-                <div className="overflow-x-auto">
+                <div className="relative min-h-[460px] overflow-x-auto">
+                    {loading && (
+                        <TableLoadingState
+                            columns={6}
+                            rows={8}
+                            message="A carregar turnos..."
+                        />
+                    )}
                     <table className="w-full text-sm border-collapse">
                         <thead>
                             <tr className="text-[10px] text-gray-400 border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50 uppercase tracking-[0.2em] font-black">
@@ -223,16 +230,7 @@ const PharmacyShiftHistory: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-10 h-10 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Sincronizando Turnos...</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : paginatedSessions.length === 0 ? (
+                            {!loading && paginatedSessions.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-3 opacity-20">
@@ -241,7 +239,7 @@ const PharmacyShiftHistory: React.FC = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : (
+                            ) : !loading && (
                                 paginatedSessions.map((session) => (
                                     <tr key={session.id} className="hover:bg-teal-50/30 dark:hover:bg-teal-900/10 transition-all group">
                                         <td className="px-6 py-4 font-mono">

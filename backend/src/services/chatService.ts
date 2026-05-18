@@ -11,11 +11,11 @@ export class ChatService {
             prisma.company.findUnique({ where: { id: companyId }, select: { name: true, businessType: true, address: true, nuit: true, phone: true, email: true } })
         ]);
 
-        const result = await aiService.generateResponse(message, companyId, { ...data, companyInfo: company }, module);
-        
+        const result = await aiService.generateResponse(message, companyId, { ...data, companyInfo: company ?? undefined }, module);
+
         let pdfUrl = null;
         if (result.toolCall && result.toolCall.name === 'generate_pdf_report') {
-            const reportType = result.toolCall.args.reportType;
+            const reportType = String(result.toolCall.args.reportType ?? '');
             const reportData = this.prepareReportData(reportType, data);
             pdfUrl = await pdfService.generateReport(reportData, reportType, company);
         }
@@ -95,13 +95,13 @@ export class ChatService {
         return { type: 'general' };
     }
 
-    private async fetchRelevantData(intent: any, companyId: string, _module?: string) {
+    private async fetchRelevantData(intent: { type: string }, companyId: string, _module?: string) {
         try {
             const now = new Date();
             const todayStart = new Date(now.setHours(0, 0, 0, 0));
             const yesterdayStart = new Date(new Date(todayStart).setDate(todayStart.getDate() - 1));
 
-            const responseData: any = { status: 'success' };
+            const responseData: Record<string, unknown> = { status: 'success' };
 
             // 1. Sales & Performance (Always requested)
             const [todaySales, yesterdaySales, topProducts] = await Promise.all([
@@ -207,33 +207,37 @@ export class ChatService {
         }
     }
 
-    private prepareReportData(type: string, data: any) {
+    private prepareReportData(type: string, data: Record<string, unknown>) {
+        const today = (data.today as { total?: number; count?: number } | undefined) ?? {};
+        const valuation = (data.valuation as { total_cost?: number; total_sale?: number; potential_profit?: number } | undefined) ?? {};
         if (type === 'sales') {
+            const total = Number(today.total ?? 0);
+            const count = Number(today.count ?? 0);
             return {
-                total: data.today?.total || 0,
-                count: data.today?.count || 0,
-                average: data.today?.count > 0 ? (data.today.total / data.today.count) : 0,
+                total,
+                count,
+                average: count > 0 ? total / count : 0,
                 sales: []
             };
         }
         if (type === 'inventory') {
             return {
-                totalProducts: data.total_products || 0,
-                lowStockCount: data.low_stock || 0,
-                totalCost: data.valuation?.total_cost || 0,
-                totalValue: data.valuation?.total_sale || 0,
-                potentialProfit: data.valuation?.potential_profit || 0,
-                lowStockProducts: data.low_stock_details || []
+                totalProducts: Number(data.total_products ?? 0),
+                lowStockCount: Number(data.low_stock ?? 0),
+                totalCost: Number(valuation.total_cost ?? 0),
+                totalValue: Number(valuation.total_sale ?? 0),
+                potentialProfit: Number(valuation.potential_profit ?? 0),
+                lowStockProducts: (data.low_stock_details as unknown[]) ?? []
             };
         }
         if (type === 'inventory_table' || type === 'price_list') {
             return {
-                products: data.products || []
+                products: (data.products as unknown[]) ?? []
             };
         }
         if (type === 'quotation') {
             return {
-                quote: data.quote || null
+                quote: data.quote ?? null
             };
         }
         if (type === 'hr') {

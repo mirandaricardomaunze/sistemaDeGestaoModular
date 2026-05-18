@@ -77,9 +77,10 @@ GDRIVE_ENABLED=true</pre>
               <p>Depois disso, o backup automático às 02:00 fará upload automático para o Drive.</p>
             </body></html>
         `);
-    } catch (error: any) {
-        logger.error('Google Drive OAuth callback failed', { message: error.message });
-        res.status(500).send(`Falha ao trocar code por token: ${error.message}`);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error('Google Drive OAuth callback failed', { message });
+        res.status(500).send(`Falha ao trocar code por token: ${message}`);
     }
 });
 
@@ -141,7 +142,7 @@ router.delete(
         const owned = backups.some(b => b.id === fileId);
         if (!owned) throw ApiError.notFound('Ficheiro não encontrado ou sem permissão de acesso');
 
-        await (googleDriveService as any).drive.files.delete({ fileId });
+        await googleDriveService.deleteFile(fileId);
 
         res.json({ success: true, message: 'Ficheiro eliminado do Google Drive' });
     }
@@ -165,20 +166,15 @@ router.post(
         if (!file) throw ApiError.notFound('Ficheiro não encontrado ou sem permissão de acesso');
 
         // Download from Drive to a temp file
-        const drive     = (googleDriveService as any).drive;
         const backupDir = path.resolve(process.cwd(), 'backups');
         if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
 
         const localPath = path.join(backupDir, `restore-${Date.now()}-${file.name}`);
-
-        const response = await drive.files.get(
-            { fileId, alt: 'media' },
-            { responseType: 'stream' }
-        );
+        const stream = await googleDriveService.downloadFile(fileId);
 
         await new Promise<void>((resolve, reject) => {
             const dest = fs.createWriteStream(localPath);
-            response.data.pipe(dest);
+            stream.pipe(dest);
             dest.on('finish', resolve);
             dest.on('error', reject);
         });

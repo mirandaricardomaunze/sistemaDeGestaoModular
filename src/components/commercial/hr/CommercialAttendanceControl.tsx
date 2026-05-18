@@ -1,19 +1,21 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     HiOutlineMagnifyingGlass,
     HiOutlineClock,
     HiOutlineCalendar,
     HiOutlineDocumentMagnifyingGlass,
 } from 'react-icons/hi2';
-import { HiOutlineLogin, HiOutlineLogout } from 'react-icons/hi';
+import { HiOutlineArrowRightOnRectangle, HiOutlineArrowLeftOnRectangle } from 'react-icons/hi2';
 import { Card, Button, Input, Badge, LoadingSpinner, Modal } from '../../ui';
+import { MetricCard } from '../../common/ModuleMetricCard';
 import { useEmployees, useAttendance } from '../../../hooks/useData';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { Employee } from '../../../types';
 
 export const CommercialAttendanceControl: React.FC = () => {
     const [search, setSearch] = useState('');
-    const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     const { employees: allStaff, isLoading } = useEmployees({ limit: 200 });
@@ -67,50 +69,44 @@ export const CommercialAttendanceControl: React.FC = () => {
         <div className="space-y-6 animate-fade-in">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex-1 max-w-md relative">
-                    <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <Input
-                        placeholder="Pesquisar colaborador..."
-                        className="pl-10 h-11"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                    />
+                <div className="w-full xl:flex-1 relative">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1.5 block">Pesquisar Colaborador</label>
+                    <div className="relative">
+                        <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <Input
+                            placeholder="Nome ou código..."
+                            className="pl-10 h-11"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
+                    </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+                <div className="flex items-center gap-2 text-[11px] text-primary-600 dark:text-primary-400 font-black uppercase tracking-[0.2em] bg-primary-50 dark:bg-primary-900/20 px-4 py-2.5 rounded-xl border border-primary-100 dark:border-primary-800/30">
                     <HiOutlineCalendar className="w-5 h-5" />
                     {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
                 </div>
             </div>
 
-            {/* Summary Cards */}
+            {/* Summary KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card variant="glass" className="p-4 border-l-4 border-l-teal-500 flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-600">
-                        <HiOutlineLogin className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Presentes Hoje</p>
-                        <h4 className="text-xl font-black font-mono">{presentCount}</h4>
-                    </div>
-                </Card>
-                <Card variant="glass" className="p-4 border-l-4 border-l-blue-500 flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600">
-                        <HiOutlineLogout className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Saídas Registadas</p>
-                        <h4 className="text-xl font-black font-mono">{exitCount}</h4>
-                    </div>
-                </Card>
-                <Card variant="glass" className="p-4 border-l-4 border-l-amber-500 flex items-center gap-4">
-                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600">
-                        <HiOutlineClock className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Ausentes</p>
-                        <h4 className="text-xl font-black font-mono">{absentCount}</h4>
-                    </div>
-                </Card>
+                <MetricCard
+                    label="Presentes Hoje"
+                    value={presentCount}
+                    color="teal"
+                    icon={<HiOutlineArrowRightOnRectangle className="w-6 h-6" />}
+                />
+                <MetricCard
+                    label="Saídas Registadas"
+                    value={exitCount}
+                    color="blue"
+                    icon={<HiOutlineArrowLeftOnRectangle className="w-6 h-6" />}
+                />
+                <MetricCard
+                    label="Ausentes"
+                    value={absentCount}
+                    color="amber"
+                    icon={<HiOutlineClock className="w-6 h-6" />}
+                />
             </div>
 
             {/* Staff Cards */}
@@ -130,18 +126,20 @@ export const CommercialAttendanceControl: React.FC = () => {
                                             {person.name.charAt(0)}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-gray-900 dark:text-white truncate">{person.name}</h4>
-                                            <p className="text-[10px] uppercase font-black tracking-widest text-gray-400">
+                                            <h4 className="font-black text-gray-900 dark:text-white truncate uppercase text-sm tracking-tight">{person.name}</h4>
+                                            <p className="text-[10px] uppercase font-black tracking-widest text-gray-400 mt-0.5">
                                                 {person.role || person.department || 'Comercial'} • {person.code}
                                             </p>
                                         </div>
-                                        <button
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => { setSelectedEmployee(person); setIsHistoryOpen(true); }}
-                                            className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-dark-700/50 text-gray-400 hover:text-primary-500 transition-colors"
                                             title="Ver Histórico"
+                                            className="p-2 text-gray-400 hover:text-primary-500 active:scale-95"
                                         >
                                             <HiOutlineDocumentMagnifyingGlass className="w-5 h-5" />
-                                        </button>
+                                        </Button>
                                     </div>
 
                                     <div className="grid grid-cols-2 gap-4 py-2 border-y border-gray-100 dark:border-dark-700/50">
@@ -165,7 +163,7 @@ export const CommercialAttendanceControl: React.FC = () => {
                                             size="sm"
                                             className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10"
                                             disabled={!!record?.checkIn}
-                                            leftIcon={<HiOutlineLogin className="w-4 h-4" />}
+                                            leftIcon={<HiOutlineArrowRightOnRectangle className="w-4 h-4" />}
                                             onClick={() => handleRecord(person.id, 'checkIn')}
                                         >
                                             Check-In
@@ -175,7 +173,7 @@ export const CommercialAttendanceControl: React.FC = () => {
                                             size="sm"
                                             className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10 border-orange-200 text-orange-600 hover:bg-orange-50"
                                             disabled={!record?.checkIn || !!record?.checkOut}
-                                            leftIcon={<HiOutlineLogout className="w-4 h-4" />}
+                                            leftIcon={<HiOutlineArrowLeftOnRectangle className="w-4 h-4" />}
                                             onClick={() => handleRecord(person.id, 'checkOut')}
                                         >
                                             Check-Out

@@ -219,7 +219,7 @@ export function generateSAFTXML(saftData: SAFTFile): string {
     const header = saftData.header;
     const invoices = saftData.sourceDocuments.salesInvoices.invoices;
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <AuditFile xmlns="urn:OECD:StandardAuditFile-Tax:MZ_1.04_01">
   <Header>
     <AuditFileVersion>${header.auditFileVersion}</AuditFileVersion>
@@ -399,9 +399,9 @@ export function exportINSSReportCSV(
             acc[r.entityId].employer = r.retainedAmount;
         }
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, { name: string; nuit: string; base: number; employee: number; employer: number }>);
 
-    const rows = Object.values(byEmployee).map((e: any) => [
+    const rows = Object.values(byEmployee).map((e) => [
         companyNuit,
         period,
         e.name,

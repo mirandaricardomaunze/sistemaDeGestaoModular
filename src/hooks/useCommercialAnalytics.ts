@@ -21,12 +21,21 @@ export interface ReorderSuggestion extends Product {
     reason: string;
 }
 
+export interface ProductCategoryMixItem {
+    name: string;
+    value: number;
+    [key: string]: string | number;
+}
+
 /**
  * Client-side derived analytics for the commercial module.
  * Server-backed analytics live in {@link useCommercialAnalytics} from `useCommercial.ts`.
  */
 export function useDerivedCommercialAnalytics(abcPeriod: number = 90, warehouseId?: string) {
-    const { products, isLoading: productsLoading } = useProducts(warehouseId ? { warehouseId } : undefined);
+    const { products, isLoading: productsLoading } = useProducts({
+        originModule: 'commercial',
+        ...(warehouseId ? { warehouseId } : {})
+    });
     const { customers, isLoading: customersLoading } = useCustomers();
     const { data: marginData, isLoading: marginsLoading } = useMarginAnalysis(abcPeriod, warehouseId);
 
@@ -122,11 +131,27 @@ export function useDerivedCommercialAnalytics(abcPeriod: number = 90, warehouseI
             .sort((a, b) => a.daysRemaining - b.daysRemaining);
     }, [products]);
 
+    const productCategoryMix = useMemo<ProductCategoryMixItem[]>(() => {
+        if (!products) return [];
+
+        const counts = products.reduce<Record<string, number>>((acc, product) => {
+            const categoryName = product.categoryModel?.name || product.category || 'Sem Categoria';
+            acc[categoryName] = (acc[categoryName] || 0) + 1;
+            return acc;
+        }, {});
+
+        return Object.entries(counts)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 5);
+    }, [products]);
+
     return {
         abcData,
         atRiskCustomers,
         reorderSuggestions,
         nearExpiry,
+        productCategoryMix,
         isLoading
     };
 }

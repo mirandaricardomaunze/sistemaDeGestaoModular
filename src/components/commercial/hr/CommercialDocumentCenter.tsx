@@ -14,6 +14,8 @@ import {
     HiOutlineBriefcase,
 } from 'react-icons/hi2';
 import { Card, Button, Input, Badge, LoadingSpinner, Modal } from '../../ui';
+import type { BadgeVariant } from '../../ui';
+import { SegmentedControl } from '../../common/SegmentedControl';
 import { useEmployees } from '../../../hooks/useData';
 import { cn } from '../../../utils/helpers';
 import { isBefore, addDays } from 'date-fns';
@@ -58,7 +60,7 @@ function overallStatus(emp: Employee): DocStatus {
     return 'valid';
 }
 
-const STATUS_CONFIG: Record<DocStatus, { label: string; color: string; icon: React.ReactNode; badge: any }> = {
+const STATUS_CONFIG: Record<DocStatus, { label: string; color: string; icon: React.ReactNode; badge: BadgeVariant }> = {
     valid: { label: 'Válido', color: 'text-green-600', icon: <HiOutlineCheckCircle className="w-4 h-4" />, badge: 'success' },
     expiring: { label: 'A Expirar', color: 'text-amber-600', icon: <HiOutlineExclamationTriangle className="w-4 h-4" />, badge: 'warning' },
     expired: { label: 'Expirado', color: 'text-red-600', icon: <HiOutlineXMark className="w-4 h-4" />, badge: 'danger' },
@@ -87,16 +89,11 @@ export const CommercialDocumentCenter: React.FC = () => {
         return list;
     }, [employees, search, filter]);
 
-    const summary = useMemo(() => ({
-        valid: employees.filter(e => overallStatus(e) === 'valid').length,
-        expiring: employees.filter(e => overallStatus(e) === 'expiring').length,
-        expired: employees.filter(e => overallStatus(e) === 'expired').length,
-        missing: employees.filter(e => overallStatus(e) === 'missing').length,
-    }), [employees]);
+
 
     const openEdit = (emp: Employee) => {
         setSelectedEmp(emp);
-        setEditDocs(parseDocs((emp as any).notes));
+        setEditDocs(parseDocs(emp.notes));
         setIsModalOpen(true);
     };
 
@@ -105,8 +102,8 @@ export const CommercialDocumentCenter: React.FC = () => {
         setSaving(true);
         try {
             await updateEmployee(selectedEmp.id, {
-                notes: serializeDocs((selectedEmp as any).notes, editDocs)
-            } as any);
+                notes: serializeDocs(selectedEmp.notes, editDocs)
+            } as Parameters<typeof updateEmployee>[1]);
             toast.success('Documentos actualizados');
             refetch();
             setIsModalOpen(false);
@@ -118,34 +115,37 @@ export const CommercialDocumentCenter: React.FC = () => {
     };
 
     if (isLoading) return <LoadingSpinner size="lg" className="h-64" />;
-
+    
     return (
         <div className="space-y-6 animate-fade-in pb-8">
-            {/* Summary Chips */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {([
-                    { key: 'valid', label: 'Válidos', bg: 'bg-green-50 dark:bg-green-900/10', text: 'text-green-700', border: 'border-green-200' },
-                    { key: 'expiring', label: 'A Expirar', bg: 'bg-amber-50 dark:bg-amber-900/10', text: 'text-amber-700', border: 'border-amber-200' },
-                    { key: 'expired', label: 'Expirados', bg: 'bg-red-50 dark:bg-red-900/10', text: 'text-red-700', border: 'border-red-200' },
-                    { key: 'missing', label: 'Em Falta', bg: 'bg-gray-50 dark:bg-gray-900/10', text: 'text-gray-700', border: 'border-gray-200' },
-                ] as const).map(s => (
-                    <button key={s.key}
-                        onClick={() => setFilter(filter === s.key ? 'all' : s.key)}
-                        className={cn('p-4 rounded-lg border transition-all text-left', s.bg, s.border, filter === s.key ? 'ring-2 ring-offset-2 ring-primary-500' : '')}>
-                        <p className={`text-2xl font-black ${s.text}`}>{summary[s.key]}</p>
-                        <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${s.text}`}>{s.label}</p>
-                    </button>
-                ))}
-            </div>
-
-            {/* Filters */}
-            <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                    <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <Input placeholder="Pesquisar colaborador..." className="pl-10 h-11" value={search} onChange={e => setSearch(e.target.value)} />
+            {/* Filters Row */}
+            <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-end">
+                <div className="w-full xl:flex-1 relative">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1.5 block">Pesquisar</label>
+                    <div className="relative">
+                        <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <Input placeholder="Pesquisar..." className="pl-10 h-11" value={search} onChange={e => setSearch(e.target.value)} />
+                    </div>
                 </div>
-                <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()} className="h-11 font-black text-[10px] uppercase tracking-widest">
-                    Actualizar
+
+                <div className="w-full xl:w-auto flex-shrink-0 min-w-max">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1.5 block">Filtrar por Estado</label>
+                    <SegmentedControl
+                        value={filter}
+                        onChange={setFilter}
+                        size="md"
+                        options={[
+                            { label: 'Todos', value: 'all' },
+                            { label: 'Válidos', value: 'valid', icon: HiOutlineCheckCircle },
+                            { label: 'A Expirar', value: 'expiring', icon: HiOutlineExclamationTriangle },
+                            { label: 'Expirados', value: 'expired', icon: HiOutlineXMark },
+                            { label: 'Em Falta', value: 'missing', icon: HiOutlineExclamationCircle },
+                        ]}
+                    />
+                </div>
+
+                <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()} className="h-11 font-black text-[10px] uppercase tracking-widest px-8">
+                    Sincronizar
                 </Button>
             </div>
 
@@ -155,7 +155,7 @@ export const CommercialDocumentCenter: React.FC = () => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {filtered.map(emp => {
-                        const docs = parseDocs((emp as any).notes);
+                        const docs = parseDocs(emp.notes);
                         const status = overallStatus(emp);
                         const sc = STATUS_CONFIG[status];
                         const docItems = [
@@ -281,7 +281,7 @@ export const CommercialDocumentCenter: React.FC = () => {
 
                     <div className="flex gap-4 pt-4">
                         <Button variant="primary" className="flex-1 rounded-lg uppercase font-black text-[10px] tracking-widest" onClick={handleSave} disabled={saving}>
-                            {saving ? 'A guardar"¦' : 'Guardar Alterações'}
+                            {saving ? 'A guardar...' : 'Guardar Alterações'}
                         </Button>
                         <Button variant="outline" className="flex-1 rounded-lg uppercase font-black text-[10px] tracking-widest" onClick={() => setIsModalOpen(false)}>
                             Cancelar

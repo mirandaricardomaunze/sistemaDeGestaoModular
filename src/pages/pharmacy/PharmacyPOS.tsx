@@ -9,7 +9,7 @@ import type { ShiftData } from '../../components/pharmacy/pos/PharmacyShiftModal
 import { useCustomers } from '../../hooks/useData';
 import toast from 'react-hot-toast';
 import {
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlineExclamationCircle,
     HiOutlineShieldExclamation,
 } from 'react-icons/hi2';
@@ -29,7 +29,7 @@ import { POSProductGrid } from '../../components/pharmacy/pos/POSProductGrid';
 import { POSCartPanel } from '../../components/pharmacy/pos/POSCartPanel';
 import { POSPatientHistoryModal } from '../../components/pharmacy/pos/POSPatientHistoryModal';
 import { PharmacyShiftModal } from '../../components/pharmacy/pos/PharmacyShiftModal';
-import type { Medication } from '../../types/pharmacy';
+import type { Medication, Prescription, PharmacySale } from '../../types/pharmacy';
 
 interface CartItem {
     batchId: string;
@@ -45,6 +45,37 @@ interface CartItem {
     requiresPrescription?: boolean;
     isControlled?: boolean;
 }
+
+// Server-provided medication shape (broader than the imported `Medication` type)
+type PharmacyMed = Medication & {
+    stock?: number;
+    barcode?: string;
+    activeIngredient?: string;
+    description?: string;
+    activeIngredients?: string[];
+    isControlled?: boolean;
+    batches?: Array<{
+        id: string;
+        currentStock: number;
+        sellingPrice: number | string;
+        expiryDate?: string;
+    }>;
+};
+
+type ActiveShift = {
+    openedAt: string | Date;
+    [key: string]: unknown;
+};
+
+type ShiftSummary = { totalSales?: number; saleCount?: number };
+
+type SaleReceiptData = PharmacySale | { id: string; receiptNumber?: string };
+
+type DrugInteraction = {
+    description: string;
+    management?: string;
+    severity?: string;
+};
 
 export default function PharmacyPOS() {
     const queryClient = useQueryClient();
@@ -62,8 +93,8 @@ export default function PharmacyPOS() {
     const [shiftModalMode, setShiftModalMode] = useState<'open' | 'close'>('open');
 
     // Fetch active shift & summary
-    const activeShift = queryClient.getQueryData<any>(['pharmacy', 'shift']);
-    const shiftSummary = queryClient.getQueryData<any>(['pharmacy', 'shift', 'summary']);
+    const activeShift = queryClient.getQueryData<ActiveShift>(['pharmacy', 'shift']);
+    const shiftSummary = queryClient.getQueryData<ShiftSummary>(['pharmacy', 'shift', 'summary']);
     
     const shift = useMemo(() => {
         if (!activeShift) return null;
@@ -85,17 +116,17 @@ export default function PharmacyPOS() {
     const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
     const [manualCustomerName, setManualCustomerName] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('cash');
-    const [lastSale, setLastSale] = useState<any>(null);
+    const [lastSale, setLastSale] = useState<SaleReceiptData | null>(null);
     const [discount, setDiscount] = useState(0);
     const [insuranceEntity, setInsuranceEntity] = useState<string | null>(null);
     const [insuranceCoverage, setInsuranceCoverage] = useState(0);
     const [prescriptionNumber, setPrescriptionNumber] = useState('');
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
-    const [_validatedRx, setValidatedRx] = useState<any>(null);
+    const [_validatedRx, setValidatedRx] = useState<Prescription | null>(null);
 
     // Drug interaction warning
-    const [interactionWarnings, setInteractionWarnings] = useState<any[]>([]);
+    const [interactionWarnings, setInteractionWarnings] = useState<DrugInteraction[]>([]);
     const [showInteractionWarning, setShowInteractionWarning] = useState(false);
     const [pendingCheckoutCart, setPendingCheckoutCart] = useState<CartItem[] | null>(null);
 
@@ -122,13 +153,13 @@ export default function PharmacyPOS() {
         const allAllergies: string[] = patientProfile.allergies.map((a: string) => a.toLowerCase());
         const warnings: string[] = [];
         cart.forEach(item => {
-            const medData = medications.find((m: any) => m.id === item.medicationId);
+            const medData = (medications as PharmacyMed[]).find((m) => m.id === item.medicationId);
             if (medData) {
-                const contraindications = (medData.description || '').toLowerCase(); 
+                const contraindications = (medData.description || '').toLowerCase();
                 const activeIngredient = (medData.activeIngredients?.join(' ') || '').toLowerCase();
                 allAllergies.forEach(allergy => {
                     if (contraindications.includes(allergy) || activeIngredient.includes(allergy)) {
-                        warnings.push(`⚠️ ALERGIA: "${item.productName}" - paciente tem alergia a "${allergy.toUpperCase()}"`);
+                        warnings.push(`⚠️ï¸ ALERGIA: "${item.productName}" - paciente tem alergia a "${allergy.toUpperCase()}"`);
                     }
                 });
             }
@@ -137,9 +168,10 @@ export default function PharmacyPOS() {
     }, [cart, patientProfile, medications]);
 
     const filteredMedications = useMemo(() => {
-        if (!posSearch) return medications.filter((m: any) => m.stock > 0);
-        return medications.filter((m: any) =>
-            m.stock > 0 &&
+        const meds = medications as PharmacyMed[];
+        if (!posSearch) return meds.filter((m) => (m.stock ?? 0) > 0);
+        return meds.filter((m) =>
+            (m.stock ?? 0) > 0 &&
             (m.name.toLowerCase().includes(posSearch.toLowerCase()) ||
                 m.code.toLowerCase().includes(posSearch.toLowerCase()) ||
                 (m.activeIngredient && m.activeIngredient.toLowerCase().includes(posSearch.toLowerCase())))
@@ -150,7 +182,7 @@ export default function PharmacyPOS() {
 
     useBarcodeScanner({
         onScan: (barcode) => {
-            const found = medications.find((m: any) => m.code === barcode || (m as any).barcode === barcode);
+            const found = (medications as PharmacyMed[]).find((m) => m.code === barcode || m.barcode === barcode);
             if (found) {
                 addToCart(found);
                 playScanSound();
@@ -167,13 +199,13 @@ export default function PharmacyPOS() {
         setIsHistoryModalOpen(true);
     };
 
-    const addToCart = (medication: Medication) => {
-        const batch = (medication as any).batches?.[0]; 
+    const addToCart = (medication: PharmacyMed) => {
+        const batch = medication.batches?.[0];
         if (!batch) {
             toast.error('Sem stock disponível');
             return;
         }
-        
+
         const existing = cart.find(item => item.batchId === batch.id);
 
         if (existing) {
@@ -190,7 +222,7 @@ export default function PharmacyPOS() {
             setCart([...cart, {
                 batchId: batch.id,
                 medicationId: medication.id,
-                productName: (medication as any).name || 'Produto',
+                productName: medication.name || 'Produto',
                 quantity: 1,
                 unitPrice: Number(batch.sellingPrice),
                 discount: 0,
@@ -198,7 +230,7 @@ export default function PharmacyPOS() {
                 maxQuantity: batch.currentStock,
                 expiryDate: batch.expiryDate,
                 requiresPrescription: medication.requiresPrescription,
-                isControlled: (medication as any).isControlled
+                isControlled: medication.isControlled
             }]);
         }
     };
@@ -258,7 +290,7 @@ export default function PharmacyPOS() {
         try {
             const customer = customers.find(c => c.id === selectedCustomer);
             const sale = await createSaleMutation.mutateAsync({
-                customerId: selectedCustomer,
+                customerId: selectedCustomer ?? undefined,
                 customerName: selectedCustomer ? (customer?.name || 'Cliente Balcão') : (manualCustomerName || 'Cliente Balcão'),
                 items: cartItems.map(item => ({
                     batchId: item.batchId,
@@ -267,7 +299,7 @@ export default function PharmacyPOS() {
                     posologyLabel: item.posologyLabel
                 })),
                 discount,
-                partnerId: insuranceEntity,
+                partnerId: insuranceEntity ?? undefined,
                 insuranceAmount,
                 prescriptionNumber,
                 paymentMethod
@@ -308,8 +340,8 @@ export default function PharmacyPOS() {
             setShowRefundModal(false);
             setRefundSaleNumber(''); setRefundReason(''); setRefundSaleId('');
             fetchMedications();
-        } catch (error: any) {
-            toast.error(error?.response?.data?.message || 'Erro ao processar devolução');
+        } catch (error) {
+            toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Erro ao processar devolução');
         } finally {
             setIsRefunding(false);
         }
@@ -321,8 +353,8 @@ export default function PharmacyPOS() {
             queryClient.invalidateQueries({ queryKey: ['pharmacy', 'shift'] });
             toast.success('Turno aberto com sucesso');
             setShowShiftModal(false);
-        } catch (error: any) {
-            toast.error(error?.response?.data?.message || 'Erro ao abrir turno');
+        } catch (error) {
+            toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Erro ao abrir turno');
         }
     };
 
@@ -332,8 +364,8 @@ export default function PharmacyPOS() {
             toast.success(`Turno fechado com diferença de ${closed.difference} MTn`);
             queryClient.invalidateQueries({ queryKey: ['pharmacy', 'shift'] });
             setShowShiftModal(false);
-        } catch (error: any) {
-            toast.error(error?.response?.data?.message || 'Erro ao fechar turno');
+        } catch (error) {
+            toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || 'Erro ao fechar turno');
         }
     };
 
@@ -341,7 +373,7 @@ export default function PharmacyPOS() {
         if (!refundSaleNumber.trim()) return;
         try {
             const data = await pharmacyAPI.getSales({ search: refundSaleNumber, page: 1, limit: 1 });
-            const found = (data as any)?.data?.[0];
+            const found = (data as { data?: Array<{ id: string; customerName?: string }> })?.data?.[0];
             if (!found) { toast.error('Venda não encontrada'); return; }
             setRefundSaleId(found.id);
             toast.success(`Venda encontrada: ${found.customerName}`);
@@ -450,7 +482,7 @@ export default function PharmacyPOS() {
                         <Button 
                             variant="danger" 
                             size="sm" 
-                            leftIcon={<HiOutlineRefresh className="w-4 h-4 text-white" />} 
+                            leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-white" />} 
                             onClick={() => setShowRefundModal(true)} 
                         />
                     </div>
@@ -478,7 +510,7 @@ export default function PharmacyPOS() {
                         setPosSearch={setPosSearch}
                         filteredMedications={filteredMedications}
                         posPagination={posPagination}
-                        addToCart={addToCart}
+                        addToCart={addToCart as (med: import('../../components/pharmacy/pos/POSProductGrid').POSMedication) => void}
                     />
                 </div>
                 <div className="lg:col-span-2">
@@ -509,7 +541,7 @@ export default function PharmacyPOS() {
                         setInsuranceEntity={setInsuranceEntity}
                         setInsuranceCoverage={setInsuranceCoverage}
                         handleViewPatientHistory={handleViewPatientHistory}
-                        onPrescriptionValidated={(rx: any) => setValidatedRx(rx)}
+                        onPrescriptionValidated={(rx) => setValidatedRx(rx)}
                     />
                 </div>
             </div>
@@ -517,7 +549,17 @@ export default function PharmacyPOS() {
             <POSPatientHistoryModal
                 isOpen={isHistoryModalOpen}
                 onClose={() => setIsHistoryModalOpen(false)}
-                patientHistory={patientHistory}
+                patientHistory={(patientHistory || []).map((h) => ({
+                    id: h.id,
+                    date: h.saleDate,
+                    number: h.prescriptionNumber || '-',
+                    items: [{
+                        id: h.id,
+                        quantity: h.quantity,
+                        productName: h.medicationName,
+                        unitPrice: 0,
+                    }],
+                }))}
             />
 
             {/* Interaction Warning Modal */}
@@ -534,7 +576,7 @@ export default function PharmacyPOS() {
                             </div>
                         </div>
                         <div className="space-y-4 mb-8">
-                            {interactionWarnings.map((interaction: any, i: number) => (
+                            {interactionWarnings.map((interaction, i: number) => (
                                 <div key={i} className="p-4 rounded-xl border border-amber-200 bg-amber-50 dark:bg-amber-900/10">
                                     <p className="font-bold text-amber-800 dark:text-amber-200 mb-1">{interaction.description}</p>
                                     <p className="text-xs text-amber-600 font-medium">Recomendação: {interaction.management}</p>
@@ -569,7 +611,7 @@ export default function PharmacyPOS() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
                     <div className="bg-white dark:bg-dark-800 rounded-lg shadow-2xl w-full max-w-md p-6">
                         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                            <HiOutlineRefresh className="w-5 h-5 text-red-500 dark:text-red-400" />
+                            <HiOutlineArrowPath className="w-5 h-5 text-red-500 dark:text-red-400" />
                             Devolução
                         </h3>
                         <div className="space-y-4">

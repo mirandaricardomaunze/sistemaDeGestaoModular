@@ -1,4 +1,4 @@
-﻿import { Fragment } from 'react';
+import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { formatCurrency } from '../../utils/helpers';
 import { 
@@ -199,7 +199,7 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                             <div>
                                                 <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
                                                     <HiOutlineShoppingCart className="w-5 h-5 text-primary-500" />
-                                                    Ãšltimas interações
+                                                    Últimas interações
                                                 </h3>
                                                 
                                                 {isLoading ? (

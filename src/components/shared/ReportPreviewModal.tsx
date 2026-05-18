@@ -5,7 +5,7 @@
 
 import { useRef } from 'react';
 import type { ReactNode } from 'react';
-import { HiOutlinePrinter, HiOutlineX, HiOutlineDownload, HiOutlineDocumentReport } from 'react-icons/hi';
+import { HiOutlinePrinter, HiOutlineXMark, HiOutlineArrowDownTray, HiOutlineDocumentChartBar } from 'react-icons/hi2';
 import { Modal, Button, Card } from '../ui';
 import { useStore } from '../../stores/useStore';
 import { format } from 'date-fns';
@@ -175,11 +175,11 @@ export default function ReportPreviewModal({
             {/* Action Buttons */}
             <div className="flex justify-end gap-2 mb-4 no-print">
                 <Button variant="outline" size="sm" onClick={onClose}>
-                    <HiOutlineX className="w-4 h-4 mr-2" />
+                    <HiOutlineXMark className="w-4 h-4 mr-2" />
                     Fechar
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                    <HiOutlineDownload className="w-4 h-4 mr-2" />
+                    <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                     Exportar PDF
                 </Button>
                 <Button size="sm" onClick={handlePrint} className="bg-gray-800 hover:bg-black text-white px-6">
@@ -219,7 +219,7 @@ export default function ReportPreviewModal({
                         </div>
                         <div className="text-right">
                             <div className="flex items-center justify-end gap-2 mb-1">
-                                <HiOutlineDocumentReport className="w-6 h-6 text-primary-600" />
+                                <HiOutlineDocumentChartBar className="w-6 h-6 text-primary-600" />
                                 <h2 className="text-xl font-black text-primary-600 uppercase tracking-wider">
                                     {reportTitle}
                                 </h2>

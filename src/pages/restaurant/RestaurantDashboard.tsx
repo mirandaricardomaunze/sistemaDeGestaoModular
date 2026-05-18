@@ -14,6 +14,11 @@ import { Card, Button, Skeleton } from '../../components/ui';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { SmartInsightCard } from '../../components/common/SmartInsightCard';
 import { useRestaurantDashboard } from '../../hooks/useRestaurant';
+import type {
+    RestaurantDashboardCategory,
+    RestaurantDashboardSummary,
+    RestaurantRecentSale,
+} from '../../types/restaurant';
 import { MetricCard, StatCard } from '../../components/common/ModuleMetricCard';
 import { QuickActionCard } from '../../components/common/QuickActionCard';
 
@@ -37,24 +42,19 @@ export default function RestaurantDashboard() {
     const { data, isLoading: loading, refetch: refetchStats } = useRestaurantDashboard(range);
     const { insights } = useSmartInsights();
 
-    const summary = (data?.summary || {
-        totalRevenue: 0,
-        activeTables: 0,
-        pendingOrders: 0,
-        avgPrepTime: 0,
-        estimatedRevenue: 0,
+    const summary: RestaurantDashboardSummary = data?.summary || {
         totalSales: 0,
         totalOrders: 0,
         avgTicket: 0,
         totalTables: 0,
         occupiedTables: 0,
         availableTables: 0,
-        pendingReservations: 0
-    }) as any;
-    const stats_evol = data?.stats?.ordersOverTime || [];
+    };
+    const stats_evol = data?.chartData || [];
 
-    const categoryData = useMemo(() =>
-        (data?.stats?.categoryDistribution || []).map((e: any, i: number) => ({ ...e, color: CHART_COLORS[i % CHART_COLORS.length] })),
+    type CategoryEntry = RestaurantDashboardCategory & { color: string };
+    const categoryData = useMemo<CategoryEntry[]>(() =>
+        (data?.categoryData || []).map((e, i) => ({ ...e, color: CHART_COLORS[i % CHART_COLORS.length] })),
         [data]
     );
 
@@ -218,15 +218,15 @@ export default function RestaurantDashboard() {
                             <div className="h-56">
                                 <ResponsiveContainer width="100%" height={224}>
                                     <PieChart>
-                                        <Pie data={categoryData} cx="50%" cy="50%" innerRadius={55} outerRadius={75} paddingAngle={4} dataKey="value">
-                                            {categoryData.map((e: any, i: number) => <Cell key={i} fill={e.color} />)}
+                                        <Pie data={categoryData as unknown as Parameters<typeof Pie>[0]['data']} cx="50%" cy="50%" innerRadius={55} outerRadius={75} paddingAngle={4} dataKey="value">
+                                            {categoryData.map((e, i) => <Cell key={i} fill={e.color} />)}
                                         </Pie>
                                         <Tooltip />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
                             <div className="grid grid-cols-2 gap-2 mt-4">
-                                {categoryData.map((item: any) => (
+                                {categoryData.map((item) => (
                                     <div key={item.name} className="flex items-center gap-2 min-w-0">
                                         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
                                         <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{item.name}</span>
@@ -248,10 +248,10 @@ export default function RestaurantDashboard() {
                         <Link to="/restaurant/reports"><Button variant="ghost" size="sm">Ver Tudo</Button></Link>
                     </div>
                     <div className="divide-y divide-gray-100 dark:divide-dark-700">
-                        {((data as any)?.recentActivity || []).length === 0 ? (
+                        {(data?.recentActivity || []).length === 0 ? (
                             <p className="text-center py-8 text-gray-500 text-sm">Sem pedidos recentes</p>
                         ) : (
-                            ((data as any)?.recentActivity || []).slice(0, 6).map((sale: any, idx: number) => (
+                            (data?.recentActivity || []).slice(0, 6).map((sale: RestaurantRecentSale, idx: number) => (
                                 <div key={idx} className="flex items-center justify-between py-3">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 border border-red-200/50 dark:border-red-500/20 flex items-center justify-center shadow-inner transition-transform group-hover:scale-110">

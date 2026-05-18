@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../utils/helpers';
 import { HiOutlineExclamationTriangle, HiOutlineInformationCircle, HiOutlineTrash, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
 import { Button } from './Button';
@@ -88,8 +89,8 @@ export function ConfirmationModal({
         await onConfirm();
     };
 
-    return (
-        <div className="fixed inset-0 z-[9999] overflow-y-auto">
+    const content = (
+        <div className="fixed inset-0 z-[10100] overflow-y-auto">
             {/* Overlay */}
             <div
                 className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
@@ -99,7 +100,7 @@ export function ConfirmationModal({
             {/* Modal Container */}
             <div className="flex min-h-full items-center justify-center p-4">
                 <div
-                    className="relative w-full max-w-md bg-white dark:bg-dark-800 rounded-lg shadow-xl animate-slide-up"
+                    className="relative w-full max-w-md bg-white dark:bg-dark-800 rounded-2xl border border-slate-300/70 dark:border-white/10 shadow-card-hover animate-slide-up"
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Content */}
@@ -113,12 +114,12 @@ export function ConfirmationModal({
                         </div>
 
                         {/* Title */}
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2">
+                        <h3 className="text-lg font-bold text-slate-950 dark:text-white text-center mb-2">
                             {title}
                         </h3>
 
                         {/* Message */}
-                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+                        <p className="text-sm text-slate-600 dark:text-gray-400 text-center mb-6">
                             {message}
                         </p>
 
@@ -153,4 +154,6 @@ export function ConfirmationModal({
             </div>
         </div>
     );
+
+    return createPortal(content, document.body);
 }

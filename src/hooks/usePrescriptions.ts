@@ -2,6 +2,8 @@ import { logger } from '../utils/logger';
 import { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { pharmacyAPI } from '../services/api';
+import type { Prescription } from '../types/pharmacy';
+import type { PharmacyPrescriptionsParams } from '../services/api/pharmacy.api';
 
 interface PaginationMeta {
     page: number;
@@ -11,15 +13,10 @@ interface PaginationMeta {
     hasMore: boolean;
 }
 
-interface UsePrescriptionsParams {
-    status?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-}
+type ApiError = Error & { response?: { data?: { message?: string; error?: string } } };
 
-export function usePrescriptions(params?: UsePrescriptionsParams) {
-    const [prescriptions, setPrescriptions] = useState<any[]>([]);
+export function usePrescriptions(params?: PharmacyPrescriptionsParams) {
+    const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -32,7 +29,10 @@ export function usePrescriptions(params?: UsePrescriptionsParams) {
 
             if (response.data && response.pagination) {
                 setPrescriptions(response.data);
-                setPagination(response.pagination);
+                setPagination({
+                    ...response.pagination,
+                    hasMore: response.pagination.page < response.pagination.totalPages,
+                });
             } else {
                 const data = Array.isArray(response) ? response : (response.data || []);
                 setPrescriptions(data);
@@ -44,8 +44,9 @@ export function usePrescriptions(params?: UsePrescriptionsParams) {
                     hasMore: false
                 });
             }
-        } catch (err: any) {
-            setError(err.message || 'Erro ao carregar receitas');
+        } catch (err) {
+            const message = (err as ApiError).message || 'Erro ao carregar receitas';
+            setError(message);
             logger.error('Error fetching prescriptions:', err);
         } finally {
             setIsLoading(false);
@@ -61,14 +62,15 @@ export function usePrescriptions(params?: UsePrescriptionsParams) {
         fetchPrescriptions();
     }, [fetchPrescriptions]);
 
-    const addPrescription = async (data: any) => {
+    const addPrescription = async (data: Partial<Prescription>) => {
         try {
             const newPrescription = await pharmacyAPI.createPrescription(data);
             toast.success('Receita registrada com sucesso!');
             fetchPrescriptions();
             return newPrescription;
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Erro ao registrar receita');
+        } catch (err) {
+            const apiErr = err as ApiError;
+            toast.error(apiErr.response?.data?.message || 'Erro ao registrar receita');
             throw err;
         }
     };

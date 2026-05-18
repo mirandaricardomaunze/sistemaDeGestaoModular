@@ -4,10 +4,28 @@ import { formatCurrency } from '../../utils/helpers';
 import { PAGE_SIZE } from '../../utils/constants';
 import { format, parseISO } from 'date-fns';
 import { CommercialReceiptModal, type ReceiptData } from '../../components/commercial/pos/CommercialReceiptModal';
+import type { PaymentEntry, PaymentMethodType } from '../../components/commercial/pos/CommercialPaymentModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
+import type { Sale } from '../../types';
 import { HiOutlineEye, HiOutlineTrash } from 'react-icons/hi2';
+
+type ParsedPayment = {
+    method?: string;
+    amount?: number | string;
+    reference?: string;
+};
+
+const isPaymentMethod = (method: string): method is PaymentMethodType => (
+    method === 'cash' || method === 'mpesa' || method === 'emola' || method === 'card' || method === 'credit'
+);
+
+const toReceiptPayment = (payment: ParsedPayment): PaymentEntry => ({
+    method: payment.method && isPaymentMethod(payment.method) ? payment.method : 'cash',
+    amount: Number(payment.amount ?? 0),
+    reference: payment.reference,
+});
 
 export default function CommercialHistory() {
     const [page, setPage] = useState(1);
@@ -21,7 +39,9 @@ export default function CommercialHistory() {
             try {
                 const parsed = JSON.parse(ref);
                 if (Array.isArray(parsed) && parsed.length > 1) return 'Misto';
-            } catch (e) {}
+            } catch {
+                // Ignore legacy payment references that are not JSON arrays.
+            }
         }
 
         const labels: Record<string, string> = {
@@ -48,26 +68,29 @@ export default function CommercialHistory() {
         sortOrder: 'desc',
     });
 
-    const [selectedSale, setSelectedSale] = useState<any | null>(null);
+    const [selectedReceipt, setSelectedReceipt] = useState<ReceiptData | null>(null);
+    const [saleToVoid, setSaleToVoid] = useState<Sale | null>(null);
     const [showReceipt, setShowReceipt] = useState(false);
     const [showVoidModal, setShowVoidModal] = useState(false);
     const [voidReason, setVoidReason] = useState('');
     const [isVoiding, setIsVoiding] = useState(false);
 
-    const handleViewReceipt = (sale: any) => {
-        let parsedPayments = [{ method: sale.paymentMethod as any, amount: sale.amountPaid, reference: sale.paymentRef }];
+    const handleViewReceipt = (sale: Sale) => {
+        let parsedPayments: PaymentEntry[] = [toReceiptPayment({
+            method: sale.paymentMethod,
+            amount: sale.amountPaid,
+            reference: sale.paymentRef,
+        })];
 
         if (sale.paymentRef && sale.paymentRef.startsWith('[') && sale.paymentRef.includes('method')) {
             try {
                 const arr = JSON.parse(sale.paymentRef);
                 if (Array.isArray(arr) && arr.length > 0) {
-                    parsedPayments = arr.map((p: any) => ({
-                        method: p.method,
-                        amount: p.amount,
-                        reference: p.reference
-                    }));
+                    parsedPayments = arr.map((p) => toReceiptPayment(p as ParsedPayment));
                 }
-            } catch (e) {}
+            } catch {
+                // Keep the primary payment when mixed-payment metadata is malformed.
+            }
         }
 
         const receiptData: ReceiptData = {
@@ -75,7 +98,7 @@ export default function CommercialHistory() {
             date: new Date(sale.createdAt),
             customerName: sale.customer?.name || 'Consumidor Geral',
             customerPhone: sale.customer?.phone,
-            items: sale.items.map((item: any) => ({
+            items: sale.items.map((item) => ({
                 name: item.product?.name || 'Produto',
                 code: item.product?.code || '',
                 quantity: item.quantity,
@@ -91,35 +114,35 @@ export default function CommercialHistory() {
             change: sale.change || 0,
             isCredit: sale.paymentMethod === 'credit'
         };
-        setSelectedSale(receiptData);
+        setSelectedReceipt(receiptData);
         setShowReceipt(true);
     };
 
-    const handleOpenVoidModal = (sale: any) => {
-        setSelectedSale(sale);
+    const handleOpenVoidModal = (sale: Sale) => {
+        setSaleToVoid(sale);
         setShowVoidModal(true);
     };
 
     const handleConfirmVoid = async () => {
-        if (!selectedSale || !voidReason.trim()) return;
+        if (!saleToVoid || !voidReason.trim()) return;
         setIsVoiding(true);
         try {
-            await voidSale(selectedSale.id, voidReason);
+            await voidSale(saleToVoid.id, voidReason);
             setShowVoidModal(false);
             setVoidReason('');
             refetch();
-        } catch (err) {
+        } catch {
             // Error handled in hook
         } finally {
             setIsVoiding(false);
         }
     };
 
-    const columns = useMemo<ColumnDef<any, any>[]>(() => [
+    const columns = useMemo<ColumnDef<Sale, unknown>[]>(() => [
         {
             accessorKey: 'receiptNumber',
             header: 'Recibo / Referência',
-            cell: ({ row }: any) => {
+            cell: ({ row }) => {
                 const sale = row.original;
                 return (
                     <div className="flex flex-col">
@@ -136,13 +159,13 @@ export default function CommercialHistory() {
         {
             accessorKey: 'createdAt',
             header: 'Data & Hora',
-            cell: (info: any) => (
+            cell: (info) => (
                 <div className="flex flex-col">
                     <span className="font-bold text-gray-700 dark:text-gray-300">
-                        {format(parseISO(info.getValue()), 'dd/MM/yyyy')}
+                        {format(parseISO(String(info.getValue())), 'dd/MM/yyyy')}
                     </span>
                     <span className="text-[9px] text-gray-400 font-black uppercase tracking-wider">
-                        {format(parseISO(info.getValue()), 'HH:mm')}
+                        {format(parseISO(String(info.getValue())), 'HH:mm')}
                     </span>
                 </div>
             )
@@ -150,7 +173,7 @@ export default function CommercialHistory() {
         {
             accessorKey: 'customer.name',
             header: 'Identificação',
-            cell: ({ row }: any) => (
+            cell: ({ row }) => (
                 <div className="flex flex-col">
                     <span className="font-black text-gray-800 dark:text-gray-200 text-xs uppercase tracking-tight truncate max-w-[140px]">
                         {row.original.customer?.name || 'Consumidor Geral'}
@@ -162,10 +185,10 @@ export default function CommercialHistory() {
         {
             accessorKey: 'total',
             header: 'Valor Total',
-            cell: (info: any) => (
+            cell: (info) => (
                 <div className="flex flex-col items-end">
                     <span className="font-black text-gray-900 dark:text-white text-base tracking-tighter">
-                        {formatCurrency(info.getValue())}
+                        {formatCurrency(Number(info.getValue() || 0))}
                     </span>
                     <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{info.row.original.items?.length || 0} Itens</span>
                 </div>
@@ -174,16 +197,16 @@ export default function CommercialHistory() {
         {
             accessorKey: 'paymentMethod',
             header: 'Método',
-            cell: (info: any) => (
+            cell: (info) => (
                 <Badge variant="gray" size="sm" className="font-black text-[9px] uppercase tracking-widest bg-gray-100 text-gray-700 dark:bg-dark-800 dark:text-gray-300 px-3 py-1 border-none">
-                    {getPaymentMethodLabel(info.getValue(), info.row.original.paymentRef)}
+                    {getPaymentMethodLabel(String(info.getValue()), info.row.original.paymentRef)}
                 </Badge>
             )
         },
         {
             accessorKey: 'voidStatus',
             header: 'Status',
-            cell: (info: any) => {
+            cell: (info) => {
                 const vs = info.getValue() ?? info.row.original.status;
                 if (vs === 'voided') {
                     return (
@@ -209,7 +232,7 @@ export default function CommercialHistory() {
         {
             id: 'actions',
             header: 'Gestão',
-            cell: ({ row }: any) => {
+            cell: ({ row }) => {
                 const vs = row.original.voidStatus ?? row.original.status;
                 const canRequestVoid = vs !== 'voided' && vs !== 'pending_void';
                 return (
@@ -295,7 +318,7 @@ export default function CommercialHistory() {
                 onClose={() => !isVoiding && setShowVoidModal(false)}
                 onConfirm={handleConfirmVoid}
                 title="Solicitar Anulação"
-                message={`Pedir anulação da venda "${selectedSale?.receiptNumber || selectedSale?.id?.slice(-6)}"? A venda fica pendente até ser aprovada por um gestor — o stock só é devolvido após aprovação.`}
+                message={`Pedir anulação da venda "${saleToVoid?.receiptNumber || saleToVoid?.id?.slice(-6)}"? A venda fica pendente até ser aprovada por um gestor.`}
                 confirmText="Enviar Pedido"
                 cancelText="Cancelar"
                 variant="danger"
@@ -316,7 +339,7 @@ export default function CommercialHistory() {
             {/* Receipt Modal */}
             <CommercialReceiptModal 
                 isOpen={showReceipt}
-                receipt={selectedSale}
+                receipt={selectedReceipt}
                 onClose={() => setShowReceipt(false)}
             />
         </div>

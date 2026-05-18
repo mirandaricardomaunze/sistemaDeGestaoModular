@@ -1,17 +1,24 @@
 import { prisma } from '../lib/prisma';
-import { PaymentMethod } from '@prisma/client';
+import { Prisma, PaymentMethod } from '@prisma/client';
 import { ApiError } from '../middleware/error.middleware';
 import { buildPaginationMeta } from '../utils/pagination';
+
+type CreditSalesQuery = {
+    page?: string | number;
+    limit?: string | number;
+    customerId?: string;
+    status?: 'pending' | 'partial' | string;
+};
 
 export class CreditSalesService {
     /**
      * Get all credit sales (pending and partially paid)
      */
-    async getCreditSales(companyId: string, query: any) {
+    async getCreditSales(companyId: string, query: CreditSalesQuery) {
         const { page = 1, limit = 20, customerId, status } = query;
         const skip = (Number(page) - 1) * Number(limit);
 
-        const where: any = {
+        const where: Prisma.SaleWhereInput = {
             companyId,
             isCredit: true
         };

@@ -35,7 +35,7 @@ export class HospitalityChannelsService {
 
         for (const b of bookings) {
             const dtStart = this.formatDateForICal(new Date(b.checkIn));
-            const expectedOut = b.checkOut ? new Date(b.checkOut as any) : new Date(b.expectedCheckout as any);
+            const expectedOut = b.checkOut ? new Date(b.checkOut) : (b.expectedCheckout ? new Date(b.expectedCheckout) : new Date());
             const dtEnd = this.formatDateForICal(expectedOut);
             const now = this.formatDateForICal(new Date());
 

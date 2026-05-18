@@ -37,6 +37,7 @@ export const salesAPI = {
             unitPrice: number;
             discount?: number;
             total: number;
+            reservationIds?: string[];
         }>;
         subtotal: number;
         discount?: number;

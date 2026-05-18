@@ -1,15 +1,32 @@
 import { useRef } from 'react';
 import { format } from 'date-fns';
-import { HiOutlinePrinter, HiOutlineXMark as HiOutlineX } from 'react-icons/hi2';
+import { HiOutlinePrinter, HiOutlineXMark as HiOutlineXMark } from 'react-icons/hi2';
 import { Modal, Button, Card } from '../ui';
 import { useStore } from '../../stores/useStore';
 import { formatCurrency } from '../../utils/helpers';
 import toast from 'react-hot-toast';
 
+interface RetentionRow {
+    id: string;
+    type?: string;
+    period?: string;
+    entityName?: string;
+    entityNuit?: string;
+    baseAmount?: number;
+    retainedAmount?: number;
+    documentType?: string;
+    amount: number;
+    beneficiary?: string;
+    beneficiaryNuit?: string;
+    revenueCode?: string;
+    grossAmount?: number;
+    rate?: number;
+}
+
 interface Modelo10PrintProps {
     isOpen: boolean;
     onClose: () => void;
-    retentions: any[];
+    retentions: RetentionRow[];
     moduleTitle: string;
 }
 
@@ -66,7 +83,7 @@ export default function Modelo10Print({ isOpen, onClose, retentions, moduleTitle
         <Modal isOpen={isOpen} onClose={onClose} title={`Gerar Relatório Modelo 10`} size="xl">
             <div className="flex justify-end gap-2 mb-4 no-print">
                 <Button variant="outline" size="sm" onClick={onClose}>
-                    <HiOutlineX className="w-4 h-4 mr-2" />
+                    <HiOutlineXMark className="w-4 h-4 mr-2" />
                     Fechar
                 </Button>
                 <Button size="sm" onClick={handlePrint} className="bg-gray-800 hover:bg-black text-white px-6">

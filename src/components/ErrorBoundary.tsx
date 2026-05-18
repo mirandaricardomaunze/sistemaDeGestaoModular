@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { HiOutlineExclamationCircle } from 'react-icons/hi2';
 import { logger } from '../utils/logger';
+import { env } from '../config/env';
 
 interface Props {
     children: ReactNode;
@@ -68,7 +69,7 @@ export class ErrorBoundary extends Component<Props, State> {
                                 Ocorreu um erro inesperado. Por favor, tente novamente ou recarregue a página.
                             </p>
 
-                            {import.meta.env.MODE === 'development' && this.state.error && (
+                            {env.MODE === 'development' && this.state.error && (
                                 <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-left">
                                     <p className="text-sm font-mono text-red-800 dark:text-red-300">
                                         {this.state.error.toString()}

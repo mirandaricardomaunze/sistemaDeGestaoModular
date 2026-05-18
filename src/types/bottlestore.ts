@@ -13,13 +13,36 @@ export interface BottleStoreDashboardSummary {
     totalProducts: number;
 }
 
+export interface BottleStoreDashboardCategory {
+    name: string;
+    value: number;
+}
+
+export interface BottleStoreRecentSale {
+    id: string;
+    saleNumber?: string;
+    receiptNumber?: string;
+    total: number;
+    createdAt: string;
+    customer?: { name: string } | null;
+}
+
+export interface BottleStoreRecentMovement {
+    id: string;
+    quantity: number;
+    movementType: string;
+    performedBy?: string | null;
+    createdAt: string;
+    product?: { name: string } | null;
+}
+
 export interface BottleStoreDashboard {
     summary: BottleStoreDashboardSummary;
     chartData: Array<{ date: string; amount: number }>;
-    categoryData: Array<{ name: string; value: number }>;
+    categoryData: BottleStoreDashboardCategory[];
     recentActivity: {
-        sales: any[];
-        movements: any[];
+        sales: BottleStoreRecentSale[];
+        movements: BottleStoreRecentMovement[];
     };
 }
 
@@ -73,7 +96,7 @@ export interface BottleStoreBatch {
     costPrice?: number;
     supplierId?: string;
     notes?: string;
-    product?: { name: string };
+    product?: { name: string } | null;
     daysToExpiry?: number;
 }
 

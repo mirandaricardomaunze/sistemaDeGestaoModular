@@ -16,6 +16,22 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import toast from 'react-hot-toast';
 import { logger } from '../../utils/logger';
 
+interface HotelFinanceTransaction {
+    id: string;
+    description?: string;
+    customerName?: string;
+    category?: string;
+    amount: number | string;
+    date?: string;
+    createdAt: string;
+}
+
+interface HotelFinanceData {
+    totalRevenue?: number;
+    totalExpenses?: number;
+    chartData?: Array<{ date: string; revenue: number }>;
+}
+
 const EXPENSE_CATEGORIES = [
     { value: 'maintenance', label: 'Manutenção' },
     { value: 'utilities', label: 'Serviços (Água/Luz)' },
@@ -38,9 +54,9 @@ export default function HotelFinance() {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [financeData, setFinanceData] = useState<any>(null);
-    const [revenues, setRevenues] = useState<any[]>([]);
-    const [expenses, setExpenses] = useState<any[]>([]);
+    const [financeData, setFinanceData] = useState<HotelFinanceData | null>(null);
+    const [revenues, setRevenues] = useState<HotelFinanceTransaction[]>([]);
+    const [expenses, setExpenses] = useState<HotelFinanceTransaction[]>([]);
     
     const {
         currentPage: revenuePage,
@@ -129,8 +145,9 @@ export default function HotelFinance() {
             }
             setModal({ open: false, type: 'expense' });
             loadFinanceData();
-        } catch (err: any) {
-            toast.error(err?.response?.data?.error || 'Erro ao registar lançamento');
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: unknown[] } } };
+            toast.error(apiErr?.response?.data?.error || 'Erro ao registar lançamento');
         } finally {
             setSubmitting(false);
         }
@@ -250,7 +267,7 @@ export default function HotelFinance() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                                    {paginatedRevenues.map((rev: any) => (
+                                    {paginatedRevenues.map((rev) => (
                                         <tr key={rev.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
                                             <td className="px-4 py-3">
                                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{rev.description || rev.customerName}</p>
@@ -260,7 +277,7 @@ export default function HotelFinance() {
                                                 <Badge size="sm" variant="success">{rev.category || '-'}</Badge>
                                             </td>
                                             <td className="px-4 py-3 text-right font-black text-green-600">
-                                                +{formatCurrency(rev.amount)}
+                                                +{formatCurrency(Number(rev.amount))}
                                             </td>
                                         </tr>
                                     ))}
@@ -299,7 +316,7 @@ export default function HotelFinance() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                                    {paginatedExpenses.map((exp: any) => (
+                                    {paginatedExpenses.map((exp) => (
                                         <tr key={exp.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
                                             <td className="px-4 py-3">
                                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{exp.description}</p>
@@ -309,7 +326,7 @@ export default function HotelFinance() {
                                                 <Badge size="sm" variant="danger">{exp.category || '-'}</Badge>
                                             </td>
                                             <td className="px-4 py-3 text-right font-black text-red-600">
-                                                -{formatCurrency(exp.amount)}
+                                                -{formatCurrency(Number(exp.amount))}
                                             </td>
                                         </tr>
                                     ))}

@@ -16,6 +16,7 @@ export const useSyncManager = (companyId?: string) => {
 
   // Track in-flight sync to avoid concurrent runs even if state hasn't propagated yet.
   const syncingRef = useRef(false);
+  const refreshingRef = useRef(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Notify the user about cache refresh failures only once per online session.
   const cacheErrorWarnedRef = useRef(false);
@@ -49,34 +50,48 @@ export const useSyncManager = (companyId?: string) => {
   // Fetch and cache products/customers
   const refreshCache = useCallback(async () => {
     if (!isOnline || !companyId) return;
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
 
     try {
       // Products (limit to 1000 for cache)
       const productsData = await productsAPI.getAll({ limit: 1000 });
       if (productsData?.data) {
-        await offlineDB.products.clear();
-        await offlineDB.products.bulkAdd(productsData.data.map((p: any) => ({
-          id: p.id,
-          code: p.code,
-          name: p.name,
-          price: Number(p.price),
-          currentStock: p.currentStock,
-          category: p.category,
-          unit: p.unit || 'un',
-        })));
+        const productsById = new Map<string, { id: string; code: string; name: string; price: number; currentStock: number; category: string; unit: string }>();
+        for (const p of productsData.data as Array<{ id: string; code: string; name: string; price: number | string; currentStock: number; category: string; unit?: string }>) {
+          productsById.set(p.id, {
+            id: p.id,
+            code: p.code,
+            name: p.name,
+            price: Number(p.price),
+            currentStock: p.currentStock,
+            category: p.category,
+            unit: p.unit || 'un',
+          });
+        }
+        await offlineDB.transaction('rw', offlineDB.products, async () => {
+          await offlineDB.products.clear();
+          await offlineDB.products.bulkPut(Array.from(productsById.values()));
+        });
       }
 
-      // Customers
-      const customersData = await customersAPI.getAll();
+      // Customers — limit:2000 alinhado com o cap do backend ([performance-and-caching])
+      const customersData = await customersAPI.getAll({ limit: 2000 });
       const customersList = Array.isArray(customersData) ? customersData : customersData?.data;
       if (Array.isArray(customersList)) {
-        await offlineDB.customers.clear();
-        await offlineDB.customers.bulkAdd(customersList.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          phone: c.phone,
-          code: c.code,
-        })));
+        const customersById = new Map<string, { id: string; name: string; phone: string; code: string }>();
+        for (const c of customersList as Array<{ id: string; name: string; phone: string; code: string }>) {
+          customersById.set(c.id, {
+            id: c.id,
+            name: c.name,
+            phone: c.phone,
+            code: c.code,
+          });
+        }
+        await offlineDB.transaction('rw', offlineDB.customers, async () => {
+          await offlineDB.customers.clear();
+          await offlineDB.customers.bulkPut(Array.from(customersById.values()));
+        });
       }
 
       cacheErrorWarnedRef.current = false;
@@ -88,6 +103,8 @@ export const useSyncManager = (companyId?: string) => {
           duration: 5000,
         });
       }
+    } finally {
+      refreshingRef.current = false;
     }
   }, [isOnline, companyId]);
 
@@ -113,7 +130,7 @@ export const useSyncManager = (companyId?: string) => {
 
         try {
           if (item.type === 'SALE') {
-            await salesAPI.create(item.data);
+            await salesAPI.create(item.data as Parameters<typeof salesAPI.create>[0]);
           }
           // Add other types if needed (e.g., CUSTOMER creation offline)
 

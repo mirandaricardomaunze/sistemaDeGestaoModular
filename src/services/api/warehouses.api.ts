@@ -115,12 +115,12 @@ export const dashboardAPI = {
         return response.data;
     },
 
-    getSalesChart: async (params?: { period?: string }) => {
+    getSalesChart: async (params?: { period?: string; warehouseId?: string }) => {
         const response = await api.get('/dashboard/charts/sales', { params });
         return response.data;
     },
 
-    getTopProducts: async (params?: { limit?: number; period?: number }) => {
+    getTopProducts: async (params?: { limit?: number; period?: number; warehouseId?: string }) => {
         const response = await api.get('/dashboard/charts/top-products', { params });
         return response.data;
     },

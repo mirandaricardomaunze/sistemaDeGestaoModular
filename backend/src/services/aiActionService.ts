@@ -1,14 +1,23 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 
+export type AIActionParams = {
+    period?: string;
+    search?: string;
+    [key: string]: unknown;
+};
+
+export type AIActionResult = { success: boolean; [key: string]: unknown };
+
 export class AIActionService {
-    async executeAction(action: string, params: any, companyId: string): Promise<{ success: boolean; [key: string]: any }> {
+    async executeAction(action: string, params: AIActionParams, companyId: string): Promise<AIActionResult> {
         switch (action) {
-            case 'get_sales_summary':        return this.getSalesSummary(companyId, params.period || 'today');
+            case 'get_sales_summary':        return this.getSalesSummary(companyId, String(params.period ?? 'today'));
             case 'get_stock_alerts':         return this.getStockAlerts(companyId);
-            case 'get_inventory_status':     return this.getInventoryStatus(companyId, params.search);
+            case 'get_inventory_status':     return this.getInventoryStatus(companyId, params.search ? String(params.search) : undefined);
             case 'get_customers_summary':    return this.getCustomersSummary(companyId);
-            case 'get_financial_overview':   return this.getFinancialOverview(companyId, params.period || '30');
+            case 'get_financial_overview':   return this.getFinancialOverview(companyId, String(params.period ?? '30'));
             case 'get_employees_summary':    return this.getEmployeesSummary(companyId);
             case 'get_pending_orders':       return this.getPendingOrders(companyId);
             case 'get_invoices_summary':     return this.getInvoicesSummary(companyId);
@@ -101,7 +110,7 @@ export class AIActionService {
     }
 
     private async getInventoryStatus(companyId: string, search?: string) {
-        const where: any = { companyId, isActive: true };
+        const where: Prisma.ProductWhereInput = { companyId, isActive: true };
         if (search) where.name = { contains: search, mode: 'insensitive' };
 
         const [total, inStock, lowStock, outOfStock, topByStock] = await Promise.all([
@@ -164,7 +173,7 @@ export class AIActionService {
             customers_with_debt:  withBalance,
             top_customers_30d: topCustomers.map(c => ({
                 name:            nameMap.get(c.customerId!) || 'Anónimo',
-                purchases:       (c as any)._count.id,
+                purchases:       c._count.id,
                 total_spent_mzn: Number(c._sum?.total || 0),
             })),
         };

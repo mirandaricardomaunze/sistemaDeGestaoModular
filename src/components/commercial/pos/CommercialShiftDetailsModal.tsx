@@ -21,13 +21,16 @@ interface CommercialShiftDetailsModalProps {
     session: ShiftSession | null;
     onClose: () => void;
     onPrint?: () => void;
+    isLoading?: boolean;
 }
 
-export function CommercialShiftDetailsModal({ isOpen, session, onClose, onPrint }: CommercialShiftDetailsModalProps) {
+export function CommercialShiftDetailsModal({ isOpen, session, onClose, onPrint, isLoading = false }: CommercialShiftDetailsModalProps) {
     if (!isOpen || !session) return null;
 
     const diff = Number(session.difference || 0);
     const expectedCash = Number(session.openingBalance) + Number(session.cashSales) + Number(session.deposits) - Number(session.withdrawals);
+    const movements = session.movements || [];
+    const sales = session.sales || [];
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -44,13 +47,24 @@ export function CommercialShiftDetailsModal({ isOpen, session, onClose, onPrint 
                             <p className="text-white/50 text-[10px] uppercase font-bold tracking-widest leading-none">ID: #{session.id.slice(-6).toUpperCase()}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        className="p-2 text-white hover:bg-white/10 active:scale-95"
+                    >
                         <HiOutlineXMark className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Body */}
                 <div className="overflow-y-auto p-6 space-y-6">
+                    {isLoading && (
+                        <div className="rounded-lg border border-indigo-100 dark:border-indigo-900/30 bg-indigo-50 dark:bg-indigo-900/10 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
+                            A carregar auditoria completa...
+                        </div>
+                    )}
+
                     {/* Top Info Bar */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="p-3 bg-gray-50 dark:bg-dark-900 rounded-lg border border-gray-100 dark:border-dark-700">
@@ -138,9 +152,13 @@ export function CommercialShiftDetailsModal({ isOpen, session, onClose, onPrint 
                                 )}
 
                                 <div className="pt-2 border-t border-gray-200 dark:border-dark-700 space-y-1.5">
-                                     <div className="flex justify-between items-center text-[10px]">
+                                    <div className="flex justify-between items-center text-[10px]">
                                         <span className="text-gray-500 font-medium italic">M-Pesa</span>
                                         <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(session.mpesaSales)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[10px]">
+                                        <span className="text-gray-500 font-medium italic">e-Mola</span>
+                                        <span className="font-bold text-gray-700 dark:text-gray-300">{formatCurrency(session.emolaSales)}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-[10px]">
                                         <span className="text-gray-500 font-medium italic">Cartão (POS)</span>
@@ -157,6 +175,64 @@ export function CommercialShiftDetailsModal({ isOpen, session, onClose, onPrint 
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {movements.length > 0 && (
+                        <div className="bg-gray-50 dark:bg-dark-900/40 p-5 rounded-lg space-y-3">
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                                Movimentos de Caixa
+                            </h4>
+                            <div className="divide-y divide-gray-100 dark:divide-dark-700">
+                                {movements.map(movement => (
+                                    <div key={movement.id} className="py-2 flex items-center justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase truncate">
+                                                {movement.type === 'suprimento' ? 'Suprimento' : 'Sangria'} - {movement.reason}
+                                            </p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">
+                                                {format(new Date(movement.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })} - {movement.performedBy?.name || 'Sistema'}
+                                            </p>
+                                        </div>
+                                        <span className={`text-xs font-black ${movement.type === 'suprimento' ? 'text-blue-600' : 'text-red-500'}`}>
+                                            {movement.type === 'suprimento' ? '+' : '-'} {formatCurrency(movement.amount)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {sales.length > 0 && (
+                        <div className="bg-gray-50 dark:bg-dark-900/40 p-5 rounded-lg space-y-3">
+                            <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
+                                Últimas Vendas
+                            </h4>
+                            <div className="divide-y divide-gray-100 dark:divide-dark-700">
+                                {sales.slice(0, 8).map(sale => (
+                                    <div key={sale.id} className="py-2 flex items-center justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <p className="text-xs font-black text-gray-800 dark:text-gray-200 uppercase truncate">
+                                                {sale.receiptNumber || sale.invoiceNumber || sale.id.slice(-6).toUpperCase()} - {sale.customerName || sale.customer?.name || 'Cliente Balcão'}
+                                            </p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">
+                                                {format(new Date(sale.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })} - {sale.paymentMethod || 'Pagamento'}
+                                            </p>
+                                        </div>
+                                        <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                            {formatCurrency(sale.total)}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {['Operador', 'Supervisor', 'Conferência'].map(label => (
+                            <div key={label} className="h-16 rounded-lg border border-dashed border-gray-300 dark:border-dark-700 flex items-end justify-center pb-2">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">{label}</span>
+                            </div>
+                        ))}
                     </div>
 
                     {/* Operations */}

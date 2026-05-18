@@ -84,7 +84,7 @@ export function useDriverPanel(): UseDriverPanelResult {
 
     // Fetch all drivers to find the one matching the current user.
     // SRP: driver resolution is a pure lookup, not mixed with delivery fetching.
-    const { data: driversData, isLoading: loadingDrivers } = useDrivers({ limit: 200 } as any);
+    const { data: driversData, isLoading: loadingDrivers } = useDrivers({ limit: 200 });
 
     /** Resolve current driver by matching user name OR email to driver record. */
     const currentDriver = useMemo<Driver | null>(() => {

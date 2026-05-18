@@ -1,58 +1,335 @@
-# Multicore System - Project Rules & Standards
+# Multicore System - Development Rules
 
-This document defines the mandatory architectural, design, and coding standards for the Multicore project. All AI contributions and developer commits MUST strictly adhere to these rules.
+These rules define how code should be written, reviewed, and verified in this
+project. They are meant to be practical: every rule should either prevent bugs,
+improve maintainability, or make delivery safer.
 
-## 🏛️ 1. Modern Modular Architecture (FE)
+## 1. Scope And Legacy Policy
 
-We follow a strict 6-layer methodology for every feature:
-1.  **Type Specification**: All interfaces must be centralized in `src/types/[module].ts`.
-2.  **Backend Implementation**: Zod schemas, stateless services, and thin controllers.
-3.  **API Client Layer**: Declare methods in `src/services/api/[module].api.ts`.
-4.  **Logic Hook Layer**: Use **TanStack Query v5** for all data fetching and state management in `src/hooks/[module].ts`.
-5.  **Pure UI Layer**: Build reusable Atoms/Molecules in `src/components/ui/`.
-6.  **Page Orchestration**: Assemble the feature in `src/pages/[module]/`.
+- New code must follow these rules.
+- When touching legacy code, improve the touched area enough that it does not
+  add new debt.
+- Existing violations may be fixed incrementally, but do not add new `any`,
+  skipped validation, missing audit logs, or unverified financial/stock flows.
+- If a rule cannot be followed because of a library limitation, document the
+  reason in the code with a short comment and keep the exception local.
 
-### Mandatory FE Rules:
-- **NO `useEffect` for Data Fetching**: Always use TanStack Query v5 hooks.
-- **Strict Separation**: React components MUST NOT contain direct API calls or complex logic; they consume hooks.
-- **Type Safety**: No `any`. Use the centralized module types for everything.
+## 2. Architecture Layers
 
-## 🏗️ 2. Professional Backend Standards
+Every feature must keep responsibilities separated:
 
-- **Multi-Tenancy**: Every Prisma query MUST filter by `companyId` (extracted via `tenant` middleware).
-- **Result Pattern**: Standardize response objects: `{ success: boolean, data: T, error?: string, message?: string }`.
-- **Transactions**: Use `prisma.$transaction` for all financial or stock-affecting operations.
-- **Thin Controllers**: Business logic belongs in `src/services/`, not routes.
+- `src/types/`: TypeScript domain types only. No runtime logic.
+- `src/services/api/`: HTTP calls only. No UI state, no business workflow.
+- `src/hooks/`: application state, React Query/Zustand, side effects, and
+  orchestration.
+- `src/components/ui/`: generic reusable UI primitives.
+- `src/components/[feature]/`: feature-specific presentational components.
+- `src/pages/`: page composition and routing-level orchestration.
+- `backend/src/routes/`: thin controllers only: auth, validation, service call,
+  response.
+- `backend/src/services/`: business logic, transactions, DTO mapping.
+- `backend/src/validation/`: all request body/query validation schemas.
 
-## 🎨 3. Premium UI/UX & Design
+If a route contains business rules, move them to a service.
 
-- **Visual Excellence**:
-    - **8px Grid System**: Use consistent spacing increments (`p-2`, `m-4`, `gap-8`).
-    - **Premium Colors**: Avoid default colors. Use the custom HSL palette from `tailwind.config.js`.
-    - **Iconography**: Strictly use **Heroicons v2** (`react-icons/hi2`).
-- **Loading States**: Mandatory use of **Skeleton Loaders** for dashboards and page transitions.
-- **Unified Header**: Every page must use the `PageHeader` component with integrated Actions and Refresh control.
-- **Responsiveness**: Mobile-first approach for all UI components.
+## 3. DRY, DTO, And Single Responsibility
 
-## 🏷️ 4. Nomenclature & Conventions
+DRY:
 
-- **Files & Folders**: Use **camelCase** for ALL files and directories.
-  - *Good*: `inventoryList.tsx`, `useInventory.ts`, `authService.ts`.
-  - *Bad*: `inventory-list.tsx`, `InventoryList.tsx`.
-- **React Components**: **PascalCase** (`InventoryList`).
-- **Hooks**: **camelCase** starting with `use` (`useInventory`).
-- **Services/APIs**: **camelCase** ending with `API` (`inventoryAPI`) or `Service` (`salesService`).
-- **Booleans**: Prefixed with `is`, `has`, `can`, `should`.
+- Do not duplicate business rules across pages, hooks, routes, or services.
+- If the same UI pattern appears twice, extract a reusable component.
+- If the same request/response shape appears twice, extract a shared type or
+  Zod schema.
+- If the same calculation appears twice, extract a named helper in the nearest
+  sensible `utils` or service module.
+- Avoid copy/paste modules that drift. Prefer shared base helpers plus
+  module-specific adapters.
 
-## 🛡️ 5. Safety & Reliability (Stability First)
+DTO:
 
-- **Stability Protocol**: For every change, first RESEARCH the impacts, PLAN the execution, and VERIFY the results.
-- **Incremental Refactoring**: Avoid massive "big bang" changes. Refactor in logical, testable chunks.
-- **Validation**: Every new feature or refactor MUST be accompanied by verification (e.g. running build, checking logs, or manual validation via browser tool).
-- **Error Handling**: Use explicit error boundaries and standardized error logging (`logger.error`).
-- **No Residual Errors**: Never consider a task finished if there are known linting or compilation errors.
+- Backend services must map database records to DTOs before returning them when
+  the Prisma model contains fields the client does not need.
+- DTOs should expose only the data required by the UI or API contract.
+- Sensitive fields, deleted-state fields, tenant internals, and implementation
+  details must never leak through DTOs.
+- DTO mapping belongs in services or dedicated mapper helpers, not routes.
+- Use DTO names that describe the API surface, such as `CustomerDTO`,
+  `PurchaseOrderListItemDTO`, or `CommercialDashboardDTO`.
 
----
+Single responsibility:
 
-> [!IMPORTANT]
-> Failure to follow these rules results in technical debt. If you are an AI assistant, you MUST refuse to generate code that violates these patterns and instead suggest the correct professional alternative.
+- A function should do one job: validate, calculate, map, persist, notify, or
+  render. Do not mix all of them in one block.
+- A service method may orchestrate a workflow, but complex steps should be
+  extracted into private helpers with clear names.
+- A React component should render UI and call callbacks. Data fetching and
+  business decisions belong in hooks.
+- A hook should orchestrate state and side effects, not render JSX.
+- A route should not contain calculations, database transaction details, or DTO
+  shaping beyond choosing the response status.
+
+## 4. Type Safety
+
+- `any` is forbidden in production code. This includes `: any`, `as any`,
+  `any[]`, `Array<any>`, `Record<string, any>`, `Promise<any>`, and
+  `catch (e: any)`.
+- Prefer explicit interfaces, generated Prisma types, Zod-inferred types, or
+  `unknown` narrowed by type guards.
+- `eslint-disable @typescript-eslint/no-explicit-any` is only allowed when a
+  third-party library type is genuinely unusable. The comment must explain why
+  and be a single-line exception.
+- API responses must be typed at the boundary. If a hook's `useQuery<T>` generic
+  does not match the backend's actual response, fix the type — do not paper over
+  it with `as any` casts in the consuming page. (Real bugs have shipped this
+  way: `salesChart.amount` vs `salesChart.total`, `where.receiptNumber` vs
+  `where.saleNumber`.)
+- Avoid broad casts like `as any` and unchecked object indexing. Use narrow
+  helper functions or type guards instead.
+- `as unknown as T` is allowed only when crossing two unrelated structural types
+  at a well-justified boundary (e.g. recharts payload typing).
+
+Concrete patterns to use:
+
+- Backend Prisma: `Prisma.<Model>WhereInput`, `Prisma.DateTimeFilter`,
+  `Prisma.<Model>UncheckedCreateInput`, `Prisma.InputJsonValue`. Let TS infer
+  `tx` in `$transaction(async (tx) => ...)`.
+- Backend enums: import from `@prisma/client` (`EmployeeRole`, `InvoiceStatus`,
+  `MaritalStatus`, etc.) and cast strings explicitly.
+- Backend handler params: local `type ListQuery = { page?: ...; ... }` or reuse
+  Zod-inferred input types from `backend/src/validation/`.
+- React events: `ChangeEvent<HTMLInputElement>`, `FormEvent`, etc. — imported
+  from `react`, not `any`.
+- Icons as props: `type IconComponent = ComponentType<SVGProps<SVGSVGElement>>`.
+- UI literal unions (Badge variants, period filters, etc.): import the union
+  type from the component. For reusable components that need to accept different
+  unions, make them generic `<T extends string>` instead of casting `as any`.
+- Catch blocks: `catch (err) { const apiErr = err as Error & { response?: { ... } } }`
+  — never `catch (err: any)`.
+
+## 5. Validation At Boundaries
+
+Backend:
+
+- Every state-changing route must validate `req.body` with Zod.
+- Every route that uses query filters, pagination, dates, IDs, or status values
+  must validate `req.query` or `req.params` with Zod.
+- Validation belongs in `backend/src/validation/`, not inline in routes unless
+  the schema is tiny and route-specific.
+
+Frontend:
+
+- New API methods must validate important API responses with Zod before data
+  enters hooks or UI state.
+- Validation failures must not silently return invalid data. Either throw a
+  clear error or return a typed fallback only when the UI can safely degrade.
+- Soft validation with only `logger.warn` is acceptable only as a temporary
+  migration step and must be clearly marked.
+
+## 6. API Contract
+
+Backend responses should be consistent:
+
+- For business operations, prefer:
+  `{ success: boolean; data?: T; message?: string; error?: string }`
+- For paginated lists, use:
+  `{ data: T[]; pagination: { page; limit; total; totalPages } }`
+- Do not return raw Prisma entities when they may include sensitive/internal
+  fields. Map to DTOs in services.
+- Do not expose passwords, tokens, internal notes, deleted records, or unrelated
+  tenant data.
+
+## 7. Multi-Tenant And Module Isolation
+
+- Every backend route that belongs to a module must use `authenticate` and
+  `requireModule('MODULE_CODE')`.
+- Every database query must be scoped by `companyId` unless it is explicitly a
+  super-admin/global operation.
+- Frontend navigation must respect module permissions from
+  `src/utils/permissions.ts`.
+- Do not mix data across modules without an explicit `originModule` or module
+  filter.
+
+## 8. Financial, Stock, And Fiscal Rules
+
+Use `prisma.$transaction` for any operation that:
+
+- creates or updates financial records;
+- changes stock, reserved stock, batches, or warehouse quantities;
+- creates invoices, credit notes, supplier invoices, payments, or purchase
+  order receiving;
+- performs multiple dependent writes.
+
+Additional requirements:
+
+- Use decimal-safe helpers for money calculations.
+- Fiscal-period checks must run before writing fiscal documents or changing
+  values that affect fiscal reports.
+- Stock movements must include module, reference, reason, warehouse when
+  relevant, and performed-by metadata.
+- Generated sequence numbers must be concurrency-safe, either through database
+  constraints plus retry or a transactional counter.
+
+## 9. Audit Logging
+
+Every create/update/delete/cancel/approve/reject operation must write an audit
+record when it changes business state.
+
+Audit entries should include:
+
+- `companyId`
+- `userId` or system actor
+- action name
+- entity type and entity ID
+- before/after values when practical
+- timestamp
+- module/origin
+
+Socket events and logs do not replace audit logs.
+
+## 10. Error Handling And Logging
+
+- Use central error helpers such as `ApiError` in the backend.
+- Use `logger.error`, `logger.warn`, or `logger.debug`; do not use
+  `console.log` in production code.
+- User-facing errors must be actionable and specific.
+- Do not swallow errors with empty `catch` blocks.
+- Do not leak stack traces, SQL errors, secrets, or internal IDs to normal users.
+
+## 11. React And State Management
+
+- Use TanStack Query for server state when the data is fetched/cached from the
+  backend.
+- Use Zustand only for global client state that must be shared broadly.
+- Keep local UI-only state in components.
+- Hooks must expose loading and error states.
+- Fix React hook dependency warnings. Do not silence them unless the dependency
+  is intentionally stable and the reason is documented.
+
+## 12. Component Size And Composition
+
+- Components should normally stay under 250 lines.
+- Above 250 lines: extract subcomponents, hooks, or pure helpers when touching
+  the file.
+- Above 500 lines: a refactor plan is required before adding more behavior.
+- Pages may compose features, but business rules belong in hooks/services.
+- Repeated UI patterns should become reusable components.
+
+## 13. UI And Accessibility
+
+- Follow the existing design system and component library.
+- Use semantic HTML where practical.
+- Buttons and icon-only controls need accessible labels.
+- Async actions need loading, success, and error feedback.
+- Empty states must be explicit; do not leave blank panels.
+- Tables/lists with large data sets should use pagination or virtualization.
+
+## 14. Form And Control Consistency
+
+- Use shared UI primitives from `src/components/ui/` for buttons, inputs,
+  selects, textareas, modals, cards, tabs, pagination, and tables.
+- Do not hand-roll a raw `<input>`, `<select>`, `<textarea>`, or button style
+  when an existing reusable component can support the case.
+- Buttons in the same toolbar, form footer, modal footer, or table action group
+  must share height, padding, border radius, font size, and icon size.
+- Inputs/selects/textareas in the same form row or filter bar must align to the
+  same height and baseline.
+- Form controls must support `label`, `error`, `disabled`, `required`,
+  `placeholder`, and accessible attributes consistently.
+- Prefer variants and sizes on shared components, such as `size="sm"` or
+  `variant="primary"`, instead of ad hoc Tailwind strings.
+- If a new control pattern is needed, extend the shared UI component first, then
+  use it in the feature.
+- Filter bars should use consistent spacing, responsive wrapping, and stable
+  control widths.
+- Icon-only buttons must use the same square size in a given group and include
+  an accessible label.
+
+## 15. Performance
+
+- Use `useMemo` and `useCallback` only where they reduce real render cost or
+  stabilize props for child components.
+- Use lazy loading for heavy pages and modules.
+- Avoid expensive calculations directly in render for large lists.
+- Avoid unnecessary global state updates.
+
+## 16. Security
+
+- Validate environment variables at startup.
+- Never commit secrets.
+- Sanitize user-provided content before rendering as HTML.
+- Do not trust client-side role checks; backend authorization is mandatory.
+- Rate-limit sensitive endpoints such as auth, payments, exports, and AI.
+
+## 17. Module Checklist
+
+Before considering a module ready, verify:
+
+- Backend routes use `authenticate`, authorization, and `requireModule`.
+- Request body/query/params are validated with Zod.
+- Services, routes, hooks, components, and types are free of `any`
+  (`: any`, `as any`, `any[]`, `Record<string, any>`, `catch (e: any)`).
+- Repeated logic is extracted and not duplicated across pages/hooks/services.
+- API responses use DTOs where raw database records would expose extra fields.
+- Routes, services, hooks, and components follow single responsibility.
+- Financial/stock/fiscal writes are transactional.
+- Business mutations write audit logs.
+- Responses use DTOs and do not expose sensitive fields.
+- Frontend API layer is typed and validates important responses.
+- Hooks expose loading/error states.
+- Pages/components stay reasonably small or have extracted subcomponents.
+- Buttons, inputs, selects, and filter controls use shared UI primitives and
+  consistent sizes.
+- Permissions and sidebar routes match the module access rules.
+- Lint, TypeScript build, and relevant tests pass.
+
+## 18. Commercial Module Checklist
+
+The commercial module has extra requirements because it touches sales, stock,
+finance, suppliers, and fiscal data:
+
+- POS sales must require an open shift when business rules demand it.
+- Cash movements must be audited.
+- Purchase order receiving must be transactional and create stock movements.
+- Supplier invoices and supplier payments must respect fiscal-period rules.
+- Quotes converted to invoices must preserve customer, totals, tax, and audit
+  trail.
+- Reservations must be released or expired safely.
+- Warehouse-specific stock must be respected when a shift is tied to a store.
+- All commercial finance transactions must be scoped to `module: 'commercial'`.
+- Reports must not mix commercial data with pharmacy, hospitality, bottle store,
+  restaurant, or logistics unless explicitly consolidated.
+
+## 19. Verification Commands
+
+Use Windows-friendly commands in this repository:
+
+```powershell
+npm.cmd run build
+.\node_modules\.bin\eslint.cmd .
+npm.cmd run build --prefix backend
+npm.cmd test --prefix backend
+```
+
+For focused commercial checks:
+
+```powershell
+.\node_modules\.bin\eslint.cmd "src/pages/commercial/**/*.{ts,tsx}" "src/components/commercial/**/*.{ts,tsx}" "src/hooks/useCommercial.ts" "src/hooks/commercial/**/*.{ts,tsx}" "src/services/api/commercial.api.ts" "backend/src/routes/commercial.ts" "backend/src/routes/commercialFinance.ts" "backend/src/services/commercial/**/*.ts" "backend/src/services/commercialService.ts" "backend/src/services/commercialFinanceService.ts"
+npm.cmd test --prefix backend -- commercial.test.ts
+```
+
+If a verification command cannot run because of the environment, document the
+failure and run the closest useful check.
+
+## 20. Finish Line
+
+A task is complete only when:
+
+- the requested behavior is implemented;
+- related lint/type/build checks pass or the remaining failure is clearly
+  unrelated and documented;
+- important business flows have tests or manual verification notes;
+- no new TODOs, broad `any` (including `as any`, `any[]`, `Record<string, any>`,
+  `catch (e: any)`), empty catches, or skipped validations were added;
+- the final response states what changed and what was verified.
+
+Do not claim that work is done if known errors remain in the touched area.

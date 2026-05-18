@@ -1,34 +1,23 @@
 import { useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { HiOutlineCheck, HiOutlinePencil, HiOutlineXMark } from 'react-icons/hi2';
+import toast from 'react-hot-toast';
 import { Button } from '../ui/Button';
-import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
-import { Pagination, usePagination } from '../ui/Pagination';
+import { usePagination } from '../ui/Pagination';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
-import { HiOutlinePencil, HiOutlineCheck, HiOutlineXMark } from 'react-icons/hi2';
-import toast from 'react-hot-toast';
-import { cn } from '../../utils/helpers';
-import { useWarehouses } from '../../hooks/useData';
+import { SmartTable } from '../ui/SmartTable';
+import { useWarehouses, type Warehouse } from '../../hooks/useWarehouses';
 
 export default function WarehouseManager() {
-    // Use data hook instead of store
     const { warehouses: warehousesData, addWarehouse, updateWarehouse } = useWarehouses();
-
-    // Ensure warehouses is always an array
     const warehouses = Array.isArray(warehousesData) ? warehousesData : [];
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingWarehouse, setEditingWarehouse] = useState<{
-        id: string;
-        code: string;
-        name: string;
-        location?: string;
-        responsible?: string;
-        isActive: boolean;
-        isDefault: boolean;
-    } | null>(null);
-    const [warehouseToToggle, setWarehouseToToggle] = useState<{ id: string, name: string, isActive: boolean } | null>(null);
+    const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
+    const [warehouseToToggle, setWarehouseToToggle] = useState<{ id: string; name: string; isActive: boolean } | null>(null);
 
     const {
         currentPage,
@@ -46,7 +35,7 @@ export default function WarehouseManager() {
         responsible: '',
     });
 
-    const handleOpenModal = (warehouse?: typeof editingWarehouse extends infer T ? NonNullable<T> : never) => {
+    const handleOpenModal = (warehouse?: Warehouse) => {
         if (warehouse) {
             setEditingWarehouse(warehouse);
             setFormData({
@@ -67,7 +56,7 @@ export default function WarehouseManager() {
         setIsModalOpen(true);
     };
 
-    const handleToggleActive = (warehouse: { id: string, name: string, isActive: boolean }) => {
+    const handleToggleActive = (warehouse: { id: string; name: string; isActive: boolean }) => {
         setWarehouseToToggle(warehouse);
     };
 
@@ -76,13 +65,13 @@ export default function WarehouseManager() {
         try {
             await updateWarehouse({ id: warehouseToToggle.id, data: { isActive: !warehouseToToggle.isActive } });
             setWarehouseToToggle(null);
-        } catch (err) {
-            toast.error('Erro ao alterar status do armazém');
+        } catch {
+            toast.error('Erro ao alterar status do armazem');
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (event: React.FormEvent) => {
+        event.preventDefault();
 
         try {
             if (editingWarehouse) {
@@ -94,130 +83,144 @@ export default function WarehouseManager() {
                 });
             }
             setIsModalOpen(false);
-        } catch (err) {
-            toast.error('Erro ao salvar armazém');
+        } catch {
+            toast.error('Erro ao salvar armazem');
         }
     };
+
+    const warehouseColumns: ColumnDef<Warehouse, unknown>[] = [
+        {
+            header: 'Codigo',
+            accessorKey: 'code',
+            cell: ({ row }) => (
+                <span className="text-sm font-mono font-medium text-primary-600 dark:text-primary-400">
+                    {row.original.code}
+                </span>
+            ),
+        },
+        {
+            header: 'Nome',
+            accessorKey: 'name',
+            cell: ({ row }) => (
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {row.original.name}
+                </span>
+            ),
+        },
+        {
+            header: 'Localizacao',
+            accessorKey: 'location',
+            cell: ({ row }) => (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {row.original.location || '-'}
+                </span>
+            ),
+        },
+        {
+            header: 'Responsavel',
+            accessorKey: 'responsible',
+            cell: ({ row }) => (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {row.original.responsible || '-'}
+                </span>
+            ),
+        },
+        {
+            header: 'Status',
+            cell: ({ row }) => (
+                <div className="text-center">
+                    <Badge variant={row.original.isActive ? 'success' : 'danger'}>
+                        {row.original.isActive ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                </div>
+            ),
+        },
+        {
+            header: 'Accoes',
+            cell: ({ row }) => (
+                <div className="flex justify-end gap-2">
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => handleOpenModal(row.original)}
+                        className="h-9 w-9 px-0 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
+                        title="Editar"
+                    >
+                        <HiOutlinePencil className="w-5 h-5" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => handleToggleActive(row.original)}
+                        className={
+                            row.original.isActive
+                                ? 'h-9 w-9 px-0 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-100/50 dark:border-red-500/20 shadow-sm'
+                                : 'h-9 w-9 px-0 rounded-lg bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm'
+                        }
+                        title={row.original.isActive ? 'Desativar' : 'Ativar'}
+                    >
+                        {row.original.isActive ? <HiOutlineXMark className="w-5 h-5" /> : <HiOutlineCheck className="w-5 h-5" />}
+                    </Button>
+                </div>
+            ),
+        },
+    ];
 
     return (
         <div className="space-y-6">
             <button id="new-warehouse-btn" className="hidden" onClick={() => handleOpenModal()} />
 
-
-            <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead className="bg-gray-50 dark:bg-dark-800">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Localização</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsável</th>
-                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white dark:bg-dark-900 divide-y divide-gray-200 dark:divide-dark-700">
-                            {paginatedWarehouses.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                        Nenhum armazém encontrado
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedWarehouses.map((warehouse) => (
-                                    <tr key={warehouse.id} className="hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono font-medium text-primary-600 dark:text-primary-400">
-                                            {warehouse.code}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                            {warehouse.name}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {warehouse.location}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {warehouse.responsible}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <Badge variant={warehouse.isActive ? 'success' : 'danger'}>
-                                                {warehouse.isActive ? 'Ativo' : 'Inativo'}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleOpenModal(warehouse)}
-                                                    className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
-                                                    title="Editar"
-                                                >
-                                                    <HiOutlinePencil className="w-5 h-5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleToggleActive(warehouse)}
-                                                    className={cn(
-                                                        "p-2 rounded-lg transition-all border shadow-sm",
-                                                        warehouse.isActive
-                                                            ? 'bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 border-red-100/50 dark:border-red-500/20'
-                                                            : 'bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 border-emerald-100/50 dark:border-emerald-500/20'
-                                                    )}
-                                                    title={warehouse.isActive ? 'Desativar' : 'Ativar'}
-                                                >
-                                                    {warehouse.isActive ? <HiOutlineXMark className="w-5 h-5" /> : <HiOutlineCheck className="w-5 h-5" />}
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="px-6">
-                    <Pagination
-                        currentPage={currentPage}
-                        totalItems={totalItems}
-                        itemsPerPage={itemsPerPage}
-                        onPageChange={setCurrentPage}
-                        onItemsPerPageChange={setItemsPerPage}
-                    />
-                </div>
-            </Card>
+            <SmartTable
+                data={paginatedWarehouses}
+                columns={warehouseColumns}
+                hideToolbar
+                emptyTitle="Nenhum armazem encontrado"
+                emptyDescription="Crie um armazem para organizar o stock por localizacao."
+                onEmptyAction={() => handleOpenModal()}
+                emptyActionLabel="Novo Armazem"
+                pagination={{
+                    currentPage,
+                    totalItems,
+                    itemsPerPage,
+                    onPageChange: setCurrentPage,
+                    onItemsPerPageChange: setItemsPerPage,
+                }}
+                minHeight="420px"
+            />
 
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                title={editingWarehouse ? 'Editar Armazém' : 'Novo Armazém'}
+                title={editingWarehouse ? 'Editar Armazem' : 'Novo Armazem'}
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <Input
-                        label="Nome do Armazém"
+                        label="Nome do Armazem"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(event) => setFormData({ ...formData, name: event.target.value })}
                         required
-                        placeholder="Ex: Armazém Principal"
+                        placeholder="Ex: Armazem Principal"
                     />
                     <div className="grid grid-cols-2 gap-4">
                         <Input
-                            label="Código"
+                            label="Codigo"
                             value={formData.code}
-                            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                            onChange={(event) => setFormData({ ...formData, code: event.target.value })}
                             required
                             placeholder="Ex: MAIN"
                         />
                         <Input
-                            label="Localização"
+                            label="Localizacao"
                             value={formData.location}
-                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                            onChange={(event) => setFormData({ ...formData, location: event.target.value })}
                             required
                             placeholder="Ex: Sede"
                         />
                     </div>
                     <Input
-                        label="Responsável"
+                        label="Responsavel"
                         value={formData.responsible}
-                        onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
+                        onChange={(event) => setFormData({ ...formData, responsible: event.target.value })}
                         required
                         placeholder="Ex: Nome do Gerente"
                     />
@@ -227,18 +230,18 @@ export default function WarehouseManager() {
                             Cancelar
                         </Button>
                         <Button type="submit">
-                            {editingWarehouse ? 'Salvar Alterações' : 'Criar Armazém'}
+                            {editingWarehouse ? 'Salvar Alteracoes' : 'Criar Armazem'}
                         </Button>
                     </div>
                 </form>
             </Modal>
-            {/* Toggle Active Confirmation Modal */}
+
             <ConfirmationModal
                 isOpen={!!warehouseToToggle}
                 onClose={() => setWarehouseToToggle(null)}
                 onConfirm={confirmToggleActive}
-                title={warehouseToToggle?.isActive ? 'Desativar Armazém' : 'Ativar Armazém'}
-                message={`Tem certeza que deseja ${warehouseToToggle?.isActive ? 'desativar' : 'ativar'} o armazém "${warehouseToToggle?.name}"?`}
+                title={warehouseToToggle?.isActive ? 'Desativar Armazem' : 'Ativar Armazem'}
+                message={`Tem certeza que deseja ${warehouseToToggle?.isActive ? 'desativar' : 'ativar'} o armazem "${warehouseToToggle?.name}"?`}
                 confirmText={warehouseToToggle?.isActive ? 'Desativar' : 'Ativar'}
                 variant={warehouseToToggle?.isActive ? 'danger' : 'info'}
             />

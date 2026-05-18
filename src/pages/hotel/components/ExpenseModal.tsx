@@ -34,11 +34,24 @@ export const paymentMethods = [
     { value: 'other', label: 'Outro' },
 ];
 
+interface ExpenseRecord {
+    id: string;
+    category?: string;
+    description?: string;
+    amount?: number | string;
+    date?: string;
+    dueDate?: string | null;
+    status?: string;
+    paymentMethod?: string;
+    reference?: string;
+    notes?: string;
+}
+
 interface ExpenseModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: () => void;
-    expense: any | null;
+    expense: ExpenseRecord | null;
 }
 
 export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalProps) {
@@ -116,9 +129,9 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
 
             onSave();
             onClose();
-        } catch (error: any) {
+        } catch (error) {
             logger.error('Error saving expense:', error);
-            toast.error(error.response?.data?.message || 'Erro ao salvar despesa');
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.message || 'Erro ao salvar despesa');
         } finally {
             setIsSubmitting(false);
         }

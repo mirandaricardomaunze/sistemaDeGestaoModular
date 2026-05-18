@@ -1,12 +1,12 @@
-﻿import {
+import {
     HiOutlineShare,
-    HiOutlineMail,
-    HiOutlineDocumentDownload,
-    HiOutlineX,
-    HiOutlineTable,
-    HiOutlineClipboardCopy,
+    HiOutlineEnvelope,
+    HiOutlineDocumentArrowDown,
+    HiOutlineXMark,
+    HiOutlineTableCells,
+    HiOutlineClipboardDocument,
     HiOutlineCheck,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useState } from 'react';
 import { Button, Modal } from '../ui';
@@ -164,7 +164,7 @@ export default function ShareButton({
                                         className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-red-500 dark:hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                            <HiOutlineDocumentDownload className="w-5 h-5 text-red-600" />
+                                            <HiOutlineDocumentArrowDown className="w-5 h-5 text-red-600" />
                                         </div>
                                         <div className="text-left">
                                             <p className="font-medium text-gray-900 dark:text-white">PDF</p>
@@ -178,7 +178,7 @@ export default function ShareButton({
                                         className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-green-500 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                            <HiOutlineTable className="w-5 h-5 text-green-600" />
+                                            <HiOutlineTableCells className="w-5 h-5 text-green-600" />
                                         </div>
                                         <div className="text-left">
                                             <p className="font-medium text-gray-900 dark:text-white">Excel</p>
@@ -225,7 +225,7 @@ export default function ShareButton({
                                         className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all"
                                     >
                                         <div className="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center">
-                                            <HiOutlineMail className="w-5 h-5 text-white" />
+                                            <HiOutlineEnvelope className="w-5 h-5 text-white" />
                                         </div>
                                         <div className="text-left">
                                             <p className="font-medium text-gray-900 dark:text-white">Email</p>
@@ -251,7 +251,7 @@ export default function ShareButton({
                                         </>
                                     ) : (
                                         <>
-                                            <HiOutlineClipboardCopy className="w-4 h-4" />
+                                            <HiOutlineClipboardDocument className="w-4 h-4" />
                                             Copiar mensagem
                                         </>
                                     )}
@@ -262,7 +262,7 @@ export default function ShareButton({
                                 onClick={() => setStep('download')}
                                 className="w-full text-sm text-gray-500 hover:text-gray-700"
                             >
-                                ←  Voltar para baixar ficheiro
+                                ← Voltar para baixar ficheiro
                             </button>
                         </>
                     )}
@@ -272,7 +272,7 @@ export default function ShareButton({
                         variant="ghost"
                         className="w-full"
                         onClick={() => setShowModal(false)}
-                        leftIcon={<HiOutlineX className="w-4 h-4" />}
+                        leftIcon={<HiOutlineXMark className="w-4 h-4" />}
                     >
                         Fechar
                     </Button>

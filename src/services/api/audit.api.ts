@@ -1,5 +1,13 @@
 import api from './client';
 
+export type AuditPayload =
+    | Record<string, unknown>
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+
 export interface AuditLog {
     id: string;
     userId?: string;
@@ -7,8 +15,8 @@ export interface AuditLog {
     action: string;
     entity: string;
     entityId?: string;
-    oldData?: any;
-    newData?: any;
+    oldData?: AuditPayload;
+    newData?: AuditPayload;
     ipAddress?: string;
     userAgent?: string;
     createdAt: string;
@@ -37,6 +45,11 @@ export const auditAPI = {
         limit?: number;
         action?: string;
         entity?: string;
+        startDate?: string;
+        endDate?: string;
+        userId?: string;
+        searchTerm?: string;
+        success?: boolean;
     }): Promise<AuditLogsResponse> => {
         const response = await api.get('/audit', { params });
         return response.data;

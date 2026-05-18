@@ -5,10 +5,11 @@ import { GuestProfileModal } from '../../components/hospitality';
 import { hospitalityAPI } from '../../services/api';
 import { logger } from '../../utils/logger';
 import { HiOutlineUsers, HiOutlineMagnifyingGlass, HiOutlineEye, HiOutlineArrowPath } from 'react-icons/hi2';
+import type { HotelBooking } from '../../types/hotel';
 
 export default function HotelCustomers() {
     const { t } = useTranslation();
-    const [bookings, setBookings] = useState<any[]>([]);
+    const [bookings, setBookings] = useState<HotelBooking[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);

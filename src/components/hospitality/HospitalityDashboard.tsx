@@ -27,30 +27,43 @@ import {
     HiOutlineCurrencyDollar,
     HiOutlineUsers,
     HiOutlineCalendar,
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlineChartBar,
     HiOutlineChartPie,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import type { DashboardPeriod } from '../../hooks/useHospitalityDashboard';
 import useHospitalityDashboard from '../../hooks/useHospitalityDashboard';
 
 // ============================================================================
 // Custom Tooltip for Charts
 // ============================================================================
-const CustomTooltip = ({ active, payload, label, formatter }: any) => {
+interface TooltipPayloadEntry {
+    name?: string;
+    value?: number | string;
+    color?: string;
+}
+
+interface CustomTooltipProps {
+    active?: boolean;
+    payload?: TooltipPayloadEntry[];
+    label?: string | number;
+    formatter?: (value: number) => string;
+}
+
+const CustomTooltip = ({ active, payload, label, formatter }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
         return (
             <div className="bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 p-3 rounded-lg shadow-xl ring-1 ring-black ring-opacity-5">
                 <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">{label}</p>
                 <div className="space-y-1">
-                    {payload.map((entry: any, index: number) => (
+                    {payload.map((entry, index) => (
                         <div key={index} className="flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
                                 <span className="text-sm text-gray-600 dark:text-gray-300">{entry.name}:</span>
                             </div>
                             <span className="text-sm font-bold text-gray-900 dark:text-white">
-                                {formatter ? formatter(entry.value) : entry.value}
+                                {formatter && entry.value !== undefined ? formatter(Number(entry.value)) : entry.value}
                             </span>
                         </div>
                     ))}
@@ -137,7 +150,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
         return (
             <Card className="p-8 text-center border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-900/10">
                 <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <HiOutlineRefresh className="w-8 h-8" />
+                    <HiOutlineArrowPath className="w-8 h-8" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Erro ao carregar dados</h3>
                 <p className="text-red-600 dark:text-red-400 mb-6 max-w-md mx-auto">{error}</p>
@@ -175,7 +188,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                                 </button>
                             ))}
                         </div>
-                        <Button variant="outline" size="sm" onClick={refetch} leftIcon={<HiOutlineRefresh className="w-4 h-4" />}>
+                        <Button variant="outline" size="sm" onClick={refetch} leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}>
                             Actualizar
                         </Button>
                     </div>
@@ -225,7 +238,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                             </button>
                         ))}
                     </div>
-                    <Button variant="outline" size="sm" onClick={refetch} leftIcon={<HiOutlineRefresh className="w-4 h-4" />}>
+                    <Button variant="outline" size="sm" onClick={refetch} leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}>
                         Actualizar
                     </Button>
                 </div>
@@ -401,7 +414,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                         <ResponsiveContainer width="100%" height={288}>
                             <PieChart>
                                 <Pie
-                                    data={roomTypesChart as any[]}
+                                    data={roomTypesChart as unknown as Parameters<typeof Pie>[0]['data']}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={70}

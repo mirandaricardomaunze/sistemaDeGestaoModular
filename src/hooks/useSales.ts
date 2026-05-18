@@ -36,7 +36,7 @@ export function useSales(params?: UseSalesParams) {
     const query = useQuery({
         queryKey: [...QK, params ?? {}],
         queryFn: async () => {
-            const response = await salesAPI.getAll(params as any);
+            const response = await salesAPI.getAll(params);
 
             let salesData: Sale[];
             let pagination: PaginationMeta;
@@ -74,13 +74,13 @@ export function useSales(params?: UseSalesParams) {
                     attempts: 0,
                     nextRetryAt: Date.now(),
                 });
-                const mockSale: any = {
+                const mockSale = {
                     ...data,
                     id: `offline-${pendingId}`,
                     createdAt: new Date().toISOString(),
                     receiptNumber: `OFFLINE-${pendingId}`,
                     items: data.items,
-                };
+                } as Awaited<ReturnType<typeof salesAPI.create>>;
                 calculateInvoiceIVA(
                     mockSale.subtotal,
                     mockSale.customerId || 'anonymous',
@@ -121,7 +121,7 @@ export function useSales(params?: UseSalesParams) {
             queryClient.invalidateQueries({ queryKey: ['sales', 'pending-voids'] });
             toast.success('Pedido de anulação enviado. Aguarda aprovação de um gestor.');
         },
-        onError: (err: any) => {
+        onError: (err: { response?: { data?: { message?: string } } }) => {
             logger.error('Error requesting void:', err);
             toast.error(err?.response?.data?.message || 'Erro ao solicitar anulação');
         },
@@ -134,7 +134,7 @@ export function useSales(params?: UseSalesParams) {
             queryClient.invalidateQueries({ queryKey: ['sales', 'pending-voids'] });
             toast.success('Anulação aprovada. Stock revertido.');
         },
-        onError: (err: any) => {
+        onError: (err: { response?: { data?: { message?: string } } }) => {
             logger.error('Error approving void:', err);
             toast.error(err?.response?.data?.message || 'Erro ao aprovar anulação');
         },
@@ -147,7 +147,7 @@ export function useSales(params?: UseSalesParams) {
             queryClient.invalidateQueries({ queryKey: ['sales', 'pending-voids'] });
             toast.success('Pedido de anulação rejeitado.');
         },
-        onError: (err: any) => {
+        onError: (err: { response?: { data?: { message?: string } } }) => {
             logger.error('Error rejecting void:', err);
             toast.error(err?.response?.data?.message || 'Erro ao rejeitar anulação');
         },

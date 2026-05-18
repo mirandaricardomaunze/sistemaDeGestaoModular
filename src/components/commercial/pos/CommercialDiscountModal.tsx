@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { HiOutlineXMark, HiOutlineCheck, HiOutlineExclamationTriangle } from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../../utils/helpers';
 import { useAuthStore } from '../../../stores/useAuthStore';
+import { Button } from '../../ui/Button';
 
 export type DiscountKind = 'percent' | 'amount';
 
@@ -84,7 +85,7 @@ export function CommercialDiscountModal({
     const finalReason = reason === 'Outro' ? customReason.trim() : reason;
     const valid = numericValue > 0 && !exceedsLimit && !exceedsBase && finalReason.length > 0;
 
-    const handleConfirm = () => {
+    const handleConfirm = useCallback(() => {
         if (!valid) return;
         onConfirm({
             kind,
@@ -92,7 +93,7 @@ export function CommercialDiscountModal({
             reason: finalReason,
             appliedBy: user?.name || user?.email || 'desconhecido',
         });
-    };
+    }, [finalReason, kind, numericValue, onConfirm, user?.email, user?.name, valid]);
 
     const handleRemove = () => onConfirm(null);
 
@@ -104,7 +105,7 @@ export function CommercialDiscountModal({
         };
         window.addEventListener('keydown', h);
         return () => window.removeEventListener('keydown', h);
-    }, [isOpen, valid]);
+    }, [handleConfirm, isOpen, onClose, valid]);
 
     if (!isOpen) return null;
 
@@ -121,14 +122,20 @@ export function CommercialDiscountModal({
                             {productName || `Subtotal: ${formatCurrency(baseAmount)}`}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-white">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        className="p-2 text-white hover:bg-white/10 active:scale-95"
+                    >
                         <HiOutlineXMark className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="p-6 space-y-5">
                     <div className="flex gap-2">
-                        <button
+                        <Button
+                            variant="ghost"
                             onClick={() => setKind('percent')}
                             className={cn(
                                 'flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all',
@@ -138,8 +145,9 @@ export function CommercialDiscountModal({
                             )}
                         >
                             Percentagem (%)
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="ghost"
                             onClick={() => setKind('amount')}
                             className={cn(
                                 'flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all',
@@ -149,7 +157,7 @@ export function CommercialDiscountModal({
                             )}
                         >
                             Valor (MTn)
-                        </button>
+                        </Button>
                     </div>
 
                     <div>
@@ -176,13 +184,14 @@ export function CommercialDiscountModal({
                         {kind === 'percent' && (
                             <div className="flex gap-2 mt-2">
                                 {[5, 10, 15, 20].filter(p => p <= maxPct).map(p => (
-                                    <button
+                                    <Button
                                         key={p}
+                                        variant="ghost"
                                         onClick={() => setValue(String(p))}
-                                        className="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 hover:bg-rose-500/20 text-white/40 hover:text-rose-400 transition-all"
+                                        className="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-white/5 hover:bg-rose-500/20 text-white/40 hover:text-rose-400 active:scale-95"
                                     >
                                         {p}%
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         )}
@@ -245,32 +254,35 @@ export function CommercialDiscountModal({
 
                 <div className="px-6 py-4 bg-[#0a0b0d] border-t border-white/5 flex gap-3">
                     {currentDiscount && (
-                        <button
+                        <Button
+                            variant="ghost"
                             onClick={handleRemove}
-                            className="px-4 py-3 rounded-xl border border-rose-500/30 text-rose-400 font-bold text-xs uppercase tracking-wider hover:bg-rose-500/10"
+                            className="px-4 py-3 rounded-xl border border-rose-500/30 text-rose-400 font-bold text-xs uppercase tracking-wider hover:bg-rose-500/10 active:scale-95"
                         >
                             Remover
-                        </button>
+                        </Button>
                     )}
-                    <button
+                    <Button
+                        variant="ghost"
                         onClick={onClose}
-                        className="flex-1 py-3 rounded-xl border border-white/10 text-white/40 font-bold text-xs uppercase tracking-wider hover:bg-white/5"
+                        className="flex-1 py-3 rounded-xl border border-white/10 text-white/40 font-bold text-xs uppercase tracking-wider hover:bg-white/5 active:scale-95"
                     >
                         Cancelar
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        variant="ghost"
                         onClick={handleConfirm}
                         disabled={!valid}
                         className={cn(
                             'flex-1 py-3 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all',
                             valid
-                                ? 'bg-rose-600 text-white hover:bg-rose-500 shadow-lg shadow-rose-500/20'
+                                ? 'bg-rose-600 text-white hover:bg-rose-500 shadow-lg shadow-rose-500/20 active:scale-95'
                                 : 'bg-white/5 text-white/20 cursor-not-allowed'
                         )}
                     >
                         <HiOutlineCheck className="w-4 h-4" />
                         Aplicar
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

@@ -61,14 +61,14 @@ async function runFullCommercialTest() {
             subtotal: Number(product.price),
             total: Number(product.price),
             amountPaid: Number(product.price),
-            paymentMethod: 'cash' as any,
-            originModule: 'commercial' as any,
+            paymentMethod: 'cash' as const,
+            originModule: 'commercial' as const,
             warehouseId: warehouse.id
         };
 
         // Note: salesService.create retorna ResultHandler.success(createdSale)
-        const saleResult = await salesService.create(saleData, company.id, user.id, user.name, '127.0.0.1') as any;
-        if (saleResult.success) {
+        const saleResult = await salesService.create(saleData, company.id, user.id, user.name, '127.0.0.1');
+        if (saleResult.success && saleResult.data) {
             const sale = saleResult.data;
             console.log(`✅ Venda Realizada: ${sale.receiptNumber} (Total: ${sale.total} MT)`);
         } else {
@@ -93,8 +93,8 @@ async function runFullCommercialTest() {
             dueDate: new Date(Date.now() + 86400000 * 7).toISOString(), // 7 dias
         };
 
-        const invoiceResult = await invoicesService.create(invoiceData, company.id, user.name) as any;
-        if (invoiceResult.success) {
+        const invoiceResult = await invoicesService.create(invoiceData, company.id, user.name);
+        if (invoiceResult.success && invoiceResult.data) {
             const invoice = invoiceResult.data;
             console.log(`✅ Fatura Criada: ${invoice.invoiceNumber} (Total: ${invoice.total} MT)`);
         } else {
@@ -108,10 +108,11 @@ async function runFullCommercialTest() {
 
         console.log('\n✨ TESTE COMPLETO FINALIZADO COM SUCESSO! ✨');
 
-    } catch (error: any) {
+    } catch (error) {
         console.error('\n💥 CRITICAL ERROR DURANTE O TESTE:');
-        console.error(error.message || error);
-        if (error.stack) console.error(error.stack);
+        const err = error as { message?: string; stack?: string };
+        console.error(err?.message || error);
+        if (err?.stack) console.error(err.stack);
     } finally {
         await prisma.$disconnect();
     }

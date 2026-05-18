@@ -24,16 +24,17 @@ export const sanitizeString = (str: string): string => {
  * @param obj The object to sanitize
  * @returns Sanitized object
  */
-export const sanitizeObject = <T extends Record<string, any>>(obj: T): T => {
+export const sanitizeObject = <T extends Record<string, unknown>>(obj: T): T => {
     if (!obj || typeof obj !== 'object') return obj;
 
     const result = { ...obj };
 
     for (const key in result) {
-        if (typeof result[key] === 'string') {
-            (result as any)[key] = sanitizeString(result[key]);
-        } else if (typeof result[key] === 'object' && result[key] !== null && !Array.isArray(result[key])) {
-            result[key] = sanitizeObject(result[key]);
+        const value = result[key];
+        if (typeof value === 'string') {
+            (result as Record<string, unknown>)[key] = sanitizeString(value);
+        } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            (result as Record<string, unknown>)[key] = sanitizeObject(value as Record<string, unknown>);
         }
     }
 

@@ -3,8 +3,8 @@ import { useRef } from 'react';
 import {
     HiOutlinePrinter,
     HiOutlineCheck,
-    HiOutlineX,
-} from 'react-icons/hi';
+    HiOutlineXMark as HiOutlineXMark,
+} from 'react-icons/hi2';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button, Modal, Card } from '../ui';
@@ -140,7 +140,7 @@ export default function OrderPrintPreview({
             {/* Action buttons */}
             <div className="flex justify-end gap-2 mb-4">
                 <Button variant="ghost" onClick={onClose}>
-                    <HiOutlineX className="w-4 h-4 mr-2" />
+                    <HiOutlineXMark className="w-4 h-4 mr-2" />
                     Fechar
                 </Button>
                 <Button variant="outline" onClick={handleMarkAsPrinted}>
@@ -154,7 +154,7 @@ export default function OrderPrintPreview({
             </div>
 
             {/* Print Preview Document */}
-            <Card padding="none" className="max-h-[70vh] overflow-y-auto !bg-white dark:!bg-white flex justify-center p-4 border-none shadow-none">
+            <Card padding="none" className="max-h-[70vh] overflow-y-auto !bg-white dark:!bg-white p-4 border-none shadow-none">
                 <div
                     ref={printRef}
                     className="bg-white text-gray-900 shadow-2xl w-full max-w-[800px] mx-auto relative print-table !bg-white !text-gray-900 border border-gray-100"
@@ -196,6 +196,9 @@ export default function OrderPrintPreview({
                                     {company.phone && `Tel: ${company.phone}`}
                                     {company.email && ` | ${company.email}`}
                                 </p>
+                                {company.taxId && (
+                                    <p style={{ fontSize: '10px', color: '#64748b', lineHeight: 1.2 }}>NUIT: {company.taxId}</p>
+                                )}
                             </div>
                         </div>
                         <div style={{ textAlign: 'right', backgroundColor: 'white' }}>
@@ -287,11 +290,12 @@ export default function OrderPrintPreview({
                                         <tbody>
                                             {order.items.map((item, index) => {
                                                 const lineWeight = item.product.weight ? item.product.weight * item.quantity : null;
+                                                const publicCode = item.product.sku || item.product.barcode;
                                                 return (
                                                     <tr key={index} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: 'white' }}>
                                                         <td style={{ padding: '10px 12px', fontSize: '11px', backgroundColor: 'white' }}>
                                                             <div style={{ fontWeight: 700, color: '#1a1a1a' }}>{item.product.name}</div>
-                                                            {item.product.code && <div style={{ fontSize: '9px', color: '#64748b' }}>#{item.product.code}</div>}
+                                                            {publicCode && <div style={{ fontSize: '9px', color: '#64748b' }}>Ref: {publicCode}</div>}
                                                             {Number(item.product.weight) > 0 && (
                                                                 <div style={{ fontSize: '9px', color: '#94a3b8' }}>{Number(item.product.weight).toFixed(3)} kg/un</div>
                                                             )}

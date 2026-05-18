@@ -3,7 +3,7 @@ import {
     HiOutlineCalendar,
     HiOutlineUsers,
     HiOutlineChartBar,
-    HiOutlineBanknotes as HiOutlineCash,
+    HiOutlineBanknotes as HiOutlineBanknotes,
     HiOutlineCheckCircle,
     HiOutlineShieldCheck,
 } from 'react-icons/hi2';
@@ -52,7 +52,7 @@ export default function Employees() {
                 icon={<HiOutlineUsers />}
                 actions={
                     <div className="flex items-center gap-2">
-                        <ExportEmployeesButton data={useEmployees().employees} />
+                        <ExportEmployeesButton data={useEmployees().employees} size="sm" />
                     </div>
                 }
             />
@@ -66,7 +66,7 @@ export default function Employees() {
                         { id: 'attendance', label: 'Assiduidade', icon: <HiOutlineCalendar className="w-5 h-5" /> },
                         { id: 'vacations', label: 'Gestão de Férias', icon: <HiOutlineCalendar className="w-5 h-5" /> },
                         { id: 'ponto', label: 'Área de Ponto', icon: <HiOutlineCheckCircle className="w-5 h-5" /> },
-                        { id: 'payroll', label: 'Salários', icon: <HiOutlineCash className="w-5 h-5" /> },
+                        { id: 'payroll', label: 'Salários', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
                         { id: 'permissions', label: 'Permissões', icon: <HiOutlineShieldCheck className="w-5 h-5" /> },
                     ].map((tab) => (
                         <button

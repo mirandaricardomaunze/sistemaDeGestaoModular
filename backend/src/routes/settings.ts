@@ -1,7 +1,10 @@
 import { Router } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest, authorize } from '../middleware/auth';
 import { ApiError } from '../middleware/error.middleware';
+import { approvalThresholdsSchema } from '../validation/approvals';
+import { invalidateThresholdsCache } from '../services/approvals/thresholds';
 
 const router = Router();
 
@@ -9,8 +12,20 @@ router.get('/company', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const settings = await prisma.companySettings.findFirst({ where: { companyId: req.companyId } });
     if (!settings) {
+        const company = await prisma.company.findUnique({ where: { id: req.companyId } });
         return res.json(await prisma.companySettings.create({
-            data: { companyName: 'Minha Empresa', country: 'Moçambique', currency: 'MZN', companyId: req.companyId }
+            data: {
+                companyName: company?.name ?? 'Minha Empresa',
+                tradeName: company?.tradeName,
+                nuit: company?.nuit,
+                phone: company?.phone,
+                email: company?.email,
+                address: company?.address,
+                businessType: company?.businessType ?? 'retail',
+                country: 'Moçambique',
+                currency: 'MZN',
+                companyId: req.companyId,
+            },
         }));
     }
     res.json(settings);
@@ -18,17 +33,94 @@ router.get('/company', authenticate, async (req: AuthRequest, res) => {
 
 router.put('/company', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const ALLOWED_FIELDS = ['companyName', 'country', 'currency', 'phone', 'email', 'address', 'taxRate', 'invoicePrefix', 'timezone', 'language', 'logo'];
-    const data: Record<string, any> = {};
+
+    const ALLOWED_FIELDS = [
+        'companyName',
+        'tradeName',
+        'nuit',
+        'phone',
+        'email',
+        'address',
+        'city',
+        'province',
+        'country',
+        'logo',
+        'ivaRate',
+        'currency',
+        'businessType',
+        'autoPrintReceipt',
+        'bankAccounts',
+        'printerType',
+        'receiptFooter',
+        'receiptHeader',
+        'thermalPaperWidth',
+        'zipCode',
+    ];
+
+    const data: Record<string, unknown> = {};
     for (const key of ALLOWED_FIELDS) {
         if (key in req.body) data[key] = req.body[key];
     }
-    const settings = await prisma.companySettings.upsert({
-        where: { companyId: req.companyId },
-        update: data,
-        create: { companyName: data.companyName ?? 'Minha Empresa', ...data, companyId: req.companyId }
+
+    // Backwards compatibility with older frontend payloads that used "state".
+    if (!('province' in data) && 'state' in req.body) {
+        data.province = req.body.state;
+    }
+
+    if ('ivaRate' in data) data.ivaRate = Number(data.ivaRate);
+    if ('autoPrintReceipt' in data) data.autoPrintReceipt = Boolean(data.autoPrintReceipt);
+
+    const settings = await prisma.$transaction(async (tx) => {
+        const updatedSettings = await tx.companySettings.upsert({
+            where: { companyId: req.companyId },
+            update: data,
+            create: {
+                companyName: (data.companyName as string) ?? 'Minha Empresa',
+                country: (data.country as string) ?? 'Moçambique',
+                currency: (data.currency as string) ?? 'MZN',
+                ...data,
+                companyId: req.companyId,
+            },
+        });
+
+        const companyData: Record<string, unknown> = {};
+        if ('companyName' in data) companyData.name = data.companyName;
+        for (const key of ['tradeName', 'nuit', 'phone', 'email', 'address', 'businessType']) {
+            if (key in data) companyData[key] = data[key];
+        }
+        if (Object.keys(companyData).length > 0) {
+            await tx.company.update({
+                where: { id: req.companyId },
+                data: companyData,
+            });
+        }
+
+        return updatedSettings;
     });
+
     res.json(settings);
+});
+
+// Approval thresholds (per-company configuration of when actions need manager approval)
+router.get('/approval-thresholds', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const settings = await prisma.companySettings.findUnique({
+        where: { companyId: req.companyId },
+        select: { approvalThresholds: true },
+    });
+    res.json(settings?.approvalThresholds ?? {});
+});
+
+router.put('/approval-thresholds', authenticate, authorize('admin', 'super_admin'), async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
+    const validated = approvalThresholdsSchema.parse(req.body);
+    const updated = await prisma.companySettings.update({
+        where: { companyId: req.companyId },
+        data: { approvalThresholds: validated as unknown as Prisma.InputJsonValue },
+        select: { approvalThresholds: true },
+    });
+    invalidateThresholdsCache(req.companyId);
+    res.json(updated.approvalThresholds);
 });
 
 // Category Management

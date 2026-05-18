@@ -93,7 +93,7 @@ export default function CommercialInventory() {
             {(basicLoading || advancedLoading) && (
                 <LoadingOverlay 
                     fullScreen={false} 
-                    message="Servidor de Alta Disponibilidade: Operacional" 
+                    message="Sincronizando em Tempo Real" 
                 />
             )}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
@@ -188,10 +188,12 @@ export default function CommercialInventory() {
             {/* Tabs */}
             <div className="border-b border-gray-100 dark:border-dark-700">
                 <nav className="flex gap-4">
-                    <button
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setActiveTab('products')}
                         className={cn(
-                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all border-b-2",
+                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] border-b-2 rounded-none",
                             activeTab === 'products'
                                 ? "border-primary-500 text-primary-600"
                                 : "border-transparent text-gray-400 hover:text-gray-600"
@@ -204,11 +206,13 @@ export default function CommercialInventory() {
                             <HiOutlineSquares2X2 className={cn("w-4 h-4 transition-transform group-hover:scale-110")} />
                         </div>
                         Produtos
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setActiveTab('batches')}
                         className={cn(
-                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] transition-all border-b-2",
+                            "group flex items-center gap-2 py-4 text-xs font-black uppercase tracking-[0.2em] border-b-2 rounded-none",
                             activeTab === 'batches'
                                 ? "border-amber-500 text-amber-600"
                                 : "border-transparent text-gray-400 hover:text-gray-600"
@@ -221,7 +225,7 @@ export default function CommercialInventory() {
                             <HiOutlineClock className={cn("w-4 h-4 transition-transform group-hover:scale-110")} />
                         </div>
                         Lotes & Validades
-                    </button>
+                    </Button>
                 </nav>
             </div>
 
@@ -244,12 +248,12 @@ export default function CommercialInventory() {
                                         <Card 
                                             key={item.id} 
                                             padding="md" 
-                                            className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-primary-100/50 dark:border-primary-500/20 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden group/item"
+                                            className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-primary-100/50 dark:border-primary-500/20 shadow-sm relative overflow-hidden"
                                         >
-                                            <div className="absolute -right-4 -top-4 w-20 h-20 bg-primary-500/5 rounded-full blur-2xl group-hover/item:bg-primary-500/10 transition-colors" />
+                                            <div className="absolute -right-4 -top-4 w-20 h-20 bg-primary-500/5 rounded-full blur-2xl" />
                                             <div className="relative z-10">
                                                 <div className="flex justify-between items-start mb-3">
-                                                    <div className="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-500/15 flex items-center justify-center text-primary-600 dark:text-primary-400 group-hover/item:scale-110 transition-transform">
+                                                    <div className="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-500/15 flex items-center justify-center text-primary-600 dark:text-primary-400">
                                                         <HiOutlineShoppingCart className="w-4.5 h-4.5" />
                                                     </div>
                                                     <Badge variant="outline" className="bg-primary-50/50 border-primary-100 text-primary-700 dark:bg-primary-500/10 dark:border-primary-500/20 dark:text-primary-400" size="sm">
@@ -262,14 +266,19 @@ export default function CommercialInventory() {
                                                     <p className="text-[10px] text-primary-600 dark:text-primary-400 font-black font-mono uppercase tracking-tighter">Sugerido: <span className="">+ {item.suggestedQty} {item.unit}</span></p>
                                                 </div>
                                             </div>
-                                            <div className="absolute bottom-0 left-0 h-1 bg-primary-500/40 w-8 group-hover/item:w-full transition-all duration-500" />
+                                            <div className="absolute bottom-0 left-0 h-1 bg-primary-500/20 w-full" />
                                         </Card>
                                     ))}
                                     {reorderSuggestions.length > 3 && (
-                                        <button className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-100 dark:border-dark-800 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-900 transition-all group">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setActiveTab('products')}
+                                            className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-100 dark:border-dark-800 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-900 group w-full h-full"
+                                        >
                                             <p className="text-[10px] font-black text-gray-400 group-hover:text-primary-500 uppercase tracking-widest">+{reorderSuggestions.length - 3} outros</p>
-                                            <p className="text-[9px] text-gray-300 font-bold italic">Ver catlogo completo</p>
-                                        </button>
+                                            <p className="text-[9px] text-gray-300 font-bold italic">Ver catálogo completo</p>
+                                        </Button>
                                     )}
                                 </div>
                             </div>

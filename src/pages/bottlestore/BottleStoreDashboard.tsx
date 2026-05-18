@@ -14,23 +14,29 @@ import {
     Cell
 } from 'recharts';
 import {
-    HiOutlineTrendingUp,
+    HiOutlineArrowTrendingUp,
     HiOutlineShoppingCart,
-    HiOutlineCash,
+    HiOutlineBanknotes,
     HiOutlineChartBar,
     HiOutlineCube,
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlinePlus,
-    HiOutlineDocumentReport,
+    HiOutlineDocumentChartBar,
     HiOutlineArrowRight,
     HiOutlineCurrencyDollar,
     HiOutlineExclamationCircle,
     HiOutlineClock,
     HiOutlineLightBulb
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { useSocket } from '../../contexts/SocketContext';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { useBottleStoreDashboard, useExpiringBatches } from '../../hooks/useBottleStore';
+import type {
+    BottleStoreBatch,
+    BottleStoreDashboardCategory,
+    BottleStoreRecentMovement,
+    BottleStoreRecentSale,
+} from '../../types/bottlestore';
 import toast from 'react-hot-toast';
 import { SmartInsightCard } from '../../components/common/SmartInsightCard';
 import { MetricCard, StatCard, CHART_COLORS } from '../../components/common/ModuleMetricCard';
@@ -52,11 +58,11 @@ export default function BottleStoreDashboard() {
         if (!socket) return;
         const handleLowStock = (payload: { productName: string; currentStock: number; status: string }) => {
             const isOut = payload.status === 'out_of_stock';
-            const msg = `${isOut ? 'Stock Esgotado' : '⚠️ Stock Baixo'}: ${payload.productName} • ${payload.currentStock} un. restantes`;
+            const msg = `${isOut ? 'Stock Esgotado' : '⚠️ï¸ Stock Baixo'}: ${payload.productName} • ${payload.currentStock} un. restantes`;
             if (isOut) {
                 toast.error(msg, { duration: 8000, id: `low-stock-${payload.productName}` });
             } else {
-                toast(msg, { duration: 6000, id: `low-stock-${payload.productName}`, icon: '⚠️' });
+                toast(msg, { duration: 6000, id: `low-stock-${payload.productName}`, icon: '⚠️ï¸' });
             }
             // Refresh dashboard so the low-stock card updates instantly
             refetchStats();
@@ -68,18 +74,17 @@ export default function BottleStoreDashboard() {
     const stats = data?.summary || { totalSales: 0, totalTx: 0, avgTicket: 0, totalProfit: 0, stockValueCost: 0, stockValueSale: 0, lowStockCount: 0, totalProducts: 0 };
     const chartData = data?.chartData || [];
 
-    const categoryData = useMemo(() => {
-        return (data?.categoryData || []).map((entry: any, index: number) => {
-            return {
-                ...entry,
-                name: entry.name === 'beverages' ? 'Bebidas' :
-                    entry.name === 'food' ? 'Alimentação' :
-                        entry.name === 'other' ? 'Outros' :
-                            entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
-                value: entry.value,
-                color: CHART_COLORS[index % CHART_COLORS.length]
-            };
-        });
+    type CategoryEntry = BottleStoreDashboardCategory & { color: string };
+    const categoryData = useMemo<CategoryEntry[]>(() => {
+        return (data?.categoryData || []).map((entry, index) => ({
+            ...entry,
+            name: entry.name === 'beverages' ? 'Bebidas' :
+                entry.name === 'food' ? 'Alimentação' :
+                    entry.name === 'other' ? 'Outros' :
+                        entry.name.charAt(0).toUpperCase() + entry.name.slice(1),
+            value: entry.value,
+            color: CHART_COLORS[index % CHART_COLORS.length],
+        }));
     }, [data]);
 
 
@@ -126,14 +131,14 @@ export default function BottleStoreDashboard() {
                         <Button
                             variant="ghost"
                             onClick={() => refetchStats()}
-                            leftIcon={<HiOutlineRefresh className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
+                            leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                         >
                             Atualizar
                         </Button>
 
-                        <ModulePeriodFilter
-                            value={range as any}
-                            onChange={(v) => setRange(v.toUpperCase() as TimeRange)}
+                        <ModulePeriodFilter<TimeRange>
+                            value={range}
+                            onChange={(v) => setRange(v)}
                             options={[
                                 { value: '1M', label: '1M' },
                                 { value: '2M', label: '2M' },
@@ -144,7 +149,7 @@ export default function BottleStoreDashboard() {
                         />
 
                         <Link to="/bottle-store/reports">
-                            <Button variant="outline" leftIcon={<HiOutlineDocumentReport className="w-5 h-5" />}>
+                            <Button variant="outline" leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />}>
                                 Relatórios
                             </Button>
                         </Link>
@@ -180,7 +185,7 @@ export default function BottleStoreDashboard() {
             {/* Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
-                    icon={<HiOutlineCash className="w-6 h-6" />}
+                    icon={<HiOutlineBanknotes className="w-6 h-6" />}
                     color="blue"
                     value={formatCurrency(stats.totalSales)}
                     label="Vendas do Período"
@@ -210,7 +215,7 @@ export default function BottleStoreDashboard() {
             {/* Profit Metrics Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <StatCard
-                    icon={<HiOutlineTrendingUp className="w-6 h-6" />}
+                    icon={<HiOutlineArrowTrendingUp className="w-6 h-6" />}
                     color="green"
                     value={formatCurrency(stats.totalProfit)}
                     label="Lucro Bruto"
@@ -240,7 +245,7 @@ export default function BottleStoreDashboard() {
                         Alertas de Validade
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {expiryAlerts.expired.slice(0, 4).map((b: any) => (
+                        {expiryAlerts.expired.slice(0, 4).map((b: BottleStoreBatch) => (
                             <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl bg-red-100/40 dark:bg-red-900/40 border border-red-200/50 dark:border-red-500/20 shadow-sm shadow-red-500/10">
                                 <div className="p-2 rounded-lg bg-red-200/60 text-red-700 dark:bg-red-900/60 dark:text-red-300 shadow-inner">
                                     <HiOutlineExclamationCircle className="w-5 h-5" />
@@ -254,11 +259,11 @@ export default function BottleStoreDashboard() {
                                     </p>
                                 </div>
                                 <span className="text-[10px] font-black text-red-700 whitespace-nowrap bg-red-200/60 px-2 py-0.5 rounded-full border border-red-300/30">
-                                    {new Date(b.expiryDate).toLocaleDateString('pt-MZ')}
+                                    {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString('pt-MZ') : ''}
                                 </span>
                             </div>
                         ))}
-                        {expiryAlerts.expiringSoon.slice(0, 4).map((b: any) => (
+                        {expiryAlerts.expiringSoon.slice(0, 4).map((b: BottleStoreBatch) => (
                             <div key={b.id} className="flex items-center gap-3 p-3 rounded-lg bg-amber-100 dark:bg-amber-900/40 border-none shadow-sm shadow-amber-500/10">
                                 <div className="p-2 rounded-lg bg-amber-200 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shadow-inner">
                                     <HiOutlineClock className="w-4 h-4" />
@@ -329,15 +334,15 @@ export default function BottleStoreDashboard() {
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height={256}>
                             <PieChart>
-                                <Pie data={categoryData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={4} dataKey="value">
-                                    {categoryData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                <Pie data={categoryData as unknown as Parameters<typeof Pie>[0]['data']} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={4} dataKey="value">
+                                    {categoryData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                 </Pie>
                                 <Tooltip />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mt-4">
-                        {categoryData.map((item: any) => (
+                        {categoryData.map((item) => (
                             <div key={item.name} className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <div
@@ -379,13 +384,18 @@ export default function BottleStoreDashboard() {
                             </div>
                         ) : (
                             <div className="divide-y divide-gray-100 dark:divide-dark-700">
-                                {[
-                                    ...(data?.recentActivity?.sales || []).map((s: any) => ({ ...s, type: 'sale' })),
-                                    ...(data?.recentActivity?.movements || []).map((m: any) => ({ ...m, type: 'movement' }))
-                                ]
-                                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                                    .slice(0, 5)
-                                    .map((item: any, idx: number) => (
+                                {(() => {
+                                    type ActivityItem =
+                                        | (BottleStoreRecentSale & { type: 'sale' })
+                                        | (BottleStoreRecentMovement & { type: 'movement' });
+                                    const items: ActivityItem[] = [
+                                        ...(data?.recentActivity?.sales || []).map((s) => ({ ...s, type: 'sale' as const })),
+                                        ...(data?.recentActivity?.movements || []).map((m) => ({ ...m, type: 'movement' as const })),
+                                    ];
+                                    return items
+                                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                        .slice(0, 5)
+                                        .map((item, idx) => (
                                         <div key={idx} className="flex items-center justify-between py-3">
                                             <div className="flex items-center gap-3">
                                                 <div className={cn(
@@ -418,8 +428,8 @@ export default function BottleStoreDashboard() {
                                                 </p>
                                             </div>
                                         </div>
-                                    ))
-                                }
+                                    ));
+                                })()}
                             </div>
                         )}
                     </div>
@@ -446,14 +456,14 @@ export default function BottleStoreDashboard() {
                             color="blue"
                         />
                         <QuickActionCard
-                            icon={HiOutlineRefresh}
+                            icon={HiOutlineArrowPath}
                             label="Movimentos"
                             description="Registar entradas e saídas"
                             path="/bottle-store/stock"
                             color="amber"
                         />
                         <QuickActionCard
-                            icon={HiOutlineDocumentReport}
+                            icon={HiOutlineDocumentChartBar}
                             label="Relatórios"
                             description="Análise completa de desempenho"
                             path="/bottle-store/reports"

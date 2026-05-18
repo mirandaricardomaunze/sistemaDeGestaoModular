@@ -1,29 +1,35 @@
 import { Router } from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { bottleStoreService } from '../services/bottleStoreService';
 import { bottleReturnsService } from '../services/bottleReturnsService';
 import { cashSessionService } from '../services/cashSessionService';
 import { creditSalesService } from '../services/creditSalesService';
 import { ApiError } from '../middleware/error.middleware';
-import { emitToCompany, emitToModule } from '../lib/socket';
+import { emitToModule } from '../lib/socket';
 import { requireModule } from '../middleware/module';
-import { openSessionSchema, closeSessionSchema, cashMovementSchema } from '../validation/cashSession';
+import { cashMovementSchema, cashSessionHistoryQuerySchema, closeSessionSchema, openSessionSchema } from '../validation/cashSession';
 
 const router = Router();
 router.use(authenticate, requireModule('BOTTLE_STORE'));
+
+// In bottle store the cashier IS a primary user (POS): they open/close sessions,
+// register bottle deposits/returns, and take credit-sale payments. Reports,
+// supplier-cost data and pricing config stay manager-side.
+const STAFF_ROLES = ['super_admin', 'admin', 'manager', 'operator'] as const;
+const MANAGER_ROLES = ['super_admin', 'admin', 'manager'] as const;
 
 // ============================================================================
 // DASHBOARD & REPORTS
 // ============================================================================
 
-router.get('/dashboard', authenticate, async (req: AuthRequest, res) => {
+router.get('/dashboard', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const range = (req.query.range as string) || '1M';
     const stats = await bottleStoreService.getDashboardStats(req.companyId, range);
     res.json(stats);
 });
 
-router.get('/reports', authenticate, async (req: AuthRequest, res) => {
+router.get('/reports', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const reportData = await bottleStoreService.getSalesReport(req.companyId, req.query);
     res.json(reportData);
@@ -33,13 +39,13 @@ router.get('/reports', authenticate, async (req: AuthRequest, res) => {
 // STOCK MOVEMENTS
 // ============================================================================
 
-router.get('/movements', authenticate, async (req: AuthRequest, res) => {
+router.get('/movements', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const movements = await bottleStoreService.getStockMovements(req.companyId, req.query);
     res.json(movements);
 });
 
-router.post('/movements', authenticate, async (req: AuthRequest, res) => {
+router.post('/movements', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const userName = req.userName || 'Sistema';
     const movement = await bottleStoreService.recordStockMovement(req.companyId, userName, req.body);
@@ -47,7 +53,7 @@ router.post('/movements', authenticate, async (req: AuthRequest, res) => {
 });
 
 // ============================================================================
-// BOTTLE RETURNS (Vasilhames)
+// BOTTLE RETURNS (Vasilhames) — cashier OK (POS counter)
 // ============================================================================
 
 router.get('/bottle-returns', authenticate, async (req: AuthRequest, res) => {
@@ -93,7 +99,7 @@ router.get('/bottle-returns/summary', authenticate, async (req: AuthRequest, res
 });
 
 // ============================================================================
-// CASH SESSIONS (Caixa)
+// CASH SESSIONS (Caixa) — cashier OK
 // ============================================================================
 
 router.get('/cash-session', authenticate, async (req: AuthRequest, res) => {
@@ -120,16 +126,17 @@ router.post('/cash-session/close', authenticate, async (req: AuthRequest, res) =
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const userId = req.userId || '';
     const { closingBalance, notes } = closeSessionSchema.parse(req.body);
-    const session = await cashSessionService.closeSession(req.companyId, userId, { 
-        closingBalance, 
-        notes: notes || undefined 
+    const session = await cashSessionService.closeSession(req.companyId, userId, {
+        closingBalance,
+        notes: notes || undefined
     });
     res.json(session);
 });
 
-router.get('/cash-session/history', authenticate, async (req: AuthRequest, res) => {
+router.get('/cash-session/history', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const history = await cashSessionService.getHistory(req.companyId, req.query);
+    const query = cashSessionHistoryQuerySchema.parse(req.query);
+    const history = await cashSessionService.getHistory(req.companyId, query);
     res.json(history);
 });
 
@@ -153,12 +160,13 @@ router.post('/cash-session/deposit', authenticate, async (req: AuthRequest, res)
 // CREDIT SALES (Vendas a Crédito)
 // ============================================================================
 
-router.get('/credit-sales', authenticate, async (req: AuthRequest, res) => {
+router.get('/credit-sales', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const data = await creditSalesService.getCreditSales(req.companyId, req.query);
     res.json(data);
 });
 
+// Cashier can take payments at the counter
 router.post('/credit-sales/pay', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const userName = req.userName || 'Sistema';
@@ -167,73 +175,73 @@ router.post('/credit-sales/pay', authenticate, async (req: AuthRequest, res) => 
 });
 
 // ============================================================================
-// BATCHES -- lotes e validades
+// BATCHES -- lotes e validades (admin work)
 // ============================================================================
 
-router.get('/batches', authenticate, async (req: AuthRequest, res) => {
+router.get('/batches', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const result = await bottleStoreService.getBatches(req.companyId, req.query);
     res.json(result);
 });
 
-router.get('/batches/expiring', authenticate, async (req: AuthRequest, res) => {
+router.get('/batches/expiring', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const days = req.query.days ? Number(req.query.days) : 30;
     const result = await bottleStoreService.getExpiringBatches(req.companyId, days);
     res.json(result);
 });
 
-router.post('/batches', authenticate, async (req: AuthRequest, res) => {
+router.post('/batches', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const batch = await bottleStoreService.createBatch(req.companyId, req.body, req.userName || req.userId);
     res.status(201).json(batch);
 });
 
 // ============================================================================
-// PRICE TIERS -- descontos por volume
+// PRICE TIERS -- descontos por volume (manager-only writes)
 // ============================================================================
 
-router.get('/price-tiers', authenticate, async (req: AuthRequest, res) => {
+router.get('/price-tiers', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const result = await bottleStoreService.getPriceTiers(req.companyId, req.query.productId as string);
     res.json(result);
 });
 
-router.post('/price-tiers', authenticate, async (req: AuthRequest, res) => {
+router.post('/price-tiers', authenticate, authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const tier = await bottleStoreService.createPriceTier(req.companyId, req.body);
     res.status(201).json(tier);
 });
 
-router.delete('/price-tiers/:id', authenticate, async (req: AuthRequest, res) => {
+router.delete('/price-tiers/:id', authenticate, authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     await bottleStoreService.deletePriceTier(req.companyId, req.params.id);
     res.json({ message: 'Nível de preço eliminado' });
 });
 
 // ============================================================================
-// Z REPORT
+// Z REPORT (manager-only — fechamento fiscal)
 // ============================================================================
 
-router.get('/cash-session/z-report', authenticate, async (req: AuthRequest, res) => {
+router.get('/cash-session/z-report', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const report = await cashSessionService.getZReport(req.companyId);
     res.json(report);
 });
 
-router.get('/credit-sales/debtors', authenticate, async (req: AuthRequest, res) => {
+router.get('/credit-sales/debtors', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const report = await creditSalesService.getDebtorsReport(req.companyId);
     res.json(report);
 });
 
-router.get('/credit-sales/customer/:customerId', authenticate, async (req: AuthRequest, res) => {
+router.get('/credit-sales/customer/:customerId', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const summary = await creditSalesService.getCustomerSummary(req.companyId, req.params.customerId);
     res.json(summary);
 });
 
-router.get('/credit-sales/:saleId/payments', authenticate, async (req: AuthRequest, res) => {
+router.get('/credit-sales/:saleId/payments', authenticate, authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const history = await creditSalesService.getPaymentHistory(req.companyId, req.params.saleId);
     res.json(history);

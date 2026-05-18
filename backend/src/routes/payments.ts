@@ -4,6 +4,7 @@
  */
 
 import { Router } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { mpesaService } from '../services/mpesaService';
@@ -188,15 +189,16 @@ router.get('/mpesa/history', authenticate, async (req: AuthRequest, res) => {
     const { page, limit, status, module, startDate, endDate } = historyQuerySchema.parse(req.query);
     const skip = (page - 1) * limit;
 
-    const where: any = { companyId: req.companyId };
+    const where: Prisma.MpesaTransactionWhereInput = { companyId: req.companyId };
 
     if (status) where.status = status;
     if (module) where.module = module;
 
     if (startDate || endDate) {
-        where.createdAt = {};
-        if (startDate) where.createdAt.gte = new Date(startDate);
-        if (endDate) where.createdAt.lte = new Date(endDate);
+        const createdAt: Prisma.DateTimeFilter = {};
+        if (startDate) createdAt.gte = new Date(startDate);
+        if (endDate) createdAt.lte = new Date(endDate);
+        where.createdAt = createdAt;
     }
 
     const [total, transactions] = await Promise.all([

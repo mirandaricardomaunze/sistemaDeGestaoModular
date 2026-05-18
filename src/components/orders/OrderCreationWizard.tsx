@@ -9,9 +9,9 @@ import {
     HiOutlineCheck,
     HiOutlinePlus,
     HiOutlineTrash,
-    HiOutlineSearch,
-    HiOutlineExclamation,
-} from 'react-icons/hi';
+    HiOutlineMagnifyingGlass,
+    HiOutlineExclamationTriangle,
+} from 'react-icons/hi2';
 import { Button, Card, Input, Select, Modal } from '../ui';
 import { useProducts } from '../../hooks/useData';
 import { formatCurrency } from '../../utils/helpers';
@@ -307,7 +307,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                 <div className="flex-1 relative z-20">
                                     <Input
                                         label="Buscar Produto"
-                                        leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                                        leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                                         value={productSearch}
                                         onChange={(e) => setProductSearch(e.target.value)}
                                         placeholder="Digite nome ou código..."
@@ -363,7 +363,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                         {formatCurrency(selectedProduct.price)}
                                         {selectedProduct.currentStock <= 5 && (
                                             <span className="ml-2 text-yellow-600">
-                                                <HiOutlineExclamation className="inline w-4 h-4" />
+                                                <HiOutlineExclamationTriangle className="inline w-4 h-4" />
                                                 {' '}Estoque baixo: {selectedProduct.currentStock}
                                             </span>
                                         )}

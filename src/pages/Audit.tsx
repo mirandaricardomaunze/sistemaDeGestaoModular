@@ -9,12 +9,13 @@ import {
     HiOutlineDocumentText,
     HiOutlineCog,
     HiOutlineShieldCheck,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import AuditLogViewer from '../components/audit/AuditLogViewer';
 import { useAuditStore } from '../stores/useAuditStore';
 import { Button, Card, Input, Select } from '../components/ui';
 import { MODULE_LABELS, ACTION_LABELS, type AuditModule, type AuditAction, type AuditSeverity } from '../types/audit';
 import toast from 'react-hot-toast';
+import { SegmentedControl } from '../components/common/SegmentedControl';
 
 type AuditTab = 'logs' | 'config';
 
@@ -32,8 +33,8 @@ export default function Audit() {
     };
 
     const tabs = [
-        { id: 'logs' as const, label: 'Logs de Auditoria', icon: HiOutlineDocumentText },
-        { id: 'config' as const, label: 'Configuração', icon: HiOutlineCog },
+        { value: 'logs' as const, label: 'Logs de Auditoria', icon: HiOutlineDocumentText },
+        { value: 'config' as const, label: 'Configuração', icon: HiOutlineCog },
     ];
 
     const severityOptions = [
@@ -59,26 +60,13 @@ export default function Audit() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="border-b border-gray-200 dark:border-dark-700">
-                <nav className="flex gap-1 overflow-x-auto pb-px">
-                    {tabs.map((tab) => {
-                        const Icon = tab.icon;
-                        const isActive = activeTab === tab.id;
-                        return (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${isActive
-                                    ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/10 rounded-t-lg'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-dark-800 rounded-t-lg'
-                                    }`}
-                            >
-                                <Icon className="w-5 h-5" />
-                                {tab.label}
-                            </button>
-                        );
-                    })}
-                </nav>
+            <div className="mb-6">
+                <SegmentedControl
+                    options={tabs}
+                    value={activeTab}
+                    onChange={(val) => setActiveTab(val as AuditTab)}
+                    size="md"
+                />
             </div>
 
             {/* Tab Content */}
@@ -122,7 +110,7 @@ export default function Audit() {
                                     max={365}
                                     value={configForm.retentionDays}
                                     onChange={(e) => setConfigForm({ ...configForm, retentionDays: Number(e.target.value) })}
-                                    helperText="Logs mais antigos seráão automaticamente eliminados"
+                                    helperText="Logs mais antigos serão automaticamente eliminados"
                                 />
 
                                 {/* Minimum Severity */}
@@ -140,9 +128,11 @@ export default function Audit() {
                                     </label>
                                     <div className="flex flex-wrap gap-2">
                                         {Object.entries(MODULE_LABELS).map(([value, label]) => (
-                                            <button
+                                            <Button
                                                 key={value}
                                                 type="button"
+                                                variant={configForm.excludeModules.includes(value as AuditModule) ? 'danger' : 'outline'}
+                                                size="sm"
                                                 onClick={() => {
                                                     const excluded = configForm.excludeModules;
                                                     const newExcluded = excluded.includes(value as AuditModule)
@@ -150,13 +140,10 @@ export default function Audit() {
                                                         : [...excluded, value as AuditModule];
                                                     setConfigForm({ ...configForm, excludeModules: newExcluded });
                                                 }}
-                                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${configForm.excludeModules.includes(value as AuditModule)
-                                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                                                    : 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-400'
-                                                    }`}
+                                                className="w-auto"
                                             >
                                                 {label}
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                     <p className="text-xs text-gray-500 mt-2">
@@ -171,9 +158,11 @@ export default function Audit() {
                                     </label>
                                     <div className="flex flex-wrap gap-2">
                                         {Object.entries(ACTION_LABELS).map(([value, label]) => (
-                                            <button
+                                            <Button
                                                 key={value}
                                                 type="button"
+                                                variant={configForm.excludeActions.includes(value as AuditAction) ? 'danger' : 'outline'}
+                                                size="sm"
                                                 onClick={() => {
                                                     const excluded = configForm.excludeActions;
                                                     const newExcluded = excluded.includes(value as AuditAction)
@@ -181,17 +170,14 @@ export default function Audit() {
                                                         : [...excluded, value as AuditAction];
                                                     setConfigForm({ ...configForm, excludeActions: newExcluded });
                                                 }}
-                                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${configForm.excludeActions.includes(value as AuditAction)
-                                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                                                    : 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-400'
-                                                    }`}
+                                                className="w-auto"
                                             >
                                                 {label}
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                     <p className="text-xs text-gray-500 mt-2">
-                                        Clique para excluir/incluir aces do registo
+                                        Clique para excluir/incluir ações do registo
                                     </p>
                                 </div>
                             </div>
@@ -212,8 +198,8 @@ export default function Audit() {
                                         Sobre Logs de Auditoria
                                     </h4>
                                     <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                                        <li>• Os logs são registados automaticamente para aces importantes</li>
-                                        <li>• Logins, alterações de dados e exportaces são sempre registados</li>
+                                        <li>• Os logs são registados automaticamente para ações importantes</li>
+                                        <li>• Logins, alterações de dados e exportações são sempre registados</li>
                                         <li>• Utilize os filtros para encontrar eventos específicos</li>
                                         <li>• Exporte relatórios para análise externa ou conformidade</li>
                                     </ul>

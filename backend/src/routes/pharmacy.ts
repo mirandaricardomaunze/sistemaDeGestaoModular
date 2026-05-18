@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { Prisma } from '@prisma/client';
+import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { pharmacyService } from '../services/pharmacyService';
 import {
     createMedicationSchema,
@@ -47,6 +48,9 @@ import { requireModule } from '../middleware/module';
 const router = Router();
 router.use(authenticate);
 router.use(requireModule('PHARMACY'));
+
+const STAFF_ROLES = ['super_admin', 'admin', 'manager', 'operator'] as const;
+const MANAGER_ROLES = ['super_admin', 'admin', 'manager'] as const;
 
 // ============================================================================
 // DASHBOARD SUMMARY
@@ -126,7 +130,7 @@ router.put('/medications/:id', async (req: AuthRequest, res) => {
     res.json(await pharmacyService.updateMedication(req.params.id, req.companyId, validatedData));
 });
 
-router.delete('/medications/:id', async (req: AuthRequest, res) => {
+router.delete('/medications/:id', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await pharmacyService.deleteMedication(req.params.id, req.companyId);
     res.json({ message: 'Medicamento eliminado com sucesso' });
@@ -316,7 +320,7 @@ router.put('/partners/:id', async (req: AuthRequest, res) => {
     res.json(await pharmacyService.updatePartner(req.params.id, req.companyId, validatedData));
 });
 
-router.delete('/partners/:id', async (req: AuthRequest, res) => {
+router.delete('/partners/:id', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await pharmacyService.deletePartner(req.params.id, req.companyId);
     res.json({ message: 'Parceiro eliminado com sucesso' });
@@ -389,7 +393,7 @@ router.get('/sales/top-products', async (req: AuthRequest, res) => {
 // SALE REFUND
 // ============================================================================
 
-router.post('/sales/:id/refund', async (req: AuthRequest, res) => {
+router.post('/sales/:id/refund', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const sale = await prisma.pharmacySale.findFirst({
         where: { id: req.params.id, companyId: req.companyId },
@@ -483,9 +487,9 @@ router.get('/patients/:id/medication-history', async (req: AuthRequest, res) => 
 router.get('/interactions', async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { medicationId } = req.query;
-    const where: any = { companyId: req.companyId };
+    const where: Prisma.DrugInteractionWhereInput = { companyId: req.companyId };
     if (medicationId) {
-        where.OR = [{ medicationAId: medicationId }, { medicationBId: medicationId }];
+        where.OR = [{ medicationAId: medicationId as string }, { medicationBId: medicationId as string }];
     }
     const interactions = await prisma.drugInteraction.findMany({
         where,
@@ -497,7 +501,7 @@ router.get('/interactions', async (req: AuthRequest, res) => {
     res.json(interactions);
 });
 
-router.post('/interactions', async (req: AuthRequest, res) => {
+router.post('/interactions', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { medicationAId, medicationBId, severity, description, mechanism, management } = req.body;
     if (!medicationAId || !medicationBId || !severity || !description) throw ApiError.badRequest('Campos obrigatórios em falta');
@@ -513,7 +517,7 @@ router.post('/interactions', async (req: AuthRequest, res) => {
     res.status(201).json(interaction);
 });
 
-router.delete('/interactions/:id', async (req: AuthRequest, res) => {
+router.delete('/interactions/:id', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     await prisma.drugInteraction.deleteMany({ where: { id: req.params.id, companyId: req.companyId } });
     res.json({ message: 'Interacção eliminada' });
@@ -546,11 +550,11 @@ router.post('/interactions/check', async (req: AuthRequest, res) => {
 // NARCOTIC REGISTER
 // ============================================================================
 
-router.get('/narcotic-register', async (req: AuthRequest, res) => {
+router.get('/narcotic-register', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { startDate, endDate, page = 1, limit = 20 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
-    const where: any = { companyId: req.companyId };
+    const where: Prisma.NarcoticRegisterWhereInput = { companyId: req.companyId };
     if (startDate || endDate) {
         where.registerDate = {};
         if (startDate) where.registerDate.gte = new Date(startDate as string);
@@ -563,7 +567,7 @@ router.get('/narcotic-register', async (req: AuthRequest, res) => {
     res.json({ data: records, pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } });
 });
 
-router.post('/narcotic-register', async (req: AuthRequest, res) => {
+router.post('/narcotic-register', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { registerDate, medicationId, medicationName, batchNumber, openingBalance, received, dispensed, returned, destroyed, notes } = req.body;
     const closingBalance = openingBalance + (received || 0) - (dispensed || 0) + (returned || 0) - (destroyed || 0);
@@ -588,7 +592,7 @@ router.post('/narcotic-register', async (req: AuthRequest, res) => {
     res.status(201).json(record);
 });
 
-router.put('/narcotic-register/:id', async (req: AuthRequest, res) => {
+router.put('/narcotic-register/:id', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { received, dispensed, returned, destroyed, notes } = req.body;
     const existing = await prisma.narcoticRegister.findFirst({ where: { id: req.params.id, companyId: req.companyId } });
@@ -612,11 +616,11 @@ router.put('/narcotic-register/:id', async (req: AuthRequest, res) => {
 // BATCH RECALLS
 // ============================================================================
 
-router.get('/recalls', async (req: AuthRequest, res) => {
+router.get('/recalls', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { status, page = 1, limit = 20 } = req.query;
-    const where: any = { companyId: req.companyId };
-    if (status) where.status = status;
+    const where: Prisma.BatchRecallWhereInput = { companyId: req.companyId };
+    if (status) where.status = status as Prisma.BatchRecallWhereInput['status'];
     const [records, total] = await Promise.all([
         prisma.batchRecall.findMany({
             where, include: { medication: { include: { product: { select: { name: true, code: true } } } } },
@@ -628,7 +632,7 @@ router.get('/recalls', async (req: AuthRequest, res) => {
     res.json({ data: records, pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } });
 });
 
-router.post('/recalls', async (req: AuthRequest, res) => {
+router.post('/recalls', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { medicationId, batchNumbers, reason, severity, issuedBy, recallDate, notes } = req.body;
     if (!medicationId || !batchNumbers || !reason) throw ApiError.badRequest('Campos obrigatórios em falta');
@@ -656,7 +660,7 @@ router.post('/recalls', async (req: AuthRequest, res) => {
                 email: admin.email,
                 userName: admin.name,
                 recallNumber,
-                medicationName: (med as any).product?.name ?? medicationId,
+                medicationName: (med as { product?: { name?: string } }).product?.name ?? medicationId,
                 batchNumbers,
                 reason,
                 severity: severity || 'voluntary',
@@ -669,7 +673,7 @@ router.post('/recalls', async (req: AuthRequest, res) => {
     res.status(201).json(recall);
 });
 
-router.put('/recalls/:id/resolve', async (req: AuthRequest, res) => {
+router.put('/recalls/:id/resolve', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { recoveredUnits, actionTaken } = req.body;
     const recall = await prisma.batchRecall.findFirst({ where: { id: req.params.id, companyId: req.companyId } });
@@ -699,12 +703,12 @@ router.get('/recalls/:id/affected-sales', async (req: AuthRequest, res) => {
 // PARTNER INVOICES (Billing to insurance/convenio)
 // ============================================================================
 
-router.get('/partner-invoices', async (req: AuthRequest, res) => {
+router.get('/partner-invoices', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { partnerId, status, page = 1, limit = 20 } = req.query;
-    const where: any = { companyId: req.companyId };
-    if (partnerId) where.partnerId = partnerId;
-    if (status) where.status = status;
+    const where: Prisma.PartnerInvoiceWhereInput = { companyId: req.companyId };
+    if (partnerId) where.partnerId = partnerId as string;
+    if (status) where.status = status as Prisma.PartnerInvoiceWhereInput['status'];
     const [invoices, total] = await Promise.all([
         prisma.partnerInvoice.findMany({
             where, include: { partner: { select: { id: true, name: true, email: true } } },
@@ -716,7 +720,7 @@ router.get('/partner-invoices', async (req: AuthRequest, res) => {
     res.json({ data: invoices, pagination: { page: Number(page), limit: Number(limit), total, totalPages: Math.ceil(total / Number(limit)) } });
 });
 
-router.post('/partner-invoices/generate', async (req: AuthRequest, res) => {
+router.post('/partner-invoices/generate', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { partnerId, periodStart, periodEnd, dueDate } = req.body;
     if (!partnerId || !periodStart || !periodEnd) throw ApiError.badRequest('Campos obrigatórios em falta');
@@ -740,13 +744,13 @@ router.post('/partner-invoices/generate', async (req: AuthRequest, res) => {
     res.status(201).json(invoice);
 });
 
-router.put('/partner-invoices/:id/payment', async (req: AuthRequest, res) => {
+router.put('/partner-invoices/:id/payment', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { amount } = req.body;
     const inv = await prisma.partnerInvoice.findFirst({ where: { id: req.params.id, companyId: req.companyId } });
     if (!inv) throw ApiError.notFound('Fatura não encontrada');
     const newPaid = Number(inv.paidAmount) + Number(amount);
-    const newStatus: any = newPaid >= Number(inv.totalAmount) ? 'paid' : 'partial';
+    const newStatus: Prisma.PartnerInvoiceUncheckedUpdateInput['status'] = newPaid >= Number(inv.totalAmount) ? 'paid' : 'partial';
     const updated = await prisma.partnerInvoice.update({
         where: { id: req.params.id },
         data: { paidAmount: newPaid, status: newStatus, paidAt: newStatus === 'paid' ? new Date() : null }
@@ -785,7 +789,7 @@ router.get('/sales/:id/label-data', async (req: AuthRequest, res) => {
 // ============================================================================
 
 // Get current stock snapshot (for reconciliation form)
-router.get('/stock-reconciliation/snapshot', async (req: AuthRequest, res) => {
+router.get('/stock-reconciliation/snapshot', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const medications = await prisma.medication.findMany({
         where: { product: { companyId: req.companyId, originModule: 'pharmacy' } },
@@ -805,7 +809,7 @@ router.get('/stock-reconciliation/snapshot', async (req: AuthRequest, res) => {
 });
 
 // Submit physical count (adjust stock based on variance)
-router.post('/stock-reconciliation', async (req: AuthRequest, res) => {
+router.post('/stock-reconciliation', authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { counts, notes } = req.body as {
         counts: Array<{ medicationId: string; physicalCount: number; systemStock: number }>;
@@ -857,12 +861,12 @@ router.post('/stock-reconciliation', async (req: AuthRequest, res) => {
 // REPORTS
 // ============================================================================
 
-router.get('/reports/sales', async (req: AuthRequest, res) => {
+router.get('/reports/sales', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { startDate, endDate, page = 1, limit = 50 } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { companyId: req.companyId, status: { not: 'refunded' } };
+    const where: Prisma.PharmacySaleWhereInput = { companyId: req.companyId, status: { not: 'refunded' } };
     if (startDate || endDate) {
         where.createdAt = {};
         if (startDate) where.createdAt.gte = new Date(startDate as string);
@@ -919,7 +923,7 @@ router.get('/reports/sales', async (req: AuthRequest, res) => {
     });
 });
 
-router.get('/reports/expiring', async (req: AuthRequest, res) => {
+router.get('/reports/expiring', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const days = Math.max(1, parseInt(req.query.days as string) || 90);
     const cutoff = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -931,12 +935,12 @@ router.get('/reports/expiring', async (req: AuthRequest, res) => {
     res.json(batches);
 });
 
-router.get('/reports/stock', async (req: AuthRequest, res) => {
+router.get('/reports/stock', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { page = 1, limit = 100, lowStock } = req.query;
     const skip = (Number(page) - 1) * Number(limit);
 
-    const where: any = { product: { companyId: req.companyId, originModule: 'pharmacy' } };
+    const where: Prisma.MedicationWhereInput = { product: { companyId: req.companyId, originModule: 'pharmacy' } };
 
     const [medications, total] = await Promise.all([
         prisma.medication.findMany({
@@ -981,11 +985,11 @@ router.get('/reports/stock', async (req: AuthRequest, res) => {
 // REPORTS: TOP CUSTOMERS
 // ============================================================================
 
-router.get('/reports/top-customers', async (req: AuthRequest, res) => {
+router.get('/reports/top-customers', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { startDate, endDate, limit = 10 } = req.query;
 
-    const where: any = { companyId: req.companyId, status: { not: 'refunded' }, customerId: { not: null } };
+    const where: Prisma.PharmacySaleWhereInput = { companyId: req.companyId, status: { not: 'refunded' }, customerId: { not: null } };
     if (startDate || endDate) {
         where.createdAt = {};
         if (startDate) where.createdAt.gte = new Date(startDate as string);
@@ -1013,7 +1017,7 @@ router.get('/reports/top-customers', async (req: AuthRequest, res) => {
 // REPORTS: SUPPLIER ANALYSIS
 // ============================================================================
 
-router.get('/reports/suppliers', async (req: AuthRequest, res) => {
+router.get('/reports/suppliers', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     // Get batches grouped by supplier with cost data
@@ -1080,7 +1084,7 @@ router.get('/medications/:id/price-history', async (req: AuthRequest, res) => {
 // INTELLIGENT ALERTS
 // ============================================================================
 
-router.get('/alerts', async (req: AuthRequest, res) => {
+router.get('/alerts', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     const now = new Date();
@@ -1205,7 +1209,7 @@ router.get('/alerts', async (req: AuthRequest, res) => {
 // REORDER SUGGESTIONS (Supplier integration)
 // ============================================================================
 
-router.get('/reorder-suggestions', async (req: AuthRequest, res) => {
+router.get('/reorder-suggestions', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
 
     const medications = await prisma.medication.findMany({

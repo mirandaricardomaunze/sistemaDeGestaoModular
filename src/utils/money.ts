@@ -28,8 +28,9 @@ export const mulMoney = (money: number, qty: number): number => {
 };
 
 /** Apply a percentage (0-100). Returns centavos. */
-export const applyPercent = (cents: number, pct: number): number => {
-    const safePct = Number.isFinite(pct) ? pct : 0;
+export const applyPercent = (cents: number, pct: number | string | null | undefined): number => {
+    const numericPct = typeof pct === 'string' ? Number(pct) : (pct ?? 0);
+    const safePct = Number.isFinite(numericPct) ? numericPct : 0;
     return Math.round(cents * (safePct / 100));
 };
 

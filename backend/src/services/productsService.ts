@@ -18,12 +18,100 @@ const PRODUCT_FIELD_ALLOWLIST = [
 import { ApiError } from '../middleware/error.middleware';
 import { ResultHandler } from '../utils/result';
 import { logAudit } from '../middleware/audit';
+import { approvalsService } from './approvalsService';
+import { getThresholds, isOverThreshold } from './approvals/thresholds';
+import { auditService } from './auditService';
+
+type ProductListParams = {
+    page?: string | number;
+    limit?: string | number;
+    fields?: string;
+    search?: string;
+    category?: string;
+    status?: string;
+    minPrice?: string | number;
+    maxPrice?: string | number;
+    supplierId?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    originModule?: string;
+    warehouseId?: string;
+};
+
+type Optional<T> = T | undefined | null;
+
+type ProductCreateInput = {
+    code?: Optional<string>;
+    name: string;
+    description?: Optional<string>;
+    category?: Optional<string>;
+    categoryId?: Optional<string>;
+    price: number;
+    costPrice?: Optional<number>;
+    currentStock?: Optional<number>;
+    minStock?: Optional<number>;
+    maxStock?: Optional<number>;
+    unit?: Optional<string>;
+    barcode?: Optional<string>;
+    sku?: Optional<string>;
+    isActive?: Optional<boolean>;
+    isService?: Optional<boolean>;
+    requiresPrescription?: Optional<boolean>;
+    dosageForm?: Optional<string>;
+    strength?: Optional<string>;
+    manufacturer?: Optional<string>;
+    originModule?: Optional<string>;
+    location?: Optional<string>;
+    supplierId?: Optional<string>;
+    isReturnable?: Optional<boolean>;
+    returnPrice?: Optional<number>;
+    packSize?: Optional<number>;
+    weight?: Optional<number>;
+};
+
+type ProductUpdateInput = Partial<ProductCreateInput> & {
+    reservedStock?: Optional<number>;
+    imageUrl?: Optional<string>;
+    status?: Optional<string>;
+    approvalId?: Optional<string>;
+};
+
+type StockUpdateInput = {
+    quantity: number;
+    operation: 'add' | 'subtract' | 'set';
+    warehouseId?: Optional<string>;
+    reason?: Optional<string>;
+    approvalId?: Optional<string>;
+};
+
+type ListPageParams = {
+    page?: string | number;
+    limit?: string | number;
+    days?: string | number;
+    type?: string;
+    warehouseId?: string;
+    productId?: string;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+};
+
+type BulkPriceUpdateParams = {
+    category?: string;
+    adjustmentType?: 'percentage' | 'fixed';
+    adjustmentValue: number;
+    operation?: 'increase' | 'decrease';
+    originModule?: string;
+    origin_module?: string;
+};
+
+type ProductForAlert = { id: string; name: string; code: string; currentStock: number; minStock: number };
 
 export class ProductsService {
     /**
      * List products with pagination, search, and filters
      */
-    async list(companyId: string, params: any) {
+    async list(companyId: string, params: ProductListParams) {
         const { page, limit, skip } = getPaginationParams(params);
         const {
             search,
@@ -80,11 +168,11 @@ export class ProductsService {
         }
 
         if (status && status !== 'all') {
-            andConditions.push({ status: status as any });
+            andConditions.push({ status: status as Prisma.ProductWhereInput['status'] });
         }
 
         if (minPrice || maxPrice) {
-            const priceFilter: any = {};
+            const priceFilter: Prisma.DecimalFilter = {};
             if (minPrice) priceFilter.gte = parseFloat(String(minPrice));
             if (maxPrice) priceFilter.lte = parseFloat(String(maxPrice));
             andConditions.push({ price: priceFilter });
@@ -124,29 +212,34 @@ export class ProductsService {
         }
 
         // Database Query
-        const findArgs: any = {
+        const baseArgs = {
             where,
-            orderBy: { [sortBy as string]: sortOrder },
+            orderBy: { [sortBy]: sortOrder } as Prisma.ProductOrderByWithRelationInput,
             skip,
             take: limit
         };
 
+        let findArgs: Prisma.ProductFindManyArgs;
         if (projection) {
             // Field-select mode: warehouseStocks only included if caller wants stock-by-warehouse
-            findArgs.select = projection;
+            const select: Prisma.ProductSelect = projection as Prisma.ProductSelect;
             if (warehouseId && warehouseId !== 'all') {
-                findArgs.select.warehouseStocks = {
+                select.warehouseStocks = {
                     where: { warehouseId: String(warehouseId) },
                     select: { warehouseId: true, quantity: true }
                 };
             }
+            findArgs = { ...baseArgs, select };
         } else {
-            findArgs.include = {
-                supplier: { select: { id: true, name: true, code: true } },
-                categoryModel: { select: { id: true, name: true } },
-                warehouseStocks: {
-                    include: {
-                        warehouse: { select: { id: true, name: true, code: true } }
+            findArgs = {
+                ...baseArgs,
+                include: {
+                    supplier: { select: { id: true, name: true, code: true } },
+                    categoryModel: { select: { id: true, name: true } },
+                    warehouseStocks: {
+                        include: {
+                            warehouse: { select: { id: true, name: true, code: true } }
+                        }
                     }
                 }
             };
@@ -161,15 +254,16 @@ export class ProductsService {
         // When a warehouseId is provided (e.g. POS bound to a warehouse), the
         // frontend needs to see only the stock available in THAT warehouse, not
         // the global total across all warehouses.
-        let productsOut: any[];
+        type ProductWithStocks = { warehouseStocks?: { warehouseId: string; quantity: number }[] };
+        let productsOut: unknown[];
         if (warehouseId && warehouseId !== 'all') {
-            productsOut = (products as any[]).map((p: any) => {
-                const stocks = p.warehouseStocks as { warehouseId: string; quantity: number }[] | undefined;
+            productsOut = (products as ProductWithStocks[]).map((p) => {
+                const stocks = p.warehouseStocks;
                 const wStock = stocks?.find(ws => ws.warehouseId === String(warehouseId));
                 return { ...p, currentStock: wStock?.quantity ?? 0 };
             });
         } else {
-            productsOut = products as any[];
+            productsOut = products;
         }
 
         const response = createPaginatedResponse(productsOut, page, limit, total);
@@ -226,7 +320,7 @@ export class ProductsService {
     /**
      * Create Product
      */
-    async create(data: any, companyId: string) {
+    async create(data: ProductCreateInput, companyId: string) {
         const {
             code, name, description, category, categoryId, price, costPrice,
             currentStock, minStock, maxStock, unit, barcode, sku,
@@ -252,11 +346,10 @@ export class ProductsService {
         // Quantities must be added via Batches/Validities or Stock Movements.
         const stock = 0; 
         const min = minStock || 5;
-        let status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'out_of_stock';
+        const status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'out_of_stock';
         // status is always out_of_stock when creating without batch
 
-        // Data object typed as any to prevent strict Prisma client type mismatch before generation
-        const productData: any = {
+        const productData: Prisma.ProductUncheckedCreateInput = {
             code: productCode,
             name,
             description,
@@ -298,7 +391,7 @@ export class ProductsService {
     /**
      * Update Product
      */
-    async update(id: string, data: any, companyId: string, userId?: string) {
+    async update(id: string, data: ProductUpdateInput, companyId: string, userId?: string) {
         // Get old data for audit
         const oldProduct = await prisma.product.findFirst({
             where: { id, companyId }
@@ -315,10 +408,33 @@ export class ProductsService {
             'originModule', 'supplierId', 'isReturnable', 'packSize', 'returnPrice', 'weight'
         ];
 
-        const updateData: any = {};
+        const updateData: Prisma.ProductUncheckedUpdateInput = {};
+        const dataRecord = data as Record<string, unknown>;
         for (const key of allowedFields) {
-            if (data[key] !== undefined) {
-                updateData[key] = data[key];
+            if (dataRecord[key] !== undefined) {
+                (updateData as Record<string, unknown>)[key] = dataRecord[key];
+            }
+        }
+
+        // Price changes above the configured percentage threshold need manager
+        // approval. Threshold is stored as a fraction (0.20 = 20%).
+        if (updateData.price !== undefined) {
+            const oldPrice = Number(oldProduct.price ?? 0);
+            const newPrice = Number(updateData.price);
+            if (oldPrice > 0 && newPrice > 0) {
+                const deltaPct = Math.abs(newPrice - oldPrice) / oldPrice;
+                const thresholds = await getThresholds(companyId);
+                if (isOverThreshold(thresholds, 'priceChangePercent', deltaPct)) {
+                    const approval = data.approvalId
+                        ? await approvalsService.findApprovedFor(companyId, 'price_change', 'product', id)
+                        : null;
+                    if (!approval) {
+                        const limitPct = (Number(thresholds.priceChangePercent) * 100).toFixed(1);
+                        throw ApiError.forbidden(
+                            `Alteração de preço de ${(deltaPct * 100).toFixed(1)}% excede o limite (${limitPct}%). Solicite aprovação.`
+                        );
+                    }
+                }
             }
         }
 
@@ -359,8 +475,8 @@ export class ProductsService {
                 action: 'UPDATE_PRODUCT',
                 entity: 'products',
                 entityId: product.id,
-                oldData: oldProduct as any,
-                newData: product as any
+                oldData: oldProduct as unknown as Record<string, unknown>,
+                newData: product as unknown as Record<string, unknown>
             });
         }
 
@@ -371,6 +487,9 @@ export class ProductsService {
             await this.resolveStockAlert(product.id, companyId);
         }
 
+        if (data.approvalId && updateData.price !== undefined) {
+            await approvalsService.markConsumed(data.approvalId, companyId).catch(() => {});
+        }
         return ResultHandler.success(product);
     }
 
@@ -390,8 +509,28 @@ export class ProductsService {
     /**
      * Update Stock (Transaction)
      */
-    async updateStock(id: string, data: any, companyId: string, userName: string) {
-        const { quantity, operation, warehouseId, reason } = data;
+    async updateStock(id: string, data: StockUpdateInput, companyId: string, userName: string) {
+        const { quantity, operation, warehouseId, reason, approvalId } = data;
+
+        // Adjustments above the configured magnitude threshold need manager approval.
+        // The approval guards the *delta* (how many units are added/removed) — for
+        // 'set' we approximate with the requested quantity since true delta needs the
+        // current balance which is fetched inside the transaction.
+        const approvalSubject = Math.abs(Number(quantity) || 0);
+        const thresholds = await getThresholds(companyId);
+        if (isOverThreshold(thresholds, 'stockAdjustment', approvalSubject)) {
+            const approval = approvalId
+                ? await approvalsService.findApprovedFor(companyId, 'stock_adjustment', 'product', id)
+                : null;
+            if (!approval) {
+                throw ApiError.forbidden(
+                    `Ajuste de stock acima do limite (${thresholds.stockAdjustment} unidades). Solicite aprovação.`
+                );
+            }
+            if (approval.amount !== null && approval.amount + 0.01 < approvalSubject) {
+                throw ApiError.forbidden('A quantidade excede a aprovação concedida.');
+            }
+        }
 
         return await prisma.$transaction(async (tx) => {
             const product = await tx.product.findFirst({
@@ -498,7 +637,7 @@ export class ProductsService {
                 });
             }
 
-            return tx.product.findFirst({
+            const result = await tx.product.findFirst({
                 where: { id, companyId },
                 include: {
                     warehouseStocks: {
@@ -506,13 +645,18 @@ export class ProductsService {
                     }
                 }
             });
+
+            if (approvalId) {
+                await approvalsService.markConsumed(approvalId, companyId).catch(() => {});
+            }
+            return result;
         });
     }
 
     /**
      * Get Low Stock Products
      */
-    async getLowStock(params: any, companyId: string) {
+    async getLowStock(params: ListPageParams, companyId: string) {
         const { page = '1', limit = '20' } = params;
         const pageNum = parseInt(page as string);
         const limitNum = parseInt(limit as string);
@@ -552,7 +696,7 @@ export class ProductsService {
     /**
      * Get Expiring Products -- delegates to ProductBatch table
      */
-    async getExpiring(params: any, companyId: string) {
+    async getExpiring(params: ListPageParams, companyId: string) {
         const { days = '30', page = '1', limit = '20' } = params;
         const pageNum = parseInt(page as string);
         const limitNum = parseInt(limit as string);
@@ -601,7 +745,7 @@ export class ProductsService {
     /**
      * Get Stock Movements
      */
-    async getMovements(params: any, companyId: string, id?: string) {
+    async getMovements(params: ListPageParams, companyId: string, id?: string) {
         const {
             page = '1',
             limit = '20',
@@ -626,7 +770,7 @@ export class ProductsService {
         }
 
         if (type && type !== 'all') {
-            where.movementType = type;
+            where.movementType = type as Prisma.StockMovementWhereInput['movementType'];
         }
 
         if (warehouseId && warehouseId !== 'all') {
@@ -678,7 +822,7 @@ export class ProductsService {
 
     // --- Private Helpers ---
 
-    private async createStockAlert(product: any, status: string, companyId: string) {
+    private async createStockAlert(product: ProductForAlert, status: string, companyId: string) {
         const existingAlert = await prisma.alert.findFirst({
             where: {
                 relatedId: product.id,
@@ -740,7 +884,7 @@ export class ProductsService {
 
         let totalValue = 0;
         let totalCost = 0;
-        let lowStockCount = 0;
+        const lowStockCount = 0;
         const categoryData: Record<string, { count: number; value: number }> = {};
 
         products.forEach(p => {
@@ -761,7 +905,7 @@ export class ProductsService {
         const turnoverData = products.map(p => ({
             name: p.name,
             stock: p.currentStock,
-            salesLast30Days: p.saleItems.reduce((acc: number, item: any) => acc + item.quantity, 0)
+            salesLast30Days: p.saleItems.reduce((acc, item) => acc + item.quantity, 0)
         })).sort((a, b) => b.salesLast30Days - a.salesLast30Days);
 
         return {
@@ -821,7 +965,7 @@ export class ProductsService {
     /**
      * Bulk update prices for products
      */
-    async bulkUpdatePrices(params: any, companyId: string, userId?: string, userName?: string) {
+    async bulkUpdatePrices(params: BulkPriceUpdateParams, companyId: string, userId?: string, userName?: string) {
         const { category, adjustmentType, adjustmentValue, operation } = params;
         // Accept both originModule (canonical) and legacy origin_module for back-compat with older clients.
         const originModule = params.originModule ?? params.origin_module;
@@ -859,14 +1003,13 @@ export class ProductsService {
 
         // Audit Log
         if (userId) {
-            const { auditService } = require('./auditService');
             await auditService.log({
                 userId,
                 userName,
                 action: 'BULK_PRICE_UPDATE',
                 entity: 'products',
                 companyId,
-                details: {
+                newData: {
                     filter: { category, originModule },
                     adjustment: { type: adjustmentType, value: adjustmentValue, operation },
                     productsAffected: products.length

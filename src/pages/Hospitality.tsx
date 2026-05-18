@@ -32,12 +32,32 @@ import { ExportBookingsButton, ExportRoomsButton } from '../components/common/Ex
 import { generatePOSReceipt } from '../utils/documentGenerator';
 import { useStore } from '../stores/useStore';
 import { cn } from '../utils/helpers';
+import type { Room, Booking } from '../types';
+
+// History pagination metadata returned by the bookings API
+type PaginationMeta = { page: number; limit: number; total: number; totalPages: number; hasMore?: boolean };
+
+type ConsumptionFormData = {
+    productId: string;
+    quantity: number;
+};
+
+type RoomWithBookings = Room & { bookings?: Booking[] };
+
+type RoomCardProps = {
+    room: RoomWithBookings;
+    onCheckIn: (room: RoomWithBookings) => void;
+    onCheckout: (bookingId: string) => void;
+    onClean: (roomId: string) => void;
+    onDelete: (id: string) => void;
+    onViewGuest: (bookingId: string) => void;
+};
 import {
     HiOutlineMagnifyingGlass,
     HiOutlineHome,
     HiOutlineCalendar,
     HiOutlineSparkles,
-    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardDocumentList,
     HiOutlineCog,
     HiOutlineChartBar,
     HiOutlinePencil,
@@ -74,7 +94,7 @@ export default function Hospitality() {
         { id: 'rooms', label: 'Quartos', icon: (active) => <HiOutlineHome className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
         { id: 'calendar', label: 'Calendário', icon: (active) => <HiOutlineCalendar className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
         { id: 'housekeeping', label: 'Limpeza', icon: (active) => <HiOutlineSparkles className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
-        { id: 'history', label: 'Histórico', icon: (active) => <HiOutlineClipboardList className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
+        { id: 'history', label: 'Histórico', icon: (active) => <HiOutlineClipboardDocumentList className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
         { id: 'management', label: 'Configuração', icon: (active) => <HiOutlineCog className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
         { id: 'dashboard', label: 'Estatísticas', icon: (active) => <HiOutlineChartBar className={cn("w-5 h-5", active ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} /> },
     ];
@@ -113,12 +133,12 @@ export default function Hospitality() {
     // History Pagination
     const [historyPage, setHistoryPage] = useState(1);
     const [historyPageSize, setHistoryPageSize] = useState(10);
-    const [historyMeta, setHistoryMeta] = useState<any>(null);
+    const [historyMeta, setHistoryMeta] = useState<PaginationMeta | null>(null);
     const [historyLoading, setHistoryLoading] = useState(false);
-    const [bookingHistory, setBookingHistory] = useState<any[]>([]);
+    const [bookingHistory, setBookingHistory] = useState<Booking[]>([]);
 
-    const [selectedRoom, setSelectedRoom] = useState<any>(null);
-    const [editingRoom, setEditingRoom] = useState<any>(null);
+    const [selectedRoom, setSelectedRoom] = useState<RoomWithBookings | null>(null);
+    const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
     const [, setCheckInData] = useState({
         customerName: '', guestCount: '1', guestDocumentType: 'BI',
@@ -157,25 +177,15 @@ export default function Hospitality() {
         }
     }, [activeMainTab, historyPage, fetchHistory]);
 
-    const handleCheckIn = async (modalData: any) => {
+    const handleCheckIn = async (modalData: Partial<Booking>) => {
         if (!selectedRoom || !modalData.customerName) return;
 
         try {
             await createBooking({
+                ...modalData,
                 roomId: selectedRoom.id,
-                customerId: null,
                 customerName: modalData.customerName,
-                guestCount: parseInt(modalData.guestCount) || 1,
-                guestDocumentType: modalData.guestDocumentType,
-                guestDocumentNumber: modalData.guestDocumentNumber,
-                guestNationality: modalData.guestNationality,
-                guestPhone: modalData.guestPhone,
-                checkIn: new Date().toISOString(),
-                checkOut: modalData.checkOutDate ? new Date(modalData.checkOutDate).toISOString() : null,
-                totalPrice: parseFloat(modalData.totalPrice) || null,
-                mealPlan: modalData.mealPlan,
-                notes: modalData.notes
-            });
+            } as Parameters<typeof createBooking>[0]);
             toast.success('Check-in realizado com sucesso!');
             setIsCheckInModalOpen(false);
             setCheckInData({
@@ -191,8 +201,9 @@ export default function Hospitality() {
                 notes: ''
             });
             refetch();
-        } catch (err: any) {
-            toast.error(err.message || 'Erro ao realizar check-in');
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string } } };
+            toast.error(apiErr.message || 'Erro ao realizar check-in');
         }
     };
 
@@ -201,7 +212,7 @@ export default function Hospitality() {
         setIsCheckoutModalOpen(true);
     };
 
-    const performCheckout = async (sale?: any) => {
+    const performCheckout = async (sale?: unknown) => {
         refetch();
         setIsCheckoutModalOpen(false);
         setSelectedBookingForCheckout(null);
@@ -261,7 +272,7 @@ export default function Hospitality() {
         } catch (err) { }
     };
 
-    const handleConsumptionSubmit = async (modalData: any) => {
+    const handleConsumptionSubmit = async (modalData: ConsumptionFormData) => {
         const activeBooking = selectedRoom?.bookings?.[0];
         if (!activeBooking) return;
         try {
@@ -313,7 +324,7 @@ export default function Hospitality() {
     const showInitialLoader = isLoading && !rooms.length;
 
     // Internal RoomCard Component
-    const RoomCard = ({ room, onCheckIn, onCheckout, onClean, onDelete, onViewGuest }: any) => {
+    const RoomCard = ({ room, onCheckIn, onCheckout, onClean, onDelete, onViewGuest }: RoomCardProps) => {
         const isActive = room.status === 'occupied';
         const activeBooking = room.bookings?.[0];
 
@@ -349,8 +360,21 @@ export default function Hospitality() {
                         </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => { setEditingRoom(room); setRoomFormData({ ...room, price: String(room.price) }); setIsRoomModalOpen(true); }} className="p-2 text-gray-400 hover:text-primary-600"><HiOutlinePencil className="w-4 h-4" /></button>
-                        <button onClick={() => onDelete(room.id)} className="p-2 text-gray-400 hover:text-red-600"><HiOutlineTrash className="w-4 h-4" /></button>
+                        <Button variant="ghost" size="sm" onClick={() => {
+                            setEditingRoom(room);
+                            setRoomFormData({
+                                number: room.number,
+                                type: room.type,
+                                price: String(room.price ?? ''),
+                                priceNoMeal: String(room.priceNoMeal ?? ''),
+                                priceBreakfast: String(room.priceBreakfast ?? ''),
+                                priceHalfBoard: String(room.priceHalfBoard ?? ''),
+                                priceFullBoard: String(room.priceFullBoard ?? ''),
+                                notes: room.notes ?? ''
+                            });
+                            setIsRoomModalOpen(true);
+                        }} className="p-2 text-gray-400 hover:text-primary-600 active:scale-95"><HiOutlinePencil className="w-4 h-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => onDelete(room.id)} className="p-2 text-gray-400 hover:text-red-600 active:scale-95"><HiOutlineTrash className="w-4 h-4" /></Button>
                     </div>
                 </div>
 
@@ -374,7 +398,7 @@ export default function Hospitality() {
                                 </div>
                                 <div className="p-2 bg-gray-50 dark:bg-dark-800 rounded-lg">
                                     <p>Total</p>
-                                    <ResponsiveValue value={Number(activeBooking.grandTotal) || 0} size="sm" className="text-primary-600" />
+                                    <ResponsiveValue value={Number(activeBooking.totalPrice) || 0} size="sm" className="text-primary-600" />
                                 </div>
                             </div>
                         </div>
@@ -425,8 +449,8 @@ export default function Hospitality() {
                         >
                             Actualizar
                         </Button>
-                        {activeMainTab === 'history' && <ExportBookingsButton data={bookingHistory} />}
-                        {activeMainTab === 'rooms' && <ExportRoomsButton data={rooms} />}
+                        {activeMainTab === 'history' && <ExportBookingsButton data={bookingHistory} size="sm" />}
+                        {activeMainTab === 'rooms' && <ExportRoomsButton data={rooms} size="sm" />}
                         {activeMainTab === 'rooms' && (
                             <Button 
                                 size="sm" 
@@ -442,11 +466,12 @@ export default function Hospitality() {
                 tabs={
                     <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
-                            <button
+                            <Button
                                 key={tab.id}
+                                variant="ghost"
                                 onClick={() => setActiveMainTab(tab.id as MainTab)}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 rounded-none whitespace-nowrap uppercase tracking-widest",
                                     activeMainTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
@@ -455,7 +480,7 @@ export default function Hospitality() {
                                 <span className="shrink-0">{tab.icon(activeMainTab === tab.id)}</span>
                                 <span className="hidden sm:inline-block">{tab.label}</span>
                                 <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 }
@@ -599,7 +624,7 @@ export default function Hospitality() {
                                 {/* Rooms Grid */}
                                 {filteredRooms.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                        {filteredRooms.map((room: any) => (
+                                        {(filteredRooms as RoomWithBookings[]).map((room) => (
                                             <RoomCard
                                                 key={room.id}
                                                 room={room}
@@ -658,7 +683,7 @@ export default function Hospitality() {
                 }}
                 onCheckIn={handleCheckIn}
                 room={selectedRoom}
-                availableRooms={rooms.filter((r: any) => r.status === 'available')}
+                availableRooms={rooms.filter((r) => r.status === 'available') as never}
             />
 
             <ConsumptionModal

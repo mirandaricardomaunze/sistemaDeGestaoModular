@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ExpiryAlertsPanel Component
  *
  * Responsibility: Render ONLY. Receives pre-computed `ExpiryAlert[]` via props.

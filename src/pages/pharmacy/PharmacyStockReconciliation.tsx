@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ChangeEvent } from 'react';
 import { Card, Button, Input, PageHeader, ConfirmationModal, Pagination } from '../../components/ui';
 import { usePagination } from '../../components/ui/Pagination';
 import { pharmacyAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
-    HiOutlineClipboardDocumentCheck as HiOutlineClipboardCheck, HiOutlineArrowPath as HiOutlineRefresh, HiOutlineExclamationCircle,
+    HiOutlineClipboardDocumentCheck as HiOutlineClipboardDocumentCheck, HiOutlineArrowPath as HiOutlineArrowPath, HiOutlineExclamationCircle,
     HiOutlineCheckCircle, HiOutlineArrowUp, HiOutlineArrowDown, HiOutlineArrowsRightLeft, HiOutlineMagnifyingGlass
 } from 'react-icons/hi2';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
@@ -17,12 +17,18 @@ interface SnapshotItem {
     physicalCount: string; // string for input binding
 }
 
+interface ReconciliationResult {
+    adjustedCount: number;
+    totalAdjustments?: number;
+    discrepancies?: Array<{ medicationId: string; difference: number }>;
+}
+
 export default function PharmacyStockReconciliation() {
     const [snapshot, setSnapshot] = useState<SnapshotItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [notes, setNotes] = useState('');
-    const [result, setResult] = useState<any>(null);
+    const [result, setResult] = useState<ReconciliationResult | null>(null);
     const [search, setSearch] = useState('');
     const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
 
@@ -30,7 +36,8 @@ export default function PharmacyStockReconciliation() {
         setIsLoading(true);
         try {
             const data = await pharmacyAPI.getStockReconciliationSnapshot();
-            setSnapshot((data as any[]).map(item => ({
+            type RawSnapshot = Omit<SnapshotItem, 'physicalCount'>;
+            setSnapshot((data as RawSnapshot[]).map((item) => ({
                 ...item,
                 physicalCount: String(item.systemStock), // default to system stock
             })));
@@ -59,7 +66,7 @@ export default function PharmacyStockReconciliation() {
 
     const handleSubmit = async () => {
         if (variances.length === 0) {
-            toast('Nenhuma variação detectada - contagem igual ao sistema.', { icon: 'ℹ️' });
+            toast('Nenhuma variação detectada - contagem igual ao sistema.', { icon: 'â„¹ï¸' });
             return;
         }
         setShowConfirmSubmit(true);
@@ -78,8 +85,9 @@ export default function PharmacyStockReconciliation() {
             setResult(res);
             toast.success(`Reconciliação concluída: ${res.adjustedCount} produto(s) ajustado(s).`);
             loadSnapshot();
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || 'Erro ao submeter reconciliação.');
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: unknown[] } } };
+            toast.error(apiErr?.response?.data?.message || 'Erro ao submeter reconciliação.');
         } finally {
             setIsSubmitting(false);
         }
@@ -108,7 +116,7 @@ export default function PharmacyStockReconciliation() {
                     <Button
                         variant="ghost"
                         className="bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest"
-                        leftIcon={<HiOutlineRefresh className="w-4 h-4" />}
+                        leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
                         onClick={loadSnapshot}
                         disabled={isLoading}
                     >
@@ -122,7 +130,7 @@ export default function PharmacyStockReconciliation() {
                 <MetricCard
                     label="Total Itens"
                     value={snapshot.length}
-                    icon={<HiOutlineClipboardCheck className="w-6 h-6" />}
+                    icon={<HiOutlineClipboardDocumentCheck className="w-6 h-6" />}
                     color="indigo"
                 />
 
@@ -276,12 +284,12 @@ export default function PharmacyStockReconciliation() {
                         label="Notas da reconciliação (opcional)"
                         placeholder="Ex: Contagem mensal de Abril, supervisado por..."
                         value={notes}
-                        onChange={(e: any) => setNotes(e.target.value)}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setNotes(e.target.value)}
                     />
                     <Button
                         onClick={handleSubmit}
                         disabled={isSubmitting || variances.length === 0}
-                        leftIcon={<HiOutlineClipboardCheck className="w-6 h-6" />}
+                        leftIcon={<HiOutlineClipboardDocumentCheck className="w-6 h-6" />}
                         size="lg"
                         className="w-full bg-emerald-500 hover:bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 font-black uppercase tracking-widest py-6"
                     >

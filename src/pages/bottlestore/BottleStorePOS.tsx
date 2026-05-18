@@ -10,19 +10,56 @@ import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 import {
     HiOutlineShoppingCart,
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass,
     HiOutlineCube,
     HiOutlineTrash,
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlinePlus,
     HiOutlineMinus,
     HiOutlineScale
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { salesAPI } from '../../services/api';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
 import { useScale } from '../../hooks/useScale';
 import { PrinterService } from '../../services/printer.service';
 import { formatCurrency } from '../../utils/helpers';
+import type { Sale } from '../../types';
+
+type BottleProduct = {
+    id: string;
+    name: string;
+    code?: string;
+    barcode?: string;
+    category?: string;
+    price: number;
+    currentStock: number;
+    minStock?: number;
+    packSize?: number;
+    returnPrice?: number;
+    isReturnable?: boolean;
+    imageUrl?: string;
+};
+
+type PriceTier = {
+    minQty: number;
+    price: number;
+    label?: string;
+};
+
+type CartLine = BottleProduct & {
+    quantity: number;
+    mode: 'unit' | 'crate';
+    withReturn: boolean;
+    basePrice: number;
+    finalPrice: number;
+    activeTier: PriceTier | null;
+};
+
+type SaleCustomer = { id: string; name: string; phone?: string; email?: string } | null;
+
+type SaleReceipt = Sale;
+
+type ApiValidationDetail = { label?: string; field?: string; message?: string };
 
 export default function BottleStorePOS() {
     // Pagination State for POS
@@ -48,25 +85,26 @@ export default function BottleStorePOS() {
     const { connect: connectScale, weight: scaleWeight, isConnected: isScaleConnected } = useScale();
 
     // POS State
-    const [cart, setCart] = useState<any[]>([]);
+    const [cart, setCart] = useState<CartLine[]>([]);
     const [customerMoney, setCustomerMoney] = useState('');
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [processingSale, setProcessingSale] = useState(false);
-    const [lastSale, setLastSale] = useState<any>(null);
+    const [lastSale, setLastSale] = useState<SaleReceipt | null>(null);
     const [thermalPreviewOpen, setThermalPreviewOpen] = useState(false);
     const [clearCartModalOpen, setClearCartModalOpen] = useState(false);
     const [globalDiscount, setGlobalDiscount] = useState('0');
 
     // Price tier cache: productId -> sorted tiers[]
-    const priceTiersCache = useRef<Record<string, any[]>>({});
+    const priceTiersCache = useRef<Record<string, unknown[]>>({});
 
-    const getTiersForProduct = async (productId: string): Promise<any[]> => {
-        if (priceTiersCache.current[productId] !== undefined) {
-            return priceTiersCache.current[productId];
+    const getTiersForProduct = async (productId: string): Promise<PriceTier[]> => {
+        const cached = priceTiersCache.current[productId];
+        if (cached !== undefined) {
+            return cached as PriceTier[];
         }
         try {
             const res = await bottleStoreAPI.getPriceTiers(productId);
-            const tiers = (res || []).sort((a: any, b: any) => b.minQty - a.minQty); // highest threshold first
+            const tiers = ((res || []) as PriceTier[]).sort((a, b) => b.minQty - a.minQty); // highest threshold first
             priceTiersCache.current[productId] = tiers;
             return tiers;
         } catch {
@@ -76,7 +114,7 @@ export default function BottleStorePOS() {
     };
 
     // Given product base price + current total units quantity, return the best price from tiers (or base price)
-    const getBestPrice = (tiers: any[], basePrice: number, totalQty: number): { price: number; tier: any | null } => {
+    const getBestPrice = (tiers: PriceTier[], basePrice: number, totalQty: number): { price: number; tier: PriceTier | null } => {
         for (const tier of tiers) { // already sorted highest minQty first
             if (totalQty >= tier.minQty) {
                 return { price: tier.price, tier };
@@ -86,7 +124,7 @@ export default function BottleStorePOS() {
     };
 
     // Customer Selection State
-    const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+    const [selectedCustomer, setSelectedCustomer] = useState<SaleCustomer>(null);
     const productSearchRef = useRef<HTMLInputElement>(null);
 
     // Calculate customer purchase history
@@ -155,7 +193,7 @@ export default function BottleStorePOS() {
         setGlobalDiscount('0');
     };
 
-    const addToCart = async (product: any, mode: 'unit' | 'crate' = 'unit', withReturn: boolean = false) => {
+    const addToCart = async (product: BottleProduct, mode: 'unit' | 'crate' = 'unit', withReturn: boolean = false) => {
         const packSize = product.packSize || 1;
         const existingIndex = cart.findIndex(item =>
             item.id === product.id && item.mode === mode && item.withReturn === withReturn
@@ -176,13 +214,13 @@ export default function BottleStorePOS() {
             // Re-evaluate price tiers for new quantity
             const baseUnitPrice = mode === 'crate' ? product.price * packSize : product.price;
             const { price: bestPrice, tier } = getBestPrice(tiers, baseUnitPrice, nextQuantity);
-            const returnDiscount = withReturn ? (product.returnPrice * (mode === 'crate' ? packSize : 1)) : 0;
+            const returnDiscount = withReturn ? ((product.returnPrice ?? 0) * (mode === 'crate' ? packSize : 1)) : 0;
             const prevFinalPrice = newCart[existingIndex].finalPrice;
             newCart[existingIndex].quantity = nextQuantity;
             newCart[existingIndex].finalPrice = bestPrice - returnDiscount;
 
             if (tier && bestPrice < prevFinalPrice) {
-                toast.success(`Desconto por volume aplicado! ${tier.label || `â‰¥${tier.minQty} un`} → ${formatCurrency(bestPrice)}/un`, { icon: '' });
+                toast.success(`Desconto por volume aplicado! ${tier.label || `≥${tier.minQty} un`} → ${formatCurrency(bestPrice)}/un`, { icon: '' });
             }
             setCart(newCart);
         } else {
@@ -194,10 +232,10 @@ export default function BottleStorePOS() {
 
             const baseUnitPrice = mode === 'crate' ? product.price * packSize : product.price;
             const { price: bestPrice, tier } = getBestPrice(tiers, baseUnitPrice, 1);
-            const returnDiscount = withReturn ? (product.returnPrice * (mode === 'crate' ? packSize : 1)) : 0;
+            const returnDiscount = withReturn ? ((product.returnPrice ?? 0) * (mode === 'crate' ? packSize : 1)) : 0;
 
             if (tier) {
-                toast.success(`Desconto por volume: ${tier.label || `â‰¥${tier.minQty} un`} → ${formatCurrency(bestPrice)}/un`, { icon: '' });
+                toast.success(`Desconto por volume: ${tier.label || `≥${tier.minQty} un`} → ${formatCurrency(bestPrice)}/un`, { icon: '' });
             }
 
             setCart(prev => [...prev, {
@@ -273,13 +311,14 @@ export default function BottleStorePOS() {
             setThermalPreviewOpen(true);
             refetchProducts();
             refetchSales();
-        } catch (err: any) {
-            const errorResponse = err.response?.data;
-            const errorMessage = errorResponse?.message || errorResponse?.error || err.message || 'Erro ao processar venda';
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: ApiValidationDetail[] } } };
+            const errorResponse = apiErr.response?.data;
+            const errorMessage = errorResponse?.message || errorResponse?.error || apiErr.message || 'Erro ao processar venda';
 
             if (errorResponse?.errors && Array.isArray(errorResponse.errors)) {
                 const validationErrors = errorResponse.errors
-                    .map((detail: any) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
+                    .map((detail) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
                     .join('\n');
                 toast.error(`Erro de Validação\n\n${validationErrors}`, { duration: 8000 });
             } else {
@@ -337,7 +376,7 @@ export default function BottleStorePOS() {
                             placeholder="Escaneie o código ou busque bebida, marca..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5 text-gray-400" />}
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
                             className="py-3 text-lg"
                             autoFocus
                         />
@@ -424,7 +463,7 @@ export default function BottleStorePOS() {
                                                     const nextQty = newCart[index].quantity - 1;
                                                     const tiers = await getTiersForProduct(newCart[index].id);
                                                     const basePrice = newCart[index].basePrice ?? newCart[index].finalPrice;
-                                                    const returnDiscount = newCart[index].withReturn ? (newCart[index].returnPrice * (newCart[index].mode === 'crate' ? (newCart[index].packSize || 1) : 1)) : 0;
+                                                    const returnDiscount = newCart[index].withReturn ? ((newCart[index].returnPrice ?? 0) * (newCart[index].mode === 'crate' ? (newCart[index].packSize || 1) : 1)) : 0;
                                                     const { price: bestPrice } = getBestPrice(tiers, basePrice, nextQty);
                                                     newCart[index].quantity = nextQty;
                                                     newCart[index].finalPrice = bestPrice - returnDiscount;
@@ -437,13 +476,13 @@ export default function BottleStorePOS() {
                                                 const nextQty = newCart[index].quantity + 1;
                                                 const tiers = await getTiersForProduct(newCart[index].id);
                                                 const basePrice = newCart[index].basePrice ?? newCart[index].finalPrice;
-                                                const returnDiscount = newCart[index].withReturn ? (newCart[index].returnPrice * (newCart[index].mode === 'crate' ? (newCart[index].packSize || 1) : 1)) : 0;
+                                                const returnDiscount = newCart[index].withReturn ? ((newCart[index].returnPrice ?? 0) * (newCart[index].mode === 'crate' ? (newCart[index].packSize || 1) : 1)) : 0;
                                                 const { price: bestPrice, tier } = getBestPrice(tiers, basePrice, nextQty);
                                                 const prevPrice = newCart[index].finalPrice;
                                                 newCart[index].quantity = nextQty;
                                                 newCart[index].finalPrice = bestPrice - returnDiscount;
                                                 if (tier && bestPrice < prevPrice) {
-                                                    toast.success(`Desconto por volume aplicado! ${tier.label || `â‰¥${tier.minQty} un`}`, { icon: '' });
+                                                    toast.success(`Desconto por volume aplicado! ${tier.label || `≥${tier.minQty} un`}`, { icon: '' });
                                                 }
                                                 setCart(newCart);
                                             }} className="w-6 h-6 rounded bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300"><HiOutlinePlus className="w-3 h-3" /></button>
@@ -521,10 +560,10 @@ export default function BottleStorePOS() {
     );
 }
 
-function BottleProductCard({ product, onAdd }: { product: any, onAdd: (p: any, mode: 'unit' | 'crate', ret: boolean) => void }) {
+function BottleProductCard({ product, onAdd }: { product: BottleProduct, onAdd: (p: BottleProduct, mode: 'unit' | 'crate', ret: boolean) => void }) {
     const isOut = product.currentStock <= 0;
     const isLow = product.currentStock <= (product.minStock || 10);
-    const hasCrate = product.packSize > 1;
+    const hasCrate = (product.packSize ?? 1) > 1;
 
     return (
         <div className={`flex flex-col rounded-lg border-2 transition-all hover:shadow-lg group overflow-hidden ${isOut
@@ -558,7 +597,7 @@ function BottleProductCard({ product, onAdd }: { product: any, onAdd: (p: any, m
                         disabled={isOut}
                         className="flex justify-center items-center py-2 bg-white dark:bg-dark-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-[10px] font-bold text-blue-600 dark:text-blue-400 border-t border-gray-100 dark:border-dark-700 uppercase transition-colors disabled:cursor-not-allowed"
                     >
-                        <HiOutlineRefresh className="w-3 h-3 mr-1" />
+                        <HiOutlineArrowPath className="w-3 h-3 mr-1" />
                         Com Devolução
                     </button>
                 )}

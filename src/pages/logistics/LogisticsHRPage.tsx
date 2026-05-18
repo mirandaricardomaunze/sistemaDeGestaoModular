@@ -29,6 +29,7 @@ import {
     LoadingSpinner,
     Pagination
 } from '../../components/ui';
+import type { BadgeVariant } from '../../components/ui/Badge';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { 
     useDrivers, 
@@ -36,6 +37,7 @@ import {
     useUpdateDriver, 
     useDeleteDriver
 } from '../../hooks/useLogistics';
+import { useEmployees } from '../../hooks/useData';
 import { LogisticsAttendanceControl } from '../../components/logistics/hr/LogisticsAttendanceControl';
 import { LogisticsPayrollManager } from '../../components/logistics/hr/LogisticsPayrollManager';
 import { LogisticsDocumentCenter } from '../../components/logistics/hr/LogisticsDocumentCenter';
@@ -179,7 +181,7 @@ export default function LogisticsHRPage() {
     };
 
     const getCategoryBadge = (category: StaffCategory) => {
-        const colors: Record<StaffCategory, any> = {
+        const colors: Record<StaffCategory, BadgeVariant> = {
             driver: 'primary',
             mechanic: 'warning',
             warehouse: 'info',
@@ -242,6 +244,7 @@ export default function LogisticsHRPage() {
         search: searchTerm,
         category: categoryFilter || undefined
     });
+    const { employees: logisticsEmployees } = useEmployees({ department: 'Logística', limit: 200 });
 
     const table = useReactTable({
         data: data?.data || [],
@@ -255,6 +258,30 @@ export default function LogisticsHRPage() {
         manualPagination: true,
         manualSorting: true,
     });
+
+    const dashboardStaff = data?.data || [];
+    const totalDashboardStaff = dashboardStaff.length;
+    const availableDashboardStaff = dashboardStaff.filter((person) => person.status === 'available').length;
+    const validDashboardDocs = dashboardStaff.filter((person) => {
+        const licenseOk = person.licenseExpiry ? new Date(person.licenseExpiry) > new Date() : false;
+        const medicalOk = person.medicalExamExpiry ? new Date(person.medicalExamExpiry) > new Date() : true;
+        return licenseOk && medicalOk;
+    }).length;
+    const dashboardDeliveries = dashboardStaff.reduce((sum, person) => sum + (person._count?.deliveries || 0), 0);
+    const dashboardCategories = dashboardStaff.reduce<Record<string, number>>((acc, person) => {
+        acc[person.category] = (acc[person.category] || 0) + 1;
+        return acc;
+    }, {});
+    const dashboardComplianceAlerts = dashboardStaff
+        .flatMap((person) => [
+            { person, label: t('logistics_module.drivers.license'), date: person.licenseExpiry },
+            { person, label: t('logistics_module.drivers.medicalExam'), date: person.medicalExamExpiry },
+        ])
+        .filter((item) => {
+            if (!item.date) return false;
+            return Math.ceil((new Date(item.date).getTime() - Date.now()) / 86400000) <= 30;
+        })
+        .slice(0, 3);
 
     if (isLoading && !data) return <LoadingSpinner size="xl" className="h-96" />;
 
@@ -313,28 +340,28 @@ export default function LogisticsHRPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <MetricCard
                             label={t('logistics_module.hr.stats.attendance')}
-                            value="94.2%"
+                            value={totalDashboardStaff > 0 ? `${((availableDashboardStaff / totalDashboardStaff) * 100).toFixed(1)}%` : '0%'}
                             growth={2.1}
                             icon={<HiOutlineCalendar className="w-5 h-5" />}
                             color="blue"
                         />
                         <MetricCard
                             label={t('logistics_module.hr.stats.efficiency')}
-                            value="87.5%"
+                            value={totalDashboardStaff > 0 ? `${(dashboardDeliveries / totalDashboardStaff).toFixed(1)} ent/col` : '0 ent/col'}
                             growth={5.4}
                             icon={<HiOutlineChartBar className="w-5 h-5" />}
                             color="green"
                         />
                         <MetricCard
                             label={t('logistics_module.hr.stats.safety')}
-                            value="98/100"
+                            value={totalDashboardStaff > 0 ? `${Math.round((validDashboardDocs / totalDashboardStaff) * 100)}/100` : '0/100'}
                             icon={<HiOutlineShieldCheck className="w-5 h-5" />}
                             color="purple"
                             badge={<Badge variant="gray" size="sm">Estvel</Badge>}
                         />
                         <MetricCard
                             label={t('logistics_module.hr.stats.productivity')}
-                            value="12.4 dep/dia"
+                            value={totalDashboardStaff > 0 ? `${dashboardDeliveries} ent.` : '0 ent.'}
                             icon={<HiOutlinePlus className="w-5 h-5" />}
                             color="orange"
                             badge={<Badge variant="success" size="sm">+0.8</Badge>}
@@ -347,8 +374,23 @@ export default function LogisticsHRPage() {
                                 <HiOutlineUsers className="w-5 h-5 text-primary-500" />
                                 {t('logistics_module.hr.dashboard.teamDistribution')}
                             </h3>
-                            <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-200 dark:border-dark-700 rounded-lg">
-                                <p className="text-gray-400">{t('logistics_module.hr.dashboard.chartPlaceholder')}</p>
+                            <div className="h-64 space-y-3 overflow-y-auto">
+                                {Object.entries(dashboardCategories).length === 0 ? (
+                                    <p className="text-gray-400 text-center py-20">Nenhum dado disponivel</p>
+                                ) : Object.entries(dashboardCategories).map(([category, total]) => (
+                                    <div key={category} className="space-y-2">
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="font-bold text-gray-700 dark:text-gray-200">{t(`logistics_module.hr.categories.${category}`)}</span>
+                                            <span className="font-mono text-gray-500">{total}</span>
+                                        </div>
+                                        <div className="h-2 rounded-full bg-gray-100 dark:bg-dark-800 overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-primary-500"
+                                                style={{ width: `${Math.max(8, (total / Math.max(1, totalDashboardStaff)) * 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </Card>
                         <Card variant="glass" className="p-6">
@@ -357,14 +399,16 @@ export default function LogisticsHRPage() {
                                 {t('logistics_module.hr.dashboard.complianceAlerts')}
                             </h3>
                             <div className="space-y-4">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="flex items-center gap-3 p-3 bg-white dark:bg-dark-800 rounded-xl border border-gray-100 dark:border-dark-700/50 shadow-sm transition-all hover:border-orange-500/30 group">
+                                {dashboardComplianceAlerts.length === 0 ? (
+                                    <p className="text-sm text-gray-400 py-8 text-center">Sem alertas de conformidade</p>
+                                ) : dashboardComplianceAlerts.map((alert) => (
+                                    <div key={`${alert.person.id}-${alert.label}`} className="flex items-center gap-3 p-3 bg-white dark:bg-dark-800 rounded-xl border border-gray-100 dark:border-dark-700/50 shadow-sm transition-all hover:border-orange-500/30 group">
                                         <div className="w-10 h-10 rounded-lg bg-orange-500/15 border border-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400 backdrop-blur-sm group-hover:scale-110 transition-transform">
                                             <HiOutlineIdentification className="w-6 h-6" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">Expiração em 5 dias</p>
-                                            <p className="text-[10px] text-gray-500 font-medium italic uppercase tracking-wider">Carta de Condução - João Silva</p>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{alert.label}</p>
+                                            <p className="text-[10px] text-gray-500 font-medium italic uppercase tracking-wider">{alert.person.name}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -425,8 +469,8 @@ export default function LogisticsHRPage() {
             {activeTab === 'attendance' && <LogisticsAttendanceControl />}
             {activeTab === 'payroll' && <LogisticsPayrollManager />}
             {activeTab === 'compliance' && <LogisticsDocumentCenter />}
-            {activeTab === 'vacations' && <VacationsPanel config={LOGISTICS_CONFIG as any} employees={[]} />}
-            {activeTab === 'config' && <BonusConfigPanel config={LOGISTICS_CONFIG as any} />}
+            {activeTab === 'vacations' && <VacationsPanel config={LOGISTICS_CONFIG} employees={logisticsEmployees || []} />}
+            {activeTab === 'config' && <BonusConfigPanel config={LOGISTICS_CONFIG} />}
             </div>
 
             {/* Staff Form Modal */}

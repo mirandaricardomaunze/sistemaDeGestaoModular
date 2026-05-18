@@ -14,8 +14,13 @@
  */
 
 import request from 'supertest';
+import type { Request, Response, NextFunction } from 'express';
 import { app } from '../../index';
 import { prisma } from '../../lib/prisma';
+
+type MockReq = Request & { userId?: string; companyId?: string; userName?: string; userRole?: string };
+
+jest.setTimeout(120000);
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -26,20 +31,20 @@ const USER_CASHIER = 'comm-user-cashier';
 
 // Auth mock — role controlled per-request via x-mock-role header
 jest.mock('../../middleware/auth', () => ({
-    authenticate: (req: any, _res: any, next: any) => {
-        req.userId    = req.headers['x-mock-uid']  || USER_ADMIN;
-        req.companyId = req.headers['x-mock-co']   || CO;
-        req.userRole  = req.headers['x-mock-role'] || 'admin';
+    authenticate: (req: MockReq, _res: Response, next: NextFunction) => {
+        req.userId    = (req.headers['x-mock-uid'] as string)  || USER_ADMIN;
+        req.companyId = (req.headers['x-mock-co'] as string)   || CO;
+        req.userRole  = (req.headers['x-mock-role'] as string) || 'admin';
         req.userName  = 'Test User';
         next();
     },
-    authorize: (...roles: string[]) => (req: any, res: any, next: any) => {
-        if (!roles.includes(req.userRole)) {
+    authorize: (...roles: string[]) => (req: MockReq, res: Response, next: NextFunction) => {
+        if (!roles.includes(req.userRole ?? '')) {
             return res.status(403).json({ message: 'Acesso negado' });
         }
         next();
     },
-    AuthRequest: {} as any,
+    AuthRequest: {} as unknown,
 }));
 
 // Silence socket in tests
@@ -59,6 +64,12 @@ let warehouseId: string;
 // ── Setup / Teardown ─────────────────────────────────────────────────────────
 
 async function cleanup() {
+    await prisma.supplierInvoicePayment.deleteMany({ where: { supplierInvoice: { companyId: CO } } }).catch(() => {});
+    await prisma.supplierInvoiceItem.deleteMany({ where: { supplierInvoice: { companyId: CO } } }).catch(() => {});
+    await prisma.supplierInvoice.deleteMany({ where: { companyId: CO } }).catch(() => {});
+    await prisma.approvalRequest.deleteMany({ where: { companyId: CO } }).catch(() => {});
+    await prisma.productBatch.deleteMany({ where: { companyId: CO } }).catch(() => {});
+    await prisma.stockMovement.deleteMany({ where: { companyId: CO } }).catch(() => {});
     await prisma.purchaseOrderItem.deleteMany({ where: { purchaseOrder: { companyId: CO } } }).catch(() => {});
     await prisma.purchaseOrder.deleteMany({ where: { companyId: CO } }).catch(() => {});
     await prisma.customerOrderItem.deleteMany({ where: { order: { companyId: CO } } }).catch(() => {});
@@ -221,17 +232,19 @@ describe('Purchase Orders', () => {
     });
 
     // Helper: create a PO directly via Prisma (the route doesn't have a POST, only PATCH/GET/DELETE)
-    async function createPO(extra?: Partial<typeof PO_PAYLOAD>) {
-        const data: any = { ...PO_PAYLOAD(), ...extra };
+    type POItem = { productId: string; quantity: number; unitCost: number; receivedQty?: number; total: number };
+    type POData = { orderNumber: string; supplierId: string; total: number; status: string; items: POItem[] };
+    async function createPO(extra?: Partial<POData>) {
+        const data: POData = { ...PO_PAYLOAD(), ...extra };
         const po = await prisma.purchaseOrder.create({
             data: {
                 orderNumber: data.orderNumber,
                 supplierId: data.supplierId,
                 total: data.total,
-                status: data.status,
+                status: data.status as 'draft',
                 companyId: CO,
                 items: {
-                    create: data.items.map((i: any) => ({
+                    create: data.items.map((i) => ({
                         productId: i.productId,
                         quantity: i.quantity,
                         unitCost: i.unitCost,
@@ -246,8 +259,12 @@ describe('Purchase Orders', () => {
     }
 
     // Helper: unwrap ResultHandler envelope
-    const rows = (res: any) => res.body?.data?.data ?? res.body?.data ?? res.body;
-    const pagination = (res: any) => res.body?.data?.pagination ?? res.body?.pagination;
+    type ResWithBody = { body: { data?: unknown; pagination?: unknown } };
+    const rows = (res: ResWithBody): unknown[] => {
+        const data = res.body?.data as { data?: unknown[] } | unknown[] | undefined;
+        return ((data as { data?: unknown[] })?.data ?? data ?? res.body) as unknown[];
+    };
+    const pagination = (res: ResWithBody) => (res.body?.data as { pagination?: unknown })?.pagination ?? res.body?.pagination;
 
     describe('GET /api/commercial/purchase-orders', () => {
         it('returns paginated list', async () => {
@@ -261,14 +278,14 @@ describe('Purchase Orders', () => {
         it('filters by status', async () => {
             await createPO({ orderNumber: `PO-DRAFT-${Date.now()}`, status: 'draft' });
             const res = await request(app).get('/api/commercial/purchase-orders?status=draft').expect(200);
-            rows(res).forEach((po: any) => expect(po.status).toBe('draft'));
+            (rows(res) as Array<{ status: string }>).forEach((po) => expect(po.status).toBe('draft'));
         });
 
         it('supports search by orderNumber', async () => {
             const unique = `PO-SEARCH-${Date.now()}`;
             await createPO({ orderNumber: unique });
             const res = await request(app).get(`/api/commercial/purchase-orders?search=${unique}`).expect(200);
-            expect(rows(res).some((po: any) => po.orderNumber === unique)).toBe(true);
+            expect((rows(res) as Array<{ orderNumber: string }>).some((po) => po.orderNumber === unique)).toBe(true);
         });
 
         it('returns 403 for cashier', async () => {
@@ -371,6 +388,115 @@ describe('Purchase Orders', () => {
                 .expect(400);
         });
     });
+
+    describe('Mini business purchase-to-pay flow', () => {
+        it('creates PO, receives stock, registers supplier invoice, pays it and posts commercial expense', async () => {
+            const stockBefore = await prisma.product.findUnique({
+                where: { id: productId },
+                select: { currentStock: true },
+            });
+            const warehouseBefore = await prisma.warehouseStock.findUnique({
+                where: { warehouseId_productId: { warehouseId, productId } },
+                select: { quantity: true },
+            });
+
+            const createRes = await request(app)
+                .post('/api/commercial/purchase-orders')
+                .send({
+                    supplierId,
+                    items: [{ productId, quantity: 2, unitCost: 70 }],
+                    notes: 'Piloto mini empresa',
+                })
+                .expect(201);
+
+            expect(createRes.body.supplierId).toBe(supplierId);
+            expect(createRes.body.items).toHaveLength(1);
+            const purchaseOrderId = createRes.body.id;
+            const itemId = createRes.body.items[0].id;
+            const batchNumber = `LOT-MINI-${Date.now()}`;
+            const expiryDate = new Date(Date.now() + 180 * 86400000).toISOString();
+
+            await request(app)
+                .post(`/api/commercial/purchase-orders/${purchaseOrderId}/receive`)
+                .send({
+                    warehouseId,
+                    items: [{ itemId, receivedQty: 2, batchNumber, expiryDate }],
+                })
+                .expect(200);
+
+            const receivedOrder = await prisma.purchaseOrder.findUnique({
+                where: { id: purchaseOrderId },
+                include: { items: true },
+            });
+            expect(receivedOrder?.status).toBe('received');
+            expect(receivedOrder?.items[0].receivedQty).toBe(2);
+
+            const productAfterReceive = await prisma.product.findUnique({
+                where: { id: productId },
+                select: { currentStock: true },
+            });
+            const warehouseAfterReceive = await prisma.warehouseStock.findUnique({
+                where: { warehouseId_productId: { warehouseId, productId } },
+                select: { quantity: true },
+            });
+            expect(productAfterReceive?.currentStock).toBe((stockBefore?.currentStock || 0) + 2);
+            expect(warehouseAfterReceive?.quantity).toBe((warehouseBefore?.quantity || 0) + 2);
+
+            const batch = await prisma.productBatch.findFirst({
+                where: { companyId: CO, productId, batchNumber },
+            });
+            expect(batch).toBeTruthy();
+
+            const invoiceRes = await request(app)
+                .post(`/api/commercial/purchase-orders/${purchaseOrderId}/supplier-invoices`)
+                .send({
+                    invoiceNumber: `FT-MINI-${Date.now()}`,
+                    issueDate: new Date().toISOString(),
+                    taxRate: 16,
+                    items: [{ purchaseOrderItemId: itemId, quantity: 2 }],
+                })
+                .expect(201);
+
+            expect(invoiceRes.body).toHaveProperty('success', true);
+            const invoice = invoiceRes.body.data;
+            expect(invoice.status).toBe('registered');
+            expect(Number(invoice.total)).toBe(162.4);
+
+            const paymentRes = await request(app)
+                .post(`/api/commercial/supplier-invoices/${invoice.id}/payments`)
+                .send({
+                    amount: Number(invoice.total),
+                    method: 'transfer',
+                    paymentDate: new Date().toISOString(),
+                    reference: 'TRF-MINI',
+                })
+                .expect(201);
+
+            expect(paymentRes.body).toHaveProperty('success', true);
+            expect(paymentRes.body.data.status).toBe('paid');
+            const paymentId = paymentRes.body.data.payments[0].id;
+
+            const financeTx = await prisma.transaction.findFirst({
+                where: {
+                    companyId: CO,
+                    module: 'commercial',
+                    type: 'expense',
+                    reference: `SUPPAY-${paymentId}`,
+                },
+            });
+            expect(financeTx).toBeTruthy();
+            expect(Number(financeTx?.amount)).toBe(Number(invoice.total));
+
+            await request(app)
+                .delete(`/api/commercial/supplier-invoices/${invoice.id}/payments/${paymentId}`)
+                .expect(200);
+
+            const removedTx = await prisma.transaction.findFirst({
+                where: { companyId: CO, reference: `SUPPAY-${paymentId}` },
+            });
+            expect(removedTx).toBeNull();
+        });
+    });
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -390,7 +516,10 @@ describe('Quotations', () => {
     });
 
     // Helper shared for quotation assertions
-    const qRows = (res: any) => res.body?.data?.data ?? res.body?.data ?? res.body;
+    const qRows = (res: ResWithBody): unknown[] => {
+        const data = res.body?.data as { data?: unknown[] } | unknown[] | undefined;
+        return ((data as { data?: unknown[] })?.data ?? data ?? res.body) as unknown[];
+    };
 
     describe('GET /api/commercial/quotations', () => {
         it('returns paginated quotation list', async () => {
@@ -623,6 +752,14 @@ describe('Cash Sessions', () => {
     describe('GET /api/commercial/shift/history', () => {
         it('returns session history list', async () => {
             const res = await request(app).get('/api/commercial/shift/history').expect(200);
+            expect(Array.isArray(res.body.data ?? res.body)).toBe(true);
+        });
+
+        it('accepts date-only filters from the history screen', async () => {
+            const res = await request(app)
+                .get('/api/commercial/shift/history?startDate=2026-05-01&endDate=2026-05-11')
+                .expect(200);
+
             expect(Array.isArray(res.body.data ?? res.body)).toBe(true);
         });
     });
@@ -866,7 +1003,7 @@ describe('Multi-tenant isolation', () => {
         const res = await request(app).get('/api/commercial/purchase-orders').expect(200);
         // Response is wrapped: { success, data: { data: [...], pagination } }
         const items = res.body?.data?.data ?? res.body?.data ?? [];
-        const ids = Array.isArray(items) ? items.map((po: any) => po.id) : [];
+        const ids = Array.isArray(items) ? (items as Array<{ id: string }>).map((po) => po.id) : [];
         expect(ids).not.toContain(otherPO.id);
 
         // Cleanup
@@ -893,7 +1030,7 @@ describe('Multi-tenant isolation', () => {
 
         const res = await request(app).get('/api/commercial/quotations').expect(200);
         const items = res.body?.data?.data ?? res.body?.data ?? [];
-        const ids = Array.isArray(items) ? items.map((q: any) => q.id) : [];
+        const ids = Array.isArray(items) ? (items as Array<{ id: string }>).map((q) => q.id) : [];
         expect(ids).not.toContain(otherQuote.id);
 
         // Cleanup

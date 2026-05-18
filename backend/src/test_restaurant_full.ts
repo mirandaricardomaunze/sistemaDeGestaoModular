@@ -53,9 +53,10 @@ async function testRestaurant() {
         console.log(`✅ Pedido Servido e Mesa Livre. Total: ${closedOrder.totalAmount} MT`);
 
         console.log('\n✨ TESTE DE RESTAURANTE CONCLUÍDO! ✨');
-    } catch (error: any) {
-        console.error('❌ ERRO NO TESTE DE RESTAURANTE:', error.message || error);
-        if (error.stack) console.error(error.stack);
+    } catch (error) {
+        const err = error as { message?: string; stack?: string };
+        console.error('❌ ERRO NO TESTE DE RESTAURANTE:', err?.message || error);
+        if (err?.stack) console.error(err.stack);
     }
 }
 

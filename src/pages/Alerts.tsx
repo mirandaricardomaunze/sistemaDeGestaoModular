@@ -5,17 +5,17 @@
  * bulk actions, and module-specific views.
  */
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
     HiOutlineBell,
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlineCheck,
     HiOutlineCheckCircle,
     HiOutlineTrash,
     HiOutlineFunnel as HiOutlineFilter,
-    HiOutlineExclamationTriangle as HiOutlineExclamation,
+    HiOutlineExclamationTriangle as HiOutlineExclamationTriangle,
     HiOutlineExclamationCircle,
     HiOutlineInformationCircle,
     HiOutlineChevronRight
@@ -40,7 +40,7 @@ const MODULE_CONFIG: Record<string, { label: string; color: string }> = {
 
 const PRIORITY_CONFIG: Record<AlertPriority, { label: string; color: string; icon: React.ReactNode }> = {
     critical: { label: 'Crítico', color: 'red', icon: <HiOutlineExclamationCircle className="w-5 h-5" /> },
-    high: { label: 'Alto', color: 'orange', icon: <HiOutlineExclamation className="w-5 h-5" /> },
+    high: { label: 'Alto', color: 'orange', icon: <HiOutlineExclamationTriangle className="w-5 h-5" /> },
     medium: { label: 'Médio', color: 'yellow', icon: <HiOutlineInformationCircle className="w-5 h-5" /> },
     low: { label: 'Baixo', color: 'blue', icon: <HiOutlineInformationCircle className="w-5 h-5" /> }
 };
@@ -131,7 +131,7 @@ export default function AlertsPage() {
                         onClick={() => generateAlerts()}
                         className="gap-2"
                     >
-                        <HiOutlineRefresh className="w-4 h-4" />
+                        <HiOutlineArrowPath className="w-4 h-4" />
                         Gerar Alertas
                     </Button>
                     {unreadCount > 0 && (
@@ -188,7 +188,7 @@ export default function AlertsPage() {
                             <p className="text-2xl font-bold text-orange-600">{highCount}</p>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/15 border border-transparent dark:border-orange-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
-                            <HiOutlineExclamation className="w-6 h-6 text-orange-600 dark:text-orange-300" />
+                            <HiOutlineExclamationTriangle className="w-6 h-6 text-orange-600 dark:text-orange-300" />
                         </div>
                     </div>
                 </Card>

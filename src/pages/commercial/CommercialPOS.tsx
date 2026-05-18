@@ -10,7 +10,9 @@ import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { useBarcodeScanner } from '../../hooks/useBarcodeScanner';
 import { useCompanySettings } from '../../hooks/useCompanySettings';
 import { playScanSound } from '../../utils/audio';
+import { getApiErrorMessage } from '../../utils/apiError';
 import toast from 'react-hot-toast';
+import type { Customer } from '../../types';
 
 // ── Internal types ──────────────────────────────────────────────────────────
 interface POSProduct {
@@ -21,16 +23,27 @@ interface POSProduct {
     currentStock: number;
     packSize?: number | string;
     barcode?: string;
+    sku?: string;
     unit?: string;
+    category?: string;
+    categoryId?: string;
     warehouseStocks?: Array<{ warehouseId: string; quantity: number }>;
 }
 
-interface POSCustomer {
+type POSCustomer = Customer;
+
+interface POSWarehouse {
     id: string;
     name: string;
-    phone?: string;
-    code?: string;
 }
+
+type ListApiResponse<T> = T[] | {
+    data?: T[];
+};
+
+const getListRows = <T,>(response: ListApiResponse<T>): T[] => (
+    Array.isArray(response) ? response : response.data ?? []
+);
 
 interface CartReservation { id: string }
 
@@ -48,6 +61,44 @@ interface CartItem {
 }
 
 interface PriceTier { minQty: number; price: number }
+
+interface DiscountAuditPayload {
+    global: {
+        kind: DiscountInfo['kind'];
+        value: number;
+        amount: number;
+        reason?: string;
+        appliedBy?: string;
+    } | null;
+    lines: Array<{
+        productId: string;
+        productName?: string;
+        kind: DiscountInfo['kind'];
+        value: number;
+        amount: number;
+        pct: number;
+        reason?: string;
+        appliedBy?: string;
+    }>;
+}
+
+interface ValidationDetail {
+    label?: string;
+    field?: string;
+    message?: string;
+}
+
+type PosApiError = Error & {
+    response?: {
+        data?: {
+            errors?: ValidationDetail[];
+        };
+    };
+};
+
+interface SaleCreateResponse {
+    receiptNumber?: string;
+}
 import {
     calculatePOSDiscounts,
     recordCampaignUsages
@@ -98,15 +149,15 @@ export default function CommercialPOS() {
     });
 
     // Fetch warehouse list (for name display in header + shift modal)
-    const { data: warehouses = [] } = useQuery({
+    const { data: warehouses = [] } = useQuery<POSWarehouse[]>({
         queryKey: ['warehouses'],
         queryFn: async () => {
-            const data = await warehousesAPI.getAll();
-            return Array.isArray(data) ? data : (data?.data || []);
+            const data = await warehousesAPI.getAll() as ListApiResponse<POSWarehouse>;
+            return getListRows(data);
         },
     });
     const activeWarehouse = useMemo(() =>
-        (warehouses as any[]).find((w: any) => w.id === activeShift?.warehouseId),
+        warehouses.find((w) => w.id === activeShift?.warehouseId),
         [warehouses, activeShift?.warehouseId]
     );
 
@@ -115,24 +166,24 @@ export default function CommercialPOS() {
     // Pass warehouseId so the backend overrides currentStock with per-warehouse qty.
     const shiftWarehouseId = activeShift?.warehouseId;
 
-    const { data: products = [], isLoading: loadingProducts } = useQuery({
+    const { data: products = [], isLoading: loadingProducts } = useQuery<POSProduct[]>({
         queryKey: ['commercial', 'products', shiftWarehouseId ?? 'global'],
         queryFn: async () => {
             const data = await productsAPI.getAll({
                 originModule: 'commercial',
-                limit: 5000,
+                limit: 2000, // cap do backend; catálogos maiores exigem server-side search
                 ...(shiftWarehouseId ? { warehouseId: shiftWarehouseId } : {})
-            });
-            return Array.isArray(data) ? data : (data?.data || []);
+            }) as ListApiResponse<POSProduct>;
+            return getListRows(data);
         },
         enabled: !loadingShift && isOnline,
     });
 
-    const { data: customers = [] } = useQuery({
+    const { data: customers = [] } = useQuery<POSCustomer[]>({
         queryKey: ['commercial', 'customers'],
         queryFn: async () => {
-            const data = await customersAPI.getAll();
-            return Array.isArray(data) ? data : (data?.data || []);
+            const data = await customersAPI.getAll({ limit: 2000 }) as ListApiResponse<POSCustomer>;
+            return getListRows(data);
         },
         enabled: isOnline
     });
@@ -148,11 +199,11 @@ export default function CommercialPOS() {
         }
     }, [isOnline]);
 
-    const displayProducts: POSProduct[] = isOnline ? (products as POSProduct[]) : offlineProducts;
-    const displayCustomers: POSCustomer[] = isOnline ? (customers as POSCustomer[]) : offlineCustomers;
+    const displayProducts: POSProduct[] = isOnline ? products : offlineProducts;
+    const displayCustomers: POSCustomer[] = isOnline ? customers : offlineCustomers;
 
     // Carregar price tiers de todos os produtos em batch (1 request)
-    const productIds = useMemo(() => (products as POSProduct[]).map(p => p.id), [products]);
+    const productIds = useMemo(() => products.map(p => p.id), [products]);
     const { data: priceTiersMap = {} } = useQuery<Record<string, PriceTier[]>>({
         queryKey: ['commercial', 'price-tiers', productIds],
         queryFn: () => productsAPI.getPriceTiersBatch(productIds),
@@ -162,7 +213,7 @@ export default function CommercialPOS() {
 
     /** Retorna o preço escalonado para uma quantidade, ou o preço base. */
     const resolvePrice = useCallback((productId: string, basePrice: number, qty: number): number => {
-        const tiers = (priceTiersMap as Record<string, PriceTier[]>)[productId];
+        const tiers = priceTiersMap[productId];
         if (!tiers || tiers.length === 0) return basePrice;
         const applicable = tiers.filter(t => qty >= t.minQty).sort((a, b) => b.minQty - a.minQty);
         return applicable.length > 0 ? applicable[0].price : basePrice;
@@ -232,6 +283,7 @@ export default function CommercialPOS() {
             openingBalance: Number(activeShift.openingBalance),
             cashSales: s?.byPaymentMethod?.cash ?? Number(activeShift.cashSales),
             mpesaSales: s?.byPaymentMethod?.mpesa ?? Number(activeShift.mpesaSales),
+            emolaSales: s?.byPaymentMethod?.emola ?? Number(activeShift.emolaSales),
             cardSales: s?.byPaymentMethod?.card ?? Number(activeShift.cardSales),
             creditSales: s?.byPaymentMethod?.credit ?? Number(activeShift.creditSales),
             totalSales: s?.totalSales ?? Number(activeShift.totalSales),
@@ -269,17 +321,17 @@ export default function CommercialPOS() {
 
     // ── Filtering & Pagination ──────────────────────────────────────────────-
     const filteredProducts = useMemo(() => {
-        const available = displayProducts.filter((p: any) => {
+        const available = displayProducts.filter((p) => {
             // When bound to a warehouse, prefer per-warehouse stock; fall back to
             // global currentStock so products without a warehouse entry stay visible.
             const stock = shiftWarehouseId
-                ? (p.warehouseStocks?.find((ws: any) => ws.warehouseId === shiftWarehouseId)?.quantity ?? p.currentStock)
+                ? (p.warehouseStocks?.find((ws) => ws.warehouseId === shiftWarehouseId)?.quantity ?? p.currentStock)
                 : p.currentStock;
             return Number(stock) > 0;
         });
         if (!posSearch) return available;
         const q = posSearch.toLowerCase();
-        return available.filter((p: any) =>
+        return available.filter((p) =>
             p.name.toLowerCase().includes(q) ||
             p.code.toLowerCase().includes(q) ||
             (p.barcode && p.barcode.toLowerCase().includes(q))
@@ -588,7 +640,7 @@ export default function CommercialPOS() {
     }, [discountModal, cart]);
 
     // ── Checkout flow ────────────────────────────────────────────────────────-
-    const handleOpenCheckout = () => {
+    const handleOpenCheckout = useCallback(() => {
         if (cart.length === 0) return;
         if (!shift) {
             toast('Abra o turno primeiro', { icon: '⚠️' });
@@ -597,7 +649,7 @@ export default function CommercialPOS() {
             return;
         }
         setShowPaymentModal(true);
-    };
+    }, [cart.length, shift]);
 
     const handleConfirmPayment = async (payments: PaymentEntry[], isCredit: boolean, creditDueDays: number) => {
         setShowPaymentModal(false);
@@ -645,7 +697,7 @@ export default function CommercialPOS() {
             const validChange = isCredit ? 0 : Math.max(0, Number((validAmountPaid - validTotal).toFixed(2)));
 
             // Audit trail estruturado para o backend (persistido em colunas dedicadas)
-            const discountAuditPayload: any = {
+            const discountAuditPayload: DiscountAuditPayload = {
                 global: globalDiscount ? {
                     kind: globalDiscount.kind,
                     value: globalDiscount.value,
@@ -693,9 +745,9 @@ export default function CommercialPOS() {
                 ].filter(Boolean).join(' | ')
             };
 
-            let saleResponse: any;
+            let saleResponse: SaleCreateResponse | null = null;
             if (isOnline) {
-                saleResponse = await salesAPI.create(saleData);
+                saleResponse = await salesAPI.create(saleData) as SaleCreateResponse;
             } else {
                 await offlineDB.syncQueue.add({
                     type: 'SALE',
@@ -734,7 +786,7 @@ export default function CommercialPOS() {
 
             // Build receipt
             const receipt: ReceiptData = {
-                saleNumber: saleResponse.receiptNumber,
+                saleNumber: saleResponse?.receiptNumber ?? '',
                 date: new Date(),
                 customerName: selectedCustomer?.name || customerName || 'Consumidor Geral',
                 customerPhone: selectedCustomer?.phone,
@@ -771,14 +823,15 @@ export default function CommercialPOS() {
                 queryClient.invalidateQueries({ queryKey: ['commercial', 'products'] });
             }
 
-            toast.success(isOnline ? `Venda ${saleResponse.receiptNumber} registada!` : `Venda offline gravada! Sincronização pendente.`);
-        } catch (err: any) {
-            const errorResponse = err.response?.data;
-            const errorMessage = errorResponse?.message || errorResponse?.error || err.message || 'Erro ao realizar venda';
+            toast.success(isOnline ? `Venda ${saleResponse?.receiptNumber ?? ''} registada!` : `Venda offline gravada! Sincronização pendente.`);
+        } catch (err) {
+            const apiErr = err as PosApiError;
+            const errorResponse = apiErr.response?.data;
+            const errorMessage = getApiErrorMessage(err, 'Erro ao realizar venda');
 
             if (errorResponse?.errors && Array.isArray(errorResponse.errors)) {
                 const validationErrors = errorResponse.errors
-                    .map((detail: any) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
+                    .map((detail) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
                     .join('\n');
                 toast.error(`Erro de Validação\n\n${validationErrors}`, { duration: 8000 });
             } else {
@@ -791,7 +844,7 @@ export default function CommercialPOS() {
     };
 
     // ── Held Sales ────────────────────────────────────────────────────────────
-    const handleHoldSale = () => {
+    const handleHoldSale = useCallback(() => {
         if (cart.length === 0) return;
         const held: HeldSale = {
             id: Date.now().toString(),
@@ -808,7 +861,7 @@ export default function CommercialPOS() {
         setSelectedCustomer(null);
         setGlobalDiscount(null);
         toast.success('Venda suspensa');
-    };
+    }, [cart, customerName, globalDiscount, heldSales.length, selectedCustomer]);
 
     const handleResumeSale = (held: HeldSale) => {
         if (cart.length > 0) {
@@ -816,7 +869,7 @@ export default function CommercialPOS() {
             return;
         }
         // Garantir compatibilidade com vendas suspensas antes do toggle Cx/Un
-        const restored = (held.cart || []).map((item: any) => ({
+        const restored: CartItem[] = (held.cart as CartItem[]).map((item) => ({
             ...item,
             packSize: Number(item.packSize) || Number(item.product?.packSize) || 1,
             unitMode: item.unitMode || ((Number(item.product?.packSize) || 1) > 1 ? 'box' : 'unit'),
@@ -834,12 +887,12 @@ export default function CommercialPOS() {
     };
 
     // ── Hardware ──────────────────────────────────────────────────────────────
-    const handleToggleCashDrawer = () => {
+    const handleToggleCashDrawer = useCallback(() => {
         setCashDrawerOpen(v => !v);
         toast(cashDrawerOpen ? 'Gaveta fechada' : 'Gaveta aberta', { 
             icon: cashDrawerOpen ? <HiOutlineLockClosed className="w-5 h-5 text-gray-400 dark:text-gray-500" /> : <HiOutlineBanknotes className="w-5 h-5 text-emerald-500 dark:text-emerald-400" /> 
         });
-    };
+    }, [cashDrawerOpen]);
 
     // ── Shift ────────────────────────────────────────────────────────────────-
     const handleOpenShift = async (openingBalance: number, warehouseId?: string) => {
@@ -849,18 +902,17 @@ export default function CommercialPOS() {
             queryClient.invalidateQueries({ queryKey: ['commercial', 'shift'] });
             setShowShiftModal(false);
             toast.success('Turno aberto!', { icon: '✅' });
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Erro ao abrir turno';
-            toast.error(msg);
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, 'Erro ao abrir turno'));
         } finally {
             setShiftLoading(false);
         }
     };
 
-    const handleCloseShift = async (countedCash: number) => {
+    const handleCloseShift = async (countedCash: number, notes?: string) => {
         setShiftLoading(true);
         try {
-            const closed = await shiftAPI.close(countedCash);
+            const closed = await shiftAPI.close(countedCash, notes);
             const diff = Number(closed.difference) || 0;
             const total = Number(closed.totalSales) || 0;
             toast.success(
@@ -869,9 +921,8 @@ export default function CommercialPOS() {
             );
             queryClient.invalidateQueries({ queryKey: ['commercial', 'shift'] });
             setShowShiftModal(false);
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Erro ao fechar turno';
-            toast.error(msg);
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, 'Erro ao fechar turno'));
         } finally {
             setShiftLoading(false);
         }
@@ -888,8 +939,8 @@ export default function CommercialPOS() {
             queryClient.invalidateQueries({ queryKey: ['commercial', 'shift'] });
             setShowMovementModal(false);
             toast.success(movementType === 'cash_in' ? 'Entrada registada' : 'Sangria registada');
-        } catch (err: any) {
-            toast.error(err.message || 'Erro ao registar movimento');
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, 'Erro ao registar movimento'));
         } finally {
             setMovementLoading(false);
         }
@@ -919,7 +970,7 @@ export default function CommercialPOS() {
             if (!ok) return;
             if (isOnline) {
                 cart.forEach(item => {
-                    (item.reservations || []).forEach((r: any) => commercialAPI.releaseItem(r.id));
+                    (item.reservations || []).forEach((r) => commercialAPI.releaseItem(r.id));
                 });
             }
         }
@@ -943,7 +994,7 @@ export default function CommercialPOS() {
 
     const handleBarcodeSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && posSearch.trim()) {
-            const found = products.find((p: any) =>
+            const found = products.find((p) =>
                 p.barcode === posSearch.trim() || p.code.toLowerCase() === posSearch.trim().toLowerCase()
             );
             if (found) { addToCart(found); setPosSearch(''); }
@@ -953,7 +1004,7 @@ export default function CommercialPOS() {
 
     useBarcodeScanner({
         onScan: (barcode) => {
-            const found = products.find((p: any) => p.barcode === barcode || p.code.toLowerCase() === barcode.toLowerCase());
+            const found = products.find((p) => p.barcode === barcode || p.code.toLowerCase() === barcode.toLowerCase());
             if (found) { addToCart(found); toast.success(`${found.name} adicionado`); }
         },
         enabled: true
@@ -1099,6 +1150,7 @@ export default function CommercialPOS() {
                         cartTotal={cartTotal}
                         cartSubtotal={cartSubtotal}
                         cartTax={cartTax}
+                        ivaRate={ivaRate}
                         cartDiscount={cartDiscount}
                         selectedCustomer={selectedCustomer}
                         setSelectedCustomer={setSelectedCustomer}
@@ -1140,6 +1192,7 @@ export default function CommercialPOS() {
                 cartSubtotal={cartSubtotal}
                 cartDiscount={cartDiscount}
                 cartTax={cartTax}
+                ivaRate={ivaRate}
                 customerName={selectedCustomer?.name || customerName}
                 selectedCustomer={selectedCustomer}
                 isLoading={checkoutLoading}
@@ -1225,3 +1278,5 @@ export default function CommercialPOS() {
         </div>
     );
 }
+
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment } from 'react';
+import React, { useState, useEffect, Fragment, useCallback } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { 
     HiOutlineClock,
@@ -12,13 +12,14 @@ import {
     HiOutlineArrowTrendingDown,
     HiOutlineCurrencyDollar,
     HiOutlineArrowPath,
-    HiOutlineDocumentText
+    HiOutlineDocumentText,
+    HiOutlineHome
 } from 'react-icons/hi2';
-import { shiftAPI, type ShiftSession as CashSession } from '../../services/api';
+import { shiftAPI, warehousesAPI, type ShiftSession as CashSession, type ShiftZReport } from '../../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Button } from '../../components/ui/Button';
-import { Card, Badge, Input } from '../../components/ui';
+import { Card, Badge, Input, Select, SimpleTable } from '../../components/ui';
 import Pagination from '../../components/ui/Pagination';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -30,6 +31,29 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { PAGE_SIZE } from '../../utils/constants';
+import { useQuery } from '@tanstack/react-query';
+import { getApiErrorMessage } from '../../utils/apiError';
+
+type AutoTableDocument = jsPDF & {
+    lastAutoTable?: {
+        finalY: number;
+    };
+};
+
+type WarehouseOption = {
+    id: string;
+    name: string;
+};
+
+type WarehousesResponse = WarehouseOption[] | {
+    data?: WarehouseOption[];
+};
+
+const getWarehouseRows = (response: WarehousesResponse): WarehouseOption[] => (
+    Array.isArray(response) ? response : response.data ?? []
+);
+
+const getLastTableY = (doc: AutoTableDocument): number => doc.lastAutoTable?.finalY ?? 0;
 
 const CommercialShiftHistory: React.FC = () => {
     const { company } = useTenant();
@@ -42,16 +66,22 @@ const CommercialShiftHistory: React.FC = () => {
         end: format(new Date(), 'yyyy-MM-dd')
     });
     const [searchTerm, setSearchTerm] = useState('');
+    const [warehouseId, setWarehouseId] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 300);
 
     const [selectedSession, setSelectedSession] = useState<CashSession | null>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [detailsLoading, setDetailsLoading] = useState(false);
 
-    useEffect(() => {
-        loadHistory(page);
-    }, [page, debouncedSearch]);
+    const { data: warehouses = [] } = useQuery<WarehouseOption[]>({
+        queryKey: ['warehouses'],
+        queryFn: async () => {
+            const data = await warehousesAPI.getAll() as WarehousesResponse;
+            return getWarehouseRows(data);
+        },
+    });
 
-    const loadHistory = async (pageNum = 1) => {
+    const loadHistory = useCallback(async (pageNum = 1) => {
         try {
             setLoading(true);
             const response = await shiftAPI.getHistory({
@@ -59,17 +89,23 @@ const CommercialShiftHistory: React.FC = () => {
                 endDate: dateRange.end,
                 page: pageNum,
                 limit: PAGE_SIZE,
+                warehouseId: warehouseId || undefined,
                 search: debouncedSearch || undefined
             });
             const sessionsData = response?.data || (Array.isArray(response) ? response : []);
             setSessions(sessionsData);
             setTotal(response?.pagination?.total || sessionsData.length);
-        } catch (error) {
-            toast.error('Erro ao carregar histórico de turnos');
+        } catch (err) {
+            logger.error('Error loading commercial shift history:', err);
+            toast.error(getApiErrorMessage(err, 'Erro ao carregar histórico de turnos'));
         } finally {
             setLoading(false);
         }
-    };
+    }, [dateRange.end, dateRange.start, debouncedSearch, warehouseId]);
+
+    useEffect(() => {
+        loadHistory(page);
+    }, [loadHistory, page]);
 
     const applyFilters = () => {
         if (page === 1) loadHistory(1);
@@ -116,12 +152,12 @@ const CommercialShiftHistory: React.FC = () => {
         }
 
         try {
-            const doc = new jsPDF('p', 'mm', 'a4');
+            const doc = new jsPDF('p', 'mm', 'a4') as AutoTableDocument;
             
             // Header
             doc.setFontSize(18);
             doc.setTextColor(59, 84, 255); // Primary color
-            doc.text(company?.name || "SISTEMA DE GESTÃO MODULAR", 14, 22);
+            doc.text(company?.name || "SISTEMA DE GESTAO MODULAR", 14, 22);
             
             doc.setFontSize(10);
             doc.setTextColor(100, 100, 100);
@@ -182,7 +218,7 @@ const CommercialShiftHistory: React.FC = () => {
             });
 
             autoTable(doc, {
-                startY: (doc as any).lastAutoTable.finalY + 15,
+                startY: getLastTableY(doc) + 15,
                 head: [['Abertura', 'Fecho', 'Operador', 'Fundo', 'Vendas', 'Caixa Final', 'Auditoria']],
                 body: tableData,
                 theme: 'striped',
@@ -290,14 +326,44 @@ const CommercialShiftHistory: React.FC = () => {
         }
     };
 
-    const handleViewDetails = (session: CashSession) => {
+    const handleViewDetails = async (session: CashSession) => {
         setSelectedSession(session);
         setShowDetailsModal(true);
+        setDetailsLoading(true);
+        try {
+            const details = await shiftAPI.getDetails(session.id);
+            setSelectedSession(details);
+        } catch (error) {
+            logger.error('Failed to load shift details', error);
+            toast.error('Erro ao carregar detalhes do turno');
+        } finally {
+            setDetailsLoading(false);
+        }
     };
 
-    const handlePrintZReport = (session: CashSession) => {
+    const handlePrintZReport = async (baseSession: CashSession) => {
         try {
-            const doc = new jsPDF('p', 'mm', 'a4');
+            const report: ShiftZReport = await shiftAPI.getZReport(baseSession.id);
+            const reportCompany = report.company || company;
+            const session: CashSession = {
+                ...baseSession,
+                ...report.session,
+                cashSales: report.byMethod.cash,
+                mpesaSales: report.byMethod.mpesa,
+                emolaSales: report.byMethod.emola,
+                cardSales: report.byMethod.card,
+                creditSales: report.byMethod.credit,
+                totalSales: report.totalSales,
+                withdrawals: report.totalWithdrawals,
+                deposits: report.totalDeposits,
+                expectedBalance: report.expectedBalance,
+                closingBalance: report.closingBalance,
+                difference: report.difference,
+                movements: report.movements,
+                sales: report.sales,
+                _count: { sales: report.totalTransactions }
+            };
+            const doc = new jsPDF('p', 'mm', 'a4') as AutoTableDocument;
             const opened = session.openedAt ? new Date(session.openedAt) : null;
             const closed = session.closedAt ? new Date(session.closedAt) : null;
             const fmtDate = (d: Date | null) => d ? format(d, "dd/MM/yyyy HH:mm", { locale: ptBR }) : '—';
@@ -307,17 +373,17 @@ const CommercialShiftHistory: React.FC = () => {
             // Header
             doc.setFontSize(22);
             doc.setTextColor(59, 84, 255); // Primary color
-            doc.text(company?.name || "SISTEMA DE GESTÃO MODULAR", 14, 22);
+            doc.text(reportCompany?.name || "SISTEMA DE GESTAO MODULAR", 14, 22);
             
             doc.setFontSize(10);
             doc.setTextColor(100, 100, 100);
             let yPos = 30;
-            if (company?.nuit) {
-                doc.text(`NUIT: ${company.nuit}`, 14, yPos);
+            if (reportCompany?.nuit) {
+                doc.text(`NUIT: ${reportCompany.nuit}`, 14, yPos);
                 yPos += 5;
             }
-            if (company?.address) {
-                doc.text(`${company.address}${company?.city ? `, ${company.city}` : ''}`, 14, yPos);
+            if (reportCompany?.address) {
+                doc.text(reportCompany.address, 14, yPos);
                 yPos += 7;
             } else {
                 yPos += 5;
@@ -354,7 +420,7 @@ const CommercialShiftHistory: React.FC = () => {
 
             // Financial Summary
             autoTable(doc, {
-                startY: (doc as any).lastAutoTable.finalY + 10,
+                startY: getLastTableY(doc) + 10,
                 head: [['Resumo Financeiro', 'Valor']],
                 body: [
                     ['Fundo de Maneio Inicial', fmt(session.openingBalance)],
@@ -390,8 +456,40 @@ const CommercialShiftHistory: React.FC = () => {
                 margin: { left: 14, right: 14 }
             });
 
+            if (report.topProducts?.length) {
+                autoTable(doc, {
+                    startY: getLastTableY(doc) + 8,
+                    head: [['Top Produtos', 'Qtd', 'Total']],
+                    body: report.topProducts.slice(0, 8).map(product => [
+                        product.name,
+                        String(product.qty),
+                        fmt(product.total)
+                    ]),
+                    theme: 'striped',
+                    headStyles: { fillColor: [30, 41, 59] },
+                    columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' } },
+                    margin: { left: 14, right: 14 }
+                });
+            }
+
+            if (report.movements?.length) {
+                autoTable(doc, {
+                    startY: getLastTableY(doc) + 8,
+                    head: [['Movimentos de Caixa', 'Responsavel', 'Valor']],
+                    body: report.movements.map(movement => [
+                        `${movement.type === 'suprimento' ? 'Suprimento' : 'Sangria'} - ${movement.reason}`,
+                        movement.performedBy?.name || 'Sistema',
+                        `${movement.type === 'suprimento' ? '+' : '-'} ${fmt(movement.amount)}`
+                    ]),
+                    theme: 'plain',
+                    headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0] },
+                    columnStyles: { 2: { halign: 'right', fontStyle: 'bold' } },
+                    margin: { left: 14, right: 14 }
+                });
+            }
+
             if (session.notes) {
-                const finalY = (doc as any).lastAutoTable.finalY;
+                const finalY = getLastTableY(doc);
                 doc.setFontSize(10);
                 doc.setTextColor(0, 0, 0);
                 doc.text("Notas do Operador:", 14, finalY + 15);
@@ -400,6 +498,18 @@ const CommercialShiftHistory: React.FC = () => {
                 const splitNotes = doc.splitTextToSize(session.notes.replace(/<[^>]*>?/gm, ''), 180);
                 doc.text(splitNotes, 14, finalY + 20);
             }
+
+            const signatureY = Math.max(getLastTableY(doc), session.notes ? 245 : 220) + 18;
+            const safeSignatureY = signatureY > 265 ? 265 : signatureY;
+            doc.setDrawColor(160, 160, 160);
+            doc.line(14, safeSignatureY, 72, safeSignatureY);
+            doc.line(78, safeSignatureY, 136, safeSignatureY);
+            doc.line(142, safeSignatureY, 200, safeSignatureY);
+            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Operador', 35, safeSignatureY + 5);
+            doc.text('Supervisor', 98, safeSignatureY + 5);
+            doc.text('Conferencia', 162, safeSignatureY + 5);
 
             window.open(doc.output('bloburl'), '_blank');
             toast.success(`Relatório Z profissional gerado com sucesso`);
@@ -457,6 +567,26 @@ const CommercialShiftHistory: React.FC = () => {
                         />
                     </div>
                     <div className="md:col-span-2">
+                        <Select
+                            label="Armazém"
+                            value={warehouseId}
+                            onChange={(e) => {
+                                setWarehouseId(e.target.value);
+                                if (page !== 1) setPage(1);
+                            }}
+                            leftIcon={<HiOutlineHome className="h-4 w-4" />}
+                            options={[
+                                { value: '', label: 'Todos' },
+                                ...warehouses.map((warehouse) => ({
+                                    value: warehouse.id,
+                                    label: warehouse.name,
+                                })),
+                            ]}
+                            className="bg-gray-50 dark:bg-dark-800 border-none"
+                            size="sm"
+                        />
+                    </div>
+                    <div className="md:col-span-2">
                         <Input
                             label="Início"
                             type="date"
@@ -476,7 +606,7 @@ const CommercialShiftHistory: React.FC = () => {
                             size="sm"
                         />
                     </div>
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-1">
                         <Button 
                             onClick={applyFilters} 
                             size="sm"
@@ -486,7 +616,7 @@ const CommercialShiftHistory: React.FC = () => {
                         </Button>
                     </div>
                     
-                    <div className="md:col-span-3 flex justify-end gap-2">
+                    <div className="md:col-span-2 flex justify-end gap-2">
                         <Button
                             variant="ghost"
                             size="sm"
@@ -519,25 +649,25 @@ const CommercialShiftHistory: React.FC = () => {
                                     <div className="px-1 py-1">
                                         <Menu.Item>
                                             {({ active }) => (
-                                                <button onClick={handleExportPDF} className={cn(active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100', 'group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium transition-colors')}>
+                                                <Button variant="ghost" onClick={handleExportPDF} className={cn(active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100', 'group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium')}>
                                                     <HiOutlineDocumentText className="mr-2 h-5 w-5" aria-hidden="true" /> Exportar PDF
-                                                </button>
+                                                </Button>
                                             )}
                                         </Menu.Item>
                                         <Menu.Item>
                                             {({ active }) => (
-                                                <button onClick={handleExport} className={cn(active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100', 'group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium transition-colors')}>
+                                                <Button variant="ghost" onClick={handleExport} className={cn(active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100', 'group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium')}>
                                                     <HiOutlineArrowDownTray className="mr-2 h-5 w-5" aria-hidden="true" /> Exportar CSV
-                                                </button>
+                                                </Button>
                                             )}
                                         </Menu.Item>
                                     </div>
                                     <div className="px-1 py-1">
                                         <Menu.Item>
                                             {({ active }) => (
-                                                <button onClick={handlePrintList} className={cn(active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100', 'group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium transition-colors')}>
+                                                <Button variant="ghost" onClick={handlePrintList} className={cn(active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100', 'group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium')}>
                                                     <HiOutlinePrinter className="mr-2 h-5 w-5" aria-hidden="true" /> Imprimir Lista
-                                                </button>
+                                                </Button>
                                             )}
                                         </Menu.Item>
                                     </div>
@@ -578,29 +708,26 @@ const CommercialShiftHistory: React.FC = () => {
 
             {/* Main Data Table */}
             <Card padding="none" className="overflow-hidden border-gray-100 dark:border-dark-700 shadow-xl shadow-black/5">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm border-collapse">
-                        <thead>
-                            <tr className="text-[10px] text-gray-400 border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50 uppercase tracking-[0.2em] font-black">
-                                <th className="px-6 py-4 text-left">Sessão (Abertura/Fecho)</th>
-                                <th className="px-6 py-4 text-left">Responsável</th>
-                                <th className="px-6 py-4 text-right">Fundo / Vendas</th>
-                                <th className="px-6 py-4 text-right">Saldo Final</th>
-                                <th className="px-6 py-4 text-center">Auditoria</th>
-                                <th className="px-6 py-4 text-right pr-10">Acções</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Sincronizando Turnos...</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : sessions.length === 0 ? (
+                <SimpleTable
+                    columns={[
+                        { key: 'session', label: 'Sessão (Abertura/Fecho)' },
+                        { key: 'responsible', label: 'Responsável' },
+                        { key: 'fund', label: 'Fundo / Vendas', className: 'text-right' },
+                        { key: 'balance', label: 'Saldo Final', className: 'text-right' },
+                        { key: 'audit', label: 'Auditoria', className: 'text-center' },
+                        { key: 'actions', label: 'Acções', className: 'text-right pr-10' },
+                    ]}
+                    isLoading={loading}
+                    isEmpty={!loading && sessions.length === 0}
+                    emptyTitle="Sem registos de turnos"
+                    emptyDescription="Os turnos aparecerão aqui assim que forem registados."
+                    minHeight="460px"
+                    loadingRows={8}
+                    loadingMessage="A carregar turnos..."
+                    headerRowClassName="text-gray-400 border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50"
+                    tbodyClassName="divide-y divide-gray-100 dark:divide-dark-700"
+                >
+                            {!loading && sessions.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-3 opacity-20">
@@ -609,7 +736,7 @@ const CommercialShiftHistory: React.FC = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : (
+                            ) : !loading && (
                                 sessions.map((session) => (
                                     <tr key={session.id} className="hover:bg-indigo-50/30 dark:hover:bg-indigo-900/10 transition-all group">
                                         <td className="px-6 py-4 font-mono">
@@ -636,6 +763,11 @@ const CommercialShiftHistory: React.FC = () => {
                                                         {session.openedBy?.name}
                                                     </span>
                                                     <span className="text-[9px] text-gray-400 font-medium">OP #{(session.id as string).slice(-4).toUpperCase()}</span>
+                                                    {session.warehouse?.name && (
+                                                        <span className="text-[9px] text-gray-400 font-medium uppercase truncate">
+                                                            {session.warehouse.name}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
@@ -658,28 +790,30 @@ const CommercialShiftHistory: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 pr-10">
                                             <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
-                                                <button 
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => handleViewDetails(session)}
-                                                    className="p-2 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg transition-all shadow-sm active:scale-95"
                                                     title="Ver Detalhes do Turno"
+                                                    className="p-2 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg shadow-sm active:scale-95"
                                                 >
                                                     <HiOutlineEye className="w-5 h-5" />
-                                                </button>
-                                                <button 
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => handlePrintZReport(session)}
-                                                    className="p-2 text-gray-500 hover:bg-gray-800 hover:text-white rounded-lg transition-all shadow-sm active:scale-95"
                                                     title="Re-imprimir Relatório Z"
+                                                    className="p-2 text-gray-500 hover:bg-gray-800 hover:text-white rounded-lg shadow-sm active:scale-95"
                                                 >
                                                     <HiOutlinePrinter className="w-5 h-5" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))
                             )}
-                        </tbody>
-                    </table>
-                </div>
+                </SimpleTable>
 
                 {!loading && total > 0 && (
                     <div className="px-6 pb-4">
@@ -699,6 +833,7 @@ const CommercialShiftHistory: React.FC = () => {
                 session={selectedSession}
                 onClose={() => setShowDetailsModal(false)}
                 onPrint={() => selectedSession && handlePrintZReport(selectedSession)}
+                isLoading={detailsLoading}
             />
         </div>
     );

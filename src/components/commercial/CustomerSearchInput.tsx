@@ -1,6 +1,6 @@
-﻿import { useState, useRef, useEffect, useCallback } from 'react';
-import { HiOutlineSearch, HiOutlineX, HiOutlineUserCircle } from 'react-icons/hi';
-import { Input, Badge } from '../ui';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { HiOutlineMagnifyingGlass, HiOutlineXMark, HiOutlineUserCircle } from 'react-icons/hi2';
+import { Input, Badge, Button } from '../ui';
 import { cn } from '../../utils/helpers';
 import { useDebounce } from '../../hooks/useDebounce';
 import { customersAPI } from '../../services/api';
@@ -24,6 +24,38 @@ export interface CustomerOption {
     loyaltyTier?: string | null;
     type: string;
 }
+
+type CustomerSearchResponseItem = {
+    id: string;
+    code?: string | null;
+    name: string;
+    phone?: string | null;
+    email?: string | null;
+    currentBalance?: number | string | null;
+    creditLimit?: number | string | null;
+    loyaltyTier?: string | null;
+    type?: string | null;
+};
+
+type CustomerSearchResponse = CustomerSearchResponseItem[] | {
+    data?: CustomerSearchResponseItem[];
+};
+
+const getCustomerRows = (response: CustomerSearchResponse): CustomerSearchResponseItem[] => (
+    Array.isArray(response) ? response : response.data ?? []
+);
+
+const toCustomerOption = (customer: CustomerSearchResponseItem): CustomerOption => ({
+    id: customer.id,
+    code: customer.code ?? '',
+    name: customer.name,
+    phone: customer.phone ?? '',
+    email: customer.email,
+    currentBalance: Number(customer.currentBalance ?? 0),
+    creditLimit: customer.creditLimit == null ? null : Number(customer.creditLimit),
+    loyaltyTier: customer.loyaltyTier,
+    type: customer.type ?? 'individual',
+});
 
 interface CustomerSearchInputProps {
     onSelect: (customer: CustomerOption) => void;
@@ -76,19 +108,9 @@ export function CustomerSearchInput({
 
         customersAPI
             .getAll({ search: debouncedQuery })
-            .then((res: any) => {
+            .then((res: CustomerSearchResponse) => {
                 if (cancelled) return;
-                const items: CustomerOption[] = (res.data ?? res ?? []).map((c: any) => ({
-                    id:             c.id,
-                    code:           c.code,
-                    name:           c.name,
-                    phone:          c.phone,
-                    email:          c.email,
-                    currentBalance: Number(c.currentBalance ?? 0),
-                    creditLimit:    c.creditLimit ? Number(c.creditLimit) : null,
-                    loyaltyTier:    c.loyaltyTier,
-                    type:           c.type ?? 'individual',
-                }));
+                const items = getCustomerRows(res).map(toCustomerOption);
                 setResults(items);
                 setIsOpen(true);
                 setHighlight(0);
@@ -99,6 +121,13 @@ export function CustomerSearchInput({
         return () => { cancelled = true; };
     }, [debouncedQuery]);
 
+    const handleSelect = useCallback((customer: CustomerOption) => {
+        onSelect(customer);
+        setQuery('');
+        setResults([]);
+        setIsOpen(false);
+    }, [onSelect]);
+
     // ── Keyboard ────────────────────────────────────────────────────────────-
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (!isOpen || !results.length) return;
@@ -106,14 +135,7 @@ export function CustomerSearchInput({
         else if (e.key === 'ArrowUp')   { e.preventDefault(); setHighlight(i => Math.max(i - 1, 0)); }
         else if (e.key === 'Enter') { e.preventDefault(); handleSelect(results[highlightIdx]); }
         else if (e.key === 'Escape')    { setIsOpen(false); }
-    }, [isOpen, results, highlightIdx]);
-
-    const handleSelect = useCallback((customer: CustomerOption) => {
-        onSelect(customer);
-        setQuery('');
-        setResults([]);
-        setIsOpen(false);
-    }, [onSelect]);
+    }, [handleSelect, isOpen, results, highlightIdx]);
 
     const handleClear = () => { setQuery(''); setResults([]); setIsOpen(false); };
 
@@ -159,13 +181,15 @@ export function CustomerSearchInput({
                                 )}
                             </p>
                         </div>
-                        <button
+                        <Button
                             type="button"
                             onClick={handleClear}
-                            className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                            variant="ghost"
+                            size="xs"
+                            className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
                         >
-                            <HiOutlineX className="w-4 h-4" />
-                        </button>
+                            <HiOutlineXMark className="w-4 h-4" />
+                        </Button>
                     </div>
                 </div>
             ) : (
@@ -185,13 +209,9 @@ export function CustomerSearchInput({
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                               </svg>
-                            : <HiOutlineSearch className="w-4 h-4" />
+                            : <HiOutlineMagnifyingGlass className="w-4 h-4" />
                     }
-                    rightIcon={query ? (
-                        <button type="button" onClick={handleClear} className="hover:text-gray-600 transition-colors">
-                            <HiOutlineX className="w-4 h-4" />
-                        </button>
-                    ) : undefined}
+                    rightIcon={query ? <HiOutlineXMark className="w-4 h-4" /> : undefined}
                 />
             )}
 

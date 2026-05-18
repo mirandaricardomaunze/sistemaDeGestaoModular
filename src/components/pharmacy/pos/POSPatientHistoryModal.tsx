@@ -1,5 +1,20 @@
 import { Card, Button } from '../../ui';
 
+interface PatientHistorySaleItem {
+    id: string;
+    quantity: number;
+    productName: string;
+    unitPrice: number | string;
+}
+
+interface PatientHistorySale {
+    id: string;
+    date: string;
+    number: string;
+    prescription?: { code: string; doctorName: string } | null;
+    items: PatientHistorySaleItem[];
+}
+
 export function POSPatientHistoryModal({
     isOpen,
     onClose,
@@ -7,7 +22,7 @@ export function POSPatientHistoryModal({
 }: {
     isOpen: boolean;
     onClose: () => void;
-    patientHistory: any[];
+    patientHistory: PatientHistorySale[];
 }) {
     if (!isOpen) return null;
 
@@ -30,7 +45,7 @@ export function POSPatientHistoryModal({
                     {patientHistory.length === 0 ? (
                         <p className="text-center py-8 text-gray-500">Nenhum registo encontrado para este paciente.</p>
                     ) : (
-                        patientHistory.map((sale: any) => (
+                        patientHistory.map((sale) => (
                             <div key={sale.id} className="p-4 border rounded-lg dark:border-dark-700 bg-gray-50 dark:bg-dark-800">
                                 <div className="flex justify-between items-start mb-3 border-b dark:border-dark-700 pb-2">
                                     <div>
@@ -45,7 +60,7 @@ export function POSPatientHistoryModal({
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    {sale.items.map((item: any) => (
+                                    {sale.items.map((item) => (
                                         <div key={item.id} className="flex justify-between text-sm">
                                             <span>{item.quantity}x {item.productName}</span>
                                             <span className="text-gray-500">{Number(item.unitPrice).toLocaleString()} MT</span>

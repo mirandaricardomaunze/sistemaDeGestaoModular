@@ -1,27 +1,33 @@
 import { logger } from '../../utils/logger';
-import { useState, useMemo, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
     HiOutlinePlus,
-    HiOutlineMagnifyingGlass as HiOutlineSearch,
     HiOutlineCheck,
-    HiOutlineXMark as HiOutlineX,
-    HiOutlineEye
+    HiOutlineXMark as HiOutlineXMark,
+    HiOutlineEye,
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Badge, Pagination, usePagination, LoadingOverlay, ConfirmationModal } from '../ui';
+import { Button, Select, Badge, usePagination, ConfirmationModal, SmartTable } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { format, parseISO } from 'date-fns';
 import CreatePurchaseOrderModal from './CreatePurchaseOrderModal';
 import PurchaseOrderPrint from './PurchaseOrderPrint';
-import type { PurchaseOrder, PurchaseOrderStatus } from '../../types';
+import type { PurchaseOrder, PurchaseOrderStatus, Supplier } from '../../types';
 import { suppliersAPI } from '../../services/api';
-
 import toast from 'react-hot-toast';
 
-const statusConfig: Record<PurchaseOrderStatus, { label: string; color: string; bgColor: string }> = {
-    draft: { label: 'Rascunho', color: 'text-gray-600', bgColor: 'bg-gray-100' },
-    ordered: { label: 'Encomendado', color: 'text-blue-600', bgColor: 'bg-blue-100' },
-    received: { label: 'Recebido', color: 'text-green-600', bgColor: 'bg-green-100' },
-    cancelled: { label: 'Cancelado', color: 'text-red-600', bgColor: 'bg-red-100' },
+type ListResponse<T> = T[] | { data?: T[] };
+
+const statusConfig: Record<PurchaseOrderStatus, { label: string; variant: 'info' | 'warning' | 'success' | 'danger' | 'gray' }> = {
+    draft: { label: 'Rascunho', variant: 'gray' },
+    ordered: { label: 'Encomendado', variant: 'info' },
+    partial: { label: 'Parcial', variant: 'warning' },
+    received: { label: 'Recebido', variant: 'success' },
+    cancelled: { label: 'Cancelado', variant: 'danger' },
+};
+
+const toArray = <T,>(value: ListResponse<T>): T[] => {
+    return Array.isArray(value) ? value : value.data ?? [];
 };
 
 export default function SupplierOrderManager() {
@@ -40,18 +46,18 @@ export default function SupplierOrderManager() {
     const fetchOrders = async () => {
         try {
             setIsLoading(true);
-            const response = await suppliersAPI.getAll();
-            const suppliersData = Array.isArray(response) ? response : (response.data || []);
+            const response = await suppliersAPI.getAll() as ListResponse<Supplier>;
+            const suppliersData = toArray(response);
 
-            const ordersPromises = suppliersData.map(async (s: any) => {
-                const orders = await suppliersAPI.getPurchaseOrders(s.id);
-                // Ensure orders is also an array
-                const ordersData = Array.isArray(orders) ? orders : (orders.data || []);
-                return ordersData.map((o: any) => ({ ...o, supplierName: s.name }));
+            const ordersPromises = suppliersData.map(async (supplier) => {
+                const orders = await suppliersAPI.getPurchaseOrders(supplier.id) as ListResponse<PurchaseOrder>;
+                return toArray(orders).map((order) => ({
+                    ...order,
+                    supplierName: supplier.name,
+                }));
             });
 
-            const allOrders = (await Promise.all(ordersPromises)).flat();
-            setPurchaseOrders(allOrders);
+            setPurchaseOrders((await Promise.all(ordersPromises)).flat());
         } catch (error) {
             logger.error('Error fetching orders:', error);
             toast.error('Erro ao buscar encomendas');
@@ -60,39 +66,16 @@ export default function SupplierOrderManager() {
         }
     };
 
-    // Initial fetch
-    useEffect(() => { // eslint-disable-next-line
+    useEffect(() => {
         fetchOrders();
     }, []);
 
-    const handleReceiveOrder = async () => {
-        if (selectedOrder) {
-            try {
-                // Auto receive all items for now (simple flow)
-                const itemsToReceive = selectedOrder.items.map(item => ({
-                    itemId: item.id,
-                    receivedQty: item.quantity
-                }));
-
-                await suppliersAPI.receivePurchaseOrder(selectedOrder.id, itemsToReceive);
-
-                toast.success('Encomenda recebida! Estoque atualizado.');
-                setShowReceiveModal(false);
-                setSelectedOrder(null);
-                fetchOrders(); // Refresh list
-            } catch (error) {
-                logger.error('Error receiving order:', error);
-                toast.error('Erro ao receber encomenda');
-            }
-        }
-    };
-
-    // Filtered orders
     const filteredOrders = useMemo(() => {
         return purchaseOrders.filter((order) => {
+            const normalizedSearch = search.toLowerCase();
             const matchesSearch =
-                order.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
-                order.supplierName.toLowerCase().includes(search.toLowerCase());
+                order.orderNumber.toLowerCase().includes(normalizedSearch) ||
+                order.supplierName.toLowerCase().includes(normalizedSearch);
 
             const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
 
@@ -100,7 +83,6 @@ export default function SupplierOrderManager() {
         });
     }, [purchaseOrders, search, statusFilter]);
 
-    // Pagination
     const {
         currentPage,
         setCurrentPage,
@@ -110,7 +92,26 @@ export default function SupplierOrderManager() {
         totalItems,
     } = usePagination(filteredOrders, 10);
 
+    const handleReceiveOrder = async () => {
+        if (!selectedOrder) return;
 
+        try {
+            const itemsToReceive = selectedOrder.items.map(item => ({
+                itemId: item.id,
+                receivedQty: item.quantity,
+            }));
+
+            await suppliersAPI.receivePurchaseOrder(selectedOrder.id, itemsToReceive);
+
+            toast.success('Encomenda recebida! Estoque atualizado.');
+            setShowReceiveModal(false);
+            setSelectedOrder(null);
+            fetchOrders();
+        } catch (error) {
+            logger.error('Error receiving order:', error);
+            toast.error('Erro ao receber encomenda');
+        }
+    };
 
     const handleCancelOrder = (order: PurchaseOrder) => {
         setOrderToCancel(order);
@@ -119,152 +120,152 @@ export default function SupplierOrderManager() {
 
     const performCancelOrder = async () => {
         if (!orderToCancel) return;
-        // updatePurchaseOrder(orderToCancel.id, { status: 'cancelled' });
-        toast.error('Cancelamento não implementado no backend ainda.');
-        setCancelConfirmOpen(false);
-        setOrderToCancel(null);
+
+        try {
+            await suppliersAPI.cancelPurchaseOrder(orderToCancel.id);
+            toast.success('Encomenda cancelada com sucesso.');
+            setCancelConfirmOpen(false);
+            setOrderToCancel(null);
+            fetchOrders();
+        } catch (error) {
+            logger.error('Error cancelling order:', error);
+            toast.error('Erro ao cancelar encomenda');
+        }
     };
+
+    const columns = useMemo<ColumnDef<PurchaseOrder, unknown>[]>(() => [
+        {
+            header: 'Numero',
+            accessorKey: 'orderNumber',
+            cell: ({ row }) => (
+                <span className="font-mono text-sm font-medium text-gray-900 dark:text-white">
+                    {row.original.orderNumber}
+                </span>
+            ),
+        },
+        {
+            header: 'Fornecedor',
+            accessorKey: 'supplierName',
+        },
+        {
+            header: 'Data',
+            cell: ({ row }) => format(parseISO(row.original.createdAt), 'dd/MM/yyyy'),
+        },
+        {
+            header: 'Status',
+            cell: ({ row }) => (
+                <Badge variant={statusConfig[row.original.status].variant}>
+                    {statusConfig[row.original.status].label}
+                </Badge>
+            ),
+        },
+        {
+            header: 'Entrega Prevista',
+            cell: ({ row }) => row.original.expectedDeliveryDate
+                ? format(parseISO(row.original.expectedDeliveryDate), 'dd/MM/yyyy')
+                : '-',
+        },
+        {
+            header: 'Total',
+            cell: ({ row }) => (
+                <span className="block text-right font-medium text-gray-900 dark:text-white">
+                    {formatCurrency(row.original.total)}
+                </span>
+            ),
+        },
+        {
+            header: 'Accoes',
+            cell: ({ row }) => {
+                const order = row.original;
+
+                return (
+                    <div className="flex justify-center gap-1">
+                        <button
+                            onClick={() => {
+                                setOrderToPrint(order);
+                                setShowPrintModal(true);
+                            }}
+                            className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 hover:text-blue-600"
+                            title="Visualizar/Imprimir"
+                        >
+                            <HiOutlineEye className="w-4 h-4" />
+                        </button>
+
+                        {order.status === 'ordered' && (
+                            <button
+                                onClick={() => {
+                                    setSelectedOrder(order);
+                                    setShowReceiveModal(true);
+                                }}
+                                className="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-gray-500 hover:text-green-600"
+                                title="Receber Encomenda"
+                            >
+                                <HiOutlineCheck className="w-4 h-4" />
+                            </button>
+                        )}
+
+                        {(order.status === 'ordered' || order.status === 'draft') && (
+                            <button
+                                onClick={() => handleCancelOrder(order)}
+                                className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600"
+                                title="Cancelar Encomenda"
+                            >
+                                <HiOutlineXMark className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
+                );
+            },
+        },
+    ], []);
 
     return (
         <div className="space-y-6 relative">
-            {isLoading && <LoadingOverlay fullScreen={false} />}
-            {/* Filters */}
-            <Card padding="md">
-                <div className="flex flex-col md:flex-row gap-4 justify-between">
-                    <div className="flex flex-1 gap-4">
-                        <div className="flex-1">
-                            <Input
-                                placeholder="Buscar por número ou fornecedor..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                leftIcon={<HiOutlineSearch className="w-5 h-5" />}
-                            />
-                        </div>
-                        <div className="w-48">
-                            <Select
-                                options={[
-                                    { value: 'all', label: 'Todos os Status' },
-                                    { value: 'ordered', label: 'Encomendado' },
-                                    { value: 'received', label: 'Recebido' },
-                                    { value: 'cancelled', label: 'Cancelado' },
-                                ]}
-                                value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <Button onClick={() => setShowCreateModal(true)}>
-                            <HiOutlinePlus className="w-5 h-5 mr-2" />
-                            Nova Encomenda
-                        </Button>
-                    </div>
-                </div>
-            </Card>
-
-            {/* Orders Table */}
-            <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead>
-                            <tr className="bg-gray-50 dark:bg-dark-800">
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Número</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Fornecedor</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Data</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase">Entrega Prevista</th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase">Total</th>
-                                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-500 uppercase">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {filteredOrders.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                                        Nenhuma encomenda entrada
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedOrders.map((order) => (
-                                    <tr key={order.id} className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800">
-                                        <td className="px-6 py-4 font-mono text-sm font-medium text-gray-900 dark:text-white">
-                                            {order.orderNumber}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                                            {order.supplierName}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
-                                            {format(parseISO(order.createdAt), 'dd/MM/yyyy')}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <Badge variant={
-                                                order.status === 'ordered' ? 'info' :
-                                                    order.status === 'received' ? 'success' :
-                                                        order.status === 'cancelled' ? 'danger' : 'gray'
-                                            }>
-                                                {statusConfig[order.status].label}
-                                            </Badge>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-500">
-                                            {order.expectedDeliveryDate ?
-                                                format(parseISO(order.expectedDeliveryDate), 'dd/MM/yyyy') :
-                                                '-'}
-                                        </td>
-                                        <td className="px-6 py-4 text-right font-medium text-gray-900 dark:text-white">
-                                            {formatCurrency(order.total)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex justify-center gap-1">
-                                                <button
-                                                    onClick={() => {
-                                                        setOrderToPrint(order);
-                                                        setShowPrintModal(true);
-                                                    }}
-                                                    className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-500 hover:text-blue-600"
-                                                    title="Visualizar/Imprimir"
-                                                >
-                                                    <HiOutlineEye className="w-4 h-4" />
-                                                </button>
-
-                                                {/* Actions based on status */}
-                                                {order.status === 'ordered' && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedOrder(order);
-                                                            setShowReceiveModal(true);
-                                                        }}
-                                                        className="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-gray-500 hover:text-green-600"
-                                                        title="Receber Encomenda"
-                                                    >
-                                                        <HiOutlineCheck className="w-4 h-4" />
-                                                    </button>
-                                                )}
-
-                                                {(order.status === 'ordered' || order.status === 'draft') && (
-                                                    <button
-                                                        onClick={() => handleCancelOrder(order)}
-                                                        className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600"
-                                                        title="Cancelar Encomenda"
-                                                    >
-                                                        <HiOutlineX className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
-
-            <Pagination
-                currentPage={currentPage}
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={setItemsPerPage}
+            <SmartTable
+                data={paginatedOrders}
+                columns={columns}
+                isLoading={isLoading}
+                search={{
+                    value: search,
+                    onChange: (value) => {
+                        setSearch(value);
+                        setCurrentPage(1);
+                    },
+                    placeholder: 'Buscar por numero ou fornecedor...',
+                }}
+                renderFilters={(
+                    <Select
+                        options={[
+                            { value: 'all', label: 'Todos os Status' },
+                            { value: 'ordered', label: 'Encomendado' },
+                            { value: 'partial', label: 'Parcial' },
+                            { value: 'received', label: 'Recebido' },
+                            { value: 'cancelled', label: 'Cancelado' },
+                        ]}
+                        value={statusFilter}
+                        onChange={(e) => {
+                            setStatusFilter(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        size="sm"
+                        className="w-48 bg-white dark:bg-dark-800"
+                    />
+                )}
+                actions={(
+                    <Button onClick={() => setShowCreateModal(true)} size="sm">
+                        <HiOutlinePlus className="w-5 h-5 mr-2" />
+                        Nova Encomenda
+                    </Button>
+                )}
+                emptyTitle="Nenhuma encomenda encontrada"
+                emptyDescription="Nenhuma encomenda corresponde aos filtros atuais."
+                pagination={{
+                    currentPage,
+                    totalItems,
+                    itemsPerPage,
+                    onPageChange: setCurrentPage,
+                    onItemsPerPageChange: setItemsPerPage,
+                }}
             />
 
             <CreatePurchaseOrderModal
@@ -283,19 +284,17 @@ export default function SupplierOrderManager() {
                 />
             )}
 
-            {/* Receive Confirmation Modal */}
             <ConfirmationModal
                 isOpen={showReceiveModal}
                 onClose={() => setShowReceiveModal(false)}
                 onConfirm={handleReceiveOrder}
                 title="Receber Encomenda"
-                message={`Deseja confirmar o recebimento da encomenda ${selectedOrder?.orderNumber} de ${selectedOrder?.supplierName}? Isso irá adicionar os itens ao estoque.`}
+                message={`Deseja confirmar o recebimento da encomenda ${selectedOrder?.orderNumber} de ${selectedOrder?.supplierName}? Isso ira adicionar os itens ao estoque.`}
                 confirmText="Confirmar e Atualizar Estoque"
                 cancelText="Cancelar"
                 variant="success"
             />
 
-            {/* Cancel Order Confirmation Modal */}
             <ConfirmationModal
                 isOpen={cancelConfirmOpen}
                 onClose={() => {
@@ -306,7 +305,7 @@ export default function SupplierOrderManager() {
                 title="Cancelar Encomenda?"
                 message={`Tem certeza que deseja cancelar a encomenda ${orderToCancel?.orderNumber}? Esta ação não pode ser desfeita.`}
                 confirmText="Sim, Cancelar"
-                cancelText="Não Cancelar"
+                cancelText="Nao Cancelar"
                 variant="danger"
             />
         </div>

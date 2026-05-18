@@ -42,6 +42,11 @@ export const authAPI = {
         return response.data;
     },
 
+    updatePreferences: async (preferences: Record<string, unknown>) => {
+        const response = await api.put('/auth/preferences', { preferences });
+        return response.data;
+    },
+
     changePassword: async (currentPassword: string, newPassword: string) => {
         const response = await api.put('/auth/change-password', {
             currentPassword,

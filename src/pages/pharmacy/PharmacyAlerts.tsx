@@ -13,18 +13,20 @@
 import { useState, useEffect } from 'react';
 import {
     HiOutlineExclamationCircle,
-    HiOutlineExclamationTriangle as HiOutlineExclamation,
+    HiOutlineExclamationTriangle as HiOutlineExclamationTriangle,
     HiOutlineInformationCircle,
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlineShoppingCart,
-    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardDocumentList,
     HiOutlineFunnel as HiOutlineFilter,
 } from 'react-icons/hi2';
 import { Card, Button, LoadingSpinner } from '../../components/ui';
 import { cn, formatCurrency } from '../../utils/helpers';
 import { pharmacyAPI } from '../../services/api';
 import toast from 'react-hot-toast';
+import type { ComponentType, SVGProps } from 'react';
 
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 type Severity = 'critical' | 'warning' | 'info';
 type AlertType = 'all' | 'critical' | 'warning' | 'info';
 
@@ -33,7 +35,8 @@ interface Alert {
     severity: Severity;
     title: string;
     message: string;
-    [key: string]: any;
+    productName?: string;
+    expiryDate?: string;
 }
 
 interface ReorderSuggestion {
@@ -48,7 +51,7 @@ interface ReorderSuggestion {
     supplier?: { name: string; email?: string; phone?: string } | null;
 }
 
-const SEVERITY_CONFIG: Record<Severity, { icon: any; bg: string; border: string; text: string; badge: string }> = {
+const SEVERITY_CONFIG: Record<Severity, { icon: IconComponent; bg: string; border: string; text: string; badge: string }> = {
     critical: {
         icon: HiOutlineExclamationCircle,
         bg: 'bg-red-50 dark:bg-red-900/20',
@@ -57,7 +60,7 @@ const SEVERITY_CONFIG: Record<Severity, { icon: any; bg: string; border: string;
         badge: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
     },
     warning: {
-        icon: HiOutlineExclamation,
+        icon: HiOutlineExclamationTriangle,
         bg: 'bg-amber-50 dark:bg-amber-900/20',
         border: 'border-amber-400',
         text: 'text-amber-700 dark:text-amber-400',
@@ -98,8 +101,9 @@ export default function PharmacyAlerts() {
             setSummary(alertsData.summary || { critical: 0, warning: 0, info: 0, total: 0 });
             setReorderSuggestions(reorderData.suggestions || []);
             setReorderTotal(reorderData.totalEstimatedCost || 0);
-        } catch (err: any) {
-            toast.error('Erro ao carregar alertas: ' + (err.message || 'Erro desconhecido'));
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: unknown[] } } };
+            toast.error('Erro ao carregar alertas: ' + (apiErr.message || 'Erro desconhecido'));
         } finally {
             setIsLoading(false);
         }
@@ -120,7 +124,7 @@ export default function PharmacyAlerts() {
                 <Button
                     variant="ghost"
                     className="bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest"
-                    leftIcon={<HiOutlineRefresh className="w-4 h-4" />}
+                    leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}
                     onClick={loadData}
                     disabled={isLoading}
                 >
@@ -155,7 +159,7 @@ export default function PharmacyAlerts() {
                 <Card padding="md" className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
                     <div className="flex items-center gap-4 relative z-10">
                         <div className="w-10 h-10 rounded-xl bg-amber-200/60 dark:bg-amber-900/40 border border-amber-500/20 flex items-center justify-center text-amber-700 dark:text-amber-300 font-black shadow-inner group-hover:scale-110 transition-transform">
-                            <HiOutlineExclamation className="w-5 h-5" />
+                            <HiOutlineExclamationTriangle className="w-5 h-5" />
                         </div>
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 dark:text-amber-400/60">Avisos</p>
@@ -185,7 +189,7 @@ export default function PharmacyAlerts() {
                             ? 'bg-emerald-500 text-white shadow-emerald-500/20 scale-105'
                             : 'bg-white dark:bg-dark-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-dark-700 hover:border-emerald-400')}
                 >
-                    <HiOutlineClipboardList className="w-4 h-4" />
+                    <HiOutlineClipboardDocumentList className="w-4 h-4" />
                     Alertas ({summary.total})
                 </button>
                 <button

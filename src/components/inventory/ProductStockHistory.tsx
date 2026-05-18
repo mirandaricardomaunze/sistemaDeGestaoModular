@@ -1,16 +1,18 @@
-import { useState } from 'react';
-import { Modal, Badge, Pagination, LoadingOverlay } from '../ui';
-import { useStockMovements } from '../../hooks/useStockMovements';
-import { format } from 'date-fns';
-import { 
-    HiOutlineClock, 
-    HiOutlineCube, 
-    HiOutlineArrowUp, 
-    HiOutlineArrowDown, 
-    HiOutlineArrowPath, 
-    HiOutlineExclamationTriangle, 
-    HiOutlineTruck 
+import { useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import type { IconType } from 'react-icons';
+import {
+    HiOutlineClock,
+    HiOutlineCube,
+    HiOutlineArrowUp,
+    HiOutlineArrowDown,
+    HiOutlineArrowPath,
+    HiOutlineExclamationTriangle,
+    HiOutlineTruck,
 } from 'react-icons/hi2';
+import { format } from 'date-fns';
+import { Modal, Badge, SmartTable } from '../ui';
+import { useStockMovements } from '../../hooks/useStockMovements';
 import type { Product, MovementType, StockMovement } from '../../types';
 
 interface ProductStockHistoryProps {
@@ -19,14 +21,14 @@ interface ProductStockHistoryProps {
     product: Product;
 }
 
-const movementTypeConfig: Record<MovementType, { label: string; color: 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'gray'; icon: any }> = {
+const movementTypeConfig: Record<MovementType, { label: string; color: 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'gray'; icon: IconType }> = {
     purchase: { label: 'Compra', color: 'success', icon: HiOutlineArrowUp },
     sale: { label: 'Venda', color: 'danger', icon: HiOutlineArrowDown },
     return_in: { label: 'Devol. Entrada', color: 'info', icon: HiOutlineArrowPath },
-    return_out: { label: 'Devol. Saída', color: 'warning', icon: HiOutlineArrowDown },
+    return_out: { label: 'Devol. Saida', color: 'warning', icon: HiOutlineArrowDown },
     adjustment: { label: 'Ajuste', color: 'primary', icon: HiOutlineClock },
     expired: { label: 'Expirado', color: 'danger', icon: HiOutlineExclamationTriangle },
-    transfer: { label: 'Transferência', color: 'info', icon: HiOutlineTruck },
+    transfer: { label: 'Transferencia', color: 'info', icon: HiOutlineTruck },
     loss: { label: 'Perda', color: 'danger', icon: HiOutlineExclamationTriangle },
 };
 
@@ -35,29 +37,99 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
     const [pageSize, setPageSize] = useState(8);
     const { movements, pagination, isLoading } = useStockMovements(product.id, {
         page,
-        limit: pageSize
+        limit: pageSize,
     });
 
-    const getMovementConfig = (type: MovementType) => {
-        return movementTypeConfig[type] || movementTypeConfig.adjustment;
-    };
+    const columns = useMemo<ColumnDef<StockMovement, unknown>[]>(() => [
+        {
+            header: 'Data',
+            cell: ({ row }) => (
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {format(new Date(row.original.createdAt), 'dd/MM/yyyy')}
+                    </span>
+                    <span className="text-[10px] text-gray-500">
+                        {format(new Date(row.original.createdAt), 'HH:mm')}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            header: 'Tipo',
+            cell: ({ row }) => {
+                const config = movementTypeConfig[row.original.movementType] || movementTypeConfig.adjustment;
+                const Icon = config.icon;
+
+                return (
+                    <Badge variant={config.color} className="flex items-center gap-1 w-fit font-black uppercase tracking-widest text-[9px]">
+                        <Icon className="w-3 h-3" />
+                        {config.label}
+                    </Badge>
+                );
+            },
+        },
+        {
+            header: 'Armazem',
+            cell: ({ row }) => row.original.warehouse?.name || <span className="italic text-gray-400">Global</span>,
+        },
+        {
+            header: 'Qtd',
+            cell: ({ row }) => {
+                const quantity = row.original.quantity;
+
+                return (
+                    <span className={`font-bold ${quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {quantity > 0 ? `+${quantity}` : quantity}
+                    </span>
+                );
+            },
+        },
+        {
+            header: 'Saldo',
+            cell: ({ row }) => (
+                <div className="flex items-center justify-center gap-1 text-sm">
+                    <span className="text-gray-400">{row.original.balanceBefore}</span>
+                    <span className="text-gray-400">-&gt;</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{row.original.balanceAfter}</span>
+                </div>
+            ),
+        },
+        {
+            header: 'Motivo',
+            cell: ({ row }) => (
+                <div className="max-w-[150px]">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate" title={row.original.reason || ''}>
+                        {row.original.reason || '-'}
+                    </p>
+                    {row.original.reference && (
+                        <p className="text-[10px] text-primary-500 font-medium">
+                            REF: {row.original.reference}
+                        </p>
+                    )}
+                </div>
+            ),
+        },
+        {
+            header: 'Responsavel',
+            accessorKey: 'performedBy',
+        },
+    ], []);
 
     return (
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title={`Histórico de Stock: ${product.name}`}
+            title={`Historico de Stock: ${product.name}`}
             size="xl"
         >
             <div className="flex flex-col gap-6">
-                {/* Product Info Header */}
                 <div className="flex items-center justify-between bg-gray-50 dark:bg-dark-900/50 p-4 rounded-lg border border-gray-100 dark:border-dark-700">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600">
                             <HiOutlineCube className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">SKU / Código</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">SKU / Codigo</p>
                             <p className="font-bold text-gray-900 dark:text-white">{product.code}</p>
                         </div>
                     </div>
@@ -67,112 +139,26 @@ export function ProductStockHistory({ isOpen, onClose, product }: ProductStockHi
                     </div>
                 </div>
 
-                {/* Content */}
-                {isLoading ? (
-                    <div className="relative min-h-[400px]">
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 dark:bg-dark-900/50">
-                            <LoadingOverlay fullScreen={false} />
-                        </div>
-                    </div>
-                ) : movements.length > 0 ? (
-                    <div className="flex flex-col gap-4">
-                        {/* Table */}
-                        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-dark-700">
-                            <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                                <thead className="bg-gray-50 dark:bg-dark-800">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Data</th>
-                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Tipo</th>
-                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Armazém</th>
-                                        <th className="px-4 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Qtd</th>
-                                        <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Saldo</th>
-                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Motivo</th>
-                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Responsável</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-dark-700 bg-white dark:bg-dark-900">
-                                    {movements.map((mov: StockMovement) => {
-                                        const config = getMovementConfig(mov.movementType);
-                                        const Icon = config.icon;
-                                        return (
-                                            <tr key={mov.id} className="hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
-                                                <td className="px-4 py-3 whitespace-nowrap">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                            {format(new Date(mov.createdAt), 'dd/MM/yyyy')}
-                                                        </span>
-                                                        <span className="text-[10px] text-gray-500">
-                                                            {format(new Date(mov.createdAt), 'HH:mm')}
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 whitespace-nowrap">
-                                                    <Badge variant={config.color} className="flex items-center gap-1 w-fit font-black uppercase tracking-widest text-[9px]">
-                                                        <Icon className="w-3 h-3" />
-                                                        {config.label}
-                                                    </Badge>
-                                                </td>
-                                                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                                                    {mov.warehouse?.name || <span className="italic text-gray-400">Global</span>}
-                                                </td>
-                                                <td className="px-4 py-3 whitespace-nowrap text-right">
-                                                    <span className={`font-bold ${mov.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                        {mov.quantity > 0 ? `+${mov.quantity}` : mov.quantity}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                    <div className="flex items-center justify-center gap-1 text-sm">
-                                                        <span className="text-gray-400">{mov.balanceBefore}</span>
-                                                        <span className="text-gray-400">→</span>
-                                                        <span className="font-semibold text-gray-900 dark:text-white">{mov.balanceAfter}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 max-w-[150px]">
-                                                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate" title={mov.reason || ''}>
-                                                        {mov.reason || '-'}
-                                                    </p>
-                                                    {mov.reference && (
-                                                        <p className="text-[10px] text-primary-500 font-medium">
-                                                            REF: {mov.reference}
-                                                        </p>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3 whitespace-nowrap text-xs text-gray-600 dark:text-gray-400">
-                                                    {mov.performedBy}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Pagination */}
-                        <Pagination
-                            currentPage={page}
-                            totalItems={pagination?.total || 0}
-                            itemsPerPage={pageSize}
-                            onPageChange={setPage}
-                            onItemsPerPageChange={(size) => {
-                                setPageSize(size);
-                                setPage(1);
-                            }}
-                            itemsPerPageOptions={[5, 8, 15, 25]}
-                        />
-                    </div>
-                ) : (
-                    <div className="py-12 flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
-                            <HiOutlineClock className="w-8 h-8 text-gray-400" />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
-                            Sem movimentações
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
-                            Este produto ainda não possui registos de entrada ou saída de stock.
-                        </p>
-                    </div>
-                )}
+                <SmartTable
+                    data={movements}
+                    columns={columns}
+                    isLoading={isLoading}
+                    hideToolbar
+                    minHeight={400}
+                    emptyTitle="Sem movimentacoes"
+                    emptyDescription="Este produto ainda não possui registos de entrada ou saída de stock."
+                    pagination={{
+                        currentPage: page,
+                        totalItems: pagination?.total || 0,
+                        itemsPerPage: pageSize,
+                        onPageChange: setPage,
+                        onItemsPerPageChange: (size) => {
+                            setPageSize(size);
+                            setPage(1);
+                        },
+                        itemsPerPageOptions: [5, 8, 15, 25],
+                    }}
+                />
             </div>
         </Modal>
     );

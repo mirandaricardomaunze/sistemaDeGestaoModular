@@ -109,10 +109,11 @@ export class PredictiveService {
                 // Clean AI response to ensure it's valid JSON
                 const jsonMatch = aiResponse.message.match(/\[[\s\S]*\]/);
                 if (jsonMatch) {
-                    const aiData = JSON.parse(jsonMatch[0]);
-                    
+                    type AIForecast = { id: string; forecasted30d?: number; confidence?: number; status?: 'stable' | 'low_risk' | 'high_risk' | 'critical'; suggestedPurchase?: number; reasoning?: string };
+                    const aiData = JSON.parse(jsonMatch[0]) as AIForecast[];
+
                     batch.forEach(p => {
-                        const aiInfo = aiData.find((item: any) => item.id === p.id);
+                        const aiInfo = aiData.find((item) => item.id === p.id);
                         results.push({
                             productId: p.id,
                             productName: p.name,
@@ -171,7 +172,8 @@ export class PredictiveService {
         });
 
         // 2. Group by Supplier
-        const supplierGroups: Record<string, any[]> = {};
+        type SupplierLine = { productId: string; quantity: number; unitCost: number };
+        const supplierGroups: Record<string, SupplierLine[]> = {};
         
         suggestions.forEach(sug => {
             const product = products.find(p => p.id === sug.productId);

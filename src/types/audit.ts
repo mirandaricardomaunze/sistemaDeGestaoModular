@@ -1,6 +1,6 @@
 /**
  * Audit Log Types
- * Sistema de auditoria para rastrear todas as aces dos utilizadores
+ * Sistema de auditoria para rastrear todas as ações dos utilizadores
  */
 
 // Modules that can be audited
@@ -74,10 +74,10 @@ export interface AuditLog {
     entityName?: string;            // Display name of entity (for readability)
 
     description: string;            // Human-readable description
-    details?: Record<string, any>;  // Additional details (JSON)
+    details?: Record<string, unknown>;  // Additional details (JSON)
 
-    previousValues?: Record<string, any>;  // Previous state (for updates)
-    newValues?: Record<string, any>;       // New state (for updates)
+    previousValues?: Record<string, unknown>;  // Previous state (for updates)
+    newValues?: Record<string, unknown>;       // New state (for updates)
 
     success: boolean;               // Whether action succeeded
     errorMessage?: string;          // Error message if failed

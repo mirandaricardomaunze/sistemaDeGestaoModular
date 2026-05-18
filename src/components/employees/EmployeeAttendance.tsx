@@ -3,14 +3,14 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMont
 import { ptBR } from 'date-fns/locale';
 import {
     HiOutlineCheck,
-    HiOutlineX,
-    HiOutlineDownload,
+    HiOutlineXMark,
+    HiOutlineArrowDownTray,
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
     HiOutlineCalendar,
-    HiOutlineViewList,
+    HiOutlineListBullet,
     HiOutlineUsers,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { useEmployees, useAttendance } from '../../hooks/useData';
 import { Button, Card, Pagination, usePagination } from '../ui';
 import { cn, exportToCSV } from '../../utils/helpers';
@@ -75,7 +75,7 @@ export default function EmployeeAttendance() {
         if (existingRecord) {
             // If clicking same type, toggle off (remove record or mark absent)
             // If clicking different type, switch to that type
-            let newStatus: any = 'absent';
+            let newStatus: 'absent' | 'present' | 'vacation' = 'absent';
 
             if (type === 'present') {
                 newStatus = existingRecord.status === 'present' ? 'absent' : 'present';
@@ -194,49 +194,53 @@ export default function EmployeeAttendance() {
                     <div className="flex items-center gap-2">
                         {viewMode === 'list' ? (
                             <>
-                                <button onClick={goToPreviousDay} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
-                                    <HiOutlineChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                </button>
+                                <Button variant="ghost" size="sm" onClick={goToPreviousDay} className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 active:scale-95">
+                                    <HiOutlineChevronLeft className="w-5 h-5" />
+                                </Button>
                                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white min-w-[200px] text-center">
                                     {format(selectedDate, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                                 </h2>
-                                <button onClick={goToNextDay} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
-                                    <HiOutlineChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                </button>
+                                <Button variant="ghost" size="sm" onClick={goToNextDay} className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 active:scale-95">
+                                    <HiOutlineChevronRight className="w-5 h-5" />
+                                </Button>
                             </>
                         ) : (
                             <>
-                                <button onClick={goToPreviousMonth} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
-                                    <HiOutlineChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                </button>
+                                <Button variant="ghost" size="sm" onClick={goToPreviousMonth} className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 active:scale-95">
+                                    <HiOutlineChevronLeft className="w-5 h-5" />
+                                </Button>
                                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white min-w-[200px] text-center capitalize">
                                     {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
                                 </h2>
-                                <button onClick={goToNextMonth} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors">
-                                    <HiOutlineChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                </button>
+                                <Button variant="ghost" size="sm" onClick={goToNextMonth} className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 active:scale-95">
+                                    <HiOutlineChevronRight className="w-5 h-5" />
+                                </Button>
                             </>
                         )}
                     </div>
 
                     <div className="flex gap-2">
                         <div className="flex bg-gray-100 dark:bg-dark-700 rounded-lg p-1 mr-2">
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => setViewMode('list')}
                                 className={cn(
-                                    "p-1.5 rounded-md transition-all flex items-center gap-1 text-sm font-medium",
+                                    "p-1.5 rounded-md flex items-center gap-1 text-sm font-medium",
                                     viewMode === 'list'
                                         ? "bg-white dark:bg-dark-600 text-primary-600 shadow-sm"
                                         : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                                 )}
                             >
-                                <HiOutlineViewList className="w-4 h-4" />
+                                <HiOutlineListBullet className="w-4 h-4" />
                                 Diário
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => setViewMode('calendar')}
                                 className={cn(
-                                    "p-1.5 rounded-md transition-all flex items-center gap-1 text-sm font-medium",
+                                    "p-1.5 rounded-md flex items-center gap-1 text-sm font-medium",
                                     viewMode === 'calendar'
                                         ? "bg-white dark:bg-dark-600 text-primary-600 shadow-sm"
                                         : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -244,7 +248,7 @@ export default function EmployeeAttendance() {
                             >
                                 <HiOutlineCalendar className="w-4 h-4" />
                                 Mensal
-                            </button>
+                            </Button>
                         </div>
 
                         {!isToday && (
@@ -254,7 +258,7 @@ export default function EmployeeAttendance() {
                         )}
                         {viewMode === 'list' && (
                             <Button variant="outline" size="sm" onClick={handleExport}>
-                                <HiOutlineDownload className="w-4 h-4 mr-2" />
+                                <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                                 Exportar
                             </Button>
                         )}
@@ -314,7 +318,7 @@ export default function EmployeeAttendance() {
                                     <p className="text-sm text-gray-500 dark:text-gray-400">Ausentes</p>
                                 </div>
                                 <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                    <HiOutlineX className="w-6 h-6 text-red-500" />
+                                    <HiOutlineXMark className="w-6 h-6 text-red-500" />
                                 </div>
                             </div>
                         </Card>
@@ -322,50 +326,26 @@ export default function EmployeeAttendance() {
 
                     {/* Filters */}
                     <div className="flex gap-2 border-b border-gray-200 dark:border-dark-700 pb-2 overflow-x-auto">
-                        <button
+                        <Button
+                            variant="ghost" size="sm"
                             onClick={() => setListFilter('all')}
-                            className={cn(
-                                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
-                                listFilter === 'all'
-                                    ? "bg-gray-100 text-gray-900 dark:bg-dark-700 dark:text-white"
-                                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                            )}
-                        >
-                            Todos
-                        </button>
-                        <button
+                            className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap", listFilter === 'all' ? "bg-gray-100 text-gray-900 dark:bg-dark-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300")}
+                        >Todos</Button>
+                        <Button
+                            variant="ghost" size="sm"
                             onClick={() => setListFilter('present')}
-                            className={cn(
-                                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
-                                listFilter === 'present'
-                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                            )}
-                        >
-                            Presentes
-                        </button>
-                        <button
+                            className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap", listFilter === 'present' ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300")}
+                        >Presentes</Button>
+                        <Button
+                            variant="ghost" size="sm"
                             onClick={() => setListFilter('vacation')}
-                            className={cn(
-                                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
-                                listFilter === 'vacation'
-                                    ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                            )}
-                        >
-                            Em Férias
-                        </button>
-                        <button
+                            className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap", listFilter === 'vacation' ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300")}
+                        >Em Férias</Button>
+                        <Button
+                            variant="ghost" size="sm"
                             onClick={() => setListFilter('absent')}
-                            className={cn(
-                                "px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap",
-                                listFilter === 'absent'
-                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                            )}
-                        >
-                            Ausentes
-                        </button>
+                            className={cn("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap", listFilter === 'absent' ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300")}
+                        >Ausentes</Button>
                     </div>
 
                     <Card padding="none">
@@ -375,7 +355,7 @@ export default function EmployeeAttendance() {
                                     Nenhum funcionário encontrado
                                 </div>
                             ) : (
-                                paginatedEmployees.map((employee: any) => {
+                                paginatedEmployees.map((employee) => {
                                     const status = getStatus(employee.id, selectedDate);
                                     const record = getEmployeeAttendance(employee.id, selectedDate);
 

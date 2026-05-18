@@ -52,7 +52,7 @@ export function useAttendanceRoster() {
             toast.success('Funcionário removido da lista');
             fetchRoster();
         } catch (err) {
-            const message = (err as any).response?.data?.error || 'Erro ao remover da lista';
+            const message = (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Erro ao remover da lista';
             toast.error(message);
             throw err;
         }
@@ -64,7 +64,7 @@ export function useAttendanceRoster() {
             toast.success(type === 'checkIn' ? 'Entrada registrada' : 'Saída registrada');
             fetchRoster();
         } catch (err) {
-            const message = (err as any).response?.data?.error || 'Erro ao registrar tempo';
+            const message = (err as { response?: { data?: { error?: string } } }).response?.data?.error || 'Erro ao registrar tempo';
             toast.error(message);
             throw err;
         }

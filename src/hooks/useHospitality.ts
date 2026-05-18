@@ -3,9 +3,17 @@ import { useCallback, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { hospitalityAPI } from '../services/api/hospitality.api';
 import type {
+    HotelRoom,
     HotelBooking,
+    HotelDashboard,
     HousekeepingTask,
 } from '../types/hotel';
+
+type ApiError = Error & { response?: { data?: { message?: string; error?: string } } };
+
+interface RoomsParams { status?: string; type?: string; search?: string }
+interface BookingsParams { page?: number; limit?: number; status?: string; search?: string }
+interface HousekeepingParams { status?: string; date?: string }
 
 // ============================================================================
 // HELPERS
@@ -19,15 +27,15 @@ function withIsLoading<T extends object & { isPending: boolean }>(m: T) {
 // QUERIES
 // ============================================================================
 
-export function useHotelRooms(params?: any) {
-    return useQuery({
+export function useHotelRooms(params?: RoomsParams) {
+    return useQuery<HotelRoom[]>({
         queryKey: ['hospitality', 'rooms', params],
         queryFn: () => hospitalityAPI.getRooms(params),
     });
 }
 
 export function useHotelDashboardSummary() {
-    return useQuery<any>({
+    return useQuery<HotelDashboard>({
         queryKey: ['hospitality', 'dashboard', 'summary'],
         queryFn: () => hospitalityAPI.getDashboardSummary(),
     });
@@ -40,8 +48,8 @@ export function useRecentBookings(limit: number = 5) {
     });
 }
 
-export function useHotelBookings(params?: any) {
-    return useQuery({
+export function useHotelBookings(params?: BookingsParams) {
+    return useQuery<{ data: HotelBooking[]; pagination?: { total: number; page: number; limit: number; totalPages: number } }>({
         queryKey: ['hospitality', 'bookings', params],
         queryFn: () => hospitalityAPI.getBookings(params),
     });
@@ -61,19 +69,19 @@ export function useTodayCheckouts() {
 export function useCreateBooking() {
     const qc = useQueryClient();
     return withIsLoading(useMutation({
-        mutationFn: (data: any) => hospitalityAPI.createBooking(data),
+        mutationFn: (data: Partial<HotelBooking>) => hospitalityAPI.createBooking(data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['hospitality'] });
             toast.success('Check-in realizado com sucesso!');
         },
-        onError: (err: any) => toast.error(err.message || 'Erro ao realizar check-in'),
+        onError: (err: ApiError) => toast.error(err.message || 'Erro ao realizar check-in'),
     }));
 }
 
 export function useCheckout() {
     const qc = useQueryClient();
     return withIsLoading(useMutation({
-        mutationFn: ({ id, data }: { id: string; data?: any }) => hospitalityAPI.checkout(id, data),
+        mutationFn: ({ id, data }: { id: string; data?: Partial<HotelBooking> }) => hospitalityAPI.checkout(id, data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['hospitality'] });
             toast.success('Check-out realizado com sucesso!');
@@ -95,7 +103,7 @@ export function useUpdateRoomStatus() {
 // HOUSEKEEPING
 // ============================================================================
 
-export function useHousekeepingTasks(params?: any) {
+export function useHousekeepingTasks(params?: HousekeepingParams) {
     return useQuery<HousekeepingTask[]>({
         queryKey: ['hospitality', 'housekeeping', params],
         queryFn: () => hospitalityAPI.getHousekeepingTasks(params),
@@ -105,7 +113,7 @@ export function useHousekeepingTasks(params?: any) {
 export function useUpdateHousekeepingTask() {
     const qc = useQueryClient();
     return withIsLoading(useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => hospitalityAPI.updateHousekeepingTask(id, data),
+        mutationFn: ({ id, data }: { id: string; data: { status?: string; assignedTo?: string; notes?: string; priority?: number } }) => hospitalityAPI.updateHousekeepingTask(id, data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['hospitality', 'housekeeping'] });
             toast.success('Tarefa de limpeza atualizada');
@@ -125,12 +133,12 @@ export function useHospitality(_params?: { search?: string; status?: string; pag
     });
 
     const addRoomMutation = useMutation({
-        mutationFn: (data: any) => hospitalityAPI.createRoom(data),
+        mutationFn: (data: Partial<HotelRoom>) => hospitalityAPI.createRoom(data),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['hospitality', 'rooms'] }),
     });
 
     const updateRoomMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => hospitalityAPI.updateRoom(id, data),
+        mutationFn: ({ id, data }: { id: string; data: Partial<HotelRoom> }) => hospitalityAPI.updateRoom(id, data),
         onSuccess: () => qc.invalidateQueries({ queryKey: ['hospitality', 'rooms'] }),
     });
 
@@ -139,20 +147,24 @@ export function useHospitality(_params?: { search?: string; status?: string; pag
         onSuccess: () => qc.invalidateQueries({ queryKey: ['hospitality', 'rooms'] }),
     });
 
-    const rooms = Array.isArray(roomsQuery.data) ? roomsQuery.data : (roomsQuery.data as any)?.data || [];
+    const rawData = roomsQuery.data;
+    const rooms: HotelRoom[] = Array.isArray(rawData) ? rawData : ((rawData as { data?: HotelRoom[] } | undefined)?.data || []);
+    const pagination = (rawData as { pagination?: { total: number; page: number; pageSize?: number } } | undefined)?.pagination
+        || { total: rooms.length, page: 1, pageSize: rooms.length };
+
     const metrics = useMemo(() => ({
-        available: rooms.filter((r: any) => r.status === 'available').length,
-        occupied: rooms.filter((r: any) => r.status === 'occupied').length,
-        dirty: rooms.filter((r: any) => r.status === 'dirty').length,
-        maintenance: rooms.filter((r: any) => r.status === 'maintenance').length,
+        available: rooms.filter((r) => r.status === 'available').length,
+        occupied: rooms.filter((r) => r.status === 'occupied').length,
+        dirty: rooms.filter((r) => r.status === 'dirty').length,
+        maintenance: rooms.filter((r) => r.status === 'maintenance').length,
     }), [rooms]);
 
-    const handleAddRoom = useCallback((data: any) => addRoomMutation.mutateAsync(data), [addRoomMutation]);
-    const handleUpdateRoom = useCallback((id: string, data: any) => updateRoomMutation.mutateAsync({ id, data }), [updateRoomMutation]);
+    const handleAddRoom = useCallback((data: Partial<HotelRoom>) => addRoomMutation.mutateAsync(data), [addRoomMutation]);
+    const handleUpdateRoom = useCallback((id: string, data: Partial<HotelRoom>) => updateRoomMutation.mutateAsync({ id, data }), [updateRoomMutation]);
     const handleDeleteRoom = useCallback((id: string) => deleteRoomMutation.mutateAsync(id), [deleteRoomMutation]);
-    const fetchBookings = useCallback((params?: { page?: number; limit?: number; status?: string }) => hospitalityAPI.getBookings(params), []);
-    const handleCreateBooking = useCallback((_data: any) => hospitalityAPI.createBooking(_data), []);
-    const handleAddConsumption = useCallback((_id: string, _data?: any) => hospitalityAPI.addConsumption(_id, _data), []);
+    const fetchBookings = useCallback((params?: BookingsParams) => hospitalityAPI.getBookings(params), []);
+    const handleCreateBooking = useCallback((_data: Partial<HotelBooking>) => hospitalityAPI.createBooking(_data), []);
+    const handleAddConsumption = useCallback((_id: string, _data: { productId: string; quantity: number }) => hospitalityAPI.addConsumption(_id, _data), []);
 
     return {
         rooms,
@@ -161,7 +173,7 @@ export function useHospitality(_params?: { search?: string; status?: string; pag
         addRoom: handleAddRoom,
         updateRoom: handleUpdateRoom,
         deleteRoom: handleDeleteRoom,
-        pagination: (roomsQuery.data as any)?.pagination || { total: rooms.length, page: 1, pageSize: rooms.length },
+        pagination,
         metrics,
         fetchBookings,
         createBooking: handleCreateBooking,

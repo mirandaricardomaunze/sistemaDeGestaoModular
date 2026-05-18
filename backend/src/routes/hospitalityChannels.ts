@@ -1,11 +1,13 @@
 import { Router } from 'express';
-import { authenticate } from '../middleware/auth';
+import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { hospitalityChannelsService } from '../services/hospitalityChannelsService';
 import { ApiError } from '../middleware/error.middleware';
 import { requireModule } from '../middleware/module';
 
 const router = Router();
 router.use(authenticate, requireModule('HOSPITALITY'));
+
+const MANAGER_ROLES = ['super_admin', 'admin', 'manager'] as const;
 
 // ============================================================================
 // Channel Manager (iCal)
@@ -30,7 +32,7 @@ router.get('/rooms/:roomId/ical', async (req, res) => {
         res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="room-${req.params.roomId}.ics"`);
         res.send(icalContent);
-    } catch (error: any) {
+    } catch (error) {
         if (error instanceof ApiError) {
             res.status(error.statusCode).send(error.message);
         } else {
@@ -43,7 +45,7 @@ router.get('/rooms/:roomId/ical', async (req, res) => {
  * POST /api/hospitality/channels/rooms/:roomId/sync
  * Força sincronização de um iCal remoto
  */
-router.post('/rooms/:roomId/sync', authenticate, async (req: any, res) => {
+router.post('/rooms/:roomId/sync', authenticate, authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const { icalUrl } = req.body;
     

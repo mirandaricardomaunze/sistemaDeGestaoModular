@@ -36,11 +36,12 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 import { Card, Button, Badge, Input, Select, Pagination, PageHeader } from '../ui';
+import type { BadgeVariant } from '../ui/Badge';
 import { useEmployees, useAttendance } from '../../hooks/useData';
 import { useSmartInsights } from '../../hooks/useSmartInsights';
 import { SmartInsightCard } from '../common/SmartInsightCard';
 import { MetricCard } from '../common/ModuleMetricCard';
-import { HiOutlineLightBulb } from 'react-icons/hi';
+import { HiOutlineLightBulb } from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { Employee, EmployeeRole, EducationLevel } from '../../types';
 
@@ -333,7 +334,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
             columnHelper.accessor('role', {
                 header: 'Cargo',
                 cell: (info) => (
-                    <Badge variant={roleConfig[info.getValue()]?.color as any || 'gray'}>
+                    <Badge variant={(roleConfig[info.getValue()]?.color as BadgeVariant) || 'gray'}>
                         {roleConfig[info.getValue()]?.label || info.getValue()}
                     </Badge>
                 ),
@@ -456,7 +457,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
         { value: 'none', label: 'Sem Formação' },
         { value: 'has_any', label: 'Com Qualificação' },
         { value: 'higher_ed', label: 'Ensino Superior+' },
-        { value: '', label: 'â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬â"â‚¬' },
+        { value: '', label: 'â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬' },
         ...educationLevelOrder.map(level => ({
             value: level,
             label: educationLevelLabels[level],
@@ -715,7 +716,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                                 {flexRender(header.column.columnDef.header, header.getContext())}
                                                 {header.column.getIsSorted() && (
                                                     <span className="text-primary-500">
-                                                        {header.column.getIsSorted() === 'asc' ? '▲' : '▼'}
+                                                        {header.column.getIsSorted() === 'asc' ? 'â–²' : 'â–¼'}
                                                     </span>
                                                 )}
                                             </div>

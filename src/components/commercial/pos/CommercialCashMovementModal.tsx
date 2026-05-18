@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HiOutlineX, HiOutlineCheck, HiOutlineCash, HiOutlineLogin, HiOutlineLogout } from 'react-icons/hi';
+import { HiOutlineXMark, HiOutlineCheck, HiOutlineBanknotes, HiOutlineArrowRightOnRectangle, HiOutlineArrowLeftOnRectangle } from 'react-icons/hi2';
 import { Button } from '../../ui/Button';
 
 interface CommercialCashMovementModalProps {
@@ -34,21 +34,26 @@ export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose, 
                 {/* Header */}
                 <div className={`px-6 py-4 flex items-center justify-between ${isCashIn ? 'bg-indigo-600' : 'bg-orange-600'}`}>
                     <div className="flex items-center gap-3">
-                        {isCashIn ? <HiOutlineLogin className="w-6 h-6 text-white" /> : <HiOutlineLogout className="w-6 h-6 text-white" />}
+                        {isCashIn ? <HiOutlineArrowRightOnRectangle className="w-6 h-6 text-white" /> : <HiOutlineArrowLeftOnRectangle className="w-6 h-6 text-white" />}
                         <h2 className="text-white font-black text-lg uppercase tracking-tight">
                             {isCashIn ? 'Suprimento (Entrada)' : 'Sangria (Saída)'}
                         </h2>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors">
-                        <HiOutlineX className="w-5 h-5" />
-                    </button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        className="p-2 text-white hover:bg-white/10 active:scale-95"
+                    >
+                        <HiOutlineXMark className="w-5 h-5" />
+                    </Button>
                 </div>
 
                 <div className="p-6 space-y-5">
                     {/* Amount input */}
                     <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2 flex items-center gap-1.5">
-                            <HiOutlineCash className="w-3.5 h-3.5" />
+                            <HiOutlineBanknotes className="w-3.5 h-3.5" />
                             Valor da Operação (MTn)
                         </label>
                         <div className="relative">
@@ -80,12 +85,13 @@ export function CommercialCashMovementModal({ isOpen, type, onConfirm, onClose, 
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-2">
-                        <button
+                        <Button
+                            variant="outline"
                             onClick={onClose}
-                            className="flex-1 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
+                            className="flex-1 py-3 rounded-lg font-black text-sm uppercase tracking-widest"
                         >
                             Cancelar
-                        </button>
+                        </Button>
                         <Button
                             onClick={handleConfirm}
                             disabled={!amount || !reason.trim() || isLoading}

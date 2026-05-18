@@ -8,33 +8,58 @@ import {
 } from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../../utils/helpers';
 import type { DiscountInfo } from './CommercialDiscountModal';
+import type { Customer } from '../../../types';
+
+export interface CartPanelProduct {
+    id: string;
+    code: string;
+    name: string;
+    price: number | string;
+    currentStock: number;
+    unit?: string;
+}
+
+export interface CartPanelItem {
+    productId: string;
+    product: CartPanelProduct;
+    packSize: number;
+    unitMode: 'box' | 'unit';
+    quantity: number;
+    unitPrice: number;
+    discountPct: number;
+    discount: DiscountInfo | null;
+    total: number;
+}
+
+export type CartPanelCustomer = Customer;
 
 export interface HeldSale {
     id: string;
     label: string;
-    cart: any[];
+    cart: CartPanelItem[];
     customerName: string;
-    selectedCustomer: any;
+    selectedCustomer: CartPanelCustomer | null;
     createdAt: Date;
     globalDiscount?: DiscountInfo | null;
 }
 
 interface CommercialCartPanelProps {
-    cart: any[];
-    setCart: (v: any[]) => void;
+    cart: CartPanelItem[];
+    setCart: (v: CartPanelItem[]) => void;
     updateQuantity: (id: string, q: number) => void;
     removeFromCart: (id: string) => void;
     cartTotal: number;
     cartSubtotal: number;
     cartTax: number;
+    ivaRate: number;
     cartDiscount: number;
-    selectedCustomer: any;
-    setSelectedCustomer: (v: any) => void;
+    selectedCustomer: CartPanelCustomer | null;
+    setSelectedCustomer: (v: CartPanelCustomer | null) => void;
     customerName: string;
     setCustomerName: (v: string) => void;
     onCheckout: () => void;
     checkoutLoading?: boolean;
-    customers: any[];
+    customers: CartPanelCustomer[];
     cashDrawerOpen: boolean;
     handleToggleCashDrawer: () => void;
     cashDrawerBalance: number;
@@ -53,7 +78,7 @@ interface CommercialCartPanelProps {
 export function CommercialCartPanel({
     cart, setCart,
     updateQuantity, removeFromCart,
-    cartTotal, cartSubtotal, cartTax, cartDiscount,
+    cartTotal, cartSubtotal, cartTax, ivaRate, cartDiscount,
     selectedCustomer, setSelectedCustomer,
     customerName, setCustomerName,
     onCheckout, checkoutLoading = false, customers,
@@ -128,20 +153,24 @@ export function CommercialCartPanel({
                                             <p className="text-[9px] text-gray-400">{held.cart.length} itens · {(held.createdAt instanceof Date ? held.createdAt : new Date(held.createdAt)).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</p>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <button
+                                            <Button
                                                 onClick={() => { onResumeSale(held); setShowHeld(false); }}
-                                                className="p-1 bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300 border border-transparent dark:border-blue-500/30 rounded backdrop-blur-sm transition-all"
+                                                variant="ghost"
+                                                size="xs"
+                                                className="h-7 w-7 p-0 bg-blue-100 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300 border border-transparent dark:border-blue-500/30 rounded backdrop-blur-sm"
                                                 title="Retomar"
                                             >
                                                 <HiOutlinePlay className="w-3 h-3" />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => onDeleteHeld(held.id)}
-                                                className="p-1 bg-red-50 text-red-500 dark:bg-red-500/15 dark:text-red-300 border border-transparent dark:border-red-500/30 rounded backdrop-blur-sm transition-all"
+                                                variant="ghost"
+                                                size="xs"
+                                                className="h-7 w-7 p-0 bg-red-50 text-red-500 dark:bg-red-500/15 dark:text-red-300 border border-transparent dark:border-red-500/30 rounded backdrop-blur-sm"
                                                 title="Remover"
                                             >
                                                 <HiOutlineTrash className="w-3 h-3" />
-                                            </button>
+                                            </Button>
                                         </div>
                                     </div>
                                 ))}
@@ -156,15 +185,15 @@ export function CommercialCartPanel({
                         <div className="flex flex-col gap-2">
                             <Select
                                 value={selectedCustomer?.id || ''}
-                                onChange={(e: any) => {
-                                    const found = customers.find((c: any) => c.id === e.target.value);
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                    const found = customers.find((c) => c.id === e.target.value);
                                     setSelectedCustomer(found || null);
                                 }}
                                 size="md"
                                 className="w-full h-10 rounded-xl bg-white dark:bg-white/5 border-slate-200 dark:border-white/5 text-slate-900 dark:text-white font-semibold focus:ring-4 focus:ring-blue-500/5 shadow-sm"
                                 options={[
                                     { value: '', label: 'Selecionar Cliente' },
-                                    ...customers.map((c: any) => ({ value: c.id, label: c.name }))
+                                    ...customers.map((c) => ({ value: c.id, label: c.name }))
                                 ]}
                             />
                             <Input
@@ -191,7 +220,7 @@ export function CommercialCartPanel({
                             </div>
                         </div>
                     ) : (
-                        cart.map((item: any) => {
+                        cart.map((item) => {
                             const isProcessing = processingActions[item.productId];
                             return (
                                 <div key={item.productId} className={cn(
@@ -205,20 +234,22 @@ export function CommercialCartPanel({
                                             </h4>
                                             <div className="flex items-center gap-3">
                                                 <div className="flex items-center gap-2 bg-slate-100 dark:bg-black/20 px-2 py-1 rounded-lg border border-slate-200 dark:border-white/5 leading-none">
-                                                    <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white/10 rounded-md transition-all active:scale-90">
+                                                    <Button variant="ghost" size="xs" onClick={() => updateQuantity(item.productId, item.quantity - 1)} className="h-7 w-7 p-0 rounded-md">
                                                         <HiOutlineMinus className="w-2.5 h-2.5 text-slate-400 dark:text-white/20 hover:text-rose-500" />
-                                                    </button>
+                                                    </Button>
                                                     <span className="w-5 text-center font-bold text-slate-900 dark:text-white text-[11px]">{item.quantity}</span>
-                                                    <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="w-6 h-6 flex items-center justify-center hover:bg-white/10 rounded-md transition-all active:scale-90">
+                                                    <Button variant="ghost" size="xs" onClick={() => updateQuantity(item.productId, item.quantity + 1)} className="h-7 w-7 p-0 rounded-md">
                                                         <HiOutlinePlus className="w-2.5 h-2.5 text-slate-400 dark:text-white/20 hover:text-blue-500" />
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                                 
-                                                <button
+                                                <Button
                                                     onClick={() => onOpenLineDiscount(item.productId)}
                                                     title={item.discount?.reason ? `Motivo: ${item.discount.reason}` : 'Aplicar desconto'}
+                                                    variant="ghost"
+                                                    size="xs"
                                                     className={cn(
-                                                        "flex items-center gap-1.5 text-[8px] font-bold px-2 py-1 rounded-lg transition-all border uppercase tracking-wider",
+                                                        "h-7 px-2 rounded-lg border text-[8px]",
                                                         item.discountPct > 0
                                                             ? 'bg-rose-500/10 text-rose-500 border-rose-500/20 hover:bg-rose-500/20'
                                                             : 'bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/20 border-transparent hover:text-rose-500 hover:border-rose-500/20'
@@ -226,16 +257,16 @@ export function CommercialCartPanel({
                                                 >
                                                     <HiOutlineTag className="w-2.5 h-2.5" />
                                                     {item.discountPct > 0 ? `${Number(item.discountPct).toFixed(item.discountPct % 1 ? 1 : 0)}% DESC.` : 'DESC.'}
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                         <div className="text-right flex flex-col items-end gap-1">
                                             <p className="font-bold text-blue-400 text-sm tracking-tight">
                                                 {formatCurrency(item.total)}
                                             </p>
-                                            <button onClick={() => removeFromCart(item.productId)} className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 dark:text-white/10 hover:text-rose-500 transition-all">
+                                            <Button variant="ghost" size="xs" onClick={() => removeFromCart(item.productId)} className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 text-slate-300 dark:text-white/10 hover:text-rose-500">
                                                 <HiOutlineTrash className="w-4 h-4" />
-                                            </button>
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>
@@ -247,12 +278,12 @@ export function CommercialCartPanel({
                 {/* Hardware bar */}
                 <div className="px-3 py-1 bg-gray-50/5 dark:bg-dark-900/5 border-t border-gray-100 dark:border-dark-700 flex items-center justify-between gap-1">
                     <div className="flex items-center gap-1">
-                        <button onClick={handleScaleAction} className="p-1 bg-white dark:bg-dark-800 text-gray-400 rounded hover:text-blue-500 border border-gray-100 dark:border-dark-700 shadow-sm transition-colors">
+                        <Button variant="ghost" size="xs" onClick={handleScaleAction} className="h-7 w-7 p-0 bg-white dark:bg-dark-800 text-gray-400 rounded hover:text-blue-500 border border-gray-100 dark:border-dark-700 shadow-sm">
                             <HiOutlineScale className="w-3 h-3" />
-                        </button>
-                        <button onClick={handleToggleCashDrawer} className={`p-1 rounded border shadow-sm transition-all ${cashDrawerOpen ? 'bg-amber-500 text-white border-amber-500' : 'bg-white dark:bg-dark-800 text-gray-400 border-gray-100 dark:border-dark-700'}`}>
+                        </Button>
+                        <Button variant="ghost" size="xs" onClick={handleToggleCashDrawer} className={cn('h-7 w-7 p-0 rounded border shadow-sm', cashDrawerOpen ? 'bg-amber-500 text-white border-amber-500' : 'bg-white dark:bg-dark-800 text-gray-400 border-gray-100 dark:border-dark-700')}>
                             {cashDrawerOpen ? <HiOutlineLockOpen className="w-3 h-3" /> : <HiOutlineLockClosed className="w-3 h-3" />}
-                        </button>
+                        </Button>
                     </div>
                     <div className="flex bg-green-500/5 dark:bg-emerald-500/15 border border-green-500/10 dark:border-emerald-500/30 rounded overflow-hidden shadow-sm backdrop-blur-sm">
                         <div className="px-1.5 py-0.5 text-green-600 dark:text-emerald-300 text-[8px] font-black uppercase flex items-center gap-1">
@@ -260,12 +291,12 @@ export function CommercialCartPanel({
                             {formatCurrency(cashDrawerBalance)}
                         </div>
                         <div className="flex border-l border-green-500/10 dark:border-emerald-500/30">
-                            <button onClick={() => onCashMovement('cash_in')} className="p-1 hover:bg-green-500/10 text-green-600 transition-colors">
+                            <Button variant="ghost" size="xs" onClick={() => onCashMovement('cash_in')} className="h-7 w-7 p-0 hover:bg-green-500/10 text-green-600">
                                 <HiOutlinePlus className="w-2.5 h-2.5" />
-                            </button>
-                            <button onClick={() => onCashMovement('cash_out')} className="p-1 hover:bg-orange-500/10 text-orange-600 transition-colors">
+                            </Button>
+                            <Button variant="ghost" size="xs" onClick={() => onCashMovement('cash_out')} className="h-7 w-7 p-0 hover:bg-orange-500/10 text-orange-600">
                                 <HiOutlineMinus className="w-2.5 h-2.5" />
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -307,7 +338,7 @@ export function CommercialCartPanel({
                                 </div>
                             )}
                             <div className="flex justify-between gap-6 text-[10px] text-slate-400 dark:text-white/30 uppercase font-bold tracking-wider leading-none">
-                                <span>IVA (16%)</span>
+                                <span>IVA ({ivaRate}%)</span>
                                 <span className="text-slate-900 dark:text-white">{formatCurrency(cartTax)}</span>
                             </div>
                         </div>

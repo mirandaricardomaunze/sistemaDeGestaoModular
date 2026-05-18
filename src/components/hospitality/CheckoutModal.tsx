@@ -8,14 +8,14 @@ import { useState, useEffect } from 'react';
 import { Modal, Button, Select, LoadingSpinner, Card } from '../ui';
 import { hospitalityAPI } from '../../services/api';
 import { formatCurrency } from '../../utils/helpers';
-import { HiOutlineCash, HiOutlineCheckCircle } from 'react-icons/hi';
+import { HiOutlineBanknotes, HiOutlineCheckCircle } from 'react-icons/hi2';
 import MobilePaymentModal from '../pos/MobilePaymentModal';
 
 interface CheckoutModalProps {
     isOpen: boolean;
     onClose: () => void;
     bookingId: string | null;
-    onSuccess: (sale?: any) => void;
+    onSuccess: (sale?: unknown) => void;
 }
 
 interface BookingTotal {
@@ -148,7 +148,7 @@ export default function CheckoutModal({
                                 fullWidth
                                 onClick={handleCheckout}
                                 isLoading={isSubmitting}
-                                leftIcon={<HiOutlineCash className="w-5 h-5" />}
+                                leftIcon={<HiOutlineBanknotes className="w-5 h-5" />}
                             >
                                 Confirmar e Pagar
                             </Button>

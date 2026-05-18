@@ -23,9 +23,15 @@ interface SmartTableProps<TData> {
     /** Dados a serem exibidos */
     data: TData[];
     /** Definição das colunas */
-    columns: ColumnDef<any, any>[];
+    columns: ColumnDef<TData, unknown>[];
     /** Estado de carregamento */
     isLoading?: boolean;
+    /** Estado de erro */
+    isError?: boolean;
+    /** Mensagem de erro */
+    errorMessage?: string;
+    /** Callback para tentar novamente após erro */
+    onRetry?: () => void;
     
     /** Configuração de pesquisa */
     search?: {
@@ -88,6 +94,7 @@ interface SmartTableProps<TData> {
     expandedRowRender?: (data: TData) => ReactNode;
     /** ID da linha que está expandida */
     expandedId?: string | number | null;
+    rowClassName?: (data: TData) => string | undefined;
 }
 
 /**
@@ -105,6 +112,9 @@ export function SmartTable<TData extends { id?: string | number }>({
     data,
     columns,
     isLoading = false,
+    isError = false,
+    errorMessage,
+    onRetry,
     search,
     pagination,
     sorting,
@@ -122,7 +132,8 @@ export function SmartTable<TData extends { id?: string | number }>({
     onRefresh,
     hideToolbar = false,
     expandedRowRender,
-    expandedId
+    expandedId,
+    rowClassName
 }: SmartTableProps<TData>) {
     const { settings: companySettings } = useCompanySettings();
 
@@ -148,7 +159,7 @@ export function SmartTable<TData extends { id?: string | number }>({
         if (!exportConfig) return null;
         return {
             columns: exportConfig.columns,
-            data: data as any[],
+            data: data as object[],
             orientation: exportConfig.orientation,
             companyName: companySettings?.companyName,
         };
@@ -156,9 +167,9 @@ export function SmartTable<TData extends { id?: string | number }>({
 
     return (
         <div className={cn("space-y-4", className)}>
-            {/* ── Toolbar: Search, Filters & Actions ────────────────────────── */}
+            {/* Toolbar: Search, Filters & Actions */}
             {!hideToolbar && (
-                <Card padding="md" className="overflow-visible border-none shadow-sm bg-slate-50/50 dark:bg-dark-900/50">
+                <Card padding="md" className="relative z-20 overflow-visible bg-white dark:bg-dark-900/50 border border-slate-300/70 dark:border-white/10 shadow-card">
                     <div className="flex flex-col lg:flex-row items-stretch lg:items-end gap-4">
                         {/* Pesquisa */}
                         {search && (
@@ -192,7 +203,7 @@ export function SmartTable<TData extends { id?: string | number }>({
                                     onClick={onRefresh}
                                     isLoading={isLoading}
                                     title="Actualizar dados"
-                                    className="bg-white dark:bg-dark-800 border border-slate-200 dark:border-dark-700 shadow-sm"
+                                    className="bg-white dark:bg-dark-800 border border-slate-300 dark:border-dark-700 shadow-sm"
                                 >
                                     <HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                                 </Button>
@@ -220,11 +231,14 @@ export function SmartTable<TData extends { id?: string | number }>({
                 </Card>
             )}
 
-            {/* ── Table Container ───────────────────────────────────────────── */}
-            <Card padding="none" className="border-none shadow-sm overflow-hidden">
+            {/* Table Container */}
+            <Card padding="none" className="border border-slate-300/70 dark:border-white/10 shadow-card overflow-hidden">
                 <DataTable
                     table={table}
                     isLoading={isLoading}
+                    isError={isError}
+                    errorMessage={errorMessage}
+                    onRetry={onRetry}
                     isEmpty={!isLoading && data.length === 0}
                     emptyTitle={emptyTitle}
                     emptyDescription={emptyDescription}
@@ -233,11 +247,12 @@ export function SmartTable<TData extends { id?: string | number }>({
                     minHeight={minHeight}
                     renderExpandedRow={expandedRowRender}
                     isRowExpanded={(row) => row.id === expandedId}
+                    rowClassName={rowClassName}
                 />
 
                 {/* Paginação */}
                 {pagination && pagination.totalItems > 0 && (
-                    <div className="px-6 border-t border-slate-100 dark:border-dark-700 bg-slate-50/30 dark:bg-dark-900/30">
+                    <div className="px-6 border-t border-slate-200/80 dark:border-dark-700 bg-slate-50/90 dark:bg-dark-900/30">
                         <Pagination
                             currentPage={pagination.currentPage}
                             totalItems={pagination.totalItems}

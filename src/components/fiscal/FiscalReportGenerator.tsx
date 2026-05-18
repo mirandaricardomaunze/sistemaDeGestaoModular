@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import {
-    HiOutlineDocumentChartBar as HiOutlineDocumentReport,
-    HiOutlineArrowDownTray as HiOutlineDownload,
+    HiOutlineDocumentChartBar as HiOutlineDocumentChartBar,
+    HiOutlineArrowDownTray as HiOutlineArrowDownTray,
     HiOutlinePrinter,
     HiOutlineCheck,
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineArrowPath,
 } from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { useStore } from '../../stores/useStore';
@@ -21,7 +21,9 @@ import {
 } from '../../utils/fiscalCalculations';
 import { exportData } from '../../utils/exportUtils';
 import type { ExportOptions } from '../../utils/exportUtils';
-import type { FiscalReport, FiscalReportType, TaxType, ExportFormat } from '../../types/fiscal';
+import type { FiscalReport, FiscalReportType, TaxType, ExportFormat, TaxRetention } from '../../types/fiscal';
+import { fiscalAPI } from '../../services/api';
+import { saftAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 
 export default function FiscalReportGenerator() {
@@ -32,6 +34,30 @@ export default function FiscalReportGenerator() {
     const [selectedPeriod, setSelectedPeriod] = useState(getCurrentFiscalPeriod());
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const [previewReport, setPreviewReport] = useState<FiscalReport | null>(null);
+
+    // SAF-T State
+    const currentYear = String(new Date().getFullYear());
+    const [saftStartDate, setSaftStartDate] = useState(`${currentYear}-01-01`);
+    const [saftEndDate, setSaftEndDate] = useState(`${currentYear}-12-31`);
+    const [saftFiscalYear, setSaftFiscalYear] = useState(currentYear);
+    const [isExportingSAFT, setIsExportingSAFT] = useState(false);
+
+    const handleExportSAFT = async () => {
+        try {
+            setIsExportingSAFT(true);
+            await saftAPI.downloadSAFT({
+                startDate: saftStartDate,
+                endDate: saftEndDate,
+                fiscalYear: saftFiscalYear,
+            });
+            toast.success('SAF-T exportado com sucesso!');
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : 'Erro ao exportar SAF-T';
+            toast.error(msg);
+        } finally {
+            setIsExportingSAFT(false);
+        }
+    };
 
     // Pagination for reports list
     const sortedReports = useMemo(() =>
@@ -65,6 +91,7 @@ export default function FiscalReportGenerator() {
 
     const reportTypeOptions = [
         { value: 'iva_monthly', label: 'IVA - Mensal' },
+        { value: 'commercial_iva_map', label: 'Mapa de IVA Comercial' },
         { value: 'inss_monthly', label: 'INSS - Mensal' },
         { value: 'irt_monthly', label: 'IRPS - Mensal' },
         { value: 'withholding_monthly', label: 'Retenções Fonte - Mensal' },
@@ -74,6 +101,7 @@ export default function FiscalReportGenerator() {
         switch (reportType) {
             case 'iva_monthly':
             case 'iva_quarterly':
+            case 'commercial_iva_map':
                 return ['iva'];
             case 'inss_monthly':
                 return ['inss_employee', 'inss_employer'];
@@ -87,18 +115,37 @@ export default function FiscalReportGenerator() {
         }
     };
 
-    const handleGenerateReport = () => {
+    const handleGenerateReport = async () => {
         const typeFilters = getTypeFilter(selectedReportType);
-        const periodRetentions = retentions.filter(
+        let periodRetentions = retentions.filter(
             r => r.period === selectedPeriod && typeFilters.includes(r.type)
         );
 
         const { startDate, endDate } = getPeriodRange(selectedPeriod);
+        type CommercialSummary = {
+            currentMonth: { taxableBase: number; ivaCollected: number; ivaPayable: number; ivaReversed: number; ivaDeductible: number };
+            purchaseDeductions?: TaxRetention[];
+        };
+        let commercialSummary: CommercialSummary | null = null;
+
+        if (selectedReportType === 'commercial_iva_map') {
+            commercialSummary = (await fiscalAPI.getCommercialSummary({ period: selectedPeriod })) as CommercialSummary;
+            if (commercialSummary) {
+                periodRetentions = [
+                    ...periodRetentions.filter(r => r.documentType === 'invoice' || r.documentType === 'credit_note'),
+                    ...(commercialSummary.purchaseDeductions || []),
+                ];
+            }
+        }
 
         // Calculate summary
         const summary = {
-            totalBaseAmount: periodRetentions.reduce((sum, r) => sum + r.baseAmount, 0),
-            totalTaxAmount: periodRetentions.reduce((sum, r) => sum + r.retainedAmount, 0),
+            totalBaseAmount: selectedReportType === 'commercial_iva_map' && commercialSummary
+                ? commercialSummary.currentMonth.taxableBase
+                : periodRetentions.reduce((sum, r) => sum + r.baseAmount, 0),
+            totalTaxAmount: selectedReportType === 'commercial_iva_map' && commercialSummary
+                ? commercialSummary.currentMonth.ivaPayable
+                : periodRetentions.reduce((sum, r) => sum + r.retainedAmount, 0),
             totalDocuments: periodRetentions.length,
             byCategory: periodRetentions.reduce((acc, r) => {
                 if (!acc[r.documentType]) {
@@ -124,6 +171,9 @@ export default function FiscalReportGenerator() {
             generatedAt: new Date().toISOString(),
             exportedFormats: [],
             createdBy: 'Sistema',
+            notes: selectedReportType === 'commercial_iva_map' && commercialSummary
+                ? `IVA facturas: ${commercialSummary.currentMonth.ivaCollected}; IVA estornado: ${commercialSummary.currentMonth.ivaReversed}; IVA dedutível: ${commercialSummary.currentMonth.ivaDeductible}`
+                : undefined,
         };
 
         // Validate
@@ -135,7 +185,7 @@ export default function FiscalReportGenerator() {
         }
 
         if (validation.warnings.length > 0) {
-            toast(validation.warnings.map(w => w.message).join('\n'), { icon: '⚠️' });
+            toast(validation.warnings.map(w => w.message).join('\n'), { icon: '⚠️ï¸' });
         }
 
         addFiscalReport(report);
@@ -204,7 +254,7 @@ export default function FiscalReportGenerator() {
                 break;
 
             case 'pdf':
-            case 'excel':
+            case 'excel': {
                 const exportOptions: ExportOptions = {
                     filename: `Relatorio_Fiscal_${report.type}_${report.period}`,
                     title: report.name,
@@ -226,6 +276,7 @@ export default function FiscalReportGenerator() {
                 exportData(exportOptions, format === 'pdf' ? 'pdf' : 'excel');
                 filename = `${exportOptions.filename}.${format === 'pdf' ? 'pdf' : 'xlsx'}`;
                 break;
+            }
 
             default:
                 toast.error('Formato não suportado');
@@ -275,11 +326,77 @@ export default function FiscalReportGenerator() {
 
     return (
         <div className="space-y-6">
-            {/* Generate Report Section */}
+            {/* SAF-T XML Export Panel */}
+            <Card padding="md">
+                <h3 className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300 flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                        <HiOutlineArrowDownTray className="w-5 h-5 text-orange-600" />
+                    </div>
+                    Exportar SAF-T XML (Moçambique)
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">
+                            Data Início
+                        </label>
+                        <input
+                            id="saft-start-date"
+                            type="date"
+                            value={saftStartDate}
+                            onChange={(e) => setSaftStartDate(e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">
+                            Data Fim
+                        </label>
+                        <input
+                            id="saft-end-date"
+                            type="date"
+                            value={saftEndDate}
+                            onChange={(e) => setSaftEndDate(e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">
+                            Ano Fiscal
+                        </label>
+                        <input
+                            id="saft-fiscal-year"
+                            type="number"
+                            min="2020"
+                            max="2099"
+                            value={saftFiscalYear}
+                            onChange={(e) => setSaftFiscalYear(e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        />
+                    </div>
+                    <Button
+                        id="btn-export-saft"
+                        onClick={handleExportSAFT}
+                        disabled={isExportingSAFT}
+                        className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                    >
+                        {isExportingSAFT ? (
+                            <><HiOutlineArrowPath className="w-4 h-4 mr-2 animate-spin" />A gerar...</>
+                        ) : (
+                            <><HiOutlineArrowDownTray className="w-4 h-4 mr-2" />Exportar SAF-T XML</>
+                        )}
+                    </Button>
+                </div>
+
+                <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
+                    Gera o ficheiro XML no formato SAF-T (Standard Audit File for Tax) conforme o standard OECD adaptado para Moçambique (AT-MZ 1.00).
+                    Inclui cabeçalho, clientes, produtos e todas as faturas do período seleccionado.
+                </p>
+            </Card>
             <Card padding="md">
                 <h3 className="text-xs font-black uppercase tracking-widest text-gray-700 dark:text-gray-300 flex items-center gap-3 mb-6">
                     <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
-                        <HiOutlineDocumentReport className="w-5 h-5 text-primary-600" />
+                        <HiOutlineDocumentChartBar className="w-5 h-5 text-primary-600" />
                     </div>
                     Gerar Relatório Fiscal
                 </h3>
@@ -301,7 +418,7 @@ export default function FiscalReportGenerator() {
 
                     <div className="flex items-end">
                         <Button onClick={handleGenerateReport} className="w-full">
-                            <HiOutlineRefresh className="w-5 h-5 mr-2" />
+                            <HiOutlineArrowPath className="w-5 h-5 mr-2" />
                             Gerar Relatório
                         </Button>
                     </div>
@@ -394,28 +511,28 @@ export default function FiscalReportGenerator() {
                                                     className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                                                     title="Ver Detalhes"
                                                 >
-                                                    <HiOutlineDocumentReport className="w-5 h-5" />
+                                                    <HiOutlineDocumentChartBar className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleExport(report, 'pdf')}
                                                     className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                                                     title="Exportar PDF"
                                                 >
-                                                    <HiOutlineDownload className="w-5 h-5 text-red-500" />
+                                                    <HiOutlineArrowDownTray className="w-5 h-5 text-red-500" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleExport(report, 'excel')}
                                                     className="p-2 text-gray-400 hover:text-green-700 transition-colors"
                                                     title="Exportar Excel"
                                                 >
-                                                    <HiOutlineDownload className="w-5 h-5 text-green-600" />
+                                                    <HiOutlineArrowDownTray className="w-5 h-5 text-green-600" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleExport(report, 'csv')}
                                                     className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                                                     title="Exportar CSV"
                                                 >
-                                                    <HiOutlineDownload className="w-5 h-5" />
+                                                    <HiOutlineArrowDownTray className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleExport(report, 'xml')}
@@ -518,19 +635,19 @@ export default function FiscalReportGenerator() {
                             </div>
                             <div className="flex flex-wrap gap-2 justify-end">
                                 <Button variant="primary" onClick={() => handleExport(previewReport, 'pdf')}>
-                                    <HiOutlineDownload className="w-4 h-4 mr-2" />
+                                    <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                                     PDF
                                 </Button>
                                 <Button variant="success" onClick={() => handleExport(previewReport, 'excel')}>
-                                    <HiOutlineDownload className="w-4 h-4 mr-2" />
+                                    <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                                     Excel
                                 </Button>
                                 <Button variant="outline" onClick={() => handleExport(previewReport, 'csv')}>
-                                    <HiOutlineDownload className="w-4 h-4 mr-2" />
+                                    <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                                     CSV
                                 </Button>
                                 <Button variant="outline" onClick={() => handleExport(previewReport, 'xml')}>
-                                    <HiOutlineDownload className="w-4 h-4 mr-2" />
+                                    <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                                     XML
                                 </Button>
                             </div>

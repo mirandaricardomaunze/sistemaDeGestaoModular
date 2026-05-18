@@ -37,18 +37,19 @@ interface UsePaginatedQueryOptions<T, R> {
     select?: (page: PaginatedResult<T>) => R;
 }
 
-function normalizeResponse<T>(raw: any, fallbackPage: number, fallbackLimit: number): PaginatedResult<T> {
-    if (raw && Array.isArray(raw.data) && raw.pagination) {
-        const p = raw.pagination;
+function normalizeResponse<T>(raw: unknown, fallbackPage: number, fallbackLimit: number): PaginatedResult<T> {
+    const r = raw as { data?: T[]; pagination?: PaginationMeta } | T[] | undefined;
+    if (r && !Array.isArray(r) && Array.isArray(r.data) && r.pagination) {
+        const p = r.pagination;
         return {
-            data: raw.data as T[],
+            data: r.data as T[],
             pagination: {
                 ...p,
                 hasMore: p.hasMore ?? p.hasNext ?? p.page < p.totalPages,
             },
         };
     }
-    const data: T[] = Array.isArray(raw) ? raw : (raw?.data ?? []);
+    const data: T[] = Array.isArray(r) ? r : (r?.data ?? []);
     return {
         data,
         pagination: {
@@ -67,7 +68,7 @@ function normalizeResponse<T>(raw: any, fallbackPage: number, fallbackLimit: num
  * URL and the queryKey, so React Query dedupes identical requests across
  * components on the same page.
  */
-export function usePaginatedQuery<T = any, R = PaginatedResult<T>>(
+export function usePaginatedQuery<T = unknown, R = PaginatedResult<T>>(
     opts: UsePaginatedQueryOptions<T, R>
 ) {
     const { endpoint, queryKey, params, fields, enabled = true, staleTime, select } = opts;

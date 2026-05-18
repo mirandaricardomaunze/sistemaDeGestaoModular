@@ -1,11 +1,11 @@
 import { logger } from '../utils/logger';
 import { useState, useMemo } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlinePlus,
-    HiOutlineMagnifyingGlass,
     HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineTag,
@@ -13,7 +13,7 @@ import {
     HiOutlineCube,
     HiOutlineArrowPath,
 } from 'react-icons/hi2';
-import { Card, Button, Input, Modal, Pagination, usePagination, LoadingSpinner, PageHeader } from '../components/ui';
+import { Button, Input, Modal, usePagination, LoadingSpinner, PageHeader, SmartTable } from '../components/ui';
 import { MetricCard } from '../components/common/ModuleMetricCard';
 import { cn } from '../utils/helpers';
 import type { Category } from '../types';
@@ -104,6 +104,7 @@ export default function Categories({ hideHeader = false, originModule }: Categor
         currentPage,
         setCurrentPage,
         itemsPerPage,
+        setItemsPerPage,
         paginatedItems: paginatedCategories,
         totalItems,
     } = usePagination(filteredCategories, PAGE_SIZE);
@@ -124,7 +125,7 @@ export default function Categories({ hideHeader = false, originModule }: Categor
                     color: selectedColor,
                     // Pass originModule if creating for a specific module
                     ...(originModule ? { originModule } : {})
-                } as any);
+                });
             }
             closeFormModal();
         } catch (err) {
@@ -169,6 +170,106 @@ export default function Categories({ hideHeader = false, originModule }: Categor
 
     // Module name for labels
     const moduleName = originModule === 'pharmacy' ? 'Farmácia' : '';
+
+    const categoryColumns: ColumnDef<Category, unknown>[] = [
+        {
+            accessorKey: 'code',
+            header: 'Codigo',
+            cell: ({ row }) => (
+                <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                    {row.original.code}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'name',
+            header: 'Nome',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-3">
+                    <div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: `${row.original.color}20` }}
+                    >
+                        <HiOutlineTag
+                            className="w-4 h-4"
+                            style={{ color: row.original.color }}
+                        />
+                    </div>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                        {row.original.name}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'description',
+            header: 'Descricao',
+            cell: ({ row }) => (
+                <span className="block max-w-xs truncate text-sm text-gray-600 dark:text-gray-400">
+                    {row.original.description || '-'}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'productCount',
+            header: 'Produtos',
+            cell: ({ row }) => (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                    {row.original.productCount || 0}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'color',
+            header: 'Cor',
+            cell: ({ row }) => (
+                <div
+                    className="w-6 h-6 rounded-full mx-auto border-2 border-white dark:border-dark-600 shadow-sm"
+                    style={{ backgroundColor: row.original.color }}
+                    title={colorOptions.find((c) => c.value === row.original.color)?.label || 'Cor'}
+                />
+            ),
+        },
+        {
+            accessorKey: 'isActive',
+            header: 'Status',
+            cell: ({ row }) => (
+                <span className={cn(
+                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                    row.original.isActive
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                )}>
+                    {row.original.isActive ? 'Activa' : 'Inactiva'}
+                </span>
+            ),
+        },
+        {
+            id: 'actions',
+            header: () => <span className="block text-right">Accoes</span>,
+            cell: ({ row }) => (
+                <div className="flex gap-2 justify-end">
+                    <button
+                        onClick={() => handleEdit(row.original)}
+                        className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
+                        title="Editar"
+                    >
+                        <HiOutlinePencil className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => {
+                            setCategoryToDelete(row.original);
+                            setDeleteModalOpen(true);
+                        }}
+                        className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
+                        title="Excluir"
+                    >
+                        <HiOutlineTrash className="w-4 h-4" />
+                    </button>
+                </div>
+            ),
+        },
+    ];
 
     // Loading state
     if (isLoading) {
@@ -235,128 +336,29 @@ export default function Categories({ hideHeader = false, originModule }: Categor
                 />
             </div>
 
-            {/* Search */}
-            <Card padding="md">
-                <Input
-                    placeholder="Buscar categorias..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-500/70" />}
-                    className="bg-white dark:bg-dark-900 border-none shadow-sm"
-                />
-            </Card>
-
             {/* Category Table */}
-            <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-50 dark:bg-dark-700">
-                            <tr className="text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                <th className="px-6 py-4 font-medium">Código</th>
-                                <th className="px-6 py-4 font-medium">Nome</th>
-                                <th className="px-6 py-4 font-medium">Descrição</th>
-                                <th className="px-6 py-4 font-medium text-center">Produtos</th>
-                                <th className="px-6 py-4 font-medium text-center">Cor</th>
-                                <th className="px-6 py-4 font-medium text-center">Status</th>
-                                <th className="px-6 py-4 font-medium text-right">Acções</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                            {filteredCategories.length === 0 ? (
-                                <tr>
-                                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                        Nenhuma categoria encontrada
-                                    </td>
-                                </tr>
-                            ) : paginatedCategories.map((category) => (
-                                <tr
-                                    key={category.id}
-                                    className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors"
-                                >
-                                    <td className="px-6 py-4">
-                                        <span className="text-sm font-mono text-gray-600 dark:text-gray-400">
-                                            {category.code}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <div
-                                                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                                                style={{ backgroundColor: `${category.color}20` }}
-                                            >
-                                                <HiOutlineTag
-                                                    className="w-4 h-4"
-                                                    style={{ color: category.color }}
-                                                />
-                                            </div>
-                                            <span className="font-medium text-gray-900 dark:text-white">
-                                                {category.name}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
-                                            {category.description || '-'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                                            {category.productCount || 0}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <div
-                                            className="w-6 h-6 rounded-full mx-auto border-2 border-white dark:border-dark-600 shadow-sm"
-                                            style={{ backgroundColor: category.color }}
-                                            title={colorOptions.find((c) => c.value === category.color)?.label || 'Cor'}
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4 text-center">
-                                        <span className={cn(
-                                            'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-                                            category.isActive
-                                                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400'
-                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                                        )}>
-                                            {category.isActive ? 'Activa' : 'Inactiva'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex gap-2 justify-end">
-                                            <button
-                                                onClick={() => handleEdit(category)}
-                                                className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
-                                                title="Editar"
-                                            >
-                                                <HiOutlinePencil className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setCategoryToDelete(category);
-                                                    setDeleteModalOpen(true);
-                                                }}
-                                                className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
-                                                title="Excluir"
-                                            >
-                                                <HiOutlineTrash className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                {/* Pagination */}
-                <div className="px-6 py-4 border-t border-gray-100 dark:border-dark-700">
-                    <Pagination
-                        currentPage={currentPage}
-                        totalItems={totalItems}
-                        itemsPerPage={itemsPerPage}
-                        onPageChange={setCurrentPage}
-                    />
-                </div>
-            </Card>
+            <SmartTable
+                data={paginatedCategories}
+                columns={categoryColumns}
+                search={{
+                    value: search,
+                    onChange: setSearch,
+                    placeholder: 'Buscar categorias...',
+                }}
+                pagination={{
+                    currentPage,
+                    totalItems,
+                    itemsPerPage,
+                    onPageChange: setCurrentPage,
+                    onItemsPerPageChange: setItemsPerPage,
+                }}
+                onRefresh={() => refetch()}
+                emptyTitle="Nenhuma categoria encontrada"
+                emptyDescription="Tente ajustar a busca ou crie uma nova categoria."
+                onEmptyAction={() => setShowFormModal(true)}
+                emptyActionLabel="Nova Categoria"
+                minHeight="420px"
+            />
 
             {/* Category Form Modal */}
             <Modal

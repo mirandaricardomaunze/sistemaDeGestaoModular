@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Modal, Input, Textarea, Select, Button, Stepper, useStepper } from '../ui';
-import { HiOutlineClipboardList, HiOutlineCheck, HiOutlineGlobe, HiOutlineHome } from 'react-icons/hi';
+import { HiOutlineClipboardDocumentList, HiOutlineCheck, HiOutlineGlobeAlt, HiOutlineHome } from 'react-icons/hi2';
 import { COUNTRIES, getCountryByCode, getDocumentTypesForCountry } from '../../config/countries';
 import type { Room, Booking } from '../../types';
 
@@ -72,7 +72,7 @@ export default function CheckInModal({
             customerName: data.customerName,
             checkIn: new Date().toISOString(),
             checkOut: new Date(data.checkOutDate).toISOString(),
-            mealPlan: data.mealPlan as any,
+            mealPlan: data.mealPlan as 'none' | 'breakfast' | 'half_board' | 'full_board',
             // Additional guest info
             guestDocumentType: data.guestDocumentType,
             guestDocumentNumber: data.guestDocumentNumber,
@@ -165,7 +165,7 @@ export default function CheckInModal({
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                    <HiOutlineGlobe className="w-4 h-4 inline mr-1" />
+                                    <HiOutlineGlobeAlt className="w-4 h-4 inline mr-1" />
                                     País / Nacionalidade
                                 </label>
                                 <select
@@ -231,7 +231,7 @@ export default function CheckInModal({
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                         <div className="p-4 bg-gray-50 dark:bg-dark-800/50 rounded-lg space-y-3 shadow-inner border border-gray-100 dark:border-dark-700">
                             <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                <HiOutlineClipboardList className="text-primary-500" />
+                                <HiOutlineClipboardDocumentList className="text-primary-500" />
                                 Resumo da Estadia
                             </h4>
                             <div className="grid grid-cols-2 gap-y-2 text-sm">

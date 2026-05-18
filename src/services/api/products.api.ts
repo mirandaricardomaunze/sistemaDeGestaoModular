@@ -1,4 +1,15 @@
 import api from './client';
+import type { StockMovement } from '../../types';
+
+export interface StockMovementListResponse {
+    data: StockMovement[];
+    pagination?: {
+        page?: number;
+        limit?: number;
+        total: number;
+        totalPages?: number;
+    };
+}
 
 // ============================================================================
 // Products API
@@ -143,7 +154,7 @@ export const productsAPI = {
         sortBy?: string;
         sortOrder?: 'asc' | 'desc';
         originModule?: string;
-    }) => {
+    }): Promise<StockMovementListResponse> => {
         const response = await api.get('/products/stock-movements', { params });
         return response.data;
     },

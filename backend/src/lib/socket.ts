@@ -35,7 +35,7 @@ export function initSocket(server: HttpServer) {
                 return next(new Error('Authentication error: Token revogado'));
             }
 
-            const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET!, { algorithms: ['HS256'] }) as any;
+            const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET!, { algorithms: ['HS256'] }) as { userId?: string; id?: string; companyId?: string };
 
             // Token payload uses 'userId' (set by auth route)
             const userId = decoded.userId || decoded.id;
@@ -103,7 +103,9 @@ export function getIO() {
 /**
  * Emits to all users in the company (core events visible to everyone).
  */
-export function emitToCompany(companyId: string, event: string, payload: any) {
+export type SocketPayload = unknown;
+
+export function emitToCompany(companyId: string, event: string, payload: SocketPayload) {
     if (io) {
         io.to(companyId).emit(event, payload);
     }
@@ -114,7 +116,7 @@ export function emitToCompany(companyId: string, event: string, payload: any) {
  * Falls back to company-wide if no module specified.
  * Use this for module-specific events (hospitality:checkin, logistics:incident, etc.)
  */
-export function emitToModule(companyId: string, moduleCode: string, event: string, payload: any) {
+export function emitToModule(companyId: string, moduleCode: string, event: string, payload: SocketPayload) {
     if (io) {
         io.to(`${companyId}:${moduleCode.toLowerCase()}`).emit(event, payload);
     }

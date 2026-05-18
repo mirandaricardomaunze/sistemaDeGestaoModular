@@ -3,21 +3,28 @@ import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { cacheService } from '../cacheService';
 import { ResultHandler } from '../../utils/result';
-import { round2, calcMargin, UNCATEGORISED, daysAgo, monthStart, monthEnd } from './shared';
+import { round2, calcMargin, UNCATEGORISED, resolveCategoryName, daysAgo, monthStart, monthEnd } from './shared';
 
 const ANALYTICS_CACHE_TTL = 300;
 
-interface SaleFilter {
-    companyId: string;
-    createdAt?: { gte?: Date; lte?: Date };
-    userId?: string;
-}
+type SaleFilter = Prisma.SaleWhereInput;
+type CostedSaleItem = {
+    costPrice?: unknown;
+    product?: { costPrice?: unknown } | null;
+    quantity: number;
+};
+
+const COMMERCIAL_PRODUCT_ORIGINS = ['commercial', 'COMMERCIAL'];
+const COMMERCIAL_SALE_ORIGIN_FILTER: Prisma.SaleWhereInput[] = [
+    { originModule: { in: ['commercial', 'COMMERCIAL'] } },
+];
+const COMMERCIAL_SALE_ORIGIN_SQL = Prisma.sql`AND LOWER(s."origin_module") = 'commercial'`;
 
 export class CommercialAnalyticsService {
 
-    async getAnalytics(companyId: string, userId?: string) {
+    async getAnalytics(companyId: string, userId?: string, warehouseId?: string) {
         if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-        const cacheKey = `commercial:analytics:${companyId}${userId ? `:${userId}` : ''}`;
+        const cacheKey = `commercial:analytics:${companyId}${userId ? `:${userId}` : ''}${warehouseId ? `:wh:${warehouseId}` : ''}`;
 
         return cacheService.getOrSet(cacheKey, async () => {
             const today = new Date();
@@ -26,27 +33,50 @@ export class CommercialAnalyticsService {
             const prevStart = monthStart(-1);
             const prevEnd = monthEnd(-1);
 
-            const saleFilter: SaleFilter = { companyId, createdAt: { gte: curStart, lte: curEnd } };
+            const saleFilter: SaleFilter = {
+                companyId,
+                createdAt: { gte: curStart, lte: curEnd },
+                OR: COMMERCIAL_SALE_ORIGIN_FILTER,
+            };
             if (userId) saleFilter.userId = userId;
+            if (warehouseId) saleFilter.warehouseId = warehouseId;
 
             const [monthItems, lastMonthItems, allActiveProducts, pendingPOs, overduePOs, totalPOSpend] =
                 await Promise.all([
                     prisma.saleItem.findMany({
-                        where: { sale: saleFilter as any },
+                        where: { sale: saleFilter },
                         include: { product: { select: { costPrice: true, category: true } } }
                     }),
                     prisma.saleItem.findMany({
-                        where: { sale: { ...saleFilter, createdAt: { gte: prevStart, lte: prevEnd } } as any },
+                        where: { sale: { ...saleFilter, createdAt: { gte: prevStart, lte: prevEnd } } },
                         include: { product: { select: { costPrice: true } } }
                     }),
-                    prisma.product.findMany({
-                        // Include products from the commercial flow AND the
-                        // generic inventory bucket (the default originModule).
-                        // Excluding 'inventory' would zero out valuations on
-                        // every catalog created before originModule was wired up.
-                        where: { companyId, isActive: true, originModule: { in: ['commercial', 'inventory'] } },
-                        select: { id: true, costPrice: true, price: true, currentStock: true, minStock: true, category: true }
-                    }),
+                    warehouseId
+                        ? prisma.warehouseStock.findMany({
+                            where: {
+                                companyId,
+                                warehouseId,
+                                product: { isActive: true, originModule: { in: COMMERCIAL_PRODUCT_ORIGINS } }
+                            },
+                            select: {
+                                quantity: true,
+                                product: { select: { id: true, costPrice: true, price: true, minStock: true, category: true } }
+                            }
+                        }).then(rows => rows.map(ws => ({
+                            id: ws.product.id,
+                            costPrice: ws.product.costPrice,
+                            price: ws.product.price,
+                            currentStock: ws.quantity,
+                            minStock: ws.product.minStock,
+                            category: ws.product.category
+                        })))
+                        : prisma.product.findMany({
+                            // Strict isolation: only products explicitly tagged for the
+                            // commercial module. Legacy 'inventory' rows are excluded
+                            // by design — migrate them with a one-off UPDATE if needed.
+                            where: { companyId, isActive: true, originModule: { in: COMMERCIAL_PRODUCT_ORIGINS } },
+                            select: { id: true, costPrice: true, price: true, currentStock: true, minStock: true, category: true }
+                        }),
                     prisma.purchaseOrder.count({
                         where: { companyId, status: { in: ['draft', 'ordered'] }, deletedAt: null }
                     }),
@@ -62,7 +92,7 @@ export class CommercialAnalyticsService {
             // Prefer the costPrice snapshot stored on the SaleItem at sale time;
             // fall back to the live product cost only for legacy rows that
             // pre-date the snapshot column.
-            const itemCogs = (i: any) =>
+            const itemCogs = (i: CostedSaleItem) =>
                 Number(i.costPrice ?? i.product?.costPrice ?? 0) * i.quantity;
 
             const revenue = monthItems.reduce((s, i) => s + Number(i.total), 0);
@@ -96,18 +126,22 @@ export class CommercialAnalyticsService {
         }, ANALYTICS_CACHE_TTL);
     }
 
-    async getMarginAnalysis(companyId: string, periodDays = 30, userId?: string) {
+    async getMarginAnalysis(companyId: string, periodDays = 30, userId?: string, warehouseId?: string) {
         if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-        const cacheKey = `commercial:margins:${companyId}:${periodDays}${userId ? `:${userId}` : ''}`;
+        const cacheKey = `commercial:margins:${companyId}:${periodDays}${userId ? `:${userId}` : ''}${warehouseId ? `:wh:${warehouseId}` : ''}`;
         return cacheService.getOrSet(cacheKey, async () => {
 
         const startDate = daysAgo(periodDays);
         const sixMonthsAgo = monthStart(-5);
         const userClause = userId ? Prisma.sql`AND s."userId" = ${userId}` : Prisma.empty;
+        const warehouseClause = warehouseId ? Prisma.sql`AND s."warehouseId" = ${warehouseId}` : Prisma.empty;
 
         // Aggregate categories in SQL — one row per category.
         // Subquery normalises blanks/NULLs into UNCATEGORISED so GROUP BY can reference the alias directly
         // (Postgres treats parameterised expressions as distinct between SELECT and GROUP BY otherwise).
+        // Categoria resolvida: 1º o nome da Category vinculada (via categoryId),
+        // 2º a string legacy p.category quando NÃO for o default 'other'/'outros',
+        // 3º fallback 'Sem Categoria'.
         const categoryRows = await prisma.$queryRaw<Array<{
             category: string | null;
             revenue: number;
@@ -119,16 +153,26 @@ export class CommercialAnalyticsService {
                    COALESCE(SUM(cost), 0)::float AS cogs,
                    COALESCE(SUM(quantity), 0)::int AS qty
             FROM (
-                SELECT COALESCE(NULLIF(TRIM(p.category), ''), ${UNCATEGORISED}) AS category,
+                SELECT COALESCE(
+                           NULLIF(TRIM(c.name), ''),
+                           CASE
+                               WHEN LOWER(TRIM(p.category)) IN ('other', 'outros', '') THEN NULL
+                               ELSE NULLIF(TRIM(p.category), '')
+                           END,
+                           ${UNCATEGORISED}
+                       ) AS category,
                        si.total AS total,
                        (COALESCE(si."cost_price", p."costPrice", 0) * si.quantity) AS cost,
                        si.quantity AS quantity
                 FROM sale_items si
                 JOIN sales s ON s.id = si."saleId"
                 LEFT JOIN products p ON p.id = si."productId"
+                LEFT JOIN categories c ON c.id = p."categoryId"
                 WHERE s."companyId" = ${companyId}
                   AND s."createdAt" >= ${startDate}
+                  ${COMMERCIAL_SALE_ORIGIN_SQL}
                   ${userClause}
+                  ${warehouseClause}
             ) sub
             GROUP BY category
         `;
@@ -146,17 +190,27 @@ export class CommercialAnalyticsService {
             SELECT p.id AS id,
                    p.name AS name,
                    p.code AS code,
-                   COALESCE(NULLIF(TRIM(p.category), ''), ${UNCATEGORISED}) AS category,
+                   COALESCE(
+                       NULLIF(TRIM(c.name), ''),
+                       CASE
+                           WHEN LOWER(TRIM(p.category)) IN ('other', 'outros', '') THEN NULL
+                           ELSE NULLIF(TRIM(p.category), '')
+                       END,
+                       ${UNCATEGORISED}
+                   ) AS category,
                    COALESCE(SUM(si.total), 0)::float AS revenue,
                    COALESCE(SUM(COALESCE(si."cost_price", p."costPrice", 0) * si.quantity), 0)::float AS cogs,
                    COALESCE(SUM(si.quantity), 0)::int AS qty
             FROM sale_items si
             JOIN sales s ON s.id = si."saleId"
             JOIN products p ON p.id = si."productId"
+            LEFT JOIN categories c ON c.id = p."categoryId"
             WHERE s."companyId" = ${companyId}
               AND s."createdAt" >= ${startDate}
+              ${COMMERCIAL_SALE_ORIGIN_SQL}
               ${userClause}
-            GROUP BY p.id, p.name, p.code, p.category
+              ${warehouseClause}
+            GROUP BY p.id, p.name, p.code, c.name, p.category
         `;
 
         // Monthly trend — one row per (year, month) over the last 6 months
@@ -173,7 +227,9 @@ export class CommercialAnalyticsService {
             LEFT JOIN products p ON p.id = si."productId"
             WHERE s."companyId" = ${companyId}
               AND s."createdAt" >= ${sixMonthsAgo}
+              ${COMMERCIAL_SALE_ORIGIN_SQL}
               ${userClause}
+              ${warehouseClause}
             GROUP BY TO_CHAR(s."createdAt", 'YYYY-MM')
         `;
         const trendMap = new Map(trendRows.map(r => [r.month, { revenue: Number(r.revenue), cogs: Number(r.cogs) }]));
@@ -222,15 +278,37 @@ export class CommercialAnalyticsService {
         }, ANALYTICS_CACHE_TTL);
     }
 
-    async getStockAging(companyId: string) {
+    async getStockAging(companyId: string, warehouseId?: string) {
         if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-        const cacheKey = `commercial:stock-aging:${companyId}`;
+        const cacheKey = `commercial:stock-aging:${companyId}${warehouseId ? `:wh:${warehouseId}` : ''}`;
         return cacheService.getOrSet(cacheKey, async () => {
 
-        const products = await prisma.product.findMany({
-            where: { companyId, isActive: true, currentStock: { gt: 0 } },
-            select: { id: true, name: true, code: true, category: true, currentStock: true, costPrice: true, price: true, updatedAt: true }
-        });
+        const products = warehouseId
+            ? await prisma.warehouseStock.findMany({
+                where: { companyId, warehouseId, quantity: { gt: 0 }, product: { isActive: true, originModule: { in: COMMERCIAL_PRODUCT_ORIGINS } } },
+                select: {
+                    quantity: true,
+                    updatedAt: true,
+                    product: { select: { id: true, name: true, code: true, category: true, costPrice: true, price: true, categoryModel: { select: { name: true } } } }
+                }
+            }).then(rows => rows.map(ws => ({
+                id: ws.product.id,
+                name: ws.product.name,
+                code: ws.product.code,
+                category: ws.product.category,
+                categoryName: ws.product.categoryModel?.name ?? null,
+                currentStock: ws.quantity,
+                costPrice: ws.product.costPrice,
+                price: ws.product.price,
+                updatedAt: ws.updatedAt
+            })))
+            : await prisma.product.findMany({
+                where: { companyId, isActive: true, currentStock: { gt: 0 }, originModule: { in: COMMERCIAL_PRODUCT_ORIGINS } },
+                select: { id: true, name: true, code: true, category: true, currentStock: true, costPrice: true, price: true, updatedAt: true, categoryModel: { select: { name: true } } }
+            }).then(rows => rows.map(p => ({
+                ...p,
+                categoryName: p.categoryModel?.name ?? null,
+            })));
 
         const today = new Date();
         // Aggregate last-sale dates in SQL — avoids loading every saleItem into memory
@@ -242,6 +320,8 @@ export class CommercialAnalyticsService {
                 JOIN sales s ON s.id = si."saleId"
                 WHERE s."companyId" = ${companyId}
                   AND si."productId" = ANY(${products.map(p => p.id)}::text[])
+                  ${COMMERCIAL_SALE_ORIGIN_SQL}
+                  ${warehouseId ? Prisma.sql`AND s."warehouseId" = ${warehouseId}` : Prisma.empty}
                 GROUP BY si."productId"
               `
             : [];
@@ -261,7 +341,7 @@ export class CommercialAnalyticsService {
 
             return {
                 id: p.id, name: p.name, code: p.code,
-                category: p.category?.trim() || UNCATEGORISED,
+                category: resolveCategoryName(p.category, p.categoryName),
                 currentStock: p.currentStock,
                 stockValue: round2(Number(p.costPrice) * p.currentStock),
                 potentialRevenue: round2(Number(p.price) * p.currentStock),
@@ -289,33 +369,50 @@ export class CommercialAnalyticsService {
         }, ANALYTICS_CACHE_TTL);
     }
 
-    async getInventoryTurnover(companyId: string, periodDays = 90) {
+    async getInventoryTurnover(companyId: string, periodDays = 90, warehouseId?: string) {
         if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-        const cacheKey = `commercial:inventory-turnover:${companyId}:${periodDays}`;
+        const cacheKey = `commercial:inventory-turnover:${companyId}:${periodDays}${warehouseId ? `:wh:${warehouseId}` : ''}`;
         return cacheService.getOrSet(cacheKey, async () => {
 
         const startDate = daysAgo(periodDays);
 
         const [saleItems, products] = await Promise.all([
             prisma.saleItem.findMany({
-                where: { sale: { companyId, createdAt: { gte: startDate } } },
-                include: { product: { select: { costPrice: true, category: true, currentStock: true } } }
+                where: {
+                    sale: {
+                        companyId,
+                        createdAt: { gte: startDate },
+                        OR: COMMERCIAL_SALE_ORIGIN_FILTER,
+                        ...(warehouseId ? { warehouseId } : {})
+                    }
+                },
+                include: { product: { select: { costPrice: true, category: true, currentStock: true, categoryModel: { select: { name: true } } } } }
             }),
-            prisma.product.findMany({
-                where: { companyId, isActive: true },
-                select: { category: true, costPrice: true, currentStock: true }
-            })
+            warehouseId
+                ? prisma.warehouseStock.findMany({
+                    where: { companyId, warehouseId, product: { isActive: true, originModule: { in: COMMERCIAL_PRODUCT_ORIGINS } } },
+                    select: { quantity: true, product: { select: { category: true, costPrice: true, categoryModel: { select: { name: true } } } } }
+                }).then(rows => rows.map(ws => ({
+                    category: ws.product.category,
+                    categoryName: ws.product.categoryModel?.name ?? null,
+                    costPrice: ws.product.costPrice,
+                    currentStock: ws.quantity
+                })))
+                : prisma.product.findMany({
+                    where: { companyId, isActive: true, originModule: { in: COMMERCIAL_PRODUCT_ORIGINS } },
+                    select: { category: true, costPrice: true, currentStock: true, categoryModel: { select: { name: true } } }
+                }).then(rows => rows.map(p => ({ ...p, categoryName: p.categoryModel?.name ?? null })))
         ]);
 
         const cogsByCategory: Record<string, number> = {};
         const inventoryByCategory: Record<string, number> = {};
 
         for (const item of saleItems) {
-            const cat = item.product?.category?.trim() || UNCATEGORISED;
+            const cat = resolveCategoryName(item.product?.category, item.product?.categoryModel?.name);
             cogsByCategory[cat] = (cogsByCategory[cat] || 0) + Number(item.product?.costPrice ?? 0) * item.quantity;
         }
         for (const p of products) {
-            const cat = p.category?.trim() || UNCATEGORISED;
+            const cat = resolveCategoryName(p.category, p.categoryName);
             inventoryByCategory[cat] = (inventoryByCategory[cat] || 0) + Number(p.costPrice) * p.currentStock;
         }
 
@@ -340,28 +437,33 @@ export class CommercialAnalyticsService {
         }, ANALYTICS_CACHE_TTL);
     }
 
-    async getSalesReport(companyId: string, periodDays = 30, userId?: string) {
+    async getSalesReport(companyId: string, periodDays = 30, userId?: string, warehouseId?: string) {
         if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-        const cacheKey = `commercial:sales-report:${companyId}:${periodDays}${userId ? `:${userId}` : ''}`;
+        const cacheKey = `commercial:sales-report:${companyId}:${periodDays}${userId ? `:${userId}` : ''}${warehouseId ? `:wh:${warehouseId}` : ''}`;
         return cacheService.getOrSet(cacheKey, async () => {
 
         const startDate = daysAgo(periodDays);
-        const saleFilter: SaleFilter = { companyId, createdAt: { gte: startDate } };
+        const saleFilter: SaleFilter = {
+            companyId,
+            createdAt: { gte: startDate },
+            OR: COMMERCIAL_SALE_ORIGIN_FILTER,
+        };
         if (userId) saleFilter.userId = userId;
+        if (warehouseId) saleFilter.warehouseId = warehouseId;
 
         const [salesByDay, saleItemsForTop, paymentMethods] = await Promise.all([
             prisma.sale.findMany({
-                where: saleFilter as any,
+                where: saleFilter,
                 select: { createdAt: true, total: true, paymentMethod: true }
             }),
             // Use denormalized productName on saleItem — eliminates the N+1 product lookup
             prisma.saleItem.findMany({
-                where: { sale: saleFilter as any },
+                where: { sale: saleFilter },
                 select: { productId: true, productName: true, total: true, quantity: true }
             }),
             prisma.sale.groupBy({
                 by: ['paymentMethod'],
-                where: saleFilter as any,
+                where: saleFilter,
                 _sum: { total: true },
                 _count: { id: true }
             })
@@ -483,6 +585,7 @@ export class CommercialAnalyticsService {
             FROM warehouse_stocks ws
             JOIN products p ON p.id = ws."productId"
             WHERE ws."warehouseId" = ANY(${warehouseIds}::text[])
+              AND p."origin_module" IN ('commercial', 'COMMERCIAL')
             GROUP BY ws."warehouseId"
         `;
         const totalsMap = new Map(totals.map(t => [t.warehouseId, t]));
@@ -507,6 +610,7 @@ export class CommercialAnalyticsService {
                 FROM warehouse_stocks ws
                 JOIN products p ON p.id = ws."productId"
                 WHERE ws."warehouseId" = ANY(${warehouseIds}::text[])
+                  AND p."origin_module" IN ('commercial', 'COMMERCIAL')
             ) ranked
             WHERE rn <= 5
         `;

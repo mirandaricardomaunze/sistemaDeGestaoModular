@@ -51,7 +51,7 @@ export const createPurchaseOrderSchema = z.object({
 export const receivePurchaseOrderItemSchema = z.object({
     itemId: z.string().uuid('ID do item inválido'),
     receivedQty: z.number().int().min(0, 'Quantidade recebida não pode ser negativa')
-});
+}).passthrough();
 
 export const receivePurchaseOrderSchema = z.object({
     warehouseId: z.string().uuid('ID do armazém inválido').optional(),

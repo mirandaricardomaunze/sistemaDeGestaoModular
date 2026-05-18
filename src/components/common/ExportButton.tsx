@@ -7,7 +7,7 @@ import { logger } from '../../utils/logger';
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { HiOutlineDownload, HiOutlineDocumentText, HiOutlineTable } from 'react-icons/hi';
+import { HiOutlineArrowDownTray, HiOutlineDocumentText, HiOutlineTableCells } from 'react-icons/hi2';
 import { Button } from '../ui/Button';
 import type { ExportOptions, ExportFormat } from '../../utils/exportUtils';
 import { exportData } from '../../utils/exportUtils';
@@ -109,43 +109,43 @@ export function ExportButton({
                 size={size}
                 onClick={() => setIsOpen(!isOpen)}
                 disabled={disabled || isExporting || !options.data?.length}
-                leftIcon={showIcon ? <HiOutlineDownload className="w-4 h-4" /> : undefined}
+                leftIcon={showIcon ? <HiOutlineArrowDownTray className="w-4 h-4" /> : undefined}
             >
                 {isExporting ? 'Exportando...' : buttonText}
             </Button>
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-lg shadow-xl border border-gray-200 dark:border-dark-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-xl shadow-card-hover border border-slate-300/70 dark:border-dark-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="py-1">
                         {/* Excel Option */}
                         <button
                             onClick={() => handleExport('excel')}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-dark-700 transition-colors"
                         >
-                            <HiOutlineTable className="w-5 h-5 text-green-600" />
+                            <HiOutlineTableCells className="w-5 h-5 text-green-600" />
                             <div className="text-left">
-                                <p className="font-medium">Excel (.xlsx)</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Folha de cálculo</p>
+                                <p className="font-semibold">Excel (.xlsx)</p>
+                                <p className="text-xs text-slate-600 dark:text-gray-400">Folha de cálculo</p>
                             </div>
                         </button>
 
                         {/* PDF Option */}
                         <button
                             onClick={() => handleExport('pdf')}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-dark-700 transition-colors"
                         >
                             <HiOutlineDocumentText className="w-5 h-5 text-red-600" />
                             <div className="text-left">
-                                <p className="font-medium">PDF</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Documento formatado</p>
+                                <p className="font-semibold">PDF</p>
+                                <p className="text-xs text-slate-600 dark:text-gray-400">Documento formatado</p>
                             </div>
                         </button>
                     </div>
 
                     {/* Data count */}
-                    <div className="px-4 py-2 bg-gray-50 dark:bg-dark-900 border-t border-gray-200 dark:border-dark-700">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="px-4 py-2 bg-slate-50 dark:bg-dark-900 border-t border-slate-200 dark:border-dark-700">
+                        <p className="text-xs text-slate-600 dark:text-gray-400">
                             {options.data?.length || 0} registos a exportar
                         </p>
                     </div>
@@ -159,8 +159,10 @@ export function ExportButton({
 // Quick Export Buttons for Common Entities
 // ============================================================================
 
+type ExportRow = Record<string, unknown>;
+
 interface QuickExportProps {
-    data: any[];
+    data: object[];
     companyName?: string;
     companyInfo?: {
         name: string;
@@ -175,15 +177,17 @@ interface QuickExportProps {
 
 export function ExportProductsButton({ data, className, size = 'md' }: Omit<QuickExportProps, 'companyInfo'>) {
     const { companySettings } = useStore();
-    const formattedData = data.map(p => {
+    type ProductRow = ExportRow & { packSize?: number; currentStock?: number; price?: number; category?: string; categoryModel?: { name?: string } | null };
+    const formattedData = (data as ProductRow[]).map(p => {
         const packSize = p.packSize && p.packSize > 1 ? p.packSize : 1;
-        const boxes = Math.floor(p.currentStock / packSize);
+        const stock = Number(p.currentStock ?? 0);
+        const boxes = Math.floor(stock / packSize);
 
         return {
             ...p,
             boxCount: boxes,
-            totalUnits: p.currentStock,
-            totalValue: p.currentStock * p.price,
+            totalUnits: stock,
+            totalValue: stock * Number(p.price ?? 0),
             categoryName: p.categoryModel?.name || p.category
         };
     });
@@ -217,12 +221,13 @@ export function ExportProductsButton({ data, className, size = 'md' }: Omit<Quic
     );
 }
 
-export function ExportCustomersButton({ data, companyName, className }: QuickExportProps) {
+export function ExportCustomersButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
     return (
         <ExportButton
             filename="clientes"
             title="Lista de Clientes"
             className={className}
+            size={size}
             options={{
                 companyName,
                 columns: [
@@ -239,12 +244,13 @@ export function ExportCustomersButton({ data, companyName, className }: QuickExp
     );
 }
 
-export function ExportSalesButton({ data, companyName, className }: QuickExportProps) {
+export function ExportSalesButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
     return (
         <ExportButton
             filename="vendas"
             title="Relatório de Vendas"
             className={className}
+            size={size}
             options={{
                 companyName,
                 orientation: 'landscape',
@@ -263,12 +269,13 @@ export function ExportSalesButton({ data, companyName, className }: QuickExportP
     );
 }
 
-export function ExportInvoicesButton({ data, companyName, className }: QuickExportProps) {
+export function ExportInvoicesButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
     return (
         <ExportButton
             filename="facturas"
             title="Lista de Facturas"
             className={className}
+            size={size}
             options={{
                 companyName,
                 orientation: 'landscape',
@@ -288,12 +295,13 @@ export function ExportInvoicesButton({ data, companyName, className }: QuickExpo
     );
 }
 
-export function ExportBookingsButton({ data, companyName, className }: QuickExportProps) {
+export function ExportBookingsButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
     return (
         <ExportButton
             filename="reservas"
             title="Lista de Reservas"
             className={className}
+            size={size}
             options={{
                 companyName,
                 orientation: 'landscape',
@@ -313,12 +321,13 @@ export function ExportBookingsButton({ data, companyName, className }: QuickExpo
     );
 }
 
-export function ExportEmployeesButton({ data, companyName, className }: QuickExportProps) {
+export function ExportEmployeesButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
     return (
         <ExportButton
             filename="funcionarios"
             title="Lista de Colaboradores"
             className={className}
+            size={size}
             options={{
                 companyName,
                 orientation: 'landscape',
@@ -339,12 +348,13 @@ export function ExportEmployeesButton({ data, companyName, className }: QuickExp
     );
 }
 
-export function ExportSuppliersButton({ data, companyName, className }: QuickExportProps) {
+export function ExportSuppliersButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
     return (
         <ExportButton
             filename="fornecedores"
             title="Lista de Fornecedores"
             className={className}
+            size={size}
             options={{
                 companyName,
                 orientation: 'landscape',
@@ -365,12 +375,13 @@ export function ExportSuppliersButton({ data, companyName, className }: QuickExp
     );
 }
 
-export function ExportVehiclesButton({ data, companyName, className }: QuickExportProps) {
+export function ExportVehiclesButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
     return (
         <ExportButton
             filename="veiculos"
             title="Frota de Veículos"
             className={className}
+            size={size}
             options={{
                 companyName,
                 columns: [
@@ -388,12 +399,13 @@ export function ExportVehiclesButton({ data, companyName, className }: QuickExpo
     );
 }
 
-export function ExportDeliveriesButton({ data, companyName, className }: QuickExportProps) {
+export function ExportDeliveriesButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
     return (
         <ExportButton
             filename="entregas"
             title="Relatório de Entregas"
             className={className}
+            size={size}
             options={{
                 companyName,
                 orientation: 'landscape',
@@ -413,12 +425,13 @@ export function ExportDeliveriesButton({ data, companyName, className }: QuickEx
     );
 }
 
-export function ExportRoomsButton({ data, companyName, className }: QuickExportProps) {
+export function ExportRoomsButton({ data, companyName, className, size = 'md' }: QuickExportProps) {
     return (
         <ExportButton
             filename="quartos"
             title="Estado dos Quartos"
             className={className}
+            size={size}
             options={{
                 companyName,
                 columns: [
@@ -434,11 +447,12 @@ export function ExportRoomsButton({ data, companyName, className }: QuickExportP
     );
 }
 export function ExportBatchesButton({ data, companyInfo, className, size = 'md' }: QuickExportProps) {
-    const formattedData = data.map(b => ({
+    type BatchRow = ExportRow & { warehouse?: { name?: string } | null; product?: { name?: string } | null; expiryDate?: string | Date | null };
+    const formattedData = (data as BatchRow[]).map(b => ({
         ...b,
         warehouseName: b.warehouse?.name || 'N/A',
         productName: b.product?.name || 'N/A',
-        expiryDate: b.expiryDate ? new Date(b.expiryDate).toLocaleDateString() : 'N/A'
+        expiryDate: b.expiryDate ? new Date(b.expiryDate as string | Date).toLocaleDateString() : 'N/A'
     }));
 
     return (

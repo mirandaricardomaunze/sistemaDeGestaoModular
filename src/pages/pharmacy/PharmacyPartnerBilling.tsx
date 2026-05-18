@@ -1,27 +1,46 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Button, Input, Badge, LoadingSpinner, Pagination, Select } from '../../components/ui';
+import type { BadgeVariant } from '../../components/ui/Badge';
 import {
     HiOutlineDocumentText, HiOutlinePlus, HiOutlineCurrencyDollar,
-    HiOutlineCheck, HiOutlineOfficeBuilding
-} from 'react-icons/hi';
+    HiOutlineCheck, HiOutlineBuildingOffice
+} from 'react-icons/hi2';
 import { pharmacyAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { formatDate, formatCurrency, cn } from '../../utils/helpers';
 
-const STATUS_MAP: Record<string, { label: string; variant: any }> = {
+interface PartnerInvoice {
+    id: string;
+    invoiceNumber: string;
+    status: string;
+    totalAmount: number | string;
+    paidAmount: number | string;
+    periodStart: string;
+    periodEnd: string;
+    dueDate?: string | null;
+    partner?: { name: string } | null;
+}
+
+interface PartnerLite {
+    id: string;
+    name: string;
+    coveragePercentage: number;
+}
+
+const STATUS_MAP: Record<string, { label: string; variant: BadgeVariant }> = {
     pending: { label: 'Pendente', variant: 'warning' },
     sent: { label: 'Enviada', variant: 'info' },
     partial: { label: 'Parcial', variant: 'warning' },
     paid: { label: 'Pago', variant: 'success' },
     overdue: { label: 'Vencida', variant: 'danger' },
-    cancelled: { label: 'Cancelada', variant: 'default' }
+    cancelled: { label: 'Cancelada', variant: 'gray' }
 };
 
 export default function PharmacyPartnerBilling() {
     const queryClient = useQueryClient();
     const [showGenerate, setShowGenerate] = useState(false);
-    const [showPayment, setShowPayment] = useState<any>(null);
+    const [showPayment, setShowPayment] = useState<PartnerInvoice | null>(null);
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(1);
     const [paymentAmount, setPaymentAmount] = useState('');
@@ -51,11 +70,11 @@ export default function PharmacyPartnerBilling() {
             setGenerateForm({ partnerId: '', periodStart: '', periodEnd: '', dueDate: '' });
             toast.success('Fatura gerada com sucesso');
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'Erro ao gerar fatura')
+        onError: (err: { response?: { data?: { message?: string; error?: string } } }) => toast.error(err?.response?.data?.message || 'Erro ao gerar fatura')
     });
 
     const paymentMutation = useMutation({
-        mutationFn: () => pharmacyAPI.registerPartnerPayment(showPayment.id, Number(paymentAmount)),
+        mutationFn: () => pharmacyAPI.registerPartnerPayment(showPayment!.id, Number(paymentAmount)),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pharmacy', 'partner-invoices'] });
             setShowPayment(null);
@@ -65,11 +84,11 @@ export default function PharmacyPartnerBilling() {
         onError: () => toast.error('Erro ao registar pagamento')
     });
 
-    const invoices = invoicesData?.data || [];
+    const invoices: PartnerInvoice[] = (invoicesData?.data as PartnerInvoice[] | undefined) || [];
 
     // Summary
-    const totalPending = invoices.filter((i: any) => i.status === 'pending' || i.status === 'partial').reduce((s: number, i: any) => s + (Number(i.totalAmount) - Number(i.paidAmount)), 0);
-    const totalOverdue = invoices.filter((i: any) => i.status === 'overdue').reduce((s: number, i: any) => s + Number(i.totalAmount), 0);
+    const totalPending = invoices.filter((i) => i.status === 'pending' || i.status === 'partial').reduce((s: number, i) => s + (Number(i.totalAmount) - Number(i.paidAmount)), 0);
+    const totalOverdue = invoices.filter((i) => i.status === 'overdue').reduce((s: number, i) => s + Number(i.totalAmount), 0);
 
     return (
         <div className="space-y-6">
@@ -109,7 +128,7 @@ export default function PharmacyPartnerBilling() {
                                 onChange={e => setGenerateForm(f => ({ ...f, partnerId: e.target.value }))}
                                 options={[
                                     { value: '', label: 'Seleccionar parceiro...' },
-                                    ...partners.map((p: any) => ({
+                                    ...(partners as PartnerLite[]).map((p) => ({
                                         value: p.id,
                                         label: `${p.name} (${p.coveragePercentage}%)`
                                     }))
@@ -161,14 +180,14 @@ export default function PharmacyPartnerBilling() {
                             <tbody className="divide-y dark:divide-dark-700">
                                 {invoices.length === 0 ? (
                                     <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">Nenhuma fatura encontrada</td></tr>
-                                ) : invoices.map((inv: any) => {
+                                ) : invoices.map((inv) => {
                                     const remaining = Number(inv.totalAmount) - Number(inv.paidAmount);
                                     return (
                                         <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                             <td className="px-4 py-3 font-mono text-xs font-bold">{inv.invoiceNumber}</td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    <HiOutlineOfficeBuilding className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0" />
+                                                    <HiOutlineBuildingOffice className="w-4 h-4 text-primary-600 dark:text-primary-400 flex-shrink-0" />
                                                     <span className="font-medium">{inv.partner?.name}</span>
                                                 </div>
                                             </td>
@@ -178,7 +197,7 @@ export default function PharmacyPartnerBilling() {
                                             <td className="px-4 py-3 font-bold text-amber-600">{formatCurrency(remaining)}</td>
                                             <td className="px-4 py-3 text-xs">{inv.dueDate ? formatDate(inv.dueDate) : ''}</td>
                                             <td className="px-4 py-3">
-                                                <Badge variant={STATUS_MAP[inv.status]?.variant || 'default'}>{STATUS_MAP[inv.status]?.label}</Badge>
+                                                <Badge variant={STATUS_MAP[inv.status]?.variant || 'gray'}>{STATUS_MAP[inv.status]?.label}</Badge>
                                             </td>
                                             <td className="px-4 py-3">
                                                 {inv.status !== 'paid' && inv.status !== 'cancelled' && (

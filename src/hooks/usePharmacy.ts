@@ -12,7 +12,16 @@ import type {
     Prescription,
     PharmacySale
 } from '../types/pharmacy';
+import type {
+    Pagination,
+    PharmacyMedicationsParams,
+    PharmacyBatchesParams,
+    PharmacySalesParams,
+    PharmacyPrescriptionsParams,
+} from '../services/api/pharmacy.api';
 import toast from 'react-hot-toast';
+
+type ApiError = { response?: { data?: { message?: string; error?: string } } };
 
 // ============================================================================
 // HELPERS
@@ -37,8 +46,8 @@ function useInvalidate() {
 // MEDICATIONS
 // ============================================================================
 
-export function useMedications(params?: any) {
-    return useQuery<{ data: Medication[], pagination: any }>({
+export function useMedications(params?: PharmacyMedicationsParams) {
+    return useQuery<{ data: Medication[]; pagination: Pagination }>({
         queryKey: ['pharmacy', 'medications', params],
         queryFn: () => pharmacyAPI.getMedications(params),
     });
@@ -47,24 +56,24 @@ export function useMedications(params?: any) {
 export function useCreateMedication() {
     const invalidate = useInvalidate();
     return withIsLoading(useMutation({
-        mutationFn: (data: any) => pharmacyAPI.createMedication(data),
+        mutationFn: (data: Partial<Medication>) => pharmacyAPI.createMedication(data),
         onSuccess: () => {
             invalidate([['pharmacy', 'medications'], ['pharmacy', 'dashboard']]);
             toast.success('Medicamento registado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar medicamento'),
+        onError: (error: ApiError) => toast.error(error.response?.data?.error || 'Erro ao registar medicamento'),
     }));
 }
 
 export function useUpdateMedication() {
     const invalidate = useInvalidate();
     return withIsLoading(useMutation({
-        mutationFn: ({ id, data }: { id: string, data: any }) => pharmacyAPI.updateMedication(id, data),
+        mutationFn: ({ id, data }: { id: string; data: Partial<Medication> }) => pharmacyAPI.updateMedication(id, data),
         onSuccess: () => {
             invalidate([['pharmacy', 'medications'], ['pharmacy', 'dashboard']]);
             toast.success('Medicamento actualizado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar medicamento'),
+        onError: (error: ApiError) => toast.error(error.response?.data?.error || 'Erro ao actualizar medicamento'),
     }));
 }
 
@@ -76,7 +85,7 @@ export function useDeleteMedication() {
             invalidate([['pharmacy', 'medications'], ['pharmacy', 'dashboard']]);
             toast.success('Medicamento removido com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao remover medicamento'),
+        onError: (error: ApiError) => toast.error(error.response?.data?.error || 'Erro ao remover medicamento'),
     }));
 }
 
@@ -84,8 +93,8 @@ export function useDeleteMedication() {
 // BATCHES
 // ============================================================================
 
-export function usePharmacyBatches(params?: any) {
-    return useQuery<{ data: PharmacyBatch[]; pagination: any }>({
+export function usePharmacyBatches(params?: PharmacyBatchesParams) {
+    return useQuery<{ data: PharmacyBatch[]; pagination: Pagination }>({
         queryKey: ['pharmacy', 'batches', params],
         queryFn: () => pharmacyAPI.getBatches(params),
     });
@@ -94,12 +103,12 @@ export function usePharmacyBatches(params?: any) {
 export function useCreatePharmacyBatch() {
     const invalidate = useInvalidate();
     return withIsLoading(useMutation({
-        mutationFn: (data: any) => pharmacyAPI.createBatch(data),
+        mutationFn: (data: Partial<PharmacyBatch>) => pharmacyAPI.createBatch(data),
         onSuccess: () => {
             invalidate([['pharmacy', 'batches'], ['pharmacy', 'medications'], ['pharmacy', 'dashboard']]);
             toast.success('Lote registado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar lote'),
+        onError: (error: ApiError) => toast.error(error.response?.data?.error || 'Erro ao registar lote'),
     }));
 }
 
@@ -114,8 +123,17 @@ export function usePharmacyDashboard() {
     });
 }
 
-export function usePharmacySalesChart(period: any) {
-    return useQuery<any[]>({
+export type SalesChartPeriod = '7days' | '30days' | '90days' | '180days' | '365days';
+
+export interface PharmacySalesChartPoint {
+    date: string;
+    total?: number;
+    amount?: number;
+    count?: number;
+}
+
+export function usePharmacySalesChart(period: SalesChartPeriod) {
+    return useQuery<PharmacySalesChartPoint[]>({
         queryKey: ['pharmacy', 'sales-chart', period],
         queryFn: () => pharmacyAPI.getSalesChart(period),
     });
@@ -125,22 +143,38 @@ export function usePharmacySalesChart(period: any) {
 // SALES & POS
 // ============================================================================
 
-export function usePharmacySales(params?: any) {
-    return useQuery<PharmacySale[]>({
+export function usePharmacySales(params?: PharmacySalesParams) {
+    return useQuery<{ data: PharmacySale[]; pagination: Pagination }>({
         queryKey: ['pharmacy', 'sales', params],
         queryFn: () => pharmacyAPI.getSales(params),
     });
 }
 
+export interface CreatePharmacySalePayload {
+    customerId?: string;
+    customerName?: string;
+    items: Array<{
+        batchId: string;
+        quantity: number;
+        discount?: number;
+        posologyLabel?: string;
+    }>;
+    discount?: number;
+    partnerId?: string;
+    insuranceAmount?: number;
+    prescriptionNumber?: string;
+    paymentMethod?: string;
+}
+
 export function useCreatePharmacySale() {
     const invalidate = useInvalidate();
     return withIsLoading(useMutation({
-        mutationFn: (data: any) => pharmacyAPI.createSale(data),
+        mutationFn: (data: CreatePharmacySalePayload) => pharmacyAPI.createSale(data as unknown as Partial<PharmacySale>),
         onSuccess: () => {
             invalidate([['pharmacy', 'sales'], ['pharmacy', 'batches'], ['pharmacy', 'dashboard']]);
             toast.success('Venda concluída com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao processar venda'),
+        onError: (error: ApiError) => toast.error(error.response?.data?.error || 'Erro ao processar venda'),
     }));
 }
 
@@ -148,25 +182,48 @@ export function useCreatePharmacySale() {
 // PATIENTS & PRESCRIPTIONS
 // ============================================================================
 
-export function usePrescriptions(params?: any) {
-    return useQuery<Prescription[]>({
+export function usePrescriptions(params?: PharmacyPrescriptionsParams) {
+    return useQuery<{ data: Prescription[]; pagination: Pagination }>({
         queryKey: ['pharmacy', 'prescriptions', params],
         queryFn: () => pharmacyAPI.getPrescriptions(params),
     });
 }
 
+export interface PatientProfile {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    document?: string;
+    dateOfBirth?: string;
+    address?: string;
+    medicalNotes?: string;
+    allergies?: string[];
+    chronicConditions?: string[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface PatientControlledHistoryItem {
+    id: string;
+    medicationName: string;
+    quantity: number;
+    saleDate: string;
+    prescriptionNumber?: string;
+}
+
 export function usePatientProfile(id: string | null) {
-    return useQuery<any>({
+    return useQuery<PatientProfile>({
         queryKey: ['pharmacy', 'patient-profile', id],
-        queryFn: () => pharmacyAPI.getPatientProfile(id!),
+        queryFn: () => pharmacyAPI.getPatientProfile(id!) as Promise<PatientProfile>,
         enabled: !!id,
     });
 }
 
 export function usePatientControlledHistory(id: string | null) {
-    return useQuery<any[]>({
+    return useQuery<PatientControlledHistoryItem[]>({
         queryKey: ['pharmacy', 'patient-controlled-history', id],
-        queryFn: () => pharmacyAPI.getPatientControlledHistory(id!),
+        queryFn: () => pharmacyAPI.getPatientControlledHistory(id!) as Promise<PatientControlledHistoryItem[]>,
         enabled: !!id,
     });
 }
@@ -175,11 +232,11 @@ export function usePatientControlledHistory(id: string | null) {
 // COMPATIBILITY HOOK (GRADUAL MIGRATION)
 // ============================================================================
 
-export function usePharmacy(params?: any) {
+export function usePharmacy(params?: PharmacyMedicationsParams) {
     const medsQuery = useMedications(params);
     const batchesQuery = usePharmacyBatches();
     const dashboardQuery = usePharmacyDashboard();
-    
+
     const createMed = useCreateMedication();
     const updateMed = useUpdateMedication();
     const deleteMed = useDeleteMedication();
@@ -190,10 +247,10 @@ export function usePharmacy(params?: any) {
         batches: batchesQuery.data?.data || [],
         pagination: medsQuery.data?.pagination || null,
         metrics: {
-            totalMedications: dashboardQuery.data?.salesCount || 0, // Placeholder mapping
+            totalMedications: dashboardQuery.data?.salesCount || 0,
             lowStockItems: dashboardQuery.data?.lowStockItems || 0,
             expiringSoon: dashboardQuery.data?.expiringSoonBatches || 0,
-            controlledItems: 0 // Need specific metric if required
+            controlledItems: 0
         },
         isLoading: medsQuery.isLoading || batchesQuery.isLoading || dashboardQuery.isLoading,
         error: medsQuery.error || batchesQuery.error || dashboardQuery.error,
@@ -203,7 +260,7 @@ export function usePharmacy(params?: any) {
             dashboardQuery.refetch();
         },
         addMedication: createMed.mutateAsync,
-        updateMedication: (id: string, data: any) => updateMed.mutateAsync({ id, data }),
+        updateMedication: (id: string, data: Partial<Medication>) => updateMed.mutateAsync({ id, data }),
         deleteMedication: deleteMed.mutateAsync,
         addBatch: createBatch.mutateAsync
     };

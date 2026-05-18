@@ -4,20 +4,48 @@ import { useStore } from '../../stores/useStore';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
-import ChatWidget from '../chat/ChatWidget';
-import { useEffect, Suspense } from 'react';
-import { useOfflineSync } from '../../hooks/useOfflineSync';
+import { useEffect, Suspense, lazy, useMemo, useState } from 'react';
 import { LoadingOverlay } from '../ui/Loading';
 import { PageTransitionLoader } from '../ui/PageTransitionLoader';
+import { HiOutlineSparkles } from 'react-icons/hi2';
 
 import { useLocation } from 'react-router-dom';
+
+const ChatWidget = lazy(() => import('../chat/ChatWidget'));
+
+function ChatWidgetLauncher() {
+    const [isLoaded, setIsLoaded] = useState(false);
+    const location = useLocation();
+    const isCommercialInsightsPage = useMemo(
+        () => /^\/commercial\/(dashboard|reports|margins|insights)/.test(location.pathname),
+        [location.pathname]
+    );
+
+    if (isLoaded) {
+        return (
+            <Suspense fallback={null}>
+                <ChatWidget initiallyOpen onClose={() => setIsLoaded(false)} />
+            </Suspense>
+        );
+    }
+
+    if (isCommercialInsightsPage) return null;
+
+    return (
+        <button
+            onClick={() => setIsLoaded(true)}
+            className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-full shadow-2xl hover:shadow-primary-500/50 transition-all duration-300 flex items-center justify-center text-white z-50 group hover:scale-105"
+            title="Assistente IA"
+        >
+            <HiOutlineSparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+            <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 rounded-full animate-pulse border-2 border-white" />
+        </button>
+    );
+}
 
 export default function Layout() {
     const { theme } = useStore();
     const location = useLocation();
-
-    // Initialize offline data synchronization
-    useOfflineSync();
 
     // Apply dark mode class to html element
     useEffect(() => {
@@ -32,10 +60,7 @@ export default function Layout() {
     const isPOSPage = location.pathname.includes('/pos') || location.pathname.includes('/bottle-store/pos') || location.pathname.includes('/pharmacy/pos');
 
     return (
-        <div className="h-screen flex flex-col overflow-hidden bg-slate-50 dark:bg-dark-900 transition-colors duration-500 relative">
-            {/* Premium Background Decorations (Light Mode Only) */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-500/5 rounded-full blur-[120px] pointer-events-none dark:hidden animate-pulse-slow"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent-500/5 rounded-full blur-[120px] pointer-events-none dark:hidden animate-pulse-slow animation-delay-3000"></div>
+        <div className="h-screen flex flex-col overflow-hidden bg-slate-100 dark:bg-dark-900 transition-colors duration-300 relative">
 
             {/* Toast Container */}
             <Toaster
@@ -76,7 +101,7 @@ export default function Layout() {
                 <main
                     className={
                         isPOSPage
-                            ? "flex-1 flex flex-col min-h-0 overflow-y-auto bg-gray-50 dark:bg-dark-900 p-4 lg:p-6 scrollbar-thin relative"
+                            ? "flex-1 flex flex-col min-h-0 overflow-y-auto bg-slate-100 dark:bg-dark-900 p-4 lg:p-6 scrollbar-thin relative"
                             : "flex-1 overflow-y-auto p-4 lg:p-6 pb-16 scrollbar-thin relative"
                     }
                 >
@@ -90,7 +115,7 @@ export default function Layout() {
             </div>
 
             {/* AI Chat Assistant */}
-            <ChatWidget />
+            <ChatWidgetLauncher />
         </div>
     );
 }

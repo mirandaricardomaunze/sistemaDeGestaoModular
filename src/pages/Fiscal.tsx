@@ -2,11 +2,11 @@ import { useState } from 'react';
 import {
     HiOutlineChartPie,
     HiOutlineCog,
-    HiOutlineDocumentReport,
-    HiOutlineClipboardCheck,
+    HiOutlineDocumentChartBar,
+    HiOutlineClipboardDocumentCheck,
     HiOutlineCalendar,
     HiOutlineCurrencyDollar,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import FiscalDashboard from '../components/fiscal/FiscalDashboard';
 import TaxConfigManager from '../components/fiscal/TaxConfigManager';
 import FiscalReportGenerator from '../components/fiscal/FiscalReportGenerator';
@@ -21,10 +21,10 @@ type FiscalTab = 'dashboard' | 'config' | 'reports' | 'audit' | 'deadlines' | 'i
 const tabs: { id: FiscalTab; label: string; icon: typeof HiOutlineChartPie }[] = [
     { id: 'dashboard', label: 'Painel', icon: HiOutlineChartPie },
     { id: 'config', label: 'Configuração', icon: HiOutlineCog },
-    { id: 'reports', label: 'Relatórios', icon: HiOutlineDocumentReport },
+    { id: 'reports', label: 'Relatórios', icon: HiOutlineDocumentChartBar },
     { id: 'deadlines', label: 'Prazos', icon: HiOutlineCalendar },
     { id: 'iva', label: 'IVA', icon: HiOutlineCurrencyDollar },
-    { id: 'audit', label: 'Auditoria', icon: HiOutlineClipboardCheck },
+    { id: 'audit', label: 'Auditoria', icon: HiOutlineClipboardDocumentCheck },
 ];
 
 export default function Fiscal() {
@@ -56,13 +56,13 @@ export default function Fiscal() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        Gestão Fiscal
+                        Área Fiscal
                         <Badge variant="outline" className="text-sm font-medium">
                             {companySettings.tradeName || companySettings.companyName}
                         </Badge>
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 mt-1">
-                        Impostos, retenções, relatórios e conformidade fiscal
+                        Impostos, retenções na fonte, declarações e conformidade fiscal
                     </p>
                 </div>
             </div>

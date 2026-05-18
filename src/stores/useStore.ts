@@ -319,7 +319,7 @@ export const useStore = create<AppState>()(
                                 email: data.email || '',
                                 address: data.address || '',
                                 city: data.city || '',
-                                state: data.state || '',
+                                state: data.province || '',
                                 province: data.province || '',
                                 zipCode: '',
                                 logo: data.logo,
@@ -345,9 +345,10 @@ export const useStore = create<AppState>()(
             },
 
             updateCompanySettings: async (settings) => {
+                const province = settings.province ?? settings.state;
                 // Update local state immediately for responsive UI
                 set((state) => ({
-                    companySettings: { ...state.companySettings, ...settings },
+                    companySettings: { ...state.companySettings, ...settings, ...(province !== undefined ? { province, state: province } : {}) },
                 }));
 
                 // Sync to database
@@ -362,7 +363,7 @@ export const useStore = create<AppState>()(
                         address: settings.address,
                         city: settings.city,
                         zipCode: settings.zipCode,
-                        province: settings.province,
+                        province,
                         logo: settings.logo,
                         ivaRate: settings.ivaRate,
                         currency: settings.currency,
@@ -371,10 +372,15 @@ export const useStore = create<AppState>()(
                         autoPrintReceipt: settings.autoPrintReceipt,
                         receiptHeader: settings.receiptHeader,
                         receiptFooter: settings.receiptFooter,
+                        bankAccounts: settings.bankAccounts,
                     });
                 } catch (error) {
+                    if ((error as { isOfflineQueued?: boolean })?.isOfflineQueued) {
+                        logger.info('Company settings update queued for offline sync');
+                        return;
+                    }
                     logger.error('Failed to sync company settings to database:', error);
-                    // TODO: Add to sync queue for retry
+                    toast.error('Não foi possível guardar as definições no servidor.');
                 }
             },
 

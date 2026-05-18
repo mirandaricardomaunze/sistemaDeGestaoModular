@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { ResultHandler } from '../../utils/result';
 import { cacheService } from '../cacheService';
@@ -47,7 +48,7 @@ export class AnalyticsService {
                 availableVehicles, availableDrivers, pendingParcels,
                 pickupRevenue: Number(pickupRevenue._sum?.amount || 0),
                 deliveryRevenue: Number(deliveryRevenue._sum?.amount || 0),
-                deliveriesByProvince: deliveriesByProvince.map(p => ({ province: p.province, count: (p as any)._count.id }))
+                deliveriesByProvince: deliveriesByProvince.map(p => ({ province: p.province, count: p._count.id }))
             },
             recentDeliveries
         };
@@ -60,11 +61,12 @@ export class AnalyticsService {
 
     async getReportsSummary(companyId: string, query: { startDate?: string; endDate?: string }) {
         const { startDate, endDate } = query;
-        const where: any = { companyId };
+        const where: Prisma.DeliveryWhereInput = { companyId };
         if (startDate || endDate) {
-            where.createdAt = {};
-            if (startDate) where.createdAt.gte = new Date(startDate);
-            if (endDate) where.createdAt.lte = new Date(endDate + 'T23:59:59.999Z');
+            const dateFilter: Prisma.DateTimeFilter = {};
+            if (startDate) dateFilter.gte = new Date(startDate);
+            if (endDate) dateFilter.lte = new Date(endDate + 'T23:59:59.999Z');
+            where.createdAt = dateFilter;
         }
 
         const [total, delivered, failed, pending, inTransit, revenueAgg, avgTimeData, statusGroups,
@@ -109,9 +111,9 @@ export class AnalyticsService {
         for (const g of driverGroups) {
             if (!g.driverId) continue;
             if (!driverStatsMap[g.driverId]) driverStatsMap[g.driverId] = { name: driverNameMap.get(g.driverId) || '', total: 0, delivered: 0, failed: 0 };
-            driverStatsMap[g.driverId].total += (g as any)._count.id;
-            if (g.status === 'delivered') driverStatsMap[g.driverId].delivered += (g as any)._count.id;
-            if (g.status === 'failed') driverStatsMap[g.driverId].failed += (g as any)._count.id;
+            driverStatsMap[g.driverId].total += g._count.id;
+            if (g.status === 'delivered') driverStatsMap[g.driverId].delivered += g._count.id;
+            if (g.status === 'failed') driverStatsMap[g.driverId].failed += g._count.id;
         }
         const driverPerformance = Object.values(driverStatsMap)
             .map(ds => ({ ...ds, successRate: ds.total > 0 ? (ds.delivered / ds.total) * 100 : 0 }))
@@ -120,10 +122,10 @@ export class AnalyticsService {
         const routeIds = [...new Set(routeCountGroups.map(g => g.routeId).filter(Boolean))] as string[];
         const routeNames = await prisma.deliveryRoute.findMany({ where: { id: { in: routeIds } }, select: { id: true, name: true } });
         const routeNameMap = new Map(routeNames.map(r => [r.id, r.name]));
-        const revenueMap = new Map(routeRevenueGroups.map(g => [g.routeId, Number((g as any)._sum?.shippingCost || 0)]));
+        const revenueMap = new Map(routeRevenueGroups.map(g => [g.routeId, Number(g._sum?.shippingCost || 0)]));
 
         const routeUsage = routeCountGroups
-            .map(g => ({ name: routeNameMap.get(g.routeId!) || '', count: (g as any)._count.id, revenue: revenueMap.get(g.routeId!) || 0 }))
+            .map(g => ({ name: routeNameMap.get(g.routeId!) || '', count: g._count.id, revenue: revenueMap.get(g.routeId!) || 0 }))
             .sort((a, b) => b.count - a.count).slice(0, 10);
 
         return ResultHandler.success({
@@ -133,7 +135,7 @@ export class AnalyticsService {
                 totalRevenue: Number(revenueAgg._sum?.shippingCost || 0),
                 avgDeliveryHours
             },
-            statusDistribution: statusGroups.map((g: any) => ({ status: g.status, count: g._count.id })),
+            statusDistribution: statusGroups.map(g => ({ status: g.status, count: g._count.id })),
             driverPerformance,
             routeUsage
         });

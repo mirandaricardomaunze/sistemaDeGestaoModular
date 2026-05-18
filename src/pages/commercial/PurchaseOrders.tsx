@@ -6,7 +6,7 @@ import {
     HiOutlineArrowDownTray, HiOutlineCurrencyDollar, HiOutlineSparkles,
     HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
-import { Card, Badge, Button, Input, Select, Textarea, Modal, Pagination, PageHeader } from '../../components/ui';
+import { Card, Badge, Button, Input, Select, Textarea, Modal, Pagination, PageHeader, SimpleTable } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
@@ -15,9 +15,12 @@ import { useSuppliers } from '../../hooks/useSuppliers';
 import { useWarehouses } from '../../hooks/useData';
 import { getDocumentWorkflow, type WorkflowTransitions } from '../../hooks/commercial/useDocumentWorkflow';
 import { usePredictiveForecast } from '../../hooks/usePredictive';
+import { RequestApprovalModal } from '../../components/common/RequestApprovalModal';
 import toast from 'react-hot-toast';
 import { PAGE_SIZE } from '../../utils/constants';
-import { suppliersAPI } from '../../services/api';
+import { commercialAPI } from '../../services/api/commercial.api';
+import type { InventoryForecast, PurchaseOrder } from '../../services/api/commercial.api';
+import { getApiErrorMessage, getApiErrorStatus } from '../../utils/apiError';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -90,7 +93,8 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
 
         setSaving(true);
         try {
-            await suppliersAPI.createPurchaseOrder(supplierId, {
+            await commercialAPI.createPurchaseOrder({
+                supplierId,
                 items: valid.map(l => ({
                     productId: l.product!.id,
                     quantity:  l.quantity,
@@ -238,7 +242,7 @@ function CreatePOModal({ onClose, onSuccess }: CreatePOModalProps) {
 // ── ReceiveModal - partial stock receipt ────────────────────────────────────-
 
 interface ReceiveModalProps {
-    order: any; // PurchaseOrder with items
+    order: PurchaseOrder;
     onClose: () => void;
     onSuccess: () => void;
 }
@@ -246,7 +250,7 @@ interface ReceiveModalProps {
 function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
     const [quantities, setQuantities] = useState<Record<string, number>>(() =>
         Object.fromEntries(
-            (order.items ?? []).map((item: any) => [
+            (order.items ?? []).map((item) => [
                 item.id,
                 Math.max(0, item.quantity - item.receivedQty),
             ])
@@ -281,7 +285,7 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
 
         setSaving(true);
         try {
-            await suppliersAPI.receivePurchaseOrder(order.id, items, selectedWarehouseId);
+            await commercialAPI.receivePurchaseOrder(order.id, items, selectedWarehouseId);
             toast.success('Stock actualizado com sucesso!');
             onSuccess();
             onClose();
@@ -325,7 +329,7 @@ function ReceiveModal({ order, onClose, onSuccess }: ReceiveModalProps) {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 dark:divide-dark-700/50">
-                            {(order.items ?? []).map((item: any) => {
+                            {(order.items ?? []).map((item) => {
                                 const pending = item.quantity - item.receivedQty;
                                 if (pending <= 0) return null;
 
@@ -402,10 +406,16 @@ export default function PurchaseOrders() {
     const [statusFilter, setStatusFilter] = useState('');
     const [search, setSearch]             = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [receivingOrder, setReceivingOrder]   = useState<any | null>(null);
+    const [receivingOrder, setReceivingOrder]   = useState<PurchaseOrder | null>(null);
     const [expandedId, setExpandedId]           = useState<string | null>(null);
     const [page, setPage]                       = useState(1);
     const [activeTab, setActiveTab]             = useState<'list' | 'predictive'>('list');
+    const [approvalRequest, setApprovalRequest] = useState<{
+        resourceId: string;
+        amount: number;
+        title: string;
+        description: string;
+    } | null>(null);
 
     const { orders, pagination, isLoading, refetch, updateStatus, deletePO } = usePurchaseOrders({
         status:  statusFilter || undefined,
@@ -417,9 +427,23 @@ export default function PurchaseOrders() {
     const { data: predictiveData, isLoading: predictiveLoading, refetch: refetchPredictive, createOrders, isCreating } = usePredictiveForecast();
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
-    const handleStatusUpdate = async (id: string, next: string) => {
-        try { await updateStatus(id, next); }
-        catch { toast.error('Erro ao actualizar estado'); }
+    const handleStatusUpdate = async (order: PurchaseOrder, next: OrderStatus) => {
+        try {
+            await updateStatus(order.id, next);
+        } catch (err) {
+            const msg = getApiErrorMessage(err, 'Erro ao actualizar estado');
+            if (getApiErrorStatus(err) === 403 && next === 'ordered') {
+                setApprovalRequest({
+                    resourceId: order.id,
+                    amount: Number(order.total || 0),
+                    title: 'Solicitar aprovação da ordem de compra',
+                    description: `A ordem ${order.orderNumber} precisa de aprovação antes de ser enviada ao fornecedor.`,
+                });
+                toast.error('Esta ordem precisa de aprovação antes de avançar.');
+                return;
+            }
+            toast.error(msg);
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -478,10 +502,13 @@ export default function PurchaseOrders() {
 
             {/* Tab Navigation */}
             <div className="flex p-1 bg-gray-100/50 dark:bg-dark-800/50 rounded-xl border border-gray-200/30 dark:border-dark-700/30 shadow-inner">
-                <button
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setActiveTab('list')}
                     className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
+                        "flex-1 h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
                         activeTab === 'list'
                             ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
                             : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -489,11 +516,14 @@ export default function PurchaseOrders() {
                 >
                     <HiOutlineClipboardDocumentList className="w-4 h-4" />
                     Lista de Ordens
-                </button>
-                <button
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setActiveTab('predictive')}
                     className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
+                        "flex-1 h-10 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg",
                         activeTab === 'predictive'
                             ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-sm"
                             : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -501,7 +531,7 @@ export default function PurchaseOrders() {
                 >
                     <HiOutlineSparkles className={cn("w-4 h-4", activeTab === 'predictive' ? "text-amber-500" : "text-amber-500 opacity-50")} />
                     IA Preditiva & Reposição
-                </button>
+                </Button>
             </div>
 
             {activeTab === 'list' ? (
@@ -550,7 +580,7 @@ export default function PurchaseOrders() {
                                 placeholder="Nº OC ou Nome do fornecedor..."
                                 value={search}
                                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                                className="w-full pl-10 pr-4 py-2 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
+                                className="w-full h-10 pl-10 pr-4 bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-primary-500/20 outline-none transition-all"
                             />
                         </div>
                     </div>
@@ -562,6 +592,7 @@ export default function PurchaseOrders() {
                             options={statusOptions}
                             value={statusFilter}
                             onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                            size="sm"
                             className="w-full bg-white dark:bg-dark-900 border-none shadow-sm rounded-lg text-sm font-medium"
                         />
                     </div>
@@ -576,28 +607,25 @@ export default function PurchaseOrders() {
 
             {/* Orders Data Table */}
             <Card padding="none" className="overflow-hidden border-gray-100 dark:border-dark-700 shadow-xl shadow-black/5">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm border-collapse">
-                        <thead>
-                            <tr className="text-[10px] text-gray-400 border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50 uppercase tracking-[0.2em] font-black">
-                                <th className="px-6 py-4 text-left">Ordem #</th>
-                                <th className="px-6 py-4 text-left">Fornecedor</th>
-                                <th className="px-6 py-4 text-left">Estado</th>
-                                <th className="px-6 py-4 text-right">Total</th>
-                                <th className="px-6 py-4 text-right pr-10">Acções</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-                                            <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Sincronizando Ordens...</span>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ) : orders.length === 0 ? (
+                <SimpleTable
+                    columns={[
+                        { key: 'order', label: 'Ordem #' },
+                        { key: 'supplier', label: 'Fornecedor' },
+                        { key: 'status', label: 'Estado' },
+                        { key: 'total', label: 'Total', className: 'text-right' },
+                        { key: 'actions', label: 'Acções', className: 'text-right pr-10' },
+                    ]}
+                    isLoading={isLoading}
+                    isEmpty={!isLoading && orders.length === 0}
+                    emptyTitle="Sem registos de ordens"
+                    emptyDescription="As ordens de compra aparecerão aqui assim que forem registadas."
+                    minHeight="480px"
+                    loadingRows={8}
+                    loadingMessage="A carregar ordens..."
+                    headerRowClassName="text-gray-400 border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50"
+                    tbodyClassName="divide-y divide-gray-100 dark:divide-dark-700"
+                >
+                            {!isLoading && orders.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-3 opacity-20">
@@ -606,10 +634,10 @@ export default function PurchaseOrders() {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : (
+                            ) : !isLoading && (
                                 orders.map(order => {
                                     const { config: cfg, transitions } = getDocumentWorkflow(order.status as OrderStatus, STATUS_CONFIG, STATUS_TRANSITIONS, 'draft');
-                                    const Icon       = cfg.icon;
+                                    const Icon       = cfg.icon as React.ElementType;
                                     const isExpanded = expandedId === order.id;
                                     const isOverdue  = order.expectedDeliveryDate
                                         && new Date(order.expectedDeliveryDate) < new Date()
@@ -670,24 +698,30 @@ export default function PurchaseOrders() {
                                                 <td className="px-6 py-4 pr-10">
                                                     <div className="flex items-center justify-end gap-1.5 opacity-40 group-hover:opacity-100 transition-opacity">
                                                         {canReceive && (
-                                                            <button 
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
                                                                 onClick={() => setReceivingOrder(order)}
-                                                                className="p-2 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg transition-all shadow-sm active:scale-95"
+                                                                className="h-9 w-9 p-0 text-emerald-600 hover:bg-emerald-600 hover:text-white rounded-lg shadow-sm"
                                                                 title="Receber Stock"
                                                             >
                                                                 <HiOutlineArrowDownTray className="w-5 h-5" />
-                                                            </button>
+                                                            </Button>
                                                         )}
-                                                        <button 
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
                                                             onClick={() => setExpandedId(isExpanded ? null : order.id)}
                                                             className={cn(
-                                                                "p-2 rounded-lg transition-all shadow-sm active:scale-95",
+                                                                "h-9 w-9 p-0 rounded-lg shadow-sm",
                                                                 isExpanded ? "bg-primary-600 text-white" : "text-primary-600 hover:bg-primary-600 hover:text-white"
                                                             )}
                                                             title="Ver Detalhes"
                                                         >
                                                             <HiOutlineChevronDown className={cn("w-5 h-5 transition-transform", isExpanded && "rotate-180")} />
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -699,7 +733,7 @@ export default function PurchaseOrders() {
                                                                 <div className="bg-white dark:bg-dark-900 p-4 rounded-xl border border-gray-100 dark:border-dark-700 shadow-sm">
                                                                     <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-3">Itens da Ordem</h4>
                                                                     <div className="space-y-2">
-                                                                        {order.items.map((item: any) => (
+                                                                        {order.items.map((item) => (
                                                                             <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-50 dark:border-dark-700/50 last:border-0">
                                                                                 <div className="flex flex-col">
                                                                                     <span className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase">{item.product?.name}</span>
@@ -738,7 +772,7 @@ export default function PurchaseOrders() {
                                                                                     key={action.next}
                                                                                     size="sm"
                                                                                     variant={action.variant}
-                                                                                    onClick={() => handleStatusUpdate(order.id, action.next)}
+                                                                                    onClick={() => handleStatusUpdate(order, action.next as OrderStatus)}
                                                                                     className="font-black text-[9px] uppercase tracking-widest px-4"
                                                                                 >
                                                                                     {action.label}
@@ -766,9 +800,7 @@ export default function PurchaseOrders() {
                                     );
                                 })
                             )}
-                        </tbody>
-                    </table>
-                </div>
+                </SimpleTable>
 
                 {!isLoading && pagination && pagination.totalPages > 1 && (
                     <div className="px-6 py-4 border-t border-gray-100 dark:border-dark-700">
@@ -793,6 +825,19 @@ export default function PurchaseOrders() {
                     onSuccess={() => { refetch(); setExpandedId(null); }}
                 />
             )}
+            {approvalRequest && (
+                <RequestApprovalModal
+                    open={!!approvalRequest}
+                    onClose={() => setApprovalRequest(null)}
+                    requestType="purchase_order"
+                    resourceType="purchase_order"
+                    resourceId={approvalRequest.resourceId}
+                    initialAmount={approvalRequest.amount}
+                    title={approvalRequest.title}
+                    description={approvalRequest.description}
+                    onSubmitted={() => toast.success('Pedido de aprovação enviado. Depois de aprovado, volte a enviar a ordem.')}
+                />
+            )}
                 </>
             ) : null}
 
@@ -810,26 +855,26 @@ export default function PurchaseOrders() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             <MetricCard
                                 label="Risco Crítico"
-                                value={predictiveData.filter((p: any) => p.status === 'critical').length}
+                                value={predictiveData.filter((p) => p.status === 'critical').length}
                                 color="red"
                                 icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
                                 badge={<span className="text-[8px] font-black text-red-500 dark:text-red-400 uppercase tracking-tighter animate-pulse">Ruptura Imínente</span>}
                             />
                             <MetricCard
                                 label="Sugestões Recompra"
-                                value={predictiveData.filter((p: any) => p.suggestedPurchase > 0).length}
+                                value={predictiveData.filter((p) => p.suggestedPurchase > 0).length}
                                 color="orange"
                                 icon={<HiOutlineTruck className="w-5 h-5" />}
                             />
                             <MetricCard
                                 label="Precisão da IA"
-                                value={`${(predictiveData.reduce((s: number, p: any) => s + p.confidence, 0) / (predictiveData.length || 1) * 100).toFixed(0)}%`}
+                                value={`${(predictiveData.reduce((s: number, p: InventoryForecast) => s + p.confidence, 0) / (predictiveData.length || 1) * 100).toFixed(0)}%`}
                                 color="blue"
                                 icon={<HiOutlineSparkles className="w-5 h-5" />}
                             />
                             <MetricCard
                                 label="Investimento Necessário"
-                                value={formatCurrency(predictiveData.reduce((s: number, p: any) => s + (p.suggestedPurchase * p.costPrice), 0))}
+                                value={formatCurrency(predictiveData.reduce((s: number, p: InventoryForecast) => s + (p.suggestedPurchase * p.costPrice), 0))}
                                 color="green"
                                 icon={<HiOutlineCurrencyDollar className="w-5 h-5" />}
                                 badge={<span className="text-[9px] font-bold text-emerald-500 dark:text-emerald-400 uppercase tracking-tight">Stock 30d</span>}
@@ -852,8 +897,8 @@ export default function PurchaseOrders() {
                                             size="sm" 
                                             onClick={async () => {
                                                 const suggestions = predictiveData
-                                                    .filter((p: any) => selectedItems.includes(p.productId))
-                                                    .map((p: any) => ({ productId: p.productId, quantity: p.suggestedPurchase || p.minStock }));
+                                                    .filter((p) => selectedItems.includes(p.productId))
+                                                    .map((p) => ({ productId: p.productId, quantity: p.suggestedPurchase || p.minStock }));
                                                 await createOrders(suggestions);
                                                 setSelectedItems([]);
                                                 setActiveTab('list');
@@ -887,7 +932,7 @@ export default function PurchaseOrders() {
                                                     className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-dark-900"
                                                     checked={selectedItems.length === predictiveData.length && predictiveData.length > 0}
                                                     onChange={(e) => {
-                                                        if (e.target.checked) setSelectedItems(predictiveData.map((p: any) => p.productId));
+                                                        if (e.target.checked) setSelectedItems(predictiveData.map((p) => p.productId));
                                                         else setSelectedItems([]);
                                                     }}
                                                 />
@@ -901,7 +946,7 @@ export default function PurchaseOrders() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                                        {predictiveData.map((item: any) => (
+                                        {predictiveData.map((item) => (
                                             <tr key={item.productId} className={cn(
                                                 "hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors",
                                                 selectedItems.includes(item.productId) && "bg-primary-50/30 dark:bg-primary-900/10"
@@ -926,7 +971,7 @@ export default function PurchaseOrders() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-end gap-1 h-8 w-24">
-                                                        {item.history.map((h: any, i: number) => (
+                                                        {item.history.map((h: number, i: number) => (
                                                             <div 
                                                                 key={i} 
                                                                 className="w-full bg-gray-200 dark:bg-dark-600 rounded-t-sm transition-all hover:bg-primary-400"

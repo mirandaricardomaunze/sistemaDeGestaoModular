@@ -1,16 +1,19 @@
 import request from 'supertest';
+import type { Request, Response, NextFunction } from 'express';
 import { app } from '../../index';
 import { prisma } from '../../lib/prisma';
 
+type MockReq = Request & { userId?: string; companyId?: string; userName?: string };
+
 jest.mock('../../middleware/auth', () => ({
-    authenticate: (req: any, _res: any, next: any) => {
+    authenticate: (req: MockReq, _res: Response, next: NextFunction) => {
         req.userId = 'prod-test-user';
         req.companyId = 'prod-test-company';
         req.userName = 'Test';
         next();
     },
-    authorize: () => (_req: any, _res: any, next: any) => next(),
-    AuthRequest: {} as any
+    authorize: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    AuthRequest: {} as unknown
 }));
 
 jest.mock('../../lib/socket', () => ({
@@ -22,7 +25,7 @@ jest.mock('../../lib/socket', () => ({
 }));
 
 const CID = 'prod-test-company';
-const unwrap = (b: any) => b?.data ?? b;
+const unwrap = <T = unknown>(b: { data?: T } | T): T => (b as { data?: T })?.data ?? b as T;
 
 async function cleanup() {
     await prisma.stockMovement.deleteMany({ where: { companyId: CID } }).catch(() => {});
@@ -68,7 +71,7 @@ describe('GET /api/products', () => {
     it('supports search query', async () => {
         const res = await request(app).get('/api/products?search=Initial').expect(200);
         const body = unwrap(res.body);
-        expect(body.data.some((p: any) => p.name.includes('Initial'))).toBe(true);
+        expect((body.data as Array<{ name: string }>).some((p) => p.name.includes('Initial'))).toBe(true);
     });
 
     it('supports pagination params', async () => {
@@ -198,10 +201,10 @@ describe('GET /api/products/alerts/low-stock', () => {
     it('returns low-stock product list', async () => {
         await prisma.product.update({ where: { id: productId }, data: { currentStock: 2, minStock: 10, status: 'low_stock' } });
         const res = await request(app).get('/api/products/alerts/low-stock').expect(200);
-        const body = unwrap(res.body);
-        const list = Array.isArray(body) ? body : body.data;
+        const body = unwrap(res.body) as { data?: unknown[] } | unknown[];
+        const list = (Array.isArray(body) ? body : (body as { data?: unknown[] }).data) as Array<{ id: string }>;
         expect(Array.isArray(list)).toBe(true);
-        expect(list.some((p: any) => p.id === productId)).toBe(true);
+        expect(list.some((p) => p.id === productId)).toBe(true);
     });
 });
 

@@ -179,7 +179,7 @@ export function applyPromoCode(
     // Check usage limits
     if (campaign.maxTotalUses) {
         if (campaign.currentUses >= campaign.maxTotalUses) {
-            return { success: false, message: 'Este código j atingiu o limite de utilizaces' };
+            return { success: false, message: 'Este código já atingiu o limite de utilizações' };
         }
     }
 

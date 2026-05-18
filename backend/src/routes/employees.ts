@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Prisma } from '@prisma/client';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import {
     createEmployeeSchema,
@@ -65,7 +66,7 @@ router.get('/attendance', authenticate, async (req: AuthRequest, res) => {
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    const where: any = { employee: { companyId: req.companyId } };
+    const where: Prisma.AttendanceRecordWhereInput = { employee: { companyId: req.companyId } };
     if (employeeId) where.employeeId = String(employeeId);
 
     if (startDate && endDate) {
@@ -223,7 +224,7 @@ router.post('/payroll/:id/process', authenticate, authorize('admin', 'manager'),
 
 router.post('/payroll/:id/mark-paid', authenticate, authorize('admin'), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-    const result = await payrollService.pay(req.params.id, req.companyId);
+    const result = await payrollService.pay(req.params.id, req.companyId, req.body?.approvalId);
     res.json(result);
 });
 
@@ -295,7 +296,7 @@ router.post('/', authenticate, authorize('admin'), async (req: AuthRequest, res)
         emitToCompany(req.companyId, 'hr:new_employee', {
             id: result.data.id,
             name: result.data.name,
-            department: (result.data as any).department,
+            department: result.data.department,
             timestamp: new Date()
         });
     }
@@ -374,7 +375,7 @@ router.get('/:id/attendance', authenticate, async (req: AuthRequest, res) => {
     const startDate = new Date(y, m - 1, 1);
     const endDate = new Date(y, m, 0);
 
-    const where: any = {
+    const where: Prisma.AttendanceRecordWhereInput = {
         employeeId: req.params.id,
         employee: { companyId: req.companyId },
         date: { gte: startDate, lte: endDate }

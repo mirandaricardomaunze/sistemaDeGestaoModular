@@ -10,12 +10,12 @@ import { SegmentedControl } from '../../components/common/SegmentedControl';
 import toast from 'react-hot-toast';
 import {
     HiOutlineShoppingCart, 
-    HiOutlineMagnifyingGlass as HiOutlineSearch, 
+    HiOutlineMagnifyingGlass as HiOutlineMagnifyingGlass, 
     HiOutlineTrash,
     HiOutlinePlus, 
     HiOutlineMinus, 
-    HiOutlineXMark as HiOutlineX, 
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineXMark as HiOutlineXMark, 
+    HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlineCake
 } from 'react-icons/hi2';
 
@@ -78,16 +78,17 @@ function CheckoutModal({ cart, tableId, tableName, onClose, onSuccess, onProcess
                 tableId: tableId || undefined,
                 originModule: 'restaurant',
                 notes: tableId ? `Mesa: ${tableName}` : undefined,
-            } as any);
+            });
             toast.success('Pedido registado com sucesso!');
             onSuccess();
-        } catch (err: any) {
-            const errorResponse = err.response?.data;
-            const errorMessage = errorResponse?.message || errorResponse?.error || err.message || 'Erro ao registar pedido';
-            
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: ApiValidationDetail[] } } };
+            const errorResponse = apiErr.response?.data;
+            const errorMessage = errorResponse?.message || errorResponse?.error || apiErr.message || 'Erro ao registar pedido';
+
             if (errorResponse?.errors && Array.isArray(errorResponse.errors)) {
                 const validationErrors = errorResponse.errors
-                    .map((detail: any) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
+                    .map((detail) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
                     .join('\n');
                 toast.error(`Erro de Validação\n\n${validationErrors}`, { duration: 8000 });
             } else {
@@ -147,13 +148,34 @@ function CheckoutModal({ cart, tableId, tableName, onClose, onSuccess, onProcess
 }
 
 // ============================================================================
+// Local row shapes for products/tables read by this view
+// ============================================================================
+
+type RestaurantProduct = {
+    id: string;
+    name: string;
+    category?: string | null;
+    price: number | string;
+    currentStock?: number;
+};
+
+type RestaurantTable = {
+    id: string;
+    number: string | number;
+    name?: string;
+    status?: string;
+};
+
+type ApiValidationDetail = { label?: string; field?: string; message?: string };
+
+// ============================================================================
 // MAIN POS PAGE
 // ============================================================================
 
 export default function RestaurantPOS() {
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('');
-    const [selectedTable, setSelectedTable] = useState<any>(null);
+    const [selectedTable, setSelectedTable] = useState<RestaurantTable | null>(null);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [checkoutOpen, setCheckoutOpen] = useState(false);
     const [checkoutProcessing, setCheckoutProcessing] = useState(false);
@@ -175,11 +197,11 @@ export default function RestaurantPOS() {
     }, [cart]);
 
     const categories = useMemo(() => {
-        const cats = new Set((products || []).map((p: any) => p.category).filter(Boolean));
+        const cats = new Set((products as RestaurantProduct[] || []).map((p) => p.category).filter(Boolean));
         return Array.from(cats) as string[];
     }, [products]);
 
-    const addToCart = useCallback((product: any) => {
+    const addToCart = useCallback((product: RestaurantProduct) => {
         setCart(prev => {
             const idx = prev.findIndex(i => i.productId === product.id);
             if (idx >= 0) {
@@ -212,7 +234,7 @@ export default function RestaurantPOS() {
         }
     };
 
-    const handleSelectTable = (table: any) => {
+    const handleSelectTable = (table: RestaurantTable) => {
         setSelectedTable(table);
         if (table.status === 'available') {
             updateTableStatus.mutate(
@@ -231,7 +253,7 @@ export default function RestaurantPOS() {
                         <Input
                             className="flex-1"
                             placeholder="Pesquisar menu... (F2)"
-                            leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                         />
@@ -253,13 +275,13 @@ export default function RestaurantPOS() {
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mesa</p>
                         <Button variant="ghost" size="xs" onClick={() => refetchTables()} className="px-2">
-                            <HiOutlineRefresh className="w-4 h-4" />
+                            <HiOutlineArrowPath className="w-4 h-4" />
                         </Button>
                     </div>
                     <SegmentedControl
                         options={[
                             { value: 'counter', label: 'Balcão' },
-                            ...tables.map((t: any) => ({
+                            ...(tables as RestaurantTable[]).map((t) => ({
                                 value: t.id,
                                 label: `M${t.number}${t.name ? ` • ${t.name}` : ''}`,
                                 variant: t.status === 'occupied' ? 'danger' : 'default'
@@ -269,7 +291,7 @@ export default function RestaurantPOS() {
                         onChange={(val) => {
                             if (val === 'counter') setSelectedTable(null);
                             else {
-                                const t = tables.find((table: any) => table.id === val);
+                                const t = (tables as RestaurantTable[]).find((table) => table.id === val);
                                 if (t) handleSelectTable(t);
                             }
                         }}
@@ -292,14 +314,18 @@ export default function RestaurantPOS() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                            {(products || []).map((product: any) => {
+                            {(products as RestaurantProduct[] || []).map((product) => {
                                 const inCart = cart.find(i => i.productId === product.id);
                                 return (
-                                    <button key={product.id} onClick={() => addToCart(product)}
+                                    <Button
+                                        key={product.id}
+                                        variant="ghost"
+                                        onClick={() => addToCart(product)}
                                         className={cn(
-                                            'relative rounded-lg p-3 text-left transition-all border-2 hover:shadow-md active:scale-95',
+                                            'relative rounded-lg p-3 text-left border-2 hover:shadow-md active:scale-95',
                                             inCart ? 'border-red-500 bg-red-50 dark:bg-red-900/10' : 'border-transparent bg-white dark:bg-dark-800 hover:border-red-200'
-                                        )}>
+                                        )}
+                                    >
                                         {inCart && (
                                             <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center text-white text-xs font-bold">{inCart.quantity}</div>
                                         )}
@@ -307,9 +333,9 @@ export default function RestaurantPOS() {
                                             <HiOutlineCake className="w-6 h-6 text-red-500" />
                                         </div>
                                         <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2">{product.name}</p>
-                                        <p className="text-xs text-red-600 font-bold mt-1">{formatCurrency(product.price)}</p>
-                                        {product.currentStock <= 0 && <Badge variant="danger" className="mt-1 text-[10px]">Esgotado</Badge>}
-                                    </button>
+                                        <p className="text-xs text-red-600 font-bold mt-1">{formatCurrency(Number(product.price))}</p>
+                                        {(product.currentStock ?? 0) <= 0 && <Badge variant="danger" className="mt-1 text-[10px]">Esgotado</Badge>}
+                                    </Button>
                                 );
                             })}
                         </div>
@@ -336,7 +362,7 @@ export default function RestaurantPOS() {
                                 onClick={() => setCart([])} 
                                 className="ml-auto text-gray-400 hover:text-red-500"
                             >
-                                <HiOutlineX className="w-5 h-5" />
+                                <HiOutlineXMark className="w-5 h-5" />
                             </Button>
                         )}
                     </div>

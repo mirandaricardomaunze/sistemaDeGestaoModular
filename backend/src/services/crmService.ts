@@ -1,11 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { ApiError } from '../middleware/error.middleware';
 
 export class CRMService {
     constructor(private prisma: PrismaClient) { }
 
     async getOpportunities(companyId: string, filters: { search?: string; stageId?: string; customerId?: string; limit?: number } = {}) {
-        const where: any = { companyId };
+        const where: Prisma.OpportunityWhereInput = { companyId };
 
         if (filters.stageId) where.stageId = filters.stageId;
         if (filters.customerId) where.customerId = filters.customerId;

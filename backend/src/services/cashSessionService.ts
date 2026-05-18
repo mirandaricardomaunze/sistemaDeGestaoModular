@@ -1,9 +1,101 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { auditService } from './auditService';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+import { approvalsService } from './approvalsService';
+import { getThresholds, isOverThreshold } from './approvals/thresholds';
+import { logger } from '../utils/logger';
+import type { CashSessionHistoryQuery } from '../validation/cashSession';
+
+type PaymentTotalKey = 'cash' | 'mpesa' | 'emola' | 'card' | 'credit';
+type PaymentTotals = Record<PaymentTotalKey, number>;
+type SalePaymentSummary = {
+    paymentMethod: string;
+    total: unknown;
+    isCredit: boolean;
+    paymentRef?: string | null;
+    change?: unknown;
+};
+type PaymentReferenceEntry = { method?: string; amount?: number };
+
+const PAYMENT_TOTAL_KEYS: readonly PaymentTotalKey[] = ['cash', 'mpesa', 'emola', 'card', 'credit'];
+const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function isPaymentReferenceEntry(value: unknown): value is PaymentReferenceEntry {
+    if (!value || typeof value !== 'object') return false;
+    const entry = value as Record<string, unknown>;
+    const methodOk = entry.method === undefined || typeof entry.method === 'string';
+    const amountOk = entry.amount === undefined || typeof entry.amount === 'number';
+    return methodOk && amountOk;
+}
+
+function isPaymentTotalKey(method: string): method is PaymentTotalKey {
+    return PAYMENT_TOTAL_KEYS.includes(method as PaymentTotalKey);
+}
+
+function parseHistoryBoundary(value: string, endOfDay: boolean): Date {
+    const match = DATE_ONLY_RE.exec(value);
+    if (match) {
+        const [, year, month, day] = match.map(Number);
+        return new Date(
+            year,
+            month - 1,
+            day,
+            endOfDay ? 23 : 0,
+            endOfDay ? 59 : 0,
+            endOfDay ? 59 : 0,
+            endOfDay ? 999 : 0,
+        );
+    }
+
+    const date = new Date(value);
+    if (endOfDay) date.setHours(23, 59, 59, 999);
+    return date;
+}
 
 export class CashSessionService {
+    private getPaymentTotals(sales: SalePaymentSummary[]): PaymentTotals {
+        const totals: PaymentTotals = { cash: 0, mpesa: 0, emola: 0, card: 0, credit: 0 };
+
+        for (const sale of sales) {
+            const saleTotal = Number(sale.total || 0);
+            if (sale.isCredit) {
+                totals.credit += saleTotal;
+                continue;
+            }
+
+            let parsed: Array<{ method?: string; amount?: number }> | null = null;
+            if (sale.paymentRef) {
+                try {
+                    const value = JSON.parse(sale.paymentRef);
+                    if (Array.isArray(value) && value.every(isPaymentReferenceEntry)) parsed = value;
+                } catch {
+                    parsed = null;
+                }
+            }
+
+            if (!parsed || parsed.length === 0) {
+                if (isPaymentTotalKey(sale.paymentMethod)) totals[sale.paymentMethod] += saleTotal;
+                continue;
+            }
+
+            const change = Number(sale.change || 0);
+            let remaining = saleTotal;
+            for (const entry of parsed) {
+                const method = entry.method;
+                if (!method || !isPaymentTotalKey(method) || remaining <= 0) continue;
+                const rawAmount = Number(entry.amount || 0);
+                const netAmount = method === 'cash' ? Math.max(0, rawAmount - change) : rawAmount;
+                const applied = Math.min(netAmount, remaining);
+                totals[method] += applied;
+                remaining -= applied;
+            }
+        }
+
+        return totals;
+    }
+
     /**
      * Get the currently open session for the company.
      * In professional retail, this could be filtered by terminalId or userId.
@@ -56,9 +148,35 @@ export class CashSessionService {
     /**
      * Register a manual cash movement (Sangria or Suprimento).
      */
-    async registerMovement(companyId: string, userId: string, data: { type: 'sangria' | 'suprimento', amount: number, reason: string }) {
+    async registerMovement(
+        companyId: string,
+        userId: string,
+        data: { type: 'sangria' | 'suprimento', amount: number, reason: string, approvalId?: string },
+    ) {
         const session = await this.getCurrentSession(companyId);
         if (!session) throw ApiError.notFound('Não há sessão de caixa aberta');
+
+        // Cash drops above the configured threshold require manager approval.
+        // Suprimentos (deposits) are inflow and not gated.
+        if (data.type === 'sangria') {
+            const thresholds = await getThresholds(companyId);
+            if (isOverThreshold(thresholds, 'cashDrop', Number(data.amount))) {
+                if (!data.approvalId) {
+                    throw ApiError.forbidden(
+                        `Sangria acima do limite (${thresholds.cashDrop}). Solicite aprovação.`
+                    );
+                }
+                const approval = await approvalsService.findApprovedFor(
+                    companyId, 'cash_drop', 'cash_session', session.id,
+                );
+                if (!approval || approval.id !== data.approvalId) {
+                    throw ApiError.forbidden('Aprovação não encontrada ou não corresponde a esta sessão.');
+                }
+                if (approval.amount !== null && approval.amount + 0.01 < Number(data.amount)) {
+                    throw ApiError.forbidden('O valor excede a aprovação concedida.');
+                }
+            }
+        }
 
         const movement = await prisma.cashMovement.create({
             data: {
@@ -69,6 +187,10 @@ export class CashSessionService {
                 performedById: userId
             }
         });
+
+        if (data.approvalId) {
+            await approvalsService.markConsumed(data.approvalId, companyId).catch(() => {});
+        }
 
         // Update session totals
         const updateField = data.type === 'sangria' ? 'withdrawals' : 'deposits';
@@ -100,20 +222,24 @@ export class CashSessionService {
         // Fetch sales linked DIRECTLY to this session
         const finalSales = await prisma.sale.findMany({
             where: { sessionId: session.id },
-            select: { paymentMethod: true, total: true, isCredit: true }
+            select: { paymentMethod: true, total: true, isCredit: true, paymentRef: true, change: true }
         });
+        const byMethod = this.getPaymentTotals(finalSales);
 
         const stats = {
-            cashSales: finalSales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),
-            mpesaSales: finalSales.filter(s => s.paymentMethod === 'mpesa').reduce((sum, s) => sum + Number(s.total), 0),
-            emolaSales: finalSales.filter(s => s.paymentMethod === 'emola').reduce((sum, s) => sum + Number(s.total), 0),
-            cardSales: finalSales.filter(s => s.paymentMethod === 'card').reduce((sum, s) => sum + Number(s.total), 0),
-            creditSales: finalSales.filter(s => s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),
+            cashSales: byMethod.cash,
+            mpesaSales: byMethod.mpesa,
+            emolaSales: byMethod.emola,
+            cardSales: byMethod.card,
+            creditSales: byMethod.credit,
             totalSales: finalSales.reduce((sum, s) => sum + Number(s.total), 0)
         };
 
         const expectedBalance = Number(session.openingBalance) + stats.cashSales - Number(session.withdrawals) + Number(session.deposits);
         const difference = Number(data.closingBalance) - expectedBalance;
+        if (Math.abs(difference) >= 0.01 && (!data.notes || data.notes.trim().length < 5)) {
+            throw ApiError.badRequest('Informe uma justificativa para diferenças no fecho de caixa');
+        }
 
         const closedSession = await prisma.cashSession.update({
             where: { id: session.id },
@@ -124,7 +250,7 @@ export class CashSessionService {
                 expectedBalance, 
                 difference,
                 ...stats,
-                notes: data.notes, 
+                notes: data.notes?.trim(), 
                 status: 'closed'
             }
         });
@@ -141,7 +267,11 @@ export class CashSessionService {
 
         // Security Alert: If significant discrepancy, log as warning
         if (Math.abs(difference) > 10) { // Threshold for warning
-            console.warn(`[CASH_DISCREPANCY] Shift ${session.id} closed with ${difference} difference.`);
+            logger.warn('Cash discrepancy detected on shift close', {
+                sessionId: session.id,
+                difference,
+                companyId,
+            });
         }
 
         return closedSession;
@@ -150,17 +280,19 @@ export class CashSessionService {
     /**
      * List session history with pagination.
      */
-    async getHistory(companyId: string, params: any) {
+    async getHistory(companyId: string, params: CashSessionHistoryQuery) {
         const { page, limit, skip } = getPaginationParams(params);
-        const where: any = { companyId, status: 'closed' };
+        const where: Prisma.CashSessionWhereInput = { companyId, status: 'closed' };
 
         if (params.startDate && params.endDate) {
-            const end = new Date(params.endDate);
-            end.setHours(23, 59, 59, 999);
-            where.closedAt = { gte: new Date(params.startDate), lte: end };
+            where.closedAt = {
+                gte: parseHistoryBoundary(params.startDate, false),
+                lte: parseHistoryBoundary(params.endDate, true)
+            };
         }
 
         if (params.openedById) where.openedById = params.openedById;
+        if (params.warehouseId) where.warehouseId = params.warehouseId;
         if (params.search) {
             where.openedBy = {
                 name: { contains: params.search, mode: 'insensitive' }
@@ -174,6 +306,7 @@ export class CashSessionService {
                 include: {
                     openedBy: { select: { id: true, name: true } },
                     closedBy: { select: { id: true, name: true } },
+                    warehouse: { select: { id: true, code: true, name: true, location: true } },
                     _count: { select: { sales: true } }
                 },
                 orderBy: { closedAt: 'desc' },
@@ -194,21 +327,22 @@ export class CashSessionService {
 
         const sales = await prisma.sale.findMany({
             where: { sessionId: session.id },
-            select: { paymentMethod: true, total: true, isCredit: true }
+            select: { paymentMethod: true, total: true, isCredit: true, paymentRef: true, change: true }
         });
+        const byMethod = this.getPaymentTotals(sales);
 
         return {
-            cashSales: sales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),
-            mpesaSales: sales.filter(s => s.paymentMethod === 'mpesa').reduce((sum, s) => sum + Number(s.total), 0),
-            emolaSales: sales.filter(s => s.paymentMethod === 'emola').reduce((sum, s) => sum + Number(s.total), 0),
-            cardSales: sales.filter(s => s.paymentMethod === 'card').reduce((sum, s) => sum + Number(s.total), 0),
-            creditSales: sales.filter(s => s.isCredit).reduce((sum, s) => sum + Number(s.total), 0),
+            cashSales: byMethod.cash,
+            mpesaSales: byMethod.mpesa,
+            emolaSales: byMethod.emola,
+            cardSales: byMethod.card,
+            creditSales: byMethod.credit,
             totalSales: sales.reduce((sum, s) => sum + Number(s.total), 0),
             openingBalance: Number(session.openingBalance),
             withdrawals: Number(session.withdrawals),
             deposits: Number(session.deposits),
             currentExpected: Number(session.openingBalance) + 
-                sales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((sum, s) => sum + Number(s.total), 0) - 
+                byMethod.cash -
                 Number(session.withdrawals) + Number(session.deposits)
         };
     }
@@ -216,26 +350,29 @@ export class CashSessionService {
     /**
      * Generate a Z-Report for the current open session or the last closed one.
      */
-    async getZReport(companyId: string) {
-        // Try current open session first, fallback to last closed
-        let session = await prisma.cashSession.findFirst({
-            where: { companyId, status: 'open' },
-            include: {
-                openedBy: { select: { name: true } },
-                closedBy: { select: { name: true } },
-                movements: { include: { performedBy: { select: { name: true } } }, orderBy: { createdAt: 'asc' } },
-            }
-        });
+    async getZReport(companyId: string, sessionId?: string) {
+        const sessionInclude = {
+            openedBy: { select: { id: true, name: true } },
+            closedBy: { select: { id: true, name: true } },
+            warehouse: { select: { id: true, code: true, name: true, location: true } },
+            movements: { include: { performedBy: { select: { id: true, name: true } } }, orderBy: { createdAt: 'asc' as const } },
+        };
 
-        if (!session) {
+        let session = sessionId
+            ? await prisma.cashSession.findFirst({
+                where: { id: sessionId, companyId },
+                include: sessionInclude
+            })
+            : await prisma.cashSession.findFirst({
+                where: { companyId, status: 'open' },
+                include: sessionInclude
+            });
+
+        if (!session && !sessionId) {
             session = await prisma.cashSession.findFirst({
                 where: { companyId, status: 'closed' },
                 orderBy: { closedAt: 'desc' },
-                include: {
-                    openedBy: { select: { name: true } },
-                    closedBy: { select: { name: true } },
-                    movements: { include: { performedBy: { select: { name: true } } }, orderBy: { createdAt: 'asc' } },
-                }
+                include: sessionInclude
             });
         }
 
@@ -250,13 +387,7 @@ export class CashSessionService {
             orderBy: { createdAt: 'asc' },
         });
 
-        const byMethod = {
-            cash: sales.filter(s => s.paymentMethod === 'cash' && !s.isCredit).reduce((a, s) => a + Number(s.total), 0),
-            mpesa: sales.filter(s => s.paymentMethod === 'mpesa').reduce((a, s) => a + Number(s.total), 0),
-            emola: sales.filter(s => s.paymentMethod === 'emola').reduce((a, s) => a + Number(s.total), 0),
-            card: sales.filter(s => s.paymentMethod === 'card').reduce((a, s) => a + Number(s.total), 0),
-            credit: sales.filter(s => s.isCredit).reduce((a, s) => a + Number(s.total), 0),
-        };
+        const byMethod = this.getPaymentTotals(sales);
 
         const totalSales = Object.values(byMethod).reduce((a, v) => a + v, 0);
         const totalTax = sales.reduce((a, s) => a + Number(s.tax || 0), 0);
@@ -264,6 +395,8 @@ export class CashSessionService {
         const totalDeposits = Number(session.deposits || 0);
         const openingBalance = Number(session.openingBalance || 0);
         const expectedBalance = openingBalance + byMethod.cash - totalWithdrawals + totalDeposits;
+        const closingBalance = session.closingBalance == null ? null : Number(session.closingBalance);
+        const difference = closingBalance == null ? null : closingBalance - expectedBalance;
 
         // Top products sold this session
         const productSales: Record<string, { name: string; qty: number; total: number }> = {};
@@ -271,8 +404,8 @@ export class CashSessionService {
             for (const item of sale.items) {
                 const name = item.product?.name || 'Desconhecido';
                 if (!productSales[name]) productSales[name] = { name, qty: 0, total: 0 };
-                productSales[name].qty += item.quantity;
-                productSales[name].total += Number(item.unitPrice) * item.quantity;
+                productSales[name].qty += Number(item.quantity);
+                productSales[name].total += Number(item.total || 0);
             }
         }
         const topProducts = Object.values(productSales).sort((a, b) => b.total - a.total).slice(0, 10);
@@ -283,9 +416,26 @@ export class CashSessionService {
         });
 
         return {
-            session: { ...session, openedByName: (session.openedBy as any)?.name, closedByName: (session.closedBy as any)?.name },
+            session: { ...session, openedByName: session.openedBy.name, closedByName: session.closedBy?.name },
             company,
             byMethod,
+            paymentMethods: [
+                { key: 'cash', label: 'Dinheiro', amount: byMethod.cash },
+                { key: 'mpesa', label: 'M-Pesa', amount: byMethod.mpesa },
+                { key: 'emola', label: 'e-Mola', amount: byMethod.emola },
+                { key: 'card', label: 'Cartao/TPA', amount: byMethod.card },
+                { key: 'credit', label: 'Credito', amount: byMethod.credit },
+            ],
+            cashFlow: {
+                openingBalance,
+                cashSales: byMethod.cash,
+                deposits: totalDeposits,
+                withdrawals: totalWithdrawals,
+                expectedBalance,
+                closingBalance,
+                difference,
+                requiresReview: difference == null ? false : Math.abs(difference) >= 0.01,
+            },
             totalSales,
             totalTax,
             totalTransactions: sales.length,
@@ -293,10 +443,20 @@ export class CashSessionService {
             totalDeposits,
             openingBalance,
             expectedBalance,
-            closingBalance: Number(session.closingBalance || 0),
-            difference: Number(session.difference || 0),
+            closingBalance: closingBalance || 0,
+            difference: difference || 0,
             movements: session.movements,
             topProducts,
+            sales: sales.map(sale => ({
+                id: sale.id,
+                createdAt: sale.createdAt,
+                receiptNumber: sale.receiptNumber,
+                paymentMethod: sale.paymentMethod,
+                customerName: sale.customer?.name,
+                subtotal: Number(sale.subtotal || 0),
+                tax: Number(sale.tax || 0),
+                total: Number(sale.total || 0),
+            })),
             generatedAt: new Date(),
         };
     }
@@ -308,9 +468,10 @@ export class CashSessionService {
         const session = await prisma.cashSession.findFirst({
             where: { id: sessionId, companyId },
             include: {
-                openedBy: { select: { name: true } },
-                closedBy: { select: { name: true } },
-                movements: { include: { performedBy: { select: { name: true } } } },
+                openedBy: { select: { id: true, name: true } },
+                closedBy: { select: { id: true, name: true } },
+                warehouse: { select: { id: true, code: true, name: true, location: true } },
+                movements: { include: { performedBy: { select: { id: true, name: true } } }, orderBy: { createdAt: 'asc' } },
                 sales: {
                     include: { customer: { select: { name: true } } },
                     orderBy: { createdAt: 'desc' }

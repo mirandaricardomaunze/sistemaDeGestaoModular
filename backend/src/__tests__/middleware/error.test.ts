@@ -58,15 +58,17 @@ describe('ApiError', () => {
 
 // ── errorHandler middleware ───────────────────────────────────────────────────
 
+type MockRes = { status: jest.Mock; json: jest.Mock };
+
 function makeResMock() {
-    const res: any = {};
+    const res: Partial<MockRes> = {};
     res.status = jest.fn().mockReturnValue(res);
     res.json = jest.fn().mockReturnValue(res);
-    return res;
+    return res as MockRes;
 }
 
 describe('errorHandler middleware', () => {
-    const req = {} as any;
+    const req = {} as Parameters<typeof errorHandler>[1];
     const next = jest.fn();
 
     it('handles ApiError with correct status and body', () => {

@@ -13,7 +13,8 @@ const TABS = [
 ];
 
 export default function PharmacyCompliance() {
-    const [tab, setTab] = useState<'narcotics' | 'recalls' | 'interactions'>('narcotics');
+    type ComplianceTab = 'narcotics' | 'recalls' | 'interactions';
+    const [tab, setTab] = useState<ComplianceTab>('narcotics');
 
     return (
         <div className="space-y-5">
@@ -32,7 +33,7 @@ export default function PharmacyCompliance() {
                     return (
                         <button
                             key={t.id}
-                            onClick={() => setTab(t.id as any)}
+                            onClick={() => setTab(t.id as ComplianceTab)}
                             className={cn(
                                 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
                                 tab === t.id

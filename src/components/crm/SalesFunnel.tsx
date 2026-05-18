@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Sales Funnel Component
  * Visualização do funil de vendas com drag and drop
  */
@@ -11,8 +11,8 @@ import {
     HiOutlineChartBar,
     HiOutlineClock,
     HiOutlineCheck,
-    HiOutlineX,
-} from 'react-icons/hi';
+    HiOutlineXMark,
+} from 'react-icons/hi2';
 import { useCRMStore } from '../../stores/useCRMStore';
 import { Button, Card, Modal, Input, Select, Badge, Textarea } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
@@ -332,7 +332,7 @@ export default function SalesFunnel() {
                                     {stage.isWonStage ? (
                                         <HiOutlineCheck className="w-5 h-5 text-green-500" />
                                     ) : (
-                                        <HiOutlineX className="w-5 h-5 text-red-500" />
+                                        <HiOutlineXMark className="w-5 h-5 text-red-500" />
                                     )}
                                     <h3 className="font-semibold text-gray-900 dark:text-white">
                                         {stage.name}
@@ -412,7 +412,7 @@ export default function SalesFunnel() {
                     <Select
                         label="Origem"
                         value={newOpportunity.source || 'direct'}
-                        onChange={(e) => setNewOpportunity({ ...newOpportunity, source: e.target.value as any })}
+                        onChange={(e) => setNewOpportunity({ ...newOpportunity, source: e.target.value as NonNullable<FunnelOpportunity['source']> })}
                         options={Object.entries(SOURCE_LABELS).map(([value, label]) => ({ value, label }))}
                     />
                     <Textarea
@@ -567,7 +567,7 @@ export default function SalesFunnel() {
                     <Select
                         label="Tipo"
                         value={newInteraction.type}
-                        onChange={(e) => setNewInteraction({ ...newInteraction, type: e.target.value as any })}
+                        onChange={(e) => setNewInteraction({ ...newInteraction, type: e.target.value as FunnelInteraction['type'] })}
                         options={Object.entries(INTERACTION_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
                     />
                     <Input
@@ -585,7 +585,7 @@ export default function SalesFunnel() {
                     <Select
                         label="Resultado"
                         value={newInteraction.outcome || 'neutral'}
-                        onChange={(e) => setNewInteraction({ ...newInteraction, outcome: e.target.value as any })}
+                        onChange={(e) => setNewInteraction({ ...newInteraction, outcome: e.target.value as NonNullable<FunnelInteraction['outcome']> })}
                         options={[
                             { value: 'positive', label: 'Positivo' },
                             { value: 'neutral', label: 'Neutro' },

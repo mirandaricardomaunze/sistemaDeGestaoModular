@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlineCog6Tooth as HiOutlineCog,
-    HiOutlineBuildingOffice as HiOutlineOfficeBuilding,
+    HiOutlineBuildingOffice as HiOutlineBuildingOffice,
     HiOutlineShieldCheck,
     HiOutlineArrowDownTray as HiOutlineCloudDownload,
     HiOutlineSun,
@@ -27,6 +27,7 @@ import {
     HiOutlineBuildingOffice2,
 } from 'react-icons/hi2';
 import { Card, Button, Input, Select, ConfirmationModal, Textarea, Pagination, usePagination, PageHeader } from '../components/ui';
+import { cn } from '../utils/helpers';
 import { useStore } from '../stores/useStore';
 import { useAuthStore, roleLabels } from '../stores/useAuthStore';
 import { SegmentedControl } from '../components/common/SegmentedControl';
@@ -103,6 +104,41 @@ const userManageSchema = z.object({
 
 type UserManageFormData = z.infer<typeof userManageSchema>;
 
+type UserRow = {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    phone?: string | null;
+    isActive: boolean;
+    createdAt?: string;
+    lastLogin?: string | null;
+    company?: { id: string; name: string; status?: string };
+};
+
+type ActiveModuleRef = { code: string; name?: string };
+
+type CompanyRow = {
+    id: string;
+    name: string;
+    email?: string | null;
+    nuit?: string | null;
+    status?: string;
+    createdAt?: string;
+    activeModules?: ActiveModuleRef[];
+    _count?: { users?: number };
+    userCount?: number;
+};
+
+type AdminStats = {
+    modules?: Array<{ moduleCode: string; moduleName: string; companiesUsing: number }>;
+    companies?: { total?: number; active?: number; trial?: number; blocked?: number };
+    users?: { total?: number; active?: number; inactive?: number };
+    sales?: { total?: number; revenue?: number };
+    recentActivity?: { sales?: number; newUsers?: number };
+    system?: { dbSize?: string };
+};
+
 export default function Settings() {
     const { theme, toggleTheme, businessType, setBusinessType, alertConfig, updateAlertConfig, companySettings, updateCompanySettings } = useStore();
     const { user } = useAuthStore();
@@ -111,12 +147,12 @@ export default function Settings() {
     const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'system' | 'alerts' | 'backup' | 'users' | 'superadmin'>('profile');
     const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
     const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
-    const [backupDataToRestore, setBackupDataToRestore] = useState<any>(null);
+    const [backupDataToRestore, setBackupDataToRestore] = useState<Record<string, unknown> | null>(null);
     const [moduleValidationOpen, setModuleValidationOpen] = useState(false);
     const [attemptedModule, setAttemptedModule] = useState<string>('');
 
     // Users Management State
-    const [users, setUsers] = useState<any[]>([]);
+    const [users, setUsers] = useState<UserRow[]>([]);
     const {
         paginatedItems: paginatedUsers,
         currentPage: currentUserPage,
@@ -128,14 +164,14 @@ export default function Settings() {
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
 
     // Super Admin State
-    const [companies, setCompanies] = useState<any[]>([]);
+    const [companies, setCompanies] = useState<CompanyRow[]>([]);
     const {
         paginatedItems: paginatedCompanies,
     } = usePagination(companies, 10);
-    const [adminStats, setAdminStats] = useState<any>(null);
+    const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
     const [isLoadingStats, setIsLoadingStats] = useState(false);
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
@@ -192,6 +228,7 @@ export default function Settings() {
             address: data.address,
             city: data.city,
             state: data.state,
+            province: data.state,
             zipCode: data.zipCode,
             ivaRate: data.ivaRate,
             printerType: data.printerType,
@@ -199,6 +236,7 @@ export default function Settings() {
             autoPrintReceipt: data.autoPrintReceipt,
             receiptHeader: data.receiptHeader,
             receiptFooter: data.receiptFooter,
+            bankAccounts: data.bankAccounts,
             businessType: businessType, // Sync current businessType to company settings
         });
         toast.success('Dados da empresa salvos com sucesso!');
@@ -276,7 +314,7 @@ export default function Settings() {
 
     const tabs = [
         { id: 'profile', label: 'Meu Perfil', icon: HiOutlineUser },
-        { id: 'company', label: 'Empresa', icon: HiOutlineOfficeBuilding },
+        { id: 'company', label: 'Empresa', icon: HiOutlineBuildingOffice },
         { id: 'system', label: 'Sistema', icon: HiOutlineCog },
         { id: 'alerts', label: 'Alertas', icon: HiOutlineShieldCheck },
         { id: 'backup', label: 'Backup', icon: HiOutlineCloudDownload },
@@ -351,9 +389,9 @@ export default function Settings() {
             await authAPI.changePassword(data.currentPassword, data.newPassword);
             toast.success('Senha alterada com sucesso!');
             resetPassword();
-        } catch (error: any) {
+        } catch (error) {
             logger.error('Password update error:', error);
-            const msg = error.response?.data?.error || 'Erro ao alterar senha.';
+            const msg = (error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.error || 'Erro ao alterar senha.';
             toast.error(msg);
         }
     };
@@ -378,12 +416,12 @@ export default function Settings() {
         }
     }, [activeTab]);
 
-    const handleEditUser = (user: any) => {
+    const handleEditUser = (user: UserRow) => {
         setSelectedUser(user);
         resetUser({
             name: user.name,
             email: user.email,
-            role: user.role,
+            role: user.role as UserManageFormData['role'],
             phone: user.phone || '',
         });
         setIsUserModalOpen(true);
@@ -397,12 +435,12 @@ export default function Settings() {
             }
             setIsUserModalOpen(false);
             fetchUsers();
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Erro ao salvar utilizador.');
+        } catch (error) {
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.error || 'Erro ao salvar utilizador.');
         }
     };
 
-    const handleToggleUserStatus = async (user: any) => {
+    const handleToggleUserStatus = async (user: UserRow) => {
         try {
             await authAPI.toggleUserStatus(user.id, !user.isActive);
             toast.success(`Utilizador ${user.isActive ? 'desactivado' : 'activado'}!`);
@@ -419,8 +457,8 @@ export default function Settings() {
             toast.success('Utilizador removido com sucesso!');
             setIsDeleteModalOpen(false);
             fetchUsers();
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Erro ao remover utilizador.');
+        } catch (error) {
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.error || 'Erro ao remover utilizador.');
         }
     };
 
@@ -441,8 +479,8 @@ export default function Settings() {
     const fetchCompanies = async () => {
         setIsLoadingCompanies(true);
         try {
-            const data = await adminAPI.getCompanies();
-            setCompanies(data);
+            const response = await adminAPI.getCompanies();
+            setCompanies(response.data);
         } catch (error) {
             logger.error('Fetch companies error:', error);
             toast.error('Erro ao carregar empresas');
@@ -621,21 +659,22 @@ export default function Settings() {
                                                 alt="Logo da Empresa"
                                                 className="w-28 h-28 rounded-lg object-contain bg-white dark:bg-dark-700 border-2 border-gray-200 dark:border-dark-600 shadow-lg"
                                             />
-                                            <button
+                                            <Button
                                                 type="button"
+                                                variant="ghost"
                                                 onClick={() => {
                                                     updateCompanySettings({ logo: undefined });
                                                     toast.success('Logo removido!');
                                                 }}
-                                                className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all opacity-0 group-hover:opacity-100"
+                                                className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 active:scale-95 p-0"
                                                 title="Remover logo"
                                             >
                                                 <HiOutlineTrash className="w-4 h-4" />
-                                            </button>
+                                            </Button>
                                         </div>
                                     ) : (
                                         <div className="w-28 h-28 rounded-2xl bg-primary-50 dark:bg-primary-500/10 border-2 border-dashed border-primary-200 dark:border-primary-500/30 flex flex-col items-center justify-center text-primary-400 dark:text-primary-500/50">
-                                            <HiOutlineOfficeBuilding className="w-10 h-10 mb-2" />
+                                            <HiOutlineBuildingOffice className="w-10 h-10 mb-2" />
                                             <span className="text-[10px] font-bold uppercase">Sem Logo</span>
                                         </div>
                                     )}
@@ -844,13 +883,15 @@ export default function Settings() {
                             <div className="space-y-4">
                                 {bankFields.map((field, index) => (
                                     <div key={field.id} className="p-4 bg-gray-50 dark:bg-dark-800 rounded-lg relative border border-gray-200 dark:border-dark-700">
-                                        <button
+                                        <Button
                                             type="button"
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => removeBank(index)}
-                                            className="absolute top-2 right-2 text-gray-400 hover:text-red-500"
+                                            className="absolute top-2 right-2 text-gray-400 hover:text-red-500 active:scale-95 p-1"
                                         >
                                             <HiOutlineTrash className="w-5 h-5" />
-                                        </button>
+                                        </Button>
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                             <Input
                                                 label="Banco *"
@@ -961,12 +1002,13 @@ export default function Settings() {
                                 const isSelected = businessType === option.value;
 
                                 return (
-                                    <button
+                                    <div
                                         key={option.value}
+                                        role="button"
+                                        tabIndex={0}
                                         onClick={async () => {
-                                            if (isSelected) return; // Se j estiver ativo, não faz nada e não d aviso
+                                            if (isSelected) return;
 
-                                            // Verificar se o módulo correspondente est disponível
                                             const requiredModule = BUSINESS_TYPE_TO_MODULE[option.value];
                                             const hasRequiredModule = user?.activeModules?.includes(requiredModule);
 
@@ -1010,7 +1052,7 @@ export default function Settings() {
                                                 {option.description}
                                             </p>
                                         </div>
-                                    </button>
+                                    </div>
                                 );
                             })}
                         </div>
@@ -1056,19 +1098,14 @@ export default function Settings() {
                                         Receber alertas críticos por email
                                     </p>
                                 </div>
-                                <button
+                                <Button
                                     type="button"
+                                    variant="ghost"
                                     onClick={() => setAlertValue('enableEmailAlerts', !enableEmailAlerts)}
-                                    className={`
-                    relative w-14 h-7 rounded-full transition-colors
-                    ${enableEmailAlerts ? 'bg-primary-600' : 'bg-gray-300 dark:bg-dark-600'}
-                  `}
+                                    className={cn('relative w-14 h-7 rounded-full p-0', enableEmailAlerts ? 'bg-primary-600 hover:bg-primary-700' : 'bg-gray-300 dark:bg-dark-600 hover:bg-gray-400')}
                                 >
-                                    <span className={`
-                    absolute top-1 w-5 h-5 bg-white rounded-full transition-transform
-                    ${enableEmailAlerts ? 'left-8' : 'left-1'}
-                  `} />
-                                </button>
+                                    <span className={cn('absolute top-1 w-5 h-5 bg-white rounded-full transition-transform', enableEmailAlerts ? 'left-8' : 'left-1')} />
+                                </Button>
                             </div>
 
                             <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
@@ -1080,19 +1117,14 @@ export default function Settings() {
                                         Receber notificações no navegador
                                     </p>
                                 </div>
-                                <button
+                                <Button
                                     type="button"
+                                    variant="ghost"
                                     onClick={() => setAlertValue('enablePushNotifications', !enablePushNotifications)}
-                                    className={`
-                    relative w-14 h-7 rounded-full transition-colors
-                    ${enablePushNotifications ? 'bg-primary-600' : 'bg-gray-300 dark:bg-dark-600'}
-                  `}
+                                    className={cn('relative w-14 h-7 rounded-full p-0', enablePushNotifications ? 'bg-primary-600 hover:bg-primary-700' : 'bg-gray-300 dark:bg-dark-600 hover:bg-gray-400')}
                                 >
-                                    <span className={`
-                    absolute top-1 w-5 h-5 bg-white rounded-full transition-transform
-                    ${enablePushNotifications ? 'left-8' : 'left-1'}
-                  `} />
-                                </button>
+                                    <span className={cn('absolute top-1 w-5 h-5 bg-white rounded-full transition-transform', enablePushNotifications ? 'left-8' : 'left-1')} />
+                                </Button>
                             </div>
                         </div>
 
@@ -1251,15 +1283,15 @@ export default function Settings() {
                     if (backupDataToRestore) {
                         // Restore company settings
                         if (backupDataToRestore.company) {
-                            updateCompanySettings(backupDataToRestore.company);
+                            updateCompanySettings(backupDataToRestore.company as Partial<Parameters<typeof updateCompanySettings>[0]>);
                         }
                         // Restore alert config
                         if (backupDataToRestore.alertConfig) {
-                            updateAlertConfig(backupDataToRestore.alertConfig);
+                            updateAlertConfig(backupDataToRestore.alertConfig as Parameters<typeof updateAlertConfig>[0]);
                         }
                         // Restore business type
                         if (backupDataToRestore.businessType) {
-                            setBusinessType(backupDataToRestore.businessType);
+                            setBusinessType(backupDataToRestore.businessType as Parameters<typeof setBusinessType>[0]);
                         }
 
                         toast.success('Backup restaurado com sucesso!');
@@ -1302,14 +1334,14 @@ export default function Settings() {
                                         <div>
                                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Empresas</p>
                                             <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                                                {adminStats.companies.total}
+                                                {adminStats.companies?.total ?? 0}
                                             </p>
                                             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-bold">
-                                                {adminStats.companies.active} ativas
+                                                {adminStats.companies?.active ?? 0} ativas
                                             </p>
                                         </div>
                                         <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-500/15 border border-transparent dark:border-blue-500/30 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                                            <HiOutlineOfficeBuilding className="w-6 h-6 text-blue-600 dark:text-blue-300" />
+                                            <HiOutlineBuildingOffice className="w-6 h-6 text-blue-600 dark:text-blue-300" />
                                         </div>
                                     </div>
                                 </Card>
@@ -1319,10 +1351,10 @@ export default function Settings() {
                                         <div>
                                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Utilizadores</p>
                                             <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                                                {adminStats.users.total}
+                                                {adminStats.users?.total ?? 0}
                                             </p>
                                             <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-bold">
-                                                {adminStats.users.active} ativos
+                                                {adminStats.users?.active ?? 0} ativos
                                             </p>
                                         </div>
                                         <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-500/15 border border-transparent dark:border-green-500/30 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
@@ -1336,10 +1368,10 @@ export default function Settings() {
                                         <div>
                                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Vendas Totais</p>
                                             <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                                                {adminStats.sales.total}
+                                                {adminStats.sales?.total ?? 0}
                                             </p>
                                             <p className="text-xs text-purple-600 dark:text-purple-400 mt-1 font-bold">
-                                                {new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(adminStats.sales.revenue)}
+                                                {new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(adminStats.sales?.revenue ?? 0)}
                                             </p>
                                         </div>
                                         <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-500/15 border border-transparent dark:border-purple-500/30 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
@@ -1353,10 +1385,10 @@ export default function Settings() {
                                         <div>
                                             <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Actividade (7d)</p>
                                             <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                                                {adminStats.recentActivity.sales}
+                                                {adminStats.recentActivity?.sales ?? 0}
                                             </p>
                                             <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-bold">
-                                                {adminStats.recentActivity.newUsers} novos
+                                                {adminStats.recentActivity?.newUsers ?? 0} novos
                                             </p>
                                         </div>
                                         <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-500/15 border border-transparent dark:border-amber-500/30 flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
@@ -1375,7 +1407,7 @@ export default function Settings() {
                                 Uso de Módulos
                             </h3>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                                {adminStats.modules.map((mod: any) => (
+                                {adminStats.modules?.map((mod) => (
                                     <div key={mod.moduleCode} className="p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                         <p className="text-sm font-medium text-gray-900 dark:text-white">{mod.moduleName}</p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -1406,7 +1438,7 @@ export default function Settings() {
                             </div>
                         ) : companies.length === 0 ? (
                             <div className="text-center py-12 bg-gray-50 dark:bg-dark-700 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600">
-                                <HiOutlineOfficeBuilding className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                                <HiOutlineBuildingOffice className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-gray-500 dark:text-gray-400">Nenhuma empresa encontrada.</p>
                             </div>
                         ) : (
@@ -1439,7 +1471,7 @@ export default function Settings() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-wrap gap-1">
-                                                        {company.activeModules?.map((mod: any) => (
+                                                        {company.activeModules?.map((mod) => (
                                                             <span key={mod.code} className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
                                                                 {mod.code}
                                                             </span>
@@ -1450,22 +1482,21 @@ export default function Settings() {
                                                     {company.userCount}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <button
-                                                        onClick={() => handleToggleCompanyStatus(company.id, company.status)}
-                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${company.status === 'active'
-                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200'
-                                                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200'
-                                                            }`}
+                                                    <Button
+                                                        size="xs"
+                                                        variant={company.status === 'active' ? 'success' : 'danger'}
+                                                        className="rounded-full px-2.5"
+                                                        onClick={() => handleToggleCompanyStatus(company.id, company.status || 'inactive')}
                                                     >
                                                         {company.status === 'active' ? (
-                                                            <><HiOutlineCheckCircle className="w-3.5 h-3.5" /> Activa</>
+                                                            <><HiOutlineCheckCircle className="w-3.5 h-3.5 mr-1" /> Activa</>
                                                         ) : (
-                                                            <><HiOutlineXCircle className="w-3.5 h-3.5" /> Inactiva</>
+                                                            <><HiOutlineXCircle className="w-3.5 h-3.5 mr-1" /> Inactiva</>
                                                         )}
-                                                    </button>
+                                                    </Button>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                                                    {new Date(company.createdAt).toLocaleDateString()}
+                                                    {company.createdAt ? new Date(company.createdAt).toLocaleDateString() : ''}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <Button
@@ -1543,18 +1574,18 @@ export default function Settings() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <button
+                                                    <Button
+                                                        size="xs"
+                                                        variant={userData.isActive ? 'success' : 'danger'}
+                                                        className="rounded-full px-2.5"
                                                         onClick={() => handleToggleUserStatus(userData)}
-                                                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors ${userData.isActive
-                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 hover:bg-green-200'
-                                                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200'
-                                                            }`}>
+                                                    >
                                                         {userData.isActive ? (
-                                                            <><HiOutlineCheckCircle className="w-3.5 h-3.5" /> Activo</>
+                                                            <><HiOutlineCheckCircle className="w-3.5 h-3.5 mr-1" /> Activo</>
                                                         ) : (
-                                                            <><HiOutlineXCircle className="w-3.5 h-3.5" /> Inactivo</>
+                                                            <><HiOutlineXCircle className="w-3.5 h-3.5 mr-1" /> Inactivo</>
                                                         )}
-                                                    </button>
+                                                    </Button>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                                                     {userData.lastLogin

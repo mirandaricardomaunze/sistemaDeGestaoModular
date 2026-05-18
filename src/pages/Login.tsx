@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,11 +8,10 @@ import {
     HiOutlineEnvelope, 
     HiOutlineLockClosed, 
     HiOutlineShieldCheck,
-    HiOutlineExclamationCircle,
     HiOutlineSquares2X2,
     HiOutlineShoppingCart
 } from 'react-icons/hi2';
-import { Input } from '../components/ui';
+import { Input, Button } from '../components/ui';
 import { useAuthStore } from '../stores/useAuthStore';
 
 // Validation Schema
@@ -25,7 +25,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
     const navigate = useNavigate();
     const { login, isLoading } = useAuthStore();
-    const [loginError, setLoginError] = useState<string | null>(null);
     const [shakeForm, setShakeForm] = useState(false);
 
     // Auto-focus on email
@@ -43,12 +42,10 @@ export default function Login() {
     });
 
     const onSubmit = async (data: LoginFormData) => {
-        setLoginError(null);
         const success = await login(data.email, data.password);
         if (success) {
             navigate('/');
         } else {
-            setLoginError('Email ou senha incorretos. Verifique e tente novamente.');
             setShakeForm(true);
             setTimeout(() => setShakeForm(false), 650);
         }
@@ -56,6 +53,26 @@ export default function Login() {
 
     return (
         <div className="min-h-screen flex w-full font-sans bg-white dark:bg-dark-950 overflow-hidden">
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    duration: 5000,
+                    style: {
+                        borderRadius: '12px',
+                        padding: '14px 18px',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                    },
+                    error: {
+                        style: {
+                            background: '#fff1f2',
+                            color: '#be123c',
+                            border: '1px solid #fecdd3',
+                        },
+                        iconTheme: { primary: '#e11d48', secondary: '#fff1f2' },
+                    },
+                }}
+            />
             {/* Left Side: Form Section */}
             <div className="w-full lg:w-[45%] xl:w-[40%] flex flex-col justify-center px-8 sm:px-16 lg:px-20 relative z-10 transition-all">
                 <div className="w-full max-w-[420px] mx-auto animate-fade-in">
@@ -83,15 +100,7 @@ export default function Login() {
                         </p>
                     </div>
 
-                    {/* Error Handling */}
-                    <div className={`transition-all duration-300 overflow-hidden ${loginError ? 'max-h-24 opacity-100 mb-6' : 'max-h-0 opacity-0 mb-0'}`}>
-                        <div className="rounded-lg bg-red-50 dark:bg-red-900/20 p-4 border border-red-100 dark:border-red-900/30">
-                            <div className="flex items-start gap-3">
-                                <HiOutlineExclamationCircle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                                <p className="text-sm font-medium text-red-800 dark:text-red-300">{loginError}</p>
-                            </div>
-                        </div>
-                    </div>
+
 
                     {/* Form */}
                     <form className={`space-y-6 ${shakeForm ? 'animate-shake' : ''}`} onSubmit={handleSubmit(onSubmit)}>
@@ -125,24 +134,22 @@ export default function Login() {
                             />
                         </div>
 
-                        <button
+                        <Button
                             type="submit"
-                            disabled={isLoading}
-                            className="w-full relative overflow-hidden group py-4 px-6 rounded-lg bg-slate-900 dark:bg-primary-600 outline-none hover:bg-slate-800 dark:hover:bg-primary-500 text-white font-bold shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                            variant="primary"
+                            size="lg"
+                            fullWidth
+                            isLoading={isLoading}
+                            loadingText="A ENTRAR..."
+                            className="group"
+                            rightIcon={
+                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            }
                         >
-                            <div className="flex items-center justify-center gap-2">
-                                {isLoading ? (
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                ) : (
-                                    <>
-                                        <span>ENTRAR NO SISTEMA</span>
-                                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                                        </svg>
-                                    </>
-                                )}
-                            </div>
-                        </button>
+                            ENTRAR NO SISTEMA
+                        </Button>
                     </form>
 
                     {/* Footer Left */}

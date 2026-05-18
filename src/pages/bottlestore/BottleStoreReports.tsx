@@ -9,7 +9,7 @@ import {
     Tooltip,
     ResponsiveContainer
 } from 'recharts';
-import { HiOutlineDocumentDownload } from 'react-icons/hi';
+import { HiOutlineDocumentArrowDown } from 'react-icons/hi2';
 import { format, parseISO } from 'date-fns';
 import { bottleStoreAPI, exportAPI } from '../../services/api';
 import { logger } from '../../utils';
@@ -18,6 +18,48 @@ import { useStore } from '../../stores/useStore';
 import Pagination, { usePagination } from '../../components/ui/Pagination';
 import toast from 'react-hot-toast';
 
+interface BottleSaleRow {
+    id: string;
+    saleNumber?: string;
+    createdAt: string;
+    customer?: string;
+    tax: number | string;
+    total: number | string;
+}
+
+interface BottleTopProduct {
+    name: string;
+    quantity: number;
+    revenue: number;
+    code?: string;
+    total?: number;
+}
+
+interface BottleReportsSummary {
+    totalSales: number;
+    totalTax: number;
+    avgTicket: number;
+    transactionCount: number;
+    totalItems: number;
+    totalProfit: number;
+}
+
+interface BottleReportsData {
+    summary?: BottleReportsSummary;
+    topProducts?: BottleTopProduct[];
+    sales?: BottleSaleRow[];
+    pagination?: { total: number };
+}
+
+interface BottleReportsParams {
+    period: string;
+    page: number;
+    limit: number;
+    startDate?: string;
+    endDate?: string;
+    [key: string]: unknown;
+}
+
 export default function BottleStoreReports() {
     type ReportPeriod = 'today' | 'week' | 'month' | 'year' | 'custom';
     const [period, setPeriod] = useState<ReportPeriod>('month');
@@ -25,7 +67,7 @@ export default function BottleStoreReports() {
     const [endDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<BottleReportsData | null>(null);
     const [page, setPage] = useState(1);
     const [limit, setLimit] = useState(10);
 
@@ -35,7 +77,7 @@ export default function BottleStoreReports() {
         const fetchReports = async () => {
             setLoading(true);
             try {
-                const params: any = {
+                const params: BottleReportsParams = {
                     period,
                     page,
                     limit
@@ -45,7 +87,7 @@ export default function BottleStoreReports() {
                     params.endDate = endDate;
                 }
                 const result = await bottleStoreAPI.getReports(params);
-                setData(result);
+                setData(result as BottleReportsData);
             } catch (error) {
                 logger.error('Error fetching bottle store reports:', error);
             } finally {
@@ -55,16 +97,15 @@ export default function BottleStoreReports() {
         fetchReports();
     }, [period, startDate, endDate, page, limit]);
 
-    const metrics = data?.summary || { totalSales: 0, totalTax: 0, avgTicket: 0, transactionCount: 0, totalItems: 0, totalProfit: 0 };
-    const topProducts = (data?.topProducts || []) as { name: string; quantity: number; revenue: number; code?: string; total?: number }[];
-    const salesList = data?.sales || [];
+    const metrics: BottleReportsSummary = data?.summary || { totalSales: 0, totalTax: 0, avgTicket: 0, transactionCount: 0, totalItems: 0, totalProfit: 0 };
+    const topProducts: BottleTopProduct[] = data?.topProducts || [];
+    const salesList: BottleSaleRow[] = data?.sales || [];
     const totalSalesItems = data?.pagination?.total || 0;
 
     // Process chart data from sales list
     const dailySalesData = (() => {
-        // ... same logic for chart ...
         const dailyMap = new Map<string, { date: string; total: number; count: number }>();
-        salesList.forEach((sale: any) => {
+        salesList.forEach((sale) => {
             const date = format(parseISO(sale.createdAt), 'dd/MM');
             const existing = dailyMap.get(date) || { date, total: 0, count: 0 };
             existing.total += Number(sale.total || 0);
@@ -99,10 +140,10 @@ export default function BottleStoreReports() {
             })),
             { name: '', info: '', value: '' },
             { name: '--- ÚLTIMAS VENDAS ---', info: '', value: '' },
-            ...salesList.map((s: any) => ({
+            ...salesList.map((s) => ({
                 name: s.saleNumber || '#' + s.id?.slice(-6),
                 info: format(parseISO(s.createdAt), 'dd/MM HH:mm'),
-                value: formatCurrency(s.total)
+                value: formatCurrency(Number(s.total))
             }))
         ];
 
@@ -145,8 +186,8 @@ export default function BottleStoreReports() {
                     <p className="text-gray-500">Análise de vendas e produtos</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleExportExcel} leftIcon={<HiOutlineDocumentDownload className="w-4 h-4 text-primary-600 dark:text-primary-400" />}>Gerar XLSX</Button>
-                    <Button onClick={handleExportPDF} leftIcon={<HiOutlineDocumentDownload className="w-4 h-4 text-white" />}>PDF Profissional</Button>
+                    <Button variant="outline" onClick={handleExportExcel} leftIcon={<HiOutlineDocumentArrowDown className="w-4 h-4 text-primary-600 dark:text-primary-400" />}>Gerar XLSX</Button>
+                    <Button onClick={handleExportPDF} leftIcon={<HiOutlineDocumentArrowDown className="w-4 h-4 text-white" />}>PDF Profissional</Button>
                 </div>
             </div>
 
@@ -157,7 +198,7 @@ export default function BottleStoreReports() {
                             <button
                                 key={opt.value}
                                 onClick={() => {
-                                    setPeriod(opt.value as any);
+                                    setPeriod(opt.value as ReportPeriod);
                                     setPage(1);
                                 }}
                                 className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${period === opt.value ? 'bg-white dark:bg-dark-700 text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
@@ -179,7 +220,7 @@ export default function BottleStoreReports() {
                     <p className="text-2xl font-black text-emerald-900 dark:text-white leading-none mt-2">{formatCurrency(metrics.totalTax)}</p>
                 </Card>
                 <Card className="bg-purple-100/40 dark:bg-purple-900/20 border border-purple-200/50 dark:border-purple-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group p-4">
-                    <p className="text-[10px] uppercase font-black tracking-widest text-purple-600/70 dark:text-purple-400/60">Transaces</p>
+                    <p className="text-[10px] uppercase font-black tracking-widest text-purple-600/70 dark:text-purple-400/60">Transações</p>
                     <p className="text-2xl font-black text-purple-900 dark:text-white leading-none mt-2">{metrics.transactionCount}</p>
                 </Card>
                 <Card className="bg-amber-100/40 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group p-4">
@@ -233,7 +274,7 @@ export default function BottleStoreReports() {
                 <div className="p-4 border-b border-gray-100 dark:border-dark-700 flex items-center justify-between">
                     <h3 className="text-lg font-bold">Listagem de Vendas</h3>
                     <div className="text-xs text-gray-500">
-                        {totalSalesItems} transaces encontradas
+                        {totalSalesItems} transações encontradas
                     </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -255,7 +296,7 @@ export default function BottleStoreReports() {
                                     </td>
                                 </tr>
                             ) : (
-                                salesList.map((s: any) => (
+                                salesList.map((s) => (
                                     <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
                                         <td className="px-6 py-4 font-mono text-xs font-bold text-primary-600">
                                             {s.saleNumber || '#' + s.id.slice(-6)}
@@ -267,10 +308,10 @@ export default function BottleStoreReports() {
                                             {s.customer}
                                         </td>
                                         <td className="px-6 py-4 text-right text-gray-500">
-                                            {formatCurrency(s.tax)}
+                                            {formatCurrency(Number(s.tax))}
                                         </td>
                                         <td className="px-6 py-4 text-right font-black text-gray-900 dark:text-white">
-                                            {formatCurrency(s.total)}
+                                            {formatCurrency(Number(s.total))}
                                         </td>
                                     </tr>
                                 ))

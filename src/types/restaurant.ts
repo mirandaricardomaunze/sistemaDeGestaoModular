@@ -13,7 +13,7 @@ export interface RestaurantTable {
     companyId: string;
     createdAt: string;
     updatedAt: string;
-    sales?: any[];
+    sales?: Record<string, unknown>[];
 }
 
 export interface RestaurantMenuItem {
@@ -81,17 +81,40 @@ export interface RestaurantReservation {
     updatedAt: string;
 }
 
+export interface RestaurantDashboardSummary {
+    totalSales: number;
+    totalOrders: number;
+    avgTicket: number;
+    totalTables: number;
+    occupiedTables: number;
+    availableTables: number;
+    totalRevenue?: number;
+    pendingOrders?: number;
+    activeTables?: number;
+    avgPrepTime?: number;
+}
+
+export interface RestaurantDashboardCategory {
+    name: string;
+    value: number;
+}
+
+export interface RestaurantRecentSale {
+    receiptNumber: string;
+    total: number;
+    createdAt: string;
+    table?: { number: number; name?: string | null } | null;
+    customer?: { name: string } | null;
+}
+
 export interface RestaurantDashboard {
-    summary: {
-        totalRevenue: number;
-        activeTables: number;
-        pendingOrders: number;
-        avgPrepTime: number;
-        estimatedRevenue: number;
-    };
-    stats: {
-        ordersOverTime: Array<{ date: string; count: number; amount: number }>;
-        categoryDistribution: Array<{ category: string; count: number }>;
-        mostPopularItems: Array<{ name: string; count: number }>;
+    summary: RestaurantDashboardSummary;
+    chartData: Array<{ date: string; amount: number }>;
+    categoryData: RestaurantDashboardCategory[];
+    recentActivity: RestaurantRecentSale[];
+    stats?: {
+        ordersOverTime?: Array<{ date: string; count: number; amount: number }>;
+        categoryDistribution?: Array<{ category: string; count: number }>;
+        mostPopularItems?: Array<{ name: string; count: number }>;
     };
 }

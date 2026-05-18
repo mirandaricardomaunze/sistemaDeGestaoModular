@@ -5,6 +5,7 @@ import { ReservationCalendar, HospitalityHistory } from '../../components/hospit
 import { useHospitality } from '../../hooks/useData';
 import { logger } from '../../utils/logger';
 import { HiOutlineCalendar, HiOutlineListBullet, HiOutlineArrowPath } from 'react-icons/hi2';
+import type { HotelBooking } from '../../types/hotel';
 
 type ReservationView = 'calendar' | 'list';
 
@@ -15,7 +16,7 @@ export default function HotelReservations() {
     // History State (for List View)
     const [historyPage] = useState(1);
     const [historyPageSize] = useState(10);
-    const [bookingHistory, setBookingHistory] = useState<any[]>([]);
+    const [bookingHistory, setBookingHistory] = useState<HotelBooking[]>([]);
     const [historyLoading, setHistoryLoading] = useState(false);
 
     const { refetch, fetchBookings } = useHospitality();
@@ -71,9 +72,17 @@ export default function HotelReservations() {
             {view === 'calendar' ? (
                 <ReservationCalendar onRefresh={refetch} />
             ) : (
-                <HospitalityHistory 
-                    history={bookingHistory} 
-                    isLoading={historyLoading} 
+                <HospitalityHistory
+                    history={bookingHistory.map((b) => ({
+                        id: b.id,
+                        customerName: b.customerName ?? '',
+                        checkIn: b.checkIn,
+                        checkOut: b.checkOut,
+                        status: b.status,
+                        totalPrice: Number(b.totalPrice ?? 0),
+                        room: b.room as { number?: string | number } | undefined,
+                    }))}
+                    isLoading={historyLoading}
                 />
             )}
         </div>

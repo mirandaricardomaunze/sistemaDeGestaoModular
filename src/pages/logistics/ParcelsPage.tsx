@@ -6,6 +6,8 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, Pagination, Textarea } from '../../components/ui';
+import type { BadgeVariant } from '../../components/ui/Badge';
+import type { TFunction } from 'i18next';
 import {
     HiOutlineCube,
     HiOutlinePlus,
@@ -23,8 +25,8 @@ import type { Parcel } from '../../services/api/logistics.api';
 import { PageHeader } from '../../components/ui';
 import toast from 'react-hot-toast';
 
-const getStatusBadge = (status: string, t: any) => {
-    const statusMap: Record<string, { label: string, color: string }> = {
+const getStatusBadge = (status: string, t: TFunction) => {
+    const statusMap: Record<string, { label: string, color: BadgeVariant }> = {
         received: { label: t('logistics_module.parcels.status.received'), color: 'primary' },
         awaiting_pickup: { label: t('logistics_module.parcels.status.awaiting_pickup'), color: 'warning' },
         picked_up: { label: t('logistics_module.parcels.status.picked_up'), color: 'success' },
@@ -33,7 +35,7 @@ const getStatusBadge = (status: string, t: any) => {
         lost: { label: t('logistics_module.parcels.status.lost'), color: 'danger' }
     };
     const s = statusMap[status];
-    return <Badge variant={s?.color as any || 'gray'}>{s?.label || status}</Badge>;
+    return <Badge variant={s?.color || 'gray'}>{s?.label || status}</Badge>;
 };
 
 export default function ParcelsPage() {
@@ -217,7 +219,7 @@ export default function ParcelsPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {['received', 'awaiting_pickup', 'picked_up', 'overdue'].map((status) => {
-                    const statusMap: Record<string, { label: string, color: string }> = {
+                    const statusMap: Record<string, { label: string, color: BadgeVariant }> = {
                         received: { label: t('logistics_module.parcels.status.received'), color: 'primary' },
                         awaiting_pickup: { label: t('logistics_module.parcels.status.awaiting_pickup'), color: 'warning' },
                         picked_up: { label: t('logistics_module.parcels.status.picked_up'), color: 'success' },
@@ -232,7 +234,7 @@ export default function ParcelsPage() {
                                     <p className="text-2xl font-bold">{count}</p>
                                     <p className="text-xs text-gray-500">{statusInfo?.label}</p>
                                 </div>
-                                <Badge variant={statusInfo?.color as any} size="sm">
+                                <Badge variant={statusInfo?.color} size="sm">
                                     {statusInfo?.label}
                                 </Badge>
                             </div>

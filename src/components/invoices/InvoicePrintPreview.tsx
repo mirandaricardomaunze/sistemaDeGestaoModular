@@ -2,10 +2,10 @@ import { useRef, useState } from 'react';
 import { Card, Modal, Button } from '../ui';
 import { 
     HiOutlinePrinter, 
-    HiOutlineMail, 
-    HiOutlineDownload,
-    HiOutlineX
-} from 'react-icons/hi';
+    HiOutlineEnvelope as HiOutlineEnvelope,
+    HiOutlineArrowDownTray as HiOutlineArrowDownTray,
+    HiOutlineXMark as HiOutlineXMark
+} from 'react-icons/hi2';
 import type { Invoice } from '../../types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -162,6 +162,7 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
     };
 
     const stColors = statusColors[invoice.status] || statusColors.PENDING;
+    const taxRate = Number((invoice as { taxRate?: number | string }).taxRate ?? company.ivaRate ?? 16);
 
     const sectionHeader = { padding: '12px 0', backgroundColor: '#ffffff !important', marginBottom: '4px' };
     const sectionTitle = { fontSize: '11px', fontWeight: 900, color: '#1e293b !important', textTransform: 'uppercase' as const, letterSpacing: '1px' };
@@ -173,17 +174,17 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
         <Modal isOpen={isOpen} onClose={onClose} title="Imprimir Fatura" size="xl">
             <div className="flex items-center justify-between mb-6 gap-3 bg-slate-50 dark:bg-dark-800 p-4 rounded-xl border border-slate-200 dark:border-dark-700">
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={onClose} leftIcon={<HiOutlineX />}>Fechar</Button>
-                    <Button variant="outline" onClick={handleSendEmail} disabled={isExporting} leftIcon={<HiOutlineMail />}>Enviar por Email</Button>
-                    <Button variant="outline" onClick={handleDownloadPDF} disabled={isExporting} leftIcon={<HiOutlineDownload />}>Baixar PDF</Button>
+                    <Button variant="outline" onClick={onClose} leftIcon={<HiOutlineXMark />}>Fechar</Button>
+                    <Button variant="outline" onClick={handleSendEmail} disabled={isExporting} leftIcon={<HiOutlineEnvelope />}>Enviar por Email</Button>
+                    <Button variant="outline" onClick={handleDownloadPDF} disabled={isExporting} leftIcon={<HiOutlineArrowDownTray />}>Baixar PDF</Button>
                 </div>
                 <Button variant="primary" onClick={handlePrint} leftIcon={<HiOutlinePrinter />}>Imprimir</Button>
             </div>
 
-            <Card padding="none" className="max-h-[70vh] overflow-y-auto bg-gray-200 dark:bg-slate-900 flex justify-center p-8">
+            <Card padding="none" className="max-h-[70vh] overflow-y-auto bg-gray-200 dark:bg-slate-900 p-8">
                 <div
                     ref={printRef}
-                    className="bg-white text-gray-900 shadow-2xl w-full max-w-[800px] mx-auto relative"
+                    className="bg-white text-gray-900 shadow-2xl w-full max-w-[800px] mx-auto relative print-table"
                     style={{
                         fontFamily: "'Inter', Arial, Helvetica, sans-serif",
                         backgroundColor: '#ffffff',
@@ -250,7 +251,7 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
                     </div>
 
                     <div style={{ padding: '16px 32px', backgroundColor: '#ffffff !important', margin: 0 }}>
-                        <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff !important' }}>
+                        <table className="print-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff !important' }}>
                             <thead>
                                 <tr style={{ backgroundColor: '#f8fafc !important' }}>
                                     <th style={{ padding: '12px 16px', textAlign: 'left', color: '#64748b !important', backgroundColor: '#f8fafc !important' }}>Produto / Serviço</th>
@@ -279,7 +280,7 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
                         </div>
                         <div style={{ width: '220px', backgroundColor: '#f8fafc !important', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}><span style={{ color: '#64748b !important' }}>Subtotal</span><span style={{ color: '#1e293b !important' }}>{formatCurrency(invoice.subtotal)}</span></div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}><span style={{ color: '#64748b !important' }}>IVA (16%)</span><span style={{ color: '#1e293b !important' }}>{formatCurrency(invoice.tax)}</span></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}><span style={{ color: '#64748b !important' }}>IVA ({taxRate}%)</span><span style={{ color: '#1e293b !important' }}>{formatCurrency(invoice.tax)}</span></div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1.5px solid #1a1a1a', marginTop: '6px' }}><span style={{ fontWeight: 900 }}>Total a Pagar</span><span style={{ fontWeight: 900, fontSize: '14px' }}>{formatCurrency(invoice.total)}</span></div>
                         </div>
                     </div>

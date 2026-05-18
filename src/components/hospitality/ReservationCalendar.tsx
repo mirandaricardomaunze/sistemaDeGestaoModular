@@ -198,8 +198,8 @@ export default function ReservationCalendar({ onRefresh }: ReservationCalendarPr
             setIsReservationModalOpen(false);
             fetchCalendarData();
             onRefresh?.();
-        } catch (error: any) {
-            toast.error(error.message || t('messages.errorOccurred'));
+        } catch (error) {
+            toast.error((error as Error).message || t('messages.errorOccurred'));
         } finally {
             setIsSubmitting(false);
         }

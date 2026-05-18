@@ -1,71 +1,130 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
-    HiOutlineSave,
-    HiOutlineRefresh,
-    HiOutlineCash,
-    HiOutlineLibrary,
+    HiOutlineBookmarkSquare,
+    HiOutlineArrowPath,
+    HiOutlineBanknotes,
+    HiOutlineBuildingLibrary,
     HiOutlineDocumentText,
     HiOutlineCheck,
-    HiOutlineBadgeCheck,
-    HiOutlineDownload,
-} from 'react-icons/hi';
+    HiOutlineCheckBadge,
+    HiOutlineArrowDownTray,
+} from 'react-icons/hi2';
 import { useEmployees, usePayroll } from '../../hooks/useData';
-import { useFiscalStore } from '../../stores/useFiscalStore';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useStore } from '../../stores/useStore';
 import { Button, Card, Pagination, usePagination, Badge } from '../ui';
-import { formatCurrency, generateId } from '../../utils/helpers';
-import { usePayrollTaxes, getFiscalPeriodFromDate } from '../../utils/fiscalIntegration';
+import { formatCurrency } from '../../utils/helpers';
 import { generateHRPayrollSummaryReport } from '../../utils/documentGenerator';
 import type { PayrollRecord, Employee } from '../../types';
 import toast from 'react-hot-toast';
 import PayslipGenerator from './PayslipGenerator.tsx';
 import PaymentConfirmModal from './PaymentConfirmModal';
+import { payrollAPI, type PayrollPreviewResult } from '../../services/api';
+
+type PayrollRecordWithEmployee = PayrollRecord & { employee: Employee };
 
 export default function PayrollManager() {
     const { user } = useAuthStore();
     const { companySettings } = useStore();
     const { employees: employeesData } = useEmployees();
-    const { payroll: payrollData, createPayroll: addPayroll, updatePayroll, markAsPaid } = usePayroll();
-    const employees = Array.isArray(employeesData) ? employeesData : [];
-    const payroll = Array.isArray(payrollData) ? payrollData : [];
-    const { calculateIRPS, taxConfigs } = useFiscalStore();
-    const { calculatePayrollTaxes } = usePayrollTaxes();
     const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
     const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+    const {
+        payroll: payrollData,
+        createPayroll: addPayroll,
+        updatePayroll,
+        processPayroll,
+        markAsPaid
+    } = usePayroll({
+        month: selectedMonth + 1,
+        year: selectedYear,
+        originModule: 'hr',
+        limit: 500
+    });
+    const employees = Array.isArray(employeesData) ? employeesData : [];
+    const payroll = Array.isArray(payrollData) ? payrollData : [];
+    const inssEmployeeRate = 3;
+    const [draftPreviews, setDraftPreviews] = useState<Record<string, PayrollPreviewResult>>({});
 
     // Payment confirmation modal state
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-    const [selectedRecordForPayment, setSelectedRecordForPayment] = useState<(PayrollRecord & { employee: Employee }) | null>(null);
+    const [selectedRecordForPayment, setSelectedRecordForPayment] = useState<PayrollRecordWithEmployee | null>(null);
 
     // Active employees
     const activeEmployees = useMemo(() => employees.filter(e => e.isActive), [employees]);
 
-    // Get current INSS rate from fiscal configuration
-    const inssEmployeeRate = useMemo(() => {
-        const configList = Array.isArray(taxConfigs) ? taxConfigs : [];
-        const config = configList.find(c => c.type === 'inss_employee' && c.isActive);
-        return config?.rate || 3;
-    }, [taxConfigs]);
+    const getEmployeeBaseSalary = useCallback((employee: Employee) =>
+        Number(employee.baseSalary || employee.salary || 0), []);
 
-    // Helper for calculations - now uses dynamic rates
-    const calculatePayroll = useCallback((base: number, bonus: number, ot: number, allowances: number, irps: number, adv: number) => {
-        const inss = base * (inssEmployeeRate / 100); // Dynamic INSS rate
-        const gross = base + ot + bonus + allowances;
-        const deductions = inss + irps + adv;
+    const getEmployeeAllowances = useCallback((employee: Employee) =>
+        Number(employee.subsidyFood || 0) + Number(employee.subsidyTransport || 0), []);
+
+    const previewToPayrollValues = useCallback((preview?: PayrollPreviewResult) => ({
+        inssDeduction: Number(preview?.inssEmployee || 0),
+        inssEmployer: Number(preview?.inssEmployer || 0),
+        irtDeduction: Number(preview?.irt || 0),
+        totalEarnings: Number(preview?.grossSalary || 0),
+        totalDeductions: Number(preview?.totalDeductions || 0),
+        netSalary: Number(preview?.netSalary || 0),
+    }), []);
+
+    const getPreviewInput = useCallback((employee: Employee, record?: PayrollRecord) => {
+        const baseSalary = getEmployeeBaseSalary(employee);
+        const allowances = record?.allowances !== undefined
+            ? Number(record.allowances || 0)
+            : getEmployeeAllowances(employee);
+
         return {
-            inssDeduction: inss,
-            totalEarnings: gross,
-            totalDeductions: deductions,
-            netSalary: gross - deductions
+            baseSalary,
+            overtimeAmount: Number(record?.otAmount || 0),
+            bonus: Number(record?.bonus || 0),
+            allowances: [{ name: 'Subsidios', amount: allowances, taxable: false }],
+            deductions: [{ name: 'Adiantamentos', amount: Number(record?.advances || 0) }],
         };
-    }, [inssEmployeeRate]);
+    }, [getEmployeeAllowances, getEmployeeBaseSalary]);
 
-    // Calculate IRPS dynamically using fiscal store brackets
-    const calculateDynamicIRPS = useCallback((grossSalary: number) => {
-        const result = calculateIRPS(grossSalary);
-        return result.irps;
-    }, [calculateIRPS]);
+    useEffect(() => {
+        let isMounted = true;
+        const loadBackendPreviews = async () => {
+            const previewJobs = activeEmployees
+                .map(employee => {
+                    const existing = payroll.find(
+                        p => p.employeeId === employee.id &&
+                            p.month === selectedMonth + 1 &&
+                            p.year === selectedYear
+                    );
+                    const salaryChanged = existing?.status === 'draft' &&
+                        Number(existing.baseSalary || 0) !== getEmployeeBaseSalary(employee);
+
+                    if (existing && !salaryChanged) return null;
+                    return { employee, existing };
+                })
+                .filter(Boolean) as Array<{ employee: Employee; existing?: PayrollRecord }>;
+
+            if (previewJobs.length === 0) {
+                if (isMounted) setDraftPreviews({});
+                return;
+            }
+
+            const results = await Promise.all(previewJobs.map(async ({ employee, existing }) => {
+                const response = await payrollAPI.preview(getPreviewInput(employee, existing));
+                const preview = 'data' in response && response.data ? response.data : response as PayrollPreviewResult;
+                return [employee.id, preview] as const;
+            }));
+
+            if (isMounted) {
+                setDraftPreviews(Object.fromEntries(results));
+            }
+        };
+
+        loadBackendPreviews().catch(() => {
+            if (isMounted) setDraftPreviews({});
+        });
+
+        return () => {
+            isMounted = false;
+        };
+    }, [activeEmployees, payroll, selectedMonth, selectedYear, getEmployeeBaseSalary, getPreviewInput]);
 
     // Get or Create Draft Records for current view
     const currentPayrollData = useMemo(() => {
@@ -75,40 +134,20 @@ export default function PayrollManager() {
                     p.month === selectedMonth + 1 &&
                     p.year === selectedYear
             );
+            const baseSalary = getEmployeeBaseSalary(employee);
+            const allowances = getEmployeeAllowances(employee);
+            const preview = draftPreviews[employee.id];
 
-            // Dynamic Update: If existing draft has outdated base salary
-            const currentSalary = Number(employee.baseSalary || employee.salary || 0);
-
-            if (existing && existing.status === 'draft' && existing.baseSalary !== currentSalary) {
-                const newBase = currentSalary;
-                // Recalculate IRPS with new salary
-                const dynamicIRPS = calculateDynamicIRPS(newBase);
-                const calcs = calculatePayroll(
-                    newBase,
-                    existing.bonus,
-                    existing.otAmount,
-                    existing.allowances,
-                    dynamicIRPS,
-                    existing.advances
-                );
-
+            if (existing && existing.status === 'draft' && Number(existing.baseSalary || 0) !== baseSalary) {
                 return {
                     ...existing,
-                    ...calcs,
-                    irtDeduction: dynamicIRPS,
-                    baseSalary: newBase,
+                    ...previewToPayrollValues(preview),
+                    baseSalary,
                     employee
                 };
             }
 
             if (existing) return { ...existing, employee };
-
-            // New Draft - Calculate IRPS automatically based on fiscal configuration
-            const baseSalary = currentSalary;
-            const allowances = (employee.subsidyFood || 0) + (employee.subsidyTransport || 0);
-            const grossForTax = baseSalary; // IRPS calculated on base salary
-            const dynamicIRPS = calculateDynamicIRPS(grossForTax);
-            const calcs = calculatePayroll(baseSalary, 0, 0, allowances, dynamicIRPS, 0);
 
             return {
                 id: `draft-${employee.id}`,
@@ -121,117 +160,98 @@ export default function PayrollManager() {
                 otAmount: 0,
                 bonus: 0,
                 allowances,
-                irtDeduction: dynamicIRPS, // Auto-calculated IRPS
                 advances: 0,
-                inssDeduction: calcs.inssDeduction,
-                totalEarnings: calcs.totalEarnings,
-                totalDeductions: calcs.totalDeductions,
-                netSalary: calcs.netSalary,
+                ...previewToPayrollValues(preview),
                 status: 'draft',
-            } as PayrollRecord & { employee: Employee };
+            } as PayrollRecordWithEmployee;
         });
-    }, [activeEmployees, payroll, selectedMonth, selectedYear, calculateDynamicIRPS, calculatePayroll]);
+    }, [
+        activeEmployees,
+        payroll,
+        selectedMonth,
+        selectedYear,
+        draftPreviews,
+        getEmployeeAllowances,
+        getEmployeeBaseSalary,
+        previewToPayrollValues
+    ]);
 
     // Force Recalculate ALL drafts for current view
-    const handleRecalculate = () => {
+    const handleRecalculate = async () => {
         let updatedCount = 0;
 
-        currentPayrollData.forEach(record => {
-            // Only update if it's a draft
-            if (record.status === 'draft' || record.id.startsWith('draft-')) {
-                const currentSalary = Number(record.employee.baseSalary || record.employee.salary || 0);
-                const allowances = (record.employee.subsidyFood || 0) + (record.employee.subsidyTransport || 0);
+        for (const record of currentPayrollData) {
+            if (record.status !== 'draft' && !record.id.startsWith('draft-')) continue;
 
-                // Preserve user inputs (bonus, ot, etc)
-                const bonus = record.bonus || 0;
-                const otAmount = record.otAmount || 0;
-                const advances = record.advances || 0;
-
-                // Recalculate IRPS dynamically based on current fiscal brackets
-                const dynamicIRPS = calculateDynamicIRPS(currentSalary);
-
-                const calcs = calculatePayroll(currentSalary, bonus, otAmount, allowances, dynamicIRPS, advances);
-
-                const updatedRecord = {
-                    ...record,
-                    baseSalary: currentSalary,
-                    allowances,
-                    irtDeduction: dynamicIRPS, // Updated IRPS
-                    ...calcs
-                };
-
-                if (record.id.startsWith('draft-')) {
-                    // It's a virtual draft, we can 'save' it as a real draft now?
-                    // Or just rely on visual update? 
-                    // Since `currentPayrollData` handles visual, we need to save to store to persist the "recalculate"
-                    const newId = generateId();
-                    const { employee: _employee, id: _id, ...cleanRecord } = updatedRecord;
-                    addPayroll({ ...cleanRecord, id: newId, status: 'draft' } as PayrollRecord);
-                } else {
-                    updatePayroll(record.id, updatedRecord as Partial<PayrollRecord>);
-                }
-                updatedCount++;
+            if (record.id.startsWith('draft-')) {
+                await addPayroll({
+                    employeeId: record.employeeId,
+                    month: selectedMonth + 1,
+                    year: selectedYear,
+                    otHours: Number(record.otHours || 0),
+                    advances: Number(record.advances || 0),
+                    bonus: Number(record.bonus || 0),
+                    originModule: 'hr'
+                });
+            } else {
+                await updatePayroll(record.id, {
+                    otHours: Number(record.otHours || 0),
+                    otAmount: Number(record.otAmount || 0),
+                    bonus: Number(record.bonus || 0),
+                    allowances: Number(record.allowances || 0),
+                    advances: Number(record.advances || 0)
+                });
             }
-        });
+            updatedCount++;
+        }
 
         if (updatedCount > 0) {
-            toast.success(`Valores recalculados! IRPS e INSS actualizados (INSS: ${inssEmployeeRate}%)`);
+            toast.success('Valores recalculados pelo motor salarial unificado!');
         } else {
             toast('Nenhum rascunho para atualizar');
         }
     };
 
     // Handle Input Change for Drafts
-    const handleUpdateValues = (record: PayrollRecord & { employee: Employee }, field: keyof PayrollRecord, value: number) => {
-        const updatedRecord = { ...record, [field]: value };
-
-        // Recalculate Totals
-        const calcs = calculatePayroll(
-            updatedRecord.baseSalary,
-            updatedRecord.bonus,
-            updatedRecord.otAmount,
-            updatedRecord.allowances,
-            updatedRecord.irtDeduction,
-            updatedRecord.advances
-        );
-
-        Object.assign(updatedRecord, calcs);
-
-        // If it's real record, update store. If draft, we might need to create it first?
+    const handleUpdateValues = async (record: PayrollRecordWithEmployee, field: keyof PayrollRecord, value: number) => {
         if (!record.id.startsWith('draft-')) {
-            updatePayroll(record.id, updatedRecord);
-        } else {
-            // It's a draft, so we need to Create it if user edits? 
-            // Since we map from store, directly updating store is best.
-            const newId = generateId();
-            // Removing 'employee' prop before saving
-            const { employee: _employee, id: _id, ...cleanRecord } = updatedRecord;
-            addPayroll({ ...cleanRecord, id: newId, status: 'draft' } as PayrollRecord);
+            await updatePayroll(record.id, { [field]: value });
+            return;
         }
+
+        await addPayroll({
+            employeeId: record.employeeId,
+            month: selectedMonth + 1,
+            year: selectedYear,
+            otHours: Number(record.otHours || 0),
+            advances: Number(record.advances || 0),
+            bonus: field === 'bonus' ? value : Number(record.bonus || 0),
+            originModule: 'hr'
+        });
     };
 
-    const handleSaveMonth = () => {
-        const period = getFiscalPeriodFromDate(selectedMonth + 1, selectedYear);
+    const handleSaveMonth = async () => {
+        const processedRecords = currentPayrollData.filter(
+            record => record.status === 'draft' || record.id.startsWith('draft-')
+        );
 
-        // Save all drafts and create fiscal records
-        currentPayrollData.forEach(record => {
-            // Create official retention records in the fiscal module
-            calculatePayrollTaxes(
-                record.employee,
-                record.baseSalary, // IRPS is calculated on base salary in this system's logic
-                period,
-                true // createRetentions: true
-            );
-
+        for (const record of processedRecords) {
             if (record.id.startsWith('draft-')) {
-                const newId = generateId();
-                const { employee: _employee, id: _id, ...cleanRecord } = record;
-                addPayroll({ ...cleanRecord, id: newId, status: 'processed' } as PayrollRecord);
+                const created = await addPayroll({
+                    employeeId: record.employeeId,
+                    month: selectedMonth + 1,
+                    year: selectedYear,
+                    otHours: Number(record.otHours || 0),
+                    advances: Number(record.advances || 0),
+                    bonus: Number(record.bonus || 0),
+                    originModule: 'hr'
+                });
+                await processPayroll(created.id);
             } else {
-                updatePayroll(record.id, { status: 'processed' } as Partial<PayrollRecord>);
+                await processPayroll(record.id);
             }
-        });
-        toast.success('Folha processada e impostos registados na Gestão Fiscal!');
+        }
+        toast.success('Folha processada pelo modulo salarial unificado!');
     };
 
     // Export monthly report to PDF
@@ -270,14 +290,18 @@ export default function PayrollManager() {
     };
 
     // Handle payment confirmation via modal
-    const handleOpenPaymentModal = (record: PayrollRecord & { employee: Employee }) => {
+    const handleOpenPaymentModal = (record: PayrollRecordWithEmployee) => {
         setSelectedRecordForPayment(record);
         setPaymentModalOpen(true);
     };
 
     const handleConfirmPayment = async (paymentData: { method: string; notes?: string }) => {
         if (!selectedRecordForPayment) return;
-        await markAsPaid(selectedRecordForPayment.id, user?.id || 'unknown', paymentData.notes);
+        const notes = [
+            `Metodo: ${paymentData.method}`,
+            paymentData.notes,
+        ].filter(Boolean).join(' | ');
+        await markAsPaid(selectedRecordForPayment.id, user?.id || 'unknown', notes);
     };
 
     const months = [
@@ -326,29 +350,30 @@ export default function PayrollManager() {
                         >
                             <option value={2024}>2024</option>
                             <option value={2025}>2025</option>
+                            <option value={2026}>2026</option>
                         </select>
                     </div>
 
                     <div className="flex gap-2 flex-wrap">
                         <Button variant="outline" onClick={handleExportReport}>
-                            <HiOutlineDownload className="w-4 h-4 mr-2" />
+                            <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                             Exportar Relatório
                         </Button>
                         <Button variant="outline" onClick={handleRecalculate}>
-                            <HiOutlineRefresh className="w-4 h-4 mr-2" />
+                            <HiOutlineArrowPath className="w-4 h-4 mr-2" />
                             Recalcular Valores
                         </Button>
                         <Button onClick={handleSaveMonth}>
-                            <HiOutlineSave className="w-4 h-4 mr-2" />
+                            <HiOutlineBookmarkSquare className="w-4 h-4 mr-2" />
                             Fechar Processamento Mensal
                         </Button>
                     </div>
                 </div>
 
-                {/* Fiscal Rates Indicator */}
+                {/* Payroll engine indicator */}
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-700">
                     <div className="flex flex-wrap items-center gap-4 text-sm">
-                        <span className="text-gray-500 dark:text-gray-400">Taxas Fiscais Activas:</span>
+                        <span className="text-gray-500 dark:text-gray-400">Motor salarial:</span>
                         <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg font-medium">
                             INSS Trabalhador: {inssEmployeeRate}%
                         </span>
@@ -356,7 +381,7 @@ export default function PayrollManager() {
                             IRPS: Tabela Progressiva
                         </span>
                         <span className="text-xs text-gray-400 dark:text-gray-500">
-                            (Configurado em Gestão Fiscal)
+                            (Calculado pelo modulo salarial unificado)
                         </span>
                     </div>
                 </div>
@@ -371,7 +396,7 @@ export default function PayrollManager() {
                             <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{formatCurrency(totals.totalNet)}</p>
                         </div>
                         <div className="p-3 bg-white/50 dark:bg-black/20 rounded-lg backdrop-blur-sm">
-                            <HiOutlineCash className="w-8 h-8 text-primary-500" />
+                            <HiOutlineBanknotes className="w-8 h-8 text-primary-500" />
                         </div>
                     </div>
                 </Card>
@@ -382,7 +407,7 @@ export default function PayrollManager() {
                             <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{formatCurrency(totals.totalINSS)}</p>
                         </div>
                         <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded-lg">
-                            <HiOutlineLibrary className="w-8 h-8 text-gray-500" />
+                            <HiOutlineBuildingLibrary className="w-8 h-8 text-gray-500" />
                         </div>
                     </div>
                 </Card>
@@ -439,12 +464,7 @@ export default function PayrollManager() {
                                         />
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <input
-                                            type="number"
-                                            className="w-20 p-1 text-right text-sm border rounded bg-transparent"
-                                            value={record.irtDeduction}
-                                            onChange={(e) => handleUpdateValues(record, 'irtDeduction', Number(e.target.value))}
-                                        />
+                                        {formatCurrency(record.irtDeduction)}
                                     </td>
                                     <td className="px-4 py-3 text-right font-bold text-gray-900 dark:text-white">
                                         {formatCurrency(record.netSalary)}
@@ -452,7 +472,7 @@ export default function PayrollManager() {
                                     <td className="px-4 py-3 text-center">
                                         {record.status === 'paid' && (
                                             <Badge variant="success" size="sm">
-                                                <HiOutlineBadgeCheck className="w-3 h-3 mr-1" /> Pago
+                                                <HiOutlineCheckBadge className="w-3 h-3 mr-1" /> Pago
                                             </Badge>
                                         )}
                                         {record.status === 'processed' && (

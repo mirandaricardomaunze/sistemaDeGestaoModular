@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Modal, Input, Select, Button } from '../ui';
-import { HiOutlinePlus, HiOutlineShoppingCart } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineShoppingCart } from 'react-icons/hi2';
 import { useProducts } from '../../hooks/useData';
 
 interface ConsumptionModalProps {
@@ -49,9 +49,9 @@ export default function ConsumptionModal({ isOpen, onClose, onConfirm }: Consump
                     onChange={(e) => setProductId(e.target.value)}
                     options={[
                         { value: '', label: 'Seleccione um produto...' },
-                        ...(products?.map((p: any) => ({
+                        ...(products?.map((p) => ({
                             value: p.id,
-                            label: `${p.name} - ${new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(p.price)}`
+                            label: `${p.name} - ${new Intl.NumberFormat('pt-MZ', { style: 'currency', currency: 'MZN' }).format(Number(p.price))}`
                         })) || [])
                     ]}
                 />

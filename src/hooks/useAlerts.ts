@@ -37,7 +37,7 @@ export function useAlerts(params: UseAlertsParams = {}) {
     const query = useQuery({
         queryKey: [...QK, filters],
         queryFn: async () => {
-            const response = await alertsAPI.getAll(filters as any);
+            const response = await alertsAPI.getAll(filters as Parameters<typeof alertsAPI.getAll>[0]);
             let alerts: Alert[];
             let pagination: PaginationMeta;
             if (response?.data && response?.pagination) {

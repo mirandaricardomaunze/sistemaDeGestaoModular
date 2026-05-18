@@ -43,6 +43,19 @@ interface ApiTransition {
     notes?: string;
 }
 
+interface CancellationRequest {
+    id: string;
+    status: 'pending' | 'approved' | 'rejected';
+    reason: string;
+    riskLevel: string;
+    requiresCreditNote: boolean;
+    requestedByName?: string;
+    requestedAt: string;
+    decidedByName?: string;
+    decidedAt?: string;
+    decisionNotes?: string;
+}
+
 interface ApiOrder {
     id: string;
     orderNumber: string;
@@ -63,6 +76,7 @@ interface ApiOrder {
     deliveryDate?: string;
     notes?: string;
     transitions?: ApiTransition[];
+    cancellationRequests?: CancellationRequest[];
 }
 
 interface Order {
@@ -85,6 +99,7 @@ interface Order {
     deliveryDate: string;
     notes?: string;
     transitions: StatusTransition[];
+    cancellationRequests: CancellationRequest[];
 }
 
 interface OrdersProps {
@@ -109,7 +124,10 @@ export default function Orders({ originModule }: OrdersProps) {
         pagination,
         isLoading,
         addOrder,
-        updateOrderStatus
+        updateOrderStatus,
+        requestOrderCancellation,
+        approveOrderCancellation,
+        rejectOrderCancellation,
     } = useOrders({
         page,
         limit: pageSize,
@@ -123,7 +141,10 @@ export default function Orders({ originModule }: OrdersProps) {
     const [showDetails, setShowDetails] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [showCancel, setShowCancel] = useState(false);
+    const [showApproveCancel, setShowApproveCancel] = useState(false);
+    const [showRejectCancel, setShowRejectCancel] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
+    const [decisionNotes, setDecisionNotes] = useState('');
 
     // Transform API orders to local Order type
     const orders: Order[] = useMemo(() => {
@@ -162,6 +183,7 @@ export default function Orders({ originModule }: OrdersProps) {
                 responsibleName: t.responsibleName,
                 notes: t.notes,
             })),
+            cancellationRequests: o.cancellationRequests || [],
         }));
     }, [rawOrders]);
 
@@ -309,18 +331,68 @@ export default function Orders({ originModule }: OrdersProps) {
     const handleConfirmCancel = async () => {
         if (!selectedOrder) return;
 
-        // Update order status via API
         try {
-            await updateOrderStatus(selectedOrder.id, {
-                status: 'cancelled',
-                responsibleName,
+            await requestOrderCancellation(selectedOrder.id, {
+                reason: cancelReason,
                 notes: cancelReason,
             });
             setShowCancel(false);
             setSelectedOrder(null);
-            toast.success('Encomenda cancelada com sucesso! Estoque recomposto.');
+            toast.success('Pedido de cancelamento enviado para aprovacao.');
         } catch (error) {
-            logger.error('Error canceling order:', error);
+            logger.error('Error requesting order cancellation:', error);
+        }
+    };
+
+    const getPendingCancellationRequest = (order: Order | null) => {
+        return order?.cancellationRequests?.find((request) => request.status === 'pending');
+    };
+
+    const handleApproveCancellationClick = (order: { id: string }) => {
+        const fullOrder = orders.find((o) => o.id === order.id);
+        if (fullOrder) {
+            setSelectedOrder(fullOrder);
+            setDecisionNotes('');
+            setShowApproveCancel(true);
+        }
+    };
+
+    const handleRejectCancellationClick = (order: { id: string }) => {
+        const fullOrder = orders.find((o) => o.id === order.id);
+        if (fullOrder) {
+            setSelectedOrder(fullOrder);
+            setDecisionNotes('');
+            setShowRejectCancel(true);
+        }
+    };
+
+    const handleApproveCancellation = async () => {
+        const request = getPendingCancellationRequest(selectedOrder);
+        if (!request) return;
+
+        try {
+            await approveOrderCancellation(request.id, { notes: decisionNotes });
+            setShowApproveCancel(false);
+            setSelectedOrder(null);
+            toast.success(request.requiresCreditNote
+                ? 'Cancelamento aprovado, nota de credito emitida e stock recomposto.'
+                : 'Cancelamento aprovado e reserva de stock libertada.');
+        } catch (error) {
+            logger.error('Error approving cancellation:', error);
+        }
+    };
+
+    const handleRejectCancellation = async () => {
+        const request = getPendingCancellationRequest(selectedOrder);
+        if (!request) return;
+
+        try {
+            await rejectOrderCancellation(request.id, { notes: decisionNotes });
+            setShowRejectCancel(false);
+            setSelectedOrder(null);
+            toast.success('Pedido de cancelamento rejeitado.');
+        } catch (error) {
+            logger.error('Error rejecting cancellation:', error);
         }
     };
 
@@ -343,6 +415,8 @@ export default function Orders({ originModule }: OrdersProps) {
                 onCompleteOrder={handleCompleteOrderClick}
                 onGenerateInvoice={handleGenerateInvoice}
                 onCancelOrder={handleCancelOrderClick}
+                onApproveCancellation={handleApproveCancellationClick}
+                onRejectCancellation={handleRejectCancellationClick}
                 isLoading={isLoading}
                 isAdmin={isAdmin}
             />
@@ -620,8 +694,8 @@ export default function Orders({ originModule }: OrdersProps) {
                 }}
                 onConfirm={handleConfirmCancel}
                 title="Cancelar Encomenda"
-                message={`Tem certeza que deseja cancelar a encomenda "${selectedOrder?.orderNumber}"? Esta ação recomporá o stock dos itens.`}
-                confirmText="Confirmar Cancelamento"
+                message={`Deseja solicitar o cancelamento da encomenda "${selectedOrder?.orderNumber}"? A execucao fica pendente de aprovacao.`}
+                confirmText="Solicitar Cancelamento"
                 cancelText="Voltar"
                 variant="danger"
                 isLoading={false}
@@ -635,6 +709,61 @@ export default function Orders({ originModule }: OrdersProps) {
                         placeholder="Informe o motivo..."
                         value={cancelReason}
                         onChange={(e) => setCancelReason(e.target.value)}
+                    />
+                </div>
+            </ConfirmationModal>
+            <ConfirmationModal
+                isOpen={showApproveCancel}
+                onClose={() => {
+                    setShowApproveCancel(false);
+                    setSelectedOrder(null);
+                }}
+                onConfirm={handleApproveCancellation}
+                title="Aprovar Cancelamento"
+                message={`Aprovar e executar o cancelamento da encomenda "${selectedOrder?.orderNumber}"? Se houver fatura, o sistema emitira nota de credito.`}
+                confirmText="Aprovar"
+                cancelText="Voltar"
+                variant="warning"
+                isLoading={false}
+            >
+                <div className="mt-4 space-y-3">
+                    {getPendingCancellationRequest(selectedOrder) && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                            <p className="font-semibold">Motivo: {getPendingCancellationRequest(selectedOrder)?.reason}</p>
+                            <p>Risco: {getPendingCancellationRequest(selectedOrder)?.riskLevel}</p>
+                            {getPendingCancellationRequest(selectedOrder)?.requiresCreditNote && (
+                                <p>Vai gerar nota de credito ligada a fatura original.</p>
+                            )}
+                        </div>
+                    )}
+                    <Textarea
+                        rows={3}
+                        placeholder="Notas da aprovacao..."
+                        value={decisionNotes}
+                        onChange={(e) => setDecisionNotes(e.target.value)}
+                    />
+                </div>
+            </ConfirmationModal>
+            <ConfirmationModal
+                isOpen={showRejectCancel}
+                onClose={() => {
+                    setShowRejectCancel(false);
+                    setSelectedOrder(null);
+                }}
+                onConfirm={handleRejectCancellation}
+                title="Rejeitar Cancelamento"
+                message={`Rejeitar o pedido de cancelamento da encomenda "${selectedOrder?.orderNumber}"?`}
+                confirmText="Rejeitar"
+                cancelText="Voltar"
+                variant="danger"
+                isLoading={false}
+            >
+                <div className="mt-4">
+                    <Textarea
+                        rows={3}
+                        placeholder="Motivo da rejeicao..."
+                        value={decisionNotes}
+                        onChange={(e) => setDecisionNotes(e.target.value)}
                     />
                 </div>
             </ConfirmationModal>

@@ -1,7 +1,25 @@
 import PDFDocument from 'pdfkit';
 import { Response } from 'express';
 
-export const generateDeliveryPDF = (res: Response, delivery: any, companyInfo: any) => {
+type DeliveryPdfInput = {
+    trackingNumber: string;
+    createdAt: Date | string;
+    status: string;
+    driverName?: string | null;
+    vehiclePlate?: string | null;
+    customerName?: string | null;
+    destination: string;
+    notes?: string | null;
+};
+
+type CompanyInfoInput = {
+    name?: string;
+    address?: string;
+    nuit?: string;
+    phone?: string;
+};
+
+export const generateDeliveryPDF = (res: Response, delivery: DeliveryPdfInput, companyInfo: CompanyInfoInput) => {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
 
     // Set response headers for PDF download

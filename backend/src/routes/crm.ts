@@ -212,7 +212,7 @@ router.post('/opportunities/:id/interactions', authenticate, async (req: AuthReq
             opportunityId: req.params.id,
             ...req.body,
             userId: req.userId,
-            userName: (req as any).user?.name || 'Utilizador'
+            userName: req.userName || 'Utilizador'
         }
     });
     res.status(201).json(interaction);

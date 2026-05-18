@@ -1,19 +1,40 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { buildPaginationMeta } from '../utils/pagination';
 import { ResultHandler, Result } from '../utils/result';
 
+type ListQuery = {
+    status?: string;
+    year?: string | number;
+    page?: string | number;
+    limit?: string | number;
+};
+
+type VacationRequestRow = Prisma.VacationRequestGetPayload<Record<string, never>>;
+
+type RequestInput = {
+    startDate: string | Date;
+    endDate: string | Date;
+    notes?: string | null;
+};
+
+type UpdateStatusInput = {
+    status: string;
+    approvedBy?: string | null;
+};
+
 export class VacationService {
-    async list(params: any, companyId: string): Promise<Result<any>> {
+    async list(params: ListQuery, companyId: string): Promise<Result<{ data: VacationRequestRow[]; pagination: ReturnType<typeof buildPaginationMeta> }>> {
         const { status, year, page = '1', limit = '20' } = params;
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
+        const pageNum = parseInt(String(page));
+        const limitNum = parseInt(String(limit));
         const skip = (pageNum - 1) * limitNum;
 
-        const where: any = {
+        const where: Prisma.VacationRequestWhereInput = {
             employee: { companyId }
         };
-        if (status) where.status = status;
+        if (status) where.status = status as Prisma.VacationRequestWhereInput['status'];
         if (year) {
             const y = parseInt(String(year));
             where.startDate = {
@@ -42,7 +63,7 @@ export class VacationService {
         return ResultHandler.success(response);
     }
 
-    async request(employeeId: string, data: any, companyId: string): Promise<Result<any>> {
+    async request(employeeId: string, data: RequestInput, companyId: string): Promise<Result<VacationRequestRow>> {
         const employee = await prisma.employee.findFirst({
             where: { id: employeeId, companyId }
         });
@@ -65,19 +86,30 @@ export class VacationService {
         return ResultHandler.success(vacation, 'Pedido de férias realizado com sucesso');
     }
 
-    async updateStatus(vacationId: string, data: any, companyId: string): Promise<Result<any>> {
+    async updateStatus(vacationId: string, data: UpdateStatusInput, companyId: string): Promise<Result<VacationRequestRow>> {
         const existing = await prisma.vacationRequest.findFirst({
             where: { id: vacationId, employee: { companyId } }
         });
         if (!existing) throw ApiError.notFound('Pedido de férias não encontrado');
 
         const { status, approvedBy } = data;
+        if (status === 'approved' && existing.status !== 'approved') {
+            const employee = await prisma.employee.findFirst({
+                where: { id: existing.employeeId, companyId },
+                select: { vacationDaysTotal: true, vacationDaysUsed: true }
+            });
+            const remainingDays = (employee?.vacationDaysTotal || 22) - (employee?.vacationDaysUsed || 0);
+            if (existing.days > remainingDays) {
+                throw ApiError.badRequest(`Saldo de ferias insuficiente. Disponivel: ${remainingDays} dia(s).`);
+            }
+        }
+
         const vacation = await prisma.vacationRequest.update({
             where: { id: vacationId },
-            data: { status, approvedBy }
+            data: { status: status as Prisma.VacationRequestUncheckedUpdateInput['status'], approvedBy }
         });
 
-        if (status === 'approved') {
+        if (status === 'approved' && existing.status !== 'approved') {
             await prisma.employee.update({
                 where: { id: vacation.employeeId },
                 data: { vacationDaysUsed: { increment: vacation.days } }

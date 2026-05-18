@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { hospitalityService } from '../services/hospitalityService';
 import { createRoomSchema, updateRoomSchema, checkInSchema, createHousekeepingTaskSchema } from '../validation';
 import { ApiError } from '../middleware/error.middleware';
@@ -10,6 +11,9 @@ import { emailQueue, JOB_OPTIONS } from '../queues/emailQueue';
 
 const router = Router();
 router.use(authenticate, requireModule('HOSPITALITY'));
+
+const STAFF_ROLES = ['super_admin', 'admin', 'manager', 'operator'] as const;
+const MANAGER_ROLES = ['super_admin', 'admin', 'manager'] as const;
 
 // ============================================================================
 // ROOMS CRUD
@@ -29,21 +33,21 @@ router.get('/rooms', authenticate, async (req: AuthRequest, res) => {
     res.json(result);
 });
 
-router.post('/rooms', authenticate, async (req: AuthRequest, res) => {
+router.post('/rooms', authenticate, authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const validatedData = createRoomSchema.parse(req.body);
     const room = await hospitalityService.createRoom(req.companyId, validatedData);
     res.status(201).json(room);
 });
 
-router.put('/rooms/:id', authenticate, async (req: AuthRequest, res) => {
+router.put('/rooms/:id', authenticate, authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const validatedData = updateRoomSchema.parse(req.body);
     const room = await hospitalityService.updateRoom(req.companyId, req.params.id, validatedData);
     res.json(room);
 });
 
-router.delete('/rooms/:id', authenticate, async (req: AuthRequest, res) => {
+router.delete('/rooms/:id', authenticate, authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     await hospitalityService.deleteRoom(req.companyId, req.params.id);
     res.json({ message: 'Room deleted' });
@@ -70,29 +74,34 @@ router.post('/bookings', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const validatedData = checkInSchema.parse(req.body);
     const result = await hospitalityService.checkIn(req.companyId, validatedData);
+    const booking = result.data;
+    if (!booking) throw ApiError.internal('Falha ao criar reserva');
 
     // Socket Notification: Check-in performed
     emitToModule(req.companyId, 'hospitality', 'hospitality:checkin', {
-        id: result.data.id,
-        roomNumber: result.data.room.number,
-        guestName: result.data.customerName,
+        id: booking.id,
+        roomNumber: booking.room.number,
+        guestName: booking.customerName,
         timestamp: new Date()
     });
 
-    // Send booking confirmation email if guest has email
-    const booking = result.data;
-    if (emailQueue && booking.customerEmail) {
+    // Send booking confirmation email if guest provided one. `guestEmail` comes
+    // from the validated request body, not the Booking row (Booking has no email
+    // column — the address is sent via the room/guest contact flow).
+    const guestEmail = validatedData.guestEmail;
+    if (emailQueue && guestEmail) {
+        const expectedCheckout = booking.expectedCheckout ?? booking.checkOut ?? booking.checkIn;
         const nights = Math.max(1, Math.ceil(
-            (new Date(booking.expectedCheckout).getTime() - new Date(booking.checkIn).getTime()) / 86400000
+            (new Date(expectedCheckout).getTime() - new Date(booking.checkIn).getTime()) / 86400000
         ));
         const company = await prisma.companySettings.findFirst({ where: { companyId: req.companyId }, select: { companyName: true } });
         await emailQueue.add('booking-confirmation', {
-            email: booking.customerEmail,
+            email: guestEmail,
             guestName: booking.customerName,
             reservationId: booking.id,
             roomNumber: booking.room.number,
             checkIn: booking.checkIn,
-            checkOut: booking.expectedCheckout,
+            checkOut: expectedCheckout,
             nights,
             totalPrice: Number(booking.totalPrice),
             companyName: company?.companyName,
@@ -168,7 +177,8 @@ router.post('/bookings/:id/consumptions', authenticate, async (req: AuthRequest,
 
 router.put('/bookings/:id/checkout', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
-    const result = await hospitalityService.checkout(req.companyId, req.params.id, req.userId!);
+    const sessionId = req.body?.sessionId;
+    const result = await hospitalityService.checkout(req.companyId, req.params.id, req.userId!, sessionId);
 
     // Socket Notification: Check-out performed
     emitToModule(req.companyId, 'hospitality', 'hospitality:checkout', {
@@ -200,7 +210,7 @@ router.get('/bookings/today-checkouts', authenticate, async (req: AuthRequest, r
     res.json(checkouts);
 });
 
-router.put('/bookings/:id/extend', authenticate, async (req: AuthRequest, res) => {
+router.put('/bookings/:id/extend', authenticate, authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const { newCheckoutDate, adjustPrice } = req.body;
 
@@ -299,11 +309,11 @@ router.put('/housekeeping/:id', authenticate, async (req: AuthRequest, res) => {
     });
     if (!task) throw ApiError.notFound('Tarefa não encontrada');
 
-    const updateData: any = {};
-    if (status) updateData.status = status;
+    const updateData: Prisma.HousekeepingTaskUpdateInput = {};
+    if (status) updateData.status = status as Prisma.HousekeepingTaskUpdateInput['status'];
     if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
     if (notes !== undefined) updateData.notes = notes;
-    if (priority !== undefined) updateData.priority = priority;
+    if (priority !== undefined) updateData.priority = priority as Prisma.HousekeepingTaskUpdateInput['priority'];
 
     if (status === 'in_progress' && !task.startedAt) updateData.startedAt = new Date();
     if (status === 'completed') {
@@ -323,7 +333,7 @@ router.put('/housekeeping/:id', authenticate, async (req: AuthRequest, res) => {
     res.json(updatedTask);
 });
 
-router.delete('/housekeeping/:id', authenticate, async (req: AuthRequest, res) => {
+router.delete('/housekeeping/:id', authenticate, authorize(...MANAGER_ROLES), async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const result = await prisma.housekeepingTask.deleteMany({ where: { id: req.params.id, companyId: req.companyId } });
     if (result.count === 0) throw ApiError.notFound('Tarefa não encontrada');

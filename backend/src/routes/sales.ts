@@ -20,17 +20,6 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
     res.json(result);
 });
 
-// Get sale by ID
-router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
-    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(req.params.id)) throw ApiError.badRequest('ID inválido: deve ser um UUID válido');
-
-    const sale = await salesService.getById(req.params.id, req.companyId);
-    res.json(sale);
-});
-
 // Get sales statistics (both /stats and /stats/summary for compatibility)
 router.get('/stats', authenticate, async (req: AuthRequest, res: Response) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
@@ -42,6 +31,17 @@ router.get('/stats/summary', authenticate, async (req: AuthRequest, res: Respons
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await salesService.getStats(req.query, req.companyId);
     res.json(result);
+});
+
+// Get sale by ID
+router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(req.params.id)) throw ApiError.badRequest('ID inválido: deve ser um UUID válido');
+
+    const sale = await salesService.getById(req.params.id, req.companyId);
+    res.json(sale);
 });
 
 // Get today's sales
@@ -64,19 +64,28 @@ router.post('/', authenticate, async (req: AuthRequest, res: Response) => {
         req.companyId,
         req.userId!,
         req.userName!,
-        (req as any).ip || req.socket.remoteAddress || '',
+        req.ip || req.socket.remoteAddress || '',
         req.userRole
-    ) as any;
+    );
 
-    emitToCompany(req.companyId, 'sale:created', { id: sale.id, total: sale.total, receiptNumber: sale.receiptNumber });
-
-    if (validatedData.originModule === 'restaurant') {
-        emitToCompany(req.companyId, 'restaurant:new_order', {
-            id: sale.id,
-            total: sale.total,
-            table: sale.tableId,
-            timestamp: new Date()
+    const createdSale = sale.data;
+    if (createdSale) {
+        emitToCompany(req.companyId, 'sale:created', {
+            id: createdSale.id,
+            total: createdSale.total,
+            receiptNumber: createdSale.receiptNumber,
+            originModule: createdSale.originModule,
+            warehouseId: createdSale.warehouseId
         });
+
+        if (validatedData.originModule === 'restaurant') {
+            emitToCompany(req.companyId, 'restaurant:new_order', {
+                id: createdSale.id,
+                total: createdSale.total,
+                table: createdSale.tableId,
+                timestamp: new Date()
+            });
+        }
     }
 
     res.status(201).json(sale);
@@ -95,7 +104,7 @@ router.post('/:id/cancel', authenticate, authorize('admin', 'manager', 'operator
         req.companyId,
         req.userId!,
         req.userName || 'User',
-        (req as any).ip || req.socket.remoteAddress || ''
+        req.ip || req.socket.remoteAddress || ''
     );
 
     emitToCompany(req.companyId, 'sale:void_requested', { id: req.params.id });
@@ -115,7 +124,7 @@ router.post('/:id/void/request', authenticate, authorize('super_admin', 'admin',
         req.companyId,
         req.userId!,
         req.userName || 'User',
-        (req as any).ip || req.socket.remoteAddress || ''
+        req.ip || req.socket.remoteAddress || ''
     );
 
     emitToCompany(req.companyId, 'sale:void_requested', { id: req.params.id });
@@ -131,7 +140,7 @@ router.post('/:id/void/approve', authenticate, authorize('super_admin', 'admin',
         req.companyId,
         req.userId!,
         req.userName || 'Approver',
-        (req as any).ip || req.socket.remoteAddress || ''
+        req.ip || req.socket.remoteAddress || ''
     );
 
     emitToCompany(req.companyId, 'sale:voided', { id: req.params.id });
@@ -151,7 +160,7 @@ router.post('/:id/void/reject', authenticate, authorize('super_admin', 'admin', 
         req.companyId,
         req.userId!,
         req.userName || 'Approver',
-        (req as any).ip || req.socket.remoteAddress || ''
+        req.ip || req.socket.remoteAddress || ''
     );
 
     emitToCompany(req.companyId, 'sale:void_rejected', { id: req.params.id });

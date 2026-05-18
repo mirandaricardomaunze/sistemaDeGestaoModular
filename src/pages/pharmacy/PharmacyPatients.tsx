@@ -4,12 +4,44 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { Card, Button, Input, Badge, LoadingSpinner, Pagination, Textarea } from '../../components/ui';
 import {
     HiOutlineUser, HiOutlineMagnifyingGlass, HiOutlineHeart, HiOutlineClipboardDocumentList,
-    HiOutlinePencil, HiOutlineXMark as HiOutlineX, HiOutlineCheck, HiOutlinePhone
+    HiOutlinePencil, HiOutlineXMark as HiOutlineXMark, HiOutlineCheck, HiOutlinePhone
 } from 'react-icons/hi2';
 import { pharmacyAPI } from '../../services/api';
 import { useCustomers } from '../../hooks/useData';
 import toast from 'react-hot-toast';
 import { formatDate, formatCurrency, cn } from '../../utils/helpers';
+
+import type { Customer } from '../../types';
+
+type Patient = Customer;
+
+type PatientProfileForm = {
+    bloodType: string;
+    allergies: string[];
+    chronicConditions: string[];
+    emergencyContact: string;
+    patientNotes: string;
+};
+
+type HistorySaleItem = {
+    id: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number | string;
+};
+
+type HistorySale = {
+    id: string;
+    saleNumber: string;
+    createdAt: string | Date;
+    total: number | string;
+    prescription?: {
+        prescriptionNumber?: string;
+        prescriptionNo?: string;
+        prescriberName?: string;
+    };
+    items: HistorySaleItem[];
+};
 
 const BLOOD_TYPES = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const COMMON_ALLERGIES = ['Penicilina', 'Amoxicilina', 'Aspirina', 'Ibuprofeno', 'Sulfonamidas', 'Látex', 'Contraste iodado', 'Morfina'];
@@ -27,10 +59,16 @@ export default function PharmacyPatients() {
         page,
         limit: PATIENTS_PAGE_SIZE
     });
-    const [selectedPatient, setSelectedPatient] = useState<any>(null);
+    const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
     const [editMode, setEditMode] = useState(false);
     const [activeTab, setActiveTab] = useState<'profile' | 'history'>('profile');
-    const [profileForm, setProfileForm] = useState<any>({});
+    const [profileForm, setProfileForm] = useState<PatientProfileForm>({
+        bloodType: '',
+        allergies: [],
+        chronicConditions: [],
+        emergencyContact: '',
+        patientNotes: ''
+    });
     const [historyPage, setHistoryPage] = useState(1);
     const [allergyInput, setAllergyInput] = useState('');
     const [conditionInput, setConditionInput] = useState('');
@@ -39,20 +77,20 @@ export default function PharmacyPatients() {
 
     const { data: profile, isLoading: loadingProfile } = useQuery({
         queryKey: ['pharmacy', 'patient-profile', selectedPatient?.id],
-        queryFn: () => pharmacyAPI.getPatientProfile(selectedPatient.id),
+        queryFn: () => pharmacyAPI.getPatientProfile(selectedPatient!.id),
         enabled: !!selectedPatient?.id
     });
 
     const { data: historyData, isLoading: loadingHistory } = useQuery({
         queryKey: ['pharmacy', 'patient-history', selectedPatient?.id, historyPage],
-        queryFn: () => pharmacyAPI.getPatientMedicationHistory(selectedPatient.id, { page: historyPage, limit: 10 }),
+        queryFn: () => pharmacyAPI.getPatientMedicationHistory(selectedPatient!.id, { page: historyPage, limit: 10 }),
         enabled: !!selectedPatient?.id && activeTab === 'history'
     });
 
     const updateMutation = useMutation({
-        mutationFn: () => pharmacyAPI.updatePatientProfile(selectedPatient.id, profileForm),
+        mutationFn: () => pharmacyAPI.updatePatientProfile(selectedPatient!.id, profileForm),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['pharmacy', 'patient-profile', selectedPatient.id] });
+            queryClient.invalidateQueries({ queryKey: ['pharmacy', 'patient-profile', selectedPatient?.id] });
             setEditMode(false);
             toast.success('Perfil actualizado com sucesso');
         },
@@ -73,7 +111,7 @@ export default function PharmacyPatients() {
     const addAllergy = (val: string) => {
         const v = val.trim();
         if (v && !profileForm.allergies.includes(v)) {
-            setProfileForm((f: any) => ({ ...f, allergies: [...f.allergies, v] }));
+            setProfileForm((f) => ({ ...f, allergies: [...f.allergies, v] }));
         }
         setAllergyInput('');
     };
@@ -81,7 +119,7 @@ export default function PharmacyPatients() {
     const addCondition = (val: string) => {
         const v = val.trim();
         if (v && !profileForm.chronicConditions.includes(v)) {
-            setProfileForm((f: any) => ({ ...f, chronicConditions: [...f.chronicConditions, v] }));
+            setProfileForm((f) => ({ ...f, chronicConditions: [...f.chronicConditions, v] }));
         }
         setConditionInput('');
     };
@@ -105,7 +143,7 @@ export default function PharmacyPatients() {
                     />
                     {loadingCustomers ? <LoadingSpinner /> : (
                         <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-                            {filtered.map((c: any) => (
+                            {filtered.map((c) => (
                                 <button
                                     key={c.id}
                                     onClick={() => { setSelectedPatient(c); setEditMode(false); setActiveTab('profile'); }}
@@ -221,7 +259,7 @@ export default function PharmacyPatients() {
                                                     size="sm"
                                                     onClick={() => setEditMode(false)}
                                                     className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest"
-                                                    leftIcon={<HiOutlineX className="w-4 h-4" />}
+                                                    leftIcon={<HiOutlineXMark className="w-4 h-4" />}
                                                 >
                                                     Cancelar
                                                 </Button>
@@ -240,7 +278,7 @@ export default function PharmacyPatients() {
                                                             <Button
                                                                 key={bt}
                                                                 variant={profileForm.bloodType === bt ? 'danger' : 'outline'}
-                                                                onClick={() => setProfileForm((f: any) => ({ ...f, bloodType: bt }))}
+                                                                onClick={() => setProfileForm((f) => ({ ...f, bloodType: bt }))}
                                                                 size="sm"
                                                                 className="rounded-lg font-semibold"
                                                             >
@@ -257,7 +295,7 @@ export default function PharmacyPatients() {
 
                                             {/* Allergies */}
                                             <div>
-                                                <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">⚠️ Alergias Conhecidas</p>
+                                                <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">⚠️ï¸ Alergias Conhecidas</p>
                                                 {editMode ? (
                                                     <div className="space-y-2">
                                                         <div className="flex flex-wrap gap-2 mb-2">
@@ -281,7 +319,7 @@ export default function PharmacyPatients() {
                                                             {profileForm.allergies.map((a: string) => (
                                                                 <span key={a} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
                                                                     {a}
-                                                                    <button onClick={() => setProfileForm((f: any) => ({ ...f, allergies: f.allergies.filter((x: string) => x !== a) }))}><HiOutlineX className="w-3 h-3" /></button>
+                                                                    <button onClick={() => setProfileForm((f) => ({ ...f, allergies: f.allergies.filter((x: string) => x !== a) }))}><HiOutlineXMark className="w-3 h-3" /></button>
                                                                 </span>
                                                             ))}
                                                         </div>
@@ -320,7 +358,7 @@ export default function PharmacyPatients() {
                                                             {profileForm.chronicConditions.map((c: string) => (
                                                                 <span key={c} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
                                                                     {c}
-                                                                    <button onClick={() => setProfileForm((f: any) => ({ ...f, chronicConditions: f.chronicConditions.filter((x: string) => x !== c) }))}><HiOutlineX className="w-3 h-3" /></button>
+                                                                    <button onClick={() => setProfileForm((f) => ({ ...f, chronicConditions: f.chronicConditions.filter((x: string) => x !== c) }))}><HiOutlineXMark className="w-3 h-3" /></button>
                                                                 </span>
                                                             ))}
                                                         </div>
@@ -336,13 +374,13 @@ export default function PharmacyPatients() {
                                             {/* Emergency Contact & Notes */}
                                             {editMode ? (
                                                 <div className="grid grid-cols-1 gap-4">
-                                                    <Input label="Contacto de Emergência" value={profileForm.emergencyContact} onChange={e => setProfileForm((f: any) => ({ ...f, emergencyContact: e.target.value }))} placeholder="Nome e telefone..." />
+                                                    <Input label="Contacto de Emergência" value={profileForm.emergencyContact} onChange={e => setProfileForm((f) => ({ ...f, emergencyContact: e.target.value }))} placeholder="Nome e telefone..." />
                                                     <div>
                                                         <Textarea 
                                                             label="Observações Clínicas"
                                                             rows={3}
                                                             value={profileForm.patientNotes}
-                                                            onChange={e => setProfileForm((f: any) => ({ ...f, patientNotes: e.target.value }))}
+                                                            onChange={e => setProfileForm((f) => ({ ...f, patientNotes: e.target.value }))}
                                                             placeholder="Notas sobre o paciente..."
                                                         />
                                                     </div>
@@ -375,7 +413,7 @@ export default function PharmacyPatients() {
                                             {(historyData?.data || []).length === 0 ? (
                                                 <p className="text-center text-gray-400 py-8">Nenhuma compra registada</p>
                                             ) : (
-                                                historyData.data.map((sale: any) => (
+                                                (historyData.data as HistorySale[]).map((sale) => (
                                                     <div key={sale.id} className="border border-gray-200 dark:border-dark-700 rounded-lg p-4">
                                                         <div className="flex justify-between items-start mb-2">
                                                             <div>
@@ -390,7 +428,7 @@ export default function PharmacyPatients() {
                                                             <span className="font-bold text-teal-600">{formatCurrency(Number(sale.total))}</span>
                                                         </div>
                                                         <div className="space-y-1">
-                                                            {sale.items.map((item: any) => (
+                                                            {sale.items.map((item) => (
                                                                 <div key={item.id} className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
                                                                     <span>{item.quantity}x {item.productName}</span>
                                                                     <span>{formatCurrency(Number(item.unitPrice))}</span>

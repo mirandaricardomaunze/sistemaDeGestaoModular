@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Input, Modal, Badge, Skeleton, ConfirmationModal, Pagination, LoadingOverlay } from '../ui';
+import { Card, Button, Input, Modal, Badge, Skeleton, ConfirmationModal, Pagination, SimpleTable, TableLoadingState } from '../ui';
 import {
     HiOutlinePlus, 
     HiOutlineArrowPath, 
@@ -88,7 +88,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
         e.preventDefault();
         if (!form.batchNumber || !form.productId || form.quantity === undefined) return;
         try {
-            const payload: any = {
+            const payload: CreateBatchDto = {
                 batchNumber: form.batchNumber.trim().toUpperCase(),
                 productId: form.productId,
                 quantity: form.quantity,
@@ -106,8 +106,9 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                 await create.mutateAsync(payload);
             }
             onClose();
-        } catch (err: any) {
-            const msg = err.response?.data?.message || err.message || 'Erro ao guardar lote';
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: unknown[] } } };
+            const msg = apiErr.response?.data?.message || apiErr.message || 'Erro ao guardar lote';
             console.error('Erro ao guardar lote:', msg);
             // O erro já é capturado pelo hook de mutação se houver um provedor de notificações, 
             // mas vamos garantir que ele não quebre o fluxo.
@@ -119,7 +120,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
     // Auto-preencher preço de custo e cálculos ao selecionar produto
     useEffect(() => {
         if (form.productId && products) {
-            const product = (products as any).find((p: any) => p.id === form.productId);
+            const product = products.find((p: { id: string; packSize?: number; price?: number; costPrice?: number; name: string }) => p.id === form.productId);
             if (product) {
                 const packSize = product.packSize || 1;
                 
@@ -153,7 +154,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Código de Barras *</label>
                         <select required value={form.productId || ''} onChange={e => {
                             const pid = e.target.value;
-                            const product = (products || []).find((p: any) => p.id === pid);
+                            const product = (products || []).find((p) => p.id === pid);
                             const packSize = product?.packSize || 1;
                             
                             setForm(p => ({ 
@@ -169,7 +170,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                             disabled={!!editing || !!defaultProductId}
                             className="w-full rounded-lg border border-gray-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-60 shadow-sm">
                             <option value="">Seleccionar produto...</option>
-                            {(products || []).map((p: any) => (
+                            {(products || []).map((p) => (
                                 <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
                         </select>
@@ -193,7 +194,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                         placeholder="0"
                         onChange={e => {
                             const boxes = parseInt(e.target.value) || 0;
-                            const product = products?.find((p: any) => p.id === form.productId);
+                            const product = products?.find((p) => p.id === form.productId);
                             
                             // Pegamos o valor EXATO que foi definido no cadastro do produto
                             const unidadesPorCaixa = product?.packSize || 1;
@@ -214,7 +215,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                         value={form.quantity || ''} 
                         onChange={e => {
                             const qty = parseInt(e.target.value) || 0;
-                            const product = products?.find((p: any) => p.id === form.productId);
+                            const product = products?.find((p) => p.id === form.productId);
                             const packSize = product?.packSize || 1;
                             setForm(p => ({ 
                                 ...p, 
@@ -230,7 +231,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                         <select required value={form.warehouseId || ''} onChange={e => setForm(p => ({ ...p, warehouseId: e.target.value }))}
                             className="w-full rounded-lg border border-gray-300 dark:border-dark-700 bg-white dark:bg-dark-800 px-3 py-2 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm">
                             <option value="">Seleccionar armazém...</option>
-                            {(warehouses || []).map((w: any) => (
+                            {(warehouses || []).map((w: { id: string; name: string }) => (
                                 <option key={w.id} value={w.id}>{w.name}</option>
                             ))}
                         </select>
@@ -246,7 +247,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                         value={form.boxPrice || ''} 
                         onChange={e => {
                             const bPrice = parseFloat(e.target.value) || 0;
-                            const product = products?.find((p: any) => p.id === form.productId);
+                            const product = products?.find((p) => p.id === form.productId);
                             const packSize = product?.packSize || 1;
                             const uPrice = Number((bPrice / packSize).toFixed(2));
                             
@@ -266,7 +267,7 @@ function BatchFormModal({ open, onClose, editing, defaultProductId }: {
                         value={form.costPrice || ''} 
                         onChange={e => {
                             const uPrice = parseFloat(e.target.value) || 0;
-                            const product = products?.find((p: any) => p.id === form.productId);
+                            const product = products?.find((p) => p.id === form.productId);
                             const packSize = product?.packSize || 1;
                             
                             setForm(p => ({ 
@@ -333,7 +334,7 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
     const batches: ProductBatch[] = batchesData?.data || [];
     const batchesPagination = batchesData?.pagination;
     
-    const expiring: any[] = expiringData?.data || [];
+    const expiring: ProductBatch[] = expiringData?.data || [];
     const expiringPagination = expiringData?.pagination;
     const summary = dashboard?.summary;
 
@@ -381,12 +382,12 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
             {/* Sub-tabs */}
             <div className="flex gap-4 border-b border-gray-100 dark:border-dark-700">
                 {TABS.map(t => (
-                    <button key={t.id} onClick={() => setTab(t.id)}
-                        className={cn('group px-2 py-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 border-b-2',
+                    <Button key={t.id} variant="ghost" size="sm" onClick={() => setTab(t.id)}
+                        className={cn('group px-2 py-4 text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 border-b-2 rounded-none',
                             tab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-600')}>
                         {t.label}
                         {t.urgent && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
-                    </button>
+                    </Button>
                 ))}
             </div>
 
@@ -448,7 +449,7 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                                 <Card variant="premium" padding="md">
                                     <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Próximas Expiraces (30 dias)</h3>
                                     <div className="space-y-1">
-                                        {(dashboard.upcoming || []).map((b: any) => (
+                                        {(dashboard.upcoming || []).map((b: ProductBatch) => (
                                             <div key={b.id} className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-dark-800 last:border-0 hover:bg-gray-50/50 dark:hover:bg-dark-900/30 transition-colors px-2 rounded-lg">
                                                 <div>
                                                     <p className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight">{b.product?.name} · LT {b.batchNumber}</p>
@@ -488,9 +489,9 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                                     <ExpiryBadge expiryDate={b.expiryDate} daysToExpiry={b.daysToExpiry} />
                                     <p className="text-xs text-gray-400 mt-0.5">{b.warehouse?.name || 'Sem armazém'}</p>
                                 </div>
-                                <button onClick={() => handleEdit(b)} className="p-2 rounded text-gray-400 hover:text-primary-600 transition-colors">
+                                <Button variant="ghost" size="sm" onClick={() => handleEdit(b)} className="p-2 rounded text-gray-400 hover:text-primary-600 active:scale-95">
                                     <HiOutlinePencil className="w-4 h-4" />
-                                </button>
+                                </Button>
                             </div>
                         );
                     })}
@@ -521,10 +522,12 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                     </div>
 
                     {isLoading ? (
-                        <Card padding="none" className="min-h-[400px] relative">
-                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 dark:bg-dark-900/50">
-                                <LoadingOverlay fullScreen={false} />
-                            </div>
+                        <Card padding="none" className="relative min-h-[420px] overflow-hidden">
+                            <TableLoadingState
+                                columns={9}
+                                rows={8}
+                                message="A carregar lotes..."
+                            />
                         </Card>
                     ) : batches.length === 0 ? (
                         <Card padding="lg">
@@ -536,16 +539,24 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                         </Card>
                     ) : (
                         <Card padding="md">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-gray-100 dark:border-dark-700">
-                                            {['Nº Lote', 'Produto', 'Qty', 'Custo/Un', 'Validade', 'Entrada', 'Armazém', 'Estado', ''].map(h => (
-                                                <th key={h} className="text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] pb-4 pr-4">{h}</th>
-                                            ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
+                            <SimpleTable
+                                columns={[
+                                    { key: 'batch', label: 'Nº Lote', className: 'pb-4 pr-4' },
+                                    { key: 'product', label: 'Produto', className: 'pb-4 pr-4' },
+                                    { key: 'qty', label: 'Qty', className: 'pb-4 pr-4' },
+                                    { key: 'cost', label: 'Custo/Un', className: 'pb-4 pr-4' },
+                                    { key: 'expiry', label: 'Validade', className: 'pb-4 pr-4' },
+                                    { key: 'received', label: 'Entrada', className: 'pb-4 pr-4' },
+                                    { key: 'warehouse', label: 'Armazém', className: 'pb-4 pr-4' },
+                                    { key: 'status', label: 'Estado', className: 'pb-4 pr-4' },
+                                    { key: 'actions', label: '', className: 'pb-4 pr-4' },
+                                ]}
+                                isLoading={false}
+                                minHeight="auto"
+                                tableClassName="w-full text-sm"
+                                headerRowClassName="border-gray-100 dark:border-dark-700"
+                                tbodyClassName="divide-y divide-gray-100 dark:divide-dark-700"
+                            >
                                         {batches.map(b => {
                                             const cfg = STATUS_CFG[b.status] || STATUS_CFG.active;
                                             return (
@@ -562,16 +573,14 @@ export default function BatchManager({ defaultProductId }: { defaultProductId?: 
                                                     <td className="py-4 pr-4"><Badge variant={cfg.color}>{cfg.label}</Badge></td>
                                                     <td className="py-3">
                                                         <div className="flex items-center gap-1">
-                                                            <button onClick={() => handleEdit(b)} className="p-1.5 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"><HiOutlinePencil className="w-4 h-4" /></button>
-                                                            <button onClick={() => setDeleting(b)} className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><HiOutlineTrash className="w-4 h-4" /></button>
+                                                            <Button variant="ghost" size="sm" onClick={() => handleEdit(b)} className="p-1.5 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 active:scale-95"><HiOutlinePencil className="w-4 h-4" /></Button>
+                                                            <Button variant="ghost" size="sm" onClick={() => setDeleting(b)} className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-95"><HiOutlineTrash className="w-4 h-4" /></Button>
                                                         </div>
                                                     </td>
                                                 </tr>
                                             );
                                         })}
-                                    </tbody>
-                                </table>
-                            </div>
+                            </SimpleTable>
                             {batchesPagination && batchesPagination.totalPages > 1 && (
                                 <div className="px-6 py-4 bg-gray-50/50 dark:bg-dark-900/50 border-t border-gray-100 dark:border-dark-700 mt-2 rounded-b-lg">
                                     <Pagination 

@@ -82,7 +82,7 @@ export default function LogisticsDashboard() {
     });
 
     const filteredTransfers = useMemo(() => {
-        const transfersArray = Array.isArray(allTransfers) ? allTransfers : (allTransfers as any)?.data || [];
+        const transfersArray = Array.isArray(allTransfers) ? allTransfers : (allTransfers as { data?: StockTransfer[] } | undefined)?.data || [];
         if (transfersArray.length === 0) return [];
 
         const now = new Date();
@@ -119,7 +119,7 @@ export default function LogisticsDashboard() {
                 reason: '',
                 items: [{ productId: '', quantity: 1 }]
             });
-        } catch (error: any) {
+        } catch (error) {
             // Error handling is managed by the mutation's onError
         }
     };
@@ -141,7 +141,7 @@ export default function LogisticsDashboard() {
 
 
 
-    const totalStock = (warehouses || []).reduce((acc, w) => acc + ((w as any).totalItems || 0), 0);
+    const totalStock = (warehouses || []).reduce((acc, w) => acc + ((w as { totalItems?: number }).totalItems || 0), 0);
 
     const transferStats = [
         { name: 'Seg', valor: 4 },
@@ -155,17 +155,19 @@ export default function LogisticsDashboard() {
 
     const pieData = warehouses.map(w => ({
         name: w.name,
-        value: (w as any).totalItems || 50
+        value: (w as { totalItems?: number }).totalItems || 50
     }));
 
     const COLORS = CHART_COLORS;
 
     const mapLocations = useMemo(() => {
-        const locations: any[] = [];
+        type MapLocation = { lat: number; lng: number; label: string; type: 'warehouse' | 'delivery'; status?: string; details?: Record<string, string | undefined> };
+        const locations: MapLocation[] = [];
 
         warehouses.forEach((w) => {
-            const lat = Number((w as any).latitude);
-            const lng = Number((w as any).longitude);
+            const wExt = w as { latitude?: number | string; longitude?: number | string };
+            const lat = Number(wExt.latitude);
+            const lng = Number(wExt.longitude);
             if (lat && lng) {
                 locations.push({
                     lat,
@@ -178,7 +180,7 @@ export default function LogisticsDashboard() {
         });
 
         if (dashboard?.recentDeliveries) {
-            dashboard.recentDeliveries.forEach((d: any) => {
+            dashboard.recentDeliveries.forEach((d: { latitude?: number | string; longitude?: number | string; number?: string; status?: string; recipientName?: string; deliveryAddress?: string; priority?: string }) => {
                 const lat = Number(d.latitude);
                 const lng = Number(d.longitude);
                 if (lat && lng) {
@@ -452,7 +454,7 @@ export default function LogisticsDashboard() {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[10px] text-gray-500 font-bold mb-1">{t('common.total_items').toUpperCase()}</p>
-                                            <span className="text-sm font-extrabold text-primary-600">{(w as any).totalItems || 0}</span>
+                                            <span className="text-sm font-extrabold text-primary-600">{(w as { totalItems?: number }).totalItems || 0}</span>
                                         </div>
                                     </div>
                                 </div>

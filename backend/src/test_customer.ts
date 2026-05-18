@@ -35,9 +35,9 @@ async function test() {
         // Limpeza (opcional, mas vamos deixar para o usuário ver no banco)
         // await prisma.customer.delete({ where: { id: customer.id } });
         
-    } catch (error: any) {
+    } catch (error) {
         console.error('❌ ERRO NO TESTE:');
-        console.error(error.message || error);
+        console.error((error as Error)?.message || error);
     } finally {
         await prisma.$disconnect();
     }

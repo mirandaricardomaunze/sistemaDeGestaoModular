@@ -3,18 +3,20 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { logger } from '../utils/logger';
 
+export type ApiErrorDetail = { field?: string; message?: string; label?: string; [key: string]: unknown };
+
 export class ApiError extends Error {
     constructor(
         public statusCode: number,
         public message: string,
-        public errors: any[] = []
+        public errors: ApiErrorDetail[] = []
     ) {
         super(message);
         this.name = 'ApiError';
         Object.setPrototypeOf(this, ApiError.prototype);
     }
 
-    static badRequest(msg: string, errors: any[] = []) {
+    static badRequest(msg: string, errors: ApiErrorDetail[] = []) {
         return new ApiError(400, msg, errors);
     }
 

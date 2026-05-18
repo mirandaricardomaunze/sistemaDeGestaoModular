@@ -16,7 +16,10 @@ import {
     HiOutlineCpuChip,
 } from 'react-icons/hi2';
 import { adminAPI } from '../../services/api';
-import { Card, Pagination } from '../../components/ui';
+import type { AdminCompanyStatus } from '../../services/api/admin.api';
+
+type ApiError = Error & { response?: { status?: number; data?: { message?: string; error?: string } } };
+import { Card, Pagination, Button, Input, Select } from '../../components/ui';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -27,7 +30,14 @@ type Tab = 'overview' | 'companies' | 'users' | 'activity' | 'system';
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Stats {
-    companies: { total: number; active: number; inactive: number; suspended: number };
+    companies: {
+        total: number;
+        active: number;
+        inactive: number;
+        suspended: number;
+        trial?: number;
+        blocked?: number;
+    };
     users: { total: number; active: number; inactive: number };
     sales: { total: number; revenue: number };
     modules: Array<{ moduleCode: string; moduleName: string; companiesUsing: number }>;
@@ -149,8 +159,9 @@ const SuperAdminDashboard: React.FC = () => {
             const data = await adminAPI.getStats();
             setStats(data);
             setError(null);
-        } catch (e: any) {
-            setError(e.response?.status === 403
+        } catch (e) {
+            const err = e as ApiError;
+            setError(err.response?.status === 403
                 ? 'Acesso negado. Apenas super administradores.'
                 : 'Erro ao carregar dados. Tente novamente.');
         } finally {
@@ -210,7 +221,7 @@ const SuperAdminDashboard: React.FC = () => {
         const next = current === 'active' ? 'blocked' : 'active';
         setTogglingId(id);
         try {
-            await adminAPI.toggleCompanyStatus(id, next as any);
+            await adminAPI.toggleCompanyStatus(id, next as AdminCompanyStatus);
             await loadCompanies();
         } finally {
             setTogglingId(null);
@@ -234,8 +245,9 @@ const SuperAdminDashboard: React.FC = () => {
             await adminAPI.toggleUserStatus(user.id, !user.isActive);
             toast.success(`Utilizador ${user.isActive ? 'desativado' : 'ativado'} com sucesso`);
             await loadUsers();
-        } catch (e: any) {
-            toast.error(e.response?.data?.message || 'Erro ao alterar estado do utilizador');
+        } catch (e) {
+            const err = e as ApiError;
+            toast.error(err.response?.data?.message || 'Erro ao alterar estado do utilizador');
         } finally {
             setTogglingId(null);
         }
@@ -262,9 +274,9 @@ const SuperAdminDashboard: React.FC = () => {
                         <HiOutlineShieldCheck className="w-8 h-8 text-red-600" />
                     </div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{error}</h2>
-                    <button onClick={() => navigate('/')} className="mt-4 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    <Button onClick={() => navigate('/')} variant="premium" className="mt-4">
                         Voltar ao Início
-                    </button>
+                    </Button>
                 </div>
             </div>
         );
@@ -290,7 +302,7 @@ const SuperAdminDashboard: React.FC = () => {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Painel Super Admin</h1>
                     <p className="text-sm text-gray-500 dark:text-gray-400">Acesso global ao sistema</p>
                 </div>
-                <button
+                <Button
                     onClick={() => {
                         if (tab === 'overview') loadOverview();
                         else if (tab === 'companies') loadCompanies();
@@ -298,20 +310,22 @@ const SuperAdminDashboard: React.FC = () => {
                         else if (tab === 'activity') loadActivity();
                         else loadSystem();
                     }}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
+                    variant="premium"
                 >
                     <HiOutlineArrowPath className="w-4 h-4" />
                     Atualizar
-                </button>
+                </Button>
             </div>
 
             {/* Tabs */}
             <div className="flex gap-1 border-b border-gray-200 dark:border-dark-600">
                 {TABS.map(t => (
-                    <button
+                    <div
                         key={t.id}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setTab(t.id)}
-                        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
                             tab === t.id
                                 ? 'border-primary-600 text-primary-600 dark:text-primary-400'
                                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
@@ -319,7 +333,7 @@ const SuperAdminDashboard: React.FC = () => {
                     >
                         <t.icon className="w-4 h-4" />
                         {t.label}
-                    </button>
+                    </div>
                 ))}
             </div>
 
@@ -352,9 +366,9 @@ const SuperAdminDashboard: React.FC = () => {
                             <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Estado das Empresas</h3>
                             <div className="space-y-3">
                                 {[
-                                    { label: 'Ativas', value: (stats.companies as any).active, total: stats.companies.total, color: 'bg-green-500' },
-                                    { label: 'Trial', value: (stats.companies as any).trial, total: stats.companies.total, color: 'bg-blue-400' },
-                                    { label: 'Bloqueadas', value: (stats.companies as any).blocked, total: stats.companies.total, color: 'bg-red-500' },
+                                    { label: 'Ativas', value: stats.companies.active, total: stats.companies.total, color: 'bg-green-500' },
+                                    { label: 'Trial', value: stats.companies.trial ?? 0, total: stats.companies.total, color: 'bg-blue-400' },
+                                    { label: 'Bloqueadas', value: stats.companies.blocked ?? 0, total: stats.companies.total, color: 'bg-red-500' },
                                 ].map(row => (
                                     <div key={row.label}>
                                         <div className="flex justify-between text-sm mb-1">
@@ -400,27 +414,25 @@ const SuperAdminDashboard: React.FC = () => {
             {tab === 'companies' && (
                 <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <div className="relative flex-1">
-                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                                type="text"
+                        <div className="flex-1">
+                            <Input
                                 placeholder="Pesquisar empresa..."
                                 value={companySearch}
                                 onChange={e => { setCompanySearch(e.target.value); setCompanyPage(1); }}
-                                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
                             />
                         </div>
-                        <select
+                        <Select
                             value={companyStatus}
                             onChange={e => { setCompanyStatus(e.target.value); setCompanyPage(1); }}
-                            className="px-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
-                        >
-                            <option value="">Todos os estados</option>
-                            <option value="active">Ativas</option>
-                            <option value="trial">Trial</option>
-                            <option value="blocked">Bloqueadas</option>
-                            <option value="cancelled">Canceladas</option>
-                        </select>
+                            options={[
+                                { value: '', label: 'Todos os estados' },
+                                { value: 'active', label: 'Ativas' },
+                                { value: 'trial', label: 'Trial' },
+                                { value: 'blocked', label: 'Bloqueadas' },
+                                { value: 'cancelled', label: 'Canceladas' },
+                            ]}
+                        />
                     </div>
 
                     {loading.companies ? (
@@ -466,17 +478,14 @@ const SuperAdminDashboard: React.FC = () => {
                                                     {format(new Date(c.createdAt), 'dd/MM/yyyy')}
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
-                                                    <button
+                                                    <Button
+                                                        size="xs"
+                                                        variant={c.status === 'active' ? 'danger' : 'success'}
                                                         disabled={togglingId === c.id}
                                                         onClick={() => handleCompanyStatus(c.id, c.status)}
-                                                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-50 ${
-                                                            c.status === 'active'
-                                                                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100'
-                                                                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100'
-                                                        }`}
                                                     >
                                                         {togglingId === c.id ? '...' : c.status === 'active' ? 'Bloquear' : 'Reativar'}
-                                                    </button>
+                                                    </Button>
                                                 </td>
                                             </tr>
                                         ))}
@@ -503,14 +512,12 @@ const SuperAdminDashboard: React.FC = () => {
             {/* ── USERS ── */}
             {tab === 'users' && (
                 <div className="space-y-4">
-                    <div className="relative max-w-sm">
-                        <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <input
-                            type="text"
+                    <div className="max-w-sm">
+                        <Input
                             placeholder="Pesquisar utilizador..."
                             value={userSearch}
                             onChange={e => { setUserSearch(e.target.value); setUserPage(1); }}
-                            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 dark:border-dark-600 rounded-lg bg-white dark:bg-dark-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 outline-none"
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
                         />
                     </div>
 
@@ -562,18 +569,15 @@ const SuperAdminDashboard: React.FC = () => {
                                                                 ? 'Não é permitido desativar outro super administrador'
                                                                 : '';
                                                         return (
-                                                            <button
+                                                            <Button
+                                                                size="xs"
+                                                                variant={u.isActive ? 'danger' : 'success'}
                                                                 disabled={togglingId === u.id || blocked}
                                                                 title={title}
                                                                 onClick={() => handleUserStatus(u)}
-                                                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                                                                    u.isActive
-                                                                        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100'
-                                                                        : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100'
-                                                                }`}
                                                             >
                                                                 {togglingId === u.id ? '...' : u.isActive ? 'Desativar' : 'Ativar'}
-                                                            </button>
+                                                            </Button>
                                                         );
                                                     })()}
                                                 </td>

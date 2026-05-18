@@ -1,5 +1,30 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
+
+type ListQuery = {
+    page?: string | number;
+    limit?: string | number;
+    startDate?: string;
+    endDate?: string;
+    category?: string;
+    status?: string;
+};
+
+type ExpenseInput = {
+    amount: number | string;
+    date?: string | Date;
+    dueDate?: string | Date | null;
+    category?: string;
+    description?: string;
+    status?: string;
+    paymentMethod?: string;
+    [key: string]: unknown;
+};
+
+type CategoryTotals = Record<string, number>;
+type CategoryAggregate = Record<string, { total: number; count: number }>;
+type RoomAggregate = { roomNumber: string | number; roomType: string; total: number; count: number; transactions: unknown[] };
 
 export class HospitalityFinanceService {
     async getDashboard(companyId: string, period: string) {
@@ -28,12 +53,12 @@ export class HospitalityFinanceService {
         const netProfit = totalRevenue - totalExpenses;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
-        const revenueByCategory = revenues.reduce((acc: any, t) => {
+        const revenueByCategory = revenues.reduce<CategoryTotals>((acc, t) => {
             acc[t.category] = (acc[t.category] || 0) + Number(t.amount);
             return acc;
         }, {});
 
-        const expensesByCategory = expenses.reduce((acc: any, t) => {
+        const expensesByCategory = expenses.reduce<CategoryTotals>((acc, t) => {
             acc[t.category] = (acc[t.category] || 0) + Number(t.amount);
             return acc;
         }, {});
@@ -77,13 +102,13 @@ export class HospitalityFinanceService {
         };
     }
 
-    async getRevenues(companyId: string, query: any) {
+    async getRevenues(companyId: string, query: ListQuery) {
         const { page = 1, limit = 20, startDate, endDate, category } = query;
         const skip = (Number(page) - 1) * Number(limit);
-        const where: any = { companyId, module: 'hospitality', type: 'income' };
+        const where: Prisma.TransactionWhereInput = { companyId, module: 'hospitality', type: 'income' };
 
         if (startDate && endDate) {
-            where.date = { gte: new Date(startDate as string), lte: new Date(endDate as string) };
+            where.date = { gte: new Date(startDate), lte: new Date(endDate) };
         }
         if (category) where.category = category;
 
@@ -102,16 +127,16 @@ export class HospitalityFinanceService {
         };
     }
 
-    async getExpenses(companyId: string, query: any) {
+    async getExpenses(companyId: string, query: ListQuery) {
         const { page = 1, limit = 20, startDate, endDate, category, status } = query;
         const skip = (Number(page) - 1) * Number(limit);
-        const where: any = { companyId, module: 'hospitality', type: 'expense' };
+        const where: Prisma.TransactionWhereInput = { companyId, module: 'hospitality', type: 'expense' };
 
         if (startDate && endDate) {
-            where.date = { gte: new Date(startDate as string), lte: new Date(endDate as string) };
+            where.date = { gte: new Date(startDate), lte: new Date(endDate) };
         }
         if (category) where.category = category;
-        if (status) where.status = status;
+        if (status) where.status = status as Prisma.TransactionWhereInput['status'];
 
         const [expenses, total] = await Promise.all([
             prisma.transaction.findMany({
@@ -126,11 +151,11 @@ export class HospitalityFinanceService {
         };
     }
 
-    async createExpense(companyId: string, data: any) {
+    async createExpense(companyId: string, data: ExpenseInput) {
         const { amount, date, dueDate, ...rest } = data;
         return prisma.transaction.create({
             data: {
-                ...rest,
+                ...(rest as Prisma.TransactionUncheckedCreateInput),
                 type: 'expense',
                 amount: Number(amount),
                 date: date ? new Date(date) : new Date(),
@@ -141,12 +166,12 @@ export class HospitalityFinanceService {
         });
     }
 
-    async updateExpense(id: string, companyId: string, data: any) {
+    async updateExpense(id: string, companyId: string, data: Partial<ExpenseInput>) {
         const { amount, date, dueDate, ...rest } = data;
         const result = await prisma.transaction.updateMany({
             where: { id, companyId },
             data: {
-                ...rest,
+                ...(rest as Prisma.TransactionUncheckedUpdateInput),
                 amount: amount !== undefined ? Number(amount) : undefined,
                 date: date ? new Date(date) : undefined,
                 dueDate: dueDate === null ? null : (dueDate ? new Date(dueDate) : undefined),
@@ -177,14 +202,14 @@ export class HospitalityFinanceService {
         const revenues = transactions.filter(t => t.type === 'income');
         const expenses = transactions.filter(t => t.type === 'expense');
 
-        const revenueByCategory: any = {};
+        const revenueByCategory: CategoryAggregate = {};
         revenues.forEach(t => {
             if (!revenueByCategory[t.category]) revenueByCategory[t.category] = { total: 0, count: 0 };
             revenueByCategory[t.category].total += Number(t.amount);
             revenueByCategory[t.category].count += 1;
         });
 
-        const expensesByCategory: any = {};
+        const expensesByCategory: CategoryAggregate = {};
         expenses.forEach(t => {
             if (!expensesByCategory[t.category]) expensesByCategory[t.category] = { total: 0, count: 0 };
             expensesByCategory[t.category].total += Number(t.amount);
@@ -204,7 +229,7 @@ export class HospitalityFinanceService {
     }
 
     async getByRoom(companyId: string, startDate?: string, endDate?: string) {
-        const where: any = { companyId, module: 'hospitality', type: 'income' };
+        const where: Prisma.TransactionWhereInput = { companyId, module: 'hospitality', type: 'income' };
         if (startDate && endDate) {
             where.date = { gte: new Date(startDate), lte: new Date(endDate) };
         }
@@ -214,7 +239,7 @@ export class HospitalityFinanceService {
             include: { room: true, booking: true }
         });
 
-        const byRoom: any = {};
+        const byRoom: Record<string, RoomAggregate> = {};
         revenues.forEach(t => {
             if (t.roomId && t.room) {
                 if (!byRoom[t.roomId]) {
@@ -226,7 +251,7 @@ export class HospitalityFinanceService {
             }
         });
 
-        const roomData = Object.values(byRoom).sort((a: any, b: any) => b.total - a.total);
+        const roomData = Object.values(byRoom).sort((a, b) => b.total - a.total);
 
         return {
             period: startDate && endDate ? { startDate, endDate } : null,

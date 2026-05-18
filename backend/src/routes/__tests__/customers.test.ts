@@ -1,20 +1,23 @@
 import request from 'supertest';
+import type { Request, Response, NextFunction } from 'express';
 import { app } from '../../index';
 import { prisma } from '../../lib/prisma';
 
 const COMPANY_ID = 'customer-test-co';
 const USER_ID = 'customer-test-user';
 
+type MockReq = Request & { userId?: string; companyId?: string; userName?: string; userRole?: string };
+
 jest.mock('../../middleware/auth', () => ({
-    authenticate: (req: any, _res: any, next: any) => {
+    authenticate: (req: MockReq, _res: Response, next: NextFunction) => {
         req.userId = USER_ID;
         req.companyId = COMPANY_ID;
         req.userName = 'Test User';
         req.userRole = 'admin';
         next();
     },
-    authorize: () => (_req: any, _res: any, next: any) => next(),
-    AuthRequest: {} as any,
+    authorize: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    AuthRequest: {} as unknown,
 }));
 
 async function cleanup() {
@@ -130,7 +133,7 @@ describe('Customer search and filtering', () => {
         await prisma.customer.create({ data: { name: 'Outsider', code: `OUT-${Date.now()}`, phone: '999999999', companyId: otherCo } });
 
         const res = await request(app).get('/api/customers?search=Outsider').expect(200);
-        const names = res.body.data.map((c: any) => c.name);
+        const names = (res.body.data as Array<{ name: string }>).map((c) => c.name);
         expect(names).not.toContain('Outsider');
 
         // cleanup

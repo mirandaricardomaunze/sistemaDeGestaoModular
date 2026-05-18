@@ -3,7 +3,7 @@
  * Standardizes backend service responses for professional consistency.
  */
 
-export interface Result<T = any> {
+export interface Result<T = unknown> {
   success: boolean;
   data: T | null;
   error?: string;

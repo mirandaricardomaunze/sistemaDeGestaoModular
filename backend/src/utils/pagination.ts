@@ -17,13 +17,23 @@ export interface PaginatedResponse<T> {
     pagination: PaginationMeta;
 }
 
+type PaginationQuery = {
+    page?: string | number | null;
+    limit?: string | number | null;
+};
+
+export type FieldSelect = Record<string, true | { select: FieldSelect }>;
+
 /**
  * Extract pagination parameters from request query
  */
-export function getPaginationParams(query: any): { page: number; limit: number; skip: number } {
-    const pageRaw = parseInt(query.page as string);
-    const limitRaw = parseInt(query.limit as string);
+export function getPaginationParams(query: PaginationQuery = {}): { page: number; limit: number; skip: number } {
+    const pageRaw = Number.parseInt(String(query.page ?? ''), 10);
+    const limitRaw = Number.parseInt(String(query.limit ?? ''), 10);
     const page = isNaN(pageRaw) ? 1 : Math.max(1, pageRaw);
+    // Cap 2000: POS catalog, prefetch offline e heatmaps pedem catálogos quase
+    // inteiros. Cap a 100 truncava silenciosamente esses pedidos. Listas em UI
+    // normais continuam a usar o default (50) quando não passam `limit`.
     const limit = isNaN(limitRaw) ? 50 : Math.min(2000, Math.max(1, limitRaw));
     const skip = (page - 1) * limit;
 
@@ -82,11 +92,11 @@ export function parseFields(
     raw: unknown,
     allowed: ReadonlyArray<string>,
     primaryKey: string = 'id'
-): Record<string, any> | null {
+): FieldSelect | null {
     if (typeof raw !== 'string' || !raw.trim()) return null;
 
     const allowSet = new Set(allowed);
-    const select: Record<string, any> = {};
+    const select: FieldSelect = {};
 
     for (const token of raw.split(',').map(s => s.trim()).filter(Boolean)) {
         if (!allowSet.has(token)) continue;
@@ -95,7 +105,8 @@ export function parseFields(
             if (!select[parent] || select[parent] === true) {
                 select[parent] = { select: {} };
             }
-            select[parent].select[child] = true;
+            const parentSelect = select[parent] as { select: FieldSelect };
+            parentSelect.select[child] = true;
         } else {
             select[token] = true;
         }

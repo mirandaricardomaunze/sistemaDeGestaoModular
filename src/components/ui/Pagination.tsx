@@ -73,26 +73,26 @@ export function Pagination({
     }, [currentPage, totalPages]);
 
     return (
-        <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-dark-700 ${className}`}>
+        <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200/90 dark:border-dark-700 ${className}`}>
             {showInfo && (
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                    Mostrando <span className="font-medium text-gray-900 dark:text-white">{totalItems > 0 ? startItem : 0}</span> a{' '}
-                    <span className="font-medium text-gray-900 dark:text-white">{totalItems > 0 ? endItem : 0}</span> de{' '}
-                    <span className="font-medium text-gray-900 dark:text-white">{totalItems}</span> resultados
+                <div className="text-sm text-slate-600 dark:text-gray-400">
+                    Mostrando <span className="font-semibold text-slate-950 dark:text-white">{totalItems > 0 ? startItem : 0}</span> a{' '}
+                    <span className="font-semibold text-slate-950 dark:text-white">{totalItems > 0 ? endItem : 0}</span> de{' '}
+                    <span className="font-semibold text-slate-950 dark:text-white">{totalItems}</span> resultados
                 </div>
             )}
 
             <div className="flex items-center gap-4">
                 {showItemsPerPage && onItemsPerPageChange && (
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600 dark:text-gray-400">Por página:</span>
+                        <span className="text-sm text-slate-600 dark:text-gray-400">Por página:</span>
                         <select
                             value={itemsPerPage}
                             onChange={(e) => {
                                 onItemsPerPageChange(Number(e.target.value));
                                 onPageChange(1);
                             }}
-                            className="px-2 py-1.5 text-sm rounded-lg border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="px-2 py-1.5 text-sm rounded-lg border border-slate-300/80 dark:border-dark-600 bg-white dark:bg-dark-800 text-slate-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
                             {itemsPerPageOptions.map((option) => (
                                 <option key={option} value={option}>
@@ -107,7 +107,7 @@ export function Pagination({
                     <button
                         onClick={() => onPageChange(1)}
                         disabled={currentPage === 1 || totalItems === 0}
-                        className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="p-2 rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title="Primeira página"
                     >
                         <HiOutlineChevronDoubleLeft className="w-4 h-4" />
@@ -116,7 +116,7 @@ export function Pagination({
                     <button
                         onClick={() => onPageChange(currentPage - 1)}
                         disabled={currentPage === 1 || totalItems === 0}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200 dark:border-dark-700"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700"
                         title="Página anterior"
                     >
                         <HiOutlineChevronLeft className="w-4 h-4" />
@@ -127,16 +127,16 @@ export function Pagination({
                         {totalItems > 0 ? (
                             pageNumbers.map((page, index) => (
                                 page === 'ellipsis' ? (
-                                    <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
+                                    <span key={`ellipsis-${index}`} className="px-2 text-slate-500">
                                         ...
                                     </span>
                                 ) : (
                                     <button
                                         key={page}
                                         onClick={() => onPageChange(page)}
-                                        className={`min-w-[36px] h-9 px-3 rounded-lg text-sm font-medium transition-colors ${currentPage === page
+                                        className={`min-w-[36px] h-9 px-3 rounded-lg text-sm font-semibold transition-colors ${currentPage === page
                                             ? 'bg-primary-600 text-white shadow-sm'
-                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700'
+                                            : 'text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700'
                                             }`}
                                     >
                                         {page}
@@ -156,7 +156,7 @@ export function Pagination({
                     <button
                         onClick={() => onPageChange(currentPage + 1)}
                         disabled={currentPage === totalPages || totalItems === 0}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-gray-200 dark:border-dark-700"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700"
                         title="Próxima página"
                     >
                         <span className="inline">Próximo</span>
@@ -166,7 +166,7 @@ export function Pagination({
                     <button
                         onClick={() => onPageChange(totalPages)}
                         disabled={currentPage === totalPages || totalItems === 0}
-                        className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="p-2 rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title="Última página"
                     >
                         <HiOutlineChevronDoubleRight className="w-4 h-4" />

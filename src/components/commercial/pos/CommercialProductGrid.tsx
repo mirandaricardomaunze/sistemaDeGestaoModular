@@ -1,17 +1,40 @@
-import React, { useState, useMemo } from 'react';
-import { Button, Input, Pagination } from '../../ui';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Button, Input, Pagination, Select } from '../../ui';
 import { HiOutlineMagnifyingGlass, HiOutlinePlus } from 'react-icons/hi2';
 import { cn, formatCurrency } from '../../../utils/helpers';
-import { SegmentedControl } from '../../common/SegmentedControl';
+import { categoryLabels } from '../../../utils/constants';
+import { useCategories } from '../../../hooks/useCategories';
+
+export interface CommercialPOSProduct {
+    id: string;
+    code: string;
+    name: string;
+    price: number | string;
+    currentStock: number;
+    packSize?: number | string;
+    barcode?: string;
+    sku?: string;
+    unit?: string;
+    category?: string;
+    categoryId?: string;
+    warehouseStocks?: Array<{ warehouseId: string; quantity: number }>;
+}
+
+interface ProductGridPagination {
+    currentPage: number;
+    itemsPerPage: number;
+    setCurrentPage: (page: number) => void;
+    setItemsPerPage: (size: number) => void;
+}
 
 interface CommercialProductGridProps {
     searchInputRef: React.RefObject<HTMLInputElement | null>;
     posSearch: string;
     setPosSearch: (v: string) => void;
-    filteredProducts: any[];
-    allProducts: any[];
-    posPagination: any;
-    addToCart: (product: any, qty?: number) => void;
+    filteredProducts: CommercialPOSProduct[];
+    allProducts: CommercialPOSProduct[];
+    posPagination: ProductGridPagination;
+    addToCart: (product: CommercialPOSProduct, qty?: number) => void;
     handleBarcodeSearch: (e: React.KeyboardEvent<HTMLInputElement>) => void;
     processingActions?: Record<string, boolean>;
 }
@@ -29,23 +52,35 @@ export function CommercialProductGrid({
 }: CommercialProductGridProps) {
 
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
-    const [qtyModalProduct, setQtyModalProduct] = useState<any>(null);
+    const [qtyModalProduct, setQtyModalProduct] = useState<CommercialPOSProduct | null>(null);
     const [qtyInput, setQtyInput] = useState('1');
+    const { categories: sysCategories } = useCategories();
+
+    const getCategoryName = useCallback((p: CommercialPOSProduct) => {
+        if (p.categoryId) {
+            const found = sysCategories.find((c) => c.id === p.categoryId);
+            if (found) return found.name;
+        }
+        return p.category ? (categoryLabels as Record<string, string>)[p.category] || p.category : '';
+    }, [sysCategories]);
 
     // Derive categories from all in-stock products
     const categories = useMemo(() => {
         const cats = new Set<string>();
-        allProducts.forEach((p: any) => {
-            if (p.currentStock > 0 && p.category) cats.add(p.category);
+        allProducts.forEach((p) => {
+            if (Number(p.currentStock) > 0) {
+                const catName = getCategoryName(p);
+                if (catName) cats.add(catName);
+            }
         });
         return ['all', ...Array.from(cats).sort()];
-    }, [allProducts]);
+    }, [allProducts, getCategoryName]);
 
     // Apply category filter on top of existing search filter
     const displayProducts = useMemo(() => {
         if (selectedCategory === 'all') return filteredProducts;
-        return filteredProducts.filter((p: any) => p.category === selectedCategory);
-    }, [filteredProducts, selectedCategory]);
+        return filteredProducts.filter((p) => getCategoryName(p) === selectedCategory);
+    }, [filteredProducts, selectedCategory, getCategoryName]);
 
     // Keep pagination in sync with filtered list
     const paginatedItems = useMemo(() => {
@@ -54,7 +89,7 @@ export function CommercialProductGrid({
         return displayProducts.slice(page * size, (page + 1) * size);
     }, [displayProducts, posPagination.currentPage, posPagination.itemsPerPage]);
 
-    const handleProductClick = (product: any) => {
+    const handleProductClick = (product: CommercialPOSProduct) => {
         setQtyModalProduct(product);
         setQtyInput('1');
     };
@@ -102,20 +137,21 @@ export function CommercialProductGrid({
                 </div>
             </div>
 
-                <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-hidden">
-                    <SegmentedControl
+                <div className="pb-4">
+                    <Select
                         options={categories.map(cat => ({
-                            label: cat === 'all' ? `TODOS (${filteredProducts.length})` : cat,
+                            label: cat === 'all' ? `Todas as Categorias (${filteredProducts.length})` : cat,
                             value: cat
                         }))}
                         value={selectedCategory}
-                        onChange={(val) => { setSelectedCategory(val); posPagination.setCurrentPage(1); }}
+                        onChange={(e) => { setSelectedCategory(e.target.value); posPagination.setCurrentPage(1); }}
+                        placeholder="Filtrar por Categoria"
                     />
                 </div>
 
             {/* Product Grid - Premium Dark Style */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-5 max-h-[calc(100vh-10rem)] overflow-y-auto pr-3 scrollbar-none pb-10">
-                {paginatedItems.map((product: any) => {
+                {paginatedItems.map((product) => {
                     const isProcessing = processingActions[product.id];
                     const stock = Number(product.currentStock) || 0;
                     const stockTone = stock > 20
@@ -138,12 +174,12 @@ export function CommercialProductGrid({
                                 </p>
                                 <div className="flex items-center justify-center gap-2">
                                     <span className="text-[9px] font-bold text-slate-400 dark:text-white/20 uppercase tracking-wider">
-                                        {product.code || 'PROD-0000'}
+                                        {product.sku || product.barcode || 'S/ REF'}
                                     </span>
                                     {product.category && (
                                         <>
                                             <span className="w-1 h-1 bg-white/10 rounded-full" />
-                                            <span className="text-[9px] font-bold text-slate-400 dark:text-white/20 uppercase tracking-wider">{product.category}</span>
+                                            <span className="text-[9px] font-bold text-slate-400 dark:text-white/20 uppercase tracking-wider">{getCategoryName(product)}</span>
                                         </>
                                     )}
                                 </div>
@@ -151,7 +187,7 @@ export function CommercialProductGrid({
 
                             <div className="mt-4 flex flex-col items-center gap-3 w-full">
                                 <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight block leading-none">
-                                    {formatCurrency(product.price)}
+                                    {formatCurrency(Number(product.price))}
                                 </span>
 
                                 <div className="flex flex-col items-center gap-3">
@@ -175,7 +211,7 @@ export function CommercialProductGrid({
                                             ) : (
                                                 <HiOutlinePlus className="w-4 h-4" />
                                             )}
-                                            {isProcessing ? '...' : 'Adicionar'}
+                                            {isProcessing ? 'A PROCESSAR' : 'Adicionar'}
                                         </div>
                                     </div>
                                 </div>
@@ -229,7 +265,7 @@ export function CommercialProductGrid({
 
                         <div>
                             <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-1.5">Quantidade</label>
-                            <input
+                            <Input
                                 type="number"
                                 value={qtyInput}
                                 onChange={e => setQtyInput(e.target.value)}
@@ -237,7 +273,8 @@ export function CommercialProductGrid({
                                 min="1"
                                 max={qtyModalProduct.currentStock}
                                 autoFocus
-                                className="w-full px-4 py-3 text-3xl font-black text-center rounded-lg border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
+                                size="lg"
+                                className="h-16 text-3xl font-black text-center rounded-lg border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 bg-white dark:bg-dark-900 text-gray-900 dark:text-white"
                             />
                             <div className="flex gap-2 mt-2">
                                 {[1, 2, 5, 10].map(q => (

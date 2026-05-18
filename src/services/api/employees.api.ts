@@ -39,10 +39,12 @@ export const employeesAPI = {
             accountNumber: string;
             nib: string;
         };
-        qualifications?: any[];
+        qualifications?: unknown[];
         birthDate?: string;
         contractType?: string;
         contractExpiry?: string;
+        notes?: string;
+        skills?: string[];
     }) => {
         const response = await api.post('/employees', data);
         return response.data;
@@ -70,7 +72,7 @@ export const employeesAPI = {
             accountNumber: string;
             nib: string;
         };
-        qualifications: any[];
+        qualifications: unknown[];
         isActive: boolean;
         hireDate: string;
         birthDate: string;
@@ -78,6 +80,8 @@ export const employeesAPI = {
         contractExpiry: string;
         commissionRate: number;
         reportsToId: string;
+        notes: string;
+        skills: string[];
     }>) => {
         const response = await api.put(`/employees/${id}`, data);
         return response.data;
@@ -116,8 +120,9 @@ export const employeesAPI = {
         month?: number;
         year?: number;
         status?: string;
+        originModule?: string;
     }) => {
-        const response = await api.get('/employees/payroll', { params });
+        const response = await api.get('/payroll', { params });
         return response.data;
     },
 
@@ -133,8 +138,9 @@ export const employeesAPI = {
         inssDeduction?: number;
         irtDeduction?: number;
         advances?: number;
+        originModule?: string;
     }) => {
-        const response = await api.post('/employees/payroll', data);
+        const response = await api.post('/payroll', data);
         return response.data;
     },
 
@@ -146,17 +152,17 @@ export const employeesAPI = {
         allowances: number;
         advances: number;
     }>) => {
-        const response = await api.put(`/employees/payroll/${id}`, data);
+        const response = await api.put(`/payroll/${id}`, data);
         return response.data;
     },
 
     processPayroll: async (id: string) => {
-        const response = await api.post(`/employees/payroll/${id}/process`);
+        const response = await api.post(`/payroll/${id}/process`);
         return response.data;
     },
 
     markPayrollAsPaid: async (id: string, data: { paidBy: string; notes?: string }) => {
-        const response = await api.post(`/employees/payroll/${id}/mark-paid`, data);
+        const response = await api.post(`/payroll/${id}/mark-paid`, data);
         return response.data;
     },
 
@@ -224,7 +230,7 @@ export const employeesAPI = {
         return response.data;
     },
 
-    saveCommissionRule: async (data: any) => {
+    saveCommissionRule: async (data: object) => {
         const response = await api.post('/employees/commissions/rules', data);
         return response.data;
     },

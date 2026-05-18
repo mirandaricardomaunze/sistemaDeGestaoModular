@@ -1,15 +1,16 @@
-import { useState, useMemo } from 'react';
-import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, PageHeader, Pagination } from '../../components/ui';
-import { 
-    HiOutlinePlus, 
-    HiOutlineArrowPath, 
-    HiOutlineMagnifyingGlass, 
-    HiOutlineFire, 
+import { useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Card, Button, Badge, Input, Select, Modal, PageHeader, SmartTable } from '../../components/ui';
+import {
+    HiOutlinePlus,
+    HiOutlineArrowPath,
+    HiOutlineFire,
     HiOutlineTrash,
     HiOutlineCalculator,
-    HiOutlineChartBar
+    HiOutlineChartBar,
 } from 'react-icons/hi2';
 import { useFuelSupplies, useCreateFuelSupply, useDeleteFuelSupply, useVehicles } from '../../hooks/useLogistics';
+import type { FuelSupply } from '../../services/api/logistics.api';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,7 +26,7 @@ export default function FuelPage() {
     const { data, isLoading, refetch } = useFuelSupplies({
         vehicleId: vehicleFilter || undefined,
         page,
-        limit: 20
+        limit: 20,
     });
 
     const { data: vehiclesData } = useVehicles({ limit: 100 });
@@ -39,19 +40,31 @@ export default function FuelPage() {
         amount: '',
         mileage: '',
         provider: '',
-        notes: ''
+        notes: '',
     });
 
+    const supplies = useMemo(() => data?.data ?? [], [data?.data]);
+
+    const filteredSupplies = useMemo(() => {
+        const query = search.trim().toLowerCase();
+        if (!query) return supplies;
+
+        return supplies.filter((supply) => {
+            const plate = supply.vehicle?.plate?.toLowerCase() ?? '';
+            const provider = supply.provider?.toLowerCase() ?? '';
+            return plate.includes(query) || provider.includes(query);
+        });
+    }, [search, supplies]);
+
     const stats = useMemo(() => {
-        if (!data?.data) return { totalAmount: 0, totalLiters: 0, avgPrice: 0 };
-        const totalAmount = data.data.reduce((acc, curr) => acc + curr.amount, 0);
-        const totalLiters = data.data.reduce((acc, curr) => acc + curr.liters, 0);
+        const totalAmount = supplies.reduce((acc, curr) => acc + curr.amount, 0);
+        const totalLiters = supplies.reduce((acc, curr) => acc + curr.liters, 0);
         return {
             totalAmount,
             totalLiters,
-            avgPrice: totalLiters > 0 ? totalAmount / totalLiters : 0
+            avgPrice: totalLiters > 0 ? totalAmount / totalLiters : 0,
         };
-    }, [data?.data]);
+    }, [supplies]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -59,7 +72,7 @@ export default function FuelPage() {
             ...formData,
             liters: Number(formData.liters),
             amount: Number(formData.amount),
-            mileage: Number(formData.mileage)
+            mileage: Number(formData.mileage),
         });
         setIsModalOpen(false);
         setFormData({
@@ -69,7 +82,7 @@ export default function FuelPage() {
             amount: '',
             mileage: '',
             provider: '',
-            notes: ''
+            notes: '',
         });
     };
 
@@ -78,7 +91,55 @@ export default function FuelPage() {
         setDeleteConfirm(null);
     };
 
-    if (isLoading) return <LoadingSpinner size="xl" className="h-96" />;
+    const columns = useMemo<ColumnDef<FuelSupply, unknown>[]>(() => [
+        {
+            header: t('common.date'),
+            cell: ({ row }) => (
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                    {format(new Date(row.original.date), 'dd MMM yyyy', { locale: ptBR })}
+                </span>
+            ),
+        },
+        {
+            header: t('logistics_module.fuel.provider'),
+            cell: ({ row }) => (
+                <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">{row.original.vehicle?.plate}</p>
+                    <p className="text-xs text-gray-400">{row.original.provider || '-'}</p>
+                </div>
+            ),
+        },
+        {
+            header: t('logistics_module.fuel.liters'),
+            cell: ({ row }) => <Badge variant="info">{row.original.liters.toFixed(1)} L</Badge>,
+        },
+        {
+            header: t('logistics_module.fuel.amount'),
+            cell: ({ row }) => (
+                <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">
+                    {row.original.amount.toFixed(2)} MT
+                </span>
+            ),
+        },
+        {
+            header: t('logistics_module.fuel.mileage'),
+            cell: ({ row }) => `${row.original.mileage.toLocaleString()} km`,
+        },
+        {
+            header: '',
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <button
+                        onClick={() => setDeleteConfirm(row.original.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        title={t('common.delete')}
+                    >
+                        <HiOutlineTrash className="w-5 h-5" />
+                    </button>
+                </div>
+            ),
+        },
+    ], [t]);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -98,7 +159,6 @@ export default function FuelPage() {
                 }
             />
 
-            {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="p-5 bg-cyan-100/40 dark:bg-cyan-900/20 border border-cyan-200/50 dark:border-cyan-800/30 shadow-card-strong transition-all hover:scale-[1.02] overflow-hidden group">
                     <div className="flex items-center gap-4 relative z-10">
@@ -139,96 +199,43 @@ export default function FuelPage() {
                 </Card>
             </div>
 
-            {/* Filters */}
-            <Card className="p-4 bg-white/50 dark:bg-dark-800/50 backdrop-blur-sm">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="relative flex-1">
-                        <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <Input
-                            placeholder={t('common.search')}
-                            className="pl-10"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
+            <SmartTable
+                data={filteredSupplies}
+                columns={columns}
+                isLoading={isLoading}
+                search={{
+                    value: search,
+                    onChange: setSearch,
+                    placeholder: t('common.search'),
+                }}
+                renderFilters={(
                     <Select
-                        className="w-full md:w-64"
+                        className="w-full md:w-64 bg-white dark:bg-dark-800"
                         value={vehicleFilter}
-                        onChange={(e) => setVehicleFilter(e.target.value)}
+                        onChange={(e) => {
+                            setVehicleFilter(e.target.value);
+                            setPage(1);
+                        }}
                         options={[
                             { label: t('common.all'), value: '' },
-                            ...(vehiclesData?.data || []).map(v => ({ 
-                                label: `${v.brand} ${v.model} (${v.plate})`, 
-                                value: v.id 
-                            }))
+                            ...(vehiclesData?.data || []).map(v => ({
+                                label: `${v.brand} ${v.model} (${v.plate})`,
+                                value: v.id,
+                            })),
                         ]}
+                        size="sm"
                     />
-                </div>
-            </Card>
+                )}
+                emptyTitle={t('common.noData')}
+                emptyDescription={t('logistics_module.fuel.subtitle')}
+                pagination={data?.pagination ? {
+                    currentPage: page,
+                    totalItems: data.pagination.total,
+                    itemsPerPage: 20,
+                    onPageChange: setPage,
+                } : undefined}
+            />
 
-            {/* Table */}
-            <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-gray-50 dark:bg-dark-900/50">
-                            <tr>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">{t('common.date')}</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">{t('logistics_module.fuel.provider')}</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">{t('logistics_module.fuel.liters')}</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">{t('logistics_module.fuel.amount')}</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500">{t('logistics_module.fuel.mileage')}</th>
-                                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-500"></th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                            {data?.data.map((supply) => (
-                                <tr key={supply.id} className="hover:bg-gray-50 dark:hover:bg-dark-800/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                            {format(new Date(supply.date), 'dd MMM yyyy', { locale: ptBR })}
-                                        </p>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">{supply.vehicle?.plate}</p>
-                                        <p className="text-xs text-gray-400">{supply.provider || '-'}</p>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <Badge variant="info">{supply.liters.toFixed(1)} L</Badge>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <p className="text-sm font-mono font-bold text-gray-900 dark:text-white">
-                                            {supply.amount.toFixed(2)} MT
-                                        </p>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">{supply.mileage.toLocaleString()} km</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button 
-                                            onClick={() => setDeleteConfirm(supply.id)}
-                                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                                        >
-                                            <HiOutlineTrash className="w-5 h-5" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
-
-            {/* Pagination */}
-            {data?.pagination && data.pagination.totalPages > 1 && (
-                <div className="flex justify-center pt-2">
-                    <Pagination
-                        currentPage={page}
-                        totalItems={data.pagination.total}
-                        itemsPerPage={20}
-                        onPageChange={setPage}
-                    />
-                </div>
-            )}
-
-            {/* Modal de Abastecimento */}
             <Modal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
@@ -241,9 +248,9 @@ export default function FuelPage() {
                         required
                         value={formData.vehicleId}
                         onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
-                        options={(vehiclesData?.data || []).map(v => ({ 
-                            label: `${v.brand} ${v.model} (${v.plate})`, 
-                            value: v.id 
+                        options={(vehiclesData?.data || []).map(v => ({
+                            label: `${v.brand} ${v.model} (${v.plate})`,
+                            value: v.id,
                         }))}
                     />
                     <div className="grid grid-cols-2 gap-4">
@@ -292,7 +299,6 @@ export default function FuelPage() {
                 </form>
             </Modal>
 
-            {/* Modal de Confirmação de Deleção */}
             <Modal
                 isOpen={!!deleteConfirm}
                 onClose={() => setDeleteConfirm(null)}

@@ -63,7 +63,7 @@ export function useProducts(params?: UseProductsParams) {
                 // Normalization
                 const finalProducts = productsData.map(p => ({
                     ...p,
-                    stocks: p.warehouseStocks?.reduce((acc: any, ws: any) => ({
+                    stocks: p.warehouseStocks?.reduce((acc: Record<string, number>, ws: { warehouseId: string; quantity: number }) => ({
                         ...acc,
                         [ws.warehouseId]: ws.quantity
                     }), {})
@@ -87,7 +87,7 @@ export function useProducts(params?: UseProductsParams) {
                 const cached = await db.products.toArray();
                 const normalizedCached = cached.map(p => ({
                     ...p,
-                    stocks: p.warehouseStocks?.reduce((acc: any, ws: any) => ({
+                    stocks: p.warehouseStocks?.reduce((acc: Record<string, number>, ws: { warehouseId: string; quantity: number }) => ({
                         ...acc,
                         [ws.warehouseId]: ws.quantity
                     }), {})
@@ -127,7 +127,7 @@ export function useProducts(params?: UseProductsParams) {
                     nextRetryAt: Date.now(),
                 });
                 toast('Produto guardado localmente (Offline)', { icon: '💾' });
-                return { ...newData, id: `offline-${Date.now()}` } as any;
+                return { ...newData, id: `offline-${Date.now()}` } as Awaited<ReturnType<typeof productsAPI.create>>;
             }
             return productsAPI.create(newData);
         },
@@ -157,7 +157,7 @@ export function useProducts(params?: UseProductsParams) {
                     nextRetryAt: Date.now(),
                 });
                 toast('Actualização guardada localmente (Offline)', { icon: '💾' });
-                return { ...data, id } as any;
+                return { ...data, id } as Awaited<ReturnType<typeof productsAPI.update>>;
             }
             return productsAPI.update(id, data);
         },
@@ -230,9 +230,9 @@ export function useProducts(params?: UseProductsParams) {
         refetch,
         isPlaceholderData,
         addProduct: addMutation.mutateAsync,
-        updateProduct: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
+        updateProduct: (id: string, data: Parameters<typeof productsAPI.update>[1]) => updateMutation.mutateAsync({ id, data }),
         deleteProduct: deleteMutation.mutateAsync,
-        updateStock: (id: string, quantity: number, operation: any, warehouseId?: string, reason?: string) =>
+        updateStock: (id: string, quantity: number, operation: 'add' | 'subtract' | 'set', warehouseId?: string, reason?: string) =>
             updateStockMutation.mutateAsync({ id, quantity, operation, warehouseId, reason }),
         getProductByBarcode: (barcode: string) => productsAPI.getByBarcode(barcode),
     };

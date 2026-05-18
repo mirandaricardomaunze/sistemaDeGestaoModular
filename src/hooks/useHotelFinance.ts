@@ -7,15 +7,47 @@ import { expenseCategories } from '../pages/hotel/components/ExpenseModal';
 
 export type TimePeriod = '1m' | '3m' | '6m' | '1y';
 
+type ApiError = { response?: { data?: { message?: string } } };
+
+export interface HotelFinanceTransaction {
+    id: string;
+    description?: string;
+    category?: string;
+    reference?: string;
+    status?: string;
+    amount: number;
+    date?: string;
+    createdAt?: string;
+}
+
+export interface HotelFinanceDashboard {
+    totalRevenue?: number;
+    totalExpense?: number;
+    netProfit?: number;
+    monthlyTrend?: Array<{ month: string; revenue: number; expense: number; profit: number }>;
+    revenueByCategory?: Record<string, { total: number; count: number }>;
+    expensesByCategory?: Record<string, { total: number; count: number }>;
+}
+
+export interface ProfitLossReportData {
+    summary?: { revenue: number; expense: number; profit: number };
+    revenues?: { total: number; byCategory: Record<string, { total: number; count: number }> };
+    expenses?: { total: number; byCategory: Record<string, { total: number; count: number }> };
+}
+
+export interface RoomRevenueReportData {
+    rooms?: Array<{ roomId: string; roomNumber: string; total: number; count: number }>;
+}
+
 export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
     const [isLoading, setIsLoading] = useState(true);
-    const [dashboard, setDashboard] = useState<any>(null);
-    const [revenues, setRevenues] = useState<any[]>([]);
-    const [expenses, setExpenses] = useState<any[]>([]);
+    const [dashboard, setDashboard] = useState<HotelFinanceDashboard | null>(null);
+    const [revenues, setRevenues] = useState<HotelFinanceTransaction[]>([]);
+    const [expenses, setExpenses] = useState<HotelFinanceTransaction[]>([]);
 
     // Reports states
-    const [profitLossReport, setProfitLossReport] = useState<any>(null);
-    const [roomRevenueReport, setRoomRevenueReport] = useState<any>(null);
+    const [profitLossReport, setProfitLossReport] = useState<ProfitLossReportData | null>(null);
+    const [roomRevenueReport, setRoomRevenueReport] = useState<RoomRevenueReportData | null>(null);
     const [isLoadingReports, setIsLoadingReports] = useState(false);
 
     // Filter states
@@ -139,13 +171,13 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
 
     // Reports data for pagination
     const revenueByCatArray = useMemo(() =>
-        Object.entries(profitLossReport?.revenues?.byCategory || {}).map(([category, data]: any) => ({
+        Object.entries(profitLossReport?.revenues?.byCategory || {}).map(([category, data]: [string, { total: number; count: number }]) => ({
             category,
             ...data
         })), [profitLossReport]);
 
     const expenseByCatArray = useMemo(() =>
-        Object.entries(profitLossReport?.expenses?.byCategory || {}).map(([category, data]: any) => ({
+        Object.entries(profitLossReport?.expenses?.byCategory || {}).map(([category, data]: [string, { total: number; count: number }]) => ({
             category,
             ...data
         })), [profitLossReport]);
@@ -160,7 +192,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
     // Transform data for charts
     const monthlyData = useMemo(() => {
         if (!dashboard?.monthlyTrend) return [];
-        return dashboard.monthlyTrend.map((item: any) => ({
+        return dashboard.monthlyTrend.map((item) => ({
             month: item.month.slice(-2),
             receitas: item.revenue,
             despesas: item.expense,
@@ -170,7 +202,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
 
     const categoryData = useMemo(() => {
         if (!dashboard?.revenueByCategory) return [];
-        return Object.entries(dashboard.revenueByCategory).map(([name, value]: any) => ({
+        return Object.entries(dashboard.revenueByCategory).map(([name, value]: [string, { total: number; count: number }]) => ({
             name: name === 'accommodation' ? 'Hospedagem' : name === 'consumption' ? 'Consumos' : name,
             value: value
         }));
@@ -178,7 +210,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
 
     const expenseCategoryData = useMemo(() => {
         if (!dashboard?.expensesByCategory) return [];
-        return Object.entries(dashboard.expensesByCategory).map(([name, value]: any) => ({
+        return Object.entries(dashboard.expensesByCategory).map(([name, value]: [string, { total: number; count: number }]) => ({
             name: expenseCategories.find(c => c.value === name)?.label || name,
             value: value
         }));
@@ -201,7 +233,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             fetchDashboard();
         } catch (error) {
             logger.error('Error deleting expense:', error);
-            toast.error((error as any).response?.data?.message || 'Erro ao eliminar despesa');
+            toast.error((error as ApiError).response?.data?.message || 'Erro ao eliminar despesa');
         }
     };
 
@@ -213,7 +245,7 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             fetchDashboard();
         } catch (error) {
             logger.error('Error updating expense:', error);
-            toast.error((error as any).response?.data?.message || 'Erro ao atualizar despesa');
+            toast.error((error as ApiError).response?.data?.message || 'Erro ao atualizar despesa');
         }
     };
 

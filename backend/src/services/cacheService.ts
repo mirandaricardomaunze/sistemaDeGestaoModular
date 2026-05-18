@@ -130,7 +130,7 @@ export const CacheKeys = {
     salesStats: (companyId: string, period: string) => `sales:stats:${companyId}:${period}`,
 
     // General
-    list: (entity: string, page: number, filters?: any) =>
+    list: (entity: string, page: number, filters?: Record<string, unknown>) =>
         `${entity}:list:${page}:${JSON.stringify(filters || {})}`,
 };
 

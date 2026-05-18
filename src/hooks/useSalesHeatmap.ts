@@ -5,7 +5,7 @@ import type { Sale } from '../types';
 
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 8); // 8:00 to 22:00
 
-export function useSalesHeatmap(days: number = 30, warehouseId?: string) {
+export function useSalesHeatmap(days: number = 30, warehouseId?: string, originModule = 'commercial') {
     const [sales, setSales] = useState<Sale[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -23,6 +23,7 @@ export function useSalesHeatmap(days: number = 30, warehouseId?: string) {
                 startDate: startDate.toISOString(),
                 endDate: endDate.toISOString(),
                 warehouseId,
+                originModule,
                 limit: 2000 // High limit to get a good heatmap
             });
 
@@ -33,7 +34,7 @@ export function useSalesHeatmap(days: number = 30, warehouseId?: string) {
         } finally {
             setIsLoading(false);
         }
-    }, [days, warehouseId]);
+    }, [days, warehouseId, originModule]);
 
     useEffect(() => {
         fetchSales();

@@ -41,105 +41,148 @@ import type { StockMovement, MovementType } from '../../types';
 
 const CHART_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#0ea5e9'];
 
-export const StatsWidget = ({ metrics, stats }: any) => {
+type DashboardMetrics = {
+    salesGrowth: number;
+    lowStock: number;
+    totalProducts: number;
+    employees: number;
+    pendingAlerts: number;
+    grossProfit?: number;
+    profitMargin?: number;
+    stockCostValue?: number;
+    stockSaleValue?: number;
+    potentialProfit?: number;
+};
+
+type DashboardStatsLite = {
+    totalRevenue?: number;
+    commercialRevenue?: number;
+    hospitalityRevenue?: number;
+    pharmacyRevenue?: number;
+    bottleStoreRevenue?: number;
+} | null;
+
+type SalesDataPoint = { name: string; vendas: number; meta: number };
+type CategoryDataPoint = { name: string; value: number };
+type WeeklyDataPoint = { name: string; valor: number };
+
+type AlertItem = {
+    id: string;
+    title: string;
+    createdAt: string;
+    priority?: string;
+};
+
+type ActivityItem = {
+    id: string;
+    icon?: string;
+    action: string;
+    detail?: string;
+    time: string;
+};
+
+export const StatsWidget = ({ metrics, stats }: { metrics: DashboardMetrics; stats: DashboardStatsLite }) => {
     const { t } = useTranslation();
+    const totalRevenue = stats?.totalRevenue ?? 0;
+    const revenuePercent = (value?: number) => totalRevenue > 0 ? ((value ?? 0) / totalRevenue) * 100 : 0;
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-            <div className="relative group overflow-hidden rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/40 shadow-sm hover:shadow-md transition-all duration-300 p-5">
+            <div className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-white to-indigo-50 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/40 shadow-card hover:shadow-card-hover transition-all duration-300 p-5">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
-                        <HiOutlineCurrencyDollar className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                    <div className="w-11 h-11 rounded-xl bg-indigo-600 dark:bg-indigo-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
+                        <HiOutlineCurrencyDollar className="w-6 h-6 text-white dark:text-indigo-400" />
                     </div>
                     <div className={cn('flex items-center gap-1 text-xs font-black', metrics.salesGrowth >= 0 ? 'text-emerald-600' : 'text-red-600')}>
                         {metrics.salesGrowth >= 0 ? <HiOutlineArrowTrendingUp className="w-3.5 h-3.5" /> : <HiOutlineArrowTrendingDown className="w-3.5 h-3.5" />}
                         {Math.abs(metrics.salesGrowth)}%
                     </div>
                 </div>
-                <ResponsiveValue value={stats?.totalRevenue || 0} size="xl" className="mb-1 text-gray-900 dark:text-white" />
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">Faturação Consolidada</p>
+                <ResponsiveValue value={stats?.totalRevenue ?? 0} size="xl" className="mb-1 text-slate-950 dark:text-white" />
+                <p className="text-[10px] text-slate-600 dark:text-gray-400 font-black uppercase tracking-widest">Faturação Consolidada</p>
                 <div className="absolute bottom-0 left-0 h-0.5 bg-indigo-500 transition-all duration-500 group-hover:w-full w-8" />
             </div>
 
             <Card padding="md">
-                <div className="flex items-center justify-between mb-3 text-gray-900 dark:text-white">
-                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Desempenho por Módulo</h3>
+                <div className="flex items-center justify-between mb-3 text-slate-950 dark:text-white">
+                    <h3 className="text-xs font-black text-slate-600 dark:text-gray-400 uppercase tracking-wider">Desempenho por Módulo</h3>
                     <Badge variant="outline" size="sm" className="text-[10px]">Mensal</Badge>
                 </div>
                 <div className="space-y-3">
                     {stats?.commercialRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-gray-600 dark:text-gray-400"> Comercial</span>
-                                <ResponsiveValue value={stats.commercialRevenue} size="sm" className="font-bold text-gray-900 dark:text-white" />
+                                <span className="text-slate-600 dark:text-gray-400">Comercial</span>
+                                <ResponsiveValue value={stats.commercialRevenue} size="sm" className="font-bold text-slate-950 dark:text-white" />
                             </div>
-                            <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-primary-500 h-full transition-all duration-1000" style={{ width: `${(stats.commercialRevenue / stats.totalRevenue) * 100}%` }} />
+                            <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-primary-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.commercialRevenue)}%` }} />
                             </div>
                         </div>
                     ) : null}
                     {stats?.hospitalityRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-gray-600 dark:text-gray-400">otelaria</span>
-                                <ResponsiveValue value={stats.hospitalityRevenue} size="sm" className="font-bold text-gray-900 dark:text-white" />
+                                <span className="text-slate-600 dark:text-gray-400">Hotelaria</span>
+                                <ResponsiveValue value={stats.hospitalityRevenue} size="sm" className="font-bold text-slate-950 dark:text-white" />
                             </div>
-                            <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-green-500 h-full transition-all duration-1000" style={{ width: `${(stats.hospitalityRevenue / stats.totalRevenue) * 100}%` }} />
+                            <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-green-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.hospitalityRevenue)}%` }} />
                             </div>
                         </div>
                     ) : null}
                     {stats?.pharmacyRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-gray-600 dark:text-gray-400">armácia</span>
-                                <ResponsiveValue value={stats.pharmacyRevenue} size="sm" className="font-bold text-gray-900 dark:text-white" />
+                                <span className="text-slate-600 dark:text-gray-400">Farmácia</span>
+                                <ResponsiveValue value={stats.pharmacyRevenue} size="sm" className="font-bold text-slate-950 dark:text-white" />
                             </div>
-                            <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-amber-500 h-full transition-all duration-1000" style={{ width: `${(stats.pharmacyRevenue / stats.totalRevenue) * 100}%` }} />
+                            <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-amber-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.pharmacyRevenue)}%` }} />
                             </div>
                         </div>
                     ) : null}
                     {stats?.bottleStoreRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-gray-600 dark:text-gray-400">ottle Store</span>
-                                <ResponsiveValue value={stats.bottleStoreRevenue} size="sm" className="font-bold text-gray-900 dark:text-white" />
+                                <span className="text-slate-600 dark:text-gray-400">Bottle Store</span>
+                                <ResponsiveValue value={stats.bottleStoreRevenue} size="sm" className="font-bold text-slate-950 dark:text-white" />
                             </div>
-                            <div className="w-full bg-gray-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-purple-500 h-full transition-all duration-1000" style={{ width: `${(stats.bottleStoreRevenue / stats.totalRevenue) * 100}%` }} />
+                            <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
+                                <div className="bg-purple-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.bottleStoreRevenue)}%` }} />
                             </div>
                         </div>
                     ) : null}
                 </div>
             </Card>
 
-            <div className="relative group overflow-hidden rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/40 shadow-sm hover:shadow-md transition-all duration-300 p-5">
+            <div className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-white to-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40 shadow-card hover:shadow-card-hover transition-all duration-300 p-5">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
-                        <HiOutlineCube className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                    <div className="w-11 h-11 rounded-xl bg-amber-500 dark:bg-amber-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
+                        <HiOutlineCube className="w-6 h-6 text-white dark:text-amber-400" />
                     </div>
                     <Badge variant={metrics.lowStock > 5 ? 'danger' : 'warning'}>{t('common.attention')}</Badge>
                 </div>
-                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{metrics.lowStock}/{metrics.totalProducts}</p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">{t('dashboard.productsLow')}</p>
+                <p className="text-2xl font-black text-slate-950 dark:text-white tracking-tighter">{metrics.lowStock}/{metrics.totalProducts}</p>
+                <p className="text-[10px] text-slate-600 dark:text-gray-400 font-black uppercase tracking-widest">{t('dashboard.productsLow')}</p>
                 <div className="absolute bottom-0 left-0 h-0.5 bg-amber-500 transition-all duration-500 group-hover:w-full w-8" />
             </div>
 
-            <div className="relative group overflow-hidden rounded-xl bg-cyan-50/60 dark:bg-cyan-950/30 border border-cyan-200/70 dark:border-cyan-800/40 shadow-sm hover:shadow-md transition-all duration-300 p-5">
+            <div className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-white to-cyan-50 dark:bg-cyan-950/30 border border-cyan-200/80 dark:border-cyan-800/40 shadow-card hover:shadow-card-hover transition-all duration-300 p-5">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
-                        <HiOutlineUsers className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+                    <div className="w-11 h-11 rounded-xl bg-cyan-600 dark:bg-cyan-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
+                        <HiOutlineUsers className="w-6 h-6 text-white dark:text-cyan-400" />
                     </div>
                 </div>
-                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter">{metrics.employees}</p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest">{t('dashboard.activeEmployees')}</p>
+                <p className="text-2xl font-black text-slate-950 dark:text-white tracking-tighter">{metrics.employees}</p>
+                <p className="text-[10px] text-slate-600 dark:text-gray-400 font-black uppercase tracking-widest">{t('dashboard.activeEmployees')}</p>
                 <div className="absolute bottom-0 left-0 h-0.5 bg-cyan-500 transition-all duration-500 group-hover:w-full w-8" />
             </div>
         </div>
     );
 };
 
-export const RevenueChartWidget = ({ salesData }: { salesData: any[] }) => {
+export const RevenueChartWidget = ({ salesData }: { salesData: SalesDataPoint[] }) => {
     const { t } = useTranslation();
     return (
         <Card padding="md" className="w-full">
@@ -182,7 +225,7 @@ export const RevenueChartWidget = ({ salesData }: { salesData: any[] }) => {
     );
 };
 
-export const CategoryPieWidget = ({ categoryData }: { categoryData: any[] }) => {
+export const CategoryPieWidget = ({ categoryData }: { categoryData: CategoryDataPoint[] }) => {
     const { t } = useTranslation();
     return (
         <Card padding="md" className="w-full">
@@ -222,7 +265,7 @@ export const CategoryPieWidget = ({ categoryData }: { categoryData: any[] }) => 
     );
 };
 
-export const RecentAlertsWidget = ({ alerts, metrics }: any) => {
+export const RecentAlertsWidget = ({ alerts, metrics }: { alerts: AlertItem[]; metrics: DashboardMetrics }) => {
     const { t } = useTranslation();
     return (
         <Card padding="md" className="w-full">
@@ -234,7 +277,7 @@ export const RecentAlertsWidget = ({ alerts, metrics }: any) => {
                 {alerts.length === 0 ? (
                     <p className="text-center text-gray-500 dark:text-gray-400 py-8">{t('dashboard.noPendingAlerts')}</p>
                 ) : (
-                    alerts.slice(0, 5).map((alert: any) => (
+                    alerts.slice(0, 5).map((alert) => (
                         <div key={alert.id} className="flex items-start gap-3 p-3 bg-gray-100/50 dark:bg-dark-700 rounded-lg border border-gray-200/50 dark:border-transparent">
                             <div className={cn(
                                 'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
@@ -255,7 +298,7 @@ export const RecentAlertsWidget = ({ alerts, metrics }: any) => {
     );
 };
 
-export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: any[] }) => {
+export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: WeeklyDataPoint[] }) => {
     const { t } = useTranslation();
     return (
         <Card padding="md" className="w-full">
@@ -285,7 +328,7 @@ export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: any[] }) => {
     );
 };
 
-export const RecentActivityWidget = ({ recentActivities }: { recentActivities: any[] }) => {
+export const RecentActivityWidget = ({ recentActivities }: { recentActivities: ActivityItem[] }) => {
     const { t } = useTranslation();
     return (
         <Card padding="md" className="w-full">
@@ -433,7 +476,7 @@ export const RecentMovementsWidget = () => {
                     {movements.map((mov) => {
                         const cfg = MOVEMENT_CONFIG[mov.movementType] ?? MOVEMENT_CONFIG.adjustment;
                         const Icon = cfg.icon;
-                        const productName = (mov as any).product?.name ?? mov.reason ?? '—';
+                        const productName = mov.product?.name ?? mov.reason ?? '—';
                         return (
                             <div key={mov.id} className="flex items-center gap-3 py-3 group hover:bg-gray-50 dark:hover:bg-dark-700/50 -mx-4 px-4 transition-colors duration-150 first:pt-0 last:pb-0">
                                 <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0', cfg.iconBg)}>

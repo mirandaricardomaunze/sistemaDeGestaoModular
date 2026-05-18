@@ -14,11 +14,13 @@ import {
     PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
-import { Card, Badge, Button, SmartTable } from '../../components/ui';
-import { MetricCard } from '../../components/common/ModuleMetricCard';
+import { Card, Badge, Button, SmartTable, Skeleton } from '../../components/ui';
+import { MetricCard, FilterCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useStockAging, useSupplierPerformance, useSalesReport, useWarehouseDistribution } from '../../hooks/useCommercial';
+import type { StockAgingProduct, SupplierPerformance } from '../../services/api/commercial.api';
 import { useCategories } from '../../hooks/useData';
+import { CHART_TOOLTIP_STYLE } from '../../utils/constants';
 
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
@@ -29,10 +31,10 @@ const PERIOD_OPTIONS = [
 ];
 
 const AGING_CONFIG = {
-    fresh: { label: 'Fresco', color: 'bg-green-600 text-white', bar: 'bg-green-400', badgeVariant: 'success' as const },
-    slow: { label: 'Lento (31-60d)', color: 'bg-yellow-500 text-white', bar: 'bg-yellow-300', badgeVariant: 'warning' as const },
-    aging: { label: 'A Envelhecer (61-90d)', color: 'bg-orange-500 text-white', bar: 'bg-orange-300', badgeVariant: 'warning' as const },
-    critical: { label: 'Crítico (>90d)', color: 'bg-red-600 text-white', bar: 'bg-red-400', badgeVariant: 'danger' as const },
+    fresh: { label: 'Fresco', palette: 'success', badgeVariant: 'success' as const },
+    slow: { label: 'Lento (31-60d)', palette: 'warning', badgeVariant: 'warning' as const },
+    aging: { label: 'A Envelhecer (61-90d)', palette: 'orange', badgeVariant: 'warning' as const },
+    critical: { label: 'Crítico (>90d)', palette: 'danger', badgeVariant: 'danger' as const },
 };
 
 type ReportTab = 'sales' | 'aging' | 'suppliers' | 'warehouses';
@@ -68,14 +70,16 @@ export default function CommercialReports() {
     const filteredAgingProducts = agingData?.products.filter(p =>
         !agingFilter || p.agingBucket === agingFilter
     ) || [];
+    const activeAgingConfig = agingFilter ? AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG] : null;
+    const totalAgingProducts = agingData?.products.length || 0;
 
-    const agingColumns = useMemo<ColumnDef<any, any>[]>(() => [
+    const agingColumns = useMemo<ColumnDef<StockAgingProduct, unknown>[]>(() => [
         {
             accessorKey: 'name',
             header: 'Produto',
-            cell: (info: any) => (
+            cell: (info) => (
                 <div className="flex flex-col">
-                    <span className="font-medium text-gray-900 dark:text-white">{info.getValue()}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">{String(info.getValue())}</span>
                     <span className="text-xs text-gray-400">{info.row.original.code}</span>
                 </div>
             )
@@ -83,7 +87,7 @@ export default function CommercialReports() {
         {
             accessorKey: 'category',
             header: 'Categoria',
-            cell: (info: any) => <span className="capitalize text-xs text-gray-500">{info.getValue()}</span>
+            cell: (info) => <span className="capitalize text-xs text-gray-500">{String(info.getValue())}</span>
         },
         {
             accessorKey: 'currentStock',
@@ -93,13 +97,13 @@ export default function CommercialReports() {
         {
             accessorKey: 'stockValue',
             header: 'Valor',
-            cell: (info: any) => formatCurrency(info.getValue()),
+            cell: (info) => formatCurrency(Number(info.getValue() || 0)),
             meta: { align: 'right' }
         },
         {
             accessorKey: 'daysSinceLastSale',
             header: 'Dias sem venda',
-            cell: (info: any) => {
+            cell: (info) => {
                 const p = info.row.original;
                 return (
                     <span className={cn(
@@ -108,7 +112,7 @@ export default function CommercialReports() {
                         p.agingBucket === 'aging' ? 'text-orange-500' :
                         p.agingBucket === 'slow' ? 'text-yellow-500' : 'text-green-500'
                     )}>
-                        {info.getValue()}d
+                        {Number(info.getValue() || 0)}d
                     </span>
                 );
             },
@@ -117,7 +121,7 @@ export default function CommercialReports() {
         {
             accessorKey: 'agingBucket',
             header: 'Estado',
-            cell: (info: any) => {
+            cell: (info) => {
                 const cfg = AGING_CONFIG[info.getValue() as keyof typeof AGING_CONFIG];
                 return <Badge variant={cfg.badgeVariant} size="sm">{cfg.label}</Badge>;
             },
@@ -125,13 +129,13 @@ export default function CommercialReports() {
         }
     ], []);
 
-    const supplierColumns = useMemo<ColumnDef<any, any>[]>(() => [
+    const supplierColumns = useMemo<ColumnDef<SupplierPerformance, unknown>[]>(() => [
         {
             accessorKey: 'name',
             header: 'Fornecedor',
-            cell: (info: any) => (
+            cell: (info) => (
                 <div className="flex flex-col">
-                    <p className="font-medium text-gray-900 dark:text-white">{info.getValue()}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{String(info.getValue())}</p>
                     {info.row.original.contactPerson && <p className="text-xs text-gray-400">{info.row.original.contactPerson}</p>}
                 </div>
             )
@@ -144,41 +148,43 @@ export default function CommercialReports() {
         {
             accessorKey: 'totalSpend',
             header: 'Gasto Total',
-            cell: (info: any) => formatCurrency(info.getValue()),
+            cell: (info) => formatCurrency(Number(info.getValue() || 0)),
             meta: { align: 'right' }
         },
         {
             accessorKey: 'avgOrderValue',
             header: 'Média/Ordem',
-            cell: (info: any) => formatCurrency(info.getValue()),
+            cell: (info) => formatCurrency(Number(info.getValue() || 0)),
             meta: { align: 'right' }
         },
         {
             accessorKey: 'onTimeRate',
             header: 'Pontualidade',
-            cell: (info: any) => (
-                info.getValue() !== null ? (
+            cell: (info) => {
+                const value = info.getValue<number | null>();
+                return value !== null && value !== undefined ? (
                     <Badge
-                        variant={info.getValue() >= 80 ? 'success' : info.getValue() >= 50 ? 'warning' : 'danger'}
+                        variant={value >= 80 ? 'success' : value >= 50 ? 'warning' : 'danger'}
                         size="sm"
                     >
-                        {info.getValue().toFixed(0)}%
+                        {value.toFixed(0)}%
                     </Badge>
-                ) : <span className="text-gray-400 text-xs">--</span>
-            ),
+                ) : <span className="text-gray-400 text-xs">--</span>;
+            },
             meta: { align: 'right' }
         },
         {
             accessorKey: 'pendingOrders',
             header: 'Pendentes',
-            cell: (info: any) => {
+            cell: (info) => {
                 const s = info.row.original;
-                return info.getValue() > 0 ? (
+                const value = info.getValue<number>();
+                return value > 0 ? (
                     <span className={cn(
                         'font-medium',
                         s.overdueOrders > 0 ? 'text-red-500' : 'text-yellow-500'
                     )}>
-                        {info.getValue()}
+                        {value}
                         {s.overdueOrders > 0 && ` (${s.overdueOrders} atraso)`}
                     </span>
                 ) : <span className="text-gray-400">0</span>;
@@ -194,24 +200,43 @@ export default function CommercialReports() {
 
     return (
         <div className="space-y-6 pb-10">
-            {/* Header */}
             {/* Report Actions */}
-            <div className="flex flex-wrap items-center justify-end gap-3 bg-white/50 dark:bg-dark-900/50 p-2 rounded-xl border border-gray-100 dark:border-dark-700/50">
+            <div className="flex flex-col gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-card dark:border-white/10 dark:bg-dark-900/50 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                        Relatórios operacionais
+                    </p>
+                    <h2 className="mt-1 text-lg font-black uppercase tracking-tight text-slate-950 dark:text-white">
+                        {activeTab === 'sales' && 'Vendas & Produtos'}
+                        {activeTab === 'aging' && 'Stock Envelhecido'}
+                        {activeTab === 'suppliers' && 'Performance de Fornecedores'}
+                        {activeTab === 'warehouses' && 'Distribuição por Armazém'}
+                    </h2>
+                    <p className="mt-1 text-sm font-medium text-slate-600 dark:text-gray-400">
+                        {activeTab === 'sales' && 'Tendência comercial, produtos campeões e métodos de pagamento.'}
+                        {activeTab === 'aging' && 'Priorização de stock parado por risco, valor e dias sem venda.'}
+                        {activeTab === 'suppliers' && 'Gasto, pontualidade e pendências por fornecedor.'}
+                        {activeTab === 'warehouses' && 'Concentração de stock e valor por localização.'}
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-3">
                 {activeTab === 'sales' && (
-                    <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm h-10">
+                    <div className="flex h-10 rounded-xl border border-slate-200/90 bg-slate-50 p-1 shadow-inner dark:border-dark-700 dark:bg-dark-800">
                         {PERIOD_OPTIONS.map(opt => (
-                            <button
+                            <Button
                                 key={opt.value}
                                 onClick={() => setPeriod(opt.value)}
+                                variant="ghost"
+                                size="sm"
                                 className={cn(
-                                    'px-4 h-full text-[10px] font-black uppercase tracking-widest rounded-md transition-all duration-300',
+                                    'h-8 px-4 text-[10px] font-black uppercase tracking-widest rounded-md',
                                     period === opt.value
                                         ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
-                                        : 'text-gray-500 hover:text-primary-600 dark:hover:text-primary-400'
+                                        : 'text-slate-600 hover:text-primary-600 dark:hover:text-primary-400'
                                 )}
                             >
                                 {opt.label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 )}
@@ -219,13 +244,15 @@ export default function CommercialReports() {
                     variant="ghost"
                     size="sm"
                     onClick={handleRefetch}
-                    className="p-2 h-10 w-10 flex items-center justify-center text-gray-400 hover:text-primary-600"
+                    className="flex h-10 w-10 items-center justify-center border border-slate-200/90 bg-white p-2 text-slate-600 shadow-sm hover:text-primary-600 dark:border-dark-700 dark:bg-dark-800"
+                    title="Actualizar relatório"
                 >
                     <HiOutlineArrowPath className={cn("w-5 h-5", (salesLoading || agingLoading || supplierLoading || warehouseLoading) && "animate-spin")} />
                 </Button>
+                </div>
             </div>
 
-            <div className="flex gap-1 bg-slate-100/70 dark:bg-dark-700/50 rounded-lg p-1 shadow-inner">
+            <div className="flex gap-1 rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner dark:border-white/10 dark:bg-dark-700/50">
                 {[
                     { key: 'sales', label: 'Vendas & Produtos', icon: HiOutlineChartBar, color: 'text-blue-500' },
                     { key: 'aging', label: 'Stock Envelhecido', icon: HiOutlineClock, color: 'text-amber-500' },
@@ -234,19 +261,21 @@ export default function CommercialReports() {
                 ].map(tab => {
                     const Icon = tab.icon;
                     return (
-                        <button
+                        <Button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key as ReportTab)}
+                            variant="ghost"
+                            size="sm"
                             className={cn(
-                                'flex-1 flex items-center justify-center gap-2 py-2 text-sm font-black uppercase tracking-widest rounded-lg transition-all duration-300',
+                                'h-10 flex-1 text-sm font-black uppercase tracking-widest rounded-xl',
                                 activeTab === tab.key
-                                    ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-primary-400 shadow-sm'
-                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                    ? 'bg-white dark:bg-dark-600 text-primary-700 dark:text-primary-400 shadow-sm'
+                                    : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
                             )}
                         >
                             <Icon className={cn("w-4 h-4", activeTab === tab.key ? "" : tab.color + " opacity-50")} />
                             <span className="hidden lg:inline">{tab.label}</span>
-                        </button>
+                        </Button>
                     );
                 })}
             </div>
@@ -255,10 +284,10 @@ export default function CommercialReports() {
             {activeTab === 'sales' && (
                 salesLoading ? (
                     <div className="space-y-4">
-                        <div className="h-64 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                        <Skeleton className="h-64 rounded-lg" />
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
-                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                            <Skeleton className="h-48 rounded-lg" />
+                            <Skeleton className="h-48 rounded-lg" />
                         </div>
                     </div>
                 ) : (
@@ -296,19 +325,10 @@ export default function CommercialReports() {
                                         />
                                         <RechartsTooltip
                                             cursor={{ fill: 'rgba(59,130,246,0.06)' }}
-                                            contentStyle={{
-                                                backgroundColor: 'rgba(15,23,42,0.95)',
-                                                backdropFilter: 'blur(12px)',
-                                                border: '1px solid rgba(255,255,255,0.2)',
-                                                borderRadius: '12px',
-                                                fontSize: '12px',
-                                                color: '#fff',
-                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
-                                                padding: '10px'
-                                            }}
+                                            contentStyle={CHART_TOOLTIP_STYLE}
                                             itemStyle={{ color: '#fff', fontWeight: '600' }}
                                             labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '4px' }}
-                                            formatter={(value: any) => [formatCurrency(value), 'Receita']}
+                                            formatter={(value?: number | string) => [formatCurrency(Number(value || 0)), 'Receita']}
                                             labelFormatter={(label: string) => label}
                                         />
                                         <Bar
@@ -392,54 +412,49 @@ export default function CommercialReports() {
 
                         <Card padding="lg">
                             <h3 className="font-bold text-gray-900 dark:text-white mb-4">Produtos por Categoria</h3>
-                            <div className="h-64 flex flex-col md:flex-row items-center gap-8">
-                                <div className="w-full md:w-1/2 h-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={categoryProductData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={60}
-                                                outerRadius={90}
-                                                paddingAngle={5}
-                                                dataKey="value"
-                                                animationDuration={1500}
-                                            >
-                                                {categoryProductData.map((_, index) => (
-                                                    <Cell key={`cell-prod-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                                                ))}
-                                            </Pie>
-                                            <RechartsTooltip
-                                                contentStyle={{
-                                                    backgroundColor: 'rgba(15,23,42,0.95)',
-                                                    backdropFilter: 'blur(12px)',
-                                                    border: '1px solid rgba(255,255,255,0.2)',
-                                                    borderRadius: '12px',
-                                                    fontSize: '12px',
-                                                    color: '#fff',
-                                                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)',
-                                                    padding: '10px'
-                                                }}
-                                                itemStyle={{ color: '#fff', fontWeight: '600' }}
-                                                labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '4px' }}
-                                            />
-                                        </PieChart>
-                                    </ResponsiveContainer>
+                            {categoryProductData.length === 0 ? (
+                                <div className="h-64 flex flex-col items-center justify-center text-center">
+                                    <HiOutlineCube className="w-12 h-12 text-gray-200 dark:text-dark-700 mb-3 opacity-50" />
+                                    <p className="text-gray-500 text-sm">Nenhuma categoria com produtos</p>
                                 </div>
-                                <div className="w-full md:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {categoryProductData.map((cat, i) => (
-                                        <div key={cat.name} className="flex items-center gap-2">
-                                            <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
-                                            <span className="text-sm text-gray-600 dark:text-gray-400 capitalize truncate">{cat.name}</span>
-                                            <span className="text-sm font-bold ml-auto">{cat.value}</span>
-                                        </div>
-                                    ))}
-                                    {categoryProductData.length === 0 && (
-                                        <p className="col-span-2 text-center text-gray-500 text-sm py-4">Nenhuma categoria com produtos</p>
-                                    )}
+                            ) : (
+                                <div className="h-64 flex flex-col md:flex-row items-center gap-8">
+                                    <div className="w-full md:w-1/2 h-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={categoryProductData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={90}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                    animationDuration={1500}
+                                                >
+                                                    {categoryProductData.map((_, index) => (
+                                                        <Cell key={`cell-prod-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <RechartsTooltip
+                                                    contentStyle={CHART_TOOLTIP_STYLE}
+                                                    itemStyle={{ color: '#fff', fontWeight: '600' }}
+                                                    labelStyle={{ color: '#94a3b8', fontWeight: 'bold', marginBottom: '4px' }}
+                                                />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="w-full md:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {categoryProductData.map((cat, i) => (
+                                            <div key={cat.name} className="flex items-center gap-2">
+                                                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                                                <span className="text-sm text-gray-600 dark:text-gray-400 capitalize truncate">{cat.name}</span>
+                                                <span className="text-sm font-bold ml-auto">{cat.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </Card>
                     </div>
                 )
@@ -448,43 +463,25 @@ export default function CommercialReports() {
             {activeTab === 'aging' && (
                 agingLoading ? (
                     <div className="space-y-3">
-                        {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}
+                        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
                     </div>
                 ) : (
                     <div className="space-y-6">
                         {agingData?.summary && (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                                 {Object.entries(AGING_CONFIG).map(([key, cfg]) => {
                                     const count = agingData.summary[key as keyof typeof agingData.summary] as number;
-                                    const bgClass = key === 'fresh' ? 'bg-green-100/40 dark:bg-green-900/20 border-green-200/50 dark:border-green-800/30' :
-                                                    key === 'slow' ? 'bg-yellow-100/40 dark:bg-yellow-900/20 border-yellow-200/50 dark:border-yellow-800/30' :
-                                                    key === 'aging' ? 'bg-orange-100/40 dark:bg-orange-900/20 border-orange-200/50 dark:border-orange-800/30' :
-                                                    'bg-red-100/40 dark:bg-red-900/20 border-red-200/50 dark:border-red-800/30';
                                     
-                                    const textClass = key === 'fresh' ? 'text-green-700 dark:text-green-300' :
-                                                      key === 'slow' ? 'text-yellow-700 dark:text-yellow-300' :
-                                                      key === 'aging' ? 'text-orange-700 dark:text-orange-300' :
-                                                      'text-red-700 dark:text-red-300';
-
-                                    const labelClass = key === 'fresh' ? 'text-green-600/70 dark:text-green-400/60' :
-                                                       key === 'slow' ? 'text-yellow-600/70 dark:text-yellow-400/60' :
-                                                       key === 'aging' ? 'text-orange-600/70 dark:text-orange-400/60' :
-                                                       'text-red-600/70 dark:text-red-400/60';
-
                                     return (
-                                        <button
+                                        <FilterCard
                                             key={key}
+                                            label={cfg.label}
+                                            value={count}
+                                            sublabel="produtos"
+                                            color={cfg.palette}
+                                            isActive={agingFilter === key}
                                             onClick={() => setAgingFilter(agingFilter === key ? '' : key)}
-                                            className={cn(
-                                                'text-left p-4 rounded-xl border shadow-card-strong transition-all backdrop-blur-sm group flex flex-col justify-between h-full hover:scale-[1.02]',
-                                                bgClass,
-                                                agingFilter === key ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-dark-900' : ''
-                                            )}
-                                        >
-                                            <p className={cn("text-[10px] font-black uppercase tracking-widest", labelClass)}>{cfg.label}</p>
-                                            <p className={cn("text-3xl font-black mt-1 tracking-tighter", textClass)}>{count}</p>
-                                            <p className={cn("text-[10px] uppercase font-black opacity-60", textClass)}>produtos</p>
-                                        </button>
+                                        />
                                     );
                                 })}
                             </div>
@@ -513,15 +510,26 @@ export default function CommercialReports() {
                             isLoading={agingLoading}
                             onRefresh={refetchAging}
                             renderFilters={
-                                agingFilter && (
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant={AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.badgeVariant} size="sm">
-                                            Filtrando por: {AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.label}
-                                        </Badge>
-                                        <Button size="xs" variant="ghost" onClick={() => setAgingFilter('')} className="h-6 px-2">Limpar</Button>
-                                    </div>
-                                )
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <span className={cn(
+                                        "inline-flex h-8 items-center rounded-full border px-3 text-[10px] font-black uppercase tracking-widest",
+                                        agingFilter
+                                            ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-300"
+                                            : "border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-dark-800 dark:text-gray-300"
+                                    )}>
+                                        {agingFilter ? `Filtro: ${activeAgingConfig?.label}` : 'Todos os estados'}
+                                    </span>
+                                    <span className="text-xs font-semibold text-slate-500 dark:text-gray-400">
+                                        {filteredAgingProducts.length} de {totalAgingProducts} produtos
+                                    </span>
+                                    {agingFilter && (
+                                        <Button size="xs" variant="ghost" onClick={() => setAgingFilter('')} className="h-8 px-3">
+                                            Limpar
+                                        </Button>
+                                    )}
+                                </div>
                             }
+                            minHeight={filteredAgingProducts.length === 0 ? 280 : 450}
                             exportConfig={{
                                 filename: `stock_aging_${agingFilter || 'all'}`,
                                 title: `Relatório de Envelhecimento de Stock - ${agingFilter ? AGING_CONFIG[agingFilter as keyof typeof AGING_CONFIG]?.label : 'Todos'}`,
@@ -536,6 +544,7 @@ export default function CommercialReports() {
                                 ]
                             }}
                             emptyTitle="Nenhum produto nesta categoria"
+                            emptyDescription="Troque o filtro de envelhecimento ou actualize os dados para rever o stock parado."
                         />
                     </div>
                 )
@@ -545,7 +554,7 @@ export default function CommercialReports() {
             {activeTab === 'suppliers' && (
                 supplierLoading ? (
                     <div className="space-y-3">
-                        {Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-20 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}
+                        {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
                     </div>
                 ) : supplierData.length === 0 ? (
                     <Card padding="lg" className="text-center py-16">
@@ -621,10 +630,10 @@ export default function CommercialReports() {
             {activeTab === 'warehouses' && (
                 warehouseLoading ? (
                     <div className="space-y-4">
-                        <div className="h-64 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                        <Skeleton className="h-64 rounded-lg" />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
-                            <div className="h-48 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />
+                            <Skeleton className="h-48 rounded-lg" />
+                            <Skeleton className="h-48 rounded-lg" />
                         </div>
                     </div>
                 ) : (
@@ -674,7 +683,7 @@ export default function CommercialReports() {
                                                 ))}
                                             </Pie>
                                             <RechartsTooltip
-                                                formatter={(value: any) => [formatCurrency(value), 'Valor']}
+                                                formatter={(value?: number | string) => [formatCurrency(Number(value || 0)), 'Valor']}
                                                 contentStyle={{
                                                     backgroundColor: 'rgba(15, 23, 42, 0.95)',
                                                     backdropFilter: 'blur(12px)',

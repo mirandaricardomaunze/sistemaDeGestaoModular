@@ -2,14 +2,14 @@ import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge, Modal, Select, EmptyState, LoadingSpinner } from '../../components/ui';
 import {
-    HiOutlineRefresh,
+    HiOutlineArrowPath,
     HiOutlinePlus,
     HiOutlineCube,
     HiOutlineArrowLeft,
     HiOutlineArrowRight,
-    HiOutlineDownload,
+    HiOutlineArrowDownTray,
     HiOutlinePrinter
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
 import { useProducts } from '../../hooks/useData';
 import CustomerAutocomplete from '../../components/common/CustomerAutocomplete';
@@ -19,12 +19,42 @@ import toast from 'react-hot-toast';
 import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 import { useStore } from '../../stores/useStore';
 
+type BottleProduct = {
+    id: string;
+    name: string;
+    code?: string;
+    returnPrice?: number;
+    isReturnable?: boolean;
+};
+
+type BottleMovement = {
+    id: string;
+    type: 'deposit' | 'return' | 'adjustment';
+    quantity: number;
+    depositPaid?: number | string;
+    depositRefunded?: number | string;
+    performedBy?: string;
+    createdAt: string;
+    product?: { name?: string };
+    customer?: { name?: string };
+};
+
+type BottleSummaryRow = {
+    id: string;
+    name: string;
+    code?: string;
+    deposited: number;
+    returned: number;
+    inCirculation: number;
+    returnPrice: number | string;
+};
+
 export default function BottleReturns() {
     const { companySettings } = useStore();
     // State
-    const [movements, setMovements] = useState<any[]>([]);
+    const [movements, setMovements] = useState<BottleMovement[]>([]);
     const [loading, setLoading] = useState(true);
-    const [summary, setSummary] = useState<any[]>([]);
+    const [summary, setSummary] = useState<BottleSummaryRow[]>([]);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
     const [total, setTotal] = useState(0);
@@ -46,7 +76,7 @@ export default function BottleReturns() {
     // Hooks (CustomerAutocomplete handles its own search)
     const { products } = useProducts({ category: 'beverages', page: 1, limit: 100 });
 
-    const returnableProducts = products.filter((p: any) => p.isReturnable);
+    const returnableProducts = (products as BottleProduct[]).filter((p) => p.isReturnable);
 
     // Fetch movements
     const fetchMovements = async () => {
@@ -111,8 +141,8 @@ export default function BottleReturns() {
             setSelectedCustomerName(null);
             fetchMovements();
             fetchSummary();
-        } catch (error: any) {
-            toast.error(error.message || 'Erro ao registrar');
+        } catch (error) {
+            toast.error((error as Error).message || 'Erro ao registrar');
         } finally {
             setSubmitting(false);
         }
@@ -167,12 +197,12 @@ export default function BottleReturns() {
 
     // Update price when product changes
     const handleProductChange = (productId: string) => {
-        const product = returnableProducts.find((p: any) => p.id === productId);
+        const product = returnableProducts.find((p) => p.id === productId);
         setFormData({
             ...formData,
             productId,
-            depositAmount: product ? Number((product as any).returnPrice) * formData.quantity : 0,
-            refundAmount: product ? Number((product as any).returnPrice) * formData.quantity : 0
+            depositAmount: product ? Number(product.returnPrice ?? 0) * formData.quantity : 0,
+            refundAmount: product ? Number(product.returnPrice ?? 0) * formData.quantity : 0
         });
     };
 
@@ -192,7 +222,7 @@ export default function BottleReturns() {
                 </div>
                 <div className="flex gap-3">
                     <Button variant="outline" onClick={fetchMovements}>
-                        <HiOutlineRefresh className="w-4 h-4 mr-2" />
+                        <HiOutlineArrowPath className="w-4 h-4 mr-2" />
                         Atualizar
                     </Button>
                     <Button variant="outline" onClick={() => { setModalType('deposit'); setModalOpen(true); }}>
@@ -225,7 +255,7 @@ export default function BottleReturns() {
                             <p className="text-3xl font-bold">{returnableProducts.length}</p>
                             <p className="text-green-200 text-xs mt-1">tipos cadastrados</p>
                         </div>
-                        <HiOutlineRefresh className="w-12 h-12 text-green-200 opacity-75" />
+                        <HiOutlineArrowPath className="w-12 h-12 text-green-200 opacity-75" />
                     </div>
                 </Card>
                 <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
@@ -259,7 +289,7 @@ export default function BottleReturns() {
                             </tr>
                         </thead>
                         <tbody>
-                            {summary.map((item: any) => (
+                            {summary.map((item) => (
                                 <tr key={item.id} className="border-b dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800">
                                     <td className="py-3 px-4">
                                         <div>
@@ -300,7 +330,7 @@ export default function BottleReturns() {
                     <div className="flex items-center gap-4">
                         <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 gap-1 border border-gray-200 dark:border-dark-700">
                             <Button variant="ghost" size="sm" onClick={handleExportExcel}>
-                                <HiOutlineDownload className="w-4 h-4 mr-1 text-green-600" />
+                                <HiOutlineArrowDownTray className="w-4 h-4 mr-1 text-green-600" />
                                 Excel
                             </Button>
                             <Button variant="ghost" size="sm" onClick={handleExportPDF}>
@@ -318,7 +348,7 @@ export default function BottleReturns() {
                     </div>
                 ) : movements.length === 0 ? (
                     <EmptyState
-                        icon={<HiOutlineRefresh className="w-12 h-12 text-gray-300" />}
+                        icon={<HiOutlineArrowPath className="w-12 h-12 text-gray-300" />}
                         title="Nenhum movimento"
                         description="Registre depósitos e devoluções de vasilhames"
                     />
@@ -337,7 +367,7 @@ export default function BottleReturns() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {movements.map((mov: any) => (
+                                {movements.map((mov) => (
                                     <tr key={mov.id} className="border-b dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800">
                                         <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
                                             {formatDateTime(mov.createdAt)}
@@ -399,7 +429,7 @@ export default function BottleReturns() {
                         onChange={(e) => handleProductChange(e.target.value)}
                         options={[
                             { value: '', label: 'Selecione...' },
-                            ...returnableProducts.map((p: any) => ({
+                            ...returnableProducts.map((p) => ({
                                 value: p.id,
                                 label: `${p.name} (${formatCurrency(p.returnPrice || 0)})`
                             }))
@@ -425,8 +455,8 @@ export default function BottleReturns() {
                         value={formData.quantity}
                         onChange={(e) => {
                             const qty = Number(e.target.value);
-                            const product = returnableProducts.find((p: any) => p.id === formData.productId);
-                            const price = product ? Number((product as any).returnPrice) : 0;
+                            const product = returnableProducts.find((p) => p.id === formData.productId);
+                            const price = product ? Number(product.returnPrice ?? 0) : 0;
                             setFormData({
                                 ...formData,
                                 quantity: qty,

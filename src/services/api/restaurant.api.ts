@@ -53,7 +53,7 @@ export const restaurantAPI = {
     },
 
     // ── Menu Items ────────────────────────────────────────────────────────────
-    getMenuItems: async (params?: { category?: string; isAvailable?: boolean; search?: string; page?: number; limit?: number }): Promise<{ data: RestaurantMenuItem[]; pagination: any }> => {
+    getMenuItems: async (params?: { category?: string; isAvailable?: boolean; search?: string; page?: number; limit?: number }): Promise<{ data: RestaurantMenuItem[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> => {
         const res = await client.get('/restaurant/menu', { params });
         return res.data;
     },
@@ -95,7 +95,7 @@ export const restaurantAPI = {
         search?: string;
         page?: number;
         limit?: number;
-    }): Promise<{ data: RestaurantReservation[]; pagination: any }> => {
+    }): Promise<{ data: RestaurantReservation[]; pagination: { total: number; page: number; limit: number; totalPages: number } }> => {
         const res = await client.get('/restaurant/reservations', { params });
         return res.data;
     },
@@ -130,15 +130,15 @@ export const restaurantAPI = {
         const response = await client.get('/restaurant/finance/dashboard', { params: { period } });
         return response.data;
     },
-    getTransactions: async (params?: any) => {
+    getTransactions: async (params?: Record<string, unknown>) => {
         const response = await client.get('/restaurant/finance/transactions', { params });
         return response.data;
     },
-    createTransaction: async (data: any) => {
+    createTransaction: async (data: object) => {
         const response = await client.post('/restaurant/finance/transactions', data);
         return response.data;
     },
-    updateTransaction: async (id: string, data: any) => {
+    updateTransaction: async (id: string, data: object) => {
         const response = await client.put(`/restaurant/finance/transactions/${id}`, data);
         return response.data;
     },

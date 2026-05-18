@@ -17,6 +17,7 @@ import {
 } from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useMarginAnalysis, useInventoryTurnover } from '../../hooks/useCommercial';
+import { getApiErrorMessage } from '../../utils/apiError';
 
 const PERIOD_OPTIONS = [
     { label: '7 dias', value: 7 },
@@ -24,6 +25,20 @@ const PERIOD_OPTIONS = [
     { label: '90 dias', value: 90 },
     { label: '180 dias', value: 180 },
 ];
+
+type MarginTab = 'category' | 'product' | 'trend' | 'turnover';
+type BulkAdjustmentType = 'percentage' | 'fixed';
+type BulkOperation = 'increase' | 'decrease';
+
+const TABS: Array<{ key: MarginTab; label: string; icon: typeof HiOutlineTag }> = [
+    { key: 'category', label: 'Por Categoria', icon: HiOutlineTag },
+    { key: 'product', label: 'Por Produto', icon: HiOutlineCube },
+    { key: 'trend', label: 'Tendencia Mensal', icon: HiOutlineArrowTrendingUp },
+    { key: 'turnover', label: 'Rotatividade', icon: HiOutlineArrowPath },
+];
+
+const isBulkOperation = (value: string): value is BulkOperation => value === 'increase' || value === 'decrease';
+const isBulkAdjustmentType = (value: string): value is BulkAdjustmentType => value === 'percentage' || value === 'fixed';
 
 function MarginBar({ value, max, color }: { value: number; max: number; color: string }) {
     const pct = max > 0 ? Math.max(3, (value / max) * 100) : 0;
@@ -53,7 +68,7 @@ function getMarginBadge(margin: number): 'success' | 'info' | 'warning' | 'dange
 
 export default function MarginAnalysis() {
     const [period, setPeriod] = useState(30);
-    const [activeTab, setActiveTab] = useState<'category' | 'product' | 'trend' | 'turnover'>('category');
+    const [activeTab, setActiveTab] = useState<MarginTab>('category');
     const [productSearch, setProductSearch] = useState('');
     const [showBulkModal, setShowBulkModal] = useState(false);
 
@@ -103,18 +118,20 @@ export default function MarginAnalysis() {
                 
                 <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm h-10">
                     {PERIOD_OPTIONS.map(opt => (
-                        <button
+                        <Button
                             key={opt.value}
                             onClick={() => setPeriod(opt.value)}
+                            variant="ghost"
+                            size="sm"
                             className={cn(
-                                'px-3 h-full rounded-md text-[10px] font-black uppercase tracking-widest transition-all',
+                                'h-8 px-3 rounded-md text-[10px] font-black uppercase tracking-widest',
                                 period === opt.value
                                     ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20'
                                     : 'text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400'
                             )}
                         >
                             {opt.label}
-                        </button>
+                        </Button>
                     ))}
                 </div>
 
@@ -159,19 +176,16 @@ export default function MarginAnalysis() {
 
             {/* Tabs */}
             <div className="flex gap-1 bg-gray-100 dark:bg-dark-800/80 backdrop-blur-sm rounded-lg p-1.5 border border-gray-200 dark:border-dark-700 shadow-inner">
-                {[
-                    { key: 'category', label: 'Por Categoria', icon: HiOutlineTag },
-                    { key: 'product', label: 'Por Produto', icon: HiOutlineCube },
-                    { key: 'trend', label: 'Tendência Mensal', icon: HiOutlineArrowTrendingUp },
-                    { key: 'turnover', label: 'Rotatividade', icon: HiOutlineArrowPath },
-                ].map(tab => {
+                {TABS.map(tab => {
                     const Icon = tab.icon;
                     return (
-                        <button
+                        <Button
                             key={tab.key}
-                            onClick={() => setActiveTab(tab.key as any)}
+                            onClick={() => setActiveTab(tab.key as MarginTab)}
+                            variant="ghost"
+                            size="sm"
                             className={cn(
-                                'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[10px] font-black rounded-lg transition-all uppercase tracking-widest',
+                                'h-10 flex-1 rounded-lg text-[10px] font-black uppercase tracking-widest',
                                 activeTab === tab.key
                                     ? 'bg-white dark:bg-dark-600 text-primary-600 dark:text-white shadow-lg shadow-black/5'
                                     : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-300'
@@ -179,7 +193,7 @@ export default function MarginAnalysis() {
                         >
                             <Icon className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">{tab.label}</span>
-                        </button>
+                        </Button>
                     );
                 })}
             </div>
@@ -461,9 +475,9 @@ interface BulkModalProps {
 
 function BulkAdjustmentModal({ isOpen, onClose, categories, onSuccess }: BulkModalProps) {
     const [category, setCategory] = useState('all');
-    const [adjustmentType, setAdjustmentType] = useState<'percentage' | 'fixed'>('percentage');
+    const [adjustmentType, setAdjustmentType] = useState<BulkAdjustmentType>('percentage');
     const [adjustmentValue, setAdjustmentValue] = useState(0);
-    const [operation, setOperation] = useState<'increase' | 'decrease'>('increase');
+    const [operation, setOperation] = useState<BulkOperation>('increase');
     const [loading, setLoading] = useState(false);
 
     const handleApply = async () => {
@@ -480,8 +494,8 @@ function BulkAdjustmentModal({ isOpen, onClose, categories, onSuccess }: BulkMod
             });
             toast.success('Preços actualizados com sucesso!');
             onSuccess();
-        } catch (err: any) {
-            toast.error(err.message || 'Erro ao atualizar preços');
+        } catch (err) {
+            toast.error(getApiErrorMessage(err, 'Erro ao atualizar precos'));
         } finally {
             setLoading(false);
         }
@@ -512,7 +526,9 @@ function BulkAdjustmentModal({ isOpen, onClose, categories, onSuccess }: BulkMod
                         <Select
                             label="Operação"
                             value={operation}
-                            onChange={e => setOperation(e.target.value as any)}
+                            onChange={e => {
+                                if (isBulkOperation(e.target.value)) setOperation(e.target.value);
+                            }}
                             options={[
                                 { value: 'increase', label: 'Aumentar' },
                                 { value: 'decrease', label: 'Diminuir' }
@@ -521,7 +537,9 @@ function BulkAdjustmentModal({ isOpen, onClose, categories, onSuccess }: BulkMod
                         <Select
                             label="Tipo de Ajuste"
                             value={adjustmentType}
-                            onChange={e => setAdjustmentType(e.target.value as any)}
+                            onChange={e => {
+                                if (isBulkAdjustmentType(e.target.value)) setAdjustmentType(e.target.value);
+                            }}
                             options={[
                                 { value: 'percentage', label: 'Percentagem (%)' },
                                 { value: 'fixed', label: 'Valor Fixo (MTn)' }
@@ -552,3 +570,4 @@ function BulkAdjustmentModal({ isOpen, onClose, categories, onSuccess }: BulkMod
         </Modal>
     );
 }
+

@@ -1,26 +1,42 @@
 import { useSearchParams } from 'react-router-dom';
-import { PageHeader } from '../../components/ui';
+import { Button, PageHeader } from '../../components/ui';
 import CommercialFinance from './CommercialFinance';
 import AccountsReceivable from './AccountsReceivable';
+import CommercialReturns from './CommercialReturns';
+import CommercialDebitNotes from './CommercialDebitNotes';
 import {
     HiOutlineCurrencyDollar,
     HiOutlineChartBar,
     HiOutlineDocumentText,
+    HiOutlineArrowPathRoundedSquare,
+    HiOutlineArrowTrendingUp,
 } from 'react-icons/hi2';
 import { cn } from '../../utils/helpers';
 
 const TABS = [
-    { 
-        id: 'overview', 
-        label: 'Fluxo de Caixa', 
+    {
+        id: 'overview',
+        label: 'Fluxo de Caixa',
         icon: HiOutlineChartBar,
         subtitle: 'Gestão de receitas, despesas e margens operacionais'
     },
-    { 
-        id: 'receivables', 
-        label: 'Contas a Receber', 
+    {
+        id: 'receivables',
+        label: 'Contas a Receber',
         icon: HiOutlineDocumentText,
         subtitle: 'Controle de faturas em aberto e dívidas de clientes'
+    },
+    {
+        id: 'returns',
+        label: 'Devolucoes',
+        icon: HiOutlineArrowPathRoundedSquare,
+        subtitle: 'Notas de credito, devolucoes parciais e reposicao de stock'
+    },
+    {
+        id: 'debit-notes',
+        label: 'Notas de Débito',
+        icon: HiOutlineArrowTrendingUp,
+        subtitle: 'Cobrança de juros, multas e correcções de valor sobre faturas',
     },
 ] as const;
 
@@ -50,11 +66,13 @@ export default function CommercialFinanceHub() {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
                     return (
-                        <button
+                        <Button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
+                            variant="ghost"
+                            size="sm"
                             className={cn(
-                                "flex items-center gap-2 px-6 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex-1 justify-center whitespace-nowrap",
+                                "h-10 px-6 rounded-lg text-[10px] font-black uppercase tracking-widest flex-1 whitespace-nowrap",
                                 isActive
                                     ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-white shadow-lg shadow-black/5 scale-[1.02]"
                                     : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
@@ -62,7 +80,7 @@ export default function CommercialFinanceHub() {
                         >
                             <Icon className={cn("w-4 h-4", isActive ? "text-primary-600 dark:text-primary-400" : "opacity-50")} />
                             <span>{tab.label}</span>
-                        </button>
+                        </Button>
                     );
                 })}
             </div>
@@ -71,6 +89,8 @@ export default function CommercialFinanceHub() {
             <div className="animate-fade-in transition-all duration-300">
                 {activeTab === 'overview' && <CommercialFinance />}
                 {activeTab === 'receivables' && <AccountsReceivable />}
+                {activeTab === 'returns' && <CommercialReturns hideHeader />}
+                {activeTab === 'debit-notes' && <CommercialDebitNotes hideHeader />}
             </div>
         </div>
     );

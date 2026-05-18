@@ -64,10 +64,24 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     );
 };
 
-export const useTenant = () => {
+// Safe fallback for transient render paths where the provider is not yet mounted
+// (lazy-loaded chunks during HMR, ErrorBoundary fallbacks, etc). The provider is
+// always present in production at the route layer; this stub just prevents a
+// hard crash if a consumer renders ahead of provider mount.
+const TENANT_FALLBACK: TenantContextType = {
+    company: null,
+    activeModules: [],
+    isLoading: true,
+    hasModule: () => false,
+};
+
+export const useTenant = (): TenantContextType => {
     const context = useContext(TenantContext);
     if (context === undefined) {
-        throw new Error('useTenant deve ser usado dentro de um TenantProvider');
+        if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+            console.warn('useTenant called outside <TenantProvider> — using fallback. Check component tree.');
+        }
+        return TENANT_FALLBACK;
     }
     return context;
 };

@@ -9,9 +9,9 @@ import { hospitalityAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import {
     HiOutlineCalendar,
-    HiOutlineCash,
+    HiOutlineBanknotes,
     HiOutlineCheck
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 
 interface ExtendStayModalProps {
     isOpen: boolean;
@@ -77,8 +77,8 @@ export default function ExtendStayModal({
             toast.success(`Estadia estendida por ${additionalNights} noite${additionalNights > 1 ? 's' : ''}`);
             onSuccess?.();
             onClose();
-        } catch (error: any) {
-            toast.error(error.message || 'Erro ao estender estadia');
+        } catch (error) {
+            toast.error((error as Error).message || 'Erro ao estender estadia');
         } finally {
             setIsSubmitting(false);
         }
@@ -159,7 +159,7 @@ export default function ExtendStayModal({
                         placeholder={`Preço calculado: ${formatCurrency(additionalCost)}`}
                         value={adjustPrice !== null ? adjustPrice : ''}
                         onChange={(e) => setAdjustPrice(e.target.value ? parseFloat(e.target.value) : null)}
-                        leftIcon={<HiOutlineCash className="w-5 h-5 text-gray-400" />}
+                        leftIcon={<HiOutlineBanknotes className="w-5 h-5 text-gray-400" />}
                     />
                     <p className="text-xs text-gray-500 mt-1">
                         Deixe em branco para usar o preço calculado automaticamente

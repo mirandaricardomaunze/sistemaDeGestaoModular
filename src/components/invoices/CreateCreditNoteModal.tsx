@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { HiOutlineSearch } from 'react-icons/hi';
+import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 import { Modal, Button, Input } from '../ui'; // Adjust based on your UI components
 import { formatCurrency } from '../../utils/helpers';
 import type { Invoice, CreditNote } from '../../types';
@@ -21,7 +21,7 @@ const creditNoteSchema = z.object({
     invoiceId: z.string().min(1, 'Selecione uma fatura'),
     reason: z.string().min(3, 'Motivo obrigatório'),
     items: z.array(z.object({
-        productId: z.string(),
+        productId: z.string().optional().nullable(),
         description: z.string(),
         quantity: z.number().min(0),
         maxQuantity: z.number(), // For validation
@@ -62,32 +62,26 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
     useEffect(() => {
         if (watchInvoiceId) {
             const invoice = invoices.find(inv => inv.id === watchInvoiceId);
-            setSelectedInvoice(invoice || null);
             if (invoice) {
-                // Populate items with 0 quantity initially
-                const initialItems = (invoice.items || []).map(item => ({
-                    // Assuming invoice item id maps to product or is unique. Ideally invoice item has productId.  
-                    // Note: InvoiceItem in types/index.ts usually doesn't strictly have productId, it has 'id'. 
-                    // However, for CreditNote we need to know which product to restock. 
-                    // Integrating with your system: InvoiceItem in index.ts has {id, description...}. 
-                    // It seems InvoiceItem doesn't track ProductId explicitly in the current type definition I saw in step 35!
-                    // This is a potential issue. I will assume 'id' corresponds to product or I need to update InvoiceItem.
-                    // Checking existing invoices: It seems they are loose items. 
-                    // BUT, to restock, we need productId. 
-                    // I will check if InvoiceItem structure was updated or if I need to rely on matching description or if I should just use `id` as `productId` for now (best effort).
-                    // In `VacationManager` context, unrelated. 
-                    // In `Invoices.tsx`, `sampleInvoices` items have ids '1'.
-                    // I will assume `id` in InvoiceItem CAN be used as productId or I will just pass it.
-
-                    productId: item.id, // Using item.id as placeholder for productId
-                    description: item.description,
-                    quantity: 0,
-                    maxQuantity: item.quantity,
-                    unitPrice: item.unitPrice,
-                    total: 0,
-                    originalInvoiceItemId: item.id
-                }));
-                setValue('items', initialItems);
+                setSelectedInvoice(invoice);
+                invoicesAPI.getById(invoice.id)
+                    .then((fullInvoice: Invoice) => {
+                        setSelectedInvoice(fullInvoice);
+                        const initialItems = (fullInvoice.items || []).map(item => ({
+                            productId: item.productId || null,
+                            description: item.description,
+                            quantity: 0,
+                            maxQuantity: item.quantity,
+                            unitPrice: item.quantity > 0 ? item.total / item.quantity : item.unitPrice,
+                            total: 0,
+                            originalInvoiceItemId: item.id
+                        }));
+                        setValue('items', initialItems);
+                    })
+                    .catch((error) => {
+                        logger.error('Error fetching invoice details for credit note:', error);
+                        toast.error('Erro ao carregar itens da fatura');
+                    });
             }
         } else {
             setSelectedInvoice(null);
@@ -137,6 +131,7 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
                     description: item.description,
                     quantity: item.quantity,
                     unitPrice: item.unitPrice,
+                    total: item.total,
                     originalInvoiceItemId: item.originalInvoiceItemId
                 })),
                 reason: data.reason
@@ -172,7 +167,7 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
                                 placeholder="Buscar por número ou cliente..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                             />
                             <div className="max-h-48 overflow-y-auto border rounded-lg divide-y dark:border-gray-700">
                                 {availableInvoices.length === 0 ? (

@@ -5,10 +5,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlineTrash,
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass,
     HiOutlineCheck,
-    HiOutlineX
-} from 'react-icons/hi';
+    HiOutlineXMark
+} from 'react-icons/hi2';
 import { Modal, Button, Input, Select, Card } from '../ui';
 import { useSuppliers, useProducts } from '../../hooks/useData';
 import { formatCurrency } from '../../utils/helpers';
@@ -171,7 +171,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose }: CreatePurc
                                 placeholder="Buscar produto por nome ou código..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                                leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                             />
                             {searchTerm && (
                                 <div className="absolute z-10 w-full mt-1 bg-white dark:bg-dark-700 rounded-md shadow-lg border border-gray-200 dark:border-dark-600 max-h-60 overflow-auto">
@@ -292,7 +292,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose }: CreatePurc
                         type="button"
                         variant="ghost"
                         onClick={handleClose}
-                        leftIcon={<HiOutlineX className="w-4 h-4" />}
+                        leftIcon={<HiOutlineXMark className="w-4 h-4" />}
                     >
                         Cancelar
                     </Button>

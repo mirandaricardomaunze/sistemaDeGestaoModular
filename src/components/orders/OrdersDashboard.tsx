@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import {
-    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardDocumentList,
     HiOutlineClock,
-    HiOutlineExclamationTriangle as HiOutlineExclamation,
+    HiOutlineExclamationTriangle as HiOutlineExclamationTriangle,
     HiOutlineCheck,
     HiOutlineEye,
     HiOutlinePrinter,
@@ -11,6 +11,8 @@ import {
     HiOutlineTrash,
     HiOutlineCube,
     HiOutlineDocumentText,
+    HiOutlineCheckCircle,
+    HiOutlineXCircle,
 } from 'react-icons/hi2';
 import {
     PieChart,
@@ -76,6 +78,8 @@ interface OrdersDashboardProps {
     onCompleteOrder: (order: Order) => void;
     onGenerateInvoice: (order: Order) => void;
     onCancelOrder: (order: Order) => void;
+    onApproveCancellation?: (order: Order) => void;
+    onRejectCancellation?: (order: Order) => void;
     isLoading?: boolean;
     isAdmin?: boolean;
 }
@@ -85,6 +89,8 @@ const statusConfig: Record<OrderStatus, { label: string; color: string; bgColor:
     printed: { label: 'Impressa', color: 'text-purple-600', bgColor: 'bg-purple-100' },
     separated: { label: 'Separada', color: 'text-orange-600', bgColor: 'bg-orange-100' },
     completed: { label: 'Completa', color: 'text-green-600', bgColor: 'bg-green-100' },
+    cancellation_requested: { label: 'Cancelamento Solicitado', color: 'text-amber-700', bgColor: 'bg-amber-100' },
+    cancellation_rejected: { label: 'Cancelamento Rejeitado', color: 'text-gray-700', bgColor: 'bg-gray-100' },
     cancelled: { label: 'Cancelada', color: 'text-red-600', bgColor: 'bg-red-100' },
 };
 
@@ -122,6 +128,8 @@ export default function OrdersDashboard({
     onCompleteOrder,
     onGenerateInvoice,
     onCancelOrder,
+    onApproveCancellation,
+    onRejectCancellation,
     isLoading,
     isAdmin,
 }: OrdersDashboardProps) {
@@ -226,6 +234,9 @@ export default function OrdersDashboard({
         { value: 'printed', label: 'Impressa' },
         { value: 'separated', label: 'Separada' },
         { value: 'completed', label: 'Completa' },
+        { value: 'cancellation_requested', label: 'Cancelamento Solicitado' },
+        { value: 'cancellation_rejected', label: 'Cancelamento Rejeitado' },
+        { value: 'cancelled', label: 'Cancelada' },
     ];
 
     const dateOptions = [
@@ -240,7 +251,7 @@ export default function OrdersDashboard({
             <PageHeader
                 title="Dashboard de Encomendas"
                 subtitle="Visão geral e gerenciamento de pedidos"
-                icon={<HiOutlineClipboardList className="text-primary-600 dark:text-primary-400" />}
+                icon={<HiOutlineClipboardDocumentList className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex flex-wrap items-center gap-3">
                         {/* Period Filter */}
@@ -278,7 +289,7 @@ export default function OrdersDashboard({
                     label="Hoje"
                     value={metrics.today}
                     color="primary"
-                    icon={<HiOutlineClipboardList className="w-5 h-5" />}
+                    icon={<HiOutlineClipboardDocumentList className="w-5 h-5" />}
                 />
                 <MetricCard
                     label="Pendentes"
@@ -290,7 +301,7 @@ export default function OrdersDashboard({
                     label="Urgentes"
                     value={metrics.urgent}
                     color="red"
-                    icon={<HiOutlineExclamation className="w-5 h-5" />}
+                    icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
                     badge={metrics.urgent > 0 ? (
                         <div className="flex items-center gap-1.5">
                             <span className="text-[8px] font-black text-red-500 dark:text-red-400 uppercase tracking-tighter animate-pulse">Crítico</span>
@@ -514,7 +525,25 @@ export default function OrdersDashboard({
                                                         <HiOutlinePrinter className="w-5 h-5 text-purple-400" />
                                                     </button>
                                                 )}
-                                                {order.status !== 'completed' && order.status !== 'cancelled' && (
+                                                {isAdmin && order.status === 'cancellation_requested' && (
+                                                    <>
+                                                        <button
+                                                            onClick={() => onApproveCancellation?.(order)}
+                                                            className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                                                            title="Aprovar Cancelamento"
+                                                        >
+                                                            <HiOutlineCheckCircle className="w-5 h-5 text-green-600" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => onRejectCancellation?.(order)}
+                                                            className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
+                                                            title="Rejeitar Cancelamento"
+                                                        >
+                                                            <HiOutlineXCircle className="w-5 h-5 text-gray-600" />
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {order.status !== 'cancelled' && order.status !== 'cancellation_requested' && (
                                                     <button
                                                         onClick={() => onCancelOrder(order)}
                                                         className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg group transition-colors"

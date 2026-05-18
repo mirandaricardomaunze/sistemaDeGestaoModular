@@ -5,8 +5,8 @@ import {
     HiOutlineCheck,
     HiOutlineBell,
     HiOutlineTrash,
-    HiOutlineExclamation,
-} from 'react-icons/hi';
+    HiOutlineExclamationTriangle,
+} from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { useUser } from '../../stores/useAuthStore';
 import { Button, Card, Input, Modal, Select, Badge, Pagination, usePagination, ConfirmationModal } from '../ui';
@@ -213,7 +213,7 @@ export default function DeadlineManager() {
                         Prazos e Obrigaces Fiscais
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Gerencie os prazos de submissão de declaraces fiscais
+                        Gerencie os prazos de submissão de declarações fiscais
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -233,14 +233,14 @@ export default function DeadlineManager() {
                 <Card padding="md" className="bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                            <HiOutlineExclamation className="w-6 h-6 text-red-600 dark:text-red-400" />
+                            <HiOutlineExclamationTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
                         </div>
                         <div>
                             <p className="font-semibold text-red-800 dark:text-red-300">
                                 Atenção: Prazos Próximos
                             </p>
                             <p className="text-sm text-red-700 dark:text-red-400">
-                                Existem obrigaces fiscais a vencer nos próximos 7 dias. Verifique a lista abaixo.
+                                Existem obrigações fiscais a vencer nos próximos 7 dias. Verifique a lista abaixo.
                             </p>
                         </div>
                     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, type ComponentType, type SVGProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     HiOutlineUsers, HiOutlineClock, HiOutlineBanknotes,
@@ -8,14 +8,14 @@ import {
     HiOutlineMagnifyingGlass, HiOutlineDocumentMagnifyingGlass,
     HiOutlineCheckCircle, HiOutlineXCircle, HiOutlineSun,
     HiOutlineCalculator, HiOutlinePrinter,
-    HiOutlineArrowRightOnRectangle as HiOutlineLogin,
-    HiOutlineArrowLeftOnRectangle as HiOutlineLogout,
+    HiOutlineArrowRightOnRectangle as HiOutlineArrowRightOnRectangle,
+    HiOutlineArrowLeftOnRectangle as HiOutlineArrowLeftOnRectangle,
 } from 'react-icons/hi2';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell,
 } from 'recharts';
-import { Card, Button, Badge, Input, Select, Modal, PageHeader, LoadingSpinner, ConfirmationModal, Pagination, usePagination } from '../ui';
+import { Card, Button, Badge, Input, Select, Modal, PageHeader, LoadingSpinner, ConfirmationModal, Pagination, TableLoadingState, usePagination } from '../ui';
 import EmployeeList from './EmployeeList';
 import EmployeeForm from './EmployeeForm';
 import PayslipGenerator from './PayslipGenerator';
@@ -25,7 +25,21 @@ import { employeesAPI } from '../../services/api';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import toast from 'react-hot-toast';
-import type { Employee, VacationRequest } from '../../types';
+import type { Employee, VacationRequest, PayrollRecord } from '../../types';
+
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+
+interface CommissionRule {
+    id: string;
+    name?: string;
+    role?: string;
+    department?: string;
+    type?: string;
+    rate?: number;
+    tiers?: unknown[];
+    isActive?: boolean;
+    employeeId?: string;
+}
 
 // ————————————————————————————————————————————————————————————————————————————————————————————————
 
@@ -33,7 +47,7 @@ export interface ModuleHRConfig {
     department: string;
     moduleName: string;
     accentColor: string; // tailwind color key e.g. "blue", "rose", "orange", "teal"
-    icon: React.ReactNode;
+    icon: IconComponent | null;
     showCommissions?: boolean;
     documentTypes?: { id: string; label: string; required?: boolean }[];
 }
@@ -46,15 +60,6 @@ const MONTHS = [
 ];
 
 const CHART_COLORS = ['#0d9488', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-
-const calcIRT = (income: number): number => {
-    if (income <= 42500) return 0;
-    if (income <= 100000) return (income - 42500) * 0.10;
-    if (income <= 250000) return 5750 + (income - 100000) * 0.15;
-    if (income <= 500000) return 28250 + (income - 250000) * 0.20;
-    return 78250 + (income - 500000) * 0.25;
-};
-const calcINSS = (base: number) => base * 0.03;
 
 // ————————————————————————————————————————————————————————————————————————————————————————————————
 
@@ -246,7 +251,7 @@ function HRDashboard({ config, employees: allEmp }: { config: ModuleHRConfig; em
 
 function AttendancePanel({ config, employees: allEmp }: { config: ModuleHRConfig; employees: Employee[] }) {
     const [search, setSearch] = useState('');
-    const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     const staff = useMemo(() => allEmp.filter(e => !e.department || e.department === config.department), [allEmp, config.department]);
@@ -289,8 +294,8 @@ function AttendancePanel({ config, employees: allEmp }: { config: ModuleHRConfig
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { label: 'Presentes Hoje', value: presentCount, icon: HiOutlineLogin, color: 'teal' },
-                    { label: 'Saídas Registadas', value: exitCount, icon: HiOutlineLogout, color: 'blue' },
+                    { label: 'Presentes Hoje', value: presentCount, icon: HiOutlineArrowRightOnRectangle, color: 'teal' },
+                    { label: 'Saídas Registadas', value: exitCount, icon: HiOutlineArrowLeftOnRectangle, color: 'blue' },
                     { label: 'Ausentes', value: Math.max(0, filtered.length - (attendance?.length || 0)), icon: HiOutlineClock, color: 'amber' },
                 ].map((s, i) => (
                     <Card key={i} variant="glass" className={`p-4 border-l-4 border-l-${s.color}-500 flex items-center gap-4`}>
@@ -318,9 +323,15 @@ function AttendancePanel({ config, employees: allEmp }: { config: ModuleHRConfig
                                             <h4 className="font-bold text-gray-900 dark:text-white truncate">{person.name}</h4>
                                             <p className="text-[10px] uppercase font-black tracking-widest text-gray-400">{person.role || config.moduleName} • {person.code}</p>
                                         </div>
-                                        <button onClick={() => { setSelectedEmployee(person); setIsHistoryOpen(true); }} className="p-2 rounded-lg hover:bg-white/50 text-gray-400 hover:text-primary-500 transition-colors" title="Ver Histórico">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => { setSelectedEmployee(person); setIsHistoryOpen(true); }}
+                                            title="Ver Histórico"
+                                            className="p-2 text-gray-400 hover:text-primary-500 active:scale-95"
+                                        >
                                             <HiOutlineDocumentMagnifyingGlass className="w-5 h-5" />
-                                        </button>
+                                        </Button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 py-2 border-y border-gray-100 dark:border-dark-700/50">
                                         <div className="space-y-1">
@@ -333,8 +344,8 @@ function AttendancePanel({ config, employees: allEmp }: { config: ModuleHRConfig
                                         </div>
                                     </div>
                                     <div className="flex gap-2 pt-2">
-                                        <Button variant={record?.checkIn ? 'outline' : 'primary'} size="sm" className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10" disabled={!!record?.checkIn} leftIcon={<HiOutlineLogin className="w-4 h-4" />} onClick={() => handleRecord(person.id, 'checkIn')}>Check-In</Button>
-                                        <Button variant="outline" size="sm" className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10 border-orange-200 text-orange-600 hover:bg-orange-50" disabled={!record?.checkIn || !!record?.checkOut} leftIcon={<HiOutlineLogout className="w-4 h-4" />} onClick={() => handleRecord(person.id, 'checkOut')}>Check-Out</Button>
+                                        <Button variant={record?.checkIn ? 'outline' : 'primary'} size="sm" className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10" disabled={!!record?.checkIn} leftIcon={<HiOutlineArrowRightOnRectangle className="w-4 h-4" />} onClick={() => handleRecord(person.id, 'checkIn')}>Check-In</Button>
+                                        <Button variant="outline" size="sm" className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10 border-orange-200 text-orange-600 hover:bg-orange-50" disabled={!record?.checkIn || !!record?.checkOut} leftIcon={<HiOutlineArrowLeftOnRectangle className="w-4 h-4" />} onClick={() => handleRecord(person.id, 'checkOut')}>Check-Out</Button>
                                     </div>
                                 </div>
                             </Card>
@@ -386,7 +397,7 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear());
     const [statusFilter, setStatusFilter] = useState('');
-    const [selectedPayroll, setSelectedPayroll] = useState<any>(null);
+    const [selectedPayroll, setSelectedPayroll] = useState<PayrollRecord | null>(null);
     const [processing, setProcessing] = useState(false);
     const [showProcessConfirm, setShowProcessConfirm] = useState(false);
 
@@ -445,7 +456,7 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
                         <Select label="Estado" options={[{ value: '', label: 'Todos' }, { value: 'draft', label: 'Rascunho' }, { value: 'processed', label: 'Processado' }, { value: 'paid', label: 'Pago' }]} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} />
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="ghost" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={refetch} className="h-11 font-black text-[10px] uppercase tracking-widest">Refrescar</Button>
+                        <Button variant="ghost" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()} className="h-11 font-black text-[10px] uppercase tracking-widest">Refrescar</Button>
                         <Button variant="primary" onClick={handleProcessAll} disabled={processing} leftIcon={processing ? <HiOutlineClock className="w-5 h-5 animate-spin" /> : <HiOutlineCalculator className="w-5 h-5" />} className="h-11 font-black text-[10px] uppercase tracking-widest">{processing ? 'A processar...' : 'Processar Todos'}</Button>
                     </div>
                 </div>
@@ -466,7 +477,14 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
             </div>
 
             <Card variant="glass" padding="none" className="overflow-hidden border border-gray-100 dark:border-dark-700/50">
-                <div className="overflow-x-auto">
+                <div className="relative min-h-[420px] overflow-x-auto">
+                    {isLoading && (
+                        <TableLoadingState
+                            columns={config.showCommissions ? 8 : 7}
+                            rows={8}
+                            message="A carregar salários..."
+                        />
+                    )}
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
@@ -481,16 +499,12 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700/50">
-                            {isLoading ? (
-                                <tr><td colSpan={8} className="py-20 text-center"><LoadingSpinner size="lg" /></td></tr>
-                            ) : paginatedData.length === 0 ? (
+                            {!isLoading && paginatedData.length === 0 ? (
                                 <tr><td colSpan={8} className="py-20 text-center text-gray-400 italic">Nenhum registo para {MONTHS[month - 1]} / {year}</td></tr>
-                            ) : paginatedData.map(p => {
+                            ) : !isLoading && paginatedData.map(p => {
                                 const emp = employees.find(e => e.id === p.employeeId);
-                                const inss = Number(p.inssDeduction) || calcINSS(Number(p.baseSalary));
-                                const irt = Number(p.irtDeduction) || calcIRT(Number(p.totalEarnings || p.baseSalary));
-                                const deds = inss + irt + Number(p.advances || 0);
-                                const net = Number(p.netSalary) || (Number(p.baseSalary) + Number(p.bonus || 0) + Number(p.allowances || 0) - deds);
+                                const deds = Number(p.totalDeductions || 0);
+                                const net = Number(p.netSalary || 0);
                                 return (
                                     <tr key={p.id} className="hover:bg-gray-50/30 dark:hover:bg-dark-700/20 transition-all">
                                         <td className="px-6 py-4">
@@ -512,8 +526,8 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-1">
-                                                {p.status === 'draft' && <button onClick={() => handleStatus(p.id, 'processed')} className="p-2 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors border border-transparent hover:border-blue-100" title="Processar"><HiOutlineCheckCircle className="w-5 h-5" /></button>}
-                                                {p.status === 'processed' && <button onClick={() => handleStatus(p.id, 'paid')} className="p-2 rounded-lg hover:bg-green-50 text-green-600 transition-colors border border-transparent hover:border-green-100" title="Marcar como Pago"><HiOutlineBanknotes className="w-5 h-5" /></button>}
+                                                {p.status === 'draft' && <Button variant="ghost" size="sm" onClick={() => handleStatus(p.id, 'processed')} className="p-2 text-blue-500 hover:bg-blue-50 border border-transparent hover:border-blue-100 active:scale-95" title="Processar"><HiOutlineCheckCircle className="w-5 h-5" /></Button>}
+                                                {p.status === 'processed' && <Button variant="ghost" size="sm" onClick={() => handleStatus(p.id, 'paid')} className="p-2 text-green-600 hover:bg-green-50 border border-transparent hover:border-green-100 active:scale-95" title="Marcar como Pago"><HiOutlineBanknotes className="w-5 h-5" /></Button>}
                                                 <PayslipGenerator record={{ ...p, employee: emp! }} variant="ghost" />
                                             </div>
                                         </td>
@@ -538,8 +552,8 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
 
             <Modal isOpen={!!selectedPayroll} onClose={() => setSelectedPayroll(null)} title="Recibo de Salário" size="lg">
                 {selectedPayroll && (() => {
-                    const inss = Number(selectedPayroll.inssDeduction) || calcINSS(Number(selectedPayroll.baseSalary));
-                    const irt = Number(selectedPayroll.irtDeduction) || calcIRT(Number(selectedPayroll.totalEarnings || selectedPayroll.baseSalary));
+                    const inss = Number(selectedPayroll.inssDeduction || 0);
+                    const irt = Number(selectedPayroll.irtDeduction || 0);
                     return (
                         <div className="p-2 space-y-6">
                             <div className="flex justify-between items-start border-b-2 border-dashed border-gray-100 pb-6">
@@ -681,8 +695,8 @@ export function VacationsPanel({ config, employees: allEmp }: { config: ModuleHR
                                     <td className="px-6 py-4">
                                         {req.status === 'pending' && (
                                             <div className="flex gap-2">
-                                                <button onClick={() => handleApprove(req.id)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><HiOutlineCheckCircle className="w-5 h-5" /></button>
-                                                <button onClick={() => handleReject(req.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><HiOutlineXCircle className="w-5 h-5" /></button>
+                                                <Button variant="ghost" size="sm" onClick={() => handleApprove(req.id)} className="p-2 text-green-600 hover:bg-green-50 active:scale-95"><HiOutlineCheckCircle className="w-5 h-5" /></Button>
+                                                <Button variant="ghost" size="sm" onClick={() => handleReject(req.id)} className="p-2 text-red-600 hover:bg-red-50 active:scale-95"><HiOutlineXCircle className="w-5 h-5" /></Button>
                                             </div>
                                         )}
                                     </td>
@@ -760,7 +774,7 @@ function CompliancePanel({ config }: { config: ModuleHRConfig }) {
 
 export function BonusConfigPanel({ config }: { config: ModuleHRConfig }) {
     const { t } = useTranslation();
-    const [rules, setRules] = useState<any[]>([]);
+    const [rules, setRules] = useState<CommissionRule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     React.useEffect(() => {
@@ -821,7 +835,7 @@ export function ModuleHRPage({ config }: { config: ModuleHRConfig }) {
             <PageHeader
                 title={`Recursos Humanos - ${config.moduleName}`}
                 subtitle={`Gestão completa de colaboradores e conformidade laboral`}
-                icon={config.icon}
+                icon={config.icon ? <config.icon className="w-6 h-6 text-white" /> : undefined}
                 actions={
                     <div className="flex gap-2">
                         <Button variant="outline" leftIcon={<HiOutlineArrowPath />} onClick={() => refetch()}>Actualizar</Button>
@@ -833,10 +847,12 @@ export function ModuleHRPage({ config }: { config: ModuleHRConfig }) {
             {/* Tab Navigation */}
             <div className="flex gap-1 border-b border-gray-200 dark:border-dark-700 overflow-x-auto pb-px">
                 {tabs.map(tab => (
-                    <button
+                    <Button
                         key={tab.id}
+                        variant="ghost"
+                        size="sm"
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-3 text-[11px] font-black uppercase tracking-widest whitespace-nowrap border-b-2 transition-all duration-200 ${
+                        className={`flex items-center gap-2 px-4 py-3 text-[11px] font-black uppercase tracking-widest whitespace-nowrap border-b-2 rounded-none ${
                             activeTab === tab.id
                                 ? `border-${c}-500 text-${c}-600 dark:text-${c}-400`
                                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
@@ -844,7 +860,7 @@ export function ModuleHRPage({ config }: { config: ModuleHRConfig }) {
                     >
                         {tab.icon}
                         {tab.label}
-                    </button>
+                    </Button>
                 ))}
             </div>
 

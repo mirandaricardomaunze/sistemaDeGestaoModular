@@ -41,7 +41,7 @@ export const createOrderSchema = z.object({
 });
 
 export const updateOrderStatusSchema = z.object({
-    status: z.enum(['created', 'printed', 'separated', 'completed', 'cancelled']),
+    status: z.enum(['created', 'printed', 'separated', 'completed', 'cancellation_requested', 'cancellation_rejected', 'cancelled']),
     responsibleName: z.string().max(200, 'Nome do responsável muito longo').optional().nullable(),
     notes: z.string().max(500, 'Notas muito longas').optional().nullable()
 });
@@ -62,6 +62,15 @@ export const cancelOrderSchema = z.object({
     reason: z.string().min(3, 'Motivo deve ter pelo menos 3 caracteres').max(500, 'Motivo muito longo')
 });
 
+export const requestOrderCancellationSchema = z.object({
+    reason: z.string().min(3, 'Motivo deve ter pelo menos 3 caracteres').max(500, 'Motivo muito longo'),
+    notes: z.string().max(500, 'Notas muito longas').optional().nullable()
+});
+
+export const decideOrderCancellationSchema = z.object({
+    notes: z.string().max(500, 'Notas muito longas').optional().nullable()
+});
+
 // ============================================================================
 // Type Exports
 // ============================================================================
@@ -70,3 +79,5 @@ export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
+export type RequestOrderCancellationInput = z.infer<typeof requestOrderCancellationSchema>;
+export type DecideOrderCancellationInput = z.infer<typeof decideOrderCancellationSchema>;

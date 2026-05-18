@@ -1,8 +1,97 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { buildPaginationMeta } from '../utils/pagination';
 import { ApiError } from '../middleware/error.middleware';
 import { stockService } from './stockService';
 import { ResultHandler } from '../utils/result';
+
+type Nullable<T> = T | null | undefined;
+
+interface MedicationInput {
+    productId: string;
+    requiresPrescription?: boolean;
+    isControlled?: boolean;
+    storageTemp?: string;
+    concentration?: string;
+    dosageForm?: string;
+    activeIngredients?: string;
+    therapeuticClass?: string;
+    contraindications?: string;
+    sideEffects?: string;
+    interactions?: string;
+    notes?: string;
+    // Tests and external callers may pass additional medication metadata
+    // (e.g. dosage, pharmaceuticalForm) that Prisma accepts without strict typing.
+    [key: string]: unknown;
+}
+
+interface BatchInput {
+    medicationId: string;
+    batchNumber: string;
+    quantity: number | string;
+    expiryDate: string | Date;
+    costPrice?: Nullable<number | string>;
+    sellingPrice?: Nullable<number | string>;
+    supplier?: Nullable<string>;
+    invoiceNumber?: Nullable<string>;
+    status?: Nullable<string>;
+    notes?: Nullable<string>;
+}
+
+interface PharmacySaleItemInput {
+    batchId?: string;
+    medicationId?: string;
+    productName?: string;
+    quantity: number;
+    unitPrice?: Nullable<number | string>;
+    total?: Nullable<number | string>;
+    discount?: number;
+    posologyLabel?: string;
+}
+
+interface PharmacySaleInput {
+    items: PharmacySaleItemInput[];
+    customerId?: Nullable<string>;
+    customerName?: Nullable<string>;
+    partnerId?: Nullable<string>;
+    prescriptionId?: Nullable<string>;
+    prescriptionNumber?: Nullable<string>;
+    discount?: number;
+    insuranceAmount?: number;
+    paymentMethod?: string;
+    paymentDetails?: Prisma.InputJsonValue;
+    notes?: string;
+    sessionId?: string;
+}
+
+interface PrescriptionInput {
+    patientName: string;
+    prescriberName: string;
+    prescriptionDate: string | Date;
+    patientBirthDate?: Nullable<string | Date>;
+    validUntil?: Nullable<string | Date>;
+    items?: Array<{
+        medicationName: string;
+        medicationId?: Nullable<string>;
+        dosage?: Nullable<string>;
+        quantity: number;
+        posology?: Nullable<string>;
+        duration?: Nullable<string>;
+        notes?: Nullable<string>;
+    }>;
+    [key: string]: unknown;
+}
+
+interface PartnerInput {
+    name: string;
+    category?: Nullable<string>;
+    email?: Nullable<string>;
+    phone?: Nullable<string>;
+    address?: Nullable<string>;
+    nuit?: Nullable<string>;
+    coveragePercentage?: Nullable<number | string>;
+    isActive?: boolean;
+}
 
 export interface PharmacyQuery {
     page?: number;
@@ -27,20 +116,20 @@ export class PharmacyService {
     async getMedications(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, search, requiresPrescription, isControlled, lowStock } = query;
 
-        const where: any = {
-            product: {
-                companyId,
-                originModule: 'pharmacy'
-            }
+        const productWhere: Prisma.ProductWhereInput = {
+            companyId,
+            originModule: 'pharmacy'
         };
-
         if (search) {
-            where.product.OR = [
-                { name: { contains: search as string, mode: 'insensitive' } },
-                { code: { contains: search as string, mode: 'insensitive' } },
-                { barcode: { contains: search as string } }
+            productWhere.OR = [
+                { name: { contains: search, mode: 'insensitive' } },
+                { code: { contains: search, mode: 'insensitive' } },
+                { barcode: { contains: search } }
             ];
         }
+        const where: Prisma.MedicationWhereInput & { product: Prisma.ProductWhereInput } = {
+            product: productWhere
+        };
 
         if (requiresPrescription === 'true') where.requiresPrescription = true;
         if (isControlled === 'true') where.isControlled = true;
@@ -127,7 +216,7 @@ export class PharmacyService {
         return ResultHandler.success({ data, pagination });
     }
 
-    async createMedication(companyId: string, data: Record<string, any>) {
+    async createMedication(companyId: string, data: MedicationInput) {
         const { productId, ...rest } = data;
 
         const product = await prisma.product.findFirst({
@@ -162,7 +251,7 @@ export class PharmacyService {
         return ResultHandler.success(medication);
     }
 
-    async updateMedication(id: string, companyId: string, data: Record<string, any>) {
+    async updateMedication(id: string, companyId: string, data: Partial<MedicationInput>) {
         // Verify medication belongs to this company
         const medication = await prisma.medication.findFirst({
             where: {
@@ -216,12 +305,12 @@ export class PharmacyService {
     async getBatches(companyId: string, query: PharmacyQuery) {
         const { status, expiringDays, medicationId, page = 1, limit = 50 } = query;
 
-        const where: Record<string, any> = {
+        const where: Prisma.MedicationBatchWhereInput = {
             medication: {
                 product: { companyId }
             }
         };
-        if (status) where.status = status;
+        if (status) where.status = status as Prisma.MedicationBatchWhereInput['status'];
         if (medicationId) where.medicationId = medicationId;
 
         // Push expiringDays into the SQL where (instead of post-filtering in JS).
@@ -265,7 +354,7 @@ export class PharmacyService {
         return ResultHandler.success({ data: batches, pagination });
     }
 
-    async createBatch(companyId: string, data: Record<string, any>, performedBy: string) {
+    async createBatch(companyId: string, data: BatchInput, performedBy: string) {
         const { medicationId, quantity, expiryDate, ...rest } = data;
 
         const medication = await prisma.medication.findFirst({
@@ -277,21 +366,22 @@ export class PharmacyService {
         });
         if (!medication) throw ApiError.notFound('Medicamento não encontrado');
 
+        const qty = parseInt(String(quantity));
         const batch = await prisma.$transaction(async (tx) => {
             const newBatch = await tx.medicationBatch.create({
                 data: {
                     medicationId,
                     batchNumber: rest.batchNumber,
-                    costPrice: rest.costPrice || 0,
+                    costPrice: rest.costPrice ?? 0,
                     supplier: rest.supplier,
                     invoiceNumber: rest.invoiceNumber,
-                    status: rest.status || 'active',
+                    status: (rest.status || 'active') as Prisma.MedicationBatchUncheckedCreateInput['status'],
                     notes: rest.notes,
                     companyId,
-                    quantity: parseInt(quantity),
-                    quantityAvailable: parseInt(quantity),
+                    quantity: qty,
+                    quantityAvailable: qty,
                     expiryDate: new Date(expiryDate),
-                    sellingPrice: rest.sellingPrice || medication.product.price,
+                    sellingPrice: rest.sellingPrice ?? medication.product.price,
                 },
                 include: { medication: { include: { product: true } } }
             });
@@ -299,11 +389,11 @@ export class PharmacyService {
             await stockService.recordMovement({
                 productId: medication.productId,
                 batchId: newBatch.id,
-                quantity: parseInt(quantity),
+                quantity: qty,
                 movementType: 'purchase',
                 originModule: 'PHARMACY',
                 referenceType: 'PURCHASE',
-                referenceContent: rest.invoiceNumber,
+                referenceContent: rest.invoiceNumber ?? undefined,
                 reason: 'Entrada de lote farmacêutico',
                 performedBy,
                 companyId
@@ -318,12 +408,12 @@ export class PharmacyService {
     async getSales(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, startDate, endDate, status, customerId, search } = query;
 
-        const where: any = { companyId };
-        if (status) where.status = status;
+        const where: Prisma.PharmacySaleWhereInput = { companyId };
+        if (status) where.status = status as Prisma.PharmacySaleWhereInput['status'];
         if (customerId) where.customerId = customerId;
         if (search) {
             where.OR = [
-                { receiptNumber: { contains: search, mode: 'insensitive' } },
+                { saleNumber: { contains: search, mode: 'insensitive' } },
                 { customer: { name: { contains: search, mode: 'insensitive' } } },
                 { customerName: { contains: search, mode: 'insensitive' } },
             ];
@@ -399,7 +489,7 @@ export class PharmacyService {
         });
     }
 
-    async createSale(companyId: string, data: Record<string, any>, performedBy: string) {
+    async createSale(companyId: string, data: PharmacySaleInput, performedBy: string) {
         const {
             items, customerId, customerName, partnerId,
             prescriptionId: prescriptionIdRaw, prescriptionNumber,
@@ -448,7 +538,7 @@ export class PharmacyService {
             const saleNumber = `PH-${String(nextNumber).padStart(6, '0')}`;
 
             let computedSubtotal = 0;
-            const saleItems = [];
+            const saleItems: Prisma.PharmacySaleItemUncheckedCreateWithoutSaleInput[] = [];
 
             for (const item of items) {
                 const batch = await tx.medicationBatch.findFirst({
@@ -481,7 +571,7 @@ export class PharmacyService {
                 computedSubtotal += finalItemTotal;
 
                 saleItems.push({
-                    batchId: item.batchId,
+                    batchId: item.batchId as string,
                     productName: batch.medication.product.name,
                     quantity: item.quantity,
                     unitPrice: dbPrice,
@@ -575,7 +665,7 @@ export class PharmacyService {
 
                     await tx.prescription.update({
                         where: { id: resolvedPrescriptionId },
-                        data: { status: newStatus as any }
+                        data: { status: newStatus as Prisma.PrescriptionUncheckedUpdateInput['status'] }
                     });
                 }
             }
@@ -588,7 +678,7 @@ export class PharmacyService {
                     amount: finalTotal,
                     date: new Date(),
                     status: 'completed',
-                    paymentMethod: paymentMethod || 'cash',
+                    paymentMethod: (paymentMethod || 'cash') as Prisma.TransactionUncheckedCreateInput['paymentMethod'],
                     reference: saleNumber,
                     module: 'pharmacy',
                     companyId
@@ -607,7 +697,7 @@ export class PharmacyService {
             }
 
             return sale;
-        });
+        }, { timeout: 15000 });
 
         return ResultHandler.success(result, 'Venda concluída com sucesso');
     }
@@ -615,13 +705,13 @@ export class PharmacyService {
     async getPrescriptions(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, status, search } = query;
 
-        const where: Record<string, any> = { companyId };
-        if (status) where.status = status;
+        const where: Prisma.PrescriptionWhereInput = { companyId };
+        if (status) where.status = status as Prisma.PrescriptionWhereInput['status'];
         if (search) {
             where.OR = [
-                { patientName: { contains: search as string, mode: 'insensitive' } },
-                { prescriberName: { contains: search as string, mode: 'insensitive' } },
-                { prescriptionNo: { contains: search as string, mode: 'insensitive' } }
+                { patientName: { contains: search, mode: 'insensitive' } },
+                { prescriberName: { contains: search, mode: 'insensitive' } },
+                { prescriptionNo: { contains: search, mode: 'insensitive' } }
             ];
         }
 
@@ -650,7 +740,7 @@ export class PharmacyService {
         });
     }
 
-    async createPrescription(companyId: string, data: Record<string, any>) {
+    async createPrescription(companyId: string, data: PrescriptionInput) {
         const { items, ...rest } = data;
 
         // Generate prescription number
@@ -664,16 +754,16 @@ export class PharmacyService {
 
         const prescription = await prisma.prescription.create({
             data: {
-                ...(rest as any),
+                ...(rest as Prisma.PrescriptionUncheckedCreateInput),
                 patientName: rest.patientName as string,
                 prescriberName: rest.prescriberName as string,
                 prescriptionNo,
                 companyId,
-                prescriptionDate: new Date(rest.prescriptionDate),
-                patientBirthDate: rest.patientBirthDate ? new Date(rest.patientBirthDate) : undefined,
-                validUntil: rest.validUntil ? new Date(rest.validUntil) : undefined,
+                prescriptionDate: new Date(rest.prescriptionDate as string),
+                patientBirthDate: rest.patientBirthDate ? new Date(rest.patientBirthDate as string) : undefined,
+                validUntil: rest.validUntil ? new Date(rest.validUntil as string) : undefined,
                 items: items ? {
-                    create: items.map((item: any) => ({
+                    create: items.map((item) => ({
                         medicationName: item.medicationName,
                         medicationId: item.medicationId,
                         dosage: item.dosage,
@@ -693,10 +783,10 @@ export class PharmacyService {
     async getStockMovements(companyId: string, query: PharmacyQuery) {
         const { page = 1, limit = 20, batchId, movementType, startDate, endDate } = query;
 
-        const where: any = { companyId, originModule: 'PHARMACY' };
+        const where: Prisma.StockMovementWhereInput = { companyId, originModule: 'PHARMACY' };
 
         if (batchId) where.batchId = batchId;
-        if (movementType) where.movementType = movementType;
+        if (movementType) where.movementType = movementType as Prisma.StockMovementWhereInput['movementType'];
 
         if (startDate || endDate) {
             where.createdAt = {};
@@ -737,15 +827,15 @@ export class PharmacyService {
     async getPartners(companyId: string, query: PharmacyQuery) {
         const { search, isActive } = query;
 
-        const where: Record<string, any> = { companyId };
+        const where: Prisma.PharmacyPartnerWhereInput = { companyId };
         if (isActive === 'true') where.isActive = true;
         if (isActive === 'false') where.isActive = false;
 
         if (search) {
             where.OR = [
-                { name: { contains: search as string, mode: 'insensitive' } },
-                { email: { contains: search as string, mode: 'insensitive' } },
-                { nuit: { contains: search as string, mode: 'insensitive' } }
+                { name: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+                { nuit: { contains: search, mode: 'insensitive' } }
             ];
         }
 
@@ -757,7 +847,7 @@ export class PharmacyService {
         return ResultHandler.success(partners);
     }
 
-    async createPartner(companyId: string, data: Record<string, any>) {
+    async createPartner(companyId: string, data: PartnerInput) {
         const partner = await prisma.pharmacyPartner.create({
             data: {
                 name: data.name,
@@ -766,7 +856,7 @@ export class PharmacyService {
                 phone: data.phone,
                 address: data.address,
                 nuit: data.nuit,
-                coveragePercentage: data.coveragePercentage ? parseFloat(data.coveragePercentage) : 0,
+                coveragePercentage: data.coveragePercentage ? parseFloat(String(data.coveragePercentage)) : 0,
                 isActive: data.isActive !== undefined ? data.isActive : true,
                 companyId
             }
@@ -775,10 +865,10 @@ export class PharmacyService {
         return ResultHandler.success(partner, 'Entidade parceira cadastrada');
     }
 
-    async updatePartner(id: string, companyId: string, data: Record<string, any>) {
+    async updatePartner(id: string, companyId: string, data: Partial<PartnerInput>) {
         const updated = await prisma.pharmacyPartner.update({
             where: { id, companyId },
-            data
+            data: data as Prisma.PharmacyPartnerUncheckedUpdateInput
         });
 
         return ResultHandler.success(updated, 'Dados da entidade atualizados');

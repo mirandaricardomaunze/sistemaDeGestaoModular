@@ -7,6 +7,7 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
+    type DragEndEvent,
 } from '@dnd-kit/core';
 import {
     arrayMove,
@@ -17,7 +18,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 
 import {
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlinePlus,
     HiOutlineLightBulb,
     HiOutlineChartBar
@@ -25,6 +26,7 @@ import {
 import { Link } from 'react-router-dom';
 
 import { Button, Skeleton, Select, PageHeader } from '../components/ui';
+import { SegmentedControl } from '../components/common/SegmentedControl';
 import { cn, formatRelativeTime } from '../utils/helpers';
 import {
     useDashboard,
@@ -36,6 +38,7 @@ import {
 } from '../hooks/useData';
 import { useSmartInsights } from '../hooks/useSmartInsights';
 import { SmartInsightCard } from '../components/common/SmartInsightCard';
+import { useAuthStore } from '../stores/useAuthStore';
 
 // New Widget Components
 import {
@@ -63,14 +66,38 @@ const dayNames: Record<string, string> = {
 };
 
 const DEFAULT_WIDGET_ORDER = ['stats', 'insights', 'revenue', 'categories', 'alerts', 'movements', 'activity', 'actions'];
+const DASHBOARD_WIDGET_ORDER_KEY = 'dashboard-widget-order';
+
+function loadWidgetOrder(): string[] {
+    try {
+        const saved = localStorage.getItem(DASHBOARD_WIDGET_ORDER_KEY);
+        if (!saved) return DEFAULT_WIDGET_ORDER;
+
+        const parsed = JSON.parse(saved);
+        if (!Array.isArray(parsed)) return DEFAULT_WIDGET_ORDER;
+
+        const known = parsed.filter((id): id is string => DEFAULT_WIDGET_ORDER.includes(id));
+        const missing = DEFAULT_WIDGET_ORDER.filter((id) => !known.includes(id));
+        return [...known, ...missing];
+    } catch {
+        return DEFAULT_WIDGET_ORDER;
+    }
+}
 
 export default function Dashboard() {
     const { t } = useTranslation();
+    const user = useAuthStore(state => state.user);
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
     const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('');
+    
     const [widgetOrder, setWidgetOrder] = useState<string[]>(() => {
-        const saved = localStorage.getItem('dashboard-widget-order');
-        return saved ? JSON.parse(saved) : DEFAULT_WIDGET_ORDER;
+        const prefs = user?.preferences?.dashboardWidgetOrder;
+        if (Array.isArray(prefs) && prefs.length > 0) {
+            const known = prefs.filter(id => DEFAULT_WIDGET_ORDER.includes(id));
+            const missing = DEFAULT_WIDGET_ORDER.filter(id => !known.includes(id));
+            return [...known, ...missing];
+        }
+        return loadWidgetOrder();
     });
 
     // DND Sensors
@@ -142,27 +169,34 @@ export default function Dashboard() {
     const recentActivities = useMemo(() => {
         if (!recentActivity || !Array.isArray(recentActivity)) return [];
         
-        return recentActivity.map((item: any) => ({
+        return recentActivity.map((item: { id: string; title: string; description?: string; timestamp: string; type?: string }) => ({
             id: item.id,
             action: item.title,
             detail: item.description,
             time: formatRelativeTime(item.timestamp),
-            icon: item.type === 'sale' ? '💰' : '🔔'
+            icon: item.type === 'sale' ? 'ðŸ’°' : 'ðŸ””'
         })).slice(0, 5);
     }, [recentActivity]);
 
-    const handleDragEnd = (event: any) => {
+    const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over) return;
         if (active.id !== over.id) {
             setWidgetOrder((items) => {
-                const oldIndex = items.indexOf(active.id);
-                const newIndex = items.indexOf(over.id);
+                const oldIndex = items.indexOf(active.id as string);
+                const newIndex = items.indexOf(over.id as string);
                 const newOrder = arrayMove(items, oldIndex, newIndex);
-                localStorage.setItem('dashboard-widget-order', JSON.stringify(newOrder));
+                localStorage.setItem(DASHBOARD_WIDGET_ORDER_KEY, JSON.stringify(newOrder));
+                useAuthStore.getState().updatePreferences({ dashboardWidgetOrder: newOrder });
                 return newOrder;
             });
         }
+    };
+
+    const resetWidgetOrder = () => {
+        localStorage.setItem(DASHBOARD_WIDGET_ORDER_KEY, JSON.stringify(DEFAULT_WIDGET_ORDER));
+        setWidgetOrder(DEFAULT_WIDGET_ORDER);
+        useAuthStore.getState().updatePreferences({ dashboardWidgetOrder: DEFAULT_WIDGET_ORDER });
     };
 
     if (isLoading) return <DashboardSkeleton />;
@@ -224,30 +258,29 @@ export default function Dashboard() {
                                 className="h-10 text-[10px] font-black uppercase tracking-widest border-slate-200 dark:border-dark-700 shadow-sm rounded-xl"
                             />
                         </div>
-                        <div className="flex bg-gray-100 dark:bg-dark-800 p-1 rounded-xl border border-gray-200 dark:border-dark-700">
-                            {periodOptions.map((opt) => (
-                                <button
-                                    key={opt.value}
-                                    onClick={() => setSelectedPeriod(opt.value)}
-                                    className={cn(
-                                        'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all',
-                                        selectedPeriod === opt.value
-                                            ? 'bg-white dark:bg-dark-700 text-primary-600 shadow-sm'
-                                            : 'text-gray-500 hover:text-gray-700'
-                                    )}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
+                        <SegmentedControl
+                            options={periodOptions}
+                            value={selectedPeriod}
+                            onChange={(val) => setSelectedPeriod(val as TimePeriod)}
+                            size="sm"
+                        />
                         <Button
                             variant="ghost"
                             size="sm"
                             className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800"
                             onClick={() => refetchDashboard()}
-                            leftIcon={<HiOutlineRefresh className={cn("w-4 h-4 text-primary-600", isLoading && "animate-spin")} />}
+                            leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", isLoading && "animate-spin")} />}
                         >
                             {t('common.refresh')}
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800"
+                            onClick={resetWidgetOrder}
+                            leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-slate-500" />}
+                        >
+                            Repor layout
                         </Button>
                         <Link to="/pos">
                             <Button

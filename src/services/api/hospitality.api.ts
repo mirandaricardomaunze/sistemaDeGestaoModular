@@ -1,5 +1,8 @@
 import api from './client';
 
+type ApiPayload = object;
+type ApiQueryParams = Record<string, unknown>;
+
 // ============================================================================
 // Hospitality API
 // ============================================================================
@@ -9,11 +12,11 @@ export const hospitalityAPI = {
         const response = await api.get('/hospitality/rooms', { params });
         return response.data;
     },
-    createRoom: async (data: any) => {
+    createRoom: async (data: ApiPayload) => {
         const response = await api.post('/hospitality/rooms', data);
         return response.data;
     },
-    updateRoom: async (id: string, data: any) => {
+    updateRoom: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/hospitality/rooms/${id}`, data);
         return response.data;
     },
@@ -25,11 +28,11 @@ export const hospitalityAPI = {
         const response = await api.get('/hospitality/bookings', { params });
         return response.data;
     },
-    createBooking: async (data: any) => {
+    createBooking: async (data: ApiPayload) => {
         const response = await api.post('/hospitality/bookings', data);
         return response.data;
     },
-    checkout: async (id: string, data?: any) => {
+    checkout: async (id: string, data?: ApiPayload) => {
         const response = await api.put(`/hospitality/bookings/${id}/checkout`, data);
         return response.data;
     },
@@ -133,22 +136,22 @@ export const hospitalityAPI = {
         return response.data;
     },
 
-    getRevenues: async (params?: any) => {
+    getRevenues: async (params?: ApiQueryParams) => {
         const response = await api.get('/hospitality/finance/revenues', { params });
         return response.data;
     },
 
-    getExpenses: async (params?: any) => {
+    getExpenses: async (params?: ApiQueryParams) => {
         const response = await api.get('/hospitality/finance/expenses', { params });
         return response.data;
     },
 
-    createExpense: async (data: any) => {
+    createExpense: async (data: ApiPayload) => {
         const response = await api.post('/hospitality/finance/expenses', data);
         return response.data;
     },
 
-    updateExpense: async (id: string, data: any) => {
+    updateExpense: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/hospitality/finance/expenses/${id}`, data);
         return response.data;
     },

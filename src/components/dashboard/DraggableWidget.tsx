@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { HiOutlineMenu } from 'react-icons/hi';
+import { HiOutlineBars3 } from 'react-icons/hi2';
 
 interface DraggableWidgetProps {
     id: string;
@@ -32,7 +32,7 @@ export function DraggableWidget({ id, children }: DraggableWidgetProps) {
                 {...listeners}
                 className="absolute top-2 right-2 p-1 bg-white/50 dark:bg-dark-800/50 rounded-md cursor-move opacity-0 group-hover:opacity-100 transition-opacity z-20"
             >
-                <HiOutlineMenu className="w-4 h-4 text-gray-500" />
+                <HiOutlineBars3 className="w-4 h-4 text-gray-500" />
             </div>
             {children}
         </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { db, type PendingOperation, type PendingSale } from '../../db/offlineDB';
 import {
     retryFailed,
@@ -14,6 +15,7 @@ import {
     HiOutlineClock,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
+import { ConfirmationModal } from '../ui/ConfirmationModal';
 
 interface Props {
     open: boolean;
@@ -27,6 +29,7 @@ type Row =
 export default function SyncQueuePanel({ open, onClose }: Props) {
     const { isOnline, isSyncing, syncAll, refreshCounts } = useOfflineSync();
     const [rows, setRows] = useState<Row[]>([]);
+    const [confirmDiscard, setConfirmDiscard] = useState(false);
 
     const reload = useCallback(async () => {
         const [sales, ops] = await Promise.all([
@@ -47,7 +50,16 @@ export default function SyncQueuePanel({ open, onClose }: Props) {
         return () => clearInterval(i);
     }, [open, reload]);
 
-    if (!open) return null;
+    useEffect(() => {
+        if (!open) return;
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose();
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [open, onClose]);
 
     const handleRetryAll = async () => {
         const count = await retryFailed();
@@ -58,9 +70,9 @@ export default function SyncQueuePanel({ open, onClose }: Props) {
     };
 
     const handleDiscardFailed = async () => {
-        if (!confirm('Descartar todas as operações falhadas? Esta acção é irreversível.')) return;
         const count = await discardFailed();
         toast(`${count} operações descartadas`, { icon: '🗑️' });
+        setConfirmDiscard(false);
         await reload();
         await refreshCounts();
     };
@@ -73,12 +85,22 @@ export default function SyncQueuePanel({ open, onClose }: Props) {
 
     const failedCount = rows.filter((r) => r.status === 'failed').length;
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="bg-white dark:bg-dark-900 w-full sm:max-w-3xl sm:rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-dark-700 max-h-[90vh] flex flex-col">
+    const portal = !open ? null : createPortal(
+        <div
+            className="fixed inset-0 z-[10050] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+            onClick={onClose}
+            role="presentation"
+        >
+            <div
+                className="w-full max-h-[90vh] bg-white dark:bg-dark-900 sm:max-w-3xl sm:rounded-2xl shadow-2xl ring-1 ring-gray-200 dark:ring-dark-700 flex flex-col"
+                onClick={(event) => event.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="sync-queue-title"
+            >
                 <header className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-dark-700">
                     <div>
-                        <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                        <h2 id="sync-queue-title" className="text-base font-bold text-gray-900 dark:text-white">
                             Fila de sincronização
                         </h2>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -114,7 +136,7 @@ export default function SyncQueuePanel({ open, onClose }: Props) {
                                 Repetir falhadas ({failedCount})
                             </button>
                             <button
-                                onClick={handleDiscardFailed}
+                                onClick={() => setConfirmDiscard(true)}
                                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300"
                             >
                                 <HiOutlineTrash className="w-4 h-4" />
@@ -144,14 +166,31 @@ export default function SyncQueuePanel({ open, onClose }: Props) {
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
+    );
+
+    return (
+        <>
+            {portal}
+            <ConfirmationModal
+                isOpen={confirmDiscard}
+                onClose={() => setConfirmDiscard(false)}
+                onConfirm={handleDiscardFailed}
+                title="Descartar operações falhadas"
+                message={`Tens a certeza que queres descartar ${failedCount} operação${failedCount !== 1 ? 'ões' : ''} falhada${failedCount !== 1 ? 's' : ''}? Esta acção é irreversível e os dados não serão sincronizados.`}
+                confirmText="Descartar"
+                cancelText="Cancelar"
+                variant="danger"
+            />
+        </>
     );
 }
 
 function QueueRow({ row }: { row: Row }) {
     const label =
         row._kind === 'sale'
-            ? `Venda • ${formatMoney(row.data?.total)}`
+            ? `Venda • ${formatMoney(row.data?.total as number | undefined)}`
             : `${row.method} ${row.endpoint}`;
     const sublabel = new Date(row.timestamp).toLocaleString('pt-PT');
     const statusColor: Record<string, string> = {

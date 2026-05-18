@@ -56,7 +56,7 @@ export function useSmartInsights() {
             // 2. Pharmacy - Expiry Alerts
             if (hasModule('pharmacy')) {
                 promises.push(pharmacyAPI.getMedications({ expiringDays: 30 }).then(data => {
-                    const expiringItems = data?.medications || [];
+                    const expiringItems = data?.data || [];
                     if (expiringItems.length > 0) {
                         newInsights.push({
                             id: 'pharma-expiry',
@@ -111,7 +111,7 @@ export function useSmartInsights() {
             }
 
             // 5. Financial - Overdue Invoices
-            promises.push(invoicesAPI.getAll({ status: 'overdue' }).then((data: any) => {
+            promises.push(invoicesAPI.getAll({ status: 'overdue' }).then((data: { pagination?: { total?: number } }) => {
                 const count = data?.pagination?.total || 0;
                 if (count > 0) {
                     newInsights.push({

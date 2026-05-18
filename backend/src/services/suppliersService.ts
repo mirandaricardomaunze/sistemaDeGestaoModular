@@ -1,6 +1,8 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+import { auditService } from './auditService';
 
 const SUPPLIER_FIELD_ALLOWLIST = [
     'id', 'code', 'name', 'nuit', 'phone', 'email', 'address',
@@ -8,12 +10,54 @@ const SUPPLIER_FIELD_ALLOWLIST = [
     'createdAt', 'updatedAt'
 ] as const;
 
+type ListQuery = {
+    page?: string | number;
+    limit?: string | number;
+    fields?: string;
+    search?: string;
+    isActive?: string | boolean;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+};
+
+type SupplierInput = {
+    name: string;
+    code?: string;
+    nuit?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    contactPerson?: string | null;
+    paymentTerms?: string | null;
+    isActive?: boolean;
+    [key: string]: unknown;
+};
+
+type PurchaseOrderItemInput = {
+    productId: string;
+    quantity: number;
+    unitCost?: number;
+};
+
+type PurchaseOrderInput = {
+    items: PurchaseOrderItemInput[];
+    expectedDeliveryDate?: string | Date | null;
+    notes?: string | null;
+};
+
+type ReceiveItemInput = {
+    itemId: string;
+    receivedQty: number;
+    expiryDate?: string | Date;
+    batchNumber?: string;
+};
+
 export class SuppliersService {
-    async list(params: any, companyId: string) {
+    async list(params: ListQuery, companyId: string) {
         const { page, limit, skip } = getPaginationParams(params);
         const { search, isActive, sortBy = 'name', sortOrder = 'asc' } = params;
 
-        const where: any = { companyId };
+        const where: Prisma.SupplierWhereInput = { companyId };
         if (search) {
             where.OR = [
                 { name: { contains: String(search), mode: 'insensitive' } },
@@ -22,20 +66,18 @@ export class SuppliersService {
                 { phone: { contains: String(search) } }
             ];
         }
-        if (isActive !== undefined) where.isActive = isActive === 'true';
+        if (isActive !== undefined) where.isActive = isActive === 'true' || isActive === true;
 
         const projection = parseFields(params.fields, SUPPLIER_FIELD_ALLOWLIST);
-        const findArgs: any = {
+        const baseArgs = {
             where,
-            orderBy: { [sortBy as string]: sortOrder },
+            orderBy: { [sortBy]: sortOrder } as Prisma.SupplierOrderByWithRelationInput,
             skip,
             take: limit
         };
-        if (projection) {
-            findArgs.select = projection;
-        } else {
-            findArgs.include = { _count: { select: { products: true, purchaseOrders: true } } };
-        }
+        const findArgs: Prisma.SupplierFindManyArgs = projection
+            ? { ...baseArgs, select: projection as Prisma.SupplierSelect }
+            : { ...baseArgs, include: { _count: { select: { products: true, purchaseOrders: true } } } };
 
         const [total, suppliers] = await Promise.all([
             prisma.supplier.count({ where }),
@@ -54,17 +96,17 @@ export class SuppliersService {
         return supplier;
     }
 
-    async create(data: any, companyId: string) {
+    async create(data: SupplierInput, companyId: string) {
         const code = data.code || `FOR-${Date.now().toString().slice(-6)}`;
         return prisma.supplier.create({
-            data: { ...data, code, companyId, phone: data.phone || '' } as any
+            data: { ...data, code, companyId, phone: data.phone || '' } as Prisma.SupplierUncheckedCreateInput
         });
     }
 
-    async update(id: string, data: any, companyId: string) {
-        const updateData: any = {};
+    async update(id: string, data: Partial<SupplierInput>, companyId: string) {
+        const updateData: Prisma.SupplierUncheckedUpdateInput = {};
         for (const [key, value] of Object.entries(data)) {
-            if (value !== null) updateData[key] = value;
+            if (value !== null) (updateData as Record<string, unknown>)[key] = value;
         }
 
         const result = await prisma.supplier.updateMany({
@@ -84,17 +126,17 @@ export class SuppliersService {
         return true;
     }
 
-    async createOrder(supplierId: string, data: any, companyId: string) {
+    async createOrder(supplierId: string, data: PurchaseOrderInput, companyId: string) {
         const { items, expectedDeliveryDate, notes } = data;
         const supplier = await prisma.supplier.findFirst({ where: { id: supplierId, companyId } });
         if (!supplier) throw ApiError.notFound('Fornecedor não encontrado');
 
         const count = await prisma.purchaseOrder.count({ where: { supplier: { companyId } } });
         const orderNumber = `OC-${new Date().getFullYear()}-${String(count + 1).padStart(4, '0')}`;
-        const total = items.reduce((sum: number, item: any) => sum + (item.quantity * (item.unitCost || 0)), 0);
+        const total = items.reduce((sum, item) => sum + (item.quantity * (item.unitCost || 0)), 0);
 
         // Fetch product weights to snapshot on purchase order items
-        const poProductIds = items.map((i: any) => i.productId).filter(Boolean);
+        const poProductIds = items.map((i) => i.productId).filter(Boolean);
         const poWeightMap = new Map<string, number>();
         if (poProductIds.length > 0) {
             const prods = await prisma.product.findMany({
@@ -114,7 +156,7 @@ export class SuppliersService {
                 expectedDeliveryDate: expectedDeliveryDate ? new Date(expectedDeliveryDate) : null,
                 notes,
                 items: {
-                    create: items.map((item: any) => ({
+                    create: items.map((item) => ({
                         productId: item.productId, quantity: item.quantity,
                         unitCost: item.unitCost || 0, total: item.quantity * (item.unitCost || 0),
                         unitWeight: item.productId && poWeightMap.has(item.productId)
@@ -127,7 +169,7 @@ export class SuppliersService {
         });
     }
 
-    async listOrders(supplierId: string, params: any, companyId: string) {
+    async listOrders(supplierId: string, params: ListQuery, companyId: string) {
         const { page, limit, skip } = getPaginationParams(params);
 
         const where = { supplierId, supplier: { companyId } };
@@ -143,7 +185,7 @@ export class SuppliersService {
         return createPaginatedResponse(orders, page, limit, total);
     }
 
-    async receiveOrder(orderId: string, items: any[], companyId: string, performedBy: string = 'Sistema', userId?: string, userName?: string, warehouseId?: string) {
+    async receiveOrder(orderId: string, items: ReceiveItemInput[], companyId: string, performedBy: string = 'Sistema', userId?: string, userName?: string, warehouseId?: string) {
         const order = await prisma.purchaseOrder.findFirst({
             where: { id: orderId, supplier: { companyId } },
             include: { items: true }
@@ -246,7 +288,6 @@ export class SuppliersService {
 
         // 6. Audit Log
         if (userId) {
-            const { auditService } = require('./auditService');
             await auditService.log({
                 userId,
                 userName,
@@ -254,7 +295,7 @@ export class SuppliersService {
                 entity: 'purchase_orders',
                 entityId: orderId,
                 companyId,
-                details: {
+                newData: {
                     orderNumber: order.orderNumber,
                     itemsReceived: items.length,
                     isFullyReceived: allReceived
@@ -263,6 +304,47 @@ export class SuppliersService {
         }
 
         return true;
+    }
+
+    async cancelOrder(orderId: string, companyId: string, userId?: string, userName?: string, reason?: string) {
+        const order = await prisma.purchaseOrder.findFirst({
+            where: { id: orderId, companyId },
+            include: { items: true, supplier: true }
+        });
+        if (!order) throw ApiError.notFound('Ordem de compra não encontrada');
+
+        if (!['draft', 'ordered'].includes(order.status)) {
+            throw ApiError.badRequest('Apenas encomendas em rascunho ou encomendadas podem ser canceladas');
+        }
+
+        const hasReceivedItems = order.items.some((item) => item.receivedQty > 0);
+        if (hasReceivedItems) {
+            throw ApiError.badRequest('Esta encomenda já tem itens recebidos. Use o fluxo de devolução/ajuste de stock.');
+        }
+
+        const updated = await prisma.purchaseOrder.update({
+            where: { id: orderId },
+            data: {
+                status: 'cancelled',
+                notes: reason ? [order.notes, `Cancelada: ${reason}`].filter(Boolean).join('\n') : order.notes
+            },
+            include: { items: { include: { product: true } }, supplier: true }
+        });
+
+        if (userId) {
+            await auditService.log({
+                userId,
+                userName,
+                action: 'CANCEL_ORDER',
+                entity: 'purchase_orders',
+                entityId: orderId,
+                companyId,
+                oldData: { status: order.status },
+                newData: { status: 'cancelled', reason },
+            });
+        }
+
+        return updated;
     }
 }
 

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Button, Input, Select, Badge, LoadingSpinner, Pagination, PageHeader } from '../../components/ui';
 import {
     HiOutlineClipboardDocumentList, HiOutlinePlus, HiOutlineExclamationCircle,
-    HiOutlineShieldCheck, HiOutlineArrowDownTray as HiOutlineDownload, HiOutlineClipboardDocumentCheck
+    HiOutlineShieldCheck, HiOutlineArrowDownTray as HiOutlineArrowDownTray, HiOutlineClipboardDocumentCheck
 } from 'react-icons/hi2';
 import { pharmacyAPI } from '../../services/api';
 import { usePharmacy } from '../../hooks/usePharmacy';
@@ -12,6 +12,22 @@ import { formatDate } from '../../utils/helpers';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useStore } from '../../stores/useStore';
+import type { Medication } from '../../types/pharmacy';
+
+interface NarcoticRecord {
+    id: string;
+    registerDate: string;
+    medicationName: string;
+    batchNumber: string;
+    openingBalance: number;
+    received: number;
+    dispensed: number;
+    returned: number;
+    destroyed: number;
+    closingBalance: number;
+    discrepancy: number;
+    verifiedBy: string;
+}
 
 export default function PharmacyNarcoticRegister() {
     const queryClient = useQueryClient();
@@ -52,7 +68,7 @@ export default function PharmacyNarcoticRegister() {
         onError: () => toast.error('Erro ao adicionar registo')
     });
 
-    const records = data?.data || [];
+    const records: NarcoticRecord[] = (data?.data as NarcoticRecord[] | undefined) || [];
     const closingPreview = form.openingBalance + form.received - form.dispensed + form.returned - form.destroyed;
     const discrepancyPreview = closingPreview < 0 ? Math.abs(closingPreview) : 0;
 
@@ -66,10 +82,10 @@ export default function PharmacyNarcoticRegister() {
         autoTable(doc, {
             startY: 40,
             head: [['Data', 'Medicamento', 'Lote', 'Saldo Inicial', 'Entrada', 'Saída', 'Devol.', 'Destr.', 'Saldo Final', 'Discrep.', 'Verificado por']],
-            body: records.map((r: any) => [
+            body: records.map((r) => [
                 formatDate(r.registerDate), r.medicationName, r.batchNumber,
                 r.openingBalance, r.received, r.dispensed, r.returned, r.destroyed,
-                r.closingBalance, r.discrepancy > 0 ? `⚠️ ${r.discrepancy}` : '0',
+                r.closingBalance, r.discrepancy > 0 ? `⚠️ï¸ ${r.discrepancy}` : '0',
                 r.verifiedBy
             ]),
             styles: { fontSize: 7 },
@@ -86,7 +102,7 @@ export default function PharmacyNarcoticRegister() {
                 icon={<HiOutlineClipboardDocumentCheck />}
                 actions={
                     <>
-                        <Button variant="outline" onClick={exportPDF} leftIcon={<HiOutlineDownload className="w-4 h-4" />}>Exportar PDF</Button>
+                        <Button variant="outline" onClick={exportPDF} leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}>Exportar PDF</Button>
                         <Button onClick={() => setShowForm(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />}>Novo Registo</Button>
                     </>
                 }
@@ -105,10 +121,12 @@ export default function PharmacyNarcoticRegister() {
                             label="Medicamento Controlado *"
                             value={form.medicationId}
                             onChange={e => setForm(f => ({ ...f, medicationId: e.target.value }))}
-                            options={medications.filter((m: any) => m.isControlled).map((m: any) => ({
-                                value: m.id,
-                                label: `${m.product.name} (${m.controlLevel || 'Controlado'})`
-                            }))}
+                            options={(medications as Array<Medication & { isControlled?: boolean; controlLevel?: string }>)
+                                .filter((m) => m.isControlled)
+                                .map((m) => ({
+                                    value: m.id,
+                                    label: `${m.product?.name} (${m.controlLevel || 'Controlado'})`
+                                }))}
                             placeholder="Seleccionar..."
                         />
                         <Input label="Nº Lote" value={form.batchNumber} onChange={e => setForm(f => ({ ...f, batchNumber: e.target.value }))} placeholder="Ex: LT-2024-001" />
@@ -176,7 +194,7 @@ export default function PharmacyNarcoticRegister() {
                             <tbody className="divide-y dark:divide-dark-700">
                                 {records.length === 0 ? (
                                     <tr><td colSpan={11} className="px-4 py-8 text-center text-gray-400">Nenhum registo encontrado</td></tr>
-                                ) : records.map((r: any) => (
+                                ) : records.map((r) => (
                                     <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                         <td className="px-4 py-3 whitespace-nowrap">{formatDate(r.registerDate)}</td>
                                         <td className="px-4 py-3 font-medium">{r.medicationName}</td>
@@ -189,7 +207,7 @@ export default function PharmacyNarcoticRegister() {
                                         <td className="px-4 py-3 text-center font-bold">{r.closingBalance}</td>
                                         <td className="px-4 py-3 text-center">
                                             {r.discrepancy > 0 ? (
-                                                <Badge variant="danger" className="font-bold">⚠️ {r.discrepancy}</Badge>
+                                                <Badge variant="danger" className="font-bold">⚠️ï¸ {r.discrepancy}</Badge>
                                             ) : <Badge variant="success">OK</Badge>}
                                         </td>
                                         <td className="px-4 py-3 text-xs text-gray-500">{r.verifiedBy}</td>

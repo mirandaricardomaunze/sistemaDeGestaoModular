@@ -12,6 +12,11 @@ import type {
     PurchaseOrder,
     AccountsReceivableResult,
     WarehouseDistribution,
+    SupplierInvoice,
+    SupplierInvoicesListParams,
+    CreateSupplierInvoicePayload,
+    AddSupplierInvoicePaymentPayload,
+    Quotation,
 } from '../services/api/commercial.api';
 import { logger } from '../utils/logger';
 
@@ -168,6 +173,7 @@ interface UsePurchaseOrdersParams {
 }
 
 export function usePurchaseOrders(params?: UsePurchaseOrdersParams) {
+    const { status, supplierId, search, page, limit } = params ?? {};
     const [orders, setOrders] = useState<PurchaseOrder[]>([]);
     const [pagination, setPagination] = useState<{ page: number; limit: number; total: number; totalPages: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -177,26 +183,22 @@ export function usePurchaseOrders(params?: UsePurchaseOrdersParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await commercialAPI.listPurchaseOrders(params);
-            if (res.data && res.pagination) {
-                setOrders(res.data);
-                setPagination(res.pagination);
-            } else {
-                setOrders(Array.isArray(res) ? res : []);
-            }
+            const res = await commercialAPI.listPurchaseOrders({ status, supplierId, search, page, limit });
+            setOrders(res.data);
+            setPagination(res.pagination);
         } catch (err) {
             logger.error('Error fetching purchase orders:', err);
             setError('Erro ao carregar ordens de compra');
         } finally {
             setIsLoading(false);
         }
-    }, [params?.status, params?.supplierId, params?.search, params?.page, params?.limit]);
+    }, [status, supplierId, search, page, limit]);
 
     useEffect(() => { fetch(); }, [fetch]);
 
-    const updateStatus = async (id: string, status: string) => {
+    const updateStatus = async (id: string, status: string, options?: { warehouseId?: string; approvalId?: string }) => {
         try {
-            const updated = await commercialAPI.updatePurchaseOrderStatus(id, status);
+            const updated = await commercialAPI.updatePurchaseOrderStatus(id, status, options);
             setOrders(prev => prev.map(o => o.id === id ? updated : o));
             toast.success('Estado actualizado com sucesso!');
             return updated;
@@ -220,6 +222,63 @@ export function usePurchaseOrders(params?: UsePurchaseOrdersParams) {
     return { orders, pagination, isLoading, error, refetch: fetch, updateStatus, deletePO };
 }
 
+// ── Supplier Invoices Hook ───────────────────────────────────────────────────
+
+export function useSupplierInvoices(params?: SupplierInvoicesListParams) {
+    const { purchaseOrderId, supplierId, status, period, page, limit } = params ?? {};
+    const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
+    const [pagination, setPagination] = useState<{ page: number; limit: number; total: number; totalPages: number } | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetch = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const res = await commercialAPI.listSupplierInvoices({ purchaseOrderId, supplierId, status, period, page, limit });
+            setInvoices(res.data);
+            setPagination(res.pagination);
+        } catch (err) {
+            logger.error('Error fetching supplier invoices:', err);
+            setError('Erro ao carregar facturas de fornecedor');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [purchaseOrderId, supplierId, status, period, page, limit]);
+
+    useEffect(() => { fetch(); }, [fetch]);
+
+    const create = async (purchaseOrderId: string, payload: CreateSupplierInvoicePayload) => {
+        const created = await commercialAPI.createSupplierInvoice(purchaseOrderId, payload);
+        setInvoices(prev => [created, ...prev]);
+        toast.success('Factura de fornecedor registada!');
+        return created;
+    };
+
+    const updateStatus = async (id: string, status: 'paid' | 'cancelled') => {
+        const updated = await commercialAPI.updateSupplierInvoiceStatus(id, status);
+        setInvoices(prev => prev.map(i => i.id === id ? updated : i));
+        toast.success(status === 'paid' ? 'Factura marcada como paga' : 'Factura cancelada');
+        return updated;
+    };
+
+    const addPayment = async (id: string, payload: AddSupplierInvoicePaymentPayload) => {
+        const updated = await commercialAPI.addSupplierInvoicePayment(id, payload);
+        setInvoices(prev => prev.map(i => i.id === id ? updated : i));
+        toast.success(updated.status === 'paid' ? 'Factura totalmente paga!' : 'Pagamento registado');
+        return updated;
+    };
+
+    const deletePayment = async (id: string, paymentId: string) => {
+        const updated = await commercialAPI.deleteSupplierInvoicePayment(id, paymentId);
+        setInvoices(prev => prev.map(i => i.id === id ? updated : i));
+        toast.success('Pagamento removido');
+        return updated;
+    };
+
+    return { invoices, pagination, isLoading, error, refetch: fetch, create, updateStatus, addPayment, deletePayment };
+}
+
 // ── Quotations Hook ──────────────────────────────────────────────────────────
 
 interface UseQuotationsParams {
@@ -230,7 +289,8 @@ interface UseQuotationsParams {
 }
 
 export function useQuotations(params?: UseQuotationsParams) {
-    const [quotes, setQuotes] = useState<any[]>([]);
+    const { status, search, page, limit } = params ?? {};
+    const [quotes, setQuotes] = useState<Quotation[]>([]);
     const [pagination, setPagination] = useState<{ page: number; limit: number; total: number; totalPages: number } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -239,7 +299,7 @@ export function useQuotations(params?: UseQuotationsParams) {
         setIsLoading(true);
         setError(null);
         try {
-            const res = await commercialAPI.listQuotations(params);
+            const res = await commercialAPI.listQuotations({ status, search, page, limit });
             if (res?.data && res?.pagination) {
                 setQuotes(res.data);
                 setPagination(res.pagination);
@@ -252,7 +312,7 @@ export function useQuotations(params?: UseQuotationsParams) {
         } finally {
             setIsLoading(false);
         }
-    }, [params?.status, params?.search, params?.page, params?.limit]);
+    }, [status, search, page, limit]);
 
     useEffect(() => { fetch(); }, [fetch]);
 
@@ -269,6 +329,7 @@ interface UseAccountsReceivableParams {
 }
 
 export function useAccountsReceivable(params?: UseAccountsReceivableParams) {
+    const { filter, search, page, limit } = params ?? {};
     const [data, setData]     = useState<AccountsReceivableResult | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError]   = useState<string | null>(null);
@@ -277,14 +338,14 @@ export function useAccountsReceivable(params?: UseAccountsReceivableParams) {
         setIsLoading(true);
         setError(null);
         try {
-            setData(await commercialAPI.getAccountsReceivable(params));
+            setData(await commercialAPI.getAccountsReceivable({ filter, search, page, limit }));
         } catch (err) {
             logger.error('Error fetching accounts receivable:', err);
             setError('Erro ao carregar contas a receber');
         } finally {
             setIsLoading(false);
         }
-    }, [params?.filter, params?.search, params?.page, params?.limit]);
+    }, [filter, search, page, limit]);
 
     useEffect(() => { fetch(); }, [fetch]);
 

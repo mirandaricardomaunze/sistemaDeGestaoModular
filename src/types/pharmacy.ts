@@ -1,6 +1,7 @@
 import type { Product, Sale, Customer } from './index';
 
 export interface Medication extends Product {
+    productId?: string;
     requiresPrescription: boolean;
     dosageForm: string;
     strength: string;
@@ -14,8 +15,18 @@ export interface Medication extends Product {
     product?: { code?: string; name?: string; price?: number; costPrice?: number };
     dci?: string;
     pharmaceuticalForm?: string;
+    laboratory?: string;
+    storageTemp?: string;
+    storageLocation?: string;
+    atcCode?: string;
+    controlLevel?: string;
+    concentration?: string;
+    activeIngredient?: string;
     totalStock?: number;
     nearestExpiry?: string;
+    daysToExpiry?: number | null;
+    dosage?: string;
+    alertLevel?: 'critical' | 'warning' | 'normal';
 }
 
 export interface PharmacyBatch {
@@ -51,6 +62,12 @@ export interface Prescription {
     imageUrl?: string;
     createdAt: string;
     updatedAt: string;
+    // Legacy/alternative API fields
+    prescriptionNumber?: string;
+    prescriptionNo?: string;
+    patientName?: string;
+    patientPhone?: string;
+    prescriberName?: string;
 }
 
 export interface PrescriptionItem {
@@ -79,9 +96,13 @@ export interface PharmacyPartner {
     code: string;
     type: 'insurance' | 'clinic' | 'government' | 'other';
     discountRate: number;
+    coveragePercentage?: number;
     contactPerson?: string;
     phone: string;
     email?: string;
+    address?: string;
+    nuit?: string;
+    category?: string;
     isActive: boolean;
     createdAt: string;
 }

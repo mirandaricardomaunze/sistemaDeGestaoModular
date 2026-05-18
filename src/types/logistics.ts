@@ -72,6 +72,7 @@ export interface Driver {
 
 export interface StaffAttendance {
     id: string;
+    employeeId?: string;
     staffId: string;
     date: string;
     checkIn?: string;
@@ -79,6 +80,7 @@ export interface StaffAttendance {
     status: 'present' | 'absent' | 'late' | 'leave';
     notes?: string;
     staff?: Driver;
+    employee?: { id: string; name: string; code: string };
 }
 
 export interface StaffPayroll {
@@ -103,6 +105,10 @@ export interface DeliveryRoute {
     name: string;
     origin: string;
     destination: string;
+    originLat?: number | string;
+    originLng?: number | string;
+    destinationLat?: number | string;
+    destinationLng?: number | string;
     distance?: number;
     estimatedTime?: number;
     tollCost?: number;

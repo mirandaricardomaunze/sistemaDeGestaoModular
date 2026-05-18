@@ -4,7 +4,7 @@ export interface Message {
     content: string;
     timestamp: Date;
     pdfUrl?: string;
-    data?: any;
+    data?: unknown;
 }
 
 export interface ChatState {
@@ -15,7 +15,7 @@ export interface ChatState {
 
 export interface ChatResponse {
     message: string;
-    data?: any;
+    data?: unknown;
     pdfUrl?: string;
     suggestions?: string[];
 }

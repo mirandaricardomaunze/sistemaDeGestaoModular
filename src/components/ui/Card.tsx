@@ -20,9 +20,9 @@ export function Card({ children, className, variant = 'default', padding = 'md',
     };
 
     const variantClasses = {
-        default: 'bg-white dark:bg-[#12141a] rounded-2xl shadow-sm border border-slate-200/60 dark:border-white/5 transition-all duration-300 hover:shadow-card-hover hover:border-primary-500/30 hover:scale-[1.01]',
-        glass: 'bg-white/70 dark:bg-dark-900/40 backdrop-blur-xl rounded-2xl shadow-glass border border-white/40 dark:border-white/5',
-        premium: 'bg-gradient-to-br from-white to-slate-50 dark:from-dark-800 dark:to-[#0f1115] rounded-2xl border border-slate-200 dark:border-dark-700 shadow-premium relative overflow-hidden',
+        default: 'bg-white dark:bg-[#12141a] rounded-2xl shadow-card border border-slate-300/70 dark:border-white/5 transition-all duration-300 hover:shadow-card-hover hover:border-primary-500/35',
+        glass: 'bg-white dark:bg-dark-900/40 rounded-2xl shadow-glass border border-slate-300/70 dark:border-white/5',
+        premium: 'bg-gradient-to-br from-white to-slate-50 dark:from-dark-800 dark:to-[#0f1115] rounded-2xl border border-slate-300/70 dark:border-dark-700 shadow-premium relative overflow-hidden',
     };
 
     const colorClasses: Record<string, string> = {
@@ -36,7 +36,7 @@ export function Card({ children, className, variant = 'default', padding = 'md',
         emerald: 'bg-emerald-600 text-white border-none shadow-lg shadow-emerald-600/20',
         cyan: 'bg-cyan-600 text-white border-none shadow-lg shadow-cyan-600/20',
         indigo: 'bg-indigo-600 text-white border-none shadow-lg shadow-indigo-600/20',
-        slate: 'bg-slate-50 dark:bg-dark-700 text-slate-900 dark:text-white border border-slate-200 dark:border-dark-600 shadow-sm',
+        slate: 'bg-white dark:bg-dark-700 text-slate-950 dark:text-white border border-slate-300/70 dark:border-dark-600 shadow-card',
         rose: 'bg-rose-500 text-white border-none shadow-lg shadow-rose-500/20',
         pink: 'bg-pink-500 text-white border-none shadow-lg shadow-pink-500/20',
     };

@@ -21,9 +21,9 @@ export function LoadingSpinner({
     if (variant === 'dots') {
         return (
             <div className={`flex gap-2 ${className}`} {...props}>
-                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '0mês' }}></div>
-                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '150mês' }}></div>
-                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '300mês' }}></div>
+                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '0ms' }}></div>
+                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '150ms' }}></div>
+                <div className={`${sizeClasses[size]} bg-primary-600 rounded-full animate-bounce`} style={{ animationDelay: '300ms' }}></div>
             </div>
         );
     }

@@ -1,6 +1,6 @@
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore, MODULE_TO_BUSINESS_TYPE } from '../../stores/useStore';
 import { useAuthStore, roleLabels } from '../../stores/useAuthStore';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -25,23 +25,24 @@ import {
     HiOutlineChevronRight,
     HiOutlineUserGroup,
     HiOutlineTag,
-    HiOutlineArrowRightOnRectangle as HiOutlineLogout,
+    HiOutlineArrowRightOnRectangle as HiOutlineArrowLeftOnRectangle,
     HiOutlineCalculator,
     HiOutlineShieldCheck,
+    HiOutlineCheckCircle,
     HiOutlineChartPie,
     HiOutlineCircleStack,
     HiOutlineChartBar,
     HiOutlineBeaker,
     HiOutlineCalendar,
-    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardDocumentList,
     HiOutlinePencilSquare as HiOutlinePencilAlt,
-    HiOutlineSquares2X2 as HiOutlineViewGrid,
+    HiOutlineSquares2X2 as HiOutlineSquares2X2,
     HiOutlineQuestionMarkCircle,
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlineClock,
     HiOutlineExclamationCircle,
     HiOutlineUserCircle,
-    HiOutlineDocumentChartBar as HiOutlineDocumentReport,
+    HiOutlineDocumentChartBar as HiOutlineDocumentChartBar,
     HiOutlineBookOpen,
     HiSparkles,
 } from 'react-icons/hi2';
@@ -171,39 +172,39 @@ const DEFAULT_THEME: ModuleTheme = {
 interface MenuItem {
     id: string;
     labelKey: string;
-    icon: any;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
     path: string;
-    state?: any;
+    state?: Record<string, unknown>;
     module?: string;
     role?: string;
     submenu?: MenuItem[];
 }
 
 const menuItems: MenuItem[] = [
-    { id: 'dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/dashboard' },
+    { id: 'dashboard', labelKey: 'nav.dashboard', icon: HiOutlineSquares2X2, path: '/dashboard' },
 
     // ============================================================================
     // PHARMACY Module - 7 focused items
     // ============================================================================
-    { id: 'pharmacy_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/pharmacy/dashboard', module: 'pharmacy' },
+    { id: 'pharmacy_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineSquares2X2, path: '/pharmacy/dashboard', module: 'pharmacy' },
     { id: 'pharmacy_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/pharmacy/pos', module: 'pharmacy' },
     { id: 'pharmacy_shifts', labelKey: 'Turnos', icon: HiOutlineCalculator, path: '/pharmacy/shifts', module: 'pharmacy' },
     { id: 'pharmacy_history', labelKey: 'Histórico', icon: HiOutlineClock, path: '/pharmacy/history', module: 'pharmacy' },
     { id: 'pharmacy_manage', labelKey: 'Medicamentos', icon: HiOutlineBeaker, path: '/pharmacy/manage', module: 'pharmacy' },
     { id: 'pharmacy_patients', labelKey: 'Pacientes', icon: HiOutlineUserCircle, path: '/pharmacy/patients', module: 'pharmacy' },
     { id: 'pharmacy_employees', labelKey: 'Recursos Humanos', icon: HiOutlineUsers, path: '/pharmacy/employees', module: 'pharmacy' },
-    { id: 'pharmacy_compliance', labelKey: 'Conformidade', icon: HiOutlineClipboardList, path: '/pharmacy/compliance', module: 'pharmacy' },
+    { id: 'pharmacy_compliance', labelKey: 'Conformidade', icon: HiOutlineClipboardDocumentList, path: '/pharmacy/compliance', module: 'pharmacy' },
     { id: 'pharmacy_partners', labelKey: 'Parceiros', icon: HiOutlineCurrencyDollar, path: '/pharmacy/partners', module: 'pharmacy' },
     { id: 'pharmacy_finance', labelKey: 'Financeiro', icon: HiOutlineCurrencyDollar, path: '/pharmacy/finance', module: 'pharmacy' },
-    { id: 'pharmacy_reconciliation', labelKey: 'Reconciliação', icon: HiOutlineClipboardList, path: '/pharmacy/reconciliation', module: 'pharmacy' },
+    { id: 'pharmacy_reconciliation', labelKey: 'Reconciliação', icon: HiOutlineClipboardDocumentList, path: '/pharmacy/reconciliation', module: 'pharmacy' },
     { id: 'pharmacy_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/pharmacy/reports', module: 'pharmacy' },
-    { id: 'pharmacy_alerts', labelKey: 'Alertas', icon: HiOutlineExclamationCircle, path: '/pharmacy/alerts', module: 'pharmacy' },
+    { id: 'pharmacy_alerts', labelKey: 'Alertas Inteligentes', icon: HiOutlineExclamationCircle, path: '/pharmacy/alerts', module: 'pharmacy' },
 
 
     // ============================================================================
     // HOSPITALITY Module - Specific pages (only for hotel businesses)
     // ============================================================================
-    { id: 'hotel_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/hospitality/dashboard', module: 'hospitality' },
+    { id: 'hotel_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineSquares2X2, path: '/hospitality/dashboard', module: 'hospitality' },
     { id: 'hotel_rooms', labelKey: 'hotel_module.rooms.title', icon: HiOutlineHomeModern, path: '/hospitality/rooms', module: 'hospitality' },
     { id: 'hotel_reservations', labelKey: 'hotel_module.reservations.title', icon: HiOutlineCalendar, path: '/hospitality/reservations', module: 'hospitality' },
     { id: 'hotel_housekeeping', labelKey: 'hotel_module.housekeeping.title', icon: HiSparkles, path: '/hospitality/housekeeping', module: 'hospitality' },
@@ -220,12 +221,16 @@ const menuItems: MenuItem[] = [
     { id: 'commercial_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/commercial/pos', module: 'commercial' },
     { id: 'commercial_shifts', labelKey: 'nav.shifts', icon: HiOutlineCalculator, path: '/commercial/history?tab=shifts', module: 'commercial' },
     { id: 'commercial_history', labelKey: 'nav.history', icon: HiOutlineClock, path: '/commercial/history', module: 'commercial' },
-    { id: 'commercial_stock', labelKey: 'nav.stock_movements', icon: HiOutlineRefresh, path: '/commercial/history?tab=stock', module: 'commercial' },
+    { id: 'commercial_stock', labelKey: 'nav.stock_movements', icon: HiOutlineArrowPath, path: '/commercial/history?tab=stock', module: 'commercial' },
     { id: 'commercial_inventory', labelKey: 'Inventário', icon: HiOutlineCube, path: '/commercial/inventory', module: 'commercial' },
-    { id: 'commercial_purchase_orders', labelKey: 'Ordens de Compra', icon: HiOutlineClipboardList, path: '/commercial/purchase-orders', module: 'commercial' },
+    { id: 'commercial_physical_inventory', labelKey: 'Inventario Fisico', icon: HiOutlineClipboardDocumentList, path: '/inventory/physical', module: 'commercial' },
+    { id: 'commercial_purchase_orders', labelKey: 'Ordens de Compra', icon: HiOutlineClipboardDocumentList, path: '/commercial/purchase-orders', module: 'commercial' },
+    { id: 'commercial_supplier_invoices', labelKey: 'Facturas de Fornecedor', icon: HiOutlineDocumentText, path: '/commercial/supplier-invoices', module: 'commercial' },
     { id: 'commercial_quotes', labelKey: 'Cotações', icon: HiOutlinePencilAlt, path: '/commercial/quotes', module: 'commercial' },
     { id: 'commercial_finance', labelKey: 'Gestão Financeira', icon: HiOutlineCurrencyDollar, path: '/commercial/finance', module: 'commercial' },
-    { id: 'commercial_orders', labelKey: 'Encomendas', icon: HiOutlineDocumentReport, path: '/commercial/orders', module: 'commercial' },
+    { id: 'commercial_returns', labelKey: 'Devolucoes', icon: HiOutlineArrowPath, path: '/commercial/returns', module: 'commercial' },
+    { id: 'commercial_pending_voids', labelKey: 'Anulações Pendentes', icon: HiOutlineShieldCheck, path: '/commercial/pending-voids', module: 'commercial' },
+    { id: 'commercial_orders', labelKey: 'Encomendas', icon: HiOutlineDocumentChartBar, path: '/commercial/orders', module: 'commercial' },
     { id: 'commercial_invoices', labelKey: 'Facturas', icon: HiOutlineDocumentText, path: '/commercial/invoices', module: 'commercial' },
     { id: 'commercial_customers', labelKey: 'Clientes', icon: HiOutlineUserGroup, path: '/commercial/customers', module: 'commercial' },
     { id: 'commercial_suppliers', labelKey: 'Fornecedores', icon: HiOutlineTruck, path: '/commercial/suppliers', module: 'commercial' },
@@ -238,13 +243,13 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     // LOGISTICS Module - Specific pages (only for logistics businesses)
     // ============================================================================
-    { id: 'logistics_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/logistics/dashboard', module: 'logistics' },
+    { id: 'logistics_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineSquares2X2, path: '/logistics/dashboard', module: 'logistics' },
     { id: 'logistics_driver_panel', labelKey: 'Painel Motorista', icon: HiOutlineRectangleStack, path: '/logistics/driver-panel', module: 'logistics' },
     { id: 'logistics_vehicles', labelKey: 'Veículos', icon: HiOutlineTruck, path: '/logistics/vehicles', module: 'logistics' },
     { id: 'logistics_drivers', labelKey: 'Motoristas', icon: HiOutlineUsers, path: '/logistics/drivers', module: 'logistics' },
     { id: 'logistics_hr', labelKey: 'logistics_module.hr.title', icon: HiOutlineUsers, path: '/logistics/hr', module: 'logistics' },
     { id: 'logistics_routes', labelKey: 'Rotas', icon: HiOutlineChartBar, path: '/logistics/routes', module: 'logistics' },
-    { id: 'logistics_deliveries', labelKey: 'Entregas', icon: HiOutlineClipboardList, path: '/logistics/deliveries', module: 'logistics' },
+    { id: 'logistics_deliveries', labelKey: 'Entregas', icon: HiOutlineClipboardDocumentList, path: '/logistics/deliveries', module: 'logistics' },
     { id: 'logistics_parcels', labelKey: 'Encomendas', icon: HiOutlineCube, path: '/logistics/parcels', module: 'logistics' },
     { id: 'logistics_maintenance', labelKey: 'Manutenção', icon: HiOutlineCog, path: '/logistics/maintenance', module: 'logistics' },
     { id: 'logistics_fuel', labelKey: 'logistics_module.fuel.title', icon: HiOutlineFire, path: '/logistics/fuel', module: 'logistics' },
@@ -255,10 +260,10 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     // BOTTLE_STORE Module - Specific page
     // ============================================================================
-    { id: 'bottle_store_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/bottle-store/dashboard', module: 'bottle_store' },
+    { id: 'bottle_store_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineSquares2X2, path: '/bottle-store/dashboard', module: 'bottle_store' },
     { id: 'bottle_store_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/bottle-store/pos', module: 'bottle_store' },
     { id: 'bottle_store_inventory', labelKey: 'nav.inventory', icon: HiOutlineCube, path: '/bottle-store/inventory', module: 'bottle_store' },
-    { id: 'bottle_store_stock', labelKey: 'nav.stock_movements', icon: HiOutlineRefresh, path: '/bottle-store/stock', module: 'bottle_store' },
+    { id: 'bottle_store_stock', labelKey: 'nav.stock_movements', icon: HiOutlineArrowPath, path: '/bottle-store/stock', module: 'bottle_store' },
     { id: 'bottle_store_returns', labelKey: 'Vasilhames', icon: HiOutlineBeaker, path: '/bottle-store/returns', module: 'bottle_store' },
     { id: 'bottle_store_cash', labelKey: 'Caixa', icon: HiOutlineCalculator, path: '/bottle-store/cash', module: 'bottle_store' },
     { id: 'bottle_store_credit', labelKey: 'Crédito', icon: HiOutlineBookOpen, path: '/bottle-store/credit', module: 'bottle_store' },
@@ -269,7 +274,7 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     // RESTAURANT Module - Specific pages
     // ============================================================================
-    { id: 'restaurant_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineViewGrid, path: '/restaurant/dashboard', module: 'restaurant' },
+    { id: 'restaurant_dashboard', labelKey: 'nav.dashboard', icon: HiOutlineSquares2X2, path: '/restaurant/dashboard', module: 'restaurant' },
     { id: 'restaurant_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/restaurant/pos', module: 'restaurant' },
     { id: 'restaurant_kitchen', labelKey: 'Cozinha (KDS)', icon: HiOutlineFire, path: '/restaurant/kitchen', module: 'restaurant' },
     { id: 'restaurant_menu', labelKey: 'Cardápio / Menu', icon: HiOutlineBookOpen, path: '/restaurant/menu', module: 'restaurant' },
@@ -289,6 +294,7 @@ const menuItems: MenuItem[] = [
     { id: 'crm', labelKey: 'nav.crm', icon: HiOutlineChartPie, path: '/crm', module: 'crm' },
     { id: 'employees', labelKey: 'nav.employees', icon: HiOutlineUsers, path: '/employees', module: 'hr' },
     { id: 'financial', labelKey: 'nav.financial', icon: HiOutlineCurrencyDollar, path: '/financial', module: 'financial' },
+    { id: 'accounting', labelKey: 'Contabilidade', icon: HiOutlineCalculator, path: '/accounting', module: 'financial' },
     { id: 'invoices', labelKey: 'nav.invoices', icon: HiOutlineDocumentText, path: '/invoices', module: 'invoices' },
 
     // ============================================================================
@@ -299,6 +305,7 @@ const menuItems: MenuItem[] = [
     { id: 'fiscal', labelKey: 'nav.fiscal', icon: HiOutlineCalculator, path: '/fiscal', module: 'fiscal' },
     { id: 'reports', labelKey: 'nav.reports', icon: HiOutlineDocumentText, path: '/reports' },
     { id: 'audit', labelKey: 'nav.audit', icon: HiOutlineShieldCheck, path: '/audit' },
+    { id: 'approvals', labelKey: 'Aprovações', icon: HiOutlineCheckCircle, path: '/approvals' },
     { id: 'backups', labelKey: 'nav.backups', icon: HiOutlineCircleStack, path: '/backups' },
     { id: 'help', labelKey: 'Ajuda', icon: HiOutlineQuestionMarkCircle, path: '/help' },
     { id: 'settings', labelKey: 'nav.settings', icon: HiOutlineCog, path: '/settings' },
@@ -434,12 +441,12 @@ export default function Sidebar() {
             {/* Sidebar - Now an Overlay (Off-Canvas) */}
             <aside
                 className={cn(
-                    'fixed top-4 left-4 h-[calc(100vh-2rem)] bg-white/95 dark:bg-dark-800 shadow-2xl z-[9990] transition-all duration-500 ease-in-out flex flex-col w-72 rounded-lg border border-slate-300/40 dark:border-dark-700/50 backdrop-blur-md',
+                    'fixed top-4 left-4 h-[calc(100vh-2rem)] bg-white dark:bg-dark-800 shadow-card-hover z-[9990] transition-all duration-300 ease-in-out flex flex-col w-72 rounded-2xl border border-slate-300/70 dark:border-dark-700/50',
                     sidebarOpen ? 'translate-x-0 opacity-100' : '-translate-x-[calc(100%+2rem)] opacity-0'
                 )}
             >
                 {/* Logo / Brand */}
-                <div className="flex items-center justify-between min-h-[90px] px-6 py-4 flex-shrink-0 bg-white/50 dark:bg-dark-800/50 backdrop-blur-xl rounded-t-2xl border-b border-gray-100 dark:border-dark-700/50 transition-all duration-500">
+                <div className="flex items-center justify-between min-h-[90px] px-6 py-4 flex-shrink-0 bg-slate-50 dark:bg-dark-800/50 rounded-t-2xl border-b border-slate-200 dark:border-dark-700/50 transition-all duration-300">
                     <div className="flex items-center gap-4 overflow-hidden group/brand cursor-pointer" onClick={() => navigate('/dashboard')}>
                         {companySettings.logo ? (
                             <div className="relative">
@@ -451,7 +458,7 @@ export default function Sidebar() {
                                 />
                             </div>
                         ) : (
-                            <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-2xl shadow-primary-500/20 shrink-0 transform transition-all duration-500 group-hover/brand:scale-110 group-hover/brand:rotate-3', theme.brandGradient, theme.brandShadow)}>
+                            <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center shadow-md shadow-primary-500/20 shrink-0 transform transition-all duration-300 group-hover/brand:scale-105', theme.brandGradient, theme.brandShadow)}>
                                 <span className="text-white font-black text-2xl tracking-tighter drop-shadow-sm">
                                     {(companySettings.tradeName || companySettings.companyName || 'S').charAt(0).toUpperCase()}
                                 </span>
@@ -460,12 +467,12 @@ export default function Sidebar() {
 
                         {sidebarOpen && (
                             <div className="animate-fade-in min-w-0 ml-1">
-                                <h1 className="font-black text-lg tracking-tight text-gray-900 dark:text-white truncate leading-tight group-hover/brand:text-primary-600 dark:group-hover/brand:text-primary-400 transition-colors">
+                                <h1 className="font-black text-lg tracking-tight text-slate-950 dark:text-white truncate leading-tight group-hover/brand:text-primary-600 dark:group-hover/brand:text-primary-400 transition-colors">
                                     {companySettings.tradeName || companySettings.companyName || 'MULTICORE'}
                                 </h1>
                                 <div className="flex items-center gap-2 mt-0.5">
                                     <div className={cn('w-2 h-2 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse', theme.dotColor)}></div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400 dark:text-gray-500 truncate">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-500 dark:text-gray-500 truncate">
                                         {t(`businessType.${MODULE_TO_BUSINESS_TYPE[activeModuleCode] || companySettings.businessType || 'retail'}`)}
                                     </p>
                                 </div>
@@ -474,7 +481,7 @@ export default function Sidebar() {
                     </div>
                     <button
                         onClick={toggleSidebar}
-                        className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600 transition-all duration-300 group/btn shadow-sm hover:shadow-md ring-1 ring-gray-100 dark:ring-dark-700"
+                        className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-white hover:bg-primary-50 dark:bg-transparent dark:hover:bg-primary-900/20 text-slate-500 hover:text-primary-600 transition-all duration-200 group/btn shadow-sm ring-1 ring-slate-300 dark:ring-dark-700"
                     >
                         {sidebarOpen ? (
                             <HiOutlineChevronLeft className="w-5 h-5 transition-transform group-hover/btn:-translate-x-0.5" />
@@ -515,7 +522,7 @@ export default function Sidebar() {
                                             'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative group',
                                             isSubmenuActive || isExpanded
                                                 ? `${theme.activeBg} ${theme.activeText} font-bold shadow-sm`
-                                                : `text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-800/50 ${theme.hoverText}`
+                                                : `text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-dark-800/50 ${theme.hoverText}`
                                         )}
                                     >
                                         <div className={cn(
@@ -555,7 +562,7 @@ export default function Sidebar() {
                                             'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative group',
                                             isActive
                                                 ? `${theme.activeBg} ${theme.activeText} font-bold shadow-sm`
-                                                : `text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-800/50 ${theme.hoverText}`
+                                                : `text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-dark-800/50 ${theme.hoverText}`
                                         )}
                                     >
                                         <div className={cn(
@@ -593,7 +600,7 @@ export default function Sidebar() {
 
                                 {/* Submenu Items */}
                                 {hasSubmenu && sidebarOpen && isExpanded && (
-                                    <div className="mt-1 ml-6 pl-4 border-l border-gray-100 dark:border-dark-700 space-y-1 animate-fade-in">
+                                    <div className="mt-1 ml-6 pl-4 border-l border-slate-200 dark:border-dark-700 space-y-1 animate-fade-in">
                                         {item.submenu?.map((subItem) => {
                                             const subIsActive = location.pathname === subItem.path;
                                             const SubIcon = subItem.icon;
@@ -606,7 +613,7 @@ export default function Sidebar() {
                                                         'flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium relative group/sub',
                                                         subIsActive
                                                             ? `${theme.subActiveBg} ${theme.subActiveText} font-bold`
-                                                            : `text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white`
+                                                            : `text-slate-600 dark:text-gray-400 hover:text-slate-950 dark:hover:text-white`
                                                     )}
                                                 >
                                                     <SubIcon className={cn(
@@ -628,18 +635,18 @@ export default function Sidebar() {
                 </nav>
 
                 {/* Footer - User Card with Logout */}
-                <div className="flex-shrink-0 p-4 border-t border-gray-200/50 dark:border-dark-700/50 bg-white dark:bg-dark-800 transition-all duration-300 rounded-b-2xl">
+                <div className="flex-shrink-0 p-4 border-t border-slate-200/90 dark:border-dark-700/50 bg-white dark:bg-dark-800 transition-all duration-300 rounded-b-2xl">
                     {sidebarOpen ? (
-                        <div className="bg-gray-50/50 dark:bg-dark-900/50 p-4 rounded-2xl border border-gray-100 dark:border-dark-700/50 space-y-4">
+                        <div className="bg-slate-50 dark:bg-dark-900/50 p-4 rounded-2xl border border-slate-200 dark:border-dark-700/50 space-y-4">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white dark:ring-dark-800">
                                     {user ? getUserInitials(user.name) : 'U'}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-black text-gray-900 dark:text-white truncate tracking-tight">
+                                    <p className="text-sm font-black text-slate-950 dark:text-white truncate tracking-tight">
                                         {user?.name || 'Utilizador'}
                                     </p>
-                                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 truncate uppercase tracking-widest">
+                                    <p className="text-[10px] font-bold text-slate-500 dark:text-gray-500 truncate uppercase tracking-widest">
                                         {user?.role ? roleLabels[user.role] : ''}
                                     </p>
                                 </div>
@@ -648,7 +655,7 @@ export default function Sidebar() {
                                 onClick={handleLogout}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-all border border-red-100 dark:border-red-900/30 group/logout"
                             >
-                                <HiOutlineLogout className="w-4 h-4 transition-transform group-hover/logout:translate-x-1" />
+                                <HiOutlineArrowLeftOnRectangle className="w-4 h-4 transition-transform group-hover/logout:translate-x-1" />
                                 {t('auth.logout')}
                             </button>
                         </div>
@@ -658,7 +665,7 @@ export default function Sidebar() {
                             className="w-full flex items-center justify-center p-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all group relative border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                             title={t('auth.logout')}
                         >
-                            <HiOutlineLogout className="w-6 h-6 transition-transform group-hover:scale-110" />
+                            <HiOutlineArrowLeftOnRectangle className="w-6 h-6 transition-transform group-hover:scale-110" />
                             {/* Tooltip */}
                             <div className="absolute left-full ml-4 px-3 py-2 bg-gray-900/95 dark:bg-dark-700/95 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-widest rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-[10000] shadow-2xl ring-1 ring-white/10">
                                 {t('auth.logout')}

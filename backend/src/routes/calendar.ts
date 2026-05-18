@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { Prisma } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { ApiError } from '../middleware/error.middleware';
 import { prisma } from '../lib/prisma';
@@ -12,12 +13,13 @@ router.get('/events', authenticate, async (req: AuthRequest, res) => {
 
     const { start, end, module: mod } = req.query as Record<string, string>;
 
-    const where: any = { companyId: req.companyId };
+    const where: Prisma.CalendarEventWhereInput = { companyId: req.companyId };
 
     if (start || end) {
-        where.startAt = {};
-        if (start) where.startAt.gte = new Date(start);
-        if (end)   where.startAt.lte = new Date(end);
+        const startAt: Prisma.DateTimeFilter = {};
+        if (start) startAt.gte = new Date(start);
+        if (end)   startAt.lte = new Date(end);
+        where.startAt = startAt;
     }
     if (mod) where.module = mod;
 

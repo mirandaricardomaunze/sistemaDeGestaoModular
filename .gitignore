@@ -1,11 +1,17 @@
 # Sensitive files — never commit real secrets
 .env
 *.env
+.env.production
+.env.*.local
 *.db
 *.db-journal
 backend/.env
 backend/.env.production
 # NOTE: backend/.env.example is intentionally NOT ignored — it must stay in git
+
+# Local listing/scratch outputs at root
+/all_md.txt
+/md_files.txt
 
 # Logs
 logs
@@ -31,3 +37,21 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Local scratch / debug scripts — never commit
+scratch/
+backend/scratch/
+backend/scratch_*
+backend/backend/
+backend/test-link.js
+backend/test_*_full.ts
+backend/fix-admin.sql
+
+# Compiler/build output artifacts dropped into the repo
+backend/backend_build_report.txt
+backend/generate_log.txt
+backend/tsc-*.log
+backend/tsc_output.txt
+backend/tsc-output.txt
+backend/ts_errors*.txt
+backend/compile-errors*.txt

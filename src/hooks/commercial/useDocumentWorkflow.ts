@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, ElementType } from 'react';
 
 export type WorkflowStatusConfig<S extends string> = Record<S, {
     label: string;
     variant: 'gray' | 'info' | 'success' | 'warning' | 'danger' | 'primary';
-    icon?: any;
+    icon?: ElementType;
     color?: string;
     bg?: string;
 }>;

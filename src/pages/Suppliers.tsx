@@ -166,7 +166,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                     paymentTerms: data.paymentTerms || undefined,
                     notes: data.notes || undefined,
                     ...(originModule ? { originModule } : {})
-                } as any);
+                } as Parameters<typeof addSupplier>[0]);
             }
             closeFormModal();
         } catch (err) {
@@ -219,11 +219,12 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
     // Module name for labels
     const moduleName = originModule === 'pharmacy' ? 'Farmácia' : '';
 
-    const columns = useMemo<ColumnDef<any, any>[]>(() => [
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const columns = useMemo<ColumnDef<Supplier, any>[]>(() => [
         {
             accessorKey: 'name',
             header: 'Fornecedor',
-            cell: ({ row }: any) => {
+            cell: ({ row }) => {
                 const supplier = row.original;
                 return (
                     <div className="flex items-center gap-3">
@@ -243,7 +244,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
         {
             accessorKey: 'phone',
             header: 'Contacto',
-            cell: ({ row }: any) => {
+            cell: ({ row }) => {
                 const supplier = row.original;
                 return (
                     <div className="space-y-1">
@@ -264,7 +265,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
         {
             accessorKey: 'contactPerson',
             header: 'Pessoa de Contacto',
-            cell: (info: any) => (
+            cell: (info) => (
                 info.getValue() ? (
                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                         <HiOutlineUserCircle className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
@@ -276,7 +277,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
         {
             accessorKey: 'paymentTerms',
             header: 'Prazo Pagamento',
-            cell: (info: any) => (
+            cell: (info) => (
                 <Badge variant="info">
                     {paymentTermsOptions.find((p) => p.value === info.getValue())?.label || '-'}
                 </Badge>
@@ -285,7 +286,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
         {
             accessorKey: 'totalPurchases',
             header: 'Total Compras',
-            cell: (info: any) => (
+            cell: (info) => (
                 <span className="font-semibold text-green-600">
                     {formatCurrency(info.getValue())}
                 </span>
@@ -295,7 +296,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
         {
             accessorKey: 'currentBalance',
             header: 'Saldo',
-            cell: (info: any) => (
+            cell: (info) => (
                 <span className="font-semibold text-yellow-600">
                     {formatCurrency(info.getValue())}
                 </span>
@@ -305,7 +306,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
         {
             id: 'actions',
             header: 'Ações',
-            cell: ({ row }: any) => (
+            cell: ({ row }) => (
                 <div className="flex justify-center gap-2">
                     <Button
                         variant="ghost"
@@ -354,7 +355,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                             </Button>
                             {activeTab === 'directory' && (
                                 <>
-                                    <ExportSuppliersButton data={suppliers} />
+                                    <ExportSuppliersButton data={suppliers} size="sm" />
                                     <Button 
                                         size="sm"
                                         className="font-black text-[10px] uppercase tracking-widest"
@@ -375,7 +376,7 @@ export default function Suppliers({ hideHeader = false, originModule }: Supplier
                             ].map((tab) => (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
+                                    onClick={() => setActiveTab(tab.id as 'directory' | 'orders')}
                                     className={cn(
                                         "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
                                         activeTab === tab.id

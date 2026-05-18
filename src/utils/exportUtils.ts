@@ -28,7 +28,7 @@ export interface ExportOptions {
     title?: string;
     subtitle?: string;
     columns: ExportColumn[];
-    data: Record<string, any>[];
+    data: object[];
     companyName?: string;
     companyNUIT?: string;
     companyAddress?: string;
@@ -46,7 +46,7 @@ export interface ExportOptions {
 // Formatting Helpers
 // ============================================================================
 
-const formatValue = (value: any, format?: ExportColumn['format'], currency = 'MZN', locale = 'pt-MZ'): string => {
+const formatValue = (value: unknown, format?: ExportColumn['format'], currency = 'MZN', locale = 'pt-MZ'): string => {
     if (value === null || value === undefined) return '';
 
     switch (format) {
@@ -63,18 +63,18 @@ const formatValue = (value: any, format?: ExportColumn['format'], currency = 'MZ
             return `${Number(value).toFixed(1)}%`;
 
         case 'date':
-            return new Date(value).toLocaleDateString(locale);
+            return new Date(value as string | number | Date).toLocaleDateString(locale);
 
         case 'datetime':
-            return new Date(value).toLocaleString(locale);
+            return new Date(value as string | number | Date).toLocaleString(locale);
 
         default:
             return String(value);
     }
 };
 
-const getNestedValue = (obj: Record<string, any>, path: string): any => {
-    return path.split('.').reduce((acc, key) => acc?.[key], obj);
+const getNestedValue = (obj: object, path: string): unknown => {
+    return path.split('.').reduce<unknown>((acc, key) => (acc as Record<string, unknown> | undefined)?.[key], obj);
 };
 
 // ============================================================================
@@ -98,7 +98,7 @@ export const exportToExcel = (options: ExportOptions): void => {
     const wb = XLSX.utils.book_new();
 
     // Prepare header rows
-    const wsData: any[][] = [];
+    const wsData: Array<Array<string | number | null | undefined>> = [];
 
     // Add company name and title if provided
     if (companyName) {
@@ -323,14 +323,22 @@ export const exportToPDF = (options: ExportOptions): void => {
             fontStyle: 'bold',
             halign: 'right'
         },
-        columnStyles: columns.reduce((acc, col, idx) => {
+        columnStyles: (() => {
             const usableWidth = pageWidth - 20; // 10mm margin on each side
-            acc[idx] = { 
-                halign: col.align || (col.format === 'currency' || col.format === 'number' ? 'right' : 'left'),
-                cellWidth: col.width ? (col.width * usableWidth / 100) : 'auto'
-            };
-            return acc;
-        }, {} as any),
+            const totalWidthProps = columns.reduce((sum, col) => sum + (col.width || 0), 0);
+            
+            return columns.reduce((acc, col, idx) => {
+                const normalizedWidth = totalWidthProps > 0 && col.width 
+                    ? (col.width / totalWidthProps) * usableWidth 
+                    : undefined;
+                    
+                acc[idx] = { 
+                    halign: col.align || (col.format === 'currency' || col.format === 'number' ? 'right' : 'left'),
+                    cellWidth: normalizedWidth || 'auto'
+                };
+                return acc;
+            }, {} as Record<number, { halign: 'left' | 'center' | 'right'; cellWidth: number | 'auto' }>);
+        })(),
         alternateRowStyles: {
             fillColor: [249, 250, 251]
         },

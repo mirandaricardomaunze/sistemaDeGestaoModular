@@ -1,9 +1,10 @@
 import { useRef } from 'react';
 import { formatCurrency } from '../../../utils/helpers';
-import { HiOutlineX, HiOutlinePrinter, HiOutlineMail } from 'react-icons/hi';
+import { HiOutlineEnvelope as HiOutlineEnvelope, HiOutlinePrinter, HiOutlineXMark as HiOutlineXMark } from 'react-icons/hi2';
 import type { PaymentEntry, PaymentMethodType } from './CommercialPaymentModal';
 import { useCompanySettings } from '../../../stores/useStore';
 import { getDrawerEscPosHtml, openCashDrawerSerial } from '../../../utils/hardware';
+import { Button } from '../../ui';
 
 const METHOD_LABELS: Record<PaymentMethodType, string> = {
     cash: 'Dinheiro',
@@ -83,7 +84,7 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
 <body>
   ${drawerCmd}
   ${content}
-  <script>window.onload = function() { window.print(); window.close(); }<\/script>
+  <script>window.onload = function() { window.print(); window.close(); }</script>
 </body>
 </html>`;
 
@@ -110,9 +111,14 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
                             <p className="text-white/30 text-[9px] font-bold uppercase tracking-widest mt-0.5">VENDA Nº {receipt.saleNumber}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-white/10 text-white transition-all active:scale-90 relative z-10">
-                        <HiOutlineX className="w-4 h-4" />
-                    </button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        className="p-2 rounded-xl text-white hover:bg-white/10 active:scale-90 relative z-10"
+                    >
+                        <HiOutlineXMark className="w-4 h-4" />
+                    </Button>
                 </div>
 
                 {/* Receipt body */}
@@ -265,28 +271,31 @@ export function CommercialReceiptModal({ isOpen, receipt, onClose, onSendEmail }
                 <div className="px-5 py-5 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-[#0a0b0d] flex flex-col gap-3 flex-shrink-0 shadow-sm">
                     <div className="flex gap-2">
                         {onSendEmail && (
-                            <button
+                            <Button
+                                variant="outline"
                                 onClick={onSendEmail}
-                                className="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/40 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-all italic flex items-center justify-center gap-2 shadow-sm"
+                                className="flex-1 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] italic flex items-center justify-center gap-2"
                             >
-                                <HiOutlineMail className="w-4 h-4" />
+                                <HiOutlineEnvelope className="w-4 h-4" />
                                 Email
-                            </button>
+                            </Button>
                         )}
-                        <button
+                        <Button
+                            variant="ghost"
                             onClick={handlePrint}
-                            className="flex-1 py-3.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all hover:bg-slate-200 dark:hover:bg-white/10 italic shadow-sm"
+                            className="flex-1 py-3.5 rounded-2xl bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 italic active:scale-95"
                         >
                             <HiOutlinePrinter className="w-4 h-4" />
                             Imprimir
-                        </button>
+                        </Button>
                     </div>
-                    <button
+                    <Button
+                        variant="primary"
                         onClick={onClose}
-                        className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-[0.2em] transition-all shadow-xl shadow-blue-500/20 hover:-translate-y-1 active:scale-95 h-14 italic"
+                        className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:-translate-y-1 active:scale-95 h-14 italic"
                     >
                         Nova Venda · ESC
-                    </button>
+                    </Button>
                 </div>
             </div>
         </div>

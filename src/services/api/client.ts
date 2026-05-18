@@ -2,12 +2,13 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
 import { enqueueOperation, IDEMPOTENCY_HEADER } from '../offline/offlineQueue';
 import { cryptoRandomId } from '../../db/offlineDB';
+import { env } from '../../config/env';
 
 // ============================================================================
 // API Configuration
 // ============================================================================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = env.VITE_API_URL || 'http://localhost:3001/api';
 
 // Endpoints that must NEVER be queued offline (reads, auth, payments).
 const NON_QUEUEABLE = [
@@ -66,8 +67,8 @@ api.interceptors.response.use(
     },
     async (error: AxiosError<{ error?: string; message?: string }>) => {
         // Check if this request should skip automatic error toasts
-        const skipErrorToast = (error.config as any)?.skipErrorToast;
-        const skipOfflineQueue = (error.config as any)?.skipOfflineQueue;
+        const skipErrorToast = (error.config as { skipErrorToast?: boolean } | undefined)?.skipErrorToast;
+        const skipOfflineQueue = (error.config as { skipOfflineQueue?: boolean } | undefined)?.skipOfflineQueue;
 
         // Network failure on a mutating request → enqueue for later sync.
         const method = (error.config?.method || 'get').toUpperCase();
@@ -90,7 +91,7 @@ api.interceptors.response.use(
                     module: inferModuleFromUrl(url),
                     endpoint: url,
                     method: method as 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-                    data: parseRequestBody(error.config.data),
+                    data: parseRequestBody(error.config.data) as Record<string, unknown> | null,
                     clientId,
                 });
                 if (!skipErrorToast) {
@@ -158,7 +159,7 @@ function inferModuleFromUrl(url: string): string {
     return 'general';
 }
 
-function parseRequestBody(data: any): any {
+function parseRequestBody(data: unknown): unknown {
     if (!data) return null;
     if (typeof data === 'string') {
         try {

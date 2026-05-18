@@ -5,18 +5,18 @@
 
 import { useMemo } from 'react';
 import {
-    HiOutlineTrendingUp,
+    HiOutlineArrowTrendingUp,
     HiOutlineCurrencyDollar,
     HiOutlineUserGroup,
     HiOutlineChartBar,
     HiOutlineClock,
     HiOutlineCheckCircle,
     HiOutlineXCircle,
-    HiOutlineLightningBolt,
+    HiOutlineBolt,
     HiOutlineCalendar,
     HiOutlineChevronRight,
-    HiOutlineDownload,
-} from 'react-icons/hi';
+    HiOutlineArrowDownTray,
+} from 'react-icons/hi2';
 import { Card, Badge, Pagination, usePagination, Button } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { getFunnelDashboardData, getFollowUpAlerts, type FollowUpAlert } from '../../utils/crmIntegration';
@@ -33,13 +33,17 @@ export default function CRMDashboard() {
 
     // Transform campaigns data and filter active
     const activeCampaigns = useMemo(() => {
-        return (campaignsData || []).filter((c: any) => c.status === 'active').map((c: any) => ({
-            ...c,
-            discountType: c.discountType || 'percentage',
-            discountValue: c.discountValue || 0,
-            endDate: c.endDate,
-            metrics: c.metrics || { ordersGenerated: 0 },
-        }));
+        type CampaignWithMetrics = (typeof campaignsData)[number] & { metrics?: { ordersGenerated?: number } };
+        return (campaignsData || []).filter((c) => c.status === 'active').map((c) => {
+            const cm = c as CampaignWithMetrics;
+            return {
+                ...cm,
+                discountType: cm.discountType || 'percentage',
+                discountValue: cm.discountValue || 0,
+                endDate: cm.endDate,
+                metrics: cm.metrics || { ordersGenerated: 0 },
+            };
+        });
     }, [campaignsData]);
 
     const handleExport = (format: 'pdf' | 'excel') => {
@@ -93,7 +97,7 @@ export default function CRMDashboard() {
                     { label: 'Valor em Pipeline', value: formatCurrency(dashboardData.pipelineTotal), sub: `${dashboardData.pipelineCount} oportunidades`, icon: HiOutlineCurrencyDollar,
                       cardBg: 'bg-indigo-50/60 dark:bg-indigo-950/30', cardBorder: 'border border-indigo-200/70 dark:border-indigo-800/40',
                       iconBg: 'bg-indigo-100 dark:bg-indigo-900/40', iconColor: 'text-indigo-600 dark:text-indigo-400', accent: 'bg-indigo-500' },
-                    { label: 'Valor Ponderado', value: formatCurrency(dashboardData.weightedPipeline), sub: 'Ajustado por probabilidade', icon: HiOutlineTrendingUp,
+                    { label: 'Valor Ponderado', value: formatCurrency(dashboardData.weightedPipeline), sub: 'Ajustado por probabilidade', icon: HiOutlineArrowTrendingUp,
                       cardBg: 'bg-emerald-50/60 dark:bg-emerald-950/30', cardBorder: 'border border-emerald-200/70 dark:border-emerald-800/40',
                       iconBg: 'bg-emerald-100 dark:bg-emerald-900/40', iconColor: 'text-emerald-600 dark:text-emerald-400', accent: 'bg-emerald-500' },
                     { label: 'Taxa de Conversão', value: `${dashboardData.winRate.toFixed(1)}%`, sub: 'Média histórica', icon: HiOutlineChartBar,
@@ -133,7 +137,7 @@ export default function CRMDashboard() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleExport('pdf')}
-                                    leftIcon={<HiOutlineDownload className="w-4 h-4" />}
+                                    leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}
                                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                 >
                                     PDF
@@ -142,7 +146,7 @@ export default function CRMDashboard() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleExport('excel')}
-                                    leftIcon={<HiOutlineDownload className="w-4 h-4" />}
+                                    leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />}
                                     className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                 >
                                     Excel
@@ -212,7 +216,7 @@ export default function CRMDashboard() {
                             </div>
                             <div className="text-center">
                                 <div className="flex items-center justify-center gap-1 text-blue-600">
-                                    <HiOutlineLightningBolt className="w-5 h-5" />
+                                    <HiOutlineBolt className="w-5 h-5" />
                                     <span className="text-xl font-bold">{dashboardData.newLast30Days}</span>
                                 </div>
                                 <p className="text-xs text-gray-500">Novos (30d)</p>
@@ -285,7 +289,7 @@ export default function CRMDashboard() {
                     <Card>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                                <HiOutlineLightningBolt className="w-5 h-5" />
+                                <HiOutlineBolt className="w-5 h-5" />
                                 Campanhas Ativas
                             </h3>
                             <Badge variant="success">{activeCampaigns.length}</Badge>

@@ -53,8 +53,8 @@ async function testLogistics() {
         console.log(`✅ Entrega Registada: ${delivery.number} (Custo: ${delivery.shippingCost} MT)`);
 
         console.log('\n✨ TESTE DE LOGÍSTICA CONCLUÍDO! ✨');
-    } catch (error: any) {
-        console.error('❌ ERRO NO TESTE DE LOGÍSTICA:', error.message || error);
+    } catch (error) {
+        console.error('❌ ERRO NO TESTE DE LOGÍSTICA:', (error as Error)?.message || error);
     }
 }
 

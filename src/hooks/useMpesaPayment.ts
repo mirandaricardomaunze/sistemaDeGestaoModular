@@ -147,7 +147,8 @@ export function useMpesaPayment(options: UseMpesaPaymentOptions): UseMpesaPaymen
                 return false;
             }
         } catch (err) {
-            const errorMsg = (err as any).response?.data?.message || (err as any).message || 'Erro ao iniciar pagamento';
+            const apiErr = err as Error & { response?: { data?: { message?: string } } };
+            const errorMsg = apiErr.response?.data?.message || apiErr.message || 'Erro ao iniciar pagamento';
             setError(errorMsg);
             setStatus('failed');
             toast.error(errorMsg);

@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import {
-    HiOutlineCash, HiOutlineCheck, HiOutlineX, HiOutlinePlus,
+    HiOutlineBanknotes, HiOutlineCheck, HiOutlineXMark, HiOutlinePlus,
     HiOutlineTrash
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { formatCurrency, cn } from '../../../utils/helpers';
 import { Button } from '../../ui/Button';
 
@@ -38,6 +39,13 @@ export interface PaymentEntry {
     reference?: string;
 }
 
+interface PaymentCustomer {
+    id: string;
+    name: string;
+    phone?: string;
+    code?: string;
+}
+
 interface CommercialPaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -46,16 +54,17 @@ interface CommercialPaymentModalProps {
     cartSubtotal: number;
     cartDiscount: number;
     cartTax: number;
+    ivaRate: number;
     customerName: string;
-    selectedCustomer: any;
+    selectedCustomer: PaymentCustomer | null;
     isLoading?: boolean;
 }
 
-const METHOD_CONFIG: Record<PaymentMethodType, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
+const METHOD_CONFIG: Record<PaymentMethodType, { label: string; color: string; bg: string; border: string; icon: ReactNode }> = {
     cash: {
         label: 'Dinheiro', color: 'text-green-700 dark:text-green-400',
         bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-500',
-        icon: <HiOutlineCash className="w-5 h-5" />
+        icon: <HiOutlineBanknotes className="w-5 h-5" />
     },
     mpesa: {
         label: 'M-Pesa', color: 'text-red-700 dark:text-red-400',
@@ -84,7 +93,7 @@ const QUICK_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 // ──-Component ──────────────────────────────────────────────────────────────-
 export function CommercialPaymentModal({
     isOpen, onClose, onConfirm,
-    cartTotal, cartSubtotal, cartDiscount, cartTax,
+    cartTotal, cartSubtotal, cartDiscount, cartTax, ivaRate,
     customerName, selectedCustomer,
     isLoading = false
 }: CommercialPaymentModalProps) {
@@ -118,7 +127,7 @@ export function CommercialPaymentModal({
         setPayments(prev => prev.filter((_, i) => i !== idx));
     };
 
-    const updatePayment = (idx: number, field: keyof PaymentEntry, value: any) => {
+    const updatePayment = <K extends keyof PaymentEntry>(idx: number, field: K, value: PaymentEntry[K]) => {
         setPayments(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p));
     };
 
@@ -134,10 +143,10 @@ export function CommercialPaymentModal({
         });
     };
 
-    const handleConfirm = () => {
+    const handleConfirm = useCallback(() => {
         if (!isFullyPaid) return;
         onConfirm(payments, isCredit, creditDueDays);
-    };
+    }, [creditDueDays, isCredit, isFullyPaid, onConfirm, payments]);
 
     // Enter key confirms payment
     useEffect(() => {
@@ -167,9 +176,14 @@ export function CommercialPaymentModal({
                             {selectedCustomer?.name || customerName || 'Consumidor Geral'}
                         </p>
                     </div>
-                    <button onClick={onClose} className="p-2.5 rounded-xl hover:bg-white/10 text-white transition-all active:scale-90 relative z-10">
-                        <HiOutlineX className="w-5 h-5" />
-                    </button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        className="p-2.5 rounded-xl text-white hover:bg-white/10 active:scale-90 relative z-10"
+                    >
+                        <HiOutlineXMark className="w-5 h-5" />
+                    </Button>
                 </div>
 
                 <div className="overflow-y-auto flex-1">
@@ -181,7 +195,7 @@ export function CommercialPaymentModal({
                                 <p className="font-black text-slate-900 dark:text-white text-sm tracking-tight">{formatCurrency(cartSubtotal)}</p>
                             </div>
                             <div className="space-y-1">
-                                <p className="text-[10px] uppercase font-black text-slate-400 dark:text-white/20 tracking-[0.2em]">IVA (16%)</p>
+                                <p className="text-[10px] uppercase font-black text-slate-400 dark:text-white/20 tracking-[0.2em]">IVA ({ivaRate}%)</p>
                                 <p className="font-black text-slate-900 dark:text-white text-sm tracking-tight">{formatCurrency(cartTax)}</p>
                             </div>
                             <div className="space-y-1">
@@ -199,7 +213,8 @@ export function CommercialPaymentModal({
 
                     {/* Credit toggle - Modern Style */}
                     <div className="px-6 pt-6">
-                        <button
+                        <Button
+                            variant="ghost"
                             onClick={handleCredit}
                             className={cn(
                                 "w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-300",
@@ -218,15 +233,17 @@ export function CommercialPaymentModal({
                             )}>
                                 {isCredit && <HiOutlineCheck className="w-4 h-4 text-black font-black" />}
                             </div>
-                        </button>
+                        </Button>
 
                         {isCredit && (
                             <div className="mt-4 flex items-center gap-4 px-1">
                                 <p className="text-[10px] text-slate-400 dark:text-white/30 font-black uppercase tracking-widest italic">Vence em</p>
                                 <div className="flex gap-2">
                                     {[15, 30, 45, 60].map(d => (
-                                        <button
+                                        <Button
                                             key={d}
+                                            variant="ghost"
+                                            size="sm"
                                             onClick={() => setCreditDueDays(d)}
                                             className={cn(
                                                 "px-4 py-1.5 rounded-xl text-[10px] font-black border transition-all uppercase tracking-widest",
@@ -236,7 +253,7 @@ export function CommercialPaymentModal({
                                             )}
                                         >
                                             {d}d
-                                        </button>
+                                        </Button>
                                     ))}
                                 </div>
                             </div>
@@ -253,12 +270,14 @@ export function CommercialPaymentModal({
                                         const conf = METHOD_CONFIG[m];
                                         const active = payments.some(p => p.method === m);
                                         return (
-                                            <button
+                                            <Button
                                                 key={m}
                                                 onClick={() => addPayment(m)}
                                                 disabled={active}
+                                                variant="ghost"
+                                                size="sm"
                                                 className={cn(
-                                                    "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase border transition-all tracking-widest",
+                                                    "h-9 px-3 rounded-xl text-[9px] font-black uppercase border tracking-widest",
                                                     active
                                                         ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 opacity-50 cursor-default"
                                                         : "bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-white/30 border-transparent hover:border-slate-200 dark:border-white/10 hover:text-slate-900 dark:hover:text-white"
@@ -266,7 +285,7 @@ export function CommercialPaymentModal({
                                             >
                                                 {!active && <HiOutlinePlus className="w-3 h-3" />}
                                                 {conf.label}
-                                            </button>
+                                            </Button>
                                         );
                                     })}
                                 </div>
@@ -285,9 +304,14 @@ export function CommercialPaymentModal({
                                                     {conf.label}
                                                 </div>
                                                 {payments.length > 1 && (
-                                                    <button onClick={() => removePayment(idx)} className="p-2 rounded-xl hover:bg-rose-500/20 text-slate-300 dark:text-white/20 hover:text-rose-500 transition-all">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => removePayment(idx)}
+                                                        className="p-2 rounded-xl hover:bg-rose-500/20 text-slate-300 dark:text-white/20 hover:text-rose-500 active:scale-95"
+                                                    >
                                                         <HiOutlineTrash className="w-4 h-4" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                             </div>
 
@@ -307,20 +331,24 @@ export function CommercialPaymentModal({
                                             {/* Quick amounts for cash */}
                                             {payment.method === 'cash' && (
                                                 <div className="flex flex-wrap gap-2">
-                                                    <button
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                         onClick={() => updatePayment(idx, 'amount', cartTotal)}
-                                                        className="px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl text-[9px] font-black text-blue-400 hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest"
+                                                        className="px-4 py-2 bg-blue-600/10 border border-blue-500/20 rounded-xl text-[9px] font-black text-blue-400 hover:bg-blue-600 hover:text-white uppercase tracking-widest active:scale-95"
                                                     >
                                                         Valor Exato
-                                                    </button>
+                                                    </Button>
                                                     {QUICK_AMOUNTS.filter(a => a >= cartTotal - 1).slice(0, 4).map(a => (
-                                                        <button
+                                                        <Button
                                                             key={a}
+                                                            variant="ghost"
+                                                            size="sm"
                                                             onClick={() => setQuickAmount(idx, a)}
-                                                            className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl text-[9px] font-black text-slate-500 dark:text-white/30 hover:border-slate-300 dark:hover:border-white/20 hover:text-slate-900 dark:hover:text-white transition-all uppercase tracking-widest"
+                                                            className="px-4 py-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-xl text-[9px] font-black text-slate-500 dark:text-white/30 hover:border-slate-300 dark:hover:border-white/20 hover:text-slate-900 dark:hover:text-white uppercase tracking-widest active:scale-95"
                                                         >
                                                             {a.toLocaleString()}
-                                                        </button>
+                                                        </Button>
                                                     ))}
                                                 </div>
                                             )}
@@ -369,12 +397,13 @@ export function CommercialPaymentModal({
 
                 {/* Footer Actions - Premium Modern Look */}
                 <div className="px-6 py-6 bg-slate-50 dark:bg-[#0a0b0d] border-t border-slate-200 dark:border-white/5 flex gap-4 flex-shrink-0">
-                    <button
+                    <Button
+                        variant="ghost"
                         onClick={onClose}
-                        className="flex-1 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/40 font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-all active:scale-95 italic shadow-sm"
+                        className="flex-1 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-400 dark:text-white/40 font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white active:scale-95 italic"
                     >
                         Cancelar
-                    </button>
+                    </Button>
                     <Button
                         onClick={handleConfirm}
                         disabled={!isFullyPaid}

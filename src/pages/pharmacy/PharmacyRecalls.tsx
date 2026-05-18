@@ -1,16 +1,43 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Button, Input, Badge, LoadingSpinner, Select, Textarea } from '../../components/ui';
+import type { BadgeVariant } from '../../components/ui/Badge';
 import {
     HiOutlineExclamationCircle, HiOutlinePlus, HiOutlineCheckCircle,
     HiOutlineUsers, HiOutlinePhone
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { pharmacyAPI } from '../../services/api';
 import { usePharmacy } from '../../hooks/usePharmacy';
+import type { Medication } from '../../types/pharmacy';
 import toast from 'react-hot-toast';
 import { formatDate, cn } from '../../utils/helpers';
 
-const SEVERITY_LABELS: Record<string, { label: string; variant: any }> = {
+interface RecallRecord {
+    id: string;
+    recallNumber: string;
+    medication?: { product?: { name?: string } | null } | null;
+    severity: string;
+    status: string;
+    reason: string;
+    batchNumbers: string[];
+    recallDate: string;
+}
+
+interface AffectedSaleItem {
+    id: string;
+    quantity: number;
+    productName: string;
+}
+
+interface AffectedSale {
+    id: string;
+    createdAt: string;
+    customer?: { name?: string; phone?: string | null } | null;
+    customerName?: string;
+    items: AffectedSaleItem[];
+}
+
+const SEVERITY_LABELS: Record<string, { label: string; variant: BadgeVariant }> = {
     voluntary: { label: 'Voluntria', variant: 'warning' },
     mandatory: { label: 'Obrigatória', variant: 'danger' },
     urgent: { label: 'URGENTE', variant: 'danger' }
@@ -22,8 +49,8 @@ export default function PharmacyRecalls() {
     const [showForm, setShowForm] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(1);
-    const [selectedRecall, setSelectedRecall] = useState<any>(null);
-    const [resolveModal, setResolveModal] = useState<any>(null);
+    const [selectedRecall, setSelectedRecall] = useState<RecallRecord | null>(null);
+    const [resolveModal, setResolveModal] = useState<RecallRecord | null>(null);
     const [resolveForm, setResolveForm] = useState({ recoveredUnits: 0, actionTaken: '' });
     const [batchInput, setBatchInput] = useState('');
     const [form, setForm] = useState({
@@ -41,9 +68,9 @@ export default function PharmacyRecalls() {
         queryFn: () => pharmacyAPI.getRecalls({ status: statusFilter || undefined, page, limit: 20 })
     });
 
-    const { data: affectedSales, isLoading: loadingAffected } = useQuery({
+    const { data: affectedSales, isLoading: loadingAffected } = useQuery<AffectedSale[]>({
         queryKey: ['pharmacy', 'recall-affected', selectedRecall?.id],
-        queryFn: () => pharmacyAPI.getRecallAffectedSales(selectedRecall.id),
+        queryFn: () => pharmacyAPI.getRecallAffectedSales(selectedRecall!.id) as Promise<AffectedSale[]>,
         enabled: !!selectedRecall?.id
     });
 
@@ -59,7 +86,7 @@ export default function PharmacyRecalls() {
     });
 
     const resolveMutation = useMutation({
-        mutationFn: () => pharmacyAPI.resolveRecall(resolveModal.id, resolveForm),
+        mutationFn: () => pharmacyAPI.resolveRecall(resolveModal!.id, resolveForm),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pharmacy', 'recalls'] });
             setResolveModal(null);
@@ -97,7 +124,7 @@ export default function PharmacyRecalls() {
                             label="Medicamento *"
                             value={form.medicationId}
                             onChange={e => setForm(f => ({ ...f, medicationId: e.target.value }))}
-                            options={medications.map((m: any) => ({
+                            options={medications.map((m: Medication) => ({
                                 value: m.id,
                                 label: m.product?.name || 'S/ N'
                             }))}
@@ -171,7 +198,7 @@ export default function PharmacyRecalls() {
                                     <HiOutlineCheckCircle className="w-12 h-12 mx-auto mb-2 opacity-30" />
                                     <p>Nenhum recall registado</p>
                                 </div>
-                            ) : records.map((r: any) => (
+                            ) : (records as RecallRecord[]).map((r) => (
                                 <div key={r.id} className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors ${selectedRecall?.id === r.id ? 'bg-primary-50 dark:bg-primary-900/20' : ''}`}
                                     onClick={() => setSelectedRecall(r)}>
                                     <div className="flex justify-between items-start mb-1">
@@ -180,7 +207,7 @@ export default function PharmacyRecalls() {
                                             <p className="font-semibold">{r.medication?.product?.name}</p>
                                         </div>
                                         <div className="flex gap-1">
-                                            <Badge variant={SEVERITY_LABELS[r.severity]?.variant || 'default'}>{SEVERITY_LABELS[r.severity]?.label}</Badge>
+                                            <Badge variant={SEVERITY_LABELS[r.severity]?.variant || 'gray'}>{SEVERITY_LABELS[r.severity]?.label}</Badge>
                                             <Badge variant={r.status === 'resolved' ? 'success' : r.status === 'monitoring' ? 'warning' : 'danger'}>
                                                 {r.status === 'resolved' ? 'Resolvido' : r.status === 'monitoring' ? 'Monitorização' : 'Activo'}
                                             </Badge>
@@ -224,7 +251,7 @@ export default function PharmacyRecalls() {
                                             <HiOutlineCheckCircle className="w-8 h-8 mx-auto mb-1" />
                                             <p>Nenhuma venda afectada encontrada</p>
                                         </div>
-                                    ) : (affectedSales || []).map((sale: any) => (
+                                    ) : (affectedSales || []).map((sale) => (
                                         <div key={sale.id} className="border border-gray-200 dark:border-dark-700 rounded-lg p-3">
                                             <div className="flex justify-between items-start">
                                                 <div>
@@ -238,7 +265,7 @@ export default function PharmacyRecalls() {
                                                 <span className="text-xs text-gray-400">{formatDate(sale.createdAt)}</span>
                                             </div>
                                             <div className="mt-2 space-y-0.5">
-                                                {sale.items.map((item: any) => (
+                                                {sale.items.map((item) => (
                                                     <p key={item.id} className="text-xs text-gray-600">{item.quantity}x {item.productName}</p>
                                                 ))}
                                             </div>

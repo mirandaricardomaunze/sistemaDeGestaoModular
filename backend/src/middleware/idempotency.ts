@@ -9,7 +9,7 @@ const MEMORY_MAX_ENTRIES = 5000;
 
 interface CachedResponse {
     statusCode: number;
-    body: any;
+    body: unknown;
     storedAt: number;
 }
 
@@ -43,7 +43,7 @@ async function readCached(key: string): Promise<CachedResponse | null> {
             const raw = await redis.get(key);
             if (raw) return JSON.parse(raw);
         } catch (e) {
-            logger.warn('idempotency: redis read failed, falling back to memory', e as any);
+            logger.warn('idempotency: redis read failed, falling back to memory', e as Error);
         }
     }
     return memoryGet(key);
@@ -55,7 +55,7 @@ async function writeCached(key: string, value: CachedResponse): Promise<void> {
             await redis.set(key, JSON.stringify(value), 'EX', TTL_SECONDS);
             return;
         } catch (e) {
-            logger.warn('idempotency: redis write failed, falling back to memory', e as any);
+            logger.warn('idempotency: redis write failed, falling back to memory', e as Error);
         }
     }
     memorySet(key, value);
@@ -116,12 +116,12 @@ export async function idempotency(
             return;
         }
     } catch (e) {
-        logger.warn('idempotency: read error, proceeding without cache', e as any);
+        logger.warn('idempotency: read error, proceeding without cache', e as Error);
     }
 
     const originalJson = res.json.bind(res);
     let captured = false;
-    res.json = (body: any) => {
+    res.json = (body: unknown) => {
         if (!captured) {
             captured = true;
             const status = res.statusCode;

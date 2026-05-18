@@ -3,6 +3,7 @@ import { AuthRequest } from './auth';
 import { prisma } from '../lib/prisma';
 import { ApiError } from './error.middleware';
 import { cacheService } from '../services/cacheService';
+import { tenantContext } from '../lib/context';
 
 const CACHE_TTL = 300; // 5 minutes
 const cacheKey = (companyId: string) => `module_access:${companyId}`;
@@ -50,6 +51,15 @@ export function requireModule(moduleCode: string) {
             throw ApiError.forbidden(`Módulo ${code} não está activo para esta empresa`);
         }
 
-        next();
+        const currentContext = tenantContext.getStore();
+        if (currentContext?.companyId === req.companyId && currentContext?.userId === req.userId) {
+            return next();
+        }
+
+        tenantContext.run({
+            companyId: req.companyId,
+            userId: req.userId,
+            userName: req.userName,
+        }, () => next());
     };
 }

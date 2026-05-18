@@ -29,16 +29,16 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
     const displayData = data.slice(0, maxItems);
 
     return (
-        <Card padding="lg" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <Card padding="lg" className="bg-white dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_18px_42px_-26px_rgba(15,23,42,0.7)]">
 
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/25 flex items-center justify-center flex-shrink-0">
-                        <HiOutlinePresentationChartBar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span className="w-8 h-8 rounded-lg bg-indigo-600 dark:bg-indigo-500/15 border border-indigo-600 dark:border-indigo-500/25 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <HiOutlinePresentationChartBar className="w-4 h-4 text-white dark:text-indigo-400" />
                     </span>
                     <div>
-                        <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-tighter">Análise ABC (Pareto)</h3>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Classificação por Receita Acumulada</p>
+                        <h3 className="font-black text-slate-950 dark:text-white uppercase tracking-tighter">Análise ABC (Pareto)</h3>
+                        <p className="text-[10px] text-slate-600 dark:text-gray-300 font-black uppercase tracking-widest mt-0.5">Classificação por Receita Acumulada</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -52,14 +52,15 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
             </div>
 
             <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={displayData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                {displayData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ComposedChart data={displayData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
                         <XAxis 
                             dataKey="name" 
                             axisLine={false} 
                             tickLine={false} 
-                            tick={{ fontSize: 9, fill: '#9ca3af' }}
+                            tick={{ fontSize: 9, fill: '#64748b', fontWeight: 700 }}
                             interval={0}
                             angle={-45}
                             textAnchor="end"
@@ -69,7 +70,7 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
                             yAxisId="left"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fontSize: 9, fill: '#9ca3af' }}
+                            tick={{ fontSize: 9, fill: '#64748b', fontWeight: 700 }}
                             tickFormatter={(val) => formatCurrency(val).split(',')[0]}
                         />
                         <YAxis 
@@ -123,25 +124,32 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
                             dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }}
                             activeDot={{ r: 6, strokeWidth: 0 }}
                         />
-                    </ComposedChart>
-                </ResponsiveContainer>
+                        </ComposedChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="h-full rounded-xl border border-dashed border-slate-300/80 dark:border-white/10 bg-slate-50 dark:bg-dark-900/50 flex flex-col items-center justify-center text-center px-5">
+                        <HiOutlinePresentationChartBar className="w-10 h-10 text-indigo-400 mb-2" />
+                        <p className="text-[11px] font-black text-slate-600 dark:text-slate-200 uppercase tracking-widest">Sem ranking ABC</p>
+                        <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1">O Pareto aparece quando existir receita por produto.</p>
+                    </div>
+                )}
             </div>
             
             <div className="mt-6 grid grid-cols-3 gap-3">
-                <div className="p-3 rounded-lg bg-indigo-50/50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/10 transition-all hover:shadow-lg hover:shadow-indigo-500/5">
+                <div className="p-3 rounded-lg bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-200/80 dark:border-indigo-500/10 transition-all hover:shadow-lg hover:shadow-indigo-500/5">
                     <p className="text-[8px] font-black uppercase text-indigo-500 tracking-widest">Classe A</p>
-                    <p className="text-xs font-black text-slate-800 dark:text-white mt-1">ESTRATÉGICO</p>
-                    <p className="text-[9px] text-slate-400 font-bold mt-1">~80% Receita</p>
+                    <p className="text-xs font-black text-slate-900 dark:text-white mt-1">ESTRATÉGICO</p>
+                    <p className="text-[9px] text-slate-600 font-bold mt-1">~80% Receita</p>
                 </div>
-                <div className="p-3 rounded-lg bg-amber-50/50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 transition-all hover:shadow-lg hover:shadow-amber-500/5">
+                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-500/5 border border-amber-200/80 dark:border-amber-500/10 transition-all hover:shadow-lg hover:shadow-amber-500/5">
                     <p className="text-[8px] font-black uppercase text-amber-600 tracking-widest">Classe B</p>
-                    <p className="text-xs font-black text-slate-800 dark:text-white mt-1">RELEVANTE</p>
-                    <p className="text-[9px] text-slate-400 font-bold mt-1">~15% Receita</p>
+                    <p className="text-xs font-black text-slate-900 dark:text-white mt-1">RELEVANTE</p>
+                    <p className="text-[9px] text-slate-600 font-bold mt-1">~15% Receita</p>
                 </div>
-                <div className="p-3 rounded-lg bg-slate-50/50 dark:bg-slate-500/5 border border-slate-100 dark:border-slate-500/10 transition-all hover:shadow-lg hover:shadow-slate-500/5">
+                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-500/5 border border-slate-200/90 dark:border-slate-500/10 transition-all hover:shadow-lg hover:shadow-slate-500/5">
                     <p className="text-[8px] font-black uppercase text-slate-500 tracking-widest">Classe C</p>
-                    <p className="text-xs font-black text-slate-800 dark:text-white mt-1">ROTINA</p>
-                    <p className="text-[9px] text-slate-400 font-bold mt-1">~5% Receita</p>
+                    <p className="text-xs font-black text-slate-900 dark:text-white mt-1">ROTINA</p>
+                    <p className="text-[9px] text-slate-600 font-bold mt-1">~5% Receita</p>
                 </div>
             </div>
         </Card>

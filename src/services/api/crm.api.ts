@@ -1,6 +1,8 @@
 import { logger } from '../../utils/logger';
 import api from './client';
 
+type ApiPayload = object;
+
 // ============================================================================
 // Audit API
 // ============================================================================
@@ -15,10 +17,26 @@ export const auditAPI = {
         userId?: string;
         action?: string;
         entity?: string;
+        searchTerm?: string;
+        success?: boolean;
         limit?: number;
         page?: number;
     }) => {
         const response = await api.get('/audit', { params });
+        return response.data;
+    },
+
+    /**
+     * Get aggregated stats for audit logs
+     */
+    getStats: async (params?: {
+        startDate?: string;
+        endDate?: string;
+        userId?: string;
+        action?: string;
+        entity?: string;
+    }) => {
+        const response = await api.get('/audit/stats', { params });
         return response.data;
     },
 
@@ -31,8 +49,8 @@ export const auditAPI = {
         action: string;
         entity: string;
         entityId?: string;
-        oldData?: Record<string, any>;
-        newData?: Record<string, any>;
+        oldData?: Record<string, unknown>;
+        newData?: Record<string, unknown>;
         ipAddress?: string;
     }) => {
         try {
@@ -54,8 +72,8 @@ export const auditAPI = {
         action: string;
         entity: string;
         entityId?: string;
-        oldData?: Record<string, any>;
-        newData?: Record<string, any>;
+        oldData?: Record<string, unknown>;
+        newData?: Record<string, unknown>;
     }>) => {
         try {
             // Create logs one by one (backend doesn't have batch endpoint yet)
@@ -78,12 +96,12 @@ export const crmAPI = {
         return response.data;
     },
 
-    createStage: async (data: any) => {
+    createStage: async (data: ApiPayload) => {
         const response = await api.post('/crm/stages', data);
         return response.data;
     },
 
-    updateStage: async (id: string, data: any) => {
+    updateStage: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/crm/stages/${id}`, data);
         return response.data;
     },
@@ -104,12 +122,12 @@ export const crmAPI = {
         return response.data;
     },
 
-    createOpportunity: async (data: any) => {
+    createOpportunity: async (data: ApiPayload) => {
         const response = await api.post('/crm/opportunities', data);
         return response.data;
     },
 
-    updateOpportunity: async (id: string, data: any) => {
+    updateOpportunity: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/crm/opportunities/${id}`, data);
         return response.data;
     },
@@ -125,7 +143,7 @@ export const crmAPI = {
     },
 
     // Interactions
-    addInteraction: async (opportunityId: string, data: any) => {
+    addInteraction: async (opportunityId: string, data: ApiPayload) => {
         const response = await api.post(`/crm/opportunities/${opportunityId}/interactions`, data);
         return response.data;
     },
@@ -147,12 +165,12 @@ export const fiscalAPI = {
         return response.data;
     },
 
-    createTaxConfig: async (data: any) => {
+    createTaxConfig: async (data: ApiPayload) => {
         const response = await api.post('/fiscal/tax-configs', data);
         return response.data;
     },
 
-    updateTaxConfig: async (id: string, data: any) => {
+    updateTaxConfig: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/fiscal/tax-configs/${id}`, data);
         return response.data;
     },
@@ -163,7 +181,7 @@ export const fiscalAPI = {
         return response.data;
     },
 
-    createIRPSBracket: async (data: any) => {
+    createIRPSBracket: async (data: ApiPayload) => {
         const response = await api.post('/fiscal/irps-brackets', data);
         return response.data;
     },
@@ -174,12 +192,27 @@ export const fiscalAPI = {
         return response.data;
     },
 
-    createRetention: async (data: any) => {
+    getCommercialSummary: async (params?: { period?: string }) => {
+        const response = await api.get('/fiscal/commercial-summary', { params });
+        return response.data;
+    },
+
+    getPeriodStatus: async (period: string) => {
+        const response = await api.get(`/fiscal/periods/${period}/status`);
+        return response.data;
+    },
+
+    closePeriod: async (period: string) => {
+        const response = await api.post(`/fiscal/periods/${period}/close`);
+        return response.data;
+    },
+
+    createRetention: async (data: ApiPayload) => {
         const response = await api.post('/fiscal/retentions', data);
         return response.data;
     },
 
-    updateRetention: async (id: string, data: any) => {
+    updateRetention: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/fiscal/retentions/${id}`, data);
         return response.data;
     },
@@ -190,12 +223,12 @@ export const fiscalAPI = {
         return response.data;
     },
 
-    createReport: async (data: any) => {
+    createReport: async (data: ApiPayload) => {
         const response = await api.post('/fiscal/reports', data);
         return response.data;
     },
 
-    updateReport: async (id: string, data: any) => {
+    updateReport: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/fiscal/reports/${id}`, data);
         return response.data;
     },
@@ -206,18 +239,23 @@ export const fiscalAPI = {
         return response.data;
     },
 
-    createDeadline: async (data: any) => {
+    createDeadline: async (data: ApiPayload) => {
         const response = await api.post('/fiscal/deadlines', data);
         return response.data;
     },
 
-    updateDeadline: async (id: string, data: any) => {
+    updateDeadline: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/fiscal/deadlines/${id}`, data);
         return response.data;
     },
 
     completeDeadline: async (id: string) => {
         const response = await api.post(`/fiscal/deadlines/${id}/complete`);
+        return response.data;
+    },
+
+    getLogisticsMetrics: async () => {
+        const response = await api.get('/fiscal/metrics/logistics');
         return response.data;
     },
 };

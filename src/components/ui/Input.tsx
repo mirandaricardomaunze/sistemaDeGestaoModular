@@ -20,13 +20,13 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         return (
             <div className="w-full group">
                 {label && (
-                    <label className="block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 transition-colors group-focus-within:text-primary-600">
+                    <label className="block text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2 transition-colors group-focus-within:text-primary-600">
                         {label}
                     </label>
                 )}
                 <div className="relative">
                     {leftIcon && (
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 dark:text-gray-400">
                             {leftIcon}
                         </div>
                     )}
@@ -34,14 +34,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         ref={ref}
                         type={inputType}
                         className={cn(
-                            'w-full rounded-xl border bg-white dark:bg-dark-800 text-slate-900 dark:text-gray-100 placeholder-slate-400 dark:placeholder-gray-500 transition-all duration-300 shadow-sm outline-none',
+                            'w-full rounded-xl border bg-white dark:bg-dark-800 text-slate-950 dark:text-gray-100 placeholder-slate-500 dark:placeholder-gray-500 transition-all duration-200 shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)] outline-none',
                             size === 'xs' ? 'px-3 h-8 text-[10px]' :
                                 size === 'sm' ? 'px-4 h-10 text-xs' :
                                     size === 'lg' ? 'px-6 h-14 text-lg' :
                                         'px-4 h-12 text-sm',
                             error
                                 ? 'border-red-500 ring-4 ring-red-500/10 focus:border-red-500'
-                                : 'border-slate-200 dark:border-dark-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-800 shadow-inner dark:shadow-none',
+                                : 'border-slate-300 dark:border-dark-700 focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-800 dark:shadow-none',
                             leftIcon ? 'pl-11' : '',
                             (rightIcon || (isPassword && showPasswordToggle)) ? 'pr-11' : '',
                             className
@@ -52,7 +52,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-primary-500 transition-colors"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-primary-500 transition-colors"
                         >
                             {showPassword ? (
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -66,14 +66,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                             )}
                         </button>
                     ) : rightIcon && (
-                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500 dark:text-gray-400">
                             {rightIcon}
                         </div>
                     )}
                 </div>
                 {error && <p className="mt-1.5 text-sm text-red-500">{error}</p>}
                 {helperText && !error && (
-                    <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
+                    <p className="mt-1.5 text-sm text-slate-600 dark:text-gray-400">{helperText}</p>
                 )}
             </div>
         );

@@ -1,8 +1,0 @@
-node_modules
-dist
-.vite
-backend/dist
-backend/node_modules
-*.css
-*.json
-*.md

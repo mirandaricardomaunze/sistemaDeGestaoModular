@@ -3,21 +3,72 @@ import { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge, Modal, Select, LoadingSpinner, EmptyState } from '../../components/ui';
 import {
     HiOutlineCreditCard,
-    HiOutlineRefresh,
-    HiOutlineCash,
+    HiOutlineArrowPath,
+    HiOutlineBanknotes,
     HiOutlineUser,
     HiOutlineDocumentText,
-    HiOutlineExclamation
-} from 'react-icons/hi';
+    HiOutlineExclamationTriangle
+} from 'react-icons/hi2';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
 import Pagination from '../../components/ui/Pagination';
 import { formatCurrency, formatDateTime, formatDate } from '../../utils/helpers';
 import toast from 'react-hot-toast';
 
+interface CreditCustomer {
+    name?: string;
+    phone?: string | null;
+}
+
+interface CreditSaleRow {
+    id: string;
+    receiptNumber: string;
+    createdAt: string;
+    total: number | string;
+    paidAmount: number | string;
+    remainingBalance: number;
+    isPaid: boolean;
+    customer?: CreditCustomer | null;
+}
+
+interface DebtorRow {
+    id: string;
+    name: string;
+    phone?: string | null;
+    salesCount: number;
+    totalCredit: number;
+    totalPaid: number;
+    outstanding: number;
+    oldestDebt?: string | null;
+}
+
+interface CreditSaleItem {
+    productId?: string;
+    quantity: number;
+    unitPrice: number | string;
+    total: number | string;
+    product?: { name?: string } | null;
+}
+
+interface CreditPayment {
+    id: string;
+    paidAt: string;
+    paymentMethod: string;
+    amount: number | string;
+    receivedBy?: string | null;
+}
+
+interface CreditSaleDetail {
+    sale: CreditSaleRow & { items?: CreditSaleItem[] };
+    isPaid: boolean;
+    totalPaid: number;
+    remaining: number;
+    payments?: CreditPayment[];
+}
+
 export default function CreditSales() {
     // State
-    const [sales, setSales] = useState<any[]>([]);
-    const [debtors, setDebtors] = useState<any[]>([]);
+    const [sales, setSales] = useState<CreditSaleRow[]>([]);
+    const [debtors, setDebtors] = useState<DebtorRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
@@ -27,7 +78,7 @@ export default function CreditSales() {
 
     // Payment modal
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-    const [selectedSale, setSelectedSale] = useState<any>(null);
+    const [selectedSale, setSelectedSale] = useState<CreditSaleRow | null>(null);
     const [paymentData, setPaymentData] = useState({
         amount: '',
         paymentMethod: 'cash',
@@ -38,7 +89,7 @@ export default function CreditSales() {
 
     // Detail modal
     const [detailModalOpen, setDetailModalOpen] = useState(false);
-    const [saleDetail, setSaleDetail] = useState<any>(null);
+    const [saleDetail, setSaleDetail] = useState<CreditSaleDetail | null>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
     // Tabs
@@ -79,7 +130,7 @@ export default function CreditSales() {
     }, [page, pageSize, statusFilter]);
 
     // Open payment modal
-    const openPaymentModal = (sale: any) => {
+    const openPaymentModal = (sale: CreditSaleRow) => {
         setSelectedSale(sale);
         setPaymentData({
             amount: sale.remainingBalance?.toString() || '',
@@ -92,6 +143,7 @@ export default function CreditSales() {
 
     // Handle payment
     const handlePayment = async () => {
+        if (!selectedSale) return;
         if (!paymentData.amount || parseFloat(paymentData.amount) <= 0) {
             toast.error('Informe um valor válido');
             return;
@@ -115,8 +167,8 @@ export default function CreditSales() {
             setSelectedSale(null);
             fetchCreditSales();
             fetchDebtors();
-        } catch (error: any) {
-            toast.error(error.message || 'Erro ao registrar pagamento');
+        } catch (error) {
+            toast.error((error as Error).message || 'Erro ao registrar pagamento');
         } finally {
             setSubmitting(false);
         }
@@ -151,7 +203,7 @@ export default function CreditSales() {
                 </div>
                 <div className="flex gap-3">
                     <Button variant="outline" onClick={() => { fetchCreditSales(); fetchDebtors(); }}>
-                        <HiOutlineRefresh className="w-4 h-4 mr-2" />
+                        <HiOutlineArrowPath className="w-4 h-4 mr-2" />
                         Atualizar
                     </Button>
                 </div>
@@ -166,7 +218,7 @@ export default function CreditSales() {
                             <p className="text-3xl font-bold">{formatCurrency(totalOutstanding)}</p>
                             <p className="text-red-200 text-xs mt-1">{debtors.length} devedores</p>
                         </div>
-                        <HiOutlineExclamation className="w-12 h-12 text-red-200 opacity-75" />
+                        <HiOutlineExclamationTriangle className="w-12 h-12 text-red-200 opacity-75" />
                     </div>
                 </Card>
                 <Card className="bg-amber-600 text-white">
@@ -257,7 +309,7 @@ export default function CreditSales() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {sales.map((sale: any) => (
+                                    {sales.map((sale) => (
                                         <tr key={sale.id} className="border-b dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800">
                                             <td className="py-3 px-4 font-mono text-sm">
                                                 {sale.receiptNumber}
@@ -308,7 +360,7 @@ export default function CreditSales() {
                                                             size="sm"
                                                             onClick={() => openPaymentModal(sale)}
                                                         >
-                                                            <HiOutlineCash className="w-4 h-4 mr-1" />
+                                                            <HiOutlineBanknotes className="w-4 h-4 mr-1" />
                                                             Pagar
                                                         </Button>
                                                     )}
@@ -371,7 +423,7 @@ export default function CreditSales() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {debtors.map((debtor: any) => (
+                                    {debtors.map((debtor) => (
                                         <tr key={debtor.id} className="border-b dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-800">
                                             <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">
                                                 {debtor.name}
@@ -533,7 +585,7 @@ export default function CreditSales() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {saleDetail.sale.items?.map((item: any, i: number) => (
+                                    {saleDetail.sale.items?.map((item, i) => (
                                         <tr key={i} className="border-b dark:border-dark-700">
                                             <td className="py-2">{item.product?.name || 'Produto'}</td>
                                             <td className="py-2 text-center">{item.quantity}</td>
@@ -560,7 +612,7 @@ export default function CreditSales() {
                             </div>
                         </div>
 
-                        {saleDetail.payments?.length > 0 && (
+                        {(saleDetail.payments?.length ?? 0) > 0 && (
                             <div className="border-t dark:border-dark-700 pt-4">
                                 <p className="font-medium mb-2">Histórico de Pagamentos</p>
                                 <table className="w-full text-sm">
@@ -573,7 +625,7 @@ export default function CreditSales() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {saleDetail.payments.map((payment: any) => (
+                                        {saleDetail.payments?.map((payment) => (
                                             <tr key={payment.id} className="border-b dark:border-dark-700">
                                                 <td className="py-2">{formatDateTime(payment.paidAt)}</td>
                                                 <td className="py-2">

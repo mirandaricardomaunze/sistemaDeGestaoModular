@@ -1,7 +1,16 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { cacheService, CacheKeys } from './cacheService';
 import { logger } from '../utils/logger';
+
+export function invalidateDashboardCache(companyId: string): void {
+    if (!companyId) return;
+
+    cacheService.invalidatePattern(`dashboard:metrics:${companyId}:`);
+    cacheService.invalidatePattern(`dashboard:sales:${companyId}:`);
+    cacheService.invalidatePattern(`dashboard:top-products:${companyId}:`);
+}
 
 export class DashboardService {
     async getMetrics(companyId: string, warehouseId?: string) {
@@ -17,7 +26,7 @@ export class DashboardService {
             const startOfLastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
             const endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
 
-            const saleWhere: any = { companyId, warehouseId };
+            const saleWhere: Prisma.SaleWhereInput = { companyId, warehouseId, voidStatus: { not: 'voided' } };
             if (!warehouseId) delete saleWhere.warehouseId;
 
             // Detect which optional modules are active to aggregate the right sales tables
@@ -52,7 +61,10 @@ export class DashboardService {
                         ...(warehouseId ? { warehouseStocks: { some: { warehouseId } } } : {})
                     }
                 }),
-                prisma.saleItem.findMany({ where: { sale: { ...saleWhere, createdAt: { gte: startOfMonth, lte: endOfMonth } } }, include: { product: { select: { costPrice: true } } } }),
+                prisma.saleItem.findMany({
+                    where: { sale: { ...saleWhere, createdAt: { gte: startOfMonth, lte: endOfMonth } } },
+                    select: { quantity: true, total: true, costPrice: true, productId: true }
+                }),
                 // PharmacySale aggregations — only if PHARMACY module is active
                 hasPharmacy
                     ? prisma.pharmacySale.aggregate({ where: { companyId, createdAt: { gte: today, lte: endOfDay } }, _sum: { total: true }, _count: true })
@@ -67,9 +79,22 @@ export class DashboardService {
             const salesGrowth = lastMonthTotal > 0 ? ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
             // Prefer the costPrice snapshot stored on the SaleItem; fall back to
             // live product cost only for legacy rows that pre-date the snapshot.
+            const legacyProductIds = Array.from(new Set(
+                salesItems.filter(i => i.costPrice == null && i.productId).map(i => i.productId as string)
+            ));
+            const legacyCostMap = new Map<string, number>();
+            if (legacyProductIds.length > 0) {
+                const legacyProducts = await prisma.product.findMany({
+                    where: { id: { in: legacyProductIds } },
+                    select: { id: true, costPrice: true }
+                });
+                for (const p of legacyProducts) legacyCostMap.set(p.id, Number(p.costPrice ?? 0));
+            }
             const monthProfit = salesItems.reduce((sum, item) => {
-                const cogs = Number((item as any).costPrice ?? item.product?.costPrice ?? 0) * item.quantity;
-                return sum + (Number(item.total) - cogs);
+                const unitCost = item.costPrice != null
+                    ? Number(item.costPrice)
+                    : (item.productId ? legacyCostMap.get(item.productId) ?? 0 : 0);
+                return sum + (Number(item.total) - unitCost * item.quantity);
             }, 0);
 
             return {
@@ -98,7 +123,7 @@ export class DashboardService {
             default: startDate = new Date(today.getFullYear(), today.getMonth(), 1); groupBy = 'day';
         }
 
-        const where: any = { companyId, createdAt: { gte: startDate } };
+        const where: Prisma.SaleWhereInput = { companyId, createdAt: { gte: startDate }, voidStatus: { not: 'voided' } };
         if (warehouseId) where.warehouseId = warehouseId;
 
         const sales = await prisma.sale.findMany({ where, select: { createdAt: true, total: true } });
@@ -115,14 +140,16 @@ export class DashboardService {
     async getTopProducts(companyId: string, limit: number, period?: string, warehouseId?: string) {
         const cacheKey = CacheKeys.dashboardTopProducts(companyId, limit, parseInt(period || '30'), warehouseId);
         return cacheService.getOrSet(cacheKey, async () => {
-            const where: any = { sale: { companyId, warehouseId } };
-            if (!warehouseId) delete where.sale.warehouseId;
-            
+            const saleFilter: Prisma.SaleWhereInput = { companyId, warehouseId, voidStatus: { not: 'voided' } };
+            if (!warehouseId) delete saleFilter.warehouseId;
+
             if (period) {
                 const startDate = new Date();
                 startDate.setDate(startDate.getDate() - parseInt(period));
-                where.sale.createdAt = { gte: startDate };
+                saleFilter.createdAt = { gte: startDate };
             }
+
+            const where: Prisma.SaleItemWhereInput = { sale: saleFilter };
 
             const topProducts = await prisma.saleItem.groupBy({
                 by: ['productId'], where, _sum: { quantity: true, total: true },
@@ -146,7 +173,7 @@ export class DashboardService {
 
     async getRecentActivity(companyId: string, limit: number = 10, warehouseId?: string) {
         // Fetch recent sales as activity
-        const where: any = { companyId };
+        const where: Prisma.SaleWhereInput = { companyId };
         if (warehouseId) where.warehouseId = warehouseId;
 
         const recentSales = await prisma.sale.findMany({
@@ -171,8 +198,9 @@ export class DashboardService {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - periodDays);
 
-        const where: any = { sale: { companyId, createdAt: { gte: startDate } } };
-        if (warehouseId) where.sale.warehouseId = warehouseId;
+        const saleFilter: Prisma.SaleWhereInput = { companyId, createdAt: { gte: startDate }, voidStatus: { not: 'voided' } };
+        if (warehouseId) saleFilter.warehouseId = warehouseId;
+        const where: Prisma.SaleItemWhereInput = { sale: saleFilter };
 
         const stats = await prisma.saleItem.groupBy({
             by: ['productId'],
@@ -201,7 +229,7 @@ export class DashboardService {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - periodDays);
 
-        const where: any = { companyId, createdAt: { gte: startDate } };
+        const where: Prisma.SaleWhereInput = { companyId, createdAt: { gte: startDate }, voidStatus: { not: 'voided' } };
         if (warehouseId) where.warehouseId = warehouseId;
 
         const stats = await prisma.sale.groupBy({

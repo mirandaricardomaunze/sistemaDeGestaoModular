@@ -16,10 +16,22 @@ import { formatCurrency } from '../../../utils/helpers';
 
 const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
+interface MonthlyDataPoint {
+    month: string;
+    receitas: number;
+    despesas: number;
+    lucro: number;
+}
+
+interface CategoryDataPoint {
+    name: string;
+    value: number;
+}
+
 interface FinanceChartsProps {
-    monthlyData: any[];
-    categoryData: any[];
-    expenseCategoryData: any[];
+    monthlyData: MonthlyDataPoint[];
+    categoryData: CategoryDataPoint[];
+    expenseCategoryData: CategoryDataPoint[];
 }
 
 export function FinanceCharts({ monthlyData, categoryData, expenseCategoryData }: FinanceChartsProps) {
@@ -55,7 +67,7 @@ export function FinanceCharts({ monthlyData, categoryData, expenseCategoryData }
                     <ResponsiveContainer width="100%" height={288}>
                         <PieChart>
                             <Pie
-                                data={categoryData}
+                                data={categoryData as unknown as Parameters<typeof Pie>[0]['data']}
                                 cx="50%"
                                 cy="50%"
                                 innerRadius={60}
@@ -84,7 +96,7 @@ export function FinanceCharts({ monthlyData, categoryData, expenseCategoryData }
                         <ResponsiveContainer width="100%" height={288}>
                             <PieChart>
                                 <Pie
-                                    data={expenseCategoryData}
+                                    data={expenseCategoryData as unknown as Parameters<typeof Pie>[0]['data']}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={60}

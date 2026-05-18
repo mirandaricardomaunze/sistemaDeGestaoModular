@@ -5,6 +5,11 @@ import {
     HiOutlineClock, HiOutlineMapPin, HiOutlineCheck
 } from 'react-icons/hi2';
 import { Card, Button, Input, Modal, Badge, LoadingSpinner, Select, Textarea } from '../../components/ui';
+import type { BadgeVariant } from '../../components/ui/Badge';
+import type { ComponentType, SVGProps } from 'react';
+import type { RestaurantTable } from '../../types/restaurant';
+
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 import { 
     useRestaurantReservations, useCreateReservation, useUpdateReservation, 
     useDeleteReservation, useUpdateReservationStatus, useRestaurantTables
@@ -61,7 +66,7 @@ function ReservationModal({ open, onClose, editing }: { open: boolean; onClose: 
             if (editing) {
                 await update.mutateAsync({ id: editing.id, data: form });
             } else {
-                await create.mutateAsync(form);
+                await create.mutateAsync(form as Parameters<typeof create.mutateAsync>[0]);
             }
             onClose();
         } catch (e) { /* error handled by hook toast */ }
@@ -118,7 +123,7 @@ function ReservationModal({ open, onClose, editing }: { open: boolean; onClose: 
                             onChange={e => setForm(p => ({ ...p, tableId: e.target.value }))}
                             options={[
                                 { value: '', label: 'Seleccionar Mesa' },
-                                ...tables.map((t: any) => ({ value: t.id, label: `Mesa ${t.number} "" ${t.capacity} Lugares` }))
+                                ...(tables as RestaurantTable[]).map((t) => ({ value: t.id, label: `Mesa ${t.number} "" ${t.capacity} Lugares` }))
                             ]}
                         />
                     </div>
@@ -149,7 +154,7 @@ function ReservationModal({ open, onClose, editing }: { open: boolean; onClose: 
 // RESERVATION CARD
 // ============================================================================
 
-const STATUS_CONFIG: Record<ReservationStatus, { label: string; variant: any; icon: any }> = {
+const STATUS_CONFIG: Record<ReservationStatus, { label: string; variant: BadgeVariant; icon: IconComponent }> = {
     pending:   { label: 'Pendente',   variant: 'warning', icon: HiOutlineClock },
     confirmed: { label: 'Confirmada', variant: 'primary', icon: HiOutlineCheck },
     seated:    { label: 'Sentado',    variant: 'success', icon: HiOutlineMapPin },
@@ -249,7 +254,7 @@ export default function RestaurantReservationsPage() {
 
     const { data: resData, isLoading, refetch } = useRestaurantReservations({
         search: search || undefined,
-        status: status || undefined
+        status: (status || undefined) as ReservationStatus | undefined
     });
 
     const items = resData?.data || [];

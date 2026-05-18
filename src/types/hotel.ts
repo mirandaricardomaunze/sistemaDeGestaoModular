@@ -14,7 +14,7 @@ export interface HotelRoom {
     maxOccupancy?: number;
 }
 
-export type BookingStatus = 'pending' | 'confirmed' | 'active' | 'checked_out' | 'cancelled' | 'no_show';
+export type BookingStatus = 'pending' | 'confirmed' | 'active' | 'checked_in' | 'checked_out' | 'cancelled' | 'no_show';
 
 export interface HotelBooking {
     id: string;
@@ -31,6 +31,11 @@ export interface HotelBooking {
     notes?: string;
     createdAt: string;
     updatedAt: string;
+    // Optional augmented fields included by some backend responses (recent bookings list)
+    customerName?: string;
+    roomNumber?: string;
+    roomType?: string;
+    totalPrice?: number;
 }
 
 export interface HousekeepingTask {
@@ -58,9 +63,23 @@ export interface HotelDashboardMetrics {
 }
 
 export interface HotelDashboard {
-    metrics: HotelDashboardMetrics;
-    todayCheckouts: HotelBooking[];
-    todayCheckins: HotelBooking[];
-    recentBookings: HotelBooking[];
-    roomStatusDistribution: Array<{ status: string; count: number }>;
+    metrics?: HotelDashboardMetrics;
+    todayCheckouts?: HotelBooking[];
+    todayCheckins?: HotelBooking[];
+    recentBookings?: HotelBooking[];
+    roomStatusDistribution?: Array<{ status: string; count: number }>;
+    // Flat-shape fields returned by /hospitality/dashboard/summary
+    totalRooms?: number;
+    occupiedRooms?: number;
+    availableRooms?: number;
+    occupancyRate?: number;
+    todayRevenue?: number;
+    monthRevenue?: number;
+    todayCheckIns?: number;
+    todayCheckOuts?: number;
+    pendingCheckouts?: number;
+    monthlyGrowth?: number;
+    revenueChart?: Array<{ date: string; revenue: number }>;
+    weeklyChart?: Array<{ day: string; revenue: number; bookings?: number }>;
+    roomTypeData?: Array<{ type: string; count: number; percentage?: number }>;
 }

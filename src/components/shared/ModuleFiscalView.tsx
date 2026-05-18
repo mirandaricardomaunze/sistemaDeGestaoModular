@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, Badge, LoadingSpinner, EmptyState, Button } from '../ui';
 import { 
     HiOutlineChartBar, 
-    HiOutlineDocumentText as HiOutlineDocumentReport, 
+    HiOutlineDocumentText as HiOutlineDocumentChartBar, 
     HiOutlineFunnel as HiOutlineFilter, 
     HiOutlineArrowTopRightOnSquare as HiOutlineExternalLink 
 } from 'react-icons/hi2';
@@ -17,10 +17,33 @@ interface ModuleFiscalViewProps {
     title: string;
 }
 
+interface FiscalMetrics {
+    totalInvoiced: number;
+    ivaPayable: number;
+    retentions: number;
+    lastSubmission: string;
+}
+
+interface RetentionRow {
+    id: string;
+    module: string;
+    type: string;
+    beneficiary: string;
+    amount: number;
+    createdAt: string;
+    period?: string;
+    baseAmount?: number;
+    retainedAmount?: number;
+    beneficiaryNuit?: string;
+    revenueCode?: string;
+    grossAmount?: number;
+    rate?: number;
+}
+
 export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProps) {
-    const [metrics, setMetrics] = useState<any>(null);
+    const [metrics, setMetrics] = useState<FiscalMetrics | null>(null);
     const [loading, setLoading] = useState(true);
-    const [retentions, setRetentions] = useState<any[]>([]);
+    const [retentions, setRetentions] = useState<RetentionRow[]>([]);
     const [showGuide, setShowGuide] = useState(false);
     const [showModelo10, setShowModelo10] = useState(false);
 
@@ -40,8 +63,9 @@ export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProp
                 }, 800);
 
                 const retentionRes = await fiscalAPI.getRetentions();
-                setRetentions(retentionRes.filter((r: any) => r.module === module));
-            } catch (err: any) {
+                setRetentions((retentionRes as RetentionRow[]).filter((r) => r.module === module));
+            } catch (err) {
+
                 toast.error('Erro ao buscar dados fiscais');
                 setLoading(false);
             }
@@ -85,7 +109,7 @@ export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProp
                 <Card variant="glass" className="border-l-4 border-l-amber-500 p-6 group transition-all hover:translate-y-[-2px]">
                     <div className="flex items-center justify-between mb-4">
                         <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-lg group-hover:scale-110 transition-transform">
-                            <HiOutlineDocumentReport className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                            <HiOutlineDocumentChartBar className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                         </div>
                         <div className="h-1.5 w-10 rounded-full bg-amber-100" />
                     </div>
@@ -101,7 +125,7 @@ export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProp
                 <div className="p-6 border-b border-gray-100 dark:border-dark-700/50 flex items-center justify-between bg-white/30 dark:bg-dark-900/30">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
-                            <HiOutlineDocumentReport className="w-5 h-5 text-primary-600" />
+                            <HiOutlineDocumentChartBar className="w-5 h-5 text-primary-600" />
                         </div>
                         <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-700 dark:text-gray-300">
                             Retenções e Eventos Fiscais Recentes
@@ -121,14 +145,14 @@ export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProp
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {retentions.map((r: any) => (
+                                    {retentions.map((r) => (
                                         <tr key={r.id} className="border-b border-gray-50 dark:border-dark-700/50 hover:bg-gray-50/50 dark:hover:bg-dark-700/30 transition-colors">
                                             <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{formatDate(r.createdAt)}</td>
                                             <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                                                 <Badge variant="outline">{r.type}</Badge>
                                             </td>
                                             <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{r.beneficiary}</td>
-                                            <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white text-right">{formatCurrency(r.amount)}</td>
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white text-right">{formatCurrency(Number(r.amount))}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -149,7 +173,7 @@ export default function ModuleFiscalView({ module, title }: ModuleFiscalViewProp
                 <Button variant="outline" leftIcon={<HiOutlineExternalLink />} onClick={() => setShowGuide(true)}>
                     Ver Guia de Pagamento
                 </Button>
-                <Button variant="primary" leftIcon={<HiOutlineDocumentReport />} onClick={() => setShowModelo10(true)}>
+                <Button variant="primary" leftIcon={<HiOutlineDocumentChartBar />} onClick={() => setShowModelo10(true)}>
                     Gerar Relatório Modelo 10
                 </Button>
             </div>

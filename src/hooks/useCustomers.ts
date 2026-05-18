@@ -45,7 +45,7 @@ export function useCustomers(params?: UseCustomersParams) {
                 };
             }
 
-            const response = await customersAPI.getAll(params as any);
+            const response = await customersAPI.getAll(params);
 
             let customersData: Customer[];
             let pagination: PaginationMeta;
@@ -97,7 +97,7 @@ export function useCustomers(params?: UseCustomersParams) {
                     nextRetryAt: Date.now(),
                 });
                 toast('Cliente guardado localmente (Offline)', { icon: '💾' });
-                return { ...data, id: `offline-${Date.now()}` } as any;
+                return { ...data, id: `offline-${Date.now()}` } as Awaited<ReturnType<typeof customersAPI.create>>;
             }
             return customersAPI.create(data);
         },
@@ -127,7 +127,7 @@ export function useCustomers(params?: UseCustomersParams) {
                     nextRetryAt: Date.now(),
                 });
                 toast('Actualização guardada localmente (Offline)', { icon: '💾' });
-                return { ...data, id } as any;
+                return { ...data, id } as Awaited<ReturnType<typeof customersAPI.update>>;
             }
             return customersAPI.update(id, data);
         },
@@ -173,7 +173,7 @@ export function useCustomers(params?: UseCustomersParams) {
         error: query.error ? 'Erro ao carregar clientes' : null,
         refetch: query.refetch,
         addCustomer: addMutation.mutateAsync,
-        updateCustomer: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
+        updateCustomer: (id: string, data: Parameters<typeof customersAPI.update>[1]) => updateMutation.mutateAsync({ id, data }),
         deleteCustomer: deleteMutation.mutateAsync,
     };
 }

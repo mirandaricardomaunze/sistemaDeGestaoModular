@@ -147,7 +147,7 @@ export default function ProductForm({ isOpen, onClose, product, onSuccess, origi
                 barcode: data.barcode || undefined,
                 name: data.name,
                 description: data.description || undefined,
-                category: 'other' as any,
+                category: 'other' as const,
                 categoryId: data.category || undefined,
                 price: Number(data.price),
                 costPrice: Number(data.costPrice),

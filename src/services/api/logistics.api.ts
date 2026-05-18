@@ -57,6 +57,15 @@ export interface ParcelNotification {
     status: string;
 }
 
+export type CreateDeliveryInput = Omit<Partial<Delivery>, 'items'> & {
+    items?: Array<{
+        productId?: string;
+        description: string;
+        quantity: number;
+        weight?: number;
+    }>;
+};
+
 // ============================================================================
 // API METHODS
 // ============================================================================
@@ -164,7 +173,7 @@ export const logisticsAPI = {
         return response.data;
     },
 
-    createDelivery: async (data: Partial<Delivery> & { items?: Array<{ productId?: string; description: string; quantity: number; weight?: number }> }): Promise<Delivery> => {
+    createDelivery: async (data: CreateDeliveryInput): Promise<Delivery> => {
         const response = await api.post('/logistics/deliveries', data);
         return response.data;
     },
@@ -336,15 +345,15 @@ export const logisticsAPI = {
         const response = await api.get('/logistics/finance/dashboard', { params: { period } });
         return response.data;
     },
-    getTransactions: async (params?: any) => {
+    getTransactions: async (params?: Record<string, unknown>) => {
         const response = await api.get('/logistics/finance/transactions', { params });
         return response.data;
     },
-    createTransaction: async (data: any) => {
+    createTransaction: async (data: object) => {
         const response = await api.post('/logistics/finance/transactions', data);
         return response.data;
     },
-    updateTransaction: async (id: string, data: any) => {
+    updateTransaction: async (id: string, data: object) => {
         const response = await api.put(`/logistics/finance/transactions/${id}`, data);
         return response.data;
     },

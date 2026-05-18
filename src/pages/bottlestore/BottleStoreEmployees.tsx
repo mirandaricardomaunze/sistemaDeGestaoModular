@@ -8,7 +8,7 @@ export default function BottleStoreEmployees() {
                 department: 'Bottle Store',
                 moduleName: 'Bottle Store',
                 accentColor: 'orange',
-                icon: <HiOutlineBeaker />,
+                icon: HiOutlineBeaker,
                 showCommissions: true,
                 documentTypes: [
                     { id: 'bi', label: 'Bilhete de Identidade', required: true },

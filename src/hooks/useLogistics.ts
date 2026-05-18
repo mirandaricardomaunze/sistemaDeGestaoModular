@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { logisticsAPI } from '../services/api/logistics.api';
+import { logisticsAPI, type CreateDeliveryInput } from '../services/api/logistics.api';
 import type {
     Vehicle, Driver, DeliveryRoute, Delivery,
     LogisticsDashboard, PaginationInfo, DeliveryStatusEvent, ExpiryAlert,
@@ -69,7 +69,7 @@ export function useCreateVehicle() {
             invalidate([['logistics', 'vehicles'], ['logistics', 'dashboard']]);
             toast.success('Veículo criado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar veículo'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao criar veículo'),
     }));
 }
 
@@ -81,7 +81,7 @@ export function useUpdateVehicle() {
             invalidate([['logistics', 'vehicles']]);
             toast.success('Veículo actualizado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar veículo'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao actualizar veículo'),
     }));
 }
 
@@ -93,7 +93,7 @@ export function useDeleteVehicle() {
             invalidate([['logistics', 'vehicles'], ['logistics', 'dashboard']]);
             toast.success('Veículo eliminado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar veículo'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao eliminar veículo'),
     }));
 }
 
@@ -124,7 +124,7 @@ export function useCreateDriver() {
             invalidate([['logistics', 'drivers'], ['logistics', 'dashboard']]);
             toast.success('Motorista criado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar motorista'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao criar motorista'),
     }));
 }
 
@@ -136,7 +136,7 @@ export function useUpdateDriver() {
             invalidate([['logistics', 'drivers']]);
             toast.success('Motorista actualizado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar motorista'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao actualizar motorista'),
     }));
 }
 
@@ -148,7 +148,7 @@ export function useDeleteDriver() {
             invalidate([['logistics', 'drivers'], ['logistics', 'dashboard']]);
             toast.success('Motorista eliminado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar motorista'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao eliminar motorista'),
     }));
 }
 
@@ -179,7 +179,7 @@ export function useCreateRoute() {
             invalidate([['logistics', 'routes'], ['logistics', 'dashboard']]);
             toast.success('Rota criada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar rota'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao criar rota'),
     }));
 }
 
@@ -191,7 +191,7 @@ export function useUpdateRoute() {
             invalidate([['logistics', 'routes']]);
             toast.success('Rota actualizada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar rota'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao actualizar rota'),
     }));
 }
 
@@ -203,7 +203,7 @@ export function useDeleteRoute() {
             invalidate([['logistics', 'routes'], ['logistics', 'dashboard']]);
             toast.success('Rota eliminada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar rota'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao eliminar rota'),
     }));
 }
 
@@ -239,13 +239,13 @@ export function useDelivery(id: string) {
 export function useCreateDelivery() {
     const invalidate = useInvalidate();
     return withIsLoading(useMutation({
-        mutationFn: (data: Partial<Delivery> & { items?: Array<{ productId?: string; description: string; quantity: number; weight?: number }> }) =>
+        mutationFn: (data: CreateDeliveryInput) =>
             logisticsAPI.createDelivery(data),
         onSuccess: () => {
             invalidate([['logistics', 'deliveries'], ['logistics', 'dashboard']]);
             toast.success('Entrega criada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar entrega'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao criar entrega'),
     }));
 }
 
@@ -257,7 +257,7 @@ export function useUpdateDelivery() {
             invalidate([['logistics', 'deliveries']]);
             toast.success('Entrega actualizada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar entrega'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao actualizar entrega'),
     }));
 }
 
@@ -270,7 +270,7 @@ export function useUpdateDeliveryStatus() {
             invalidate([['logistics', 'deliveries'], ['logistics', 'dashboard'], ['logistics', 'drivers'], ['logistics', 'vehicles']]);
             toast.success('Estado da entrega actualizado');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar estado'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao actualizar estado'),
     }));
 }
 
@@ -283,7 +283,7 @@ export function usePayDelivery() {
             invalidate([['logistics', 'deliveries'], ['logistics', 'dashboard']]);
             toast.success('Pagamento de entrega registado');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao processar pagamento'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao processar pagamento'),
     }));
 }
 
@@ -295,7 +295,7 @@ export function useDeleteDelivery() {
             invalidate([['logistics', 'deliveries'], ['logistics', 'dashboard']]);
             toast.success('Entrega eliminada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar entrega'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao eliminar entrega'),
     }));
 }
 
@@ -340,7 +340,7 @@ export function useCreateParcel() {
             invalidate([['logistics', 'parcels'], ['logistics', 'dashboard']]);
             toast.success('Encomenda registada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar encomenda'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao criar encomenda'),
     }));
 }
 
@@ -352,7 +352,7 @@ export function useUpdateParcel() {
             invalidate([['logistics', 'parcels']]);
             toast.success('Encomenda actualizada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar encomenda'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao actualizar encomenda'),
     }));
 }
 
@@ -365,7 +365,7 @@ export function useRegisterParcelPickup() {
             invalidate([['logistics', 'parcels'], ['logistics', 'dashboard']]);
             toast.success('Levantamento registado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar levantamento'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao registar levantamento'),
     }));
 }
 
@@ -378,7 +378,7 @@ export function useSendParcelNotification() {
             invalidate([['logistics', 'parcels']]);
             toast.success('Notificação enviada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao enviar notificação'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao enviar notificação'),
     }));
 }
 
@@ -390,7 +390,7 @@ export function useDeleteParcel() {
             invalidate([['logistics', 'parcels'], ['logistics', 'dashboard']]);
             toast.success('Encomenda eliminada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar encomenda'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao eliminar encomenda'),
     }));
 }
 
@@ -413,7 +413,7 @@ export function useCreateMaintenance() {
             invalidate([['logistics', 'maintenances'], ['logistics', 'vehicles']]);
             toast.success('Manutenção registada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao criar manutenção'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao criar manutenção'),
     }));
 }
 
@@ -425,7 +425,7 @@ export function useUpdateMaintenance() {
             invalidate([['logistics', 'maintenances'], ['logistics', 'vehicles']]);
             toast.success('Manutenção actualizada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar manutenção'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao actualizar manutenção'),
     }));
 }
 
@@ -437,7 +437,7 @@ export function useDeleteMaintenance() {
             invalidate([['logistics', 'maintenances'], ['logistics', 'vehicles']]);
             toast.success('Manutenção eliminada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar manutenção'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao eliminar manutenção'),
     }));
 }
 
@@ -589,8 +589,8 @@ function buildDriverAlerts(driver: Driver): ExpiryAlert[] {
  * Components remain dumb: they just render what this hook provides.
  */
 export function useExpiryAlerts(): { alerts: ExpiryAlert[]; isLoading: boolean } {
-    const { data: vehiclesData, isLoading: loadingVehicles } = useVehicles({ limit: 200 } as any);
-    const { data: driversData, isLoading: loadingDrivers } = useDrivers({ limit: 200 } as any);
+    const { data: vehiclesData, isLoading: loadingVehicles } = useVehicles({ limit: 200 });
+    const { data: driversData, isLoading: loadingDrivers } = useDrivers({ limit: 200 });
 
     const isLoading = loadingVehicles || loadingDrivers;
 
@@ -631,7 +631,7 @@ export function useCreateFuelSupply() {
             invalidate([['logistics', 'fuel'], ['logistics', 'dashboard'], ['logistics', 'vehicles']]);
             toast.success('Abastecimento registado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar abastecimento'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao registar abastecimento'),
     }));
 }
 
@@ -643,7 +643,7 @@ export function useDeleteFuelSupply() {
             invalidate([['logistics', 'fuel'], ['logistics', 'dashboard'], ['logistics', 'vehicles']]);
             toast.success('Abastecimento eliminado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar registo'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao eliminar registo'),
     }));
 }
 
@@ -666,7 +666,7 @@ export function useCreateIncident() {
             invalidate([['logistics', 'incidents'], ['logistics', 'dashboard'], ['logistics', 'vehicles'], ['logistics', 'drivers']]);
             toast.success('Incidente reportado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao reportar incidente'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao reportar incidente'),
     }));
 }
 
@@ -678,7 +678,7 @@ export function useUpdateIncident() {
             invalidate([['logistics', 'incidents']]);
             toast.success('Incidente actualizado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar incidente'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao actualizar incidente'),
     }));
 }
 
@@ -690,7 +690,7 @@ export function useDeleteIncident() {
             invalidate([['logistics', 'incidents'], ['logistics', 'dashboard'], ['logistics', 'vehicles'], ['logistics', 'drivers']]);
             toast.success('Incidente eliminado com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao eliminar incidente'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao eliminar incidente'),
     }));
 }
 
@@ -714,7 +714,7 @@ export function useRecordStaffTime() {
             invalidate([['logistics', 'hr', 'attendance'], ['logistics', 'drivers']]);
             toast.success(data.status === 'present' ? 'Entrada registada' : 'Saída registada');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar ponto'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao registar ponto'),
     }));
 }
 
@@ -734,7 +734,7 @@ export function useCreateStaffPayroll() {
             invalidate([['logistics', 'hr', 'payroll']]);
             toast.success('Folha de salário gerada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao gerar folha'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao gerar folha'),
     }));
 }
 
@@ -747,7 +747,7 @@ export function useUpdateStaffPayrollStatus() {
             invalidate([['logistics', 'hr', 'payroll']]);
             toast.success('Estado do salário actualizado');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao actualizar estado'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao actualizar estado'),
     }));
 }
 
@@ -783,6 +783,6 @@ export function useCreateTransfer() {
             invalidate([['logistics', 'transfers'], ['logistics', 'dashboard']]);
             toast.success('Transferência registada com sucesso');
         },
-        onError: (error: any) => toast.error(error.response?.data?.error || 'Erro ao registar transferência'),
+        onError: (error: { response?: { data?: { message?: string; error?: string } } }) => toast.error(error.response?.data?.error || 'Erro ao registar transferência'),
     }));
 }

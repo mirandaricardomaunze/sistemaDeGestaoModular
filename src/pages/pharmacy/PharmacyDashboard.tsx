@@ -79,8 +79,7 @@ export default function PharmacyDashboard() {
 
     // Transform sales chart data
     const salesData = useMemo(() => {
-        const data = Array.isArray(salesChart) ? salesChart : (salesChart as any)?.data || [];
-        return data.map((item: any) => ({
+        return (salesChart || []).map((item) => ({
             name: item.date.slice(-5), // Show MM-DD
             vendas: item.total,
         }));
@@ -88,13 +87,12 @@ export default function PharmacyDashboard() {
 
     // Transform weekly chart data
     const weeklySalesData = useMemo(() => {
-        const data = Array.isArray(weeklyChart) ? weeklyChart : (weeklyChart as any)?.data || [];
-        return data.map((item: any) => {
+        return (weeklyChart || []).map((item) => {
             const date = new Date(item.date);
             const dayName = dayNames[date.getDay().toString()] || item.date;
             return {
                 name: dayName,
-                valor: item.total
+                valor: Number(item.total ?? 0)
             };
         });
     }, [weeklyChart]);
@@ -110,8 +108,8 @@ export default function PharmacyDashboard() {
 
     // Recent activities from recent sales
     const recentActivities = useMemo(() => {
-        const sales = Array.isArray(recentSales) ? recentSales : (recentSales as any)?.data || [];
-        return sales.map((sale: any) => ({
+        const sales = Array.isArray(recentSales) ? recentSales : (recentSales?.data || []);
+        return sales.map((sale) => ({
             id: sale.id,
             action: 'Venda realizada',
             detail: `Venda #${sale.id.slice(-6)} - ${formatCurrency(Number(sale.total))}`,

@@ -11,6 +11,8 @@ import type {
     FiscalAuditLog,
     FiscalDeadline,
     FiscalDashboardMetrics,
+    CommercialFiscalSummary,
+    FiscalPeriodStatus,
     TaxType,
     LogisticsMetrics,
 } from '../types/fiscal';
@@ -140,6 +142,11 @@ interface FiscalState {
 
     // Dashboard Metrics
     getDashboardMetrics: () => FiscalDashboardMetrics;
+    commercialFiscalSummary: CommercialFiscalSummary | null;
+    fiscalPeriodStatus: FiscalPeriodStatus | null;
+    fetchCommercialFiscalSummary: (period?: string) => Promise<void>;
+    fetchFiscalPeriodStatus: (period: string) => Promise<void>;
+    closeFiscalPeriod: (period: string) => Promise<void>;
     logisticsMetrics: LogisticsMetrics | null;
     fetchLogisticsMetrics: () => Promise<void>;
 
@@ -162,6 +169,8 @@ export const useFiscalStore = create<FiscalState>()(
             auditLogs: [],
             deadlines: [],
             isSyncing: false,
+            commercialFiscalSummary: null,
+            fiscalPeriodStatus: null,
             logisticsMetrics: null,
 
             // Database Actions
@@ -187,7 +196,7 @@ export const useFiscalStore = create<FiscalState>()(
                     const retentionsResult = await fiscalAPI.getRetentions();
                     if (Array.isArray(retentionsResult)) {
                         set({
-                            retentions: retentionsResult.map((r: any) => ({
+                            retentions: retentionsResult.map((r: TaxRetention) => ({
                                 ...r,
                                 baseAmount: Number(r.baseAmount),
                                 retainedAmount: Number(r.retainedAmount),
@@ -208,7 +217,9 @@ export const useFiscalStore = create<FiscalState>()(
                         set({ deadlines });
                     }
 
-                    // Load Logistics Metrics
+                    // Load integrated fiscal metrics
+                    await get().fetchCommercialFiscalSummary();
+                    await get().fetchFiscalPeriodStatus(new Date().toISOString().slice(0, 7));
                     await get().fetchLogisticsMetrics();
                 } catch (error) {
                     logger.error('Failed to load fiscal data from database:', error);
@@ -474,6 +485,9 @@ export const useFiscalStore = create<FiscalState>()(
                 const state = get();
                 const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
                 const currentYear = new Date().getFullYear();
+                const commercialSummary = state.commercialFiscalSummary?.period === currentMonth
+                    ? state.commercialFiscalSummary
+                    : null;
 
                 // Current month retentions
                 const monthRetentions = state.retentions.filter((r) => r.period === currentMonth);
@@ -510,9 +524,9 @@ export const useFiscalStore = create<FiscalState>()(
 
                 return {
                     currentMonth: {
-                        ivaCollected: ivaRetentions.reduce((sum, r) => sum + r.retainedAmount, 0),
-                        ivaDeductible: 0, // Would need purchase invoices
-                        ivaPayable: ivaRetentions.reduce((sum, r) => sum + r.retainedAmount, 0),
+                        ivaCollected: commercialSummary?.currentMonth.ivaCollected ?? ivaRetentions.reduce((sum, r) => sum + r.retainedAmount, 0),
+                        ivaDeductible: commercialSummary?.currentMonth.ivaDeductible ?? 0,
+                        ivaPayable: commercialSummary?.currentMonth.ivaPayable ?? ivaRetentions.reduce((sum, r) => sum + r.retainedAmount, 0),
                         inssEmployee: inssRetentions
                             .filter((r) => r.type === 'inss_employee')
                             .reduce((sum, r) => sum + r.retainedAmount, 0),
@@ -523,30 +537,47 @@ export const useFiscalStore = create<FiscalState>()(
                         withholdingTotal: withholdingRetentions.reduce((sum, r) => sum + r.retainedAmount, 0),
                     },
                     ytd: {
-                        ivaTotal: ytdRetentions.filter((r) => r.type === 'iva').reduce((sum, r) => sum + r.retainedAmount, 0),
+                        ivaTotal: commercialSummary?.ytd.ivaPayable ?? ytdRetentions.filter((r) => r.type === 'iva').reduce((sum, r) => sum + r.retainedAmount, 0),
                         inssTotal: ytdRetentions.filter((r) => r.type === 'inss_employee' || r.type === 'inss_employer').reduce((sum, r) => sum + r.retainedAmount, 0),
                         irtTotal: ytdRetentions.filter((r) => r.type === 'irt').reduce((sum, r) => sum + r.retainedAmount, 0),
                         reportsSubmitted: state.fiscalReports.filter((r) => r.status === 'submitted' || r.status === 'accepted').length,
                         reportsAccepted: state.fiscalReports.filter((r) => r.status === 'accepted').length,
                     },
                     pendingDeadlines: pendingDeadlines.slice(0, 5),
-                    recentRetentions: state.retentions.slice(0, 10),
+                    recentRetentions: commercialSummary?.recentRetentions ?? state.retentions.slice(0, 10),
                     complianceStatus,
                     logisticsMetrics: state.logisticsMetrics || undefined,
                 };
             },
 
+            fetchCommercialFiscalSummary: async (period?: string) => {
+                try {
+                    const summary = await fiscalAPI.getCommercialSummary(period ? { period } : undefined);
+                    set({ commercialFiscalSummary: summary });
+                } catch (error) {
+                    logger.error('Failed to fetch commercial fiscal summary:', error);
+                }
+            },
+
+            fetchFiscalPeriodStatus: async (period: string) => {
+                try {
+                    const status = await fiscalAPI.getPeriodStatus(period);
+                    set({ fiscalPeriodStatus: status });
+                } catch (error) {
+                    logger.error('Failed to fetch fiscal period status:', error);
+                }
+            },
+
+            closeFiscalPeriod: async (period: string) => {
+                await fiscalAPI.closePeriod(period);
+                await get().fetchCommercialFiscalSummary(period);
+                await get().fetchFiscalPeriodStatus(period);
+            },
+
             fetchLogisticsMetrics: async () => {
                 try {
-                    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/fiscal/metrics/logistics`, {
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                        }
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        set({ logisticsMetrics: data });
-                    }
+                    const data = await fiscalAPI.getLogisticsMetrics();
+                    set({ logisticsMetrics: data });
                 } catch (error) {
                     logger.error('Failed to fetch logistics metrics:', error);
                 }
@@ -561,6 +592,8 @@ export const useFiscalStore = create<FiscalState>()(
                 auditLogs: [],
                 deadlines: [],
                 isSyncing: false,
+                commercialFiscalSummary: null,
+                fiscalPeriodStatus: null,
                 logisticsMetrics: null,
             }),
         }),
@@ -581,4 +614,3 @@ export const useFiscalStore = create<FiscalState>()(
         }
     )
 );
-

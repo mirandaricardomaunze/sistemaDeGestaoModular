@@ -119,8 +119,9 @@ const runFiscalDeadlineAlerts = async () => {
                 text:    `Olá,\n\nOs seguintes prazos fiscais estão prestes a vencer:\n\n${rows}\n\nActue com antecedência para evitar penalizações.\n\nERP Sistema`,
             }).catch(err => logger.warn('Fiscal deadline email failed', { error: err.message }));
         }
-    } catch (err: any) {
-        logger.warn('SMTP error during fiscal alerts', { error: err.message });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.warn('SMTP error during fiscal alerts', { error: message });
     }
 
     logger.info(`Fiscal deadline alerts sent for ${byCompany.size} companies (${upcoming.length} deadlines).`);
@@ -194,13 +195,14 @@ const runLocalBackupCleanup = async () => {
         try {
             // backupService.cleanOldBackups is private; call the public createBackup
             // which internally calls cleanOldBackups — so we expose it here via cast
-            const svc = backupService as any;
+            const svc = backupService as unknown as { cleanOldBackups?: (companyId: string) => Promise<unknown> };
             if (typeof svc.cleanOldBackups === 'function') {
                 await svc.cleanOldBackups(company.id);
                 cleaned++;
             }
-        } catch (err: any) {
-            logger.warn(`Backup cleanup failed for ${company.name}`, { error: err.message });
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            logger.warn(`Backup cleanup failed for ${company.name}`, { error: message });
         }
     }
 

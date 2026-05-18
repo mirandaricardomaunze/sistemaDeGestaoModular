@@ -7,28 +7,17 @@ import {
     HiOutlinePrinter,
     HiOutlineCalculator
 } from 'react-icons/hi2';
-import { Card, Button, Select, Badge, LoadingSpinner, Modal, ConfirmationModal, Pagination, usePagination } from '../../ui';
+import { Card, Button, Select, Badge, Modal, ConfirmationModal, Pagination, TableLoadingState, usePagination } from '../../ui';
 import { useEmployees, usePayroll } from '../../../hooks/useData';
 import { formatCurrency, formatDate } from '../../../utils/helpers';
+import type { PayrollRecord } from '../../../types';
 import toast from 'react-hot-toast';
-
-// IRT Mozambique 2024 - matches backend calculateIRT()
-const calculateIRT = (income: number): number => {
-    if (income <= 42500) return 0;
-    if (income <= 100000) return (income - 42500) * 0.10;
-    if (income <= 250000) return 5750 + (income - 100000) * 0.15;
-    if (income <= 500000) return 28250 + (income - 250000) * 0.20;
-    return 78250 + (income - 500000) * 0.25;
-};
-
-// INSS employee contribution: 3%
-const calculateINSS = (baseSalary: number) => baseSalary * 0.03;
 
 export const PharmacyPayrollManager: React.FC = () => {
     const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
     const [year, setYear] = useState<number>(new Date().getFullYear());
     const [statusFilter, setStatusFilter] = useState<string>('');
-    const [selectedPayroll, setSelectedPayroll] = useState<any>(null);
+    const [selectedPayroll, setSelectedPayroll] = useState<PayrollRecord | null>(null);
     const [isPayslipOpen, setIsPayslipOpen] = useState(false);
     const [processingAll, setProcessingAll] = useState(false);
     const [showProcessConfirm, setShowProcessConfirm] = useState(false);
@@ -38,6 +27,7 @@ export const PharmacyPayrollManager: React.FC = () => {
         month,
         year,
         status: statusFilter || undefined,
+        originModule: 'pharmacy',
     });
 
     const {
@@ -89,7 +79,7 @@ export const PharmacyPayrollManager: React.FC = () => {
         refetch();
     };
 
-    const openPayslip = (p: any) => {
+    const openPayslip = (p: PayrollRecord) => {
         const employee = employees?.find(e => e.id === p.employeeId);
         setSelectedPayroll({ ...p, employee });
         setIsPayslipOpen(true);
@@ -190,7 +180,14 @@ export const PharmacyPayrollManager: React.FC = () => {
 
             {/* Payroll Table */}
             <Card variant="glass" padding="none" className="overflow-hidden border border-gray-100 dark:border-dark-700/50 shadow-xl">
-                <div className="overflow-x-auto">
+                <div className="relative min-h-[420px] overflow-x-auto">
+                    {isLoading && (
+                        <TableLoadingState
+                            columns={7}
+                            rows={8}
+                            message="A carregar salários..."
+                        />
+                    )}
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-gray-50/50 dark:bg-dark-900/50 text-[10px] font-black uppercase text-gray-500 tracking-widest border-b border-gray-100 dark:border-dark-700/50 whitespace-nowrap">
@@ -204,22 +201,17 @@ export const PharmacyPayrollManager: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700/50">
-                            {isLoading ? (
-                                <tr><td colSpan={7} className="py-20 text-center"><LoadingSpinner size="lg" /></td></tr>
-                            ) : !payrollData || payrollData.length === 0 ? (
+                            {!isLoading && (!payrollData || payrollData.length === 0) ? (
                                 <tr>
                                     <td colSpan={7} className="py-20 text-center text-gray-400 font-medium italic">
                                         Nenhum registo disponível para {months.find(m => m.value === month.toString())?.label} / {year}
                                     </td>
                                 </tr>
-                            ) : (
+                            ) : !isLoading && (
                                 paginatedPayroll.map((p) => {
                                     const employee = employees?.find(e => e.id === p.employeeId);
-                                    // Use stored values from backend; fallback to local calculation only if missing
-                                    const inss = Number(p.inssDeduction) || calculateINSS(Number(p.baseSalary));
-                                    const irt = Number(p.irtDeduction) || calculateIRT(Number(p.totalEarnings || p.baseSalary));
-                                    const totalDeds = inss + irt + Number(p.advances || 0);
-                                    const net = Number(p.netSalary) || (Number(p.baseSalary) + Number(p.bonus || 0) + Number(p.allowances || 0) + Number(p.otAmount || 0) - totalDeds);
+                                    const totalDeds = Number(p.totalDeductions || 0);
+                                    const net = Number(p.netSalary || 0);
 
                                     return (
                                         <tr key={p.id} className="hover:bg-gray-50/30 dark:hover:bg-dark-700/20 transition-all group">
@@ -307,8 +299,8 @@ export const PharmacyPayrollManager: React.FC = () => {
                 size="lg"
             >
                 {selectedPayroll && (() => {
-                    const inss = Number(selectedPayroll.inssDeduction) || calculateINSS(Number(selectedPayroll.baseSalary));
-                    const irt = Number(selectedPayroll.irtDeduction) || calculateIRT(Number(selectedPayroll.totalEarnings || selectedPayroll.baseSalary));
+                    const inss = Number(selectedPayroll.inssDeduction || 0);
+                    const irt = Number(selectedPayroll.irtDeduction || 0);
                     return (
                         <div className="p-2 space-y-6">
                             <div className="flex justify-between items-start border-b-2 border-dashed border-gray-100 pb-6">

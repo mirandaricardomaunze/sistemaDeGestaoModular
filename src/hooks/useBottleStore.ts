@@ -9,6 +9,40 @@ import type {
 } from '../types/bottlestore';
 import toast from 'react-hot-toast';
 
+interface BottleReturnsParams {
+    customerId?: string;
+    type?: 'deposit' | 'return';
+    status?: string;
+    page?: number;
+    limit?: number;
+}
+
+interface BottleDepositPayload {
+    customerId: string;
+    productId: string;
+    quantity: number;
+    notes?: string;
+}
+
+interface BottleStoreBatchesParams {
+    productId?: string;
+    status?: string;
+    page?: number;
+    limit?: number;
+}
+
+interface CreateBatchPayload {
+    productId: string;
+    batchNumber: string;
+    quantity: number;
+    expiryDate?: string;
+    manufactureDate?: string;
+    receivedDate?: string;
+    costPrice?: number;
+    supplierId?: string;
+    notes?: string;
+}
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -39,22 +73,22 @@ export function useExpiringBatches(days: number = 60) {
 // BOTTLE RETURNS
 // ============================================================================
 
-export function useBottleReturns(params?: any) {
+export function useBottleReturns(params?: BottleReturnsParams) {
     return useQuery<BottleReturn[]>({
         queryKey: ['bottlestore', 'returns', params],
-        queryFn: () => bottleStoreAPI.getBottleReturns(params),
+        queryFn: () => bottleStoreAPI.getBottleReturns((params || {}) as Record<string, unknown>),
     });
 }
 
 export function useCreateBottleDeposit() {
     const qc = useQueryClient();
     return withIsLoading(useMutation({
-        mutationFn: (data: any) => bottleStoreAPI.recordBottleDeposit(data),
+        mutationFn: (data: BottleDepositPayload) => bottleStoreAPI.recordBottleDeposit(data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['bottlestore', 'returns'] });
             toast.success('Depósito de vasilhame registrado');
         },
-        onError: (err: any) => toast.error(err.message || 'Erro ao registrar depósito'),
+        onError: (err: Error & { response?: { data?: { message?: string; error?: string } } }) => toast.error(err.message || 'Erro ao registrar depósito'),
     }));
 }
 
@@ -95,7 +129,7 @@ export function useCloseCashSession() {
 // BATCHES
 // ============================================================================
 
-export function useBottleStoreBatches(params?: any) {
+export function useBottleStoreBatches(params?: BottleStoreBatchesParams) {
     return useQuery<BottleStoreBatch[]>({
         queryKey: ['bottlestore', 'batches', params],
         queryFn: () => bottleStoreAPI.getBatches(params),
@@ -105,7 +139,7 @@ export function useBottleStoreBatches(params?: any) {
 export function useCreateBatch() {
     const qc = useQueryClient();
     return withIsLoading(useMutation({
-        mutationFn: (data: any) => bottleStoreAPI.createBatch(data),
+        mutationFn: (data: CreateBatchPayload) => bottleStoreAPI.createBatch(data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['bottlestore', 'batches'] });
             qc.invalidateQueries({ queryKey: ['bottlestore', 'dashboard'] });

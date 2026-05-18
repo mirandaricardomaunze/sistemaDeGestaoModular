@@ -14,11 +14,11 @@ interface UsePaginatedDataOptions<T> {
     endpoint: string;
     initialPage?: number;
     initialLimit?: number;
-    filters?: Record<string, any>;
+    filters?: Record<string, unknown>;
     debounceMs?: number;
     enabled?: boolean;
     onSuccess?: (data: T[]) => void;
-    onError?: (error: any) => void;
+    onError?: (error: unknown) => void;
 }
 
 interface UsePaginatedDataReturn<T> {
@@ -40,7 +40,7 @@ interface UsePaginatedDataReturn<T> {
     loadMore: () => void;
 }
 
-export function usePaginatedData<T = any>({
+export function usePaginatedData<T = unknown>({
     endpoint,
     initialPage = 1,
     initialLimit = 20,
@@ -120,7 +120,7 @@ export function usePaginatedData<T = any>({
                 onSuccess(responseData.data || responseData);
             }
         } catch (err) {
-            const anyErr = err as any;
+            const anyErr = err as Error & { code?: string; response?: { data?: { error?: string } } };
             if (anyErr.name === 'CanceledError' || anyErr.code === 'ERR_CANCELED') {
                 // Request was cancelled, ignore
                 return;
@@ -190,30 +190,30 @@ export function usePaginatedData<T = any>({
 }
 
 // Specific hooks
-export function usePaginatedProducts(filters: Record<string, any> = {}) {
+export function usePaginatedProducts(filters: Record<string, unknown> = {}) {
     return usePaginatedData({ endpoint: 'products', filters });
 }
 
-export function usePaginatedCustomers(filters: Record<string, any> = {}) {
+export function usePaginatedCustomers(filters: Record<string, unknown> = {}) {
     return usePaginatedData({ endpoint: 'customers', filters });
 }
 
-export function usePaginatedEmployees(filters: Record<string, any> = {}) {
+export function usePaginatedEmployees(filters: Record<string, unknown> = {}) {
     return usePaginatedData({ endpoint: 'employees', filters });
 }
 
-export function usePaginatedInvoices(filters: Record<string, any> = {}) {
+export function usePaginatedInvoices(filters: Record<string, unknown> = {}) {
     return usePaginatedData({ endpoint: 'invoices', filters });
 }
 
-export function usePaginatedOrders(filters: Record<string, any> = {}) {
+export function usePaginatedOrders(filters: Record<string, unknown> = {}) {
     return usePaginatedData({ endpoint: 'orders', filters });
 }
 
-export function usePaginatedSuppliers(filters: Record<string, any> = {}) {
+export function usePaginatedSuppliers(filters: Record<string, unknown> = {}) {
     return usePaginatedData({ endpoint: 'suppliers', filters });
 }
 
-export function usePaginatedSales(filters: Record<string, any> = {}) {
+export function usePaginatedSales(filters: Record<string, unknown> = {}) {
     return usePaginatedData({ endpoint: 'sales', filters });
 }

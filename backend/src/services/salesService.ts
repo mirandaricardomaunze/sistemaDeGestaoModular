@@ -15,12 +15,46 @@ const SALE_FIELD_ALLOWLIST = [
 ] as const;
 import { stockService } from './stockService';
 import { ResultHandler } from '../utils/result';
+import { invalidateDashboardCache } from './dashboardService';
+import { invalidateCommercialCache } from './commercial/shared';
+import { approvalsService } from './approvalsService';
+import { getThresholds } from './approvals/thresholds';
+
+type SaleListParams = {
+    page?: string | number;
+    limit?: string | number;
+    fields?: string;
+    startDate?: string;
+    endDate?: string;
+    customerId?: string;
+    paymentMethod?: string;
+    warehouseId?: string;
+    search?: string;
+    originModule?: string;
+    voidStatus?: string;
+    includeVoided?: boolean | string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+};
+
+type SaleStatsParams = {
+    startDate?: string;
+    endDate?: string;
+};
+
+function invalidateSaleDependentCaches(companyId: string, originModule?: string | null): void {
+    invalidateDashboardCache(companyId);
+
+    if ((originModule || '').toLowerCase() === 'commercial') {
+        invalidateCommercialCache(companyId);
+    }
+}
 
 export class SalesService {
     /**
      * List sales with pagination and filters
      */
-    async list(params: any, companyId: string) {
+    async list(params: SaleListParams, companyId: string) {
         const { page, limit, skip } = getPaginationParams(params);
         const {
             startDate,
@@ -36,9 +70,7 @@ export class SalesService {
             sortOrder = 'desc'
         } = params;
 
-        const where: any = {
-            companyId
-        };
+        const where: Prisma.SaleWhereInput = { companyId };
 
         // Hide voided sales by default; callers can opt in.
         if (voidStatus) {
@@ -49,12 +81,12 @@ export class SalesService {
 
         if (startDate || endDate) {
             where.createdAt = {};
-            if (startDate) where.createdAt.gte = new Date(startDate as string);
-            if (endDate) where.createdAt.lte = new Date(endDate as string);
+            if (startDate) where.createdAt.gte = new Date(String(startDate));
+            if (endDate) where.createdAt.lte = new Date(String(endDate));
         }
 
         if (customerId) where.customerId = customerId;
-        if (paymentMethod) where.paymentMethod = paymentMethod;
+        if (paymentMethod) where.paymentMethod = paymentMethod as Prisma.SaleWhereInput['paymentMethod'];
         if (warehouseId) where.warehouseId = warehouseId;
         if (originModule) where.originModule = originModule;
 
@@ -69,27 +101,28 @@ export class SalesService {
         }
 
         const projection = parseFields(params.fields, SALE_FIELD_ALLOWLIST);
-        const findArgs: any = {
+        const baseArgs = {
             where,
-            orderBy: { [sortBy as string]: sortOrder },
+            orderBy: { [sortBy]: sortOrder } as Prisma.SaleOrderByWithRelationInput,
             skip,
             take: limit
         };
-        if (projection) {
+        const findArgs: Prisma.SaleFindManyArgs = projection
             // Field-select mode skips items[] by default — callers that need them
             // either request the full row, or fetch the sale by id.
-            findArgs.select = projection;
-        } else {
-            findArgs.include = {
-                customer: { select: { id: true, name: true, code: true } },
-                user: { select: { id: true, name: true } },
-                items: {
-                    include: {
-                        product: { select: { id: true, name: true, code: true } }
+            ? { ...baseArgs, select: projection as Prisma.SaleSelect }
+            : {
+                ...baseArgs,
+                include: {
+                    customer: { select: { id: true, name: true, code: true } },
+                    user: { select: { id: true, name: true } },
+                    items: {
+                        include: {
+                            product: { select: { id: true, name: true, code: true } }
+                        }
                     }
                 }
             };
-        }
 
         const [total, sales] = await Promise.all([
             prisma.sale.count({ where }),
@@ -150,9 +183,11 @@ export class SalesService {
             discountAudit
         } = data;
 
-        // ── Discount authorization (role-based ceiling) ─────────────────────
+        // ── Discount authorization (role-based ceiling + optional approval) ──
         // Operators/cashiers can apply small discounts; managers and above unlimited.
-        // Bypass attempts (e.g. crafted curl payloads) are rejected here.
+        // For amounts above the role ceiling, an approved ApprovalRequest of type
+        // 'discount_override' linked to this sale (resourceType='draft_sale',
+        // resourceId=data.draftId) lets the cashier proceed.
         const DISCOUNT_LIMIT_PCT: Record<string, number> = {
             super_admin: 100,
             admin: 100,
@@ -162,16 +197,30 @@ export class SalesService {
             stock_keeper: 5,
         };
         const role = (userRole || 'operator').toLowerCase();
-        const maxPct = DISCOUNT_LIMIT_PCT[role] ?? 10;
+        const roleMaxPct = DISCOUNT_LIMIT_PCT[role] ?? 10;
+        const thresholds = await getThresholds(companyId);
+        // Settings threshold is stored as a fraction (0.15 = 15%); convert to percent.
+        const configuredMaxPct = thresholds.discount !== undefined
+            ? Number(thresholds.discount) * 100
+            : roleMaxPct;
+        const maxPct = Math.min(roleMaxPct, configuredMaxPct);
         const grossSubtotal = items.reduce((s, i) => s + (Number(i.unitPrice) * Number(i.quantity)), 0);
         const totalDiscount = (Number(inputDiscount) || 0)
             + items.reduce((s, i) => s + (Number(i.discount) || 0), 0);
         const effectivePct = grossSubtotal > 0 ? (totalDiscount / grossSubtotal) * 100 : 0;
+
+        const discountApprovalId = data.discountApprovalId;
         if (effectivePct > maxPct + 0.01) {
-            logger.warn('Discount limit exceeded', { userId, role, effectivePct, maxPct, companyId });
-            throw ApiError.forbidden(
-                `O seu perfil (${role}) permite no máximo ${maxPct}% de desconto. Aplicado: ${effectivePct.toFixed(1)}%. Solicite a um gerente.`
-            );
+            const approval = discountApprovalId
+                ? await approvalsService.findApprovedFor(companyId, 'discount_override', 'draft_sale', discountApprovalId)
+                : null;
+            // Approval must cover at least the requested discount amount.
+            if (!approval || (approval.amount !== null && approval.amount + 0.01 < totalDiscount)) {
+                logger.warn('Discount limit exceeded', { userId, role, effectivePct, maxPct, companyId });
+                throw ApiError.forbidden(
+                    `Desconto de ${effectivePct.toFixed(1)}% excede o limite (${maxPct.toFixed(1)}%). Solicite aprovação de um gestor.`
+                );
+            }
         }
         // Reason is mandatory whenever any discount is applied
         const lineHasReason = items.every(i => !i.discount || i.discount <= 0 || (i.discountReason && i.discountReason.trim().length > 0));
@@ -183,7 +232,7 @@ export class SalesService {
         const POINTS_EARN_RATE = 100;
         const POINT_VALUE = 1;
 
-        return await prisma.$transaction(async (tx: any) => {
+        const result = await prisma.$transaction(async (tx) => {
             // 0. Validate Session (Mandatory for POS modules)
             if (['commercial', 'bottlestore', 'restaurant'].includes(originModule || '')) {
                 if (!sessionId) {
@@ -209,7 +258,7 @@ export class SalesService {
                 if (!customerData) throw ApiError.notFound('Cliente não encontrado ou acesso negado');
 
                 if (redeemPoints && redeemPoints > 0) {
-                    const customerPoints = (customerData as any).loyaltyPoints || 0;
+                    const customerPoints = customerData.loyaltyPoints || 0;
                     if (customerPoints < redeemPoints) {
                         throw ApiError.badRequest(`Pontos insuficientes. Disponível: ${customerPoints}`);
                     }
@@ -228,7 +277,7 @@ export class SalesService {
                 where: { id: { in: productIds }, companyId },
                 select: { id: true, name: true, price: true, costPrice: true, packSize: true, currentStock: true }
             });
-            const productMap = new Map<string, { id: string; name: string; price: any; costPrice: any; packSize: number; currentStock: number }>(products.map((p: any) => [p.id, p]));
+            const productMap = new Map(products.map((p) => [p.id, p] as const));
 
             // Fetch company IVA rate for server-side tax calculation
             const companySettings = await tx.companySettings.findFirst({
@@ -379,19 +428,19 @@ export class SalesService {
                     hashCode,
                     discountReason: discountReason || undefined,
                     discountKind: discountKind || undefined,
-                    discountAudit: discountAudit ? (discountAudit as any) : undefined,
+                    discountAudit: discountAudit ? (discountAudit as Prisma.InputJsonValue) : undefined,
                     items: {
                         create: verifiedItems.map((item) => ({
                             productId: item.productId,
-                            productName: (item as any).productNameSnapshot,
+                            productName: item.productNameSnapshot,
                             quantity: item.quantity,
                             unitPrice: item.unitPrice,
-                            costPrice: (item as any).costPriceSnapshot,
+                            costPrice: item.costPriceSnapshot,
                             discount: item.discount || 0,
                             total: item.total,
-                            discountReason: (item as any).discountReason || undefined,
-                            discountKind: (item as any).discountKind || undefined,
-                            discountAppliedBy: (item as any).discountAppliedBy || undefined
+                            discountReason: item.discountReason || undefined,
+                            discountKind: item.discountKind || undefined,
+                            discountAppliedBy: item.discountAppliedBy || undefined
                         }))
                     }
                 },
@@ -431,6 +480,39 @@ export class SalesService {
                     companyId,
                     warehouseId
                 }, tx);
+            }
+
+            const reservationIds = verifiedItems.flatMap((item) => item.reservationIds || []);
+            if (reservationIds.length > 0) {
+                const uniqueReservationIds = Array.from(new Set(reservationIds));
+                const reservations = await tx.stockReservation.findMany({
+                    where: { id: { in: uniqueReservationIds }, companyId }
+                });
+                const sessionIds = reservations.map((r) => r.sessionId).filter((id): id is string => !!id);
+                const sessions = sessionIds.length > 0
+                    ? await tx.cashSession.findMany({
+                        where: { id: { in: sessionIds }, companyId },
+                        select: { id: true, warehouseId: true }
+                    })
+                    : [];
+                const warehouseBySession = new Map(sessions.map((s) => [s.id, s.warehouseId || undefined] as const));
+
+                for (const reservation of reservations) {
+                    await tx.product.update({
+                        where: { id: reservation.productId },
+                        data: { reservedStock: { decrement: reservation.quantity } }
+                    });
+                    const reservationWarehouseId = reservation.sessionId
+                        ? warehouseBySession.get(reservation.sessionId)
+                        : undefined;
+                    if (reservationWarehouseId) {
+                        await tx.warehouseStock.updateMany({
+                            where: { productId: reservation.productId, companyId, warehouseId: reservationWarehouseId },
+                            data: { reservedQuantity: { decrement: reservation.quantity } }
+                        });
+                    }
+                }
+                await tx.stockReservation.deleteMany({ where: { id: { in: reservations.map((r) => r.id) }, companyId } });
             }
 
             // 8. Update Customer
@@ -492,6 +574,7 @@ export class SalesService {
             }
 
             // 10. Transaction Record
+            const transactionModule = originModule || 'retail';
             await tx.transaction.create({
                 data: {
                     type: 'income',
@@ -502,7 +585,7 @@ export class SalesService {
                     status: 'completed',
                     paymentMethod: paymentMethod || 'cash',
                     reference: receiptNumber,
-                    module: 'retail',
+                    module: transactionModule,
                     companyId
                 }
             });
@@ -513,6 +596,19 @@ export class SalesService {
             timeout: 30000,
             maxWait: 10000
         });
+
+        invalidateSaleDependentCaches(companyId, originModule || 'commercial');
+
+        // Once the sale closed successfully, mark a one-shot discount approval
+        // as consumed so it cannot be reused on a different sale.
+        if (discountApprovalId) {
+            try {
+                await approvalsService.markConsumed(discountApprovalId, companyId);
+            } catch (err) {
+                logger.warn('Failed to consume discount approval', { discountApprovalId, err });
+            }
+        }
+        return result;
     }
 
     /**
@@ -524,7 +620,7 @@ export class SalesService {
         const trimmed = (reason || '').trim();
         if (trimmed.length < 5) throw ApiError.badRequest('Motivo deve ter pelo menos 5 caracteres');
 
-        return await prisma.$transaction(async (tx: any) => {
+        return await prisma.$transaction(async (tx) => {
             const sale = await tx.sale.findFirst({ where: { id, companyId } });
             if (!sale) throw ApiError.notFound('Venda não encontrada');
             if (sale.voidStatus === 'voided') throw ApiError.badRequest('Venda já foi anulada');
@@ -549,8 +645,8 @@ export class SalesService {
                     action: 'REQUEST_VOID_SALE',
                     entity: 'Sales',
                     entityId: id,
-                    oldData: { voidStatus: sale.voidStatus || 'active' } as any,
-                    newData: { voidStatus: 'pending_void', reason: trimmed, requestedBy: userName } as any,
+                    oldData: { voidStatus: sale.voidStatus || 'active' } as Prisma.InputJsonValue,
+                    newData: { voidStatus: 'pending_void', reason: trimmed, requestedBy: userName } as Prisma.InputJsonValue,
                     ipAddress: userIp
                 }
             });
@@ -566,13 +662,15 @@ export class SalesService {
      * The sale row is preserved for audit — never hard-deleted.
      */
     async approveVoid(id: string, companyId: string, approverId: string, approverName: string, userIp: string) {
-        return await prisma.$transaction(async (tx: any) => {
+        let originModuleForInvalidation: string | null | undefined;
+        const result = await prisma.$transaction(async (tx) => {
             const sale = await tx.sale.findFirst({
                 where: { id, companyId },
                 include: { items: true }
             });
 
             if (!sale) throw ApiError.notFound('Venda não encontrada');
+            originModuleForInvalidation = sale.originModule;
             if (sale.voidStatus !== 'pending_void') {
                 throw ApiError.badRequest('Apenas pedidos pendentes podem ser aprovados');
             }
@@ -582,6 +680,7 @@ export class SalesService {
 
             // Restore Stock
             for (const item of sale.items) {
+                if (!item.productId) continue;
                 await stockService.recordMovement({
                     productId: item.productId,
                     quantity: item.quantity,
@@ -630,21 +729,24 @@ export class SalesService {
                     action: 'APPROVE_VOID_SALE',
                     entity: 'Sales',
                     entityId: id,
-                    oldData: { voidStatus: 'pending_void' } as any,
+                    oldData: { voidStatus: 'pending_void' } as Prisma.InputJsonValue,
                     newData: {
                         voidStatus: 'voided',
                         approvedBy: approverName,
                         requestedBy: sale.voidRequestedBy,
                         reason: sale.voidReason,
                         restoredItems: sale.items.length,
-                        total: sale.total
-                    } as any,
+                        total: Number(sale.total)
+                    } as Prisma.InputJsonValue,
                     ipAddress: userIp
                 }
             });
 
             return ResultHandler.success({ message: 'Anulação aprovada. Stock e fidelização revertidos.', restoredItems: sale.items.length });
         }, { timeout: 30000, maxWait: 10000 });
+
+        invalidateSaleDependentCaches(companyId, originModuleForInvalidation);
+        return result;
     }
 
     /**
@@ -655,7 +757,7 @@ export class SalesService {
         const trimmed = (reason || '').trim();
         if (trimmed.length < 5) throw ApiError.badRequest('Motivo da rejeição deve ter pelo menos 5 caracteres');
 
-        return await prisma.$transaction(async (tx: any) => {
+        return await prisma.$transaction(async (tx) => {
             const sale = await tx.sale.findFirst({ where: { id, companyId } });
             if (!sale) throw ApiError.notFound('Venda não encontrada');
             if (sale.voidStatus !== 'pending_void') {
@@ -681,8 +783,8 @@ export class SalesService {
                     action: 'REJECT_VOID_SALE',
                     entity: 'Sales',
                     entityId: id,
-                    oldData: { voidStatus: 'pending_void', requestedBy: sale.voidRequestedBy, requestReason: sale.voidReason } as any,
-                    newData: { voidStatus: 'active', rejectedBy: approverName, rejectReason: trimmed } as any,
+                    oldData: { voidStatus: 'pending_void', requestedBy: sale.voidRequestedBy, requestReason: sale.voidReason } as Prisma.InputJsonValue,
+                    newData: { voidStatus: 'active', rejectedBy: approverName, rejectReason: trimmed } as Prisma.InputJsonValue,
                     ipAddress: userIp
                 }
             });
@@ -719,9 +821,9 @@ export class SalesService {
     /**
      * Get Sales Statistics
      */
-    async getStats(params: any, companyId: string) {
+    async getStats(params: SaleStatsParams, companyId: string) {
         const { startDate, endDate } = params;
-        const where: any = { companyId, voidStatus: { not: 'voided' } };
+        const where: Prisma.SaleWhereInput = { companyId, voidStatus: { not: 'voided' } };
 
         if (startDate || endDate) {
             where.createdAt = {};

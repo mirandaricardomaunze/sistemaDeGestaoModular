@@ -2,8 +2,7 @@ import { useMemo, useRef, useEffect } from 'react';
 import { useStore } from '../../stores/useStore';
 import { useBatches } from '../../hooks/useBatches';
 import { Button, Modal } from '../ui';
-import { HiOutlinePrinter, HiOutlineXMark as HiOutlineX, HiOutlineTableCells, HiOutlineDocumentText } from 'react-icons/hi2';
-
+import { HiOutlinePrinter, HiOutlineXMark as HiOutlineXMark, HiOutlineTableCells, HiOutlineDocumentText } from 'react-icons/hi2';
 
 interface BatchPrintReportProps {
     isOpen: boolean;
@@ -77,7 +76,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
         return {
             batches: sortedBatches,
             totalBatches: batches.length,
-            totalQuantity: batches.reduce((acc: number, b: any) => acc + (b.quantity || 0), 0),
+            totalQuantity: batches.reduce((acc: number, b: { quantity?: number | string }) => acc + (Number(b.quantity) || 0), 0),
             generatedAt: new Date().toLocaleString('pt-BR'),
             company,
         };
@@ -114,7 +113,8 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
                     .document-info { text-align: right; }
                     .document-info .title { font-size: 28px; font-weight: 900; letter-spacing: -0.02em; }
                     
-                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    table.print-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #ffffff !important; }
+                    .print-table th, .print-table td { background: #ffffff !important; color: #0f172a !important; }
                     th { 
                         text-align: left; 
                         padding: 12px 10px; 
@@ -159,7 +159,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
                         <p style="font-size: 10px; color: #64748b; font-weight: 700; margin-top: 5px;">EMITIDO EM: ${reportData.generatedAt}</p>
                     </div>
                 </div>
-                <table>
+                <table class="print-table">
                     <thead>
                         <tr>
                             <th>Lote</th>
@@ -238,7 +238,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
                         <Button 
                             variant="ghost" 
                             onClick={onClose} 
-                            leftIcon={<HiOutlineX className="w-4 h-4" />} 
+                            leftIcon={<HiOutlineXMark className="w-4 h-4" />} 
                             className="text-[10px] font-black uppercase tracking-widest"
                         >
                             Cancelar
@@ -295,7 +295,7 @@ export default function BatchPrintReport({ isOpen, onClose, productId, status, s
                                     </div>
                                 </div>
 
-                                <table className="w-full text-left">
+                                <table className="w-full text-left print-table">
                                     <thead>
                                         <tr className="border-b-2 border-slate-100">
                                             <th className="py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">Lote</th>

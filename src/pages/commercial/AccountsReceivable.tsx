@@ -188,6 +188,7 @@ export default function AccountsReceivable() {
                             value={search}
                             onChange={handleSearchChange}
                             leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4" />}
+                            size="sm"
                         />
                     </div>
                     <div className="w-44">
@@ -195,6 +196,7 @@ export default function AccountsReceivable() {
                             options={FILTER_OPTIONS}
                             value={filter}
                             onChange={e => handleFilterChange(e.target.value as FilterOption)}
+                            size="sm"
                         />
                     </div>
                 </div>
@@ -221,9 +223,9 @@ export default function AccountsReceivable() {
                             <div className="p-8 text-center">
                                 <HiOutlineExclamationCircle className="w-10 h-10 text-red-400 mx-auto mb-2" />
                                 <p className="text-sm text-red-500">{error}</p>
-                                <button onClick={refetch} className="mt-2 text-sm text-primary-500 hover:underline">
+                                <Button variant="ghost" size="sm" onClick={refetch} className="mt-2 text-sm text-primary-500 hover:underline">
                                     Tentar novamente
-                                </button>
+                                </Button>
                             </div>
                         ) : invoices.length === 0 ? (
                     <div className="p-16 text-center">

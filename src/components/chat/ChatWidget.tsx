@@ -3,22 +3,28 @@ import { useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-    HiOutlineX,
+    HiOutlineXMark,
     HiOutlinePaperAirplane,
-    HiOutlineDownload,
+    HiOutlineArrowDownTray,
     HiOutlineSparkles,
-    HiOutlineLightningBolt,
+    HiOutlineBolt,
     HiOutlineTrash
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { chatAPI } from '../../services/chatAPI';
 import type { Message } from '../../types/chat';
 import toast from 'react-hot-toast';
 import { logger } from '../../utils';
 import { useChatStore } from '../../stores/useChatStore';
+import { API_HOST } from '../../config/env';
 
-export default function ChatWidget() {
+interface ChatWidgetProps {
+    initiallyOpen?: boolean;
+    onClose?: () => void;
+}
+
+export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidgetProps) {
     const location = useLocation();
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(initiallyOpen);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -29,6 +35,10 @@ export default function ChatWidget() {
         const parts = location.pathname.split('/');
         return parts[1] || 'general';
     }, [location.pathname]);
+    const isCommercialInsightsPage = useMemo(
+        () => /^\/commercial\/(dashboard|reports|margins|insights)/.test(location.pathname),
+        [location.pathname]
+    );
 
     // Store Integration
     const { messagesByModule, addMessage, clearMessages } = useChatStore();
@@ -65,6 +75,7 @@ export default function ChatWidget() {
 
     const handleClose = () => {
         setIsOpen(false);
+        onClose?.();
     };
 
     const handleSend = async (messageText?: string) => {
@@ -102,9 +113,9 @@ export default function ChatWidget() {
             }
 
             if (response.pdfUrl) {
-                toast.success('💾 Relatório PDF gerado!');
+                toast.success('ðŸ’¾ Relatório PDF gerado!');
             }
-        } catch (error: any) {
+        } catch (error) {
             logger.error('Chat error:', error);
 
             const errorMessage: Message = {
@@ -155,14 +166,14 @@ export default function ChatWidget() {
     return (
         <>
             {/* Botão Flutuante */}
-            {!isOpen && (
+            {!isOpen && !isCommercialInsightsPage && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-full shadow-2xl hover:shadow-primary-500/50 transition-all duration-300 flex items-center justify-center text-white z-50 group hover:scale-110"
+                    className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-full shadow-2xl hover:shadow-primary-500/50 transition-all duration-300 flex items-center justify-center text-white z-50 group hover:scale-105"
                     title="Assistente IA"
                 >
-                    <HiOutlineSparkles className="w-7 h-7 group-hover:rotate-12 transition-transform" />
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-pulse border-2 border-white" />
+                    <HiOutlineSparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+                    <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 rounded-full animate-pulse border-2 border-white" />
                 </button>
             )}
 
@@ -178,7 +189,7 @@ export default function ChatWidget() {
                                 <div className="flex items-center gap-3">
                                     <div className="relative">
                                         <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                            <HiOutlineLightningBolt className="w-6 h-6" />
+                                            <HiOutlineBolt className="w-6 h-6" />
                                         </div>
                                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-primary-600 animate-pulse" />
                                     </div>
@@ -200,7 +211,7 @@ export default function ChatWidget() {
                                         className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors cursor-pointer"
                                         aria-label="Fechar chat"
                                     >
-                                        <HiOutlineX className="w-5 h-5" />
+                                        <HiOutlineXMark className="w-5 h-5" />
                                     </button>
                                 </div>
                             </div>
@@ -278,7 +289,7 @@ export default function ChatWidget() {
 
                                             {message.pdfUrl && (
                                                 <a
-                                                    href={`http://localhost:3001${message.pdfUrl}`}
+                                                    href={`${API_HOST}${message.pdfUrl}`}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className={`flex items-center gap-2 mt-3 pt-3 border-t text-[11px] font-bold transition-colors ${message.role === 'user'
@@ -286,7 +297,7 @@ export default function ChatWidget() {
                                                         : 'border-gray-200 dark:border-dark-700 text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300'
                                                         }`}
                                                 >
-                                                    <HiOutlineDownload className="w-4 h-4" />
+                                                    <HiOutlineArrowDownTray className="w-4 h-4" />
                                                     BAIXAR RELATÓRIO PDF
                                                 </a>
                                             )}

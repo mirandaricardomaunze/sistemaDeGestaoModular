@@ -23,9 +23,11 @@ import { ExportVehiclesButton } from '../../components/common/ExportButton';
 import { PageHeader } from '../../components/ui';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/helpers';
+import type { BadgeVariant } from '../../components/ui/Badge';
+import type { TFunction } from 'i18next';
 
-const getStatusBadge = (status: string, t: any) => {
-    const variants: Record<string, any> = {
+const getStatusBadge = (status: string, t: TFunction) => {
+    const variants: Record<string, BadgeVariant> = {
         available: 'success',
         in_use: 'primary',
         maintenance: 'warning',
@@ -42,7 +44,7 @@ const getStatusBadge = (status: string, t: any) => {
  */
 function getInsuranceExpiryAlert(
     insuranceExpiry: string | undefined,
-    t: any
+    t: TFunction
 ): { label: string; className: string } | null {
     if (!insuranceExpiry) return null;
 

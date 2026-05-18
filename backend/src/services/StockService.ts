@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, StockStatus } from '@prisma/client';
 import { prisma as defaultPrisma, ExtendedPrismaClient } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { emitToCompany } from '../lib/socket';
@@ -24,7 +24,7 @@ export interface StockMovementParams {
 
 // Define a type that covers both the extended client and its transaction version
 // Transaction client is like the extended client but without connection methods
-type TransactionClient = Omit<ExtendedPrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+export type StockTransactionClient = Omit<ExtendedPrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
 export class StockService {
     /**
@@ -33,7 +33,7 @@ export class StockService {
      */
     async recordMovement(
         params: StockMovementParams,
-        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma
+        tx: StockTransactionClient | ExtendedPrismaClient = defaultPrisma
     ) {
         const {
             productId,
@@ -120,7 +120,7 @@ export class StockService {
     /**
      * Updates product status based on current stock levels
      */
-    private async updateProductStatus(productId: string, tx: TransactionClient | ExtendedPrismaClient) {
+    private async updateProductStatus(productId: string, tx: StockTransactionClient | ExtendedPrismaClient) {
         const product = await tx.product.findUnique({
             where: { id: productId },
             select: { id: true, name: true, currentStock: true, minStock: true, status: true, companyId: true }
@@ -128,26 +128,26 @@ export class StockService {
 
         if (!product || !product.companyId) return;
 
-        let newStatus: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
+        let newStatus: StockStatus = StockStatus.in_stock;
         if (product.currentStock <= 0) {
-            newStatus = 'out_of_stock';
+            newStatus = StockStatus.out_of_stock;
         } else if (product.minStock && product.currentStock <= product.minStock) {
-            newStatus = 'low_stock';
+            newStatus = StockStatus.low_stock;
         }
 
         if (newStatus !== product.status) {
             await tx.product.update({
                 where: { id: productId },
-                data: { status: newStatus as any }
+                data: { status: newStatus }
             });
 
             // Trigger alert if needed
-            if (newStatus !== 'in_stock') {
+            if (newStatus !== StockStatus.in_stock) {
                 await tx.alert.create({
                     data: {
                         type: 'low_stock',
-                        priority: newStatus === 'out_of_stock' ? 'critical' : 'high',
-                        title: newStatus === 'out_of_stock' ? `Stock Esgotado: ${product.name}` : `Stock Baixo: ${product.name}`,
+                        priority: newStatus === StockStatus.out_of_stock ? 'critical' : 'high',
+                        title: newStatus === StockStatus.out_of_stock ? `Stock Esgotado: ${product.name}` : `Stock Baixo: ${product.name}`,
                         message: `${product.name} tem agora ${product.currentStock} unidades em stock.`,
                         relatedId: product.id,
                         relatedType: 'product',
@@ -161,7 +161,7 @@ export class StockService {
                     productName: product.name,
                     currentStock: product.currentStock,
                     status: newStatus,
-                    priority: newStatus === 'out_of_stock' ? 'critical' : 'high',
+                    priority: newStatus === StockStatus.out_of_stock ? 'critical' : 'high',
                     timestamp: new Date().toISOString()
                 });
             }
@@ -175,7 +175,7 @@ export class StockService {
         productId: string,
         requestedQuantity: number,
         companyId: string,
-        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma,
+        tx: StockTransactionClient | ExtendedPrismaClient = defaultPrisma,
         warehouseId?: string
     ) {
         const product = await tx.product.findFirst({
@@ -198,10 +198,12 @@ export class StockService {
 
             const wStock = await tx.warehouseStock.findUnique({
                 where: { warehouseId_productId: { warehouseId, productId } },
-                select: { quantity: true }
+                select: { quantity: true, reservedQuantity: true }
             });
             // Fall back to global stock when no per-warehouse entry exists yet
-            const warehouseQty = wStock != null ? Number(wStock.quantity) : product.currentStock - product.reservedStock;
+            const warehouseQty = wStock != null
+                ? Number(wStock.quantity) - Number(wStock.reservedQuantity || 0)
+                : product.currentStock - product.reservedStock;
             if (warehouseQty < requestedQuantity) {
                 throw ApiError.badRequest(`Stock insuficiente para o produto "${product.name}". Disponível: ${warehouseQty}, Solicitado: ${requestedQuantity}`);
             }
@@ -223,7 +225,7 @@ export class StockService {
         productId: string,
         quantity: number,
         companyId: string,
-        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma
+        tx: StockTransactionClient | ExtendedPrismaClient = defaultPrisma
     ) {
         if (quantity <= 0) return;
 
@@ -242,7 +244,7 @@ export class StockService {
         productId: string,
         quantity: number,
         companyId: string,
-        tx: TransactionClient | ExtendedPrismaClient = defaultPrisma
+        tx: StockTransactionClient | ExtendedPrismaClient = defaultPrisma
     ) {
         if (quantity <= 0) return;
 

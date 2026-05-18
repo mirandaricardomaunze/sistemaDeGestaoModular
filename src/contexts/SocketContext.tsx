@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { useAuthStore } from '../stores/useAuthStore';
 import { logger } from '../utils/logger';
+import { env } from '../config/env';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -20,35 +21,43 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     useEffect(() => {
         // Only connect if user is authenticated
         if (user && token) {
+            let cancelled = false;
+            let newSocket: Socket | null = null;
+
             // Extract base URL from VITE_API_URL (remove /api suffix) - Socket.io needs the base path
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+            const apiUrl = env.VITE_API_URL || 'http://localhost:3001';
             const socketUrl = apiUrl.replace(/\/api$/, '');
-            
-            const newSocket = io(socketUrl, {
-                auth: { token },
-                transports: ['websocket'],
-                reconnection: true,
-                reconnectionAttempts: 10,
-            });
 
-            newSocket.on('connect', () => {
-                setIsConnected(true);
-                logger.info('Connected to Real-time Notification Server');
-            });
+            void import('socket.io-client').then(({ io }) => {
+                if (cancelled) return;
 
-            newSocket.on('disconnect', () => {
-                setIsConnected(false);
-                logger.info('Disconnected from Real-time Server');
-            });
+                newSocket = io(socketUrl, {
+                    auth: { token },
+                    transports: ['websocket'],
+                    reconnection: true,
+                    reconnectionAttempts: 10,
+                });
 
-            newSocket.on('connect_error', (err) => {
-                logger.error('Socket connection error:', err.message);
-            });
+                newSocket.on('connect', () => {
+                    setIsConnected(true);
+                    logger.info('Connected to Real-time Notification Server');
+                });
 
-            setSocket(newSocket);
+                newSocket.on('disconnect', () => {
+                    setIsConnected(false);
+                    logger.info('Disconnected from Real-time Server');
+                });
+
+                newSocket.on('connect_error', (err) => {
+                    logger.error('Socket connection error:', err.message);
+                });
+
+                setSocket(newSocket);
+            });
 
             return () => {
-                newSocket.disconnect();
+                cancelled = true;
+                newSocket?.disconnect();
             };
         } else {
             // Disconnect if user logs out

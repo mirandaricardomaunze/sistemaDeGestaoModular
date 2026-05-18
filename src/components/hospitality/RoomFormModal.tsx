@@ -1,13 +1,24 @@
 import { Modal, Input, Textarea, Select, Button } from '../ui';
-import { HiOutlineSave } from 'react-icons/hi';
+import { HiOutlineBookmarkSquare } from 'react-icons/hi2';
+
+interface RoomFormData {
+    number: string;
+    type: string;
+    price: string;
+    priceNoMeal: string;
+    priceBreakfast: string;
+    priceHalfBoard: string;
+    priceFullBoard: string;
+    notes: string;
+}
 
 interface RoomFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (e: React.FormEvent) => void;
-    room: any;
-    data: any;
-    setData: (data: any) => void;
+    room: { number?: string | number } | null;
+    data: RoomFormData;
+    setData: (data: RoomFormData) => void;
 }
 
 export default function RoomFormModal({ isOpen, onClose, onSave, room, data, setData }: RoomFormModalProps) {
@@ -76,7 +87,7 @@ export default function RoomFormModal({ isOpen, onClose, onSave, room, data, set
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-700">
                     <Button variant="outline" type="button" onClick={onClose}>Cancelar</Button>
-                    <Button variant="primary" type="submit" leftIcon={<HiOutlineSave />}>
+                    <Button variant="primary" type="submit" leftIcon={<HiOutlineBookmarkSquare />}>
                         {room ? 'Guardar Alterações' : 'Adicionar Quarto'}
                     </Button>
                 </div>

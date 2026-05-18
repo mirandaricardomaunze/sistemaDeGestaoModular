@@ -1,6 +1,8 @@
 import { logger } from '../utils/logger';
 import { useState, useEffect, useCallback } from 'react';
 import { pharmacyAPI, salesAPI } from '../services/api';
+import type { PharmacySale } from '../types/pharmacy';
+import type { PharmacySalesParams } from '../services/api/pharmacy.api';
 
 interface PaginationMeta {
     page: number;
@@ -10,18 +12,8 @@ interface PaginationMeta {
     hasMore: boolean;
 }
 
-interface UsePharmacySalesParams {
-    startDate?: string;
-    endDate?: string;
-    status?: string;
-    customerId?: string;
-    search?: string;
-    page?: number;
-    limit?: number;
-}
-
-export function usePharmacySales(params?: UsePharmacySalesParams) {
-    const [sales, setSales] = useState<any[]>([]);
+export function usePharmacySales(params?: PharmacySalesParams) {
+    const [sales, setSales] = useState<PharmacySale[]>([]);
     const [pagination, setPagination] = useState<PaginationMeta | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -34,7 +26,10 @@ export function usePharmacySales(params?: UsePharmacySalesParams) {
 
             if (response.data && response.pagination) {
                 setSales(response.data);
-                setPagination(response.pagination);
+                setPagination({
+                    ...response.pagination,
+                    hasMore: response.pagination.page < response.pagination.totalPages,
+                });
             } else {
                 const data = Array.isArray(response) ? response : (response.data || []);
                 setSales(data);
@@ -46,8 +41,9 @@ export function usePharmacySales(params?: UsePharmacySalesParams) {
                     hasMore: false
                 });
             }
-        } catch (err: any) {
-            setError(err.message || 'Erro ao carregar vendas');
+        } catch (err) {
+            const message = (err as Error).message || 'Erro ao carregar vendas';
+            setError(message);
             logger.error('Error fetching pharmacy sales:', err);
         } finally {
             setIsLoading(false);

@@ -54,7 +54,7 @@ export const createPaymentMethodSchema = z.object({
     description: z.string().max(200, 'Descrição muito longa').optional().nullable(),
     isActive: z.boolean().optional().default(true),
     requiresReference: z.boolean().optional().default(false),
-    icon: z.string().max(50, 'Àcone muito longo').optional().nullable()
+    icon: z.string().max(50, 'Ícone muito longo').optional().nullable()
 });
 
 // ============================================================================

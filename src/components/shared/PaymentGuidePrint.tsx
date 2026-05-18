@@ -1,6 +1,6 @@
-﻿import { useRef } from 'react';
+import { useRef } from 'react';
 import { format } from 'date-fns';
-import { HiOutlinePrinter, HiOutlineXMark as HiOutlineX } from 'react-icons/hi2';
+import { HiOutlinePrinter, HiOutlineXMark as HiOutlineXMark } from 'react-icons/hi2';
 import { Modal, Button, Card } from '../ui';
 import { useStore } from '../../stores/useStore';
 import { formatCurrency } from '../../utils/helpers';
@@ -71,7 +71,7 @@ export default function PaymentGuidePrint({ isOpen, onClose, metrics, moduleTitl
         <Modal isOpen={isOpen} onClose={onClose} title={`Guia de Pagamento (GNR)`} size="xl">
             <div className="flex justify-end gap-2 mb-4 no-print">
                 <Button variant="outline" size="sm" onClick={onClose}>
-                    <HiOutlineX className="w-4 h-4 mr-2" />
+                    <HiOutlineXMark className="w-4 h-4 mr-2" />
                     Fechar
                 </Button>
                 <Button size="sm" onClick={handlePrint} className="bg-gray-800 hover:bg-black text-white px-6">
@@ -174,7 +174,7 @@ export default function PaymentGuidePrint({ isOpen, onClose, metrics, moduleTitl
                     <div className="border p-4 bg-gray-50 mb-6">
                         <div className="flex justify-between items-start">
                             <div className="space-y-3">
-                                <h4 className="text-[8pt] font-black uppercase text-gray-900 border-b pb-1">DADOS PARA PAGAMENTO BANCÃRIO (SIMPLIFICADO)</h4>
+                                <h4 className="text-[8pt] font-black uppercase text-gray-900 border-b pb-1">DADOS PARA PAGAMENTO BANCÁRIO (SIMPLIFICADO)</h4>
                                 <div className="grid grid-cols-2 gap-x-12 gap-y-2">
                                     <div>
                                         <p className="gnr-label">Referência de Pagamento</p>

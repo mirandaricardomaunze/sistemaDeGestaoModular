@@ -3,6 +3,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { dashboardAPI, hospitalityAPI, pharmacyAPI, bottleStoreAPI } from '../services/api';
 import { useTenant } from '../contexts/TenantContext';
 import type { Sale, Alert } from '../types';
+import { socketService } from '../services/socketService';
+
+const DASHBOARD_REFRESH_EVENT = 'dashboard:data-changed';
+const DASHBOARD_REFRESH_STORAGE_KEY = 'dashboard:last-data-change';
 
 interface DashboardStats {
     totalSales: number;
@@ -46,17 +50,18 @@ export function useDashboard(warehouseId?: string) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchDashboard = useCallback(async () => {
-        setIsLoading(true);
+    const fetchDashboard = useCallback(async (options?: { silent?: boolean }) => {
+        const silent = options?.silent ?? false;
+        if (!silent) setIsLoading(true);
         setError(null);
         try {
             // Core Commercial Dashboard Data
             const [statsData, chartData, weeklyChartData, topProductsData, activityData] = await Promise.all([
-                dashboardAPI.getStats({ warehouseId } as any),
-                dashboardAPI.getSalesChart({ period: 'month', warehouseId } as any),
-                dashboardAPI.getSalesChart({ period: 'week', warehouseId } as any),
-                dashboardAPI.getTopProducts({ limit: 5, warehouseId: warehouseId as any } as any),
-                dashboardAPI.getRecentSales({ limit: 10, warehouseId } as any),
+                dashboardAPI.getStats({ warehouseId }),
+                dashboardAPI.getSalesChart({ period: 'month', warehouseId }),
+                dashboardAPI.getSalesChart({ period: 'week', warehouseId }),
+                dashboardAPI.getTopProducts({ limit: 5, warehouseId }),
+                dashboardAPI.getRecentSales({ limit: 10, warehouseId }),
             ]);
 
             // Optional Module Data (Consolidation)
@@ -141,6 +146,36 @@ export function useDashboard(warehouseId?: string) {
 
     useEffect(() => {
         fetchDashboard();
+    }, [fetchDashboard]);
+
+    useEffect(() => {
+        const refreshSilently = () => fetchDashboard({ silent: true });
+        const handleVisibilityChange = () => {
+            if (!document.hidden) refreshSilently();
+        };
+        const handleStorage = (event: StorageEvent) => {
+            if (event.key === DASHBOARD_REFRESH_STORAGE_KEY) refreshSilently();
+        };
+
+        const unsubscribers = [
+            socketService.on('sale:created', refreshSilently),
+            socketService.on('sale:voided', refreshSilently),
+            socketService.on('product:stock-updated', refreshSilently),
+            socketService.on('stock:low_stock_alert', refreshSilently),
+        ];
+
+        window.addEventListener(DASHBOARD_REFRESH_EVENT, refreshSilently);
+        window.addEventListener('focus', refreshSilently);
+        window.addEventListener('storage', handleStorage);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            unsubscribers.forEach(unsubscribe => unsubscribe());
+            window.removeEventListener(DASHBOARD_REFRESH_EVENT, refreshSilently);
+            window.removeEventListener('focus', refreshSilently);
+            window.removeEventListener('storage', handleStorage);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [fetchDashboard]);
 
     return {

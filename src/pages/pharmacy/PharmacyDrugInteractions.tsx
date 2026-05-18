@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { pharmacyAPI } from '../../services/api';
 import { Card, Button, Input, Select } from '../../components/ui';
 import { HiOutlinePlus, HiOutlineTrash, HiOutlineExclamationCircle, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
@@ -11,9 +11,27 @@ const SEVERITY_LABELS: Record<string, { label: string; color: string }> = {
     minor: { label: 'Leve', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
 };
 
+type DrugInteractionRow = {
+    id: string;
+    severity?: string;
+    description?: string;
+    mechanism?: string | null;
+    management?: string | null;
+    medicationA?: { product?: { name?: string } };
+    medicationB?: { product?: { name?: string } };
+};
+
+type MedicationOption = {
+    id: string;
+    product?: { name?: string };
+};
+
+type SelectChangeEvent = React.ChangeEvent<HTMLSelectElement>;
+type InputChangeEvent = React.ChangeEvent<HTMLInputElement>;
+
 export default function PharmacyDrugInteractions() {
-    const [interactions, setInteractions] = useState<any[]>([]);
-    const [medications, setMedications] = useState<any[]>([]);
+    const [interactions, setInteractions] = useState<DrugInteractionRow[]>([]);
+    const [medications, setMedications] = useState<MedicationOption[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [showForm, setShowForm] = useState(false);
@@ -33,7 +51,7 @@ export default function PharmacyDrugInteractions() {
             const data = await pharmacyAPI.getDrugInteractions();
             setInteractions(Array.isArray(data) ? data : []);
         } catch {
-            toast.error('Erro ao carregar interações.');
+            toast.error('Erro ao carregar intera??es.');
         } finally {
             setIsLoading(false);
         }
@@ -57,7 +75,7 @@ export default function PharmacyDrugInteractions() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.medicationAId || !form.medicationBId || !form.description) {
-            toast.error('Preencha todos os campos obrigatórios.');
+            toast.error('Preencha todos os campos obrigat?rios.');
             return;
         }
         if (form.medicationAId === form.medicationBId) {
@@ -65,24 +83,25 @@ export default function PharmacyDrugInteractions() {
             return;
         }
         try {
-            await pharmacyAPI.createDrugInteraction(form);
-            toast.success('Interação registada com sucesso.');
+            await pharmacyAPI.createDrugInteraction(form as object);
+            toast.success('Intera??o registada com sucesso.');
             setShowForm(false);
             setForm({ medicationAId: '', medicationBId: '', severity: 'moderate', description: '', mechanism: '', management: '' });
             fetchInteractions();
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || 'Erro ao registar interação.');
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string } } };
+            toast.error(apiErr?.response?.data?.message || 'Erro ao registar intera??o.');
         }
     };
 
     const handleDelete = async (id: string) => {
         try {
             await pharmacyAPI.deleteDrugInteraction(id);
-            toast.success('Interação eliminada.');
+            toast.success('Intera??o eliminada.');
             setDeleteId(null);
             fetchInteractions();
         } catch {
-            toast.error('Erro ao eliminar interação.');
+            toast.error('Erro ao eliminar intera??o.');
         }
     };
 
@@ -94,7 +113,7 @@ export default function PharmacyDrugInteractions() {
         return nameA.includes(s) || nameB.includes(s) || i.description?.toLowerCase().includes(s);
     });
 
-    const medOptions = medications.map((m: any) => ({
+    const medOptions = medications.map((m) => ({
         value: m.id,
         label: m.product?.name || m.id,
     }));
@@ -104,34 +123,34 @@ export default function PharmacyDrugInteractions() {
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                 <Input
-                    placeholder="Pesquisar medicamento ou descrição..."
+                    placeholder="Pesquisar medicamento ou descri??o..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
                     className="flex-1 max-w-sm bg-white dark:bg-dark-800"
                 />
                 <Button onClick={() => setShowForm(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />} size="sm">
-                    Nova Interação
+                    Nova Intera??o
                 </Button>
             </div>
 
             {/* Add form */}
             {showForm && (
                 <Card className="p-4 border-2 border-primary-200 dark:border-primary-800">
-                    <h3 className="font-semibold text-sm mb-3 text-primary-700 dark:text-primary-400">Registar Nova Interação Medicamentosa</h3>
+                    <h3 className="font-semibold text-sm mb-3 text-primary-700 dark:text-primary-400">Registar Nova Intera??o Medicamentosa</h3>
                     <form onSubmit={handleSubmit} className="space-y-3">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <Select
                                 label="Medicamento A *"
                                 options={[{ value: '', label: 'Seleccionar...' }, ...medOptions]}
                                 value={form.medicationAId}
-                                onChange={(e: any) => setForm(f => ({ ...f, medicationAId: e.target.value }))}
+                                onChange={(e: SelectChangeEvent) => setForm(f => ({ ...f, medicationAId: e.target.value }))}
                             />
                             <Select
                                 label="Medicamento B *"
                                 options={[{ value: '', label: 'Seleccionar...' }, ...medOptions]}
                                 value={form.medicationBId}
-                                onChange={(e: any) => setForm(f => ({ ...f, medicationBId: e.target.value }))}
+                                onChange={(e: SelectChangeEvent) => setForm(f => ({ ...f, medicationBId: e.target.value }))}
                             />
                         </div>
                         <Select
@@ -143,25 +162,25 @@ export default function PharmacyDrugInteractions() {
                                 { value: 'minor', label: 'Leve' },
                             ]}
                             value={form.severity}
-                            onChange={(e: any) => setForm(f => ({ ...f, severity: e.target.value }))}
+                            onChange={(e: SelectChangeEvent) => setForm(f => ({ ...f, severity: e.target.value }))}
                         />
                         <Input
-                            label="Descrição da interação *"
+                            label="Descri??o da intera??o *"
                             placeholder="Ex: Risco aumentado de hemorragia..."
                             value={form.description}
-                            onChange={(e: any) => setForm(f => ({ ...f, description: e.target.value }))}
+                            onChange={(e: InputChangeEvent) => setForm(f => ({ ...f, description: e.target.value }))}
                         />
                         <Input
                             label="Mecanismo (opcional)"
-                            placeholder="Ex: Inibição do CYP2C9..."
+                            placeholder="Ex: Inibi??o do CYP2C9..."
                             value={form.mechanism}
-                            onChange={(e: any) => setForm(f => ({ ...f, mechanism: e.target.value }))}
+                            onChange={(e: InputChangeEvent) => setForm(f => ({ ...f, mechanism: e.target.value }))}
                         />
                         <Input
-                            label="Gestão clínica (opcional)"
+                            label="Gest?o cl?nica (opcional)"
                             placeholder="Ex: Monitorizar INR semanalmente..."
                             value={form.management}
-                            onChange={(e: any) => setForm(f => ({ ...f, management: e.target.value }))}
+                            onChange={(e: InputChangeEvent) => setForm(f => ({ ...f, management: e.target.value }))}
                         />
                         <div className="flex gap-2 justify-end">
                             <Button variant="ghost" size="sm" type="button" onClick={() => setShowForm(false)}>Cancelar</Button>
@@ -177,13 +196,13 @@ export default function PharmacyDrugInteractions() {
             ) : filtered.length === 0 ? (
                 <Card className="p-8 text-center">
                     <HiOutlineExclamationCircle className="w-10 h-10 text-gray-200 dark:text-dark-600 mx-auto mb-2" />
-                    <p className="text-sm text-gray-500">Nenhuma interação registada</p>
-                    <p className="text-xs text-gray-400 mt-1">Clique em "Nova Interação" para adicionar</p>
+                    <p className="text-sm text-gray-500">Nenhuma intera??o registada</p>
+                    <p className="text-xs text-gray-400 mt-1">Clique em "Nova Intera??o" para adicionar</p>
                 </Card>
             ) : (
                 <div className="space-y-3">
                     {filtered.map(interaction => {
-                        const sev = SEVERITY_LABELS[interaction.severity] || { label: interaction.severity, color: 'bg-gray-100 text-gray-700' };
+                        const sev = (interaction.severity && SEVERITY_LABELS[interaction.severity]) || { label: interaction.severity || '-', color: 'bg-gray-100 text-gray-700' };
                         const nameA = interaction.medicationA?.product?.name || '';
                         const nameB = interaction.medicationB?.product?.name || '';
                         return (
@@ -201,7 +220,7 @@ export default function PharmacyDrugInteractions() {
                                             <p className="text-xs text-gray-500 mt-1"><span className="font-medium">Mecanismo:</span> {interaction.mechanism}</p>
                                         )}
                                         {interaction.management && (
-                                            <p className="text-xs text-gray-500 mt-0.5"><span className="font-medium">Gestão:</span> {interaction.management}</p>
+                                            <p className="text-xs text-gray-500 mt-0.5"><span className="font-medium">Gest?o:</span> {interaction.management}</p>
                                         )}
                                     </div>
                                     <button
@@ -221,8 +240,8 @@ export default function PharmacyDrugInteractions() {
             {deleteId && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
                     <Card className="p-6 max-w-sm w-full mx-4">
-                        <h3 className="font-bold text-lg mb-2">Eliminar interação?</h3>
-                        <p className="text-sm text-gray-500 mb-4">Esta acção não pode ser revertida.</p>
+                        <h3 className="font-bold text-lg mb-2">Eliminar intera??o?</h3>
+                        <p className="text-sm text-gray-500 mb-4">Esta ac??o n?o pode ser revertida.</p>
                         <div className="flex gap-2 justify-end">
                             <Button variant="ghost" size="sm" onClick={() => setDeleteId(null)}>Cancelar</Button>
                             <Button variant="danger" size="sm" onClick={() => handleDelete(deleteId)}>Eliminar</Button>

@@ -19,7 +19,6 @@ import {
     CheckoutModal
 } from '../../components/hospitality';
 import type { Room, Booking } from '../../types';
-import { useStore } from '../../stores/useStore';
 import { cn } from '../../utils/helpers';
 import { SegmentedControl } from '../../components/common/SegmentedControl';
 import {
@@ -40,7 +39,6 @@ type RoomView = 'operational' | 'management';
 
 export default function HotelRooms() {
     const { t } = useTranslation();
-    const { } = useStore();
     const [activeView, setActiveView] = useState<RoomView>('operational');
     
     // Filters & Search
@@ -48,7 +46,8 @@ export default function HotelRooms() {
     const [pageSize] = useState(12);
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 500);
-    const [filter, setFilter] = useState<'all' | 'available' | 'occupied' | 'dirty' | 'maintenance'>('all');
+    type RoomStatusFilter = 'all' | 'available' | 'occupied' | 'dirty' | 'maintenance';
+    const [filter, setFilter] = useState<RoomStatusFilter>('all');
 
     const {
         rooms,
@@ -81,12 +80,13 @@ export default function HotelRooms() {
                 roomId: selectedRoom.id,
                 ...data,
                 checkIn: new Date().toISOString()
-            });
+            } as unknown as Parameters<typeof createBooking>[0]);
             toast.success(t('messages.saveSuccess'));
             setIsCheckInModalOpen(false);
             refetch();
-        } catch (err: any) {
-            toast.error(err.message || t('messages.errorOccurred'));
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: unknown[] } } };
+            toast.error(apiErr.message || t('messages.errorOccurred'));
         }
     };
 
@@ -256,7 +256,7 @@ export default function HotelRooms() {
                                 { value: 'maintenance', label: t('hotel_module.rooms.statuses.maintenance') },
                             ])}
                             value={filter}
-                            onChange={(val) => setFilter(val as any)}
+                            onChange={(val) => setFilter(val as RoomStatusFilter)}
                             size="sm"
                         />
                         <div className="relative w-full md:w-72">
@@ -305,7 +305,7 @@ export default function HotelRooms() {
                         </div>
                     ) : rooms.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {rooms.map((room: Room) => (
+                            {(rooms as unknown as Room[]).map((room: Room) => (
                                 <RoomCard key={room.id} room={room} />
                             ))}
                         </div>

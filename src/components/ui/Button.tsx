@@ -31,10 +31,10 @@ export function Button({
     ...props
 }: ButtonProps & { loadingText?: string }) {
     const variants = {
-        primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-lg shadow-primary-500/20',
-        secondary: 'bg-slate-800 text-white hover:bg-slate-900 focus:ring-slate-500 shadow-md',
-        outline: 'border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-800 hover:border-primary-500/50 focus:ring-primary-500',
-        ghost: 'text-slate-500 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-800 hover:text-primary-600 dark:hover:text-primary-400',
+        primary: 'bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-md shadow-primary-500/20',
+        secondary: 'bg-slate-800 text-white hover:bg-slate-900 focus:ring-slate-500 shadow-sm',
+        outline: 'bg-white dark:bg-transparent border border-slate-300 dark:border-white/10 text-slate-800 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-dark-800 hover:border-primary-500/60 focus:ring-primary-500 shadow-sm',
+        ghost: 'text-slate-700 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-dark-800 hover:text-primary-600 dark:hover:text-primary-400',
         danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-lg shadow-red-500/20',
         success: 'bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-lg shadow-emerald-500/20',
         warning: 'bg-amber-500 text-white hover:bg-amber-600 focus:ring-amber-500 shadow-lg shadow-amber-500/20',
@@ -52,7 +52,7 @@ export function Button({
     return (
         <button
             className={cn(
-                'inline-flex items-center justify-center transition-all duration-300 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0 active:scale-[0.97] hover:-translate-y-0.5',
+                'inline-flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex-shrink-0 active:scale-[0.98]',
                 fullWidth && 'w-full',
                 variants[variant],
                 sizes[size],

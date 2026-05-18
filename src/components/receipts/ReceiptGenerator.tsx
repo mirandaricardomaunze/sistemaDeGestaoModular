@@ -6,8 +6,8 @@ import {
     HiOutlinePlus,
     HiOutlineMinus,
     HiOutlineTrash,
-    HiOutlineDocumentDownload,
-} from 'react-icons/hi';
+    HiOutlineDocumentArrowDown,
+} from 'react-icons/hi2';
 import { useStore } from '../../stores/useStore';
 import { Button, Card, Input, Modal } from '../ui';
 import { formatCurrency, formatDate, generateReceiptNumber } from '../../utils/helpers';
@@ -376,7 +376,7 @@ export default function ReceiptGenerator() {
                             onClick={generatePDF}
                             disabled={selectedProducts.length === 0}
                         >
-                            <HiOutlineDocumentDownload className="w-4 h-4 mr-2" />
+                            <HiOutlineDocumentArrowDown className="w-4 h-4 mr-2" />
                             Gerar PDF
                         </Button>
                     </div>

@@ -30,7 +30,7 @@ export function useSuppliers(params?: UseSuppliersParams) {
     const query = useQuery({
         queryKey: [...QK, params ?? {}],
         queryFn: async () => {
-            const response = await suppliersAPI.getAll(params as any);
+            const response = await suppliersAPI.getAll(params);
 
             let suppliersData: Supplier[];
             let pagination: PaginationMeta;
@@ -95,7 +95,7 @@ export function useSuppliers(params?: UseSuppliersParams) {
         error: query.error ? 'Erro ao carregar fornecedores' : null,
         refetch: query.refetch,
         addSupplier: addMutation.mutateAsync,
-        updateSupplier: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
+        updateSupplier: (id: string, data: Parameters<typeof suppliersAPI.update>[1]) => updateMutation.mutateAsync({ id, data }),
         deleteSupplier: deleteMutation.mutateAsync,
     };
 }

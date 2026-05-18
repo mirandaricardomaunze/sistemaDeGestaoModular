@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react';
 import {
-    HiOutlineDocumentArrowDown as HiOutlineDocumentDownload,
+    HiOutlineDocumentArrowDown as HiOutlineDocumentArrowDown,
     HiOutlineCalendarDays as HiOutlineCalendar,
     HiOutlineChartBar,
     HiOutlineCurrencyDollar,
     HiOutlineShoppingCart,
     HiOutlineFunnel as HiOutlineFilter,
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlineCube,
-    HiOutlineArrowDownTray as HiOutlineDownload,
+    HiOutlineArrowDownTray as HiOutlineArrowDownTray,
 } from 'react-icons/hi2';
 
 import {
@@ -26,13 +26,13 @@ import {
 import { useStore } from '../stores/useStore';
 import { useSales, useProducts } from '../hooks/useData';
 import { Button, Card, Pagination, usePagination } from '../components/ui';
-import { formatCurrency, formatDate } from '../utils/helpers';
+import { formatCurrency, formatDate, cn } from '../utils/helpers';
 import ShareButton from '../components/share/ShareButton';
 import { useTenant } from '../contexts/TenantContext';
 import { HospitalityReports } from '../components/hospitality';
 import { ExportSalesButton } from '../components/common/ExportButton';
 import { exportAPI } from '../services/api';
-import type { Sale } from '../types';
+import type { Sale, CartItem } from '../types';
 
 // Time period options
 type TimePeriod = 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom';
@@ -57,15 +57,18 @@ const reportTypes: { value: ReportType; label: string; icon: typeof HiOutlineCha
 const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 
 export default function Reports() {
-    const { companySettings } = useStore();
     const { hasModule } = useTenant();
 
-    // Check if user has HOTEL module - if so, show hotel reports
     if (hasModule('HOTEL')) {
         return <HospitalityReports />;
     }
 
-    // Otherwise show sales reports (for COMMERCIAL, PHARMACY, etc.)
+    return <SalesReports />;
+}
+
+function SalesReports() {
+    const { companySettings } = useStore();
+
     // Fetch real data from API
     const { sales: apiSales } = useSales({ page: 1, limit: 100 });
     const { products } = useProducts({ page: 1, limit: 100 });
@@ -78,9 +81,11 @@ export default function Reports() {
     );
     const [reportType, setReportType] = useState<ReportType>('overview');
 
+    type RawSale = Sale & Partial<Record<'total' | 'subtotal' | 'tax' | 'discount' | 'amountPaid' | 'change', number | string>>;
+
     // Use real sales data from API
     const allSales = useMemo(() => {
-        return (apiSales || []).map((sale: any) => ({
+        return ((apiSales || []) as RawSale[]).map((sale) => ({
             ...sale,
             total: Number(sale.total) || 0,
             subtotal: Number(sale.subtotal) || 0,
@@ -137,8 +142,14 @@ export default function Reports() {
     const metrics = useMemo(() => {
         const totalSales = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
         const totalTax = filteredSales.reduce((sum, sale) => sum + sale.tax, 0);
+        type ReportSaleItem = Partial<CartItem> & {
+            costPrice?: number | string;
+            productName?: string;
+            price?: number | string;
+        };
         const totalCost = filteredSales.reduce((sum, sale) => {
-            return sum + (sale.items || []).reduce((itemSum, item: any) => {
+            return sum + (sale.items || []).reduce((itemSum, rawItem) => {
+                const item = rawItem as ReportSaleItem;
                 // Try to find product cost from the item or the products list
                 const product = (products || []).find(p => p.id === (item.productId || item.product?.id));
                 const unitCost = Number(item.costPrice || product?.costPrice || 0);
@@ -209,9 +220,14 @@ export default function Reports() {
     const topProducts = useMemo(() => {
         const productMap = new Map<string, { name: string; quantity: number; revenue: number }>();
 
+        type ReportSaleItem = Partial<CartItem> & {
+            productName?: string;
+            price?: number | string;
+        };
         filteredSales.forEach((sale) => {
-            (sale.items || []).forEach((item: any) => {
-                const productId = item.productId || item.product?.id;
+            (sale.items || []).forEach((rawItem) => {
+                const item = rawItem as ReportSaleItem;
+                const productId = item.productId || item.product?.id || '';
                 const productName = item.productName || item.product?.name || 'Produto';
                 const quantity = item.quantity || 1;
                 const revenue = Number(item.total) || (quantity * Number(item.unitPrice || item.price || 0));
@@ -305,11 +321,11 @@ export default function Reports() {
                     />
                     <ExportSalesButton data={filteredSales} />
                     <Button variant="outline" onClick={() => handleExport('excel')}>
-                        <HiOutlineDownload className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
+                        <HiOutlineArrowDownTray className="w-5 h-5 mr-2 text-primary-600 dark:text-primary-400" />
                         Gerar XLSX
                     </Button>
                     <Button onClick={() => handleExport('pdf')}>
-                        <HiOutlineDocumentDownload className="w-5 h-5 mr-2 text-white" />
+                        <HiOutlineDocumentArrowDown className="w-5 h-5 mr-2 text-white" />
                         Exportar PDF Profissional
                     </Button>
                 </div>
@@ -324,16 +340,18 @@ export default function Reports() {
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Período:</span>
                             <div className="flex flex-wrap gap-1">
                                 {periodOptions.map((option) => (
-                                    <button
+                                    <Button
                                         key={option.value}
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => setPeriod(option.value)}
-                                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${period === option.value
-                                            ? 'bg-primary-600 text-white'
+                                        className={cn('px-3 py-1.5 text-sm rounded-lg', period === option.value
+                                            ? 'bg-primary-600 text-white hover:bg-primary-600'
                                             : 'bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
-                                            }`}
+                                        )}
                                     >
                                         {option.label}
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         </div>
@@ -364,17 +382,19 @@ export default function Reports() {
                             {reportTypes.map((type) => {
                                 const Icon = type.icon;
                                 return (
-                                    <button
+                                    <Button
                                         key={type.value}
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => setReportType(type.value)}
-                                        className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition-colors ${reportType === type.value
-                                            ? 'bg-primary-600 text-white'
+                                        className={cn('flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg', reportType === type.value
+                                            ? 'bg-primary-600 text-white hover:bg-primary-600'
                                             : 'bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
-                                            }`}
+                                        )}
                                     >
                                         <Icon className="w-4 h-4" />
                                         <span className="hidden sm:inline">{type.label}</span>
-                                    </button>
+                                    </Button>
                                 );
                             })}
                         </div>
@@ -537,9 +557,14 @@ export default function Reports() {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         Produtos Mais Vendidos
                     </h3>
-                    <button className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg transition-colors">
-                        <HiOutlineRefresh className="w-5 h-5 text-gray-500" />
-                    </button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {}}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-lg"
+                    >
+                        <HiOutlineArrowPath className="w-5 h-5 text-gray-500" />
+                    </Button>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full">

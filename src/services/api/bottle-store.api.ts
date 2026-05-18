@@ -1,5 +1,8 @@
 import client from './client';
 
+type ApiPayload = object;
+type ApiQueryParams = Record<string, unknown>;
+
 export const bottleStoreAPI = {
     // Dashboard
     getDashboard: async (range: string = '1M') => {
@@ -8,18 +11,18 @@ export const bottleStoreAPI = {
     },
 
     // Reports
-    getReports: async (params: any) => {
+    getReports: async (params: ApiQueryParams) => {
         const response = await client.get('/bottle-store/reports', { params });
         return response.data;
     },
 
     // Stock Movements
-    getMovements: async (params: any) => {
+    getMovements: async (params: ApiQueryParams) => {
         const response = await client.get('/bottle-store/movements', { params });
         return response.data;
     },
 
-    recordMovement: async (data: any) => {
+    recordMovement: async (data: ApiPayload) => {
         const response = await client.post('/bottle-store/movements', data);
         return response.data;
     },
@@ -27,7 +30,7 @@ export const bottleStoreAPI = {
     // ========================================================================
     // BOTTLE RETURNS (Vasilhames)
     // ========================================================================
-    getBottleReturns: async (params: any) => {
+    getBottleReturns: async (params: ApiQueryParams) => {
         const response = await client.get('/bottle-store/bottle-returns', { params });
         return response.data;
     },
@@ -42,12 +45,12 @@ export const bottleStoreAPI = {
         return response.data;
     },
 
-    recordBottleDeposit: async (data: any) => {
+    recordBottleDeposit: async (data: ApiPayload) => {
         const response = await client.post('/bottle-store/bottle-returns/deposit', data);
         return response.data;
     },
 
-    recordBottleReturn: async (data: any) => {
+    recordBottleReturn: async (data: ApiPayload) => {
         const response = await client.post('/bottle-store/bottle-returns/return', data);
         return response.data;
     },
@@ -65,7 +68,7 @@ export const bottleStoreAPI = {
         return response.data;
     },
 
-    getCashSessionHistory: async (params: any) => {
+    getCashSessionHistory: async (params: ApiQueryParams) => {
         const response = await client.get('/bottle-store/cash-session/history', { params });
         return response.data;
     },
@@ -93,7 +96,7 @@ export const bottleStoreAPI = {
     // ========================================================================
     // CREDIT SALES (Vendas a Crédito)
     // ========================================================================
-    getCreditSales: async (params: any) => {
+    getCreditSales: async (params: ApiQueryParams) => {
         const response = await client.get('/bottle-store/credit-sales', { params });
         return response.data;
     },
@@ -183,17 +186,17 @@ export const bottleStoreAPI = {
         return response.data;
     },
 
-    getTransactions: async (params?: any) => {
+    getTransactions: async (params?: ApiQueryParams) => {
         const response = await client.get('/bottle-store/finance/transactions', { params });
         return response.data;
     },
 
-    createTransaction: async (data: any) => {
+    createTransaction: async (data: ApiPayload) => {
         const response = await client.post('/bottle-store/finance/transactions', data);
         return response.data;
     },
 
-    updateTransaction: async (id: string, data: any) => {
+    updateTransaction: async (id: string, data: ApiPayload) => {
         const response = await client.put(`/bottle-store/finance/transactions/${id}`, data);
         return response.data;
     },

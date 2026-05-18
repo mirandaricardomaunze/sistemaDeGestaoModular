@@ -1,7 +1,89 @@
 import { logger } from '../utils/logger';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import type { CompanyInfo, Booking, StockTransfer, Product, HospitalityReportData, PharmacyStockReportData } from '../types';
+import autoTable, { type CellHookData } from 'jspdf-autotable';
+import type {
+    Booking,
+    StockTransfer,
+    Product,
+    HospitalityReportData,
+    PharmacyStockReportData,
+} from '../types';
+
+interface QuotationItem {
+    productId?: string;
+    productCode?: string;
+    productName?: string;
+    name?: string;
+    description?: string;
+    quantity: number;
+    unit?: string;
+    price: number | string;
+    total?: number | string;
+}
+
+interface Quotation {
+    id?: string;
+    number?: string;
+    status?: string;
+    createdAt?: string;
+    validUntil?: string;
+    customer?: { name?: string; phone?: string; email?: string } | null;
+    customerName?: string;
+    items?: QuotationItem[];
+    subtotal?: number;
+    discount?: number;
+    tax?: number;
+    total?: number;
+    notes?: string | null;
+}
+
+interface POSReceiptItem {
+    productName?: string;
+    name?: string;
+    quantity: number;
+    unitPrice: number | string;
+    discount?: number | string;
+    total: number | string;
+}
+
+interface POSReceiptSale {
+    id?: string;
+    receiptNumber?: string;
+    saleNumber?: string;
+    createdAt?: string;
+    items?: POSReceiptItem[];
+    subtotal?: number | string;
+    discount?: number | string;
+    tax?: number | string;
+    total?: number | string;
+    paymentMethod?: string;
+    amountPaid?: number | string;
+    change?: number | string;
+    customer?: { name?: string } | null;
+}
+
+type JsPdfWithAutoTable = jsPDF & {
+    lastAutoTable: { finalY: number };
+    internal: jsPDF['internal'] & { getNumberOfPages: () => number };
+};
+
+export type CompanyInfo = {
+    companyName?: string;
+    tradeName?: string;
+    address?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    taxId?: string | null;
+    nuit?: string | null;
+    logo?: string | null;
+    city?: string | null;
+    state?: string | null;
+    province?: string | null;
+    name?: string;
+    ivaRate?: number;
+};
+
+type AutoTableHookData = CellHookData;
 
 
 // Professional Header Helper
@@ -9,7 +91,7 @@ import type { CompanyInfo, Booking, StockTransfer, Product, HospitalityReportDat
 // Professional Header Helper
 export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: CompanyInfo, period?: string) => {
     const pageWidth = doc.internal.pageSize.width;
-    let y = 20;
+    const y = 20;
 
     // Logo Support
     if (companyInfo?.logo) {
@@ -71,7 +153,7 @@ export const addProfessionalHeader = (doc: jsPDF, title: string, companyInfo: Co
 export const addProfessionalFooter = (doc: jsPDF, companyInfo: CompanyInfo) => {
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
-    const pageCount = (doc as any).internal.getNumberOfPages();
+    const pageCount = (doc as JsPdfWithAutoTable).internal.getNumberOfPages();
 
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -115,14 +197,29 @@ export const generateGuiaRemessa = (transfer: StockTransfer, companyInfo?: Compa
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, 'GUIA DE REMESSA', companyInfo || {} as CompanyInfo);
+    addProfessionalHeader(doc, 'GUIA DE TRANSFERÊNCIA', companyInfo || {});
+
+    const statusLabels: Record<string, string> = {
+        draft: 'Rascunho',
+        pending: 'Pendente',
+        approved: 'Aprovada',
+        in_transit: 'Em trânsito',
+        received: 'Recebida',
+        completed: 'Concluída',
+        rejected: 'Rejeitada',
+        cancelled: 'Cancelada',
+    };
+    const transferDate = transfer.date || transfer.createdAt;
+    const totalUnits = transfer.items.reduce((sum: number, item) => sum + Number(item.quantity || 0), 0);
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.text(`Guia Nº: ${transfer.number}`, 15, 52);
-    doc.text(`Data da Operação: ${new Date(transfer.createdAt).toLocaleDateString()}`, 15, 57);
+    doc.text(`Data da Operação: ${new Date(transferDate).toLocaleDateString()}`, 15, 57);
     doc.text(`Emitido por: ${transfer.responsible || 'Multicore'}`, 15, 62);
+    doc.text(`Estado: ${statusLabels[transfer.status] || transfer.status}`, pageWidth - 15, 52, { align: 'right' });
+    doc.text(`Total de Unidades: ${totalUnits.toLocaleString('pt-MZ')}`, pageWidth - 15, 57, { align: 'right' });
 
     // Warehouses Info Box
     doc.setDrawColor(220, 220, 220);
@@ -133,7 +230,7 @@ export const generateGuiaRemessa = (transfer: StockTransfer, companyInfo?: Compa
     doc.setFont('helvetica', 'normal');
     doc.text(transfer.sourceWarehouse?.name || '---', 20, 84);
     doc.setFontSize(8);
-    doc.text(transfer.sourceWarehouse?.location || 'Mocambique', 20, 90);
+    doc.text(transfer.sourceWarehouse?.location || 'Moçambique', 20, 90);
 
     doc.setFontSize(10);
     doc.roundedRect(110, 72, 85, 25, 2, 2, 'FD');
@@ -142,19 +239,20 @@ export const generateGuiaRemessa = (transfer: StockTransfer, companyInfo?: Compa
     doc.setFont('helvetica', 'normal');
     doc.text(transfer.targetWarehouse?.name || '---', 115, 84);
     doc.setFontSize(8);
-    doc.text(transfer.targetWarehouse?.location || 'Mocambique', 115, 90);
+    doc.text(transfer.targetWarehouse?.location || 'Moçambique', 115, 90);
 
     // Items Table
-    const tableData = transfer.items.map((item: any) => [
-        item.product?.code || '---',
-        item.product?.name || '---',
+    type TransferItemExt = (typeof transfer.items)[number] & { product?: { barcode?: string; sku?: string } };
+    const tableData = transfer.items.map((item) => [
+        (item as TransferItemExt).product?.barcode || item.productBarcode || (item as TransferItemExt).product?.sku || item.productCode || '---',
+        item.product?.name || item.productName || '---',
         item.quantity,
         item.product?.unit || 'Un'
     ]);
 
     autoTable(doc, {
         startY: 105,
-        head: [['Código', 'Descrição do Produto', 'Qtd.', 'Unidade']],
+        head: [['Referência', 'Descrição do Produto', 'Qtd.', 'Unidade']],
         body: tableData,
         headStyles: { fillColor: [80, 80, 80], textColor: [255, 255, 255], fontStyle: 'bold' },
         alternateRowStyles: { fillColor: [250, 250, 250] },
@@ -162,7 +260,7 @@ export const generateGuiaRemessa = (transfer: StockTransfer, companyInfo?: Compa
     });
 
     // Footer / Signatures
-    const finalY = (doc as any).lastAutoTable.finalY + 30;
+    const finalY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 30;
     doc.setDrawColor(200, 200, 200);
     doc.line(15, finalY, 80, finalY);
     doc.setFontSize(8);
@@ -171,7 +269,7 @@ export const generateGuiaRemessa = (transfer: StockTransfer, companyInfo?: Compa
     doc.line(pageWidth - 80, finalY, pageWidth - 15, finalY);
     doc.text('CONFIRMAÇÃO DE RECEPÇÃO (DESTINO)', pageWidth - 80, finalY + 5);
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     doc.save(`Guia_${transfer.number}.pdf`);
 };
 
@@ -179,7 +277,7 @@ export const generateBookingReceipt = (booking: Booking, companyInfo: CompanyInf
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, 'RECIBO DE ESTADIA', companyInfo || {} as CompanyInfo);
+    addProfessionalHeader(doc, 'RECIBO DE ESTADIA', companyInfo || {});
 
     // Guest Info Section
     doc.setFontSize(11);
@@ -208,7 +306,7 @@ export const generateBookingReceipt = (booking: Booking, companyInfo: CompanyInf
         columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } }
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    const finalY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 15;
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text(`TOTAL PAGO: ${booking.totalPrice.toLocaleString()} MT`, pageWidth - 15, finalY, { align: 'right' });
@@ -219,14 +317,14 @@ export const generateBookingReceipt = (booking: Booking, companyInfo: CompanyInf
     doc.text('Obrigado pela sua preferência!', pageWidth / 2, finalY + 20, { align: 'center' });
     doc.text('Documento processado por computador', pageWidth / 2, finalY + 25, { align: 'center' });
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     doc.save(`Recibo_Booking_${booking.id?.slice(-8)}.pdf`);
 };
 
 export const generatePharmacyExpirationReport = (products: Product[], companyInfo?: CompanyInfo) => {
     const doc = new jsPDF();
 
-    addProfessionalHeader(doc, 'RELATÓRIO DE VALIDADES', companyInfo || {} as CompanyInfo);
+    addProfessionalHeader(doc, 'RELATÓRIO DE VALIDADES', companyInfo || {});
 
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
@@ -235,11 +333,12 @@ export const generatePharmacyExpirationReport = (products: Product[], companyInf
     doc.text(`Total de Produtos em Risco: ${products.length}`, 15, 57);
 
     // Items Table
-    const tableData = products.map((item: any) => [
+    type ExpiringProductLike = Product & { batchNumber?: string; expiryDate?: string };
+    const tableData = (products as ExpiringProductLike[]).map((item) => [
         item.code || '---',
         item.name || '---',
         item.batchNumber || '---',
-        new Date(item.expiryDate).toLocaleDateString(),
+        item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : '---',
         `${item.currentStock} ${item.unit || 'un'}`
     ]);
 
@@ -253,12 +352,12 @@ export const generatePharmacyExpirationReport = (products: Product[], companyInf
     });
 
     // Footer
-    const finalY = (doc as any).lastAutoTable.finalY + 20;
+    const finalY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 20;
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text('Este documento é um alerta gerado automaticamente pelo sistema de inventário.', 15, finalY);
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     doc.save(`Relatorio_Validades_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -266,7 +365,7 @@ export const generateHospitalityReport = (data: HospitalityReportData, companyIn
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, 'RELATÓRIO DE HOTELARIA', companyInfo || {} as CompanyInfo, data.period);
+    addProfessionalHeader(doc, 'RELATÓRIO DE HOTELARIA', companyInfo || {}, data.period);
 
     // Summary Box
     doc.setFontSize(11);
@@ -317,7 +416,7 @@ export const generateHospitalityReport = (data: HospitalityReportData, companyIn
     });
 
     // Bookings Table
-    const tableData = data.bookings.map((b: any) => [
+    const tableData = data.bookings.map((b) => [
         new Date(b.checkIn).toLocaleDateString(),
         `Q-${b.roomNumber}`,
         b.customerName,
@@ -326,7 +425,7 @@ export const generateHospitalityReport = (data: HospitalityReportData, companyIn
     ]);
 
     autoTable(doc, {
-        startY: (doc as any).lastAutoTable.finalY + 15,
+        startY: (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 15,
         head: [['Data', 'Quarto', 'Hóspede', 'Total', 'Status']],
         body: tableData,
         theme: 'grid',
@@ -335,7 +434,7 @@ export const generateHospitalityReport = (data: HospitalityReportData, companyIn
         columnStyles: { 3: { halign: 'right', fontStyle: 'bold' } }
     });
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     doc.save(`Relatorio_Hotelaria_${data.period.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -348,7 +447,7 @@ export const generatePharmacyStockReport = (data: PharmacyStockReportData, compa
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    addProfessionalHeader(doc, 'RELATÓRIO DE STOCK', companyInfo || {} as CompanyInfo);
+    addProfessionalHeader(doc, 'RELATÓRIO DE STOCK', companyInfo || {});
 
     // Date & Info
     doc.setTextColor(0, 0, 0);
@@ -380,14 +479,21 @@ export const generatePharmacyStockReport = (data: PharmacyStockReportData, compa
 
     // Table
     doc.setTextColor(0, 0, 0);
-    const tableData = data.items.slice(0, 100).map((item: any) => [
+    type StockItem = {
+        productCode?: string; code?: string; productName?: string; name?: string;
+        batchNumber?: string; expiryDate?: string;
+        batches?: Array<{ batchNumber?: string; expiryDate?: string }>;
+        totalStock?: number; currentStock?: number;
+        isLowStock?: boolean; totalValue?: number; price?: number | string;
+    };
+    const tableData = (data.items as unknown as StockItem[]).slice(0, 100).map((item) => [
         item.productCode || item.code || '-',
         (item.productName || item.name || '-').substring(0, 30),
         item.batchNumber || item.batches?.[0]?.batchNumber || '-',
-        item.expiryDate || item.batches?.[0]?.expiryDate ? new Date(item.expiryDate || item.batches[0].expiryDate).toLocaleDateString('pt-MZ') : '-',
+        item.expiryDate || item.batches?.[0]?.expiryDate ? new Date((item.expiryDate || item.batches![0].expiryDate) as string).toLocaleDateString('pt-MZ') : '-',
         (item.totalStock ?? item.currentStock ?? 0).toString(),
         item.isLowStock ? '⚠️' : '✓',
-        `${Number(item.totalValue || (item.price * (item.totalStock || item.currentStock)) || 0).toLocaleString()} MT`
+        `${Number(item.totalValue || (Number(item.price) * (item.totalStock || item.currentStock || 0)) || 0).toLocaleString()} MT`
     ]);
 
     autoTable(doc, {
@@ -407,7 +513,7 @@ export const generatePharmacyStockReport = (data: PharmacyStockReportData, compa
             6: { halign: 'right', cellWidth: 35 }
         },
         margin: { left: 15, right: 15 },
-        didParseCell: (hookData: any) => {
+        didParseCell: (hookData: AutoTableHookData) => {
             if (hookData.column.index === 3) {
                 const dateStr = hookData.cell.raw as string;
                 if (dateStr !== '-') {
@@ -429,7 +535,7 @@ export const generatePharmacyStockReport = (data: PharmacyStockReportData, compa
     doc.text(`Gerado automaticamente pelo Multicore • ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, footerY, { align: 'center' });
     doc.text(`Página 1 de 1`, pageWidth - 15, footerY, { align: 'right' });
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     
     if (action === 'print') {
         doc.autoPrint();
@@ -460,12 +566,21 @@ export const generatePharmacyStockReport = (data: PharmacyStockReportData, compa
     }
 };
 
-export const generatePharmacySalesReport = (sales: any[], period: string, companyInfo?: CompanyInfo, action: 'save' | 'print' = 'save') => {
+export type PharmacySaleRow = {
+    saleNumber?: string;
+    createdAt: string;
+    customerName?: string;
+    paymentMethod?: string;
+    items?: Array<{ id?: string }>;
+    total?: number | string;
+};
+
+export const generatePharmacySalesReport = (sales: PharmacySaleRow[], period: string, companyInfo?: CompanyInfo, action: 'save' | 'print' = 'save') => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    addProfessionalHeader(doc, 'RELATÓRIO DE VENDAS', companyInfo || {} as CompanyInfo, period);
+    addProfessionalHeader(doc, 'RELATÓRIO DE VENDAS', companyInfo || {}, period);
 
     // Calculate totals
     const totalSales = sales.reduce((sum, s) => sum + Number(s.total), 0);
@@ -490,13 +605,13 @@ export const generatePharmacySalesReport = (sales: any[], period: string, compan
 
     // Table
     doc.setTextColor(0, 0, 0);
-    const tableData = sales.slice(0, 35).map((sale: any) => [
-        sale.saleNumber,
+    const tableData = sales.slice(0, 35).map((sale) => [
+        sale.saleNumber || '',
         new Date(sale.createdAt).toLocaleDateString('pt-MZ'),
         sale.customerName || 'Cliente Balcão',
-        sale.paymentMethod === 'cash' ? 'Dinheiro' : sale.paymentMethod === 'card' ? 'Cartão' : sale.paymentMethod,
+        sale.paymentMethod === 'cash' ? 'Dinheiro' : sale.paymentMethod === 'card' ? 'Cartão' : (sale.paymentMethod || ''),
         sale.items?.length || 0,
-        `${Number(sale.total).toLocaleString()} MT`
+        `${Number(sale.total ?? 0).toLocaleString()} MT`
     ]);
 
     autoTable(doc, {
@@ -525,7 +640,7 @@ export const generatePharmacySalesReport = (sales: any[], period: string, compan
     doc.setTextColor(150, 150, 150);
     doc.text(`Relatório gerado em ${new Date().toLocaleString('pt-MZ')} • Multicore`, pageWidth / 2, footerY, { align: 'center' });
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     
     if (action === 'print') {
         doc.autoPrint();
@@ -556,12 +671,29 @@ export const generatePharmacySalesReport = (sales: any[], period: string, compan
     }
 };
 
-export const generatePharmacyExpiringReport = (data: { items: any[]; summary: any }, companyInfo?: any) => {
+type ExpiringItem = {
+    productCode?: string;
+    productName?: string;
+    batchNumber?: string;
+    expiryDate: string;
+    daysToExpiry: number;
+    quantity: number;
+    value: number | string;
+};
+
+type ExpiringSummary = {
+    expiredCount: number;
+    expiringCount: number;
+    totalItems: number;
+    totalValue: number | string;
+};
+
+export const generatePharmacyExpiringReport = (data: { items: ExpiringItem[]; summary: ExpiringSummary }, companyInfo?: CompanyInfo) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
 
-    addProfessionalHeader(doc, 'ALERTA DE VALIDADES', companyInfo || {} as CompanyInfo);
+    addProfessionalHeader(doc, 'ALERTA DE VALIDADES', companyInfo || {});
 
     // Summary Box
     doc.setTextColor(0, 0, 0);
@@ -585,7 +717,7 @@ export const generatePharmacyExpiringReport = (data: { items: any[]; summary: an
 
     // Table
     doc.setTextColor(0, 0, 0);
-    const tableData = data.items.slice(0, 40).map((item: any) => [
+    const tableData = data.items.slice(0, 40).map((item) => [
         item.productCode || '-',
         (item.productName || '-').substring(0, 28),
         item.batchNumber || '-',
@@ -602,7 +734,7 @@ export const generatePharmacyExpiringReport = (data: { items: any[]; summary: an
         headStyles: { fillColor: [220, 38, 38] as [number, number, number], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
         bodyStyles: { fontSize: 9 },
         alternateRowStyles: { fillColor: [254, 242, 242] },
-        didParseCell: (data: any) => {
+        didParseCell: (data: AutoTableHookData) => {
             if (data.column.index === 4 && data.cell.raw === 'EXPIRADO') {
                 data.cell.styles.textColor = [185, 28, 28];
                 data.cell.styles.fontStyle = 'bold';
@@ -628,11 +760,11 @@ export const generatePharmacyExpiringReport = (data: { items: any[]; summary: an
     doc.setTextColor(150, 150, 150);
     doc.text(`Documento gerado automaticamente • ${new Date().toLocaleString('pt-MZ')}`, pageWidth / 2, footerY, { align: 'center' });
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     doc.save(`Farmacia_Validades_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
-export const generatePOSReceipt = (sale: any, companyInfo: any) => {
+export const generatePOSReceipt = (sale: POSReceiptSale & { customerName?: string }, companyInfo: CompanyInfo) => {
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -682,7 +814,7 @@ export const generatePOSReceipt = (sale: any, companyInfo: any) => {
     doc.text(`RECIBO #${sale.receiptNumber || sale.saleNumber}`, centerX, y, { align: 'center' });
     y += lineHeight;
     doc.setFont('helvetica', 'normal');
-    doc.text(new Date(sale.createdAt).toLocaleString('pt-MZ'), centerX, y, { align: 'center' });
+    doc.text(sale.createdAt ? new Date(sale.createdAt).toLocaleString('pt-MZ') : '', centerX, y, { align: 'center' });
     y += lineHeight;
 
     // Customer info
@@ -706,9 +838,10 @@ export const generatePOSReceipt = (sale: any, companyInfo: any) => {
 
     // Items
     doc.setFont('helvetica', 'normal');
-    sale.items.forEach((item: any) => {
+    (sale.items || []).forEach((item) => {
         // Item name (may wrap, simplified for thermal)
-        const name = (item.productName || item.product?.name || 'Item').substring(0, 25);
+        const itemExt = item as POSReceiptItem & { product?: { name?: string } };
+        const name = (item.productName || itemExt.product?.name || 'Item').substring(0, 25);
         doc.text(name, 5, y);
         y += lineHeight - 1;
         doc.text(item.quantity.toString(), 45, y, { align: 'center' });
@@ -726,7 +859,7 @@ export const generatePOSReceipt = (sale: any, companyInfo: any) => {
     doc.text(`${Number(sale.subtotal).toLocaleString()} MT`, 75, y, { align: 'right' });
     y += lineHeight;
 
-    if (sale.discount > 0) {
+    if (Number(sale.discount ?? 0) > 0) {
         doc.text('Desconto:', 5, y);
         doc.text(`-${Number(sale.discount).toLocaleString()} MT`, 75, y, { align: 'right' });
         y += lineHeight;
@@ -764,13 +897,13 @@ export const generateHotelFinanceReport = (data: {
     monthlyTrend: Array<{ month: string; revenue: number; expense: number; profit: number }>;
     revenueByCategory: Record<string, number>;
     expensesByCategory: Record<string, number>;
-    companyInfo: any;
+    companyInfo: CompanyInfo;
 }) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const { companyInfo } = data;
 
-    addProfessionalHeader(doc, 'RELATÓRIO FINANCEIRO', companyInfo || {} as CompanyInfo, data.period);
+    addProfessionalHeader(doc, 'RELATÓRIO FINANCEIRO', companyInfo || {}, data.period);
 
     // Summary Section
     doc.setFontSize(12);
@@ -797,7 +930,7 @@ export const generateHotelFinanceReport = (data: {
     });
 
     // Monthly Trend
-    const currentY = (doc as any).lastAutoTable.finalY + 15;
+    const currentY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 15;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('TENDÊNCIA MENSAL', 15, currentY);
@@ -824,7 +957,7 @@ export const generateHotelFinanceReport = (data: {
     });
 
     // Sub-tables: Categories
-    let nextY = (doc as any).lastAutoTable.finalY + 15;
+    let nextY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 15;
 
     // Check if we need a new page
     if (nextY > 230) {
@@ -870,7 +1003,7 @@ export const generateHotelFinanceReport = (data: {
         margin: { left: pageWidth / 2 + 5 }
     });
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     doc.save(`Financeiro_Hotel_${data.period.replace(' ', '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
@@ -885,14 +1018,14 @@ export const generateBottleStoreReport = (data: {
     tables: {
         title: string;
         head: string[][];
-        body: any[][];
-        columnStyles?: any;
+        body: Array<Array<string | number>>;
+        columnStyles?: Parameters<typeof autoTable>[1]['columnStyles'];
     }[];
-}, companyInfo: any) => {
+}, companyInfo: CompanyInfo) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, data.title, companyInfo || {} as CompanyInfo, data.period);
+    addProfessionalHeader(doc, data.title, companyInfo || {}, data.period);
 
     let currentY = 55;
 
@@ -934,7 +1067,7 @@ export const generateBottleStoreReport = (data: {
             margin: { left: 15, right: 15 }
         });
 
-        currentY = (doc as any).lastAutoTable.finalY + 15;
+        currentY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 15;
 
         // Check for new page
         if (currentY > 250) {
@@ -943,7 +1076,7 @@ export const generateBottleStoreReport = (data: {
         }
     });
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     doc.save(`${data.title.replace(/\s/g, '_')}_${data.period.replace(/\s/g, '_')}.pdf`);
 };
 
@@ -984,11 +1117,11 @@ interface PayrollReportData {
  * Generates a professional monthly payroll summary report PDF
  * Shows all employees with their salary breakdown and totals
  */
-export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyInfo: any) => {
+export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyInfo: CompanyInfo) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
-    addProfessionalHeader(doc, 'RELATÓRIO MENSAL DE SALÁRIOS', companyInfo || {} as CompanyInfo, data.period);
+    addProfessionalHeader(doc, 'RELATÓRIO MENSAL DE SALÁRIOS', companyInfo || {}, data.period);
 
     // Summary Section
     doc.setDrawColor(230, 230, 230);
@@ -1059,7 +1192,7 @@ export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyI
             7: { halign: 'center', cellWidth: 18 }
         },
         margin: { left: 15, right: 15 },
-        didParseCell: (hookData: any) => {
+        didParseCell: (hookData: AutoTableHookData) => {
             if (hookData.column.index === 7) {
                 const text = hookData.cell.raw as string;
                 if (text.includes('Pago')) {
@@ -1072,7 +1205,7 @@ export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyI
     });
 
     // Totals Row
-    const finalY = (doc as any).lastAutoTable.finalY + 5;
+    const finalY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 5;
     doc.setDrawColor(51, 65, 85);
     doc.setLineWidth(0.5);
     doc.line(15, finalY, pageWidth - 15, finalY);
@@ -1098,7 +1231,7 @@ export const generateHRPayrollSummaryReport = (data: PayrollReportData, companyI
     doc.line(pageWidth - 80, signY, pageWidth - 15, signY);
     doc.text('Director Financeiro', pageWidth - 80, signY + 5);
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
     doc.save(`Folha_Salarial_${data.period.replace(/\s/g, '_')}.pdf`);
 };
 
@@ -1138,7 +1271,7 @@ interface PaymentConfirmationData {
  * Generates a payment confirmation receipt for a paid salary
  * Includes payment method, date, and confirmation reference
  */
-export const generatePaymentConfirmation = (data: PaymentConfirmationData, companyInfo: any) => {
+export const generatePaymentConfirmation = (data: PaymentConfirmationData, companyInfo: CompanyInfo) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -1146,7 +1279,7 @@ export const generatePaymentConfirmation = (data: PaymentConfirmationData, compa
 
     const period = `${months[data.payroll.month - 1]} ${data.payroll.year}`;
 
-    addProfessionalHeader(doc, 'CONFIRMAÇÃO DE PAGAMENTO', companyInfo || {} as CompanyInfo, period);
+    addProfessionalHeader(doc, 'CONFIRMAÇÃO DE PAGAMENTO', companyInfo || {}, period);
 
     // Confirmation Reference Box
     doc.setDrawColor(22, 163, 74);
@@ -1219,7 +1352,7 @@ export const generatePaymentConfirmation = (data: PaymentConfirmationData, compa
     });
 
     // Totals
-    const tableY = (doc as any).lastAutoTable.finalY;
+    const tableY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY;
 
     doc.setFillColor(248, 250, 252);
     doc.rect(15, tableY, pageWidth - 30, 20, 'F');
@@ -1273,14 +1406,22 @@ export const generatePaymentConfirmation = (data: PaymentConfirmationData, compa
     doc.line(pageWidth - 80, signY, pageWidth - 15, signY);
     doc.text('Carimbo e Assinatura da Empresa', pageWidth - 80, signY + 5);
 
-    addProfessionalFooter(doc, companyInfo || {} as CompanyInfo);
+    addProfessionalFooter(doc, companyInfo || {});
 
     const filename = `Confirmacao_Pagamento_${data.employee.name.replace(/\s/g, '_')}_${period.replace(/\s/g, '_')}.pdf`;
     doc.save(filename);
 
     return filename;
 };
-export const generateQuotationPDF = (quote: any, companyInfo: any, action: 'save' | 'print' = 'save') => {
+type QuotationPdfQuote = Omit<Quotation, 'notes'> & {
+    customerPhone?: string | null;
+    customerEmail?: string | null;
+    orderNumber?: string;
+    deliveryDate?: string | null;
+    notes?: string | null;
+};
+
+export const generateQuotationPDF = (quote: QuotationPdfQuote, companyInfo: CompanyInfo, action: 'save' | 'print' = 'save') => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
 
@@ -1292,7 +1433,7 @@ export const generateQuotationPDF = (quote: any, companyInfo: any, action: 'save
             .join(', ') || companyInfo?.address,
     };
 
-    addProfessionalHeader(doc, 'COTAÇÃO / ORÇAMENTO', normalizedCompany || {} as CompanyInfo);
+    addProfessionalHeader(doc, 'COTAÇÃO', normalizedCompany || {});
 
     // Customer & Quote Info
     doc.setFontSize(11);
@@ -1313,18 +1454,18 @@ export const generateQuotationPDF = (quote: any, companyInfo: any, action: 'save
     doc.setFont('helvetica', 'bold');
     doc.text(`Nº Cotação: ${quote.orderNumber}`, pageWidth - 15, 59, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    doc.text(`Data: ${new Date(quote.createdAt).toLocaleDateString('pt-MZ')}`, pageWidth - 15, 64, { align: 'right' });
+    doc.text(`Data: ${quote.createdAt ? new Date(quote.createdAt).toLocaleDateString('pt-MZ') : ''}`, pageWidth - 15, 64, { align: 'right' });
     if (quote.deliveryDate) {
         doc.text(`Válida até: ${new Date(quote.deliveryDate).toLocaleDateString('pt-MZ')}`, pageWidth - 15, 69, { align: 'right' });
     }
 
     // Items Table
-    const tableData = (quote.items || []).map((item: any) => [
-        item.barcode || item.product?.barcode || '---',
-        item.productName || item.product?.name || '---',
+    const tableData = (quote.items || []).map((item) => [
+        (item as QuotationItem & { barcode?: string; product?: { barcode?: string } }).barcode || (item as QuotationItem & { product?: { barcode?: string } }).product?.barcode || '---',
+        item.productName || (item as QuotationItem & { product?: { name?: string } }).product?.name || '---',
         item.quantity,
         `${Number(item.price).toLocaleString()} MT`,
-        `${Number(item.total || (item.quantity * item.price)).toLocaleString()} MT`
+        `${Number(item.total || (Number(item.quantity) * Number(item.price))).toLocaleString()} MT`
     ]);
 
     autoTable(doc, {
@@ -1341,9 +1482,9 @@ export const generateQuotationPDF = (quote: any, companyInfo: any, action: 'save
         margin: { left: 15, right: 15 }
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-    const ivaRate = companyInfo?.ivaRate || 16;
-    const subtotal = (quote.items || []).reduce((sum: number, item: any) => sum + (Number(item.price) * Number(item.quantity)), 0);
+    const finalY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 10;
+    const ivaRate = Number(companyInfo?.ivaRate ?? 16);
+    const subtotal = (quote.items || []).reduce((sum: number, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
     const ivaValue = subtotal * (ivaRate / 100);
     const grandTotal = subtotal + ivaValue;
 
@@ -1389,15 +1530,17 @@ export const generateQuotationPDF = (quote: any, companyInfo: any, action: 'save
     if (action === 'print') {
         doc.autoPrint();
         const blobUrl = doc.output('bloburl');
-        window.open(blobUrl as any, '_blank');
+        window.open(blobUrl, '_blank');
     } else {
         doc.save(`Cotacao_${quote.orderNumber}.pdf`);
     }
 };
 
+type QuotationListItem = QuotationPdfQuote;
+
 export const generateQuotationsListPDF = (
-    quotes: any[],
-    companyInfo: any,
+    quotes: QuotationListItem[],
+    companyInfo: CompanyInfo,
     statusLabelOf: (status: string) => string,
     action: 'save' | 'print' = 'save',
 ) => {
@@ -1412,15 +1555,15 @@ export const generateQuotationsListPDF = (
             .join(', ') || companyInfo?.address,
     };
 
-    addProfessionalHeader(doc, 'LISTA DE COTAÇÕES / ORÇAMENTOS', normalizedCompany || {} as CompanyInfo);
+    addProfessionalHeader(doc, 'LISTA DE COTAÇÕES', normalizedCompany || {});
 
     const tableData = quotes.map(q => [
-        q.orderNumber,
-        new Date(q.createdAt).toLocaleDateString('pt-MZ'),
-        q.customerName,
+        q.orderNumber || q.number || '',
+        q.createdAt ? new Date(q.createdAt).toLocaleDateString('pt-MZ') : '',
+        q.customerName || q.customer?.name || '',
         String((q.items || []).length),
-        statusLabelOf(q.status),
-        `${Number(q.total).toLocaleString()} MT`,
+        statusLabelOf(q.status || ''),
+        `${Number(q.total ?? 0).toLocaleString()} MT`,
     ]);
 
     autoTable(doc, {
@@ -1436,7 +1579,7 @@ export const generateQuotationsListPDF = (
         margin: { left: 15, right: 15 },
     });
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    const finalY = (doc as JsPdfWithAutoTable).lastAutoTable.finalY + 10;
     const totalSum = quotes.reduce((s, q) => s + Number(q.total), 0);
 
     doc.setDrawColor(240, 240, 240);
@@ -1452,7 +1595,7 @@ export const generateQuotationsListPDF = (
     if (action === 'print') {
         doc.autoPrint();
         const blobUrl = doc.output('bloburl');
-        window.open(blobUrl as any, '_blank');
+        window.open(blobUrl, '_blank');
     } else {
         doc.save(`Cotacoes_${new Date().toISOString().split('T')[0]}.pdf`);
     }

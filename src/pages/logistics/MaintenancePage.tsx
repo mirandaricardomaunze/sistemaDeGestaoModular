@@ -6,6 +6,8 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, Pagination } from '../../components/ui';
+import type { BadgeVariant } from '../../components/ui/Badge';
+import type { TFunction } from 'i18next';
 import {
     HiOutlineWrenchScrewdriver,
     HiOutlinePlus,
@@ -22,26 +24,26 @@ import { useVehicleMaintenances, useCreateMaintenance, useUpdateMaintenance, use
 import type { VehicleMaintenance, Vehicle } from '../../services/api/logistics.api';
 import { PageHeader } from '../../components/ui';
 
-const getTypeBadge = (type: string, t: any) => {
-    const typeMap: Record<string, { label: string, color: string }> = {
+const getTypeBadge = (type: string, t: TFunction) => {
+    const typeMap: Record<string, { label: string, color: BadgeVariant }> = {
         preventive: { label: t('logistics_module.maintenance.types.preventive'), color: 'primary' },
         corrective: { label: t('logistics_module.maintenance.types.corrective'), color: 'warning' },
         inspection: { label: t('logistics_module.maintenance.types.inspection'), color: 'info' },
         emergency: { label: t('logistics_module.maintenance.types.emergency'), color: 'danger' }
     };
     const mt = typeMap[type];
-    return <Badge variant={mt?.color as any || 'gray'}>{mt?.label || type}</Badge>;
+    return <Badge variant={mt?.color || 'gray'}>{mt?.label || type}</Badge>;
 };
 
-const getStatusBadge = (status: string, t: any) => {
-    const statusMap: Record<string, { label: string, color: string }> = {
+const getStatusBadge = (status: string, t: TFunction) => {
+    const statusMap: Record<string, { label: string, color: BadgeVariant }> = {
         scheduled: { label: t('logistics_module.maintenance.statuses.scheduled'), color: 'warning' },
         in_progress: { label: t('logistics_module.maintenance.statuses.in_progress'), color: 'primary' },
         completed: { label: t('logistics_module.maintenance.statuses.completed'), color: 'success' },
         cancelled: { label: t('logistics_module.maintenance.statuses.cancelled'), color: 'gray' }
     };
     const s = statusMap[status];
-    return <Badge variant={s?.color as any || 'gray'}>{s?.label || status}</Badge>;
+    return <Badge variant={s?.color || 'gray'}>{s?.label || status}</Badge>;
 };
 
 const formatCurrency = (value: number) => {

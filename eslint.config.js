@@ -6,17 +6,34 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['dist', 'backend/dist', 'node_modules', 'coverage'],
+    ignores: [
+      'dist/**',
+      'coverage/**',
+      'node_modules/**',
+      '.vite/**',
+      '.agent/**',
+      '.claude/**',
+      'scratch/**',
+      'fix-emojis.js',
+      'backend/dist/**',
+      'backend/node_modules/**',
+      'backend/coverage/**',
+      'backend/prisma/**',
+      'backend/scripts/**',
+      'backend/scratch/**',
+      'backend/scratch_*.js',
+      'backend/test-*.js',
+      'backend/src/test_*.ts',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       ecmaVersion: 2020,
       globals: {
         ...globals.browser,
-        ...globals.node,
         ...globals.es2020,
       },
     },
@@ -25,13 +42,65 @@ export default tseslint.config(
       'react-refresh': reactRefresh,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
       ],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-expressions': 'error',
+      'prefer-const': 'error',
+      'no-empty': 'error',
+      'no-useless-escape': 'error',
+    },
+  },
+  {
+    files: ['*.js', 'backend/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2020,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'prefer-const': 'warn',
+      'no-empty': 'warn',
+      'no-useless-escape': 'warn',
+    },
+  },
+  {
+    files: ['backend/src/**/*.ts'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: {
+        ...globals.node,
+        ...globals.es2020,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-require-imports': 'error',
+      '@typescript-eslint/no-unused-expressions': 'error',
+      'prefer-const': 'error',
+      'no-empty': 'error',
+      'no-useless-escape': 'error',
+    },
+  },
+  {
+    files: ['backend/src/**/__tests__/**/*.ts', 'backend/jest.setup.ts'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.jest,
+      },
+    },
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
 )

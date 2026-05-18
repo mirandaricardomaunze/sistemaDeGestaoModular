@@ -7,16 +7,19 @@ import {
     HiOutlinePlus
 } from 'react-icons/hi2';
 import { Card, Button, Badge, Modal, Input, Select, Pagination, usePagination } from '../../ui';
+import { MetricCard } from '../../common/ModuleMetricCard';
 import { employeesAPI } from '../../../services/api';
 import { logger } from '../../../utils/logger';
 import toast from 'react-hot-toast';
 import type { VacationRequest, Employee } from '../../../types';
+import { HiOutlineUserGroup } from 'react-icons/hi2';
 
 export function CommercialVacationManager() {
     const [requests, setRequests] = useState<VacationRequest[]>([]);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [showRequestModal, setShowRequestModal] = useState(false);
+    const [newRequest, setNewRequest] = useState({ employeeId: '', startDate: '', endDate: '' });
 
     const {
         paginatedItems: paginatedRequests,
@@ -52,7 +55,7 @@ export function CommercialVacationManager() {
             await employeesAPI.updateVacation(id, { status: 'approved' });
             toast.success('Férias aprovadas!');
             fetchData();
-        } catch (error) {
+        } catch {
             toast.error('Erro ao aprovar');
         }
     };
@@ -62,8 +65,25 @@ export function CommercialVacationManager() {
             await employeesAPI.updateVacation(id, { status: 'rejected' });
             toast.success('Pedido rejeitado');
             fetchData();
-        } catch (error) {
+        } catch {
             toast.error('Erro ao rejeitar');
+        }
+    };
+
+    const handleSubmitRequest = async () => {
+        if (!newRequest.employeeId || !newRequest.startDate || !newRequest.endDate) {
+            toast.error('Preencha colaborador e periodo');
+            return;
+        }
+
+        try {
+            await employeesAPI.requestVacation(newRequest);
+            toast.success('Pedido submetido!');
+            setShowRequestModal(false);
+            setNewRequest({ employeeId: '', startDate: '', endDate: '' });
+            fetchData();
+        } catch {
+            toast.error('Erro ao submeter pedido');
         }
     };
 
@@ -73,9 +93,9 @@ export function CommercialVacationManager() {
 
     if (isLoading) {
         return (
-            <div className="p-12 text-center bg-white dark:bg-dark-700 rounded-lg border border-dashed border-gray-200 dark:border-dark-700">
-                <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-gray-500">A sincronizar calendário de férias...</p>
+            <div className="p-12 text-center bg-white/50 dark:bg-dark-800/50 backdrop-blur-xl rounded-2xl border border-dashed border-gray-200 dark:border-dark-700">
+                <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 italic">A sincronizar calendário de férias...</p>
             </div>
         );
     }
@@ -84,11 +104,11 @@ export function CommercialVacationManager() {
         <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-tighter">
                         <HiOutlineSun className="text-yellow-500" />
-                        Gestãor de Férias & Ausências
+                        Gestão de Férias
                     </h2>
-                    <p className="text-gray-500">Controlo de escalas, saldos e pedidos de folga</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-1">Escalas, saldos e pedidos de ausência da equipa</p>
                 </div>
                 <Button variant="primary" leftIcon={<HiOutlinePlus />} onClick={() => setShowRequestModal(true)}>
                     Solicitar Férias
@@ -96,29 +116,38 @@ export function CommercialVacationManager() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="p-4 bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800">
-                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">Pendentes</p>
-                    <p className="text-3xl font-black text-blue-800 dark:text-blue-200 mt-1">
-                        {requests.filter(r => r.status === 'pending').length}
-                    </p>
-                </Card>
-                <Card className="p-4 bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-800">
-                    <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider">Aprovados (Mês)</p>
-                    <p className="text-3xl font-black text-green-800 dark:text-green-200 mt-1">
-                        {requests.filter(r => r.status === 'approved').length}
-                    </p>
-                </Card>
-                <Card className="p-4 bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-800">
-                    <p className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wider">Em Gozo</p>
-                    <p className="text-3xl font-black text-orange-800 dark:text-orange-200 mt-1">2</p>
-                </Card>
-                <Card className="p-4 bg-purple-50 dark:bg-purple-900/10 border-purple-100 dark:border-purple-800">
-                    <p className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Total Equipa</p>
-                    <p className="text-3xl font-black text-purple-800 dark:text-purple-200 mt-1">{employees.length}</p>
-                </Card>
+                <MetricCard
+                    label="Pendentes"
+                    value={requests.filter(r => r.status === 'pending').length}
+                    color="blue"
+                    icon={<HiOutlineSun className="w-6 h-6 opacity-20" />}
+                />
+                <MetricCard
+                    label="Aprovados"
+                    value={requests.filter(r => r.status === 'approved').length}
+                    color="green"
+                    icon={<HiOutlineCheckCircle className="w-6 h-6 opacity-20" />}
+                />
+                <MetricCard
+                    label="Em Gozo"
+                    value={requests.filter((request) => {
+                        const today = new Date();
+                        return request.status === 'approved' &&
+                            new Date(request.startDate) <= today &&
+                            new Date(request.endDate) >= today;
+                    }).length}
+                    color="orange"
+                    icon={<HiOutlineCalendar className="w-6 h-6 opacity-20" />}
+                />
+                <MetricCard
+                    label="Total Equipa"
+                    value={employees.length}
+                    color="purple"
+                    icon={<HiOutlineUserGroup className="w-6 h-6 opacity-20" />}
+                />
             </div>
 
-            <Card className="overflow-hidden border-gray-100 dark:border-dark-600">
+            <Card variant="glass" padding="none" className="overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead className="bg-gray-50 dark:bg-dark-800 border-b border-gray-100 dark:border-dark-600">
@@ -167,20 +196,24 @@ export function CommercialVacationManager() {
                                         <td className="px-6 py-4 text-right">
                                             {req.status === 'pending' && (
                                                 <div className="flex gap-2 justify-end">
-                                                    <button 
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                         onClick={() => handleApprove(req.id)}
-                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                                         title="Aprovar"
+                                                        className="p-2 text-green-600 hover:bg-green-50 active:scale-95"
                                                     >
                                                         <HiOutlineCheckCircle className="w-5 h-5" />
-                                                    </button>
-                                                    <button 
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
                                                         onClick={() => handleReject(req.id)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                         title="Rejeitar"
+                                                        className="p-2 text-red-600 hover:bg-red-50 active:scale-95"
                                                     >
                                                         <HiOutlineXCircle className="w-5 h-5" />
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             )}
                                             {req.status !== 'pending' && (
@@ -210,10 +243,25 @@ export function CommercialVacationManager() {
 
             <Modal isOpen={showRequestModal} onClose={() => setShowRequestModal(false)} title="Novo Pedido de Férias">
                 <div className="p-4 space-y-4">
-                    <Select label="Colaborador" options={employees.map(e => ({ value: e.id, label: e.name }))} />
+                    <Select
+                        label="Colaborador"
+                        value={newRequest.employeeId}
+                        onChange={(e) => setNewRequest((current) => ({ ...current, employeeId: e.target.value }))}
+                        options={employees.map(e => ({ value: e.id, label: e.name }))}
+                    />
                     <div className="grid grid-cols-2 gap-4">
-                        <Input label="Data Início" type="date" />
-                        <Input label="Data Fim" type="date" />
+                        <Input
+                            label="Data Início"
+                            type="date"
+                            value={newRequest.startDate}
+                            onChange={(e) => setNewRequest((current) => ({ ...current, startDate: e.target.value }))}
+                        />
+                        <Input
+                            label="Data Fim"
+                            type="date"
+                            value={newRequest.endDate}
+                            onChange={(e) => setNewRequest((current) => ({ ...current, endDate: e.target.value }))}
+                        />
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-100 dark:border-yellow-800">
                         <p className="text-xs text-yellow-800 dark:text-yellow-200">
@@ -222,7 +270,7 @@ export function CommercialVacationManager() {
                     </div>
                     <div className="flex justify-end gap-3 pt-4">
                         <Button variant="ghost" onClick={() => setShowRequestModal(false)}>Cancelar</Button>
-                        <Button variant="primary" onClick={() => { toast.success('Pedido submetido!'); setShowRequestModal(false); }}>
+                        <Button variant="primary" onClick={handleSubmitRequest}>
                             Submeter Pedido
                         </Button>
                     </div>

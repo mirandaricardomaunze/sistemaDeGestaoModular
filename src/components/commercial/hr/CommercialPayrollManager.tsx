@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
     HiOutlineBanknotes,
     HiOutlineCheckCircle,
@@ -6,21 +6,12 @@ import {
     HiOutlineArrowPath,
     HiOutlineCalculator,
 } from 'react-icons/hi2';
-import { Card, Button, Select, Badge, LoadingSpinner, ConfirmationModal, Pagination, usePagination } from '../../ui';
+import { Card, Button, Select, Badge, ConfirmationModal, Pagination, SimpleTable, usePagination } from '../../ui';
+import { MetricCard } from '../../common/ModuleMetricCard';
 import { useEmployees, usePayroll } from '../../../hooks/useData';
 import { formatCurrency } from '../../../utils/helpers';
 import PayslipGenerator from '../../employees/PayslipGenerator';
 import toast from 'react-hot-toast';
-
-// IRT Mozambique 2024
-const calcIRT = (income: number): number => {
-    if (income <= 42500) return 0;
-    if (income <= 100000) return (income - 42500) * 0.10;
-    if (income <= 250000) return 5750 + (income - 100000) * 0.15;
-    if (income <= 500000) return 28250 + (income - 250000) * 0.20;
-    return 78250 + (income - 500000) * 0.25;
-};
-const calcINSS = (base: number) => base * 0.03;
 
 const MONTHS = [
     { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' },
@@ -31,12 +22,10 @@ const MONTHS = [
     { value: '11', label: 'Novembro' }, { value: '12', label: 'Dezembro' },
 ];
 
-export const CommercialPayrollManager: React.FC = () => {
+export const CommercialPayrollManager = () => {
     const [month, setMonth] = useState(new Date().getMonth() + 1);
     const [year, setYear] = useState(new Date().getFullYear());
     const [statusFilter, setStatusFilter] = useState('');
-    const [_selectedPayroll] = useState<any>(null);
-    const [_isPayslipOpen] = useState(false);
     const [processingAll, setProcessingAll] = useState(false);
     const [showProcessConfirm, setShowProcessConfirm] = useState(false);
 
@@ -45,8 +34,8 @@ export const CommercialPayrollManager: React.FC = () => {
         (allEmployees || []).filter(e => !e.department || e.department === 'Comercial'),
         [allEmployees]);
 
-    const { payroll: payrollData, isLoading, refetch, updatePayroll, processPayroll } = usePayroll({
-        month, year, status: statusFilter || undefined,
+    const { payroll: payrollData, isLoading, refetch, processPayroll, markAsPaid } = usePayroll({
+        month, year, status: statusFilter || undefined, originModule: 'commercial',
     });
 
     // Filter payroll to commercial team only
@@ -72,7 +61,11 @@ export const CommercialPayrollManager: React.FC = () => {
 
     const handleUpdateStatus = async (id: string, status: 'processed' | 'paid') => {
         try {
-            status === 'processed' ? await processPayroll(id) : await updatePayroll(id, { status });
+            if (status === 'processed') {
+                await processPayroll(id);
+            } else {
+                await markAsPaid(id, 'commercial-hr');
+            }
             toast.success(`Marcado como ${status === 'paid' ? 'pago' : 'processado'}`);
             refetch();
         } catch {
@@ -112,7 +105,7 @@ export const CommercialPayrollManager: React.FC = () => {
                         ]} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} />
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="ghost" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={refetch} className="h-11 font-black text-[10px] uppercase tracking-widest text-gray-500">
+                        <Button variant="ghost" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={() => refetch()} className="h-11 font-black text-[10px] uppercase tracking-widest text-gray-500">
                             Refrescar
                         </Button>
                         <Button variant="primary" onClick={handleProcessAll} disabled={processingAll}
@@ -126,50 +119,70 @@ export const CommercialPayrollManager: React.FC = () => {
 
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                {[
-                    { label: 'Total Líquido', value: stats.totalNet, color: 'border-l-blue-500', text: 'text-blue-600' },
-                    { label: 'Total Pago', value: stats.totalPaid, color: 'border-l-green-500', text: 'text-green-600' },
-                    { label: 'Retenção INSS (3%)', value: stats.totalINSS, color: 'border-l-red-500', text: 'text-red-600' },
-                    { label: 'Comissões de Vendas', value: stats.totalCommissions, color: 'border-l-teal-500', text: 'text-teal-600' },
-                ].map((s, i) => (
-                    <Card key={i} variant="glass" className={`p-5 border-l-4 ${s.color}`}>
-                        <p className={`text-[10px] font-black uppercase tracking-widest mb-1 italic ${s.text}`}>{s.label}</p>
-                        <h3 className={`text-2xl font-black tracking-tighter ${i > 0 ? s.text : ''}`}>{formatCurrency(s.value)}</h3>
-                    </Card>
-                ))}
+                <MetricCard
+                    label="Total Líquido"
+                    value={stats.totalNet}
+                    color="blue"
+                    isCurrency
+                    icon={<HiOutlineBanknotes className="w-6 h-6 opacity-20" />}
+                />
+                <MetricCard
+                    label="Total Pago"
+                    value={stats.totalPaid}
+                    color="green"
+                    isCurrency
+                    icon={<HiOutlineCheckCircle className="w-6 h-6 opacity-20" />}
+                />
+                <MetricCard
+                    label="Retenção INSS (3%)"
+                    value={stats.totalINSS}
+                    color="red"
+                    isCurrency
+                    icon={<HiOutlineCalculator className="w-6 h-6 opacity-20" />}
+                />
+                <MetricCard
+                    label="Comissões de Vendas"
+                    value={stats.totalCommissions}
+                    color="teal"
+                    isCurrency
+                    icon={<HiOutlineArrowPath className="w-6 h-6 opacity-20" />}
+                />
             </div>
 
             {/* Payroll Table */}
             <Card variant="glass" padding="none" className="overflow-hidden border border-gray-100 dark:border-dark-700/50 shadow-xl">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
-                                <th className="px-6 py-4 text-left">Colaborador</th>
-                                <th className="px-6 py-4 text-right">Base</th>
-                                <th className="px-6 py-4 text-right">Comissão</th>
-                                <th className="px-6 py-4 text-right">Subsídios</th>
-                                <th className="px-6 py-4 text-right">Deduções</th>
-                                <th className="px-6 py-4 text-right">Líquido</th>
-                                <th className="px-6 py-4 text-center">Estado</th>
-                                <th className="px-6 py-4 text-right">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700/50">
-                            {isLoading ? (
-                                <tr><td colSpan={8} className="py-20 text-center"><LoadingSpinner size="lg" /></td></tr>
-                            ) : paginatedData.length === 0 ? (
+                <SimpleTable
+                    columns={[
+                        { key: 'employee', label: 'Colaborador' },
+                        { key: 'base', label: 'Base', className: 'text-right' },
+                        { key: 'commission', label: 'Comissão', className: 'text-right' },
+                        { key: 'allowances', label: 'Subsídios', className: 'text-right' },
+                        { key: 'deductions', label: 'Deduções', className: 'text-right' },
+                        { key: 'net', label: 'Líquido', className: 'text-right' },
+                        { key: 'status', label: 'Estado', className: 'text-center' },
+                        { key: 'actions', label: 'Acções', className: 'text-right' },
+                    ]}
+                    isLoading={isLoading}
+                    isEmpty={!isLoading && paginatedData.length === 0}
+                    emptyTitle="Sem registos salariais"
+                    emptyDescription={`Nenhum registo para ${MONTHS[month - 1]?.label} / ${year}.`}
+                    minHeight="420px"
+                    loadingRows={8}
+                    loadingMessage="A carregar salários..."
+                    tableClassName="w-full text-sm"
+                    headerRowClassName="bg-slate-50/80 dark:bg-dark-800/80 text-slate-400 tracking-widest border-slate-100 dark:border-dark-700/50 whitespace-nowrap"
+                    tbodyClassName="divide-y divide-gray-100 dark:divide-dark-700/50"
+                >
+                            {!isLoading && paginatedData.length === 0 ? (
                                 <tr>
                                     <td colSpan={8} className="py-20 text-center text-gray-400 italic">
                                         Nenhum registo para {MONTHS[month - 1]?.label} / {year}
                                     </td>
                                 </tr>
-                            ) : paginatedData.map(p => {
+                            ) : !isLoading && paginatedData.map(p => {
                                 const emp = employees.find(e => e.id === p.employeeId);
-                                const inss = Number(p.inssDeduction) || calcINSS(Number(p.baseSalary));
-                                const irt = Number(p.irtDeduction) || calcIRT(Number(p.totalEarnings || p.baseSalary));
-                                const deds = inss + irt + Number(p.advances || 0);
-                                const net = Number(p.netSalary) || (Number(p.baseSalary) + Number(p.bonus || 0) + Number(p.allowances || 0) - deds);
+                                const deds = Number(p.totalDeductions || 0);
+                                const net = Number(p.netSalary || 0);
 
                                 return (
                                     <tr key={p.id} className="hover:bg-gray-50/30 dark:hover:bg-dark-700/20 transition-all">
@@ -203,14 +216,26 @@ export const CommercialPayrollManager: React.FC = () => {
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-1">
                                                 {p.status === 'draft' && (
-                                                    <button onClick={() => handleUpdateStatus(p.id, 'processed')} className="p-2 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors border border-transparent hover:border-blue-100" title="Processar">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleUpdateStatus(p.id, 'processed')}
+                                                        title="Processar"
+                                                        className="p-2 text-blue-500 hover:bg-blue-50 hover:border-blue-100 active:scale-95"
+                                                    >
                                                         <HiOutlineCheckCircle className="w-5 h-5" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                                 {p.status === 'processed' && (
-                                                    <button onClick={() => handleUpdateStatus(p.id, 'paid')} className="p-2 rounded-lg hover:bg-green-50 text-green-600 transition-colors border border-transparent hover:border-green-100" title="Marcar como Pago">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleUpdateStatus(p.id, 'paid')}
+                                                        title="Marcar como Pago"
+                                                        className="p-2 text-green-600 hover:bg-green-50 hover:border-green-100 active:scale-95"
+                                                    >
                                                         <HiOutlineBanknotes className="w-5 h-5" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                                 {emp && <PayslipGenerator record={{ ...p, employee: emp }} variant="ghost" />}
                                             </div>
@@ -218,9 +243,7 @@ export const CommercialPayrollManager: React.FC = () => {
                                     </tr>
                                 );
                             })}
-                        </tbody>
-                    </table>
-                </div>
+                </SimpleTable>
                 {!isLoading && data.length > 0 && (
                     <div className="p-4 border-t border-gray-100 dark:border-dark-700/50 bg-white/50 dark:bg-dark-900/50">
                         <Pagination

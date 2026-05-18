@@ -78,7 +78,7 @@ export const LogisticsDocumentCenter: React.FC = () => {
                             { value: 'valid', label: t('logistics_module.hr.compliance.validDocs') }
                         ]}
                         value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                        onChange={(e) => setStatusFilter(e.target.value as 'all' | 'expired' | 'expiring' | 'valid')}
                     />
                     <div className="flex items-center justify-end gap-2">
                         <Badge variant="danger">{staffWithDocStatus.filter(s => s.overallStatus === 'expired').length} {t('logistics_module.hr.compliance.critical')}</Badge>
@@ -115,12 +115,12 @@ export const LogisticsDocumentCenter: React.FC = () => {
                                 <DocumentRow 
                                     label={t('logistics_module.drivers.license')}
                                     date={person.licenseExpiry}
-                                    status={person.licenseStatus as any}
+                                    status={person.licenseStatus as 'valid' | 'expiring' | 'expired' | 'missing'}
                                 />
                                 <DocumentRow 
                                     label={t('logistics_module.drivers.medicalExam')}
                                     date={person.medicalExamExpiry}
-                                    status={person.medicalStatus as any}
+                                    status={person.medicalStatus as 'valid' | 'expiring' | 'expired' | 'missing'}
                                 />
                                 <DocumentRow 
                                     label={t('logistics_module.drivers.safetyTraining')}

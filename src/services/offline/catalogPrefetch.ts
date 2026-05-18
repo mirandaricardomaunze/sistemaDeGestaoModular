@@ -2,6 +2,9 @@ import { db } from '../../db/offlineDB';
 import { productsAPI } from '../api/products.api';
 import { customersAPI } from '../api/customers.api';
 import { logger } from '../../utils/logger';
+import type { Product, Customer } from '../../types';
+
+type ApiListResponse<T> = T[] | { data?: T[]; products?: T[]; customers?: T[] };
 
 const STALE_AFTER_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -24,8 +27,8 @@ async function prefetchProducts(force: boolean): Promise<void> {
         return;
     }
     try {
-        const response: any = await productsAPI.getAll({ limit: 5000 });
-        const products: any[] = Array.isArray(response)
+        const response = await productsAPI.getAll({ limit: 2000 }) as ApiListResponse<Product>;
+        const products: Product[] = Array.isArray(response)
             ? response
             : response?.products ?? response?.data ?? [];
         if (!products.length) return;
@@ -50,8 +53,8 @@ async function prefetchCustomers(force: boolean): Promise<void> {
         return;
     }
     try {
-        const response: any = await customersAPI.getAll({ limit: 5000 } as any);
-        const customers: any[] = Array.isArray(response)
+        const response = await customersAPI.getAll({ limit: 2000 }) as ApiListResponse<Customer>;
+        const customers: Customer[] = Array.isArray(response)
             ? response
             : response?.customers ?? response?.data ?? [];
         if (!customers.length) return;
@@ -70,10 +73,10 @@ async function prefetchCustomers(force: boolean): Promise<void> {
     }
 }
 
-export async function getCachedProducts(): Promise<any[]> {
+export async function getCachedProducts(): Promise<Product[]> {
     return db.products.toArray();
 }
 
-export async function getCachedCustomers(): Promise<any[]> {
+export async function getCachedCustomers(): Promise<Customer[]> {
     return db.customers.toArray();
 }

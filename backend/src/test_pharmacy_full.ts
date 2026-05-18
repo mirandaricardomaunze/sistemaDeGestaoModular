@@ -96,10 +96,11 @@ async function runFullPharmacyTest() {
 
         console.log('\n✨ TESTE DE FARMÁCIA FINALIZADO COM SUCESSO! ✨');
 
-    } catch (error: any) {
+    } catch (error) {
         console.error('\n💥 ERRO CRÍTICO NO TESTE DE FARMÁCIA:');
-        console.error(error.message || error);
-        if (error.stack) console.error(error.stack);
+        const err = error as { message?: string; stack?: string };
+        console.error(err?.message || error);
+        if (err?.stack) console.error(err.stack);
     } finally {
         await prisma.$disconnect();
     }

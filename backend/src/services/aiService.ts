@@ -1,9 +1,20 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
+import { GoogleGenerativeAI, GenerativeModel, SchemaType } from "@google/generative-ai";
 import { logger } from '../utils/logger';
+
+type AIContext = {
+    companyInfo?: { name?: string; businessType?: string };
+    [key: string]: unknown;
+};
+
+type FunctionCallArgs = Record<string, unknown>;
+
+type FunctionCallPart = {
+    functionCall: { name: string; args: FunctionCallArgs };
+};
 
 export class AIService {
     private genAI: GoogleGenerativeAI | null = null;
-    private model: any = null;
+    private model: GenerativeModel | null = null;
 
     private init() {
         if (this.genAI) return;
@@ -46,12 +57,13 @@ export class AIService {
                 { apiVersion: 'v1beta' }
             );
             logger.info(`Gemini AI inicializado com suporte a ferramentas (Modelo: ${modelName})`);
-        } catch (error: any) {
-            logger.error('Erro ao inicializar Gemini AI:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : 'Unknown error';
+            logger.error('Erro ao inicializar Gemini AI:', message);
         }
     }
 
-    async generateResponse(originalMessage: string, _companyId: string, context?: any, module?: string): Promise<{ message: string; toolCall?: { name: string; args: any } }> {
+    async generateResponse(originalMessage: string, _companyId: string, context?: AIContext, module?: string): Promise<{ message: string; toolCall?: { name: string; args: FunctionCallArgs } }> {
         this.init();
 
         if (!this.model) {
@@ -67,8 +79,10 @@ export class AIService {
             
             // Verificar chamadas de ferramentas (Function Calling)
             const candidate = response.candidates?.[0];
-            const call = candidate?.content?.parts?.find((p: any) => p.functionCall);
-            
+            const call = candidate?.content?.parts?.find(
+                (p): p is FunctionCallPart => 'functionCall' in p && Boolean((p as { functionCall?: unknown }).functionCall)
+            );
+
             if (call) {
                 logger.info(`IA solicitou execução da ferramenta: ${call.functionCall.name}`);
                 return {
@@ -82,17 +96,17 @@ export class AIService {
 
             const text = response.text();
             return { message: text || 'Não consegui processar sua mensagem.' };
-        } catch (error: any) {
-            const msg = error.message || 'Erro desconhecido';
-            logger.error(`Gemini AI Error (Model: ${this.model?.model || 'unknown'}): ${msg}`);
-            
-            return { 
-                message: `Lamento, ocorreu um erro ao comunicar com a IA. (Erro: ${msg.substring(0, 100)}...)` 
+        } catch (error: unknown) {
+            const msg = error instanceof Error ? error.message : 'Erro desconhecido';
+            logger.error(`Gemini AI Error: ${msg}`);
+
+            return {
+                message: `Lamento, ocorreu um erro ao comunicar com a IA. (Erro: ${msg.substring(0, 100)}...)`
             };
         }
     }
 
-    private buildSystemPrompt(context?: any, module?: string) {
+    private buildSystemPrompt(context?: AIContext, module?: string) {
         const businessInfo = context?.companyInfo 
             ? `Empresa: ${context.companyInfo.name} (${context.companyInfo.businessType}). `
             : '';

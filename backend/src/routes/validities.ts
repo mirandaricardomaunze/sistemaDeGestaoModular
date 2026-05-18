@@ -4,6 +4,7 @@
  * so that any existing clients continue to work without changes.
  */
 import { Router } from 'express';
+import { ProductBatch } from '@prisma/client';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { batchesService } from '../services/batchesService';
 import { ApiError } from '../middleware/error.middleware';
@@ -29,7 +30,7 @@ router.get('/products/:productId/validities', authenticate, async (req: AuthRequ
     const now = Date.now();
     // Map ProductBatch fields to the old ProductValidity shape so the frontend is compatible
     res.json(
-        (Array.isArray(batches) ? batches : []).map((b: any) => ({
+        (Array.isArray(batches) ? batches as ProductBatch[] : []).map((b) => ({
             id: b.id,
             productId: b.productId,
             lote: b.batchNumber,

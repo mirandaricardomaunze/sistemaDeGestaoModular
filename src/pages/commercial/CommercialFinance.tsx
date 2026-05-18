@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
+import type { Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -17,6 +18,11 @@ import { Card, Button, Input, Select, Modal, Badge, Pagination, ResponsiveValue,
 import { StatCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, formatDate, cn } from '../../utils/helpers';
 import { commercialAPI } from '../../services/api';
+import type {
+    CommercialTransaction,
+    CommercialTransactionPaymentMethod,
+    CommercialTransactionType,
+} from '../../services/api/commercial.api';
 import toast from 'react-hot-toast';
 import { logger } from '../../utils/logger';
 
@@ -28,7 +34,7 @@ const transactionSchema = z.object({
     amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
     date: z.string().min(1, 'Data é obrigatória'),
     dueDate: z.string().optional().nullable(),
-    paymentMethod: z.string().optional().nullable(),
+    paymentMethod: z.enum(['cash', 'card', 'mpesa', 'emola', 'transfer', 'bank_transfer', 'credit']).optional().nullable(),
     reference: z.string().optional().nullable(),
     notes: z.string().optional().nullable(),
 });
@@ -44,7 +50,7 @@ const periodOptions: { value: TimePeriod; label: string }[] = [
 ];
 
 export default function CommercialFinance() {
-    const [transactions, setTransactions] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<CommercialTransaction[]>([]);
     const [summary, setSummary] = useState({ 
         totalRevenue: 0, 
         totalExpenses: 0, 
@@ -54,12 +60,12 @@ export default function CommercialFinance() {
     });
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [filterType, setFilterType] = useState<string>('all');
+    const [filterType, setFilterType] = useState<'all' | CommercialTransactionType>('all');
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
     const [showFormModal, setShowFormModal] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [transactionToDelete, setTransactionToDelete] = useState<any | null>(null);
-    const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
+    const [transactionToDelete, setTransactionToDelete] = useState<CommercialTransaction | null>(null);
+    const [editingTransaction, setEditingTransaction] = useState<CommercialTransaction | null>(null);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -102,7 +108,7 @@ export default function CommercialFinance() {
         setValue,
         formState: { errors },
     } = useForm<TransactionFormData>({
-        resolver: zodResolver(transactionSchema) as any,
+        resolver: zodResolver(transactionSchema) as Resolver<TransactionFormData>,
         defaultValues: {
             type: 'expense',
             category: '',
@@ -129,11 +135,12 @@ export default function CommercialFinance() {
             reset();
             fetchData();
         } catch (error) {
+            logger.error('Failed to save commercial finance transaction:', error);
             toast.error('Erro ao processar lançamento');
         }
     };
 
-    const handleEdit = (transaction: any) => {
+    const handleEdit = (transaction: CommercialTransaction) => {
         setEditingTransaction(transaction);
         setValue('type', transaction.type);
         setValue('category', transaction.category);
@@ -156,6 +163,7 @@ export default function CommercialFinance() {
             setTransactionToDelete(null);
             fetchData();
         } catch (error) {
+            logger.error('Failed to delete commercial finance transaction:', error);
             toast.error('Erro ao eliminar lançamento');
         }
     };
@@ -179,7 +187,7 @@ export default function CommercialFinance() {
         { value: 'Other_Expense', label: 'Outras Custas' },
     ];
 
-    const paymentMethods = [
+    const paymentMethods: Array<{ value: CommercialTransactionPaymentMethod; label: string }> = [
         { value: 'cash', label: 'Numerário' },
         { value: 'card', label: 'Cartão / POS' },
         { value: 'bank_transfer', label: 'Transferência Bancária' },
@@ -254,18 +262,20 @@ export default function CommercialFinance() {
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4 py-2">
                 <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-dark-800 p-1 rounded-lg w-full lg:w-auto">
                     {periodOptions.map((option) => (
-                        <button
+                        <Button
                             key={option.value}
                             onClick={() => { setSelectedPeriod(option.value); setPage(1); }}
+                            variant="ghost"
+                            size="sm"
                             className={cn(
-                                'flex-1 lg:px-6 py-2 rounded-lg text-[10px] font-black transition-all uppercase tracking-widest',
+                                'h-8 flex-1 lg:px-6 rounded-lg text-[10px] font-black uppercase tracking-widest',
                                 selectedPeriod === option.value
                                     ? 'bg-white dark:bg-dark-700 text-orange-600 shadow-sm'
                                     : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                             )}
                         >
                             {option.label}
-                        </button>
+                        </Button>
                     ))}
                 </div>
 
@@ -285,7 +295,7 @@ export default function CommercialFinance() {
                             { value: 'expense', label: 'Custos/Gastos' },
                         ]}
                         value={filterType}
-                        onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
+                        onChange={(e) => { setFilterType(e.target.value as 'all' | CommercialTransactionType); setPage(1); }}
                         className="w-40 border-none shadow-sm"
                         size="sm"
                     />
@@ -359,21 +369,25 @@ export default function CommercialFinance() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-center">
                                                     <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
+                                                        <Button
                                                             onClick={() => handleEdit(t)}
-                                                            className="p-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600 transition-colors"
+                                                            variant="ghost"
+                                                            size="xs"
+                                                            className="h-8 w-8 p-0 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600"
                                                         >
                                                             <HiOutlineCog className="w-4 h-4" />
-                                                        </button>
-                                                        <button
+                                                        </Button>
+                                                        <Button
                                                             onClick={() => {
                                                                 setTransactionToDelete(t);
                                                                 setDeleteModalOpen(true);
                                                             }}
-                                                            className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-600 transition-colors"
+                                                            variant="ghost"
+                                                            size="xs"
+                                                            className="h-8 w-8 p-0 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-600"
                                                         >
                                                             <HiOutlineTrash className="w-4 h-4" />
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 </td>
                                             </tr>

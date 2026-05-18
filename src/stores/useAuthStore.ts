@@ -1,4 +1,4 @@
-﻿import { create } from 'zustand';
+import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, UserRole } from '../types';
 import toast from 'react-hot-toast';
@@ -24,6 +24,7 @@ interface AuthStore {
     register: (userData: RegisterData) => Promise<{ success: boolean; error?: string }>;
     checkAuth: () => Promise<void>;
     setLoading: (loading: boolean) => void;
+    updatePreferences: (preferences: Record<string, unknown>) => Promise<void>;
 }
 
 interface RegisterData {
@@ -51,7 +52,7 @@ export const roleLabels: Record<UserRole, string> = {
     manager: 'Gerente',
     operator: 'Operador',
     cashier: 'Caixa',
-    stock_keeper: 'Gestãor de Stock',
+    stock_keeper: 'Gestor de Stock',
 };
 
 // ============================================================================
@@ -120,11 +121,39 @@ export const useAuthStore = create<AuthStore>()(
                     useFiscalStore.getState().loadFiscalDataFromDatabase();
 
                     return true;
-                } catch (error: any) {
+                } catch (error) {
                     set({ isLoading: false });
 
                     // Audit log failed login
                     const addAuditLog = useAuditStore.getState().addLog;
+
+                    // Determine the error type precisely
+                    const axiosError = error as {
+                        response?: { status?: number; data?: { message?: string } };
+                        request?: unknown;
+                        code?: string;
+                    };
+
+                    let toastMessage: string;
+                    let auditErrorMsg: string;
+
+                    if (!axiosError.response) {
+                        // No response at all — network/internet problem
+                        toastMessage = 'Sem ligação ao servidor. Verifique a sua ligação à internet e tente novamente.';
+                        auditErrorMsg = 'Falha de rede (sem resposta do servidor)';
+                        toast.error(toastMessage, { duration: 6000, icon: '📡' });
+                    } else if (axiosError.response.status === 401 || axiosError.response.status === 403) {
+                        // Wrong credentials
+                        toastMessage = 'Email ou senha incorretos. Verifique as suas credenciais e tente novamente.';
+                        auditErrorMsg = 'Credenciais inválidas';
+                        toast.error(toastMessage, { duration: 5000 });
+                    } else {
+                        // Other server error (500, 503, etc.)
+                        toastMessage = axiosError.response.data?.message || 'Erro no servidor. Tente mais tarde ou contacte o suporte.';
+                        auditErrorMsg = `Erro HTTP ${axiosError.response.status}`;
+                        toast.error(toastMessage, { duration: 6000 });
+                    }
+
                     addAuditLog({
                         userId: 'anonymous',
                         userName: 'Desconhecido',
@@ -134,11 +163,9 @@ export const useAuthStore = create<AuthStore>()(
                         entityType: 'User',
                         description: `Tentativa de login falhada para email: ${email}`,
                         success: false,
-                        errorMessage: 'Credenciais inválidas',
+                        errorMessage: auditErrorMsg,
                     });
 
-                    const errorMessage = (error as any)?.response?.data?.message || 'Email ou senha incorretos.';
-                    toast.error(errorMessage);
                     return false;
                 }
             },
@@ -188,11 +215,36 @@ export const useAuthStore = create<AuthStore>()(
                     set({ isLoading: false });
                     toast.success('Conta criada com sucesso! Faça login para continuar.');
                     return { success: true };
-                } catch (error: any) {
+                } catch (error) {
                     set({ isLoading: false });
-                    const errorMessage = (error as any)?.response?.data?.message || 'Erro ao criar conta.';
+                    const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Erro ao criar conta.';
                     toast.error(errorMessage);
                     return { success: false, error: errorMessage };
+                }
+            },
+
+            // Update user preferences
+            updatePreferences: async (preferences: Record<string, unknown>) => {
+                const { user } = get();
+                if (!user) return;
+
+                try {
+                    const updatedUser = await authAPI.updatePreferences(preferences);
+                    
+                    const enrichedUser = {
+                        ...user,
+                        ...updatedUser,
+                        preferences: updatedUser.preferences || {},
+                    };
+
+                    localStorage.setItem('auth_user', JSON.stringify(enrichedUser));
+
+                    set({
+                        user: enrichedUser,
+                    });
+                } catch (error) {
+                    console.error('Failed to update preferences:', error);
+                    toast.error('Erro ao guardar as preferências. Tente novamente.');
                 }
             },
 

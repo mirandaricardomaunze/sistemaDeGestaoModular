@@ -1,4 +1,7 @@
-﻿interface ShortcutItem {
+import { HiOutlineXMark } from 'react-icons/hi2';
+import { Button } from '../../ui';
+
+interface ShortcutItem {
     key: string;
     description: string;
     category: 'venda' | 'turno' | 'hardware' | 'navegação';
@@ -50,14 +53,14 @@ export function CommercialShortcutsHUD({ isOpen, onClose }: CommercialShortcutsH
                         </h3>
                         <p className="text-xs text-gray-400 mt-0.5">PDV - Módulo Comercial</p>
                     </div>
-                    <button
+                    <Button
                         onClick={onClose}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-400 transition-colors"
+                        variant="ghost"
+                        size="xs"
+                        className="h-8 w-8 p-0 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-400"
                     >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+                        <HiOutlineXMark className="w-4 h-4" />
+                    </Button>
                 </div>
 
                 <div className="space-y-2">
@@ -89,16 +92,20 @@ export function CommercialShortcutsHUD({ isOpen, onClose }: CommercialShortcutsH
     );
 }
 
-// ── Floating hint badge shown permanently in POS ──────────────────────────────
+// -- Floating hint badge shown permanently in POS ------------------------------
 export function ShortcutsHintBadge({ onClick }: { onClick: () => void }) {
     return (
-        <button
+        <Button
             onClick={onClick}
-            className="fixed bottom-4 left-4 z-30 flex items-center gap-2 px-3 py-1.5 bg-gray-900/90 dark:bg-dark-900/90 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-gray-800 transition-colors backdrop-blur-sm border border-white/10"
+            variant="ghost"
+            size="xs"
+            className="fixed bottom-4 left-4 z-30 h-8 px-3 bg-gray-900/90 dark:bg-dark-900/90 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg hover:bg-gray-800 backdrop-blur-sm border border-white/10"
             title="Ver atalhos de teclado (F1)"
         >
             <kbd className="font-mono">F1</kbd>
             <span>Atalhos</span>
-        </button>
+        </Button>
     );
 }
+
+

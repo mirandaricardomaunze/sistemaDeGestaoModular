@@ -32,7 +32,7 @@ export default function CRM() {
     const { campaigns: campaignsData } = useCampaigns();
 
     const metrics = getFunnelMetrics();
-    const activeCampaigns = (campaignsData || []).filter((c: any) => c.status === 'active');
+    const activeCampaigns = (campaignsData || []).filter((c) => c.status === 'active');
     const openOpportunities = opportunities.filter(o =>
         !stages.find(s => s.id === o.stageId)?.isClosedStage
     );

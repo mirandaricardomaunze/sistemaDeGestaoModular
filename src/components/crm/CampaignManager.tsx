@@ -4,9 +4,9 @@
  */
 
 import { useState, useMemo } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
     HiOutlinePlus,
-    HiOutlineSearch,
     HiOutlineTag,
     HiOutlineCalendar,
     HiOutlineUsers,
@@ -17,9 +17,10 @@ import {
     HiOutlineTrash,
     HiOutlineTicket,
     HiOutlineStop,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { useCampaigns } from '../../hooks/useData';
-import { Button, Card, Modal, Input, Select, Badge, Textarea, Pagination, usePagination, ConfirmationModal } from '../ui';
+import { Button, Card, Modal, Input, Select, Badge, Textarea, usePagination, ConfirmationModal } from '../ui';
+import { SmartTable } from '../ui/SmartTable';
 import { formatCurrency } from '../../utils/helpers';
 import {
     CAMPAIGN_STATUS_LABELS,
@@ -41,9 +42,13 @@ export default function CampaignManager() {
     } = useCampaigns();
     const [nowTimestamp] = useState(() => Date.now());
 
+    type CampaignApiRecord = Partial<Campaign> & {
+        status?: CampaignStatus | string;
+        discountType?: DiscountType | string;
+    };
+
     // Transform campaign data to match expected structure
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const campaigns = (campaignsData || []).map((c: any) => ({
+    const campaigns = ((campaignsData || []) as CampaignApiRecord[]).map((c) => ({
         ...c,
         status: c.status || 'active',
         currentUses: c.currentUses || 0,
@@ -251,6 +256,170 @@ export default function CampaignManager() {
         }));
     };
 
+    const campaignColumns: ColumnDef<Campaign, unknown>[] = [
+        {
+            header: 'Campanha',
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                        {row.original.name}
+                    </p>
+                    {row.original.code && (
+                        <p className="text-sm text-gray-500 font-mono">
+                            {row.original.code}
+                        </p>
+                    )}
+                </div>
+            ),
+        },
+        {
+            header: 'Desconto',
+            cell: ({ row }) => (
+                <div>
+                    <div className="flex items-center gap-2">
+                        <HiOutlineTicket className="w-4 h-4 text-primary-500" />
+                        <span className="font-medium text-primary-600">
+                            {row.original.discountType === 'percentage'
+                                ? `${row.original.discountValue}% `
+                                : formatCurrency(row.original.discountValue)
+                            }
+                        </span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                        {DISCOUNT_TYPE_LABELS[row.original.discountType]}
+                    </p>
+                </div>
+            ),
+        },
+        {
+            header: 'Periodo',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400">
+                    <HiOutlineCalendar className="w-4 h-4" />
+                    <span>
+                        {new Date(row.original.startDate).toLocaleDateString('pt-MZ')} -{' '}
+                        {new Date(row.original.endDate).toLocaleDateString('pt-MZ')}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            header: 'Estado',
+            cell: ({ row }) => (
+                <div className="text-center">
+                    {getStatusBadge(row.original.status)}
+                </div>
+            ),
+        },
+        {
+            header: 'Usos',
+            cell: ({ row }) => (
+                <div className="text-center font-medium">
+                    {row.original.currentUses}
+                    {row.original.maxTotalUses && (
+                        <span className="text-gray-400">/{row.original.maxTotalUses}</span>
+                    )}
+                </div>
+            ),
+        },
+        {
+            header: 'Accoes',
+            cell: ({ row }) => {
+                const campaign = row.original;
+
+                return (
+                    <div className="flex justify-end gap-1">
+                        <Button
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => handleViewDetails(campaign)}
+                            className="h-8 w-8 px-0 text-gray-400 hover:text-blue-500"
+                            title="Ver Detalhes"
+                        >
+                            <HiOutlineEye className="w-4 h-4" />
+                        </Button>
+                        {campaign.status === 'draft' && (
+                            <>
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={() => handleOpenForm(campaign)}
+                                    className="h-8 w-8 px-0 text-gray-400 hover:text-primary-500"
+                                    title="Editar"
+                                >
+                                    <HiOutlinePencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={() => {
+                                        activateCampaign(campaign.id);
+                                        toast.success('Campanha ativada!');
+                                    }}
+                                    className="h-8 w-8 px-0 text-gray-400 hover:text-green-500"
+                                    title="Ativar"
+                                >
+                                    <HiOutlinePlay className="w-4 h-4" />
+                                </Button>
+                            </>
+                        )}
+                        {campaign.status === 'active' && (
+                            <>
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={() => {
+                                        pauseCampaign(campaign.id);
+                                        toast.success('Campanha pausada!');
+                                    }}
+                                    className="h-8 w-8 px-0 text-gray-400 hover:text-yellow-500"
+                                    title="Pausar"
+                                >
+                                    <HiOutlinePause className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    onClick={() => {
+                                        endCampaign(campaign.id);
+                                        toast.success('Campanha encerrada!');
+                                    }}
+                                    className="h-8 w-8 px-0 text-gray-400 hover:text-red-500"
+                                    title="Encerrar"
+                                >
+                                    <HiOutlineStop className="w-4 h-4" />
+                                </Button>
+                            </>
+                        )}
+                        {campaign.status === 'paused' && (
+                            <Button
+                                variant="ghost"
+                                size="xs"
+                                onClick={() => {
+                                    activateCampaign(campaign.id);
+                                    toast.success('Campanha reativada!');
+                                }}
+                                className="h-8 w-8 px-0 text-gray-400 hover:text-green-500"
+                                title="Reativar"
+                            >
+                                <HiOutlinePlay className="w-4 h-4" />
+                            </Button>
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => handleDelete(campaign)}
+                            className="h-8 w-8 px-0 text-gray-400 hover:text-red-500"
+                            title="Eliminar"
+                        >
+                            <HiOutlineTrash className="w-4 h-4" />
+                        </Button>
+                    </div>
+                );
+            },
+        },
+    ];
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -271,29 +440,6 @@ export default function CampaignManager() {
                     Nova Campanha
                 </Button>
             </div>
-
-            {/* Filters */}
-            <Card padding="md">
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex-1">
-                        <Input
-                            placeholder="Pesquisar campanhas..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5 text-gray-400" />}
-                        />
-                    </div>
-                    <Select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        options={[
-                            { value: 'all', label: 'Todos os Estados' },
-                            ...Object.entries(CAMPAIGN_STATUS_LABELS).map(([value, label]) => ({ value, label })),
-                        ]}
-                        className="w-full sm:w-48"
-                    />
-                </div>
-            </Card>
 
             {/* Campaign Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -321,180 +467,45 @@ export default function CampaignManager() {
                 </Card>
             </div>
 
-            {/* Campaigns Table */}
-            <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead className="bg-gray-50 dark:bg-dark-800">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                    Campanha
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                    Desconto
-                                </th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                    Período
-                                </th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                                    Estado
-                                </th>
-                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                                    Usos
-                                </th>
-                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                                    Ações
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {paginatedCampaigns.length === 0 ? (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                                        Nenhuma campanha encontrada
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedCampaigns.map((campaign) => (
-                                    <tr key={campaign.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
-                                        <td className="px-4 py-3">
-                                            <div>
-                                                <p className="font-medium text-gray-900 dark:text-white">
-                                                    {campaign.name}
-                                                </p>
-                                                {campaign.code && (
-                                                    <p className="text-sm text-gray-500 font-mono">
-                                                        {campaign.code}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <HiOutlineTicket className="w-4 h-4 text-primary-500" />
-                                                <span className="font-medium text-primary-600">
-                                                    {campaign.discountType === 'percentage'
-                                                        ? `${campaign.discountValue}% `
-                                                        : formatCurrency(campaign.discountValue)
-                                                    }
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-gray-500">
-                                                {DISCOUNT_TYPE_LABELS[campaign.discountType]}
-                                            </p>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-                                            <div className="flex items-center gap-1">
-                                                <HiOutlineCalendar className="w-4 h-4" />
-                                                <span>
-                                                    {new Date(campaign.startDate).toLocaleDateString('pt-MZ')} -{' '}
-                                                    {new Date(campaign.endDate).toLocaleDateString('pt-MZ')}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            {getStatusBadge(campaign.status)}
-                                        </td>
-                                        <td className="px-4 py-3 text-center">
-                                            <span className="font-medium">
-                                                {campaign.currentUses}
-                                                {campaign.maxTotalUses && (
-                                                    <span className="text-gray-400">/{campaign.maxTotalUses}</span>
-                                                )}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex justify-end gap-1">
-                                                <button
-                                                    onClick={() => handleViewDetails(campaign)}
-                                                    className="p-2 text-gray-400 hover:text-blue-500"
-                                                    title="Ver Detalhes"
-                                                >
-                                                    <HiOutlineEye className="w-4 h-4" />
-                                                </button>
-                                                {campaign.status === 'draft' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => handleOpenForm(campaign)}
-                                                            className="p-2 text-gray-400 hover:text-primary-500"
-                                                            title="Editar"
-                                                        >
-                                                            <HiOutlinePencil className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                activateCampaign(campaign.id);
-                                                                toast.success('Campanha ativada!');
-                                                            }}
-                                                            className="p-2 text-gray-400 hover:text-green-500"
-                                                            title="Ativar"
-                                                        >
-                                                            <HiOutlinePlay className="w-4 h-4" />
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {campaign.status === 'active' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => {
-                                                                pauseCampaign(campaign.id);
-                                                                toast.success('Campanha pausada!');
-                                                            }}
-                                                            className="p-2 text-gray-400 hover:text-yellow-500"
-                                                            title="Pausar"
-                                                        >
-                                                            <HiOutlinePause className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                endCampaign(campaign.id);
-                                                                toast.success('Campanha encerrada!');
-                                                            }}
-                                                            className="p-2 text-gray-400 hover:text-red-500"
-                                                            title="Encerrar"
-                                                        >
-                                                            <HiOutlineStop className="w-4 h-4" />
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {campaign.status === 'paused' && (
-                                                    <button
-                                                        onClick={() => {
-                                                            activateCampaign(campaign.id);
-                                                            toast.success('Campanha reativada!');
-                                                        }}
-                                                        className="p-2 text-gray-400 hover:text-green-500"
-                                                        title="Reativar"
-                                                    >
-                                                        <HiOutlinePlay className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => handleDelete(campaign)}
-                                                    className="p-2 text-gray-400 hover:text-red-500"
-                                                    title="Eliminar"
-                                                >
-                                                    <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="px-4 border-t border-gray-200 dark:border-dark-700">
-                    <Pagination
-                        currentPage={currentPage}
-                        totalItems={totalItems}
-                        itemsPerPage={itemsPerPage}
-                        onPageChange={setCurrentPage}
-                        onItemsPerPageChange={setItemsPerPage}
-                    />
-                </div>
-            </Card>
+            <SmartTable
+                data={paginatedCampaigns}
+                columns={campaignColumns}
+                search={{
+                    value: search,
+                    onChange: (value) => {
+                        setSearch(value);
+                        setCurrentPage(1);
+                    },
+                    placeholder: 'Pesquisar campanhas...',
+                }}
+                renderFilters={(
+                    <div className="w-full sm:w-48">
+                        <Select
+                            value={statusFilter}
+                            onChange={(event) => {
+                                setStatusFilter(event.target.value);
+                                setCurrentPage(1);
+                            }}
+                            options={[
+                                { value: 'all', label: 'Todos os Estados' },
+                                ...Object.entries(CAMPAIGN_STATUS_LABELS).map(([value, label]) => ({ value, label })),
+                            ]}
+                            size="sm"
+                            className="bg-white dark:bg-dark-800"
+                        />
+                    </div>
+                )}
+                pagination={{
+                    currentPage,
+                    totalItems,
+                    itemsPerPage,
+                    onPageChange: setCurrentPage,
+                    onItemsPerPageChange: setItemsPerPage,
+                }}
+                emptyTitle="Nenhuma campanha encontrada"
+                emptyDescription="Ajuste os filtros ou crie uma nova campanha promocional."
+                minHeight="460px"
+            />
 
             {/* Form Modal */}
             <Modal

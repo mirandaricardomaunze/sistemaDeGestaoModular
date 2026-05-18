@@ -1,6 +1,8 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { ResultHandler } from '../../utils/result';
+import { payrollEngine } from '../payrollEngine.service';
 
 export class HRService {
     private async findEmployeeForStaff(companyId: string, staffId: string) {
@@ -22,7 +24,7 @@ export class HRService {
     }
 
     async getStaffAttendance(companyId: string, query: { staffId?: string; startDate?: string; endDate?: string }) {
-        const where: any = { companyId };
+        const where: Prisma.AttendanceRecordWhereInput = { companyId };
         if (query.staffId) {
             const employee = await this.findEmployeeForStaff(companyId, query.staffId);
             if (!employee) throw ApiError.notFound('Colaborador não encontrado no sistema de RH');
@@ -30,9 +32,10 @@ export class HRService {
         }
 
         if (query.startDate || query.endDate) {
-            where.date = {};
-            if (query.startDate) where.date.gte = new Date(query.startDate);
-            if (query.endDate) where.date.lte = new Date(query.endDate);
+            const dateRange: Prisma.DateTimeFilter = {};
+            if (query.startDate) dateRange.gte = new Date(query.startDate);
+            if (query.endDate) dateRange.lte = new Date(query.endDate);
+            where.date = dateRange;
         }
 
         const attendance = await prisma.attendanceRecord.findMany({
@@ -44,21 +47,29 @@ export class HRService {
         return ResultHandler.success(attendance);
     }
 
-    async recordStaffTime(companyId: string, data: { staffId: string; type: 'clock_in' | 'clock_out'; notes?: string }) {
+    async recordStaffTime(companyId: string, data: { staffId: string; type: 'clock_in' | 'clock_out' | 'checkIn' | 'checkOut'; notes?: string }) {
         const employee = await this.findEmployeeForStaff(companyId, data.staffId);
         if (!employee) throw ApiError.notFound('Colaborador não encontrado no sistema de RH');
 
         const today = new Date();
         const dateStr = today.toISOString().split('T')[0];
+        const type = data.type === 'checkIn' ? 'clock_in' : data.type === 'checkOut' ? 'clock_out' : data.type;
 
-        if (data.type === 'clock_in') {
-            const record = await prisma.attendanceRecord.create({
-                data: {
+        if (type === 'clock_in') {
+            const record = await prisma.attendanceRecord.upsert({
+                where: { employeeId_date: { employeeId: employee.id, date: new Date(dateStr) } },
+                update: {
+                    checkIn: today,
+                    status: 'present',
+                    notes: data.notes
+                },
+                create: {
                     companyId,
                     employeeId: employee.id,
                     date: new Date(dateStr),
                     checkIn: today,
-                    status: 'present'
+                    status: 'present',
+                    notes: data.notes
                 }
             });
             return ResultHandler.success(record);
@@ -71,14 +82,14 @@ export class HRService {
 
             const updated = await prisma.attendanceRecord.update({
                 where: { id: record.id },
-                data: { checkOut: today }
+                data: { checkOut: today, notes: data.notes ?? record.notes }
             });
             return ResultHandler.success(updated);
         }
     }
 
     async getStaffPayroll(companyId: string, query: { month?: number; year?: number; staffId?: string }) {
-        const where: any = { companyId };
+        const where: Prisma.PayrollRecordWhereInput = { companyId };
         if (query.month) where.month = Number(query.month);
         if (query.year) where.year = Number(query.year);
         if (query.staffId) {
@@ -100,20 +111,39 @@ export class HRService {
         if (!employee) throw ApiError.notFound('Colaborador não encontrado');
 
         const baseSalary = Number(employee.baseSalary || 0);
-        const totalEarnings = baseSalary;
-        const totalDeductions = baseSalary * 0.03;
-        const netSalary = totalEarnings - totalDeductions;
+        const allowances = Number(employee.subsidyTransport || 0) + Number(employee.subsidyFood || 0);
+        const result = payrollEngine.calculate({
+            baseSalary,
+            allowances: [{ name: 'Subsidios', amount: allowances, taxable: false }]
+        });
 
-        const record = await prisma.payrollRecord.create({
-            data: {
+        const record = await prisma.payrollRecord.upsert({
+            where: { employeeId_month_year: { employeeId: employee.id, month: data.month, year: data.year } },
+            update: {
+                baseSalary,
+                allowances,
+                inssDeduction: result.inssEmployee,
+                inssEmployer: result.inssEmployer,
+                irtDeduction: result.irt,
+                totalEarnings: result.grossSalary,
+                totalDeductions: result.totalDeductions,
+                netSalary: result.netSalary,
+                originModule: 'logistics'
+            },
+            create: {
                 companyId,
                 employeeId: employee.id,
                 month: data.month,
                 year: data.year,
                 baseSalary,
-                totalEarnings,
-                totalDeductions,
-                netSalary,
+                allowances,
+                inssDeduction: result.inssEmployee,
+                inssEmployer: result.inssEmployer,
+                irtDeduction: result.irt,
+                totalEarnings: result.grossSalary,
+                totalDeductions: result.totalDeductions,
+                netSalary: result.netSalary,
+                originModule: 'logistics',
                 status: 'draft'
             }
         });
@@ -125,7 +155,7 @@ export class HRService {
         const record = await prisma.payrollRecord.findFirst({ where: { id, companyId } });
         if (!record) throw ApiError.notFound('Folha de salário não encontrada');
 
-        const updateData: any = { status };
+        const updateData: Prisma.PayrollRecordUpdateInput = { status: status as Prisma.PayrollRecordUpdateInput['status'] };
         if (status === 'processed') updateData.processedAt = new Date();
         if (status === 'paid') updateData.paidAt = new Date();
 

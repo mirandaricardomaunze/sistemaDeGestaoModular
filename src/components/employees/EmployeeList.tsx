@@ -224,7 +224,7 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
     return (
         <div className="space-y-4">
             {/* Filters */}
-            <Card padding="md">
+            <Card variant="glass" padding="md">
                 <div className="flex flex-col lg:flex-row gap-4">
                     <div className="flex-1">
                         <Input
@@ -268,7 +268,7 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
             </Card>
 
             {/* Table */}
-            <Card padding="none" className="overflow-hidden border border-slate-100 dark:border-dark-700">
+            <Card variant="glass" padding="none" className="overflow-hidden shadow-xl">
                 <DataTable
                     table={table}
                     isLoading={isLoading}

@@ -1,7 +1,15 @@
 import { logger } from '../../utils/logger';
-import { useState, useEffect } from 'react';
-import { Card, Button, Input, Pagination, usePagination } from '../ui';
-import { HiOutlineSearch, HiOutlinePlus, HiOutlinePrinter, HiOutlineEye } from 'react-icons/hi';
+import { useEffect, useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Button } from '../ui';
+import { SmartTable } from '../ui/SmartTable';
+import {
+    HiOutlinePlus,
+    HiOutlinePrinter,
+    HiOutlineEye,
+    HiOutlineArrowDownTray,
+    HiOutlineEnvelope,
+} from 'react-icons/hi2';
 import { format } from 'date-fns';
 import { formatCurrency } from '../../utils/helpers';
 import type { Invoice, CreditNote } from '../../types';
@@ -16,11 +24,13 @@ interface CreditNoteManagerProps {
 
 export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) {
     const [creditNotes, setCreditNotes] = useState<CreditNote[]>([]);
-    const [_isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedNote, setSelectedNote] = useState<CreditNote | null>(null);
     const [showPrintModal, setShowPrintModal] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     const fetchCreditNotes = async () => {
         try {
@@ -29,7 +39,7 @@ export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) 
             setCreditNotes(data);
         } catch (error) {
             logger.error('Error fetching credit notes:', error);
-            toast.error('Erro ao buscar notas de crédito');
+            toast.error('Erro ao buscar notas de credito');
         } finally {
             setIsLoading(false);
         }
@@ -39,30 +49,26 @@ export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) 
         fetchCreditNotes();
     }, []);
 
-    const addCreditNote = (note: CreditNote) => {
-        setCreditNotes(prev => [note, ...prev]);
-    };
+    const filteredNotes = useMemo(() => {
+        const term = search.trim().toLowerCase();
+        const sorted = [...creditNotes].sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
 
-    // Filtered Notes
-    const filteredNotes = creditNotes.filter(note =>
-        note.number.toLowerCase().includes(search.toLowerCase()) ||
-        note.customerName.toLowerCase().includes(search.toLowerCase()) ||
-        note.originalInvoiceNumber.toLowerCase().includes(search.toLowerCase())
-    ).sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
+        if (!term) return sorted;
 
-    // Pagination
-    const {
-        currentPage,
-        setCurrentPage,
-        itemsPerPage,
-        setItemsPerPage,
-        paginatedItems: paginatedNotes,
-        totalItems,
-    } = usePagination(filteredNotes, 10);
+        return sorted.filter((note) =>
+            note.number.toLowerCase().includes(term) ||
+            note.customerName.toLowerCase().includes(term) ||
+            (note.originalInvoiceNumber || '').toLowerCase().includes(term)
+        );
+    }, [creditNotes, search]);
+
+    const paginatedNotes = useMemo(() => {
+        const start = (page - 1) * pageSize;
+        return filteredNotes.slice(start, start + pageSize);
+    }, [filteredNotes, page, pageSize]);
 
     const handleCreateCreditNote = (creditNote: CreditNote) => {
-        addCreditNote(creditNote);
-        // toast.success("Nota de Crédito emitida com sucesso!"); // Already shown in modal
+        setCreditNotes((prev) => [creditNote, ...prev]);
     };
 
     const handlePrint = (note: CreditNote) => {
@@ -70,74 +76,154 @@ export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) 
         setShowPrintModal(true);
     };
 
+    const handleDownloadPdf = async (note: CreditNote) => {
+        try {
+            const blob = await invoicesAPI.downloadCreditNotePdf(note.id);
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `NotaCredito-${note.number}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            logger.error('Error downloading credit note PDF:', error);
+            toast.error('Erro ao gerar PDF');
+        }
+    };
+
+    const handleSendEmail = async (note: CreditNote) => {
+        const email = window.prompt('Email do destinatário (deixe em branco para usar o do cliente):');
+        if (email === null) return;
+        try {
+            const result = await invoicesAPI.sendCreditNoteByEmail(note.id, email || undefined);
+            toast.success(result.message);
+        } catch (error) {
+            logger.error('Error sending credit note email:', error);
+            toast.error('Erro ao enviar email');
+        }
+    };
+
+    const creditNoteColumns = useMemo<ColumnDef<CreditNote, unknown>[]>(() => [
+        {
+            header: 'Numero',
+            cell: ({ row }) => (
+                <span className="font-mono font-medium text-gray-900 dark:text-white">
+                    {row.original.number}
+                </span>
+            ),
+        },
+        {
+            header: 'Fatura Orig.',
+            cell: ({ row }) => (
+                <span className="font-mono text-gray-600 dark:text-gray-400">
+                    {row.original.originalInvoiceNumber}
+                </span>
+            ),
+        },
+        {
+            header: 'Cliente',
+            cell: ({ row }) => (
+                <span className="font-medium text-gray-900 dark:text-white">
+                    {row.original.customerName}
+                </span>
+            ),
+        },
+        {
+            header: 'Data',
+            cell: ({ row }) => (
+                <span className="text-gray-600 dark:text-gray-400">
+                    {format(new Date(row.original.issueDate), 'dd/MM/yyyy')}
+                </span>
+            ),
+        },
+        {
+            header: 'Total Reembolsado',
+            cell: ({ row }) => (
+                <div className="text-right font-bold text-red-600">
+                    -{formatCurrency(row.original.total)}
+                </div>
+            ),
+        },
+        {
+            header: 'Accoes',
+            cell: ({ row }) => (
+                <div className="flex justify-end gap-1">
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => handlePrint(row.original)}
+                        title="Ver/Imprimir"
+                        className="h-8 w-8 px-0 rounded active:scale-95"
+                    >
+                        <HiOutlineEye className="w-4 h-4 text-gray-500" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => handlePrint(row.original)}
+                        title="Imprimir"
+                        className="h-8 w-8 px-0 rounded active:scale-95"
+                    >
+                        <HiOutlinePrinter className="w-4 h-4 text-gray-500" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => handleDownloadPdf(row.original)}
+                        title="Descarregar PDF"
+                        className="h-8 w-8 px-0 rounded active:scale-95"
+                    >
+                        <HiOutlineArrowDownTray className="w-4 h-4 text-gray-500" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => handleSendEmail(row.original)}
+                        title="Enviar por email"
+                        className="h-8 w-8 px-0 rounded active:scale-95"
+                    >
+                        <HiOutlineEnvelope className="w-4 h-4 text-gray-500" />
+                    </Button>
+                </div>
+            ),
+        },
+    ], []);
+
     return (
         <div className="space-y-6">
-            {/* Header Actions */}
-            <div className="flex flex-col sm:flex-row justify-between gap-4">
-                <div className="flex-1 max-w-md">
-                    <Input
-                        placeholder="Buscar por número, cliente ou fatura..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        leftIcon={<HiOutlineSearch className="w-5 h-5" />}
-                    />
-                </div>
-                <Button onClick={() => setShowCreateModal(true)}>
-                    <HiOutlinePlus className="w-5 h-5 mr-2" />
-                    Emitir Nota de Crédito
-                </Button>
-            </div>
-
-            {/* List */}
-            <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead className="bg-gray-50 dark:bg-dark-800">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Número</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Fatura Orig.</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Cliente</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Data</th>
-                                <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Total Reembolsado</th>
-                                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {paginatedNotes.length === 0 ? (
-                                <tr><td colSpan={6} className="px-4 py-12 text-center text-gray-500">Nenhuma nota de crédito emitida</td></tr>
-                            ) : (
-                                paginatedNotes.map((note) => (
-                                    <tr key={note.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
-                                        <td className="px-4 py-3 font-mono font-medium text-gray-900 dark:text-white">{note.number}</td>
-                                        <td className="px-4 py-3 font-mono text-gray-600 dark:text-gray-400">{note.originalInvoiceNumber}</td>
-                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{note.customerName}</td>
-                                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{format(new Date(note.issueDate), 'dd/MM/yyyy')}</td>
-                                        <td className="px-4 py-3 text-right font-bold text-red-600">-{formatCurrency(note.total)}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex justify-center gap-1">
-                                                <button onClick={() => handlePrint(note)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded" title="Ver/Imprimir">
-                                                    <HiOutlineEye className="w-4 h-4 text-gray-500" />
-                                                </button>
-                                                <button onClick={() => handlePrint(note)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700 rounded" title="Imprimir">
-                                                    <HiOutlinePrinter className="w-4 h-4 text-gray-500" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
-
-            {/* Pagination */}
-            <Pagination
-                currentPage={currentPage}
-                totalItems={totalItems}
-                itemsPerPage={itemsPerPage}
-                onPageChange={setCurrentPage}
-                onItemsPerPageChange={setItemsPerPage}
+            <SmartTable
+                data={paginatedNotes}
+                columns={creditNoteColumns}
+                isLoading={isLoading}
+                search={{
+                    value: search,
+                    onChange: (value) => {
+                        setSearch(value);
+                        setPage(1);
+                    },
+                    placeholder: 'Buscar por numero, cliente ou fatura...',
+                }}
+                actions={
+                    <Button onClick={() => setShowCreateModal(true)} size="sm">
+                        <HiOutlinePlus className="w-5 h-5 mr-2" />
+                        Emitir Nota de Credito
+                    </Button>
+                }
+                pagination={{
+                    currentPage: page,
+                    totalItems: filteredNotes.length,
+                    itemsPerPage: pageSize,
+                    onPageChange: setPage,
+                    onItemsPerPageChange: (size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    },
+                }}
+                emptyTitle="Nenhuma nota de credito emitida"
+                emptyDescription="Emita notas de credito a partir das faturas disponiveis."
+                minHeight="420px"
             />
 
             <CreateCreditNoteModal

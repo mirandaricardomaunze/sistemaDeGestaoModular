@@ -105,6 +105,12 @@ export interface StockMovement {
         name: string;
         code: string;
     };
+    product?: {
+        id: string;
+        name: string;
+        code?: string;
+    };
+    originModule?: string;
 }
 
 // ============================================================================
@@ -207,11 +213,9 @@ export interface Employee {
     qualifications?: AcademicQualification[];
     createdAt: string;
     // HR Fields
-    bankInfo?: {
-        bankName: string;
-        accountNumber: string;
-        nib: string;
-    };
+    bankName?: string;
+    bankAccountNumber?: string;
+    bankNib?: string;
     socialSecurityNumber?: string; // INSS
     nuit?: string; // NUIT Pessoal
     baseSalary: number; // Salário Base Mensal
@@ -221,7 +225,7 @@ export interface Employee {
     maritalStatus?: 'single' | 'married' | 'divorced' | 'widowed';
     dependents?: number;
     vacationDaysTotal?: number; // Total de dias de férias por ano (Ex: 22)
-    vacationDaysUsed?: number; // Dias j gozados
+    vacationDaysUsed?: number; // Dias já gozados
     contractType?: ContractType;
     contractExpiry?: string;
     notes?: string; // Serialized compliance data (JSON)
@@ -232,6 +236,7 @@ export interface Employee {
     reportsTo?: Employee;
     subordinates?: Employee[];
     commissionRule?: CommissionRule;
+    skills?: string[];
 }
 
 export interface PayrollAuditEntry {
@@ -253,6 +258,7 @@ export interface PayrollRecord {
     bonus: number;
     allowances: number; // Subsídios (Transporte, Alimentação)
     inssDeduction: number; // 3%
+    inssEmployer?: number; // 4%
     irtDeduction: number; // Imposto
     advances: number; // Adiantamentos
     totalEarnings: number;
@@ -265,7 +271,9 @@ export interface PayrollRecord {
     receivedBy?: string; // Employee signature/confirmation
     receivedAt?: string;
     notes?: string;
+    originModule?: string;
     logs?: PayrollAuditEntry[];
+    employee?: Pick<Employee, 'id' | 'code' | 'name' | 'role' | 'department' | 'nuit' | 'socialSecurityNumber'>;
 }
 
 export interface AttendanceRecord {
@@ -333,7 +341,7 @@ export interface Sale {
     change: number;
     customerId?: string;
     employeeId: string;
-    status: 'active' | 'voided';
+    status: 'active' | 'voided' | 'pending_void' | 'completed' | 'refunded';
     createdAt: string;
     receiptNumber: string;
     customer?: ReceiptCustomer;
@@ -341,6 +349,9 @@ export interface Sale {
     fiscalNumber?: number;
     hashCode?: string;
     notes?: string;
+    // Legacy/extra backend fields surfaced in UI
+    paymentRef?: string;
+    voidStatus?: 'voided' | 'pending_void' | null;
 }
 
 export interface ReceiptCustomer {
@@ -463,6 +474,7 @@ export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'partial' | 'overdue' | 
 
 export interface InvoiceItem {
     id: string;
+    productId?: string | null;
     description: string;
     quantity: number;
     unitPrice: number;
@@ -517,12 +529,12 @@ export type CreditNoteStatus = 'draft' | 'issued' | 'refunded';
 
 export interface CreditNoteItem {
     id: string;
-    productId: string;
+    productId?: string | null;
     description: string;
     quantity: number;
     unitPrice: number;
     total: number;
-    originalInvoiceItemId: string;
+    originalInvoiceItemId?: string | null;
 }
 
 export interface CreditNote {
@@ -530,7 +542,7 @@ export interface CreditNote {
     number: string; // e.g., NC-2024-001
     originalInvoiceId: string;
     originalInvoiceNumber: string;
-    customerId: string;
+    customerId?: string | null;
     customerName: string;
     items: CreditNoteItem[];
     subtotal: number;
@@ -538,6 +550,40 @@ export interface CreditNote {
     total: number;
     reason: string;
     status: CreditNoteStatus;
+    issueDate: string;
+    createdAt: string;
+    notes?: string;
+}
+
+// ============================================================================
+// Debit Note Types
+// ============================================================================
+
+export type DebitNoteStatus = 'draft' | 'issued' | 'cancelled' | 'settled';
+
+export interface DebitNoteItem {
+    id: string;
+    productId?: string | null;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+    originalInvoiceItemId?: string | null;
+}
+
+export interface DebitNote {
+    id: string;
+    number: string; // e.g., ND-2026-0001
+    originalInvoiceId: string;
+    originalInvoiceNumber: string;
+    customerId?: string | null;
+    customerName: string;
+    items: DebitNoteItem[];
+    subtotal: number;
+    tax: number;
+    total: number;
+    reason: string;
+    status: DebitNoteStatus;
     issueDate: string;
     createdAt: string;
     notes?: string;
@@ -737,7 +783,7 @@ export interface Supplier {
 // Purchase Order Types
 // ============================================================================
 
-export type PurchaseOrderStatus = 'draft' | 'ordered' | 'received' | 'cancelled';
+export type PurchaseOrderStatus = 'draft' | 'ordered' | 'partial' | 'received' | 'cancelled';
 
 export interface PurchaseOrderItem {
     id: string;
@@ -795,7 +841,7 @@ export interface Company {
     address?: string;
     city?: string;
     status?: 'active' | 'inactive' | 'suspended';
-    settings?: any;
+    settings?: Record<string, unknown>;
 }
 
 export interface User {
@@ -813,6 +859,10 @@ export interface User {
     activeModules?: string[];
     activeLayers?: string[];
     company?: Company | null;
+    preferences?: {
+        dashboardWidgetOrder?: string[];
+        [key: string]: unknown;
+    };
 }
 
 export interface AuthState {
@@ -850,8 +900,23 @@ export interface HospitalityReportData {
     }>;
 }
 
+export interface PharmacyStockReportItem {
+    productCode?: string;
+    code?: string;
+    productName?: string;
+    name?: string;
+    batchNumber?: string;
+    expiryDate?: string;
+    totalStock?: number;
+    currentStock?: number;
+    isLowStock?: boolean;
+    totalValue?: number | string;
+    price?: number | string;
+    batches?: Array<{ batchNumber?: string; expiryDate?: string }>;
+}
+
 export interface PharmacyStockReportData {
-    items: any[];
+    items: PharmacyStockReportItem[];
     summary: {
         totalProducts: number;
         totalStock: number;
@@ -861,11 +926,45 @@ export interface PharmacyStockReportData {
     };
 }
 
+export interface PharmacySalesReportItem {
+    id?: string;
+    saleNumber?: string;
+    receiptNumber?: string;
+    createdAt?: string;
+    customer?: { name?: string } | null;
+    customerName?: string;
+    total?: number | string;
+    paymentMethod?: string;
+}
+
 export interface PharmacySalesReportData {
-    sales: any[];
+    sales: PharmacySalesReportItem[];
     summary: {
         totalSales: number;
         totalItems: number;
         totalRevenue: number;
+    };
+}
+
+export interface PharmacyExpiringReportItem {
+    productCode?: string;
+    code?: string;
+    productName?: string;
+    name?: string;
+    batchNumber?: string;
+    expiryDate?: string;
+    daysToExpiry?: number;
+    currentStock?: number;
+    totalStock?: number;
+    severity?: 'critical' | 'warning' | 'info';
+}
+
+export interface PharmacyExpiringReportData {
+    items: PharmacyExpiringReportItem[];
+    summary: {
+        expired?: number;
+        expiringSoon?: number;
+        total?: number;
+        [key: string]: unknown;
     };
 }

@@ -17,8 +17,17 @@ export class PrinterService {
                 throw new Error('Web USB not supported');
             }
 
+            interface UsbDevice {
+                open(): Promise<void>;
+                selectConfiguration(n: number): Promise<void>;
+                claimInterface(n: number): Promise<void>;
+                transferOut(endpoint: number, data: Uint8Array): Promise<unknown>;
+                close(): Promise<void>;
+            }
+            interface UsbNavigator { usb: { requestDevice(options: { filters: unknown[] }): Promise<UsbDevice> } }
+
             // Using Web USB to send command directly to printer
-            const device = await (navigator as any).usb.requestDevice({
+            const device = await (navigator as unknown as UsbNavigator).usb.requestDevice({
                 filters: [] // Empty filters to let user pick any device if no specific vendor known
             });
 

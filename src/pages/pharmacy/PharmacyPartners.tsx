@@ -1,5 +1,38 @@
 import { useState, useMemo } from 'react';
-import { Card, Button, Input, Modal, Badge, Pagination, Select } from '../../components/ui';
+import type { ComponentType, SVGProps } from 'react';
+import { Card, Button, Input, Modal, Badge, Pagination, Select, TableLoadingState } from '../../components/ui';
+
+type BadgeVariant = 'warning' | 'info' | 'success' | 'danger' | 'gray';
+
+type SupplierRow = {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string | null;
+    contactPerson?: string | null;
+    nuit?: string | null;
+    address?: string | null;
+};
+
+type PartnerLite = {
+    id: string;
+    name: string;
+    coveragePercentage?: number;
+};
+
+type PartnerInvoiceRow = {
+    id: string;
+    invoiceNumber: string;
+    status: string;
+    totalAmount: number | string;
+    paidAmount: number | string;
+    periodStart?: string;
+    periodEnd?: string;
+    dueDate?: string;
+    partner?: { name?: string };
+};
+
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 import {
     HiOutlinePlus, HiOutlineMagnifyingGlass, HiOutlinePencil, HiOutlineTrash,
     HiOutlineShieldCheck, HiOutlineEnvelope, HiOutlinePhone,
@@ -15,13 +48,13 @@ import toast from 'react-hot-toast';
 
 type Tab = 'insurers' | 'suppliers' | 'billing';
 
-const STATUS_MAP: Record<string, { label: string; variant: any }> = {
+const STATUS_MAP: Record<string, { label: string; variant: BadgeVariant }> = {
     pending: { label: 'Pendente', variant: 'warning' },
     sent: { label: 'Enviada', variant: 'info' },
     partial: { label: 'Parcial', variant: 'warning' },
     paid: { label: 'Pago', variant: 'success' },
     overdue: { label: 'Vencida', variant: 'danger' },
-    cancelled: { label: 'Cancelada', variant: 'default' },
+    cancelled: { label: 'Cancelada', variant: 'gray' },
 };
 
 export default function PharmacyPartners() {
@@ -40,7 +73,7 @@ export default function PharmacyPartners() {
                     { id: 'insurers', label: 'Seguradoras', icon: HiOutlineShieldCheck },
                     { id: 'suppliers', label: 'Fornecedores', icon: HiOutlineTruck },
                     { id: 'billing', label: 'Faturação', icon: HiOutlineCurrencyDollar },
-                ] as { id: Tab; label: string; icon: any }[]).map(t => {
+                ] as { id: Tab; label: string; icon: IconComponent }[]).map(t => {
                     const Icon = t.icon;
                     return (
                         <button key={t.id} onClick={() => setTab(t.id)}
@@ -180,7 +213,7 @@ function InsurersTab() {
 function SuppliersTab() {
     const { suppliers, isLoading, pagination, page, setPage, search, setSearch, addSupplier, updateSupplier, deleteSupplier } = usePharmacySuppliers();
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editing, setEditing] = useState<any>(null);
+    const [editing, setEditing] = useState<SupplierRow | null>(null);
 
     const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -210,7 +243,13 @@ function SuppliersTab() {
 
             <Card padding="none">
                 {isLoading ? (
-                    <div className="p-8 flex justify-center"><div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" /></div>
+                    <div className="relative min-h-[360px] overflow-hidden">
+                        <TableLoadingState
+                            columns={5}
+                            rows={6}
+                            message="A carregar fornecedores..."
+                        />
+                    </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
@@ -224,7 +263,7 @@ function SuppliersTab() {
                             <tbody className="divide-y dark:divide-dark-700">
                                 {suppliers.length === 0 ? (
                                     <tr><td colSpan={5} className="px-4 py-10 text-center text-gray-400">Nenhum fornecedor registado</td></tr>
-                                ) : suppliers.map((s: any) => (
+                                ) : (suppliers as SupplierRow[]).map((s) => (
                                     <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-3">
@@ -278,13 +317,13 @@ function SuppliersTab() {
                     <Input label="Nome *" name="name" defaultValue={editing?.name} required />
                     <div className="grid grid-cols-2 gap-4">
                         <Input label="Telefone *" name="phone" defaultValue={editing?.phone} required />
-                        <Input label="Email" name="email" type="email" defaultValue={editing?.email} />
+                        <Input label="Email" name="email" type="email" defaultValue={editing?.email ?? ''} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                        <Input label="NUIT" name="nuit" defaultValue={editing?.nuit} />
-                        <Input label="Responsável" name="contactPerson" defaultValue={editing?.contactPerson} />
+                        <Input label="NUIT" name="nuit" defaultValue={editing?.nuit ?? ''} />
+                        <Input label="Responsável" name="contactPerson" defaultValue={editing?.contactPerson ?? ''} />
                     </div>
-                    <Input label="Endereço" name="address" defaultValue={editing?.address} />
+                    <Input label="Endereço" name="address" defaultValue={editing?.address ?? ''} />
                     <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-700">
                         <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
                         <Button type="submit">Guardar</Button>
@@ -299,7 +338,7 @@ function SuppliersTab() {
 function BillingTab() {
     const queryClient = useQueryClient();
     const [showGenerate, setShowGenerate] = useState(false);
-    const [showPayment, setShowPayment] = useState<any>(null);
+    const [showPayment, setShowPayment] = useState<PartnerInvoiceRow | null>(null);
     const [statusFilter, setStatusFilter] = useState('');
     const [page, setPage] = useState(1);
     const [paymentAmount, setPaymentAmount] = useState('');
@@ -324,11 +363,11 @@ function BillingTab() {
             setGenerateForm({ partnerId: '', periodStart: '', periodEnd: '', dueDate: '' });
             toast.success('Fatura gerada com sucesso');
         },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'Erro ao gerar fatura'),
+        onError: (err: { response?: { data?: { message?: string; error?: string } } }) => toast.error(err?.response?.data?.message || 'Erro ao gerar fatura'),
     });
 
     const paymentMutation = useMutation({
-        mutationFn: () => pharmacyAPI.registerPartnerPayment(showPayment.id, Number(paymentAmount)),
+        mutationFn: () => pharmacyAPI.registerPartnerPayment(showPayment!.id, Number(paymentAmount)),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['pharmacy', 'partner-invoices'] });
             setShowPayment(null); setPaymentAmount('');
@@ -337,9 +376,9 @@ function BillingTab() {
         onError: () => toast.error('Erro ao registar pagamento'),
     });
 
-    const invoices = invoicesData?.data || [];
-    const totalPending = invoices.filter((i: any) => i.status === 'pending' || i.status === 'partial').reduce((s: number, i: any) => s + (Number(i.totalAmount) - Number(i.paidAmount)), 0);
-    const totalOverdue = invoices.filter((i: any) => i.status === 'overdue').reduce((s: number, i: any) => s + Number(i.totalAmount), 0);
+    const invoices = (invoicesData?.data || []) as PartnerInvoiceRow[];
+    const totalPending = invoices.filter((i) => i.status === 'pending' || i.status === 'partial').reduce((s, i) => s + (Number(i.totalAmount) - Number(i.paidAmount)), 0);
+    const totalOverdue = invoices.filter((i) => i.status === 'overdue').reduce((s, i) => s + Number(i.totalAmount), 0);
 
     return (
         <div className="space-y-4">
@@ -390,7 +429,7 @@ function BillingTab() {
                                 onChange={e => setGenerateForm(f => ({ ...f, partnerId: e.target.value }))}
                                 options={[
                                     { value: '', label: 'Seleccionar...' },
-                                    ...partners.map((p: any) => ({
+                                    ...(partners as PartnerLite[]).map((p) => ({
                                         value: p.id,
                                         label: `${p.name} (${p.coveragePercentage}%)`
                                     }))
@@ -409,7 +448,15 @@ function BillingTab() {
             )}
 
             <Card padding="none">
-                {isLoading ? <div className="p-8 flex justify-center"><div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" /></div> : (
+                {isLoading ? (
+                    <div className="relative min-h-[360px] overflow-hidden">
+                        <TableLoadingState
+                            columns={9}
+                            rows={6}
+                            message="A carregar facturas..."
+                        />
+                    </div>
+                ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-gray-50 dark:bg-dark-700 border-b dark:border-dark-600">
@@ -422,7 +469,7 @@ function BillingTab() {
                             <tbody className="divide-y dark:divide-dark-700">
                                 {invoices.length === 0 ? (
                                     <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400">Nenhuma fatura encontrada</td></tr>
-                                ) : invoices.map((inv: any) => {
+                                ) : invoices.map((inv) => {
                                     const remaining = Number(inv.totalAmount) - Number(inv.paidAmount);
                                     return (
                                         <tr key={inv.id} className="hover:bg-gray-50 dark:hover:bg-dark-700">
@@ -433,13 +480,13 @@ function BillingTab() {
                                                     <span className="font-medium">{inv.partner?.name}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-xs text-gray-500">{formatDate(inv.periodStart)} a {formatDate(inv.periodEnd)}</td>
+                                            <td className="px-4 py-3 text-xs text-gray-500">{inv.periodStart ? formatDate(inv.periodStart) : ''} a {inv.periodEnd ? formatDate(inv.periodEnd) : ''}</td>
                                             <td className="px-4 py-3 font-semibold">{formatCurrency(Number(inv.totalAmount))}</td>
                                             <td className="px-4 py-3 text-green-600">{formatCurrency(Number(inv.paidAmount))}</td>
                                             <td className="px-4 py-3 font-bold text-amber-600">{formatCurrency(remaining)}</td>
                                             <td className="px-4 py-3 text-xs">{inv.dueDate ? formatDate(inv.dueDate) : ''}</td>
                                             <td className="px-4 py-3">
-                                                <Badge variant={STATUS_MAP[inv.status]?.variant || 'default'}>{STATUS_MAP[inv.status]?.label}</Badge>
+                                                <Badge variant={STATUS_MAP[inv.status]?.variant || 'gray'}>{STATUS_MAP[inv.status]?.label}</Badge>
                                             </td>
                                             <td className="px-4 py-3">
                                                 {inv.status !== 'paid' && inv.status !== 'cancelled' && (

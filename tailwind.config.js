@@ -100,10 +100,10 @@ export default {
                 },
             },
             boxShadow: {
-                'glass': '0 8px 32px 0 rgba(15, 23, 42, 0.25)',
-                'card': '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
-                'card-hover': '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1)',
-                'premium': '0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.08), 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -4px rgba(0, 0, 0, 0.08)',
+                'glass': '0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 34px -28px rgba(15, 23, 42, 0.55)',
+                'card': '0 1px 2px rgba(15, 23, 42, 0.06), 0 16px 36px -30px rgba(15, 23, 42, 0.65)',
+                'card-hover': '0 2px 6px rgba(15, 23, 42, 0.08), 0 20px 42px -30px rgba(15, 23, 42, 0.75)',
+                'premium': '0 0 0 1px rgba(15, 23, 42, 0.09), 0 16px 36px -28px rgba(15, 23, 42, 0.52)',
                 'inner-soft': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.12)',
             },
             backdropBlur: {

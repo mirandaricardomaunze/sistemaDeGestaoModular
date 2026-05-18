@@ -147,11 +147,11 @@ export default function PharmacyEmployees() {
 
                         {activeTab === 'payroll' && <PharmacyPayrollManager />}
 
-                        {activeTab === 'vacations' && <VacationsPanel config={PHARMACY_CONFIG as any} employees={[]} />}
+                        {activeTab === 'vacations' && <VacationsPanel config={PHARMACY_CONFIG} employees={[]} />}
 
                         {activeTab === 'compliance' && <PharmacyDocumentCenter />}
 
-                        {activeTab === 'config' && <BonusConfigPanel config={PHARMACY_CONFIG as any} />}
+                        {activeTab === 'config' && <BonusConfigPanel config={PHARMACY_CONFIG} />}
                     </>
                 )}
             </div>

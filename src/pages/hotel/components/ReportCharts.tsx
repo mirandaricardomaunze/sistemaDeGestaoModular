@@ -17,16 +17,42 @@ import { formatCurrency } from '../../../utils/helpers';
 
 const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
+interface CategoryAggregate {
+    total: number;
+    count?: number;
+}
+
+interface ProfitLossReport {
+    summary?: {
+        totalRevenue: number;
+        totalExpenses: number;
+        netProfit: number;
+    };
+    revenues?: {
+        byCategory?: Record<string, CategoryAggregate>;
+    };
+    expenses?: {
+        byCategory?: Record<string, CategoryAggregate>;
+    };
+}
+
+interface RoomRevenueReport {
+    rooms?: Array<{
+        roomNumber: string | number;
+        total: number;
+    }>;
+}
+
 interface ReportChartsProps {
-    profitLossReport?: any;
-    roomRevenueReport?: any;
+    profitLossReport?: ProfitLossReport;
+    roomRevenueReport?: RoomRevenueReport;
     type: 'profit-loss' | 'room-revenue';
 }
 
 export function ReportCharts({ profitLossReport, roomRevenueReport, type }: ReportChartsProps) {
     const revenueData = useMemo(() => {
         if (!profitLossReport?.revenues?.byCategory) return [];
-        return Object.entries(profitLossReport.revenues.byCategory).map(([category, data]: any) => ({
+        return Object.entries(profitLossReport.revenues.byCategory).map(([category, data]) => ({
             name: category === 'accommodation' ? 'Hospedagem' : category === 'consumption' ? 'Consumos' : category,
             value: data.total
         }));
@@ -34,7 +60,7 @@ export function ReportCharts({ profitLossReport, roomRevenueReport, type }: Repo
 
     const expenseData = useMemo(() => {
         if (!profitLossReport?.expenses?.byCategory) return [];
-        return Object.entries(profitLossReport.expenses.byCategory).map(([category, data]: any) => ({
+        return Object.entries(profitLossReport.expenses.byCategory).map(([category, data]) => ({
             name: category,
             value: data.total
         }));
@@ -54,7 +80,7 @@ export function ReportCharts({ profitLossReport, roomRevenueReport, type }: Repo
 
     const roomData = useMemo(() => {
         if (!roomRevenueReport?.rooms) return [];
-        return roomRevenueReport.rooms.map((room: any) => ({
+        return roomRevenueReport.rooms.map((room) => ({
             name: `Qto ${room.roomNumber}`,
             receita: room.total
         })).slice(0, 10); // Show top 10 rooms

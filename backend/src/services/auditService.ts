@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { parseFields } from '../utils/pagination';
 
@@ -13,8 +14,8 @@ export interface AuditLogParams {
     action: string;
     entity: string;
     entityId?: string;
-    oldData?: any;
-    newData?: any;
+    oldData?: Prisma.InputJsonValue | unknown;
+    newData?: Prisma.InputJsonValue | unknown;
     ipAddress?: string;
     userAgent?: string;
     companyId?: string;
@@ -30,8 +31,8 @@ export class AuditService {
                     action: params.action,
                     entity: params.entity,
                     entityId: params.entityId,
-                    oldData: params.oldData,
-                    newData: params.newData,
+                    oldData: params.oldData as Prisma.InputJsonValue | undefined,
+                    newData: params.newData as Prisma.InputJsonValue | undefined,
                     ipAddress: params.ipAddress,
                     userAgent: params.userAgent,
                     companyId: params.companyId,
@@ -48,22 +49,20 @@ export class AuditService {
         const limit = params.limit || 20;
         const skip = (page - 1) * limit;
 
-        const where: any = { companyId: params.companyId };
+        const where: Prisma.AuditLogWhereInput = { companyId: params.companyId };
         if (params.action) where.action = params.action;
         if (params.entity) where.entity = params.entity;
 
         const projection = parseFields(params.fields, AUDIT_FIELD_ALLOWLIST);
-        const findArgs: any = {
+        const baseArgs = {
             where,
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: 'desc' as const },
             skip,
             take: limit,
         };
-        if (projection) {
-            findArgs.select = projection;
-        } else {
-            findArgs.include = { user: { select: { name: true, email: true } } };
-        }
+        const findArgs: Prisma.AuditLogFindManyArgs = projection
+            ? { ...baseArgs, select: projection as Prisma.AuditLogSelect }
+            : { ...baseArgs, include: { user: { select: { name: true, email: true } } } };
 
         const [total, logs] = await Promise.all([
             prisma.auditLog.count({ where }),

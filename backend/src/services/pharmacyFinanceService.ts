@@ -1,5 +1,33 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
+
+type ListQuery = {
+    page?: string | number;
+    limit?: string | number;
+    startDate?: string;
+    endDate?: string;
+    category?: string;
+    type?: string;
+    status?: string;
+    search?: string;
+};
+
+type TransactionInput = {
+    amount: number | string;
+    date?: string | Date;
+    dueDate?: string | Date | null;
+    type?: string;
+    category?: string;
+    description?: string;
+    reference?: string | null;
+    status?: string;
+    paymentMethod?: string | null;
+    notes?: string | null;
+    [key: string]: unknown;
+};
+
+type CategoryTotals = Record<string, number>;
 
 export class PharmacyFinanceService {
     async getDashboard(companyId: string, period: string) {
@@ -29,17 +57,16 @@ export class PharmacyFinanceService {
         const netProfit = totalRevenue - totalExpenses;
         const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
-        const revenueByCategory = revenues.reduce((acc: any, t) => {
+        const revenueByCategory = revenues.reduce<CategoryTotals>((acc, t) => {
             acc[t.category] = (acc[t.category] || 0) + Number(t.amount);
             return acc;
         }, {});
 
-        const expensesByCategory = expenses.reduce((acc: any, t) => {
+        const expensesByCategory = expenses.reduce<CategoryTotals>((acc, t) => {
             acc[t.category] = (acc[t.category] || 0) + Number(t.amount);
             return acc;
         }, {});
 
-        // Monthly trend for the last 6 months
         const monthlyData = [];
         for (let i = 5; i >= 0; i--) {
             const monthStart = new Date();
@@ -72,12 +99,12 @@ export class PharmacyFinanceService {
         }
 
         return {
-            summary: { 
-                totalRevenue, 
-                totalExpenses, 
-                netProfit, 
-                profitMargin, 
-                transactionCount: transactions.length 
+            summary: {
+                totalRevenue,
+                totalExpenses,
+                netProfit,
+                profitMargin,
+                transactionCount: transactions.length
             },
             revenueByCategory,
             expensesByCategory,
@@ -85,16 +112,16 @@ export class PharmacyFinanceService {
         };
     }
 
-    async getTransactions(companyId: string, query: any) {
+    async getTransactions(companyId: string, query: ListQuery) {
         const { page = 1, limit = 20, startDate, endDate, category, type, status, search } = query;
         const skip = (Number(page) - 1) * Number(limit);
-        const where: any = { companyId, module: 'pharmacy' };
+        const where: Prisma.TransactionWhereInput = { companyId, module: 'pharmacy' };
 
-        if (type) where.type = type;
-        if (status) where.status = status;
+        if (type) where.type = type as Prisma.TransactionWhereInput['type'];
+        if (status) where.status = status as Prisma.TransactionWhereInput['status'];
         if (category) where.category = category;
         if (startDate && endDate) {
-            where.date = { gte: new Date(startDate as string), lte: new Date(endDate as string) };
+            where.date = { gte: new Date(startDate), lte: new Date(endDate) };
         }
         if (search) {
             where.OR = [
@@ -115,20 +142,20 @@ export class PharmacyFinanceService {
 
         return {
             data,
-            pagination: { 
-                page: Number(page), 
-                limit: Number(limit), 
-                total, 
-                totalPages: Math.ceil(total / Number(limit)) 
+            pagination: {
+                page: Number(page),
+                limit: Number(limit),
+                total,
+                totalPages: Math.ceil(total / Number(limit))
             }
         };
     }
 
-    async createTransaction(companyId: string, data: any) {
+    async createTransaction(companyId: string, data: TransactionInput) {
         const { amount, date, dueDate, ...rest } = data;
         return prisma.transaction.create({
             data: {
-                ...rest,
+                ...(rest as Prisma.TransactionUncheckedCreateInput),
                 amount: Number(amount),
                 date: date ? new Date(date) : new Date(),
                 dueDate: dueDate ? new Date(dueDate) : null,
@@ -138,20 +165,19 @@ export class PharmacyFinanceService {
         });
     }
 
-    async updateTransaction(id: string, companyId: string, data: any) {
+    async updateTransaction(id: string, companyId: string, data: Partial<TransactionInput>) {
         const { amount, date, dueDate, ...rest } = data;
-        
-        // Use findFirst to ensure it belongs to the company and module
+
         const existing = await prisma.transaction.findFirst({
             where: { id, companyId, module: 'pharmacy' }
         });
-        
+
         if (!existing) throw ApiError.notFound('Transação não encontrada');
 
         return prisma.transaction.update({
             where: { id },
             data: {
-                ...rest,
+                ...(rest as Prisma.TransactionUncheckedUpdateInput),
                 amount: amount !== undefined ? Number(amount) : undefined,
                 date: date ? new Date(date) : undefined,
                 dueDate: dueDate === null ? null : (dueDate ? new Date(dueDate) : undefined),
@@ -163,13 +189,13 @@ export class PharmacyFinanceService {
         const existing = await prisma.transaction.findFirst({
             where: { id, companyId, module: 'pharmacy' }
         });
-        
+
         if (!existing) throw ApiError.notFound('Transação não encontrada');
 
         await prisma.transaction.delete({
             where: { id }
         });
-        
+
         return { id };
     }
 }

@@ -69,7 +69,7 @@ function KitchenOrderCard({ order, onUpdateStatus, isUpdating }: {
 
             {/* Items List */}
             <div className="flex-1 p-4 space-y-3">
-                {order.items.map((item: any, i: number) => (
+                {order.items.map((item, i) => (
                     <div key={i} className="flex gap-3">
                         <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center font-black text-gray-600 dark:text-gray-300 flex-shrink-0">
                             {item.quantity}
@@ -157,33 +157,21 @@ export default function RestaurantKitchenPage() {
                 
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 bg-white dark:bg-dark-800 p-1 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
-                        <button 
+                        <Button
+                            variant="ghost" size="sm"
                             onClick={() => setActiveTab('active')}
-                            className={cn(
-                                "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                                activeTab === 'active' ? "bg-primary-600 text-white" : "text-gray-500 hover:bg-gray-50"
-                            )}
-                        >
-                            Em Preparo
-                        </button>
-                        <button 
+                            className={cn("px-4 py-2 rounded-lg text-sm font-bold", activeTab === 'active' ? "bg-primary-600 text-white hover:bg-primary-600" : "text-gray-500 hover:bg-gray-50")}
+                        >Em Preparo</Button>
+                        <Button
+                            variant="ghost" size="sm"
                             onClick={() => setActiveTab('ready')}
-                            className={cn(
-                                "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                                activeTab === 'ready' ? "bg-emerald-600 text-white" : "text-gray-500 hover:bg-gray-50"
-                            )}
-                        >
-                            Prontos
-                        </button>
-                        <button 
+                            className={cn("px-4 py-2 rounded-lg text-sm font-bold", activeTab === 'ready' ? "bg-emerald-600 text-white hover:bg-emerald-600" : "text-gray-500 hover:bg-gray-50")}
+                        >Prontos</Button>
+                        <Button
+                            variant="ghost" size="sm"
                             onClick={() => setActiveTab('all')}
-                            className={cn(
-                                "px-4 py-2 rounded-lg text-sm font-bold transition-all",
-                                activeTab === 'all' ? "bg-gray-800 text-white" : "text-gray-500 hover:bg-gray-50"
-                            )}
-                        >
-                            Todos
-                        </button>
+                            className={cn("px-4 py-2 rounded-lg text-sm font-bold", activeTab === 'all' ? "bg-gray-800 text-white hover:bg-gray-800" : "text-gray-500 hover:bg-gray-50")}
+                        >Todos</Button>
                     </div>
                     <Button variant="ghost" onClick={() => { refetch(); }} className="p-2.5">
                         <HiOutlineArrowPath className={cn("w-5 h-5", isLoading && "animate-spin")} />

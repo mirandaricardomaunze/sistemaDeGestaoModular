@@ -30,6 +30,12 @@ export const settingsAPI = {
         receiptHeader: string;
         receiptFooter: string;
         businessType: string;
+        bankAccounts: Array<{
+            bankName: string;
+            accountNumber: string;
+            nib?: string;
+            holderName?: string;
+        }>;
     }>) => {
         const response = await api.put('/settings/company', data);
         return response.data;
@@ -46,6 +52,7 @@ export const settingsAPI = {
         description?: string;
         color?: string;
         parentId?: string;
+        originModule?: string;
     }) => {
         const response = await api.post('/settings/categories', data);
         return response.data;
@@ -90,8 +97,9 @@ export const settingsAPI = {
 
 export const campaignsAPI = {
     getAll: async (params?: { status?: string }) => {
-        const response = await api.get('/campaigns', { params });
-        return response.data;
+        const response = await api.get('/campaigns', { params: { limit: 2000, ...params } });
+        // Service returns a paginated wrapper { data, pagination }; older shape was a raw array.
+        return Array.isArray(response.data) ? response.data : (response.data?.data ?? []);
     },
 
     getById: async (id: string) => {
@@ -201,7 +209,7 @@ export const alertsAPI = {
         isResolved?: boolean;
         limit?: number;
         page?: number;
-    }): Promise<any> => {
+    }) => {
         const response = await api.get('/alerts', { params });
         return response.data;
     },
@@ -338,6 +346,29 @@ export const ordersAPI = {
         notes?: string;
     }) => {
         const response = await api.patch(`/orders/${id}/status`, data);
+        return response.data;
+    },
+
+    getCancellationRequests: async (params?: { status?: string; orderId?: string; limit?: number }) => {
+        const response = await api.get('/orders/cancellation-requests', { params });
+        return response.data;
+    },
+
+    requestCancellation: async (id: string, data: {
+        reason: string;
+        notes?: string;
+    }) => {
+        const response = await api.post(`/orders/${id}/cancellation-requests`, data);
+        return response.data;
+    },
+
+    approveCancellation: async (requestId: string, data?: { notes?: string }) => {
+        const response = await api.post(`/orders/cancellation-requests/${requestId}/approve`, data || {});
+        return response.data;
+    },
+
+    rejectCancellation: async (requestId: string, data?: { notes?: string }) => {
+        const response = await api.post(`/orders/cancellation-requests/${requestId}/reject`, data || {});
         return response.data;
     },
 

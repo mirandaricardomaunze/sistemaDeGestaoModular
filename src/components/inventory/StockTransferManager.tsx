@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Button, Card, Input, Modal, Select, Pagination, usePagination, ConfirmationModal } from '../ui';
-import { HiOutlineDocumentDownload, HiOutlineSearch, HiOutlineTrash, HiOutlineCheck } from 'react-icons/hi';
+import { HiOutlineDocumentArrowDown, HiOutlineMagnifyingGlass, HiOutlineTrash, HiOutlineCheck } from 'react-icons/hi2';
 import { formatDate } from '../../utils/helpers';
 import type { StockTransfer } from '../../types';
 import toast from 'react-hot-toast';
@@ -68,7 +68,7 @@ export default function StockTransferManager() {
         if (!sourceId) return [];
         return products.map(p => ({
             ...p,
-            warehouseStock: (p.warehouseStocks?.find((ws: any) => ws.warehouseId === sourceId)?.quantity) ?? 0
+            warehouseStock: (p.warehouseStocks?.find((ws) => ws.warehouseId === sourceId)?.quantity) ?? 0
         }));
     }, [products, sourceId]);
 
@@ -134,7 +134,7 @@ export default function StockTransferManager() {
         if (!product) return;
 
         // Verify stock availability
-        const currentStock = (product.warehouseStocks?.find((ws: any) => ws.warehouseId === sourceId)?.quantity) ?? 0;
+        const currentStock = (product.warehouseStocks?.find((ws) => ws.warehouseId === sourceId)?.quantity) ?? 0;
         // Check if already added to list
         const existingItem = transferItems.find(i => i.productId === selectedProduct);
         const currentQtyInTransfer = existingItem ? existingItem.quantity : 0;
@@ -189,8 +189,9 @@ export default function StockTransferManager() {
             await Promise.all([refetchProducts(), refetchTransfers()]);
             setIsModalOpen(false);
             resetForm();
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || 'Erro ao criar transferência. Verifique os dados e tente novamente.';
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: unknown; errors?: unknown[] } } };
+            const msg = apiErr?.response?.data?.message || 'Erro ao criar transferência. Verifique os dados e tente novamente.';
             toast.error(msg);
         }
     };
@@ -233,7 +234,6 @@ export default function StockTransferManager() {
         <div className="space-y-6">
             <button id="new-transfer-btn" className="hidden" onClick={() => setIsModalOpen(true)} />
 
-
             {/* History Filters */}
             <Card padding="md">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -242,7 +242,7 @@ export default function StockTransferManager() {
                         placeholder="Número ou responsável..."
                         value={historySearch}
                         onChange={(e) => setHistorySearch(e.target.value)}
-                        leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                        leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                     />
                     <Select
                         label="Filtrar por Armazém"
@@ -364,7 +364,7 @@ export default function StockTransferManager() {
                                                             setSelectedTransfer(transfer);
                                                             setShowPrintModal(true);
                                                         }}
-                                                        leftIcon={<HiOutlineSearch className="w-4 h-4" />}
+                                                        leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4" />}
                                                     >
                                                         Ver
                                                     </Button>
@@ -376,7 +376,7 @@ export default function StockTransferManager() {
                                                             setSelectedTransfer(transfer);
                                                             setShowPrintModal(true);
                                                         }}
-                                                        leftIcon={<HiOutlineDocumentDownload className="w-4 h-4" />}
+                                                        leftIcon={<HiOutlineDocumentArrowDown className="w-4 h-4" />}
                                                     >
                                                         Imprimir
                                                     </Button>
@@ -398,7 +398,7 @@ export default function StockTransferManager() {
                                                                 className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                                                                 title="Despachar"
                                                             >
-                                                                <HiOutlineDocumentDownload className="w-4 h-4 rotate-180" />
+                                                                <HiOutlineDocumentArrowDown className="w-4 h-4 rotate-180" />
                                                             </button>
                                                         )}
                                                         {transfer.status === 'in_transit' && (
@@ -485,7 +485,7 @@ export default function StockTransferManager() {
                                 placeholder="Buscar produto por nome ou código..."
                                 value={productSearch}
                                 onChange={(e) => setProductSearch(e.target.value)}
-                                leftIcon={<HiOutlineSearch className="w-4 h-4" />}
+                                leftIcon={<HiOutlineMagnifyingGlass className="w-4 h-4" />}
                                 disabled={!sourceId}
                             />
                             <div className="flex gap-2">

@@ -1,6 +1,26 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+
+type ListQuery = {
+    page?: string | number;
+    limit?: string | number;
+    fields?: string;
+    productId?: string;
+    status?: string;
+    warehouseId?: string;
+    supplierId?: string;
+    search?: string;
+    expiryDate?: string;
+};
+
+type ExpiringQuery = ListQuery & { days?: string | number };
+
+type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+type BatchSummary = { id: string; batchNumber: string; status: string; quantity: number };
+type ProductSummary = { name: string; unit?: string | null };
 
 const BATCH_FIELD_ALLOWLIST = [
     'id', 'batchNumber', 'productId', 'supplierId', 'warehouseId',
@@ -48,12 +68,12 @@ export class BatchesService {
     // LIST
     // =========================================================================
 
-    async list(companyId: string, params: any = {}) {
+    async list(companyId: string, params: ListQuery = {}) {
         const { page, limit, skip } = getPaginationParams(params);
-        const where: any = { companyId };
+        const where: Prisma.ProductBatchWhereInput = { companyId };
 
         if (params.productId) where.productId = params.productId;
-        if (params.status) where.status = params.status;
+        if (params.status) where.status = params.status as Prisma.ProductBatchWhereInput['status'];
         if (params.warehouseId) where.warehouseId = params.warehouseId;
         if (params.supplierId) where.supplierId = params.supplierId;
         if (params.search) {
@@ -64,21 +84,22 @@ export class BatchesService {
         }
 
         const projection = parseFields(params.fields, BATCH_FIELD_ALLOWLIST);
-        const findArgs: any = {
+        const baseArgs = {
             where,
-            orderBy: params.expiryDate ? { expiryDate: 'asc' } : { createdAt: 'desc' },
+            orderBy: params.expiryDate ? { expiryDate: 'asc' as const } : { createdAt: 'desc' as const },
             skip,
             take: limit,
         };
-        if (projection) {
-            findArgs.select = projection;
-        } else {
-            findArgs.include = {
-                product: { select: { id: true, name: true, code: true, unit: true, category: true } },
-                supplier: { select: { id: true, name: true } },
-                warehouse: { select: { id: true, name: true, code: true } },
+        const findArgs: Prisma.ProductBatchFindManyArgs = projection
+            ? { ...baseArgs, select: projection as Prisma.ProductBatchSelect }
+            : {
+                ...baseArgs,
+                include: {
+                    product: { select: { id: true, name: true, code: true, unit: true, category: true } },
+                    supplier: { select: { id: true, name: true } },
+                    warehouse: { select: { id: true, name: true, code: true } },
+                },
             };
-        }
 
         const [total, batches] = await Promise.all([
             prisma.productBatch.count({ where }),
@@ -88,13 +109,13 @@ export class BatchesService {
         return createPaginatedResponse(batches, page, limit, total);
     }
 
-    async getExpiring(companyId: string, params: any = {}) {
-        const days = parseInt(params.days as string) || 30;
+    async getExpiring(companyId: string, params: ExpiringQuery = {}) {
+        const days = parseInt(String(params.days ?? '')) || 30;
         const { page, limit, skip } = getPaginationParams(params);
         const threshold = addDays(new Date(), days);
         const now = new Date();
 
-        const where: any = {
+        const where: Prisma.ProductBatchWhereInput = {
             companyId,
             quantity: { gt: 0 },
             status: { not: 'depleted' },
@@ -198,7 +219,7 @@ export class BatchesService {
                 reason: `Entrada de lote: ${data.batchNumber}`,
                 performedBy: 'Sistema (Lote)',
                 companyId
-            }, tx as any);
+            }, tx as TxClient);
 
             return b;
         }, { timeout: 30000, maxWait: 10000 });
@@ -222,10 +243,14 @@ export class BatchesService {
         const batch = await prisma.productBatch.findFirst({ where: { id, companyId } });
         if (!batch) throw ApiError.notFound('Lote não encontrado');
 
-        const updateData: any = {};
-        if (data.quantity !== undefined) updateData.quantity = data.quantity;
+        const updateData: Prisma.ProductBatchUncheckedUpdateInput = {};
+        const nextQuantity: number | undefined = data.quantity;
+        const nextExpiry: Date | null | undefined = data.expiryDate !== undefined
+            ? (data.expiryDate ? new Date(data.expiryDate) : null)
+            : undefined;
+        if (nextQuantity !== undefined) updateData.quantity = nextQuantity;
         if (data.costPrice !== undefined) updateData.costPrice = data.costPrice;
-        if (data.expiryDate !== undefined) updateData.expiryDate = data.expiryDate ? new Date(data.expiryDate) : null;
+        if (nextExpiry !== undefined) updateData.expiryDate = nextExpiry;
         if (data.manufactureDate !== undefined) updateData.manufactureDate = data.manufactureDate ? new Date(data.manufactureDate) : null;
         if (data.notes !== undefined) updateData.notes = data.notes;
         if (data.warehouseId !== undefined) updateData.warehouseId = data.warehouseId;
@@ -233,8 +258,8 @@ export class BatchesService {
 
         // Auto-compute status if not explicitly provided
         if (!data.status) {
-            const newQty = updateData.quantity ?? batch.quantity;
-            const newExpiry = updateData.expiryDate !== undefined ? updateData.expiryDate : batch.expiryDate;
+            const newQty = nextQuantity ?? batch.quantity;
+            const newExpiry = nextExpiry !== undefined ? nextExpiry : batch.expiryDate;
             updateData.status = this.computeStatus({ quantity: newQty, expiryDate: newExpiry });
         }
 
@@ -267,7 +292,7 @@ export class BatchesService {
                     reason: `Eliminação do lote: ${batch.batchNumber}`,
                     performedBy: 'Sistema (Lote)',
                     companyId
-                }, tx as any);
+                }, tx as TxClient);
             }
 
             await tx.productBatch.delete({ where: { id } });
@@ -329,7 +354,7 @@ export class BatchesService {
         // no-op: expiry is now tracked exclusively in ProductBatch
     }
 
-    private async createExpiryAlert(batch: any, product: any, companyId: string) {
+    private async createExpiryAlert(batch: BatchSummary, product: ProductSummary, companyId: string) {
         const existing = await prisma.alert.findFirst({
             where: { relatedId: batch.id, type: 'expiring_soon', isResolved: false },
         });

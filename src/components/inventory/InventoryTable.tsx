@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-table';
 import { HiOutlinePencilSquare, HiOutlineTrash, HiOutlineEye, HiOutlinePlusCircle, HiOutlineClock, HiOutlineCube, HiOutlineBuildingOffice } from 'react-icons/hi2';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
+import { Badge, type BadgeVariant } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { Select } from '../ui/Select';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
@@ -18,6 +18,7 @@ import { ProductStockHistory } from './ProductStockHistory';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { statusLabels, categoryLabels } from '../../utils/constants';
 import type { Product, StockStatus } from '../../types';
+import type { ExportColumn } from '../../utils/exportUtils';
 
 import { useProducts, useWarehouses } from '../../hooks/useData';
 import { useCategories } from '../../hooks/useSettings';
@@ -138,7 +139,7 @@ export default function InventoryTable({
 
     // Status badge colors
     const getStatusBadge = (status: StockStatus) => {
-        const configs: Record<StockStatus, { variant: any; label: string; className: string }> = {
+        const configs: Record<StockStatus, { variant: BadgeVariant; label: string; className: string }> = {
             in_stock: { 
                 variant: 'success', 
                 label: statusLabels[status], 
@@ -160,7 +161,7 @@ export default function InventoryTable({
     };
 
     // Define columns
-    const columns = useMemo<ColumnDef<Product, any>[]>(
+    const columns = useMemo<ColumnDef<Product, unknown>[]>(
         () => [
             columnHelper.accessor('barcode', {
                 header: 'Código de Barras',
@@ -219,10 +220,6 @@ export default function InventoryTable({
                     const displayStock = (selectedWarehouse !== 'all')
                         ? (product.warehouseStocks?.find(ws => ws.warehouseId === selectedWarehouse)?.quantity ?? 0)
                         : product.currentStock;
-                    
-                    const packSize = product.packSize && product.packSize > 1 ? product.packSize : 1;
-                    const boxes = Math.floor(displayStock / packSize);
-                    const calculatedTotal = boxes * packSize;
                     const isLow = displayStock <= product.minStock;
 
                     return (
@@ -233,7 +230,7 @@ export default function InventoryTable({
                                     isLow ? 'text-red-500' : 'text-primary-600 dark:text-primary-400'
                                 )}
                             >
-                                {calculatedTotal}
+                                {displayStock}
                             </span>
                             {isLow && (
                                 <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse" title="Estoque baixo" />
@@ -307,7 +304,7 @@ export default function InventoryTable({
                 ),
             }),
         ],
-        [onEdit]
+        [onEdit, selectedWarehouse]
     );
 
 
@@ -393,14 +390,14 @@ export default function InventoryTable({
                 exportConfig={{
                     filename: 'inventario',
                     title: 'Relatório de Inventário',
-                    columns: [
+                    columns: ([
                         { key: 'barcode', header: 'Código de Barras', width: 15 },
                         { key: 'sku', header: 'Referência', width: 15 },
                         { key: 'name', header: 'Nome', width: 30 },
                         { key: 'currentStock', header: 'Stock Atual', format: 'number', width: 10, align: 'right' },
                         { key: 'price', header: 'Preço Venda', format: 'currency', width: 15, align: 'right' },
                         { key: 'status', header: 'Estado', width: 12 },
-                    ]
+                    ] satisfies ExportColumn[]).filter(col => !(originModule === 'commercial' && col.key === 'status'))
                 }}
                 renderFilters={
                     <div className="flex flex-wrap items-center gap-3">

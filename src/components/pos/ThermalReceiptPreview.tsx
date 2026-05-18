@@ -3,7 +3,16 @@
  * Preview moderno no ecr + formato térmico optimizado para impressão
  */
 
-import { HiOutlinePrinter, HiOutlineX, HiOutlineCheck, HiOutlineCash, HiOutlineCreditCard, HiOutlineReceiptTax, HiOutlineDownload } from 'react-icons/hi';
+import {
+    HiOutlineArrowDownTray as HiOutlineArrowDownTray,
+    HiOutlineBanknotes as HiOutlineBanknotes,
+    HiOutlineCheck,
+    HiOutlineCreditCard,
+    HiOutlineDocumentText,
+    HiOutlinePrinter,
+    HiOutlineReceiptPercent as HiOutlineReceiptTax,
+    HiOutlineXMark as HiOutlineXMark,
+} from 'react-icons/hi2';
 import { Modal, Button, Card, Badge } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { useStore } from '../../stores/useStore';
@@ -11,7 +20,6 @@ import type { Sale } from '../../types';
 import toast from 'react-hot-toast';
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiOutlineDocumentText } from 'react-icons/hi';
 
 interface ThermalReceiptPreviewProps {
     isOpen: boolean;
@@ -36,6 +44,7 @@ export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale 
     };
 
     const { date, time } = formatDateTime(sale.createdAt);
+    const taxRate = Number((sale as { taxRate?: number | string }).taxRate ?? company.ivaRate ?? 16);
 
     // Payment method labels and icons
     const paymentLabels: Record<string, string> = {
@@ -44,11 +53,12 @@ export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale 
         pix: 'PIX',
         mpesa: 'M-Pesa',
         emola: 'E-Mola',
+        transfer: 'Transferência',
         credit: 'Crédito',
     };
 
     const getPaymentIcon = () => {
-        if (sale.paymentMethod === 'cash') return <HiOutlineCash className="w-5 h-5" />;
+        if (sale.paymentMethod === 'cash') return <HiOutlineBanknotes className="w-5 h-5" />;
         return <HiOutlineCreditCard className="w-5 h-5" />;
     };
 
@@ -96,7 +106,7 @@ export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale 
         if (sale.discount > 0) {
             content += `Desconto:${('-' + formatCurrency(sale.discount)).padStart(23)}\n`;
         }
-        content += `IVA (16%):${formatCurrency(sale.tax).padStart(22)}\n`;
+        content += `IVA (${taxRate}%):${formatCurrency(sale.tax).padStart(22)}\n`;
         content += `${sepDash}\n`;
         content += `TOTAL:${formatCurrency(sale.total).padStart(26)}\n`;
         content += `${sep}\n`;
@@ -289,7 +299,7 @@ export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale 
                             </div>
                         )}
                         <div className="flex justify-between text-sm">
-                            <span className="text-gray-500 dark:text-gray-400">IVA (16%)</span>
+                            <span className="text-gray-500 dark:text-gray-400">IVA ({taxRate}%)</span>
                             <span className="text-gray-900 dark:text-white">{formatCurrency(sale.tax)}</span>
                         </div>
                         <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200 dark:border-dark-600">
@@ -328,7 +338,7 @@ export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale 
                 {/* Actions */}
                 <div className="flex gap-3">
                     <Button variant="outline" className="flex-1" onClick={onClose}>
-                        <HiOutlineX className="w-4 h-4 mr-2" />
+                        <HiOutlineXMark className="w-4 h-4 mr-2" />
                         Fechar
                     </Button>
                     <Button className="flex-1" onClick={handlePrint}>
@@ -339,7 +349,7 @@ export default function ThermalReceiptPreview({ isOpen, onClose, onShowA4, sale 
 
                 {onShowA4 && (
                     <Button variant="ghost" className="w-full text-primary-600 dark:text-primary-400" onClick={onShowA4}>
-                        <HiOutlineDownload className="w-4 h-4 mr-2" />
+                        <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                         Visualizar Fatura A4 Profissional
                     </Button>
                 )}

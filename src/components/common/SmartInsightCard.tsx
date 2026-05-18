@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import {
-    HiOutlineArrowNarrowRight,
+    HiOutlineArrowRight,
     HiOutlineLightBulb,
     HiOutlineExclamationCircle,
     HiOutlineCheckCircle,
@@ -11,7 +11,7 @@ import {
     HiOutlineTruck,
     HiOutlineUsers,
     HiOutlineCurrencyDollar
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
@@ -32,10 +32,10 @@ export function SmartInsightCard({ insight, className }: SmartInsightCardProps) 
     };
 
     const variantStyles = {
-        warning: 'border-l-4 border-l-red-500 bg-red-50/30 dark:bg-red-900/10',
-        info: 'border-l-4 border-l-blue-500 bg-blue-50/30 dark:bg-blue-900/10',
-        success: 'border-l-4 border-l-green-500 bg-green-50/30 dark:bg-green-900/10',
-        opportunity: 'border-l-4 border-l-amber-500 bg-amber-50/30 dark:bg-amber-900/10',
+        warning: 'border-l-4 border-l-red-500 bg-red-50 dark:bg-red-900/10',
+        info: 'border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-900/10',
+        success: 'border-l-4 border-l-green-500 bg-green-50 dark:bg-green-900/10',
+        opportunity: 'border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-900/10',
     };
 
     const moduleIcons = {
@@ -64,7 +64,7 @@ export function SmartInsightCard({ insight, className }: SmartInsightCardProps) 
                 </div>
                 <div className="flex-1">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-gray-500 flex items-center gap-1.5">
                             {moduleIcons[insight.module]}
                             {moduleLabels[insight.module]}
                         </span>
@@ -72,10 +72,10 @@ export function SmartInsightCard({ insight, className }: SmartInsightCardProps) 
                             <Badge variant="danger" size="sm">Urgente</Badge>
                         )}
                     </div>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-1">
+                    <h4 className="text-sm font-bold text-slate-950 dark:text-white mb-1">
                         {insight.title}
                     </h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <p className="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
                         {insight.description}
                     </p>
 
@@ -86,7 +86,7 @@ export function SmartInsightCard({ insight, className }: SmartInsightCardProps) 
                                     size="sm"
                                     variant="outline"
                                     className="text-xs group-hover:bg-white dark:group-hover:bg-dark-800 transition-all font-bold"
-                                    rightIcon={<HiOutlineArrowNarrowRight className="w-4 h-4" />}
+                                    rightIcon={<HiOutlineArrowRight className="w-4 h-4" />}
                                 >
                                     {insight.actionText}
                                 </Button>

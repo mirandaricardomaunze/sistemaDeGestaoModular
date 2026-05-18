@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DriverDeliveryCard Component
  *
  * Responsibility: Render a single delivery card for the Driver Panel.

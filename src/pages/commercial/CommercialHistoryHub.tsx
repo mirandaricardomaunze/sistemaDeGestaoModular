@@ -7,7 +7,8 @@ import {
     HiOutlineShieldCheck,
     HiOutlineNoSymbol,
 } from 'react-icons/hi2';
-import { PageHeader } from '../../components/ui';
+import type { IconType } from 'react-icons';
+import { Button, PageHeader } from '../../components/ui';
 import { LoadingOverlay } from '../../components/ui/Loading';
 import { cn } from '../../utils/helpers';
 import { usePendingVoids } from '../../hooks/useSales';
@@ -20,7 +21,7 @@ const CommercialPendingVoids = lazy(() => import('./CommercialPendingVoids'));
 
 type TabId = 'sales' | 'voids' | 'shifts' | 'stock' | 'audit';
 
-const TABS: { id: TabId; label: string; icon: any }[] = [
+const TABS: { id: TabId; label: string; icon: IconType }[] = [
     { id: 'sales', label: 'Vendas', icon: HiOutlineClock },
     { id: 'voids', label: 'Anulações Pendentes', icon: HiOutlineNoSymbol },
     { id: 'shifts', label: 'Turnos', icon: HiOutlineCalculator },
@@ -36,7 +37,7 @@ export default function CommercialHistoryHub() {
     const tabParam = searchParams.get('tab');
     const activeTab: TabId = isValidTab(tabParam) ? tabParam : 'sales';
 
-    const handleTabChange = (tabId: string) => {
+    const handleTabChange = (tabId: TabId) => {
         searchParams.set('tab', tabId);
         setSearchParams(searchParams, { replace: true });
     };
@@ -61,11 +62,13 @@ export default function CommercialHistoryHub() {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
                     return (
-                        <button 
+                        <Button
                             key={tab.id} 
                             onClick={() => handleTabChange(tab.id)}
+                            variant="ghost"
+                            size="sm"
                             className={cn(
-                                'flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-300',
+                                'h-10 px-5 rounded-lg text-sm font-bold normal-case tracking-normal',
                                 isActive
                                     ? 'bg-white dark:bg-dark-700 text-primary-600 dark:text-primary-400 shadow-md transform scale-[1.02]'
                                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-white/50 dark:hover:bg-dark-700/30'
@@ -81,7 +84,7 @@ export default function CommercialHistoryHub() {
                                     {pendingCount}
                                 </span>
                             )}
-                        </button>
+                        </Button>
                     );
                 })}
             </div>

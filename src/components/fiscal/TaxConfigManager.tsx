@@ -5,7 +5,7 @@ import {
     HiOutlinePencilSquare as HiOutlinePencil,
     HiOutlineTrash,
     HiOutlineCheck,
-    HiOutlineXMark as HiOutlineX,
+    HiOutlineXMark as HiOutlineXMark,
     HiOutlineInformationCircle,
 } from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
@@ -345,7 +345,7 @@ export default function TaxConfigManager() {
                                                     {bracket.isActive ? (
                                                         <HiOutlineCheck className="w-5 h-5" />
                                                     ) : (
-                                                        <HiOutlineX className="w-5 h-5" />
+                                                        <HiOutlineXMark className="w-5 h-5" />
                                                     )}
                                                 </button>
                                             </td>

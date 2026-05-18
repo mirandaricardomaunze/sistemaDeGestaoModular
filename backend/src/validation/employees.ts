@@ -36,6 +36,22 @@ export const createEmployeeSchema = z.object({
     subsidyFood: z.number().min(0).optional().default(0),
     contractType: z.enum(['indefinite', 'fixed_term']).optional().default('indefinite'),
     contractExpiry: dateSchema.optional().nullable(),
+    commissionRate: z.number().min(0).optional().nullable(),
+    reportsToId: z.preprocess(
+        (val) => (val === '' || val === undefined ? null : val),
+        z.string().uuid('ID do superior inválido').nullable().optional()
+    ),
+    qualifications: z.array(z.object({
+        id: z.string().optional(),
+        level: z.string().min(1, 'Nível é obrigatório'),
+        courseName: z.string().min(1, 'Curso é obrigatório'),
+        institution: z.string().min(1, 'Instituição é obrigatória'),
+        startYear: z.number().int().min(1900, 'Ano inválido'),
+        endYear: z.number().int().optional().nullable(),
+        isCompleted: z.boolean().optional().default(false),
+        certificateNumber: z.string().optional().nullable(),
+    })).optional().default([]),
+    skills: z.array(z.string()).optional().default([]),
     notes: z.string().max(1000, 'Notas muito longas').optional().nullable(),
     isActive: z.boolean().optional().default(true)
 });

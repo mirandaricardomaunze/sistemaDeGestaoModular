@@ -74,8 +74,34 @@ router.get('/retentions', authenticate, async (req: AuthRequest, res) => {
     res.json(retentions);
 });
 
+router.get('/commercial-summary', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa nao identificada. Faca login novamente.');
+    const { period } = req.query;
+    const summary = await fiscalService.getCommercialFiscalSummary(req.companyId, period as string | undefined);
+    res.json(summary);
+});
+
+router.get('/periods/:period/status', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa nao identificada. Faca login novamente.');
+    res.json(await fiscalService.getFiscalPeriodStatus(req.companyId, req.params.period));
+});
+
+router.post('/periods/:period/close', authenticate, authorize('admin', 'manager'), async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa nao identificada. Faca login novamente.');
+    const close = await fiscalService.closeFiscalPeriod(req.companyId, req.params.period, req.userId);
+    res.status(201).json(close);
+});
+
+router.post('/periods/:period/reopen', authenticate, authorize('admin', 'super_admin'), async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada.');
+    const approvalId = String(req.body?.approvalId ?? '');
+    const result = await fiscalService.reopenFiscalPeriod(req.companyId, req.params.period, approvalId, req.userId);
+    res.json(result);
+});
+
 router.post('/retentions', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    if (req.body?.period) await fiscalService.assertFiscalPeriodOpen(req.companyId, String(req.body.period));
     const retention = await prisma.taxRetention.create({
         data: { ...req.body, companyId: req.companyId }
     });
@@ -84,6 +110,12 @@ router.post('/retentions', authenticate, async (req: AuthRequest, res) => {
 
 router.put('/retentions/:id', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const existing = await prisma.taxRetention.findFirst({
+        where: { id: req.params.id, companyId: req.companyId },
+        select: { period: true }
+    });
+    if (!existing) throw ApiError.notFound('Retencao nao encontrada');
+    await fiscalService.assertFiscalPeriodOpen(req.companyId, String(req.body?.period || existing.period));
     const result = await prisma.taxRetention.updateMany({
         where: { id: req.params.id, companyId: req.companyId },
         data: req.body

@@ -12,7 +12,7 @@ async function testHospitality() {
         console.log('--- [1/3] Gestão de Quartos ---');
         const roomData = {
             number: 'Q-' + Math.floor(Math.random() * 500),
-            type: 'deluxe' as any,
+            type: 'deluxe' as const,
             price: 5000
         };
         const roomResult = await hospitalityService.createRoom(company.id, roomData);
@@ -40,8 +40,8 @@ async function testHospitality() {
         console.log(`✅ Check-out Concluído. Total Pago: ${checkoutResult.data!.totalBill} MT`);
 
         console.log('\n✨ TESTE DE HOSPITALIDADE CONCLUÍDO! ✨');
-    } catch (error: any) {
-        console.error('❌ ERRO NO TESTE DE HOSPITALIDADE:', error.message || error);
+    } catch (error) {
+        console.error('❌ ERRO NO TESTE DE HOSPITALIDADE:', (error as Error)?.message || error);
     }
 }
 

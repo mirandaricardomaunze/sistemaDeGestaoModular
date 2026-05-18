@@ -1,5 +1,6 @@
 import { logger } from '../utils/logger';
 import { useState, useEffect } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
     HiOutlineArrowDownTray,
     HiOutlineArrowPath,
@@ -8,13 +9,14 @@ import {
     HiOutlineClock,
     HiOutlineCheckCircle,
 } from 'react-icons/hi2';
-import { Card, Button, Modal, Pagination, usePagination } from '../components/ui';
+import { Card, Button, Modal, SmartTable, usePagination } from '../components/ui';
 import toast from 'react-hot-toast';
 import { backupsAPI, gdriveAPI } from '../services/api';
 import { HiOutlineCloudArrowUp as HiOutlineCloud } from 'react-icons/hi2';
 import { HiOutlineCloudArrowUp } from 'react-icons/hi2';
 
 interface Backup {
+    id?: string;
     filename: string;
     size: string;
     date: Date;
@@ -187,9 +189,9 @@ export default function BackupManagement() {
             if (response.success) {
                 toast.success('Backup enviado para o Google Drive!');
             }
-        } catch (error: any) {
+        } catch (error) {
             logger.error('Erro ao fazer upload para Drive:', error);
-            toast.error(error.response?.data?.error || 'Erro ao enviar para o Google Drive');
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.error || 'Erro ao enviar para o Google Drive');
         } finally {
             setIsUploadingToDrive(null);
         }
@@ -204,6 +206,85 @@ export default function BackupManagement() {
             minute: '2-digit',
         });
     };
+
+    const backupColumns: ColumnDef<Backup, unknown>[] = [
+        {
+            accessorKey: 'filename',
+            header: 'Nome do Arquivo',
+            cell: ({ row }) => (
+                <div className="flex items-center">
+                    <HiOutlineCircleStack className="w-5 h-5 text-gray-400 mr-3" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {row.original.filename}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            accessorKey: 'date',
+            header: 'Data/Hora',
+            cell: ({ row }) => (
+                <span className="text-sm text-gray-500">
+                    {formatDate(row.original.date)}
+                </span>
+            ),
+        },
+        {
+            accessorKey: 'size',
+            header: 'Tamanho',
+            cell: ({ row }) => (
+                <span className="text-sm text-gray-500">
+                    {row.original.size}
+                </span>
+            ),
+        },
+        {
+            id: 'actions',
+            header: () => <span className="block text-right">Acoes</span>,
+            cell: ({ row }) => {
+                const backup = row.original;
+
+                return (
+                    <div className="flex justify-end gap-2">
+                        {gdriveStatus?.configured && (
+                            <button
+                                onClick={() => handleGDriveUpload(backup.filename)}
+                                disabled={isUploadingToDrive === backup.filename}
+                                className={`p-2 rounded-lg transition-colors ${isUploadingToDrive === backup.filename
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600'
+                                    }`}
+                                title="Enviar para nuvem"
+                            >
+                                <HiOutlineCloudArrowUp className={`w-5 h-5 ${isUploadingToDrive === backup.filename ? 'animate-bounce' : ''}`} />
+                            </button>
+                        )}
+                        <button
+                            onClick={() => handleDownload(backup.filename)}
+                            className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 transition-colors"
+                            title="Download"
+                        >
+                            <HiOutlineArrowDownTray className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => confirmRestore(backup.filename)}
+                            className="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 transition-colors"
+                            title="Restaurar"
+                        >
+                            <HiOutlineArrowPath className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => confirmDelete(backup.filename)}
+                            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors"
+                            title="Deletar"
+                        >
+                            <HiOutlineTrash className="w-5 h-5" />
+                        </button>
+                    </div>
+                );
+            },
+        },
+    ];
 
     return (
         <div className="space-y-6">
@@ -336,116 +417,23 @@ export default function BackupManagement() {
             )}
 
             {/* Backups Table */}
-            <Card padding="none">
-                <div className="overflow-auto max-h-[600px] scrollbar-hide">
-                    <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                        <thead className="sticky top-0 z-10">
-                            <tr className="bg-gray-50 dark:bg-dark-800">
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                                    Nome do Arquivo
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                                    Data/Hora
-                                </th>
-                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                                    Tamanho
-                                </th>
-                                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                                    Ações
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                                        Carregando...
-                                    </td>
-                                </tr>
-                            ) : backups.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                                        Nenhum backup encontrado
-                                    </td>
-                                </tr>
-                            ) : (
-                                paginatedBackups.map((backup) => (
-                                    <tr
-                                        key={backup.filename}
-                                        className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800"
-                                    >
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <HiOutlineCircleStack className="w-5 h-5 text-gray-400 mr-3" />
-                                                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {backup.filename}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {formatDate(backup.date)}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {backup.size}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div className="flex justify-end gap-2">
-                                                {gdriveStatus?.configured && (
-                                                    <button
-                                                        onClick={() => handleGDriveUpload(backup.filename)}
-                                                        disabled={isUploadingToDrive === backup.filename}
-                                                        className={`p-2 rounded-lg transition-colors ${isUploadingToDrive === backup.filename
-                                                            ? 'text-gray-400 cursor-not-allowed'
-                                                            : 'hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600'
-                                                            }`}
-                                                        title="Enviar para nuvem"
-                                                    >
-                                                        <HiOutlineCloudArrowUp className={`w-5 h-5 ${isUploadingToDrive === backup.filename ? 'animate-bounce' : ''}`} />
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => handleDownload(backup.filename)}
-                                                    className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 transition-colors"
-                                                    title="Download"
-                                                >
-                                                    <HiOutlineArrowDownTray className="w-5 h-5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => confirmRestore(backup.filename)}
-                                                    className="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 transition-colors"
-                                                    title="Restaurar"
-                                                >
-                                                    <HiOutlineArrowPath className="w-5 h-5" />
-                                                </button>
-                                                <button
-                                                    onClick={() => confirmDelete(backup.filename)}
-                                                    className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors"
-                                                    title="Deletar"
-                                                >
-                                                    <HiOutlineTrash className="w-5 h-5" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-                {/* Pagination */}
-                {backups.length > 0 && (
-                    <div className="px-6 py-4 border-t border-gray-100 dark:border-dark-700">
-                        <Pagination
-                            currentPage={currentPage}
-                            totalItems={totalItems}
-                            itemsPerPage={itemsPerPage}
-                            onPageChange={setCurrentPage}
-                            onItemsPerPageChange={setItemsPerPage}
-                            itemsPerPageOptions={[5, 10, 20, 50]}
-                        />
-                    </div>
-                )}
-            </Card>
+            <SmartTable
+                data={paginatedBackups}
+                columns={backupColumns}
+                isLoading={isLoading}
+                hideToolbar
+                pagination={{
+                    currentPage,
+                    totalItems,
+                    itemsPerPage,
+                    onPageChange: setCurrentPage,
+                    onItemsPerPageChange: setItemsPerPage,
+                    itemsPerPageOptions: [5, 10, 20, 50],
+                }}
+                emptyTitle="Nenhum backup encontrado"
+                emptyDescription="Crie um novo backup para proteger os dados do sistema."
+                minHeight="420px"
+            />
 
             {/* Delete Modal */}
             <Modal

@@ -1,15 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { restaurantAPI } from '../services/api/restaurant.api';
-import type { 
-    RestaurantTable, 
-    RestaurantMenuItem, 
-    RestaurantOrder, 
+import type {
+    RestaurantTable,
+    RestaurantMenuItem,
+    RestaurantOrder,
     RestaurantReservation,
     RestaurantDashboard,
     OrderStatus,
     ReservationStatus
 } from '../types/restaurant';
 import toast from 'react-hot-toast';
+
+interface MenuItemsParams {
+    category?: string;
+    isAvailable?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+}
+
+interface ReservationsParams {
+    date?: string;
+    status?: ReservationStatus;
+    search?: string;
+    page?: number;
+    limit?: number;
+}
+
+type CreateReservationPayload = Omit<RestaurantReservation, 'id' | 'companyId' | 'createdAt' | 'updatedAt' | 'table'>;
 
 // ============================================================================
 // HELPERS
@@ -58,7 +76,7 @@ export function useCreateRestaurantTable() {
             qc.invalidateQueries({ queryKey: ['restaurant', 'tables'] });
             toast.success('Mesa criada com sucesso');
         },
-        onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao criar mesa'),
+        onError: (e: { response?: { data?: { message?: string; error?: string } } }) => toast.error(e?.response?.data?.error || 'Erro ao criar mesa'),
     }));
 }
 
@@ -78,8 +96,8 @@ export function useUpdateTableStatus() {
 // MENU ITEMS
 // ============================================================================
 
-export function useMenuItems(params?: any) {
-    return useQuery({
+export function useMenuItems(params?: MenuItemsParams) {
+    return useQuery<{ data: RestaurantMenuItem[]; pagination: { total: number; page: number; limit: number; totalPages: number } }>({
         queryKey: ['restaurant', 'menu', params],
         queryFn: () => restaurantAPI.getMenuItems(params),
     });
@@ -113,8 +131,8 @@ export function useUpdateOrderStatus() {
 // RESERVATIONS
 // ============================================================================
 
-export function useRestaurantReservations(params?: any) {
-    return useQuery({
+export function useRestaurantReservations(params?: ReservationsParams) {
+    return useQuery<{ data: RestaurantReservation[]; pagination: { total: number; page: number; limit: number; totalPages: number } }>({
         queryKey: ['restaurant', 'reservations', params],
         queryFn: () => restaurantAPI.getReservations(params),
     });
@@ -123,7 +141,7 @@ export function useRestaurantReservations(params?: any) {
 export function useCreateReservation() {
     const qc = useQueryClient();
     return withIsLoading(useMutation({
-        mutationFn: (data: any) => restaurantAPI.createReservation(data),
+        mutationFn: (data: CreateReservationPayload) => restaurantAPI.createReservation(data),
         onSuccess: () => {
             qc.invalidateQueries({ queryKey: ['restaurant', 'reservations'] });
             toast.success('Reserva registrada com sucesso');
@@ -169,8 +187,8 @@ export function useUpdateReservationStatus() {
 // MENU HOOKS
 // ============================================================================
 
-export function useRestaurantMenu(params?: any) {
-    return useQuery({
+export function useRestaurantMenu(params?: MenuItemsParams) {
+    return useQuery<{ data: RestaurantMenuItem[]; pagination: { total: number; page: number; limit: number; totalPages: number } }>({
         queryKey: ['restaurant', 'menu', params],
         queryFn: () => restaurantAPI.getMenuItems(params),
     });
@@ -185,7 +203,7 @@ export function useCreateMenuItem() {
             qc.invalidateQueries({ queryKey: ['restaurant', 'menu'] });
             toast.success('Item criado com sucesso');
         },
-        onError: (e: any) => toast.error(e?.response?.data?.error || 'Erro ao criar item'),
+        onError: (e: { response?: { data?: { message?: string; error?: string } } }) => toast.error(e?.response?.data?.error || 'Erro ao criar item'),
     }));
 }
 

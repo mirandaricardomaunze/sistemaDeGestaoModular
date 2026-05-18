@@ -12,6 +12,8 @@ description: "Senior-level development standards and architectural guide for the
 > 4. `performance-and-caching` (DB Efficiency, Redis, Background Jobs)
 > 5. `observability-and-logs` (Audit Trails, Structured Logging)
 > 6. `ui-ux-design` (Premium Layouts, TailwindCSS, Responsiveness)
+> 7. `performance-fixes` (5 problemas críticos — OOM build, rota BottleStore, Zustand persist, bundle splitting, audit N+1)
+> 8. `producao-readiness` (Deployment Docker, env vars, monitorização, recuperação de falhas)
 
 All code you produce MUST comply with the rules defined across these skills. If a user requests something that violates these rules, you must politely decline and offer the compliant alternative.
 
@@ -86,6 +88,7 @@ The system is a modular multi-tenant ERP/Management platform.
 - **Commercial (Retail/PDV)**:
   - **POS Shift Binding**: Every POS terminal MUST be bound to a warehouse upon opening a shift to ensure accurate stock deduction.
   - **Quote-to-Sale**: Support seamless conversion of Quotations to POS sales by passing state via `location.state`.
+  - **IVA Calculation**: Normalize `companySettings.ivaRate` to a number before calculating POS totals. A visible label like `IVA (16%)` must never produce `0` tax for a taxable subtotal; for `124` at `16%`, IVA is `19.84` and total is `143.84`.
   - **Pricing**: Implement bulk price adjustment tools (percentage/fixed) with category filtering.
   - **Cash Management**: Every PDV must support cash movements (Sangria/Suprimento) tracked within the shift session.
 - **Pharmacy**: Handle batches and expiry dates strictly. Sales must decrement stock at the batch level.

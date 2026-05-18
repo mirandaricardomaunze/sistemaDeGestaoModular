@@ -93,7 +93,7 @@ export function useStockTransfers(params?: UseTransfersParams) {
         }
     };
 
-    const receiveTransfer = async (id: string, items?: any[]) => {
+    const receiveTransfer = async (id: string, items?: Array<{ productId: string; receivedQuantity: number }>) => {
         try {
             const updated = await warehousesAPI.receiveTransfer(id, items);
             setTransfers((prev) => prev.map(t => t.id === id ? updated : t));

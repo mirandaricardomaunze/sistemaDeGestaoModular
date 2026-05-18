@@ -7,14 +7,14 @@ import { useProducts } from '../hooks/useData';
 import {
     HiOutlineBeaker,
     HiOutlineShieldCheck,
-    HiOutlineExclamation,
-    HiOutlineClipboardList,
-    HiOutlineRefresh,
-    HiOutlineTrendingDown,
-    HiOutlineViewGrid,
-    HiOutlineDownload,
+    HiOutlineExclamationTriangle,
+    HiOutlineClipboardDocumentList,
+    HiOutlineArrowPath,
+    HiOutlineArrowTrendingDown,
+    HiOutlineSquares2X2,
+    HiOutlineArrowDownTray,
     HiOutlinePrinter
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { generatePharmacyExpirationReport } from '../utils/documentGenerator';
 import { useStore } from '../stores/useStore';
 import * as XLSX from 'xlsx';
@@ -22,7 +22,23 @@ import * as XLSX from 'xlsx';
 export default function PharmacyControl() {
     const { companySettings } = useStore();
     const navigate = useNavigate();
-    const [expiringSoonData, setExpiringSoonData] = useState<{ data: any[], pagination?: any }>({ data: [] });
+    type ExpiringProduct = {
+        id: string;
+        name: string;
+        code?: string;
+        price: number | string;
+        currentStock: number;
+        batches?: Array<{ id: string; batchNumber: string; expiryDate: string; quantity: number }>;
+        batchNumber?: string;
+        expiryDate?: string;
+        minStock?: number;
+        unit?: string;
+    };
+    type ExpiringResponse = {
+        data: ExpiringProduct[];
+        pagination?: { page: number; limit: number; total: number; totalPages: number };
+    };
+    const [expiringSoonData, setExpiringSoonData] = useState<ExpiringResponse>({ data: [] });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const { products, isLoading: isLoadingProducts, updateProduct } = useProducts({ page, limit: pageSize });
@@ -39,7 +55,8 @@ export default function PharmacyControl() {
         try {
             const data = await productsAPI.getExpiring(90, { page, limit: pageSize }); // Look ahead 90 days
             setExpiringSoonData(data);
-        } catch (err: any) {
+        } catch (err) {
+
             logger.error('Erro ao carregar produtos a expirar');
         }
     };
@@ -53,9 +70,9 @@ export default function PharmacyControl() {
             'Produto': p.name,
             'Código': p.code,
             'Lote': p.batchNumber,
-            'Validade': new Date(p.expiryDate).toLocaleDateString(),
+            'Validade': p.expiryDate ? new Date(p.expiryDate).toLocaleDateString() : '',
             'Stock Atual': p.currentStock,
-            'Valor (MT)': (p.price || 0) * p.currentStock
+            'Valor (MT)': Number(p.price || 0) * p.currentStock
         }));
         const worksheet = XLSX.utils.json_to_sheet(data);
         const workbook = XLSX.utils.book_new();
@@ -93,10 +110,10 @@ export default function PharmacyControl() {
                     <p className="text-gray-500 dark:text-gray-400">Rastreabilidade, Lotes e Validades em Tempo Real</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="outline" leftIcon={<HiOutlineRefresh className="w-5 h-5" />} onClick={fetchExpiring}>Actualizar</Button>
+                    <Button variant="outline" leftIcon={<HiOutlineArrowPath className="w-5 h-5" />} onClick={fetchExpiring}>Actualizar</Button>
                     <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 gap-1 border border-gray-200 dark:border-dark-700">
-                        <Button variant="ghost" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={exportToExcel}>Excel</Button>
-                        <Button variant="ghost" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => generatePharmacyExpirationReport(expiringSoonData.data, {
+                        <Button variant="ghost" size="sm" leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />} onClick={exportToExcel}>Excel</Button>
+                        <Button variant="ghost" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => generatePharmacyExpirationReport(expiringSoonData.data as unknown as Parameters<typeof generatePharmacyExpirationReport>[0], {
                             name: companySettings.companyName,
                             companyName: companySettings.companyName,
                             address: companySettings.address,
@@ -107,7 +124,7 @@ export default function PharmacyControl() {
                             taxId: companySettings.taxId
                         })}>PDF</Button>
                     </div>
-                    <Button leftIcon={<HiOutlineViewGrid className="w-5 h-5" />} variant="outline" onClick={() => navigate('/inventory')}>Ver Inventário</Button>
+                    <Button leftIcon={<HiOutlineSquares2X2 className="w-5 h-5" />} variant="outline" onClick={() => navigate('/inventory')}>Ver Inventário</Button>
                     <Button leftIcon={<HiOutlineBeaker className="w-5 h-5" />} onClick={() => setIsBatchModalOpen(true)}>Entrada de Lote</Button>
                 </div>
             </div>
@@ -118,7 +135,7 @@ export default function PharmacyControl() {
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                                <HiOutlineExclamation className="w-6 h-6 text-red-600" />
+                                <HiOutlineExclamationTriangle className="w-6 h-6 text-red-600" />
                             </div>
                             <h3 className="font-bold text-lg text-gray-900 dark:text-white">Validades Próximas (90 dias)</h3>
                         </div>
@@ -144,12 +161,12 @@ export default function PharmacyControl() {
                                         </td>
                                         <td className="py-4 px-2 font-mono text-xs">{item.batchNumber || '---'}</td>
                                         <td className="py-4 px-2">
-                                            <Badge variant={new Date(item.expiryDate) < new Date() ? 'danger' : 'warning'}>
-                                                {new Date(item.expiryDate).toLocaleDateString()}
+                                            <Badge variant={item.expiryDate && new Date(item.expiryDate) < new Date() ? 'danger' : 'warning'}>
+                                                {item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : '---'}
                                             </Badge>
                                         </td>
                                         <td className="py-4 px-2 text-right font-medium">
-                                            <span className={item.currentStock <= item.minStock ? 'text-red-600' : 'text-gray-900 dark:text-white'}>
+                                            <span className={item.currentStock <= (item.minStock ?? 0) ? 'text-red-600' : 'text-gray-900 dark:text-white'}>
                                                 {item.currentStock} {item.unit}
                                             </span>
                                         </td>
@@ -184,10 +201,10 @@ export default function PharmacyControl() {
                 <div className="space-y-6">
                     {/* Quick Stats */}
                     <Card variant="glass" className="p-6 bg-primary-600 text-white relative overflow-hidden transition-all hover:scale-[1.02]">
-                        <HiOutlineTrendingDown className="w-16 h-16 absolute -bottom-4 -right-4 opacity-10" />
+                        <HiOutlineArrowTrendingDown className="w-16 h-16 absolute -bottom-4 -right-4 opacity-10" />
                         <h4 className="text-primary-100 text-sm font-medium">Perdas Potenciais (Página)</h4>
                         <p className="text-3xl font-black mt-1">
-                            {expiringSoonData.data.reduce((acc, i) => acc + (i.price * i.currentStock), 0).toLocaleString()} MT
+                            {expiringSoonData.data.reduce((acc, i) => acc + (Number(i.price) * i.currentStock), 0).toLocaleString()} MT
                         </p>
                         <p className="text-xs text-primary-200 mt-2">Valor em stock a vencer brevemente</p>
                     </Card>
@@ -195,7 +212,7 @@ export default function PharmacyControl() {
                     {/* Checklists */}
                     <Card className="p-6">
                         <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                            <HiOutlineClipboardList className="w-5 h-5 text-primary-600" /> Controles Diários
+                            <HiOutlineClipboardDocumentList className="w-5 h-5 text-primary-600" /> Controles Diários
                         </h3>
                         <div className="space-y-3">
                             <div className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-dark-700 rounded-lg cursor-pointer">

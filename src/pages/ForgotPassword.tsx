@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { HiOutlineEnvelope, HiOutlineLockClosed, HiOutlineKey, HiOutlineArrowLeft, HiOutlineEye, HiOutlineEyeSlash, HiOutlineShieldCheck } from 'react-icons/hi2';
+import { HiOutlineEnvelope, HiOutlineLockClosed, HiOutlineKey, HiOutlineArrowLeft, HiOutlineShieldCheck } from 'react-icons/hi2';
 import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
+import { Input, Button } from '../components/ui';
 
 // Schemas
 const emailSchema = z.object({
@@ -34,8 +36,6 @@ export default function ForgotPassword() {
     const [isLoading, setIsLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // Forms
     const emailForm = useForm<z.infer<typeof emailSchema>>({ resolver: zodResolver(emailSchema) });
@@ -49,8 +49,8 @@ export default function ForgotPassword() {
             setEmail(data.email);
             setStep(2);
             toast.success('Código enviado para o seu email!');
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Erro ao enviar código.');
+        } catch (error) {
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.error || 'Erro ao enviar código.');
         } finally {
             setIsLoading(false);
         }
@@ -63,8 +63,8 @@ export default function ForgotPassword() {
             setOtp(data.otp);
             setStep(3);
             toast.success('Código verificado com sucesso!');
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Código inválido.');
+        } catch (error) {
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.error || 'Código inválido.');
         } finally {
             setIsLoading(false);
         }
@@ -76,8 +76,8 @@ export default function ForgotPassword() {
             await authAPI.resetPassword({ email, otp, newPassword: data.password });
             toast.success('Senha alterada com sucesso!');
             navigate('/login');
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || 'Erro ao redefinir senha.');
+        } catch (error) {
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.error || 'Erro ao redefinir senha.');
         } finally {
             setIsLoading(false);
         }
@@ -85,6 +85,21 @@ export default function ForgotPassword() {
 
     return (
         <div className="min-h-screen relative flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50 dark:bg-dark-950 overflow-hidden font-sans">
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    duration: 5000,
+                    style: { borderRadius: '12px', padding: '14px 18px', fontSize: '14px', fontWeight: 500 },
+                    error: {
+                        style: { background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3' },
+                        iconTheme: { primary: '#e11d48', secondary: '#fff1f2' },
+                    },
+                    success: {
+                        style: { background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' },
+                        iconTheme: { primary: '#16a34a', secondary: '#f0fdf4' },
+                    },
+                }}
+            />
             {/* Animated Background Elements -- same as Login */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 <div className="absolute -top-24 -left-24 w-96 h-96 bg-primary-500/10 dark:bg-primary-500/5 rounded-full blur-3xl animate-blob"></div>
@@ -145,89 +160,62 @@ export default function ForgotPassword() {
                         {/* Step 1: Email */}
                         {step === 1 && (
                             <form onSubmit={emailForm.handleSubmit(handleSendOTP)} className="space-y-6">
-                                <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                                        Endereço de Email
-                                    </label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                            <HiOutlineEnvelope className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
-                                        </div>
-                                        <input
-                                            type="email"
-                                            placeholder="seu@email.com"
-                                            className={`block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-dark-800/50 border ${emailForm.formState.errors.email ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
-                                            {...emailForm.register('email')}
-                                        />
-                                    </div>
-                                    {emailForm.formState.errors.email && (
-                                        <p className="text-xs font-medium text-red-500 mt-1 ml-1">{emailForm.formState.errors.email.message}</p>
-                                    )}
-                                </div>
+                                <Input
+                                    label="Endereço de Email"
+                                    type="email"
+                                    placeholder="seu@email.com"
+                                    leftIcon={<HiOutlineEnvelope className="h-5 w-5" />}
+                                    error={emailForm.formState.errors.email?.message}
+                                    size="lg"
+                                    {...emailForm.register('email')}
+                                />
 
-                                <button
+                                <Button
                                     type="submit"
-                                    disabled={isLoading}
-                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-lg bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
+                                    variant="primary"
+                                    size="lg"
+                                    fullWidth
+                                    isLoading={isLoading}
+                                    loadingText="A ENVIAR..."
+                                    leftIcon={<HiOutlineEnvelope className="h-5 w-5" />}
+                                    className="group"
                                 >
-                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                                    <div className="flex items-center justify-center gap-2">
-                                        {isLoading ? (
-                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        ) : (
-                                            <>
-                                                <HiOutlineEnvelope className="w-5 h-5" />
-                                                <span>ENVIAR CÓDIGO</span>
-                                            </>
-                                        )}
-                                    </div>
-                                </button>
+                                    ENVIAR CÓDIGO
+                                </Button>
                             </form>
                         )}
 
                         {/* Step 2: OTP */}
                         {step === 2 && (
                             <form onSubmit={otpForm.handleSubmit(handleVerifyOTP)} className="space-y-6">
-                                <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                                        Código de Verificação
-                                    </label>
-                                    <div className="relative group">
-                                        <input
-                                            type="text"
-                                            placeholder="000000"
-                                            maxLength={6}
-                                            className={`block w-full text-center tracking-[0.5em] py-3 bg-slate-50 dark:bg-dark-800/50 border ${otpForm.formState.errors.otp ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200 font-mono text-lg`}
-                                            {...otpForm.register('otp')}
-                                        />
-                                    </div>
-                                    {otpForm.formState.errors.otp && (
-                                        <p className="text-xs font-medium text-red-500 mt-1 ml-1 text-center">{otpForm.formState.errors.otp.message}</p>
-                                    )}
-                                </div>
+                                <Input
+                                    label="Código de Verificação"
+                                    type="text"
+                                    placeholder="000000"
+                                    maxLength={6}
+                                    className="text-center tracking-[0.5em] font-mono text-lg"
+                                    error={otpForm.formState.errors.otp?.message}
+                                    size="lg"
+                                    {...otpForm.register('otp')}
+                                />
 
-                                <button
+                                <Button
                                     type="submit"
-                                    disabled={isLoading}
-                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-lg bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
+                                    variant="primary"
+                                    size="lg"
+                                    fullWidth
+                                    isLoading={isLoading}
+                                    loadingText="A VERIFICAR..."
+                                    leftIcon={<HiOutlineShieldCheck className="h-5 w-5" />}
+                                    className="group"
                                 >
-                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                                    <div className="flex items-center justify-center gap-2">
-                                        {isLoading ? (
-                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        ) : (
-                                            <>
-                                                <HiOutlineShieldCheck className="w-5 h-5" />
-                                                <span>VERIFICAR CÓDIGO</span>
-                                            </>
-                                        )}
-                                    </div>
-                                </button>
+                                    VERIFICAR CÓDIGO
+                                </Button>
 
-                                <div className="text-center">
-                                    <button type="button" onClick={() => setStep(1)} className="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 transition-colors">
+                                <div className="text-center mt-4">
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => setStep(1)}>
                                         Voltar e reenviar código
-                                    </button>
+                                    </Button>
                                 </div>
                             </form>
                         )}
@@ -236,76 +224,40 @@ export default function ForgotPassword() {
                         {step === 3 && (
                             <form onSubmit={passwordForm.handleSubmit(handleResetPassword)} className="space-y-6">
                                 {/* Password */}
-                                <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                                        Nova Senha
-                                    </label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                            <HiOutlineLockClosed className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
-                                        </div>
-                                        <input
-                                            type={showPassword ? 'text' : 'password'}
-                                            placeholder="••••••••"
-                                            className={`block w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-dark-800/50 border ${passwordForm.formState.errors.password ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
-                                            {...passwordForm.register('password')}
-                                        />
-                                        <div
-                                            className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-primary-500 transition-colors"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                        >
-                                            {showPassword ? <HiOutlineEyeSlash className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
-                                        </div>
-                                    </div>
-                                    {passwordForm.formState.errors.password && (
-                                        <p className="text-xs font-medium text-red-500 mt-1 ml-1">{passwordForm.formState.errors.password.message}</p>
-                                    )}
-                                </div>
+                                <Input
+                                    label="Nova Senha"
+                                    type="password"
+                                    showPasswordToggle
+                                    placeholder="••••••••"
+                                    leftIcon={<HiOutlineLockClosed className="h-5 w-5" />}
+                                    error={passwordForm.formState.errors.password?.message}
+                                    size="lg"
+                                    {...passwordForm.register('password')}
+                                />
 
-                                {/* Confirm Password */}
-                                <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
-                                        Confirmar Senha
-                                    </label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                                            <HiOutlineLockClosed className="h-5 w-5 text-slate-400 group-focus-within:text-primary-500 transition-colors" />
-                                        </div>
-                                        <input
-                                            type={showConfirmPassword ? 'text' : 'password'}
-                                            placeholder="••••••••"
-                                            className={`block w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-dark-800/50 border ${passwordForm.formState.errors.confirmPassword ? 'border-red-500' : 'border-slate-200 dark:border-dark-700/50'} rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 transition-all duration-200`}
-                                            {...passwordForm.register('confirmPassword')}
-                                        />
-                                        <div
-                                            className="absolute inset-y-0 right-0 pr-4 flex items-center cursor-pointer text-slate-400 hover:text-primary-500 transition-colors"
-                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        >
-                                            {showConfirmPassword ? <HiOutlineEyeSlash className="h-5 w-5" /> : <HiOutlineEye className="h-5 w-5" />}
-                                        </div>
-                                    </div>
-                                    {passwordForm.formState.errors.confirmPassword && (
-                                        <p className="text-xs font-medium text-red-500 mt-1 ml-1">{passwordForm.formState.errors.confirmPassword.message}</p>
-                                    )}
-                                </div>
+                                <Input
+                                    label="Confirmar Senha"
+                                    type="password"
+                                    showPasswordToggle
+                                    placeholder="••••••••"
+                                    leftIcon={<HiOutlineLockClosed className="h-5 w-5" />}
+                                    error={passwordForm.formState.errors.confirmPassword?.message}
+                                    size="lg"
+                                    {...passwordForm.register('confirmPassword')}
+                                />
 
-                                <button
+                                <Button
                                     type="submit"
-                                    disabled={isLoading}
-                                    className="relative w-full overflow-hidden group py-3.5 px-6 rounded-lg bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold shadow-xl shadow-primary-500/25 hover:shadow-primary-500/40 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-70 disabled:pointer-events-none"
+                                    variant="primary"
+                                    size="lg"
+                                    fullWidth
+                                    isLoading={isLoading}
+                                    loadingText="A REDEFINIR..."
+                                    leftIcon={<HiOutlineShieldCheck className="h-5 w-5" />}
+                                    className="group mt-6"
                                 >
-                                    <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                                    <div className="flex items-center justify-center gap-2">
-                                        {isLoading ? (
-                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                        ) : (
-                                            <>
-                                                <HiOutlineShieldCheck className="w-5 h-5" />
-                                                <span>REDEFINIR SENHA</span>
-                                            </>
-                                        )}
-                                    </div>
-                                </button>
+                                    REDEFINIR SENHA
+                                </Button>
                             </form>
                         )}
 

@@ -48,7 +48,7 @@ export const DEFAULT_IRPS_BRACKETS: Omit<IRPSBracket, 'id'>[] = [
 // Tax Retention Types
 // ============================================================================
 
-export type RetentionDocumentType = 'invoice' | 'payroll' | 'supplier_payment' | 'other';
+export type RetentionDocumentType = 'invoice' | 'credit_note' | 'purchase_order' | 'payroll' | 'supplier_payment' | 'other';
 export type RetentionStatus = 'pending' | 'applied' | 'reported' | 'paid';
 
 export interface TaxRetention {
@@ -83,9 +83,11 @@ export type FiscalReportType =
     | 'irt_annual'
     | 'saft_monthly'
     | 'saft_annual'
+    | 'commercial_iva_map'
+    | 'monthly_close'
     | 'withholding_monthly';
 
-export type FiscalReportStatus = 'draft' | 'generated' | 'validated' | 'submitted' | 'accepted' | 'rejected';
+export type FiscalReportStatus = 'draft' | 'generated' | 'validated' | 'submitted' | 'accepted' | 'rejected' | 'closed';
 
 export type ExportFormat = 'pdf' | 'csv' | 'xml' | 'saft' | 'excel';
 
@@ -205,8 +207,8 @@ export interface SAFTFile {
     header: SAFTHeader;
     masterFiles: {
         customers: SAFTCustomer[];
-        products: any[];
-        taxTable: any[];
+        products: Record<string, unknown>[];
+        taxTable: Record<string, unknown>[];
     };
     sourceDocuments: {
         salesInvoices: {
@@ -238,8 +240,8 @@ export interface FiscalAuditLog {
     entityType: 'tax_config' | 'retention' | 'report' | 'saft' | 'deadline';
     entityId: string;
     entityDescription: string;
-    previousValues?: Record<string, any>;
-    newValues?: Record<string, any>;
+    previousValues?: Record<string, unknown>;
+    newValues?: Record<string, unknown>;
     userId: string;
     userName: string;
     ipAddress?: string;
@@ -338,6 +340,44 @@ export interface FiscalDashboardMetrics {
     recentRetentions: TaxRetention[];
     complianceStatus: 'compliant' | 'warning' | 'non_compliant';
     logisticsMetrics?: LogisticsMetrics;
+}
+
+export interface CommercialFiscalSummary {
+    module: 'commercial';
+    period: string;
+    isClosed: boolean;
+    currentMonth: {
+        taxableBase: number;
+        invoiceTaxableBase: number;
+        creditNoteTaxableBase: number;
+        purchaseTaxableBase: number;
+        ivaCollected: number;
+        ivaReversed: number;
+        ivaNetSales: number;
+        ivaDeductible: number;
+        ivaPayable: number;
+        invoiceCount: number;
+        creditNoteCount: number;
+        purchaseOrderCount: number;
+        documentCount: number;
+    };
+    ytd: {
+        ivaCollected: number;
+        ivaReversed: number;
+        ivaDeductible: number;
+        ivaPayable: number;
+        documentCount: number;
+    };
+    purchaseDeductions: TaxRetention[];
+    recentRetentions: TaxRetention[];
+}
+
+export interface FiscalPeriodStatus {
+    period: string;
+    isClosed: boolean;
+    closedAt?: string | null;
+    closedBy?: string | null;
+    reportId?: string | null;
 }
 
 // ============================================================================

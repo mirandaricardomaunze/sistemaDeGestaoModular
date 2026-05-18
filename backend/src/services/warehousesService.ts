@@ -1,9 +1,42 @@
-import { TransferStatus } from '@prisma/client';
+import { Prisma, TransferStatus } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { stockService } from './stockService';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 import { logger } from '../utils/logger';
+import { getThresholds, isOverThreshold } from './approvals/thresholds';
+
+type WarehouseCreateInput = {
+    name: string;
+    code?: string;
+    address?: string;
+    type?: string;
+    isActive?: boolean;
+};
+
+type WarehouseUpdateInput = Partial<WarehouseCreateInput>;
+
+type TransferItemInput = {
+    productId: string;
+    quantity: number;
+};
+
+type CreateTransferInput = {
+    sourceWarehouseId: string;
+    targetWarehouseId: string;
+    items: TransferItemInput[];
+    responsible: string;
+    reason?: string;
+    notes?: string;
+};
+
+type TransferListQuery = {
+    page?: string | number;
+    limit?: string | number;
+    status?: TransferStatus | string;
+    startDate?: string;
+    endDate?: string;
+};
 
 export class WarehousesService {
     async getWarehouses(companyId: string) {
@@ -27,14 +60,14 @@ export class WarehousesService {
         return warehouse;
     }
 
-    async createWarehouse(companyId: string, data: any) {
+    async createWarehouse(companyId: string, data: WarehouseCreateInput) {
         const code = data.code || `WH-${Date.now().toString().slice(-6)}`;
         return prisma.warehouse.create({
             data: { ...data, code, companyId }
         });
     }
 
-    async updateWarehouse(companyId: string, id: string, data: any) {
+    async updateWarehouse(companyId: string, id: string, data: WarehouseUpdateInput) {
         const result = await prisma.warehouse.updateMany({
             where: { id, companyId },
             data
@@ -57,11 +90,11 @@ export class WarehousesService {
         return { id };
     }
 
-    async getAllTransfers(companyId: string, query: any) {
+    async getAllTransfers(companyId: string, query: TransferListQuery) {
         const { page, limit, skip } = getPaginationParams(query);
         const { status, startDate, endDate } = query;
-        const where: any = { companyId };
-        if (status) where.status = status;
+        const where: Prisma.StockTransferWhereInput = { companyId };
+        if (status) where.status = status as TransferStatus;
         if (startDate || endDate) {
             where.date = {};
             if (startDate) where.date.gte = new Date(String(startDate));
@@ -75,7 +108,7 @@ export class WarehousesService {
                 include: {
                     sourceWarehouse: { select: { id: true, name: true, code: true } },
                     targetWarehouse: { select: { id: true, name: true, code: true } },
-                    items: { include: { product: { select: { id: true, name: true, code: true, barcode: true, description: true, unit: true, weight: true } } } }
+                    items: { include: { product: { select: { id: true, name: true, code: true, barcode: true, sku: true, description: true, unit: true, weight: true, price: true, costPrice: true } } } }
                 },
                 orderBy: { createdAt: 'desc' },
                 skip,
@@ -90,10 +123,10 @@ export class WarehousesService {
      * Create a transfer in `draft` status.
      * No stock is touched; the operator can edit until they `submit`.
      */
-    async createTransfer(companyId: string, data: any, userId: string, userName: string) {
+    async createTransfer(companyId: string, data: CreateTransferInput, userId: string, userName: string) {
         logger.info('Creating stock transfer:', { companyId, userId, userName, data });
         const { sourceWarehouseId, targetWarehouseId, items, responsible, reason, notes } = data;
-        
+
         if (!sourceWarehouseId || !targetWarehouseId) {
             logger.warn('Missing warehouse IDs:', { sourceWarehouseId, targetWarehouseId });
             throw ApiError.badRequest('Armazém de origem e destino são obrigatórios');
@@ -120,13 +153,13 @@ export class WarehousesService {
 
                 logger.info('Generating transfer number:', { number });
 
-                return (tx as any).stockTransfer.create({
+                return tx.stockTransfer.create({
                     data: {
                         number, sourceWarehouseId, targetWarehouseId, responsible, reason, notes, companyId,
-                        status: (TransferStatus as any).draft || 'draft',
+                        status: TransferStatus.draft,
                         requestedBy: userId,
                         requestedAt: new Date(),
-                        items: { create: items.map((item: any) => ({ productId: item.productId, quantity: item.quantity })) }
+                        items: { create: items.map((item) => ({ productId: item.productId, quantity: item.quantity })) }
                     },
                     include: { sourceWarehouse: true, targetWarehouse: true, items: true }
                 });
@@ -138,18 +171,26 @@ export class WarehousesService {
     }
 
     /**
-     * Submit a draft for manager approval. No stock impact.
+     * Submit a draft. Small transfers (under the configured units threshold)
+     * skip manager approval and go straight to approved; larger ones enter the
+     * pending queue for a 4-eyes manager decision.
      */
     async submitTransfer(companyId: string, id: string, userId: string) {
-        return prisma.$transaction(async (tx: any) => {
+        const thresholds = await getThresholds(companyId);
+
+        return prisma.$transaction(async (tx) => {
             const transfer = await tx.stockTransfer.findFirst({ where: { id, companyId }, include: { items: true } });
             if (!transfer) throw ApiError.notFound('Transferência não encontrada');
-            if (transfer.status !== ((TransferStatus as any).draft || 'draft')) throw ApiError.badRequest('Apenas rascunhos podem ser submetidos');
+            if (transfer.status !== TransferStatus.draft) throw ApiError.badRequest('Apenas rascunhos podem ser submetidos');
             if (transfer.items.length === 0) throw ApiError.badRequest('Transferência sem itens');
+
+            const totalUnits = transfer.items.reduce((sum, i) => sum + Number(i.quantity), 0);
+            const needsApproval = isOverThreshold(thresholds, 'warehouseTransferUnits', totalUnits);
+            const nextStatus = needsApproval ? TransferStatus.pending : TransferStatus.approved;
 
             return tx.stockTransfer.update({
                 where: { id },
-                data: { status: (TransferStatus as any).pending || 'pending', requestedBy: userId, requestedAt: new Date() }
+                data: { status: nextStatus, requestedBy: userId, requestedAt: new Date() }
             });
         });
     }
@@ -160,13 +201,13 @@ export class WarehousesService {
      * Self-approval (same user as requester) is blocked.
      */
     async approveTransfer(companyId: string, id: string, approverId: string) {
-        return prisma.$transaction(async (tx: any) => {
+        return prisma.$transaction(async (tx) => {
             const transfer = await tx.stockTransfer.findFirst({
                 where: { id, companyId },
                 include: { items: true, sourceWarehouse: true }
             });
             if (!transfer) throw ApiError.notFound('Transferência não encontrada');
-            if (transfer.status !== ((TransferStatus as any).pending || 'pending')) throw ApiError.badRequest('Apenas transferências pendentes podem ser aprovadas');
+            if (transfer.status !== TransferStatus.pending) throw ApiError.badRequest('Apenas transferências pendentes podem ser aprovadas');
             if (transfer.requestedBy && transfer.requestedBy === approverId) {
                 throw ApiError.forbidden('O aprovador deve ser diferente de quem solicitou a transferência');
             }
@@ -176,7 +217,7 @@ export class WarehousesService {
                 const stock = await tx.warehouseStock.findFirst({
                     where: { warehouseId: transfer.sourceWarehouseId, productId: item.productId, warehouse: { companyId } }
                 });
-                const available = (stock?.quantity ?? 0) - ((stock as any)?.reservedQuantity ?? 0);
+                const available = (stock?.quantity ?? 0) - (stock?.reservedQuantity ?? 0);
                 if (!stock || available < item.quantity) {
                     throw ApiError.badRequest(
                         `Stock disponível insuficiente para produto ${item.productId} no armazém origem (disponível: ${available}, pedido: ${item.quantity})`
@@ -190,7 +231,7 @@ export class WarehousesService {
 
             return tx.stockTransfer.update({
                 where: { id },
-                data: { status: (TransferStatus as any).approved || 'approved', approvedBy: approverId, approvedAt: new Date() }
+                data: { status: TransferStatus.approved, approvedBy: approverId, approvedAt: new Date() }
             });
         });
     }
@@ -201,16 +242,16 @@ export class WarehousesService {
     async rejectTransfer(companyId: string, id: string, approverId: string, reason: string) {
         const trimmed = (reason || '').trim();
         if (trimmed.length < 5) throw ApiError.badRequest('Motivo da rejeição deve ter pelo menos 5 caracteres');
-        return prisma.$transaction(async (tx: any) => {
+        return prisma.$transaction(async (tx) => {
             const transfer = await tx.stockTransfer.findFirst({ where: { id, companyId } });
             if (!transfer) throw ApiError.notFound('Transferência não encontrada');
-            if (transfer.status !== ((TransferStatus as any).pending || 'pending')) throw ApiError.badRequest('Apenas transferências pendentes podem ser rejeitadas');
+            if (transfer.status !== TransferStatus.pending) throw ApiError.badRequest('Apenas transferências pendentes podem ser rejeitadas');
             if (transfer.requestedBy && transfer.requestedBy === approverId) {
                 throw ApiError.forbidden('O aprovador deve ser diferente de quem solicitou a transferência');
             }
             return tx.stockTransfer.update({
                 where: { id },
-                data: { status: (TransferStatus as any).rejected || 'rejected', rejectedBy: approverId, rejectedAt: new Date(), rejectReason: trimmed }
+                data: { status: TransferStatus.rejected, rejectedBy: approverId, rejectedAt: new Date(), rejectReason: trimmed }
             });
         });
     }
@@ -220,19 +261,19 @@ export class WarehousesService {
      * Releases reservation and deducts stock from source warehouse.
      */
     async dispatchTransfer(companyId: string, id: string, userId: string, userName: string) {
-        return prisma.$transaction(async (tx: any) => {
+        return prisma.$transaction(async (tx) => {
             const transfer = await tx.stockTransfer.findFirst({
                 where: { id, companyId },
                 include: { items: true, sourceWarehouse: true, targetWarehouse: true }
             });
             if (!transfer) throw ApiError.notFound('Transferência não encontrada');
-            if (transfer.status !== ((TransferStatus as any).approved || 'approved')) throw ApiError.badRequest('Apenas transferências aprovadas podem ser despachadas');
+            if (transfer.status !== TransferStatus.approved) throw ApiError.badRequest('Apenas transferências aprovadas podem ser despachadas');
 
             for (const item of transfer.items) {
                 const stock = await tx.warehouseStock.findFirst({
                     where: { warehouseId: transfer.sourceWarehouseId, productId: item.productId, warehouse: { companyId } }
                 });
-                if (!stock || (stock as any).reservedQuantity < item.quantity) {
+                if (!stock || stock.reservedQuantity < item.quantity) {
                     throw ApiError.conflict(`Reserva inconsistente para produto ${item.productId}`);
                 }
                 await tx.warehouseStock.update({
@@ -250,7 +291,7 @@ export class WarehousesService {
 
             return tx.stockTransfer.update({
                 where: { id },
-                data: { status: (TransferStatus as any).in_transit || 'in_transit', dispatchedBy: userId, dispatchedAt: new Date() }
+                data: { status: TransferStatus.in_transit, dispatchedBy: userId, dispatchedAt: new Date() }
             });
         });
     }
@@ -261,13 +302,13 @@ export class WarehousesService {
      * If omitted, receives the full ordered quantity for every item.
      */
     async receiveTransfer(companyId: string, id: string, userId: string, userName: string, receivedItems?: Array<{ itemId: string; receivedQuantity: number }>) {
-        return prisma.$transaction(async (tx: any) => {
+        return prisma.$transaction(async (tx) => {
             const transfer = await tx.stockTransfer.findFirst({
                 where: { id, companyId },
                 include: { items: true, sourceWarehouse: true, targetWarehouse: true }
             });
             if (!transfer) throw ApiError.notFound('Transferência não encontrada');
-            if (transfer.status !== ((TransferStatus as any).in_transit || 'in_transit')) {
+            if (transfer.status !== TransferStatus.in_transit) {
                 throw ApiError.badRequest('Apenas transferências em trânsito podem ser recebidas');
             }
 
@@ -301,7 +342,7 @@ export class WarehousesService {
 
             return tx.stockTransfer.update({
                 where: { id },
-                data: { status: (TransferStatus as any).received || 'received', receivedBy: userId, receivedAt: new Date() }
+                data: { status: TransferStatus.received, receivedBy: userId, receivedAt: new Date() }
             });
         });
     }
@@ -314,23 +355,28 @@ export class WarehousesService {
      * Terminal states (received, rejected, cancelled) cannot be cancelled.
      */
     async cancelTransfer(companyId: string, id: string, userId: string, userName: string) {
-        return prisma.$transaction(async (tx: any) => {
+        return prisma.$transaction(async (tx) => {
             const transfer = await tx.stockTransfer.findFirst({
                 where: { id, companyId },
                 include: { items: true, sourceWarehouse: true, targetWarehouse: true }
             });
             if (!transfer) throw ApiError.notFound('Transferência não encontrada');
-            const terminalStates = [(TransferStatus as any).received, (TransferStatus as any).completed, (TransferStatus as any).rejected, (TransferStatus as any).cancelled];
+            const terminalStates: TransferStatus[] = [
+                TransferStatus.received,
+                TransferStatus.completed,
+                TransferStatus.rejected,
+                TransferStatus.cancelled
+            ];
             if (terminalStates.includes(transfer.status)) {
                 throw ApiError.badRequest(`Transferência em estado "${transfer.status}" não pode ser cancelada`);
             }
 
-            if (transfer.status === ((TransferStatus as any).approved || 'approved')) {
+            if (transfer.status === TransferStatus.approved) {
                 for (const item of transfer.items) {
                     const stock = await tx.warehouseStock.findFirst({
                         where: { warehouseId: transfer.sourceWarehouseId, productId: item.productId, warehouse: { companyId } }
                     });
-                    if (stock && (stock as any).reservedQuantity >= item.quantity) {
+                    if (stock && stock.reservedQuantity >= item.quantity) {
                         await tx.warehouseStock.update({
                             where: { id: stock.id },
                             data: { reservedQuantity: { decrement: item.quantity } }
@@ -339,7 +385,7 @@ export class WarehousesService {
                 }
             }
 
-            if (transfer.status === ((TransferStatus as any).in_transit || 'in_transit')) {
+            if (transfer.status === TransferStatus.in_transit) {
                 for (const item of transfer.items) {
                     await stockService.recordMovement({
                         productId: item.productId, warehouseId: transfer.sourceWarehouseId, quantity: item.quantity,
@@ -353,7 +399,7 @@ export class WarehousesService {
 
             return tx.stockTransfer.update({
                 where: { id },
-                data: { status: (TransferStatus as any).cancelled || 'cancelled', cancelledBy: userId, cancelledAt: new Date() }
+                data: { status: TransferStatus.cancelled, cancelledBy: userId, cancelledAt: new Date() }
             });
         });
     }
@@ -363,13 +409,13 @@ export class WarehousesService {
      */
     async listPendingApprovals(companyId: string) {
         return prisma.stockTransfer.findMany({
-            where: { companyId, status: (TransferStatus as any).pending || 'pending' },
+            where: { companyId, status: TransferStatus.pending },
             include: {
                 sourceWarehouse: { select: { id: true, name: true, code: true } },
                 targetWarehouse: { select: { id: true, name: true, code: true } },
-                items: { include: { product: { select: { id: true, name: true, code: true, unit: true } } } }
+                items: { include: { product: { select: { id: true, name: true, code: true, barcode: true, sku: true, unit: true, price: true, costPrice: true, weight: true } } } }
             },
-            orderBy: { requestedAt: (undefined as any) }
+            orderBy: { requestedAt: 'desc' }
         });
     }
 

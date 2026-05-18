@@ -1,17 +1,13 @@
 import { logger } from '../../utils/logger';
 /**
- * EmployeeSalaryHistory.tsx
- * 
  * Displays the complete salary payment history for a specific employee.
- * Shows all payroll records with status, dates, and allows printing past slips.
- * Implements professional-grade patterns: clean hooks, strict typing, and audit trails.
  */
 
-import { useState, useEffect } from 'react';
-import { HiOutlineCurrencyDollar } from 'react-icons/hi';
+import { useEffect, useMemo, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { HiOutlineCurrencyDollar } from 'react-icons/hi2';
 import { usePayroll } from '../../hooks/useData';
-import { Card, Badge, TableContainer, Button } from '../ui';
-import { Pagination, usePagination } from '../ui';
+import { Card, Badge, Button, SmartTable } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import type { PayrollRecord, Employee } from '../../types';
 import PayslipGenerator from './PayslipGenerator';
@@ -21,17 +17,23 @@ interface EmployeeSalaryHistoryProps {
     onClose?: () => void;
 }
 
+const months = [
+    '', 'Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
 export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSalaryHistoryProps) {
     const { getEmployeeHistory } = usePayroll();
     const [history, setHistory] = useState<PayrollRecord[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     useEffect(() => {
         const fetchHistory = async () => {
             setIsLoading(true);
             try {
                 const records = await getEmployeeHistory(employee.id);
-                // Sort by year and month descending (most recent first)
                 records.sort((a, b) => {
                     if (a.year !== b.year) return b.year - a.year;
                     return b.month - a.month;
@@ -43,17 +45,14 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
                 setIsLoading(false);
             }
         };
+
         fetchHistory();
     }, [employee.id, getEmployeeHistory]);
 
-    const {
-        currentPage,
-        setCurrentPage,
-        itemsPerPage,
-        setItemsPerPage,
-        paginatedItems,
-        totalItems,
-    } = usePagination(history, 10);
+    const paginatedHistory = useMemo(() => {
+        const start = (page - 1) * pageSize;
+        return history.slice(start, start + pageSize);
+    }, [history, page, pageSize]);
 
     const getStatusBadge = (status: PayrollRecord['status']) => {
         switch (status) {
@@ -66,14 +65,55 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
         }
     };
 
-    const months = [
-        '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
+    const columns = useMemo<ColumnDef<PayrollRecord, unknown>[]>(() => [
+        {
+            header: 'Periodo',
+            cell: ({ row }) => (
+                <span className="font-medium">
+                    {months[row.original.month]} {row.original.year}
+                </span>
+            ),
+        },
+        {
+            header: 'Sal. Base',
+            cell: ({ row }) => (
+                <span className="block text-right text-gray-600 dark:text-gray-400">
+                    {formatCurrency(row.original.baseSalary)}
+                </span>
+            ),
+        },
+        {
+            header: 'Descontos',
+            cell: ({ row }) => (
+                <span className="block text-right text-red-500">
+                    -{formatCurrency(row.original.totalDeductions)}
+                </span>
+            ),
+        },
+        {
+            header: 'Liquido',
+            cell: ({ row }) => (
+                <span className="block text-right font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(row.original.netSalary)}
+                </span>
+            ),
+        },
+        {
+            header: 'Estado',
+            cell: ({ row }) => <div className="text-center">{getStatusBadge(row.original.status)}</div>,
+        },
+        {
+            header: 'Accoes',
+            cell: ({ row }) => (
+                <div className="flex justify-center">
+                    <PayslipGenerator record={{ ...row.original, employee }} />
+                </div>
+            ),
+        },
+    ], [employee]);
 
     return (
         <Card padding="md" className="space-y-4">
-            {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-dark-700 pb-4">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
@@ -81,7 +121,7 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
                     </div>
                     <div>
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                            Histórico Salarial
+                            Historico Salarial
                         </h2>
                         <p className="text-sm text-gray-500">{employee.name} ({employee.code})</p>
                     </div>
@@ -93,7 +133,6 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
                 )}
             </div>
 
-            {/* Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 rounded-lg bg-gray-50 dark:bg-dark-800">
                     <p className="text-xs text-gray-500 uppercase font-bold">Total de Registos</p>
@@ -119,56 +158,24 @@ export default function EmployeeSalaryHistory({ employee, onClose }: EmployeeSal
                 </div>
             </div>
 
-            {/* Table */}
-            <TableContainer isLoading={isLoading} isEmpty={history.length === 0} emptyDescription="Sem registos salariais para este colaborador.">
-                <table className="w-full text-sm text-left">
-                    <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-dark-800">
-                        <tr>
-                            <th className="px-6 py-3">Período</th>
-                            <th className="px-6 py-3 text-right">Sal. Base</th>
-                            <th className="px-6 py-3 text-right">Descontos</th>
-                            <th className="px-6 py-3 text-right">Líquido</th>
-                            <th className="px-6 py-3 text-center">Estado</th>
-                            <th className="px-6 py-3 text-center">Acções</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
-                        {paginatedItems.map((record) => (
-                            <tr key={record.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
-                                <td className="px-6 py-4 font-medium">
-                                    {months[record.month]} {record.year}
-                                </td>
-                                <td className="px-6 py-4 text-right text-gray-600 dark:text-gray-400">
-                                    {formatCurrency(record.baseSalary)}
-                                </td>
-                                <td className="px-6 py-4 text-right text-red-500">
-                                    -{formatCurrency(record.totalDeductions)}
-                                </td>
-                                <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-white">
-                                    {formatCurrency(record.netSalary)}
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                    {getStatusBadge(record.status)}
-                                </td>
-                                <td className="px-6 py-4 text-center">
-                                    <PayslipGenerator record={{ ...record, employee }} />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </TableContainer>
-
-            {/* Pagination */}
-            {totalItems > 10 && (
-                <Pagination
-                    currentPage={currentPage}
-                    totalItems={totalItems}
-                    itemsPerPage={itemsPerPage}
-                    onPageChange={setCurrentPage}
-                    onItemsPerPageChange={setItemsPerPage}
-                />
-            )}
+            <SmartTable
+                data={paginatedHistory}
+                columns={columns}
+                isLoading={isLoading}
+                hideToolbar
+                emptyTitle="Sem registos salariais"
+                emptyDescription="Sem registos salariais para este colaborador."
+                pagination={{
+                    currentPage: page,
+                    totalItems: history.length,
+                    itemsPerPage: pageSize,
+                    onPageChange: setPage,
+                    onItemsPerPageChange: (size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    },
+                }}
+            />
         </Card>
     );
 }

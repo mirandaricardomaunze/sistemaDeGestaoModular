@@ -57,8 +57,11 @@ export default function IncidentsPage() {
         e.preventDefault();
         await createMutation.mutateAsync({
             ...formData,
+            type: formData.type as 'accident' | 'fine' | 'breakdown' | 'theft' | 'other',
+            severity: formData.severity as 'low' | 'medium' | 'high' | 'critical',
+            status: formData.status as 'open' | 'resolved' | 'closed',
             cost: formData.cost ? Number(formData.cost) : undefined
-        } as any);
+        });
         setIsModalOpen(false);
         setFormData({
             vehicleId: '',

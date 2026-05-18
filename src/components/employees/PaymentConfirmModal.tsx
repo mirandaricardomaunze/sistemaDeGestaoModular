@@ -7,7 +7,7 @@ import { logger } from '../../utils/logger';
  */
 
 import { useState } from 'react';
-import { HiOutlineX, HiOutlineCash, HiOutlineCreditCard, HiOutlineDocumentText, HiOutlineCheck } from 'react-icons/hi';
+import { HiOutlineXMark, HiOutlineBanknotes, HiOutlineCreditCard, HiOutlineDocumentText, HiOutlineCheck } from 'react-icons/hi2';
 import { Button } from '../ui';
 import { generatePaymentConfirmation } from '../../utils/documentGenerator';
 import { useStore } from '../../stores/useStore';
@@ -28,7 +28,7 @@ interface PaymentConfirmModalProps {
 
 const paymentMethods = [
     { id: 'bank_transfer' as const, label: 'Transferência Bancária', icon: HiOutlineCreditCard },
-    { id: 'cash' as const, label: 'Dinheiro', icon: HiOutlineCash },
+    { id: 'cash' as const, label: 'Dinheiro', icon: HiOutlineBanknotes },
     { id: 'check' as const, label: 'Cheque', icon: HiOutlineDocumentText },
 ];
 
@@ -120,7 +120,7 @@ export default function PaymentConfirmModal({ isOpen, onClose, record, onConfirm
                             onClick={onClose}
                             className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                         >
-                            <HiOutlineX className="w-5 h-5" />
+                            <HiOutlineXMark className="w-5 h-5" />
                         </button>
                     </div>
                 </div>

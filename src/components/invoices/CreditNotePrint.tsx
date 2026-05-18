@@ -1,11 +1,15 @@
-import { useRef } from 'react';
+import { useRef, type CSSProperties, type ReactNode } from 'react';
 import { format, parseISO } from 'date-fns';
-import { HiOutlinePrinter, HiOutlineXMark as HiOutlineX, HiOutlineUser, HiOutlineDocumentText, HiOutlineBuildingOffice as HiOutlineOfficeBuilding, HiOutlineEnvelope as HiOutlineMail, HiOutlinePhone } from 'react-icons/hi2';
+import {
+    HiOutlineBuildingOffice,
+    HiOutlinePrinter,
+    HiOutlineXMark as HiOutlineXMark,
+} from 'react-icons/hi2';
+import toast from 'react-hot-toast';
 import { Modal, Button, Card } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { useStore } from '../../stores/useStore';
 import type { CreditNote } from '../../types';
-import toast from 'react-hot-toast';
 
 interface CreditNotePrintProps {
     isOpen: boolean;
@@ -13,9 +17,16 @@ interface CreditNotePrintProps {
     creditNote: CreditNote;
 }
 
+const statusLabels: Record<string, string> = {
+    draft: 'Rascunho',
+    issued: 'Emitida',
+    refunded: 'Reembolsada',
+};
+
 export default function CreditNotePrint({ isOpen, onClose, creditNote }: CreditNotePrintProps) {
     const printRef = useRef<HTMLDivElement>(null);
     const { companySettings: company } = useStore();
+    const taxRate = Number((creditNote as { taxRate?: number | string }).taxRate ?? company.ivaRate ?? 16);
 
     const handlePrint = () => {
         const content = printRef.current;
@@ -27,20 +38,33 @@ export default function CreditNotePrint({ isOpen, onClose, creditNote }: CreditN
             return;
         }
 
-        const logoHtml = company.logo
-            ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${company.logo}" style="max-height: 80px;" /></div>`
-            : '';
-
         printWindow.document.write(`
             <html>
                 <head>
                     <title>Nota de Crédito ${creditNote.number}</title>
-                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+                    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+                    <style>
+                        :root { color-scheme: light !important; }
+                        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        body {
+                            font-family: 'Inter', Arial, sans-serif;
+                            padding: 30px;
+                            max-width: 800px;
+                            margin: 0 auto;
+                            background: #ffffff !important;
+                            color: #111827 !important;
+                        }
+                        table.print-table { width: 100%; border-collapse: collapse; background: #ffffff !important; }
+                        .print-table th, .print-table td { background: #ffffff !important; color: #111827 !important; }
+                        @media print {
+                            @page { margin: 15mm; size: A4; }
+                            body { padding: 0; }
+                            .no-print { display: none !important; }
+                            .shadow-lg { box-shadow: none !important; }
+                        }
+                    </style>
                 </head>
-                <body>
-                    ${logoHtml}
-                    ${content.innerHTML}
-                </body>
+                <body>${content.innerHTML}</body>
             </html>
         `);
 
@@ -54,10 +78,10 @@ export default function CreditNotePrint({ isOpen, onClose, creditNote }: CreditN
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Visualizar Nota de Crédito`} size="xl">
+        <Modal isOpen={isOpen} onClose={onClose} title="Visualizar Nota de Crédito" size="xl">
             <div className="flex justify-end gap-2 mb-4 no-print">
                 <Button variant="outline" onClick={onClose}>
-                    <HiOutlineX className="w-4 h-4 mr-2" />
+                    <HiOutlineXMark className="w-4 h-4 mr-2" />
                     Fechar
                 </Button>
                 <Button onClick={handlePrint} className="bg-red-600 hover:bg-red-700 text-white">
@@ -66,124 +90,163 @@ export default function CreditNotePrint({ isOpen, onClose, creditNote }: CreditN
                 </Button>
             </div>
 
-            <Card padding="none" className="max-h-[70vh] overflow-y-auto bg-gray-50/50 dark:bg-dark-900/50 flex justify-center p-4">
-                <div ref={printRef} className="bg-white text-gray-900 shadow-lg p-8 max-w-[800px] w-full mx-auto relative flex flex-col min-h-[29.7cm]">
-                    <style>{`
-                        @media print {
-                            @page { margin: 0; size: auto; }
-                            body { margin: 0; padding: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                            .no-print { display: none !important; }
-                            .shadow-lg { box-shadow: none !important; }
-                        }
-                        .header-line { border-bottom: 2px solid #ef4444; }
-                        .text-primary { color: #ef4444; }
-                        .bg-primary-light { background-color: #fef2f2; }
-                        .bg-header { background-color: #ef4444; color: white; }
-                    `}</style>
-
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-8 pb-6 header-line">
-                        <div className="flex gap-4">
+            <Card padding="none" className="max-h-[70vh] overflow-y-auto bg-gray-50/50 dark:bg-dark-900/50 p-4">
+                <div
+                    ref={printRef}
+                    className="bg-white text-gray-900 shadow-lg p-8 max-w-[800px] w-full mx-auto relative flex flex-col min-h-[29.7cm] print-table !bg-white !text-gray-900"
+                    style={{ backgroundColor: '#ffffff', colorScheme: 'light' }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingBottom: '24px', marginBottom: '28px', borderBottom: '2px solid #1a1a1a' }}>
+                        <div style={{ display: 'flex', gap: '16px' }}>
                             {company.logo ? (
-                                <img src={company.logo} alt="Logo" className="w-16 h-16 object-contain" />
+                                <img src={company.logo} alt="Logo" style={{ width: '64px', height: '64px', objectFit: 'contain' }} />
                             ) : (
-                                <div className="w-16 h-16 bg-red-100 rounded-lg flex items-center justify-center text-red-600">
-                                    <HiOutlineOfficeBuilding className="w-10 h-10" />
+                                <div style={{ width: '64px', height: '64px', border: '1px solid #fecaca', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#dc2626' }}>
+                                    <HiOutlineBuildingOffice className="w-9 h-9" />
                                 </div>
                             )}
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900 uppercase tracking-tight">{company.tradeName || company.companyName}</h1>
-                                <div className="text-sm text-gray-500 mt-1 space-y-0.5">
-                                    <p>{company.address}, {company.city} - {company.state}</p>
-                                    <p className="flex items-center gap-1"><HiOutlinePhone className="w-3 h-3" /> {company.phone} | <HiOutlineMail className="w-3 h-3" /> {company.email}</p>
-                                    <p>NUIT: {company.taxId}</p>
+                                <h1 style={{ fontSize: '18px', fontWeight: 900, textTransform: 'uppercase', color: '#111827', lineHeight: 1.1 }}>
+                                    {company.tradeName || company.companyName}
+                                </h1>
+                                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', lineHeight: 1.4 }}>
+                                    {company.address && <p>{company.address}{company.city ? `, ${company.city}` : ''}</p>}
+                                    {(company.phone || company.email) && <p>{company.phone && `Tel: ${company.phone}`}{company.email && ` | ${company.email}`}</p>}
+                                    {company.taxId && <p>NUIT: {company.taxId}</p>}
                                 </div>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <span className="inline-block px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold uppercase tracking-wider mb-2">
+                        <div style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'inline-block', padding: '4px 10px', borderRadius: '999px', backgroundColor: '#fee2e2', color: '#b91c1c', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
                                 Nota de Crédito
-                            </span>
-                            <h2 className="text-3xl font-bold text-gray-900">{creditNote.number}</h2>
-                            <p className="text-sm text-gray-500 mt-1">Ref. Fatura: <span className="font-medium text-gray-900">{creditNote.originalInvoiceNumber}</span></p>
+                            </div>
+                            <h2 style={{ fontSize: '24px', fontWeight: 900, color: '#111827' }}>{creditNote.number}</h2>
+                            <p style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>Ref. Fatura: {creditNote.originalInvoiceNumber}</p>
+                            <p style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{statusLabels[creditNote.status] || creditNote.status}</p>
                         </div>
                     </div>
 
-                    {/* Info Grid */}
-                    <div className="grid grid-cols-2 gap-8 mb-8">
-                        <div className="bg-gray-50 p-5 rounded-lg border border-gray-100">
-                            <div className="flex items-center gap-2 mb-3 text-red-600">
-                                <HiOutlineUser className="w-5 h-5" />
-                                <h3 className="font-bold text-sm uppercase tracking-wide">Dados do Cliente</h3>
-                            </div>
-                            <div className="text-sm space-y-1 text-gray-700 pl-7">
-                                <p className="font-semibold text-gray-900 text-lg">{creditNote.customerName}</p>
-                                {creditNote.customerId && <p>ID do Cliente: {creditNote.customerId}</p>}
-                            </div>
-                        </div>
-
-                        <div className="bg-gray-50 p-5 rounded-lg border border-gray-100">
-                            <div className="flex items-center gap-2 mb-3 text-red-600">
-                                <HiOutlineDocumentText className="w-5 h-5" />
-                                <h3 className="font-bold text-sm uppercase tracking-wide">Detalhes da Emissão</h3>
-                            </div>
-                            <div className="text-sm space-y-2 pl-7">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Data de Emissão:</span>
-                                    <span className="font-medium text-gray-900">{format(parseISO(creditNote.issueDate), 'dd/MM/yyyy HH:mm')}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500">Motivo:</span>
-                                    <span className="font-medium text-gray-900">{creditNote.reason}</span>
-                                </div>
-                            </div>
-                        </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '28px' }}>
+                        <InfoBox title="Dados do Cliente">
+                            <p style={{ fontSize: '16px', fontWeight: 800, color: '#111827' }}>{creditNote.customerName}</p>
+                            {creditNote.customerId && <p style={{ fontSize: '12px', color: '#64748b' }}>ID Cliente: {creditNote.customerId}</p>}
+                        </InfoBox>
+                        <InfoBox title="Detalhes da Emissão">
+                            <InfoLine label="Data" value={format(parseISO(creditNote.issueDate), 'dd/MM/yyyy HH:mm')} />
+                            <InfoLine label="Motivo" value={creditNote.reason} />
+                        </InfoBox>
                     </div>
 
-                    {/* Items Table */}
-                    <div className="mb-8 overflow-hidden">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="bg-slate-50/80 border-b border-slate-100">
-                                    <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Descrição</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 w-24">Qtd</th>
-                                    <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 w-32">Preço Unit.</th>
-                                    <th className="px-6 py-4 text-right text-[10px] font-black uppercase tracking-widest text-slate-400 w-32">Total</th>
+                    <table className="print-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse', backgroundColor: '#ffffff' }}>
+                        <thead>
+                            <tr>
+                                <th style={thStyle('left')}>Descrição</th>
+                                <th style={thStyle('center', '70px')}>Qtd</th>
+                                <th style={thStyle('right', '120px')}>Preço Unit.</th>
+                                <th style={thStyle('right', '130px')}>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {creditNote.items.map((item, index) => (
+                                <tr key={item.id || index}>
+                                    <td style={tdStyle('left', true)}>{item.description}</td>
+                                    <td style={tdStyle('center')}>{item.quantity}</td>
+                                    <td style={tdStyle('right')}>{formatCurrency(item.unitPrice)}</td>
+                                    <td style={tdStyle('right', true)}>{formatCurrency(item.total)}</td>
                                 </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                                {creditNote.items.map((item, index) => (
-                                    <tr key={index}>
-                                        <td className="px-6 py-4 text-gray-900 font-semibold">{item.description}</td>
-                                        <td className="px-6 py-4 text-left text-gray-500 font-medium">{item.quantity}</td>
-                                        <td className="px-6 py-4 text-left text-gray-500 font-medium">{formatCurrency(item.unitPrice)}</td>
-                                        <td className="px-6 py-4 text-right font-bold text-gray-900">{formatCurrency(item.total)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
 
-                    {/* Footer / Totals */}
-                    <div className="flex justify-end mb-12">
-                        <div className="w-64 bg-slate-50 p-6 rounded-lg border border-slate-100">
-                            <div className="flex justify-between items-center mb-2 text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                <span>Subtotal</span>
-                                <span className="text-slate-900">{formatCurrency(creditNote.subtotal)}</span>
-                            </div>
-                            <div className="h-px bg-slate-200/50 my-3"></div>
-                            <div className="flex justify-between items-center text-slate-900 font-black text-xl tracking-tighter">
-                                <span className="text-sm uppercase tracking-widest text-red-500">Reembolso</span>
-                                <span>{formatCurrency(creditNote.total)}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '28px' }}>
+                        <div style={{ maxWidth: '52%' }}>
+                            {creditNote.notes && (
+                                <>
+                                    <p style={{ fontSize: '11px', fontWeight: 800, color: '#374151', textTransform: 'uppercase', marginBottom: '4px' }}>Observações</p>
+                                    <p style={{ fontSize: '11px', color: '#4b5563', lineHeight: 1.5 }}>{creditNote.notes}</p>
+                                </>
+                            )}
+                        </div>
+                        <div style={{ width: '260px', backgroundColor: '#f8fafc', padding: '14px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                            <TotalRow label="Subtotal" value={formatCurrency(creditNote.subtotal)} />
+                            <TotalRow label={`IVA (${taxRate}%)`} value={formatCurrency(creditNote.tax)} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0 4px', marginTop: '6px', borderTop: '1.5px solid #1a1a1a' }}>
+                                <span style={{ fontWeight: 900, color: '#b91c1c', textTransform: 'uppercase', fontSize: '10px' }}>Reembolso</span>
+                                <span style={{ color: '#111827', fontWeight: 900, fontSize: '15px' }}>{formatCurrency(creditNote.total)}</span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="text-center text-xs text-gray-400 mt-auto pt-8 border-t border-gray-100">
-                        <p>Documento processado por computador © {new Date().getFullYear()} {company.tradeName}</p>
+                    <div style={{ padding: '32px 0 24px', marginTop: 'auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '64px' }}>
+                        <SignatureLine label="Responsável" />
+                        <SignatureLine label="Cliente" />
+                    </div>
+
+                    <div style={{ textAlign: 'center', fontSize: '10px', color: '#9ca3af', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                        Documento gerado em {format(new Date(), 'dd/MM/yyyy HH:mm')} por {company.tradeName || company.companyName}
                     </div>
                 </div>
             </Card>
         </Modal>
     );
+}
+
+function InfoBox({ title, children }: { title: string; children: ReactNode }) {
+    return (
+        <div style={{ padding: '14px 16px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#ffffff' }}>
+            <h3 style={{ fontSize: '10px', fontWeight: 900, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>{title}</h3>
+            {children}
+        </div>
+    );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+    return (
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', fontSize: '12px', padding: '2px 0' }}>
+            <span style={{ color: '#64748b', fontWeight: 600 }}>{label}:</span>
+            <span style={{ color: '#111827', fontWeight: 600, textAlign: 'right' }}>{value}</span>
+        </div>
+    );
+}
+
+function TotalRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '12px' }}>
+            <span style={{ fontWeight: 700, color: '#64748b', textTransform: 'uppercase', fontSize: '9px' }}>{label}</span>
+            <span style={{ color: '#111827', fontWeight: 600 }}>{value}</span>
+        </div>
+    );
+}
+
+function SignatureLine({ label }: { label: string }) {
+    return (
+        <div style={{ textAlign: 'center' }}>
+            <div style={{ marginTop: '36px', marginBottom: '6px', borderBottom: '1px solid #1f2937' }} />
+            <p style={{ fontSize: '10px', color: '#64748b', fontWeight: 700 }}>{label}</p>
+        </div>
+    );
+}
+
+function thStyle(textAlign: 'left' | 'center' | 'right', width?: string): CSSProperties {
+    return {
+        textAlign,
+        width,
+        padding: '12px 14px',
+        borderBottom: '1.5px solid #111827',
+        fontSize: '10px',
+        fontWeight: 900,
+        color: '#475569',
+        textTransform: 'uppercase',
+        backgroundColor: '#ffffff',
+    };
+}
+
+function tdStyle(textAlign: 'left' | 'center' | 'right', strong = false): CSSProperties {
+    return {
+        textAlign,
+        padding: '11px 14px',
+        borderBottom: '1px solid #f1f5f9',
+        color: '#111827',
+        fontWeight: strong ? 700 : 500,
+    };
 }

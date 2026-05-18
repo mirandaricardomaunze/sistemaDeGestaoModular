@@ -19,9 +19,9 @@ export function useAuditLog() {
             entityId?: string;
             entityName?: string;
             severity?: AuditSeverity;
-            details?: Record<string, any>;
-            previousValues?: Record<string, any>;
-            newValues?: Record<string, any>;
+            details?: Record<string, unknown>;
+            previousValues?: Record<string, unknown>;
+            newValues?: Record<string, unknown>;
             success?: boolean;
             errorMessage?: string;
         }
@@ -48,7 +48,7 @@ export function useAuditLog() {
     return {
         log,
         // Convenience methods
-        logCreate: (module: AuditModule, entityType: string, entityName: string, entityId: string, details?: Record<string, any>) => {
+        logCreate: (module: AuditModule, entityType: string, entityName: string, entityId: string, details?: Record<string, unknown>) => {
             log(module, 'create', entityType, `Criou ${entityType}: ${entityName}`, {
                 entityId,
                 entityName,
@@ -56,7 +56,7 @@ export function useAuditLog() {
                 newValues: details,
             });
         },
-        logUpdate: (module: AuditModule, entityType: string, entityName: string, entityId: string, previousValues?: Record<string, any>, newValues?: Record<string, any>) => {
+        logUpdate: (module: AuditModule, entityType: string, entityName: string, entityId: string, previousValues?: Record<string, unknown>, newValues?: Record<string, unknown>) => {
             log(module, 'update', entityType, `Atualizou ${entityType}: ${entityName}`, {
                 entityId,
                 entityName,

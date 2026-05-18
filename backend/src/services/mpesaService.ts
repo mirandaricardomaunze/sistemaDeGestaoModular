@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { emitToCompany } from '../lib/socket';
@@ -32,6 +33,14 @@ interface MpesaApiResponse {
     output_ConversationID?: string;
     output_ThirdPartyReference?: string;
 }
+
+interface MpesaCallbackData {
+    transactionId: string;
+    status: 'success' | 'failed' | string;
+    [key: string]: unknown;
+}
+
+const toJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
 
 export class MpesaService {
     private isConfigured: boolean;
@@ -164,7 +173,7 @@ export class MpesaService {
                         transactionId: apiResponse.output_TransactionID,
                         conversationId: apiResponse.output_ConversationID,
                         completedAt: new Date(),
-                        responsePayload: apiResponse as any,
+                        responsePayload: toJson(apiResponse),
                     },
                 });
 
@@ -181,7 +190,7 @@ export class MpesaService {
             // Non-zero response code = failure
             await prisma.mpesaTransaction.update({
                 where: { id: transaction.id },
-                data: { status: 'failed', responsePayload: apiResponse as any },
+                data: { status: 'failed', responsePayload: toJson(apiResponse) },
             });
 
             logger.warn('M-Pesa payment failed', { code: apiResponse.output_ResponseCode, desc: apiResponse.output_ResponseDesc });
@@ -202,7 +211,7 @@ export class MpesaService {
         return tx;
     }
 
-    async processCallback(callbackData: any) {
+    async processCallback(callbackData: MpesaCallbackData) {
         const { transactionId, status } = callbackData;
 
         const transaction = await prisma.mpesaTransaction.findFirst({ where: { transactionId } });
@@ -213,7 +222,7 @@ export class MpesaService {
             data: {
                 status: status === 'success' ? 'completed' : 'failed',
                 completedAt: status === 'success' ? new Date() : null,
-                responsePayload: callbackData,
+                responsePayload: toJson(callbackData),
             },
         });
 
@@ -294,7 +303,7 @@ export class MpesaService {
                 if (result?.output_ResponseCode === 'INS-0') {
                     await prisma.mpesaTransaction.update({
                         where: { id: tx.id },
-                        data: { status: 'completed', completedAt: new Date(), responsePayload: result as any },
+                        data: { status: 'completed', completedAt: new Date(), responsePayload: toJson(result) },
                     });
                 } else {
                     await prisma.mpesaTransaction.update({ where: { id: tx.id }, data: { status: 'failed' } });

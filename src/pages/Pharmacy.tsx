@@ -1,21 +1,36 @@
 import { useState, useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
+
+type StockMovement = {
+  id: string;
+  createdAt: string;
+  productName?: string;
+  product?: { name?: string };
+  type?: 'IN' | 'OUT';
+  movementType?: 'IN' | 'OUT';
+  quantity: number;
+  batchNumber?: string;
+  reference?: string;
+  reason?: string;
+};
 import { Button, Badge, Input, Select, Modal, ConfirmationModal, SmartTable, PageHeader } from '../components/ui';
 import { pharmacyAPI } from '../services/api';
+import type { Medication, Prescription } from '../types/pharmacy';
+import type { Product } from '../types';
 import { useProducts, useSuppliers, useCategories } from '../hooks/useData';
 import toast from 'react-hot-toast';
 import {
     HiOutlineBeaker,
-    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardDocumentList,
     HiOutlineCube,
     HiOutlinePlus,
     HiOutlineShieldCheck,
     HiOutlinePencilSquare as HiOutlinePencil,
     HiOutlineTrash,
-    HiOutlineExclamationTriangle as HiOutlineExclamation,
+    HiOutlineExclamationTriangle as HiOutlineExclamationTriangle,
     HiOutlineClock,
-    HiOutlineArrowDownTray as HiOutlineDownload,
-    HiOutlineArrowPath as HiOutlineRefresh
+    HiOutlineArrowDownTray as HiOutlineArrowDownTray,
+    HiOutlineArrowPath as HiOutlineArrowPath
 } from 'react-icons/hi2';
 import { formatCurrency, formatDate, cn } from '../utils/helpers';
 import { usePharmacy } from '../hooks/usePharmacy';
@@ -34,6 +49,11 @@ function alertColour(level: string) {
     if (level === 'critical') return 'text-red-600 bg-red-50 dark:bg-red-900/20';
     if (level === 'warning') return 'text-amber-600 bg-amber-50 dark:bg-amber-900/20';
     return 'text-green-600 bg-green-50 dark:bg-green-900/20';
+}
+
+function textValue(value?: string | string[] | null) {
+    if (Array.isArray(value)) return value.join(', ');
+    return value ?? '';
 }
 
 // ──-Main Page ────────────────────────────────────────────────────────────────-
@@ -66,7 +86,7 @@ export default function Pharmacy() {
     // Add / Edit medication
     const [medModal, setMedModal] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [selected, setSelected] = useState<any>(null);
+    const [selected, setSelected] = useState<Medication | null>(null);
     const [deleteModal, setDeleteModal] = useState(false);
 
     const [medForm, setMedForm] = useState({
@@ -89,8 +109,8 @@ export default function Pharmacy() {
 
     // Movements (stock)
     const [movPage, setMovPage] = useState(1);
-    const [movements, setMovements] = useState<any[]>([]);
-    const [movPag, setMovPag] = useState<any>(null);
+    const [movements, setMovements] = useState<StockMovement[]>([]);
+    const [movPag, setMovPag] = useState<{ total?: number; page?: number; limit?: number; totalPages?: number } | null>(null);
     const [movLoading, setMovLoading] = useState(false);
 
     const loadMovements = async (p = movPage) => {
@@ -128,16 +148,16 @@ export default function Pharmacy() {
         doc.save(`medicamentos_${new Date().toISOString().slice(0, 10)}.pdf`);
     };
 
-    const openEdit = (med: any) => {
+    const openEdit = (med: Medication) => {
         setSelected(med);
         setMedForm({
-            productId: med.productId, dci: med.dci || '', dosage: med.dosage || '',
+            productId: med.productId || '', dci: med.dci || '', dosage: med.dosage || '',
             pharmaceuticalForm: med.pharmaceuticalForm || 'Comprimido', laboratory: med.laboratory || '',
             requiresPrescription: med.requiresPrescription, isControlled: med.isControlled,
             storageTemp: med.storageTemp || 'Ambiente', storageLocation: med.storageLocation || '',
             atcCode: med.atcCode || '', controlLevel: med.controlLevel || '',
-            contraindications: med.contraindications || '', sideEffects: med.sideEffects || '',
-            activeIngredient: med.activeIngredient || '', concentration: med.concentration || '',
+            contraindications: textValue(med.contraindications), sideEffects: textValue(med.sideEffects),
+            activeIngredient: med.activeIngredient || textValue(med.activeIngredients), concentration: med.concentration || '',
         });
         setIsEditing(true);
         setMedModal(true);
@@ -152,14 +172,16 @@ export default function Pharmacy() {
     const saveMedication = async () => {
         try {
             if (isEditing && selected) {
-                await updateMedication(selected.id, medForm);
+                await updateMedication(selected.id, medForm as unknown as Partial<Medication>);
             } else {
                 if (!productForm.name || !productForm.price) { toast.error('Nome e preço são obrigatórios'); return; }
-                const prod: any = await addProduct({ name: productForm.name, code: productForm.code, price: parseFloat(productForm.price), costPrice: parseFloat(productForm.costPrice) || 0, unit: productForm.unit, originModule: 'pharmacy' });
-                await addMedication({ ...medForm, productId: prod.id });
+                const prod = await addProduct({ name: productForm.name, code: productForm.code, price: parseFloat(productForm.price), costPrice: parseFloat(productForm.costPrice) || 0, unit: productForm.unit, originModule: 'pharmacy' }) as Product;
+                await addMedication({ ...medForm, productId: prod.id } as unknown as Partial<Medication>);
             }
             setMedModal(false); resetMedForm();
-        } catch (err: any) { toast.error(err?.message || 'Erro ao guardar medicamento'); }
+        } catch {
+            toast.error('Erro ao guardar medicamento');
+        }
     };
 
     const deleteMedication = async () => {
@@ -177,15 +199,18 @@ export default function Pharmacy() {
             setBatchModal(false);
             setBatchForm({ medicationId: '', batchNumber: '', quantity: '', expiryDate: '', costPrice: '', sellingPrice: '' });
             refetch();
-        } catch (err: any) { /* error handled in hook */ }
+        } catch {
+            toast.error('Erro ao guardar lote');
+        }
     };
 
     // ── Columns: Medications ──────────────────────────────────────────────────
-    const medicationColumns = useMemo<ColumnDef<any, any>[]>(() => [
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const medicationColumns = useMemo<ColumnDef<Medication, any>[]>(() => [
         {
             accessorKey: 'product.name',
             header: 'Medicamento',
-            cell: (info: any) => (
+            cell: (info) => (
                 <div>
                     <div className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-xs">{info.getValue()}</div>
                     <div className="text-[10px] text-gray-400 font-mono tracking-tighter">{info.row.original.product?.code}</div>
@@ -195,7 +220,7 @@ export default function Pharmacy() {
         {
             accessorKey: 'dci',
             header: 'DCI / Forma',
-            cell: (info: any) => (
+            cell: (info) => (
                 <div className="hidden md:block">
                     <div className="text-gray-700 dark:text-gray-300 text-[11px] font-medium">{info.getValue() || ''}</div>
                     <div className="text-[10px] text-gray-400 uppercase font-bold tracking-tight">{info.row.original.pharmaceuticalForm} {info.row.original.dosage}</div>
@@ -205,14 +230,14 @@ export default function Pharmacy() {
         {
             accessorKey: 'laboratory',
             header: 'Laboratório',
-            cell: (info: any) => <span className="hidden lg:block text-gray-500 text-[11px] font-medium">{info.getValue() || ''}</span>
+            cell: (info) => <span className="hidden lg:block text-gray-500 text-[11px] font-medium">{info.getValue() || ''}</span>
         },
         {
             accessorKey: 'totalStock',
             header: 'Stock',
-            cell: (info: any) => (
+            cell: (info) => (
                 <div className="flex justify-center">
-                    <span className={cn('inline-flex items-center justify-center w-10 h-7 rounded-lg text-xs font-black border backdrop-blur-sm', alertColour(info.row.original.alertLevel))}>
+                    <span className={cn('inline-flex items-center justify-center w-10 h-7 rounded-lg text-xs font-black border backdrop-blur-sm', alertColour(info.row.original.alertLevel || 'normal'))}>
                         {info.getValue()}
                     </span>
                 </div>
@@ -221,15 +246,16 @@ export default function Pharmacy() {
         {
             accessorKey: 'nearestExpiry',
             header: 'Validade',
-            cell: (info: any) => {
+            cell: (info) => {
                 const med = info.row.original;
                 if (!info.getValue()) return <span className="text-gray-300">-</span>;
+                const days = med.daysToExpiry ?? null;
                 return (
                     <div className="hidden sm:block">
-                        <span className={cn('text-xs font-bold tracking-tighter', med.daysToExpiry !== null && med.daysToExpiry <= 30 ? 'text-red-500' : med.daysToExpiry !== null && med.daysToExpiry <= 90 ? 'text-amber-500' : 'text-gray-500')}>
+                        <span className={cn('text-xs font-bold tracking-tighter', days !== null && days <= 30 ? 'text-red-500' : days !== null && days <= 90 ? 'text-amber-500' : 'text-gray-500')}>
                             {formatDate(info.getValue())}
-                            {med.daysToExpiry !== null && med.daysToExpiry <= 90 && (
-                                <span className="ml-1 text-[9px] opacity-70">({med.daysToExpiry}d)</span>
+                            {days !== null && days <= 90 && (
+                                <span className="ml-1 text-[9px] opacity-70">({days}d)</span>
                             )}
                         </span>
                     </div>
@@ -239,12 +265,12 @@ export default function Pharmacy() {
         {
             accessorKey: 'product.price',
             header: 'Preço',
-            cell: (info: any) => <span className="font-black text-xs text-gray-900 dark:text-white tracking-tighter">{formatCurrency(info.getValue() || 0)}</span>
+            cell: (info) => <span className="font-black text-xs text-gray-900 dark:text-white tracking-tighter">{formatCurrency(info.getValue() || 0)}</span>
         },
         {
             id: 'flags',
             header: 'Flags',
-            cell: ({ row }: any) => {
+            cell: ({ row }) => {
                 const med = row.original;
                 return (
                     <div className="flex items-center justify-center gap-1">
@@ -257,7 +283,7 @@ export default function Pharmacy() {
         {
             id: 'actions',
             header: '',
-            cell: ({ row }: any) => (
+            cell: ({ row }) => (
                 <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="sm" onClick={() => openEdit(row.original)} className="text-gray-400 hover:text-primary-600 p-1.5 h-auto">
                         <HiOutlinePencil className="w-4 h-4 text-primary-600 dark:text-primary-400" />
@@ -271,21 +297,22 @@ export default function Pharmacy() {
     ], []);
 
     // ── Columns: Stock ────────────────────────────────────────────────────────
-    const movementColumns = useMemo<ColumnDef<any, any>[]>(() => [
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const movementColumns = useMemo<ColumnDef<StockMovement, any>[]>(() => [
         {
             accessorKey: 'createdAt',
             header: 'Data',
-            cell: (info: any) => <span className="text-[11px] text-gray-500 font-mono">{formatDate(info.getValue())}</span>
+            cell: (info) => <span className="text-[11px] text-gray-500 font-mono">{formatDate(info.getValue())}</span>
         },
         {
             accessorKey: 'productName',
             header: 'Medicamento',
-            cell: (info: any) => <span className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-[11px]">{info.getValue() || info.row.original.product?.name}</span>
+            cell: (info) => <span className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-[11px]">{info.getValue() || info.row.original.product?.name}</span>
         },
         {
             accessorKey: 'type',
             header: 'Tipo',
-            cell: (info: any) => {
+            cell: (info) => {
                 const type = info.getValue() || info.row.original.movementType;
                 return (
                     <Badge variant={type === 'IN' ? 'success' : 'danger'} className="text-[9px] px-2 py-0.5">
@@ -297,47 +324,48 @@ export default function Pharmacy() {
         {
             accessorKey: 'quantity',
             header: 'Qtd',
-            cell: (info: any) => <span className="font-black text-sm text-gray-900 dark:text-white">{info.getValue()}</span>
+            cell: (info) => <span className="font-black text-sm text-gray-900 dark:text-white">{info.getValue()}</span>
         },
         {
             accessorKey: 'batchNumber',
             header: 'Lote',
-            cell: (info: any) => <span className="font-mono text-[10px] text-gray-500 font-medium">{info.getValue() || ''}</span>
+            cell: (info) => <span className="font-mono text-[10px] text-gray-500 font-medium">{info.getValue() || ''}</span>
         },
         {
             accessorKey: 'reference',
             header: 'Referência',
-            cell: (info: any) => <span className="text-[10px] text-gray-400 italic">{info.getValue() || info.row.original.reason || ''}</span>
+            cell: (info) => <span className="text-[10px] text-gray-400 italic">{info.getValue() || info.row.original.reason || ''}</span>
         }
     ], []);
 
     // ── Columns: Prescriptions ───────────────────────────────────────────────
-    const prescriptionColumns = useMemo<ColumnDef<any, any>[]>(() => [
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prescriptionColumns = useMemo<ColumnDef<Prescription, any>[]>(() => [
         {
             accessorKey: 'prescriptionNumber',
             header: 'Nº Receita',
-            cell: (info: any) => <span className="font-mono text-xs font-black text-primary-600 dark:text-primary-400">{info.getValue()}</span>
+            cell: (info) => <span className="font-mono text-xs font-black text-primary-600 dark:text-primary-400">{info.getValue()}</span>
         },
         {
             accessorKey: 'patientName',
             header: 'Paciente',
-            cell: (info: any) => (
+            cell: (info) => (
                 <div>
                     <div className="font-bold text-gray-900 dark:text-white uppercase tracking-tight text-xs">{info.getValue()}</div>
                     {info.row.original.patientPhone && <div className="text-[10px] text-gray-500 font-medium">{info.row.original.patientPhone}</div>}
                 </div>
             )
         },
-        { accessorKey: 'prescriberName', header: 'Médico', cell: (info: any) => <span className="text-[11px] text-gray-500 font-medium">{info.getValue() || ''}</span> },
+        { accessorKey: 'prescriberName', header: 'Médico', cell: (info) => <span className="text-[11px] text-gray-500 font-medium">{info.getValue() || ''}</span> },
         {
             accessorKey: 'prescriptionDate',
             header: 'Data',
-            cell: (info: any) => <span className="text-xs text-gray-500 font-mono tracking-tighter">{formatDate(info.getValue())}</span>
+            cell: (info) => <span className="text-xs text-gray-500 font-mono tracking-tighter">{formatDate(info.getValue())}</span>
         },
         {
             accessorKey: 'status',
             header: 'Estado',
-            cell: (info: any) => {
+            cell: (info) => {
                 const status = info.getValue();
                 return (
                     <Badge variant={status === 'dispensed' ? 'success' : status === 'expired' ? 'danger' : 'warning'} className="text-[9px] px-2 py-0.5">
@@ -349,7 +377,7 @@ export default function Pharmacy() {
         {
             id: 'items',
             header: 'Itens',
-            cell: ({ row }: any) => (
+            cell: ({ row }) => (
                 <div className="flex justify-center">
                     <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 dark:bg-dark-700 text-xs font-black text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-dark-600">{row.original.items?.length || 0}</span>
                 </div>
@@ -360,7 +388,7 @@ export default function Pharmacy() {
     // ── KPI strip ──────────────────────────────────────────────────────────────
     const kpis = [
         { label: 'Medicamentos', value: metrics.totalMedications, icon: HiOutlineBeaker, color: 'primary' },
-        { label: 'Stock Baixo', value: metrics.lowStockItems, icon: HiOutlineExclamation, color: 'warning' },
+        { label: 'Stock Baixo', value: metrics.lowStockItems, icon: HiOutlineExclamationTriangle, color: 'warning' },
         { label: 'A Expirar (90d)', value: metrics.expiringSoon, icon: HiOutlineClock, color: 'danger' },
         { label: 'Controlados', value: metrics.controlledItems, icon: HiOutlineShieldCheck, color: 'indigo' },
     ];
@@ -380,10 +408,10 @@ export default function Pharmacy() {
                 icon={<HiOutlineBeaker />}
                 actions={
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800" leftIcon={<HiOutlineRefresh className={cn("w-4 h-4 text-primary-600", isLoading && "animate-spin")} />}>
+                        <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-10 px-4 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-primary-600 transition-all bg-slate-50/50 dark:bg-dark-800" leftIcon={<HiOutlineArrowPath className={cn("w-4 h-4 text-primary-600", isLoading && "animate-spin")} />}>
                             Actualizar
                         </Button>
-                        <Button variant="ghost" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={exportPDF} className="h-10 rounded-xl border border-gray-100 dark:border-dark-700 font-bold text-xs bg-white dark:bg-dark-900">PDF</Button>
+                        <Button variant="ghost" size="sm" leftIcon={<HiOutlineArrowDownTray className="w-4 h-4 text-primary-600 dark:text-primary-400" />} onClick={exportPDF} className="h-10 rounded-xl border border-gray-100 dark:border-dark-700 font-bold text-xs bg-white dark:bg-dark-900">PDF</Button>
                         {view === 'medications' && (
                             <Button size="sm" leftIcon={<HiOutlinePlus className="w-4 h-4" />} onClick={() => { resetMedForm(); setMedModal(true); }} className="h-10 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary-500/20">Novo Medicamento</Button>
                         )}
@@ -412,7 +440,7 @@ export default function Pharmacy() {
                 options={[
                     { value: 'medications', label: 'Medicamentos', icon: HiOutlineBeaker },
                     { value: 'stock', label: 'Stock / Lotes', icon: HiOutlineCube },
-                    { value: 'prescriptions', label: 'Receitas', icon: HiOutlineClipboardList },
+                    { value: 'prescriptions', label: 'Receitas', icon: HiOutlineClipboardDocumentList },
                 ]}
                 value={view}
                 onChange={(val) => { setView(val as View); if (val === 'stock') loadMovements(1); }}
@@ -435,7 +463,7 @@ export default function Pharmacy() {
                         <SegmentedControl
                             options={FILTER_TABS.map(f => ({ label: f.label, value: f.id }))}
                             value={filter}
-                            onChange={(val) => { setFilter(val as any); setPage(1); }}
+                            onChange={(val) => { setFilter(val as 'all' | 'lowStock' | 'expiring' | 'controlled'); setPage(1); }}
                             size="sm"
                         />
                     }
@@ -591,7 +619,7 @@ export default function Pharmacy() {
                             onChange={e => setBatchForm(f => ({ ...f, medicationId: e.target.value }))}
                             options={[
                                 { value: '', label: 'Seleccionar medicamento...' },
-                                ...medications.map((m: any) => ({
+                                ...medications.map((m) => ({
                                     value: m.id,
                                     label: `${m.product?.name} (${m.dosage})`
                                 }))

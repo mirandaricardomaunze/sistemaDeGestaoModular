@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useSearchParams } from 'react-router-dom';
-import { Card, Button, Input, Badge, EmptyState, Modal, Select, PageHeader } from '../../components/ui';
-import { HiOutlineSearch, HiOutlineRefresh, HiOutlineCube, HiOutlinePlus, HiOutlineMinus, HiOutlinePrinter, HiOutlineDownload, HiOutlineArchive, HiOutlineTag, HiOutlineTrash } from 'react-icons/hi';
+import { Button, Input, Badge, Modal, Select, PageHeader } from '../../components/ui';
+import { SmartTable } from '../../components/ui/SmartTable';
+import { HiOutlineArrowPath, HiOutlineCube, HiOutlinePlus, HiOutlineMinus, HiOutlinePrinter, HiOutlineArrowDownTray, HiOutlineArchiveBox, HiOutlineTag, HiOutlineTrash } from 'react-icons/hi2';
 import { useProducts } from '../../hooks/useData';
 import { useDebounce } from '../../hooks/useDebounce';
-import Pagination from '../../components/ui/Pagination';
 import { formatCurrency } from '../../utils/helpers';
 import { bottleStoreAPI } from '../../services/api/bottle-store.api';
 import InventoryPrintReport from '../../components/inventory/InventoryPrintReport';
@@ -12,6 +13,37 @@ import toast from 'react-hot-toast';
 import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 import { useStore } from '../../stores/useStore';
 import { sanitizeString } from '../../utils/security';
+
+type StockFilter = 'all' | 'low' | 'out';
+
+type InvProduct = {
+    id: string;
+    name: string;
+    code?: string;
+    barcode?: string;
+    price: number;
+    costPrice?: number;
+    currentStock: number;
+    minStock?: number;
+    packSize?: number;
+    category?: string;
+};
+
+type BatchRecord = {
+    id: string;
+    batchNumber: string;
+    quantity: number;
+    expiryDate?: string;
+    daysToExpiry?: number | null;
+    computedStatus?: 'expired' | 'expiring_soon' | 'active';
+};
+
+type PriceTierRecord = {
+    id: string;
+    minQty: number;
+    price: number;
+    label?: string;
+};
 
 export default function BottleStoreInventory() {
     const { companySettings } = useStore();
@@ -21,7 +53,7 @@ export default function BottleStoreInventory() {
     const [page, setPage] = useState(Number(searchParams.get('page')) || 1);
     const [pageSize, setPageSize] = useState(Number(searchParams.get('limit')) || 20);
     const [search, setSearch] = useState(searchParams.get('q') || '');
-    const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>((searchParams.get('filter') as any) || 'all');
+    const [stockFilter, setStockFilter] = useState<StockFilter>((searchParams.get('filter') as StockFilter) || 'all');
 
     const [showPrintReport, setShowPrintReport] = useState(false);
 
@@ -37,7 +69,7 @@ export default function BottleStoreInventory() {
 
     const [adjustmentModal, setAdjustmentModal] = useState<{
         isOpen: boolean;
-        product: any | null;
+        product: InvProduct | null;
         type: 'add' | 'remove';
     }>({
         isOpen: false,
@@ -48,20 +80,20 @@ export default function BottleStoreInventory() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Batch modal
-    const [batchModal, setBatchModal] = useState<{ isOpen: boolean; product: any | null }>({ isOpen: false, product: null });
-    const [batches, setBatches] = useState<any[]>([]);
+    const [batchModal, setBatchModal] = useState<{ isOpen: boolean; product: InvProduct | null }>({ isOpen: false, product: null });
+    const [batches, setBatches] = useState<BatchRecord[]>([]);
     const [loadingBatches, setLoadingBatches] = useState(false);
     const [newBatch, setNewBatch] = useState({ batchNumber: '', quantity: '', expiryDate: '', costPrice: '', notes: '' });
     const [savingBatch, setSavingBatch] = useState(false);
 
     // Price tier modal
-    const [tierModal, setTierModal] = useState<{ isOpen: boolean; product: any | null }>({ isOpen: false, product: null });
-    const [tiers, setTiers] = useState<any[]>([]);
+    const [tierModal, setTierModal] = useState<{ isOpen: boolean; product: InvProduct | null }>({ isOpen: false, product: null });
+    const [tiers, setTiers] = useState<PriceTierRecord[]>([]);
     const [loadingTiers, setLoadingTiers] = useState(false);
     const [newTier, setNewTier] = useState({ minQty: '', price: '', label: '' });
     const [savingTier, setSavingTier] = useState(false);
 
-    const openBatchModal = async (product: any) => {
+    const openBatchModal = async (product: InvProduct) => {
         setBatchModal({ isOpen: true, product });
         setLoadingBatches(true);
         try {
@@ -89,11 +121,12 @@ export default function BottleStoreInventory() {
             const res = await bottleStoreAPI.getBatches({ productId: batchModal.product.id, limit: 50 });
             setBatches(res.data || []);
             refetch();
-        } catch (err: any) { toast.error(err.response?.data?.error || 'Erro ao criar lote'); }
-        finally { setSavingBatch(false); }
+        } catch {
+            toast.error('Erro ao guardar lote');
+        } finally { setSavingBatch(false); }
     };
 
-    const openTierModal = async (product: any) => {
+    const openTierModal = async (product: InvProduct) => {
         setTierModal({ isOpen: true, product });
         setLoadingTiers(true);
         try {
@@ -118,8 +151,9 @@ export default function BottleStoreInventory() {
             setNewTier({ minQty: '', price: '', label: '' });
             const res = await bottleStoreAPI.getPriceTiers(tierModal.product.id);
             setTiers(res || []);
-        } catch (err: any) { toast.error(err.response?.data?.error || 'Erro ao criar nível'); }
-        finally { setSavingTier(false); }
+        } catch {
+            toast.error('Erro ao criar nível de preço');
+        } finally { setSavingTier(false); }
     };
 
     const handleDeleteTier = async (id: string) => {
@@ -130,6 +164,8 @@ export default function BottleStoreInventory() {
         } catch { toast.error('Erro ao remover nível'); }
     };
 
+    const debouncedSearch = useDebounce(search, 350);
+
     const {
         products,
         pagination,
@@ -137,7 +173,7 @@ export default function BottleStoreInventory() {
         refetch
     } = useProducts({
         originModule: 'bottle_store',
-        search: useDebounce(search, 350),
+        search: debouncedSearch,
         status: stockFilter === 'all' ? undefined : stockFilter === 'low' ? 'low_stock' : 'out_of_stock',
         page,
         limit: pageSize
@@ -168,10 +204,10 @@ export default function BottleStoreInventory() {
             setAdjustmentModal({ isOpen: false, product: null, type: 'add' });
             setAdjustmentData({ quantity: '', reason: '' });
             refetch();
-        } catch (error: any) {
+        } catch (error) {
             // Rollback optimistic update on error
             product.currentStock = originalStock;
-            toast.error(error.response?.data?.message || 'Erro ao atualizar stock');
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.message || 'Erro ao atualizar stock');
         } finally {
             setIsSubmitting(false);
         }
@@ -209,6 +245,79 @@ export default function BottleStoreInventory() {
         });
     };
 
+    const inventoryProducts = products as InvProduct[];
+
+    const inventoryColumns = useMemo<ColumnDef<InvProduct, unknown>[]>(() => [
+        {
+            header: 'Produto',
+            cell: ({ row }) => (
+                <div>
+                    <div className="font-bold text-gray-900 dark:text-white">{row.original.name}</div>
+                    <div className="text-xs font-mono text-gray-500">{row.original.code}</div>
+                </div>
+            ),
+        },
+        {
+            header: 'Stock',
+            cell: ({ row }) => (
+                <Badge variant={row.original.currentStock <= 0 ? 'danger' : row.original.currentStock <= (row.original.minStock || 10) ? 'warning' : 'success'}>
+                    {row.original.currentStock} un
+                </Badge>
+            ),
+        },
+        {
+            header: 'Preco',
+            cell: ({ row }) => (
+                <div className="text-right font-bold text-gray-900 dark:text-gray-100">
+                    {formatCurrency(row.original.price)}
+                </div>
+            ),
+        },
+        {
+            header: 'Accoes',
+            cell: ({ row }) => (
+                <div className="flex justify-end gap-2">
+                    <Button
+                        size="xs"
+                        variant="ghost"
+                        title="Entrada de stock"
+                        className="h-9 w-9 px-0 text-green-600 hover:bg-green-50"
+                        onClick={() => setAdjustmentModal({ isOpen: true, product: row.original, type: 'add' })}
+                    >
+                        <HiOutlinePlus className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        size="xs"
+                        variant="ghost"
+                        title="Saida de stock"
+                        className="h-9 w-9 px-0 text-red-600 hover:bg-red-50"
+                        onClick={() => setAdjustmentModal({ isOpen: true, product: row.original, type: 'remove' })}
+                    >
+                        <HiOutlineMinus className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        size="xs"
+                        variant="ghost"
+                        title="Gerir Lotes/Validades"
+                        className="h-9 w-9 px-0 text-blue-600 hover:bg-blue-50"
+                        onClick={() => openBatchModal(row.original)}
+                    >
+                        <HiOutlineArchiveBox className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        size="xs"
+                        variant="ghost"
+                        title="Precos por Volume"
+                        className="h-9 w-9 px-0 text-purple-600 hover:bg-purple-50"
+                        onClick={() => openTierModal(row.original)}
+                    >
+                        <HiOutlineTag className="w-4 h-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ], []);
+
     return (
         <div className="flex flex-col gap-6 p-4 pb-8">
             <PageHeader 
@@ -218,12 +327,12 @@ export default function BottleStoreInventory() {
                 actions={
                     <div className="flex flex-wrap items-center gap-3">
                         <Button variant="outline" onClick={() => setShowPrintReport(true)} leftIcon={<HiOutlinePrinter className="w-5 h-5 text-primary-600 dark:text-primary-400" />}>Imprimir Inventário</Button>
-                        <Button variant="outline" onClick={() => refetch()} leftIcon={<HiOutlineRefresh className="w-4 h-4 text-primary-600 dark:text-primary-400" />}>
+                        <Button variant="outline" onClick={() => refetch()} leftIcon={<HiOutlineArrowPath className="w-4 h-4 text-primary-600 dark:text-primary-400" />}>
                             Atualizar
                         </Button>
                         <div className="flex bg-white dark:bg-dark-800 rounded-lg p-1 gap-1 border border-gray-200 dark:border-dark-700">
                             <Button variant="ghost" size="sm" onClick={handleExportExcel}>
-                                <HiOutlineDownload className="w-4 h-4 mr-1 text-green-600 dark:text-green-400" />
+                                <HiOutlineArrowDownTray className="w-4 h-4 mr-1 text-green-600 dark:text-green-400" />
                                 Excel
                             </Button>
                             <Button variant="ghost" size="sm" onClick={handleExportPDF}>
@@ -235,120 +344,48 @@ export default function BottleStoreInventory() {
                 }
             />
 
-            <Card padding="md">
-                <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-1">
-                        <Input
-                            placeholder="Buscar por código, nome..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5 text-gray-400" />}
-                        />
-                    </div>
+            <SmartTable
+                data={inventoryProducts}
+                columns={inventoryColumns}
+                isLoading={isLoading}
+                search={{
+                    value: search,
+                    onChange: (value) => {
+                        setSearch(value);
+                        setPage(1);
+                    },
+                    placeholder: 'Buscar por codigo, nome...',
+                }}
+                renderFilters={(
                     <div className="w-full md:w-64">
                         <Select
                             value={stockFilter}
-                            onChange={(e) => setStockFilter(e.target.value as any)}
+                            onChange={(e) => {
+                                setStockFilter(e.target.value as StockFilter);
+                                setPage(1);
+                            }}
                             options={[
                                 { value: 'all', label: 'Todo Stock' },
                                 { value: 'low', label: 'Stock Baixo' },
                                 { value: 'out', label: 'Esgotado' }
                             ]}
+                            size="sm"
+                            className="bg-white dark:bg-dark-800"
                         />
                     </div>
-                </div>
-            </Card>
-
-            <Card padding="none">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-gray-50 dark:bg-dark-900/50 uppercase text-xs font-bold text-gray-600 dark:text-gray-400">
-                            <tr>
-                                <th className="px-6 py-4">Produto</th>
-                                <th className="px-6 py-4">Stock</th>
-                                <th className="px-6 py-4 text-right">Preço</th>
-                                <th className="px-6 py-4 text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {products.map(p => (
-                                <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="font-bold text-gray-900 dark:text-white">{p.name}</div>
-                                        <div className="text-xs font-mono text-gray-500">{p.code}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <Badge variant={p.currentStock <= 0 ? 'danger' : p.currentStock <= (p.minStock || 10) ? 'warning' : 'success'}>
-                                            {p.currentStock} un
-                                        </Badge>
-                                    </td>
-                                    <td className="px-6 py-4 text-right font-bold text-gray-900 dark:text-gray-100">{formatCurrency(p.price)}</td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex justify-center gap-2">
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-green-600 hover:bg-green-50"
-                                                onClick={() => setAdjustmentModal({ isOpen: true, product: p, type: 'add' })}
-                                            >
-                                                <HiOutlinePlus className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                className="text-red-600 hover:bg-red-50"
-                                                onClick={() => setAdjustmentModal({ isOpen: true, product: p, type: 'remove' })}
-                                            >
-                                                <HiOutlineMinus className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                title="Gerir Lotes/Validades"
-                                                className="text-blue-600 hover:bg-blue-50"
-                                                onClick={() => openBatchModal(p)}
-                                            >
-                                                <HiOutlineArchive className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                title="Preços por Volume"
-                                                className="text-purple-600 hover:bg-purple-50"
-                                                onClick={() => openTierModal(p)}
-                                            >
-                                                <HiOutlineTag className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {!isLoading && products.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                                        <EmptyState
-                                            icon={<HiOutlineCube className="w-12 h-12" />}
-                                            title="Nenhum produto encontrado no modulo botlestore"
-                                            description="Tente ajustar seus filtros ou cadastre novos produtos."
-                                        />
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="px-6 py-6 border-t border-gray-100 dark:border-dark-700">
-                    <Pagination
-                        currentPage={page}
-                        totalItems={pagination?.total || 0}
-                        itemsPerPage={pageSize}
-                        onPageChange={setPage}
-                        onItemsPerPageChange={(size) => { setPageSize(size); setPage(1); }}
-                        itemsPerPageOptions={[10, 20, 50]}
-                    />
-                </div>
-            </Card>
+                )}
+                pagination={{
+                    currentPage: page,
+                    totalItems: pagination?.total || 0,
+                    itemsPerPage: pageSize,
+                    onPageChange: setPage,
+                    onItemsPerPageChange: (size) => { setPageSize(size); setPage(1); },
+                    itemsPerPageOptions: [10, 20, 50],
+                }}
+                emptyTitle="Nenhum produto encontrado no módulo botlestore"
+                emptyDescription="Tente ajustar seus filtros ou cadastre novos produtos."
+                minHeight="480px"
+            />
 
             <Modal
                 isOpen={adjustmentModal.isOpen}
@@ -411,7 +448,7 @@ export default function BottleStoreInventory() {
                     {/* New batch form */}
                     <form onSubmit={handleCreateBatch} className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 space-y-3">
                         <h4 className="font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
-                            <HiOutlineArchive className="w-4 h-4" /> Registar Novo Lote
+                            <HiOutlineArchiveBox className="w-4 h-4" /> Registar Novo Lote
                         </h4>
                         <div className="grid grid-cols-2 gap-3">
                             <Input
@@ -468,7 +505,7 @@ export default function BottleStoreInventory() {
                             <p className="text-gray-400 text-sm py-4 text-center">Nenhum lote registado</p>
                         ) : (
                             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                                {batches.map((b: any) => (
+                                {batches.map((b) => (
                                     <div key={b.id} className="flex items-center justify-between bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg px-4 py-3">
                                         <div>
                                             <span className="font-mono font-bold text-sm">{b.batchNumber}</span>
@@ -553,7 +590,7 @@ export default function BottleStoreInventory() {
                             <p className="text-gray-400 text-sm py-4 text-center">Nenhum nível configurado -- preço único</p>
                         ) : (
                             <div className="space-y-2">
-                                {tiers.sort((a: any, b: any) => a.minQty - b.minQty).map((t: any) => (
+                                {tiers.sort((a, b) => a.minQty - b.minQty).map((t) => (
                                     <div key={t.id} className="flex items-center justify-between bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg px-4 py-3">
                                         <div className="flex items-center gap-4">
                                             <span className="text-sm font-medium">A partir de <strong>{t.minQty}</strong> un</span>

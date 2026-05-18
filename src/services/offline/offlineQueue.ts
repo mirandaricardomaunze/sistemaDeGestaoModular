@@ -6,7 +6,7 @@ export interface EnqueueOperationInput {
     module: string;
     endpoint: string;
     method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-    data: any;
+    data: Record<string, unknown> | null;
     priority?: number;
     clientId?: string;
 }
@@ -30,7 +30,7 @@ export async function enqueueOperation(input: EnqueueOperationInput): Promise<Pe
     return { ...op, id: id as number };
 }
 
-export async function enqueueSale(data: any, clientId?: string): Promise<PendingSale> {
+export async function enqueueSale(data: Record<string, unknown>, clientId?: string): Promise<PendingSale> {
     const now = Date.now();
     const sale: PendingSale = {
         clientId: clientId ?? cryptoRandomId(),
@@ -73,7 +73,7 @@ export async function retryFailed(): Promise<number> {
         db.pendingSales
             .where('status')
             .equals('failed')
-            .modify((row: any) => {
+            .modify((row: PendingSale | PendingOperation) => {
                 row.status = 'pending';
                 row.attempts = 0;
                 row.nextRetryAt = now;
@@ -82,7 +82,7 @@ export async function retryFailed(): Promise<number> {
         db.pendingOperations
             .where('status')
             .equals('failed')
-            .modify((row: any) => {
+            .modify((row: PendingSale | PendingOperation) => {
                 row.status = 'pending';
                 row.attempts = 0;
                 row.nextRetryAt = now;

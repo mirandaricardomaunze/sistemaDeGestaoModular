@@ -9,20 +9,23 @@
  */
 
 import request from 'supertest';
+import type { Request, Response, NextFunction } from 'express';
 import { app } from '../../index';
 import { prisma } from '../../lib/prisma';
 
+type MockReq = Request & { userId?: string; companyId?: string; userName?: string; userRole?: string };
+
 // Mock authentication middleware
 jest.mock('../../middleware/auth', () => ({
-    authenticate: (req: any, res: any, next: any) => {
+    authenticate: (req: MockReq, _res: Response, next: NextFunction) => {
         req.userId = 'test-user-id';
         req.companyId = 'test-company-id';
         req.userName = 'Test';
         req.userRole = 'admin';
         next();
     },
-    authorize: () => (req: any, res: any, next: any) => next(),
-    AuthRequest: {} as any
+    authorize: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+    AuthRequest: {} as unknown
 }));
 
 jest.mock('../../lib/socket', () => ({
@@ -117,7 +120,7 @@ describe('Sales Route', () => {
         // Open cash session (POS sales require an open session)
         const session = await prisma.cashSession.create({
             data: {
-                userId: 'test-user-id',
+                openedById: 'test-user-id',
                 companyId: 'test-company-id',
                 openingBalance: 0,
                 status: 'open',
@@ -173,10 +176,11 @@ describe('Sales Route', () => {
                 .send(saleData)
                 .expect(201);
 
-            expect(response.body).toHaveProperty('id');
-            expect(response.body.receiptNumber).toMatch(/^FR [A-Z]\/\d{4}$/);
+            const body = response.body?.data ?? response.body;
+            expect(body).toHaveProperty('id');
+            expect(body.receiptNumber).toMatch(/^FR [A-Z]\/\d{4}$/);
             // Prisma returns Decimal as string in JSON
-            expect(Number(response.body.total)).toBe(232);
+            expect(Number(body.total)).toBe(232);
         });
 
         it('should reject invalid data with validation errors', async () => {
@@ -369,7 +373,7 @@ describe('Sales Route', () => {
                 .send(saleData)
                 .expect(201);
 
-            const saleId = response.body.id;
+            const saleId = (response.body?.data ?? response.body).id;
 
             // Verify tax retention record
             const retention = await prisma.taxRetention.findFirst({
@@ -387,7 +391,7 @@ describe('Sales Route', () => {
     });
 
     describe('GET /sales', () => {
-        const unwrap = (b: any) => b?.data ?? b;
+        const unwrap = <T = unknown>(b: { data?: T } | T): T => (b as { data?: T })?.data ?? b as T;
 
         it('should return paginated sales', async () => {
             const response = await request(app)
@@ -422,7 +426,7 @@ describe('Sales Route', () => {
     });
 
     describe('GET /sales/:id', () => {
-        const unwrap = (b: any) => b?.data ?? b;
+        const unwrap = <T = unknown>(b: { data?: T } | T): T => (b as { data?: T })?.data ?? b as T;
 
         it('should return sale by ID', async () => {
             // Create a sale with companyId so the service can find it
@@ -503,22 +507,28 @@ describe('Sales Route', () => {
                     .expect(200);
 
                 const body = response.body?.data ?? response.body;
-                expect(body.message ?? response.body.message).toMatch(/anulada|cancelada/i);
+                expect(body.message ?? response.body.message).toMatch(/pedido|anula[çc][ãa]o|aprova[çc][ãa]o/i);
 
-                // Verify stock restored
+                // Legacy cancel endpoint now creates a pending void request; stock is restored only after approval.
                 const updatedStock = await prisma.product.findUnique({
                     where: { id: testProductId },
                     select: { currentStock: true }
                 });
 
-                expect(updatedStock!.currentStock).toBe(initialStock!.currentStock + 2);
+                expect(updatedStock!.currentStock).toBe(initialStock!.currentStock);
+
+                const updatedSale = await prisma.sale.findUnique({
+                    where: { id: saleId },
+                    select: { voidStatus: true }
+                });
+                expect(updatedSale!.voidStatus).toBe('pending_void');
             });
 
             it('should return 404 for non-existent sale', async () => {
                 const fakeId = '00000000-0000-0000-0000-000000000000';
                 await request(app)
                     .post(`/api/sales/${fakeId}/cancel`)
-                    .send({ reason: 'Test' })
+                    .send({ reason: 'Teste invalido' })
                     .expect(404);
             });
         });

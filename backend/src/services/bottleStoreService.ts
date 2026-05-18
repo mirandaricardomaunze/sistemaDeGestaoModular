@@ -1,8 +1,36 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { subMonths, startOfDay, endOfDay, format } from 'date-fns';
 import { stockService } from './stockService';
 import { ApiError } from '../middleware/error.middleware';
 import { ResultHandler } from '../utils/result';
+
+type BatchListQuery = {
+    productId?: string;
+    status?: string;
+    page?: number | string;
+    limit?: number | string;
+};
+
+type BatchInput = {
+    productId: string;
+    batchNumber: string;
+    supplierId?: string | null;
+    quantity: number | string;
+    costPrice?: number | string;
+    manufactureDate?: string | Date | null;
+    receivedDate?: string | Date | null;
+    expiryDate?: string | Date | null;
+    notes?: string | null;
+    warehouseId?: string;
+};
+
+type PriceTierInput = {
+    productId: string;
+    minQty: number | string;
+    price: number | string;
+    label?: string | null;
+};
 
 export interface BottleStoreQuery {
     startDate?: string;
@@ -106,20 +134,20 @@ export class BottleStoreService {
         else if (startDate && endDate) { start = startOfDay(new Date(startDate)); end = endOfDay(new Date(endDate)); }
 
         const skip = (Number(page) - 1) * Number(limit);
-        const where = {
+        const where: Prisma.SaleWhereInput = {
             companyId,
             createdAt: { gte: start, lte: end },
             items: { some: { product: { category: { equals: 'beverages', mode: 'insensitive' } } } }
         };
 
         const [saleAggregates, salesData, total] = await Promise.all([
-            prisma.sale.aggregate({ where: where as any, _sum: { total: true, tax: true }, _count: { id: true } }),
+            prisma.sale.aggregate({ where, _sum: { total: true, tax: true }, _count: { id: true } }),
             prisma.sale.findMany({
-                where: where as any,
+                where,
                 select: { id: true, receiptNumber: true, createdAt: true, total: true, tax: true, customer: { select: { name: true } } },
                 orderBy: { createdAt: 'desc' }, skip, take: Number(limit)
             }),
-            prisma.sale.count({ where: where as any })
+            prisma.sale.count({ where })
         ]);
 
         const totalSales = Number(saleAggregates._sum?.total || 0);
@@ -138,9 +166,9 @@ export class BottleStoreService {
         const { startDate, endDate, period, productId, type, page = '1', limit = '20' } = query;
         const skip = (Number(page) - 1) * Number(limit);
 
-        const where: any = { companyId, originModule: 'BOTTLE_STORE' };
+        const where: Prisma.StockMovementWhereInput = { companyId, originModule: 'BOTTLE_STORE' };
         if (productId) where.productId = productId;
-        if (type) where.movementType = type as any;
+        if (type) where.movementType = type as Prisma.StockMovementWhereInput['movementType'];
 
         if (period === 'today') {
             where.createdAt = { gte: startOfDay(new Date()), lte: endOfDay(new Date()) };
@@ -165,7 +193,7 @@ export class BottleStoreService {
         if (!product) throw ApiError.notFound('Produto não encontrado ou não pertence à categoria de bebidas');
 
         return stockService.recordMovement({
-            productId, companyId, quantity: Number(quantity), movementType: type as any,
+            productId, companyId, quantity: Number(quantity), movementType: type as 'purchase' | 'sale' | 'return_in' | 'return_out' | 'adjustment' | 'expired' | 'transfer' | 'loss',
             originModule: 'BOTTLE_STORE', performedBy, reason, warehouseId
         });
     }
@@ -174,13 +202,13 @@ export class BottleStoreService {
     // BATCHES -- lotes com validade
     // ============================================================================
 
-    async getBatches(companyId: string, query: any) {
+    async getBatches(companyId: string, query: BatchListQuery) {
         const { productId, status, page = 1, limit = 30 } = query;
         const skip = (Number(page) - 1) * Number(limit);
 
-        const where: any = { companyId };
+        const where: Prisma.ProductBatchWhereInput = { companyId };
         if (productId) where.productId = productId;
-        if (status) where.status = status;
+        if (status) where.status = status as Prisma.ProductBatchWhereInput['status'];
         else where.status = { not: 'depleted' };
 
         const [batches, total] = await Promise.all([
@@ -240,7 +268,7 @@ export class BottleStoreService {
         };
     }
 
-    async createBatch(companyId: string, data: any, performedBy?: string) {
+    async createBatch(companyId: string, data: BatchInput, performedBy?: string) {
         const product = await prisma.product.findFirst({ where: { id: data.productId, companyId } });
         if (!product) throw ApiError.notFound('Produto não encontrado');
 
@@ -283,7 +311,7 @@ export class BottleStoreService {
     // ============================================================================
 
     async getPriceTiers(companyId: string, productId?: string) {
-        const where: any = { companyId };
+        const where: Prisma.PriceTierWhereInput = { companyId };
         if (productId) where.productId = productId;
         return prisma.priceTier.findMany({
             where,
@@ -292,7 +320,7 @@ export class BottleStoreService {
         });
     }
 
-    async createPriceTier(companyId: string, data: any) {
+    async createPriceTier(companyId: string, data: PriceTierInput) {
         const product = await prisma.product.findFirst({ where: { id: data.productId, companyId } });
         if (!product) throw ApiError.notFound('Produto não encontrado');
 

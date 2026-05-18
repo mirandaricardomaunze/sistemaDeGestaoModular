@@ -1,10 +1,13 @@
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { Prisma, CampaignStatus } from '@prisma/client';
+import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
 
 export interface CampaignListParams {
     status?: CampaignStatus;
     active?: string;
+    page?: string | number;
+    limit?: string | number;
 }
 
 export interface CampaignUsageData {
@@ -17,7 +20,8 @@ export interface CampaignUsageData {
 export class CampaignsService {
     async list(params: CampaignListParams, companyId: string) {
         const { status, active } = params;
-        const where: any = { companyId };
+        const { page, limit, skip } = getPaginationParams(params);
+        const where: Prisma.CampaignWhereInput = { companyId };
         if (status) where.status = status;
         if (active === 'true') {
             const now = new Date();
@@ -25,11 +29,17 @@ export class CampaignsService {
             where.startDate = { lte: now };
             where.endDate = { gte: now };
         }
-        return prisma.campaign.findMany({
-            where,
-            include: { _count: { select: { usages: true } } },
-            orderBy: { createdAt: 'desc' }
-        });
+        const [total, data] = await Promise.all([
+            prisma.campaign.count({ where }),
+            prisma.campaign.findMany({
+                where,
+                include: { _count: { select: { usages: true } } },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit
+            })
+        ]);
+        return createPaginatedResponse(data, page, limit, total);
     }
 
     async getById(id: string, companyId: string) {
@@ -114,15 +124,28 @@ export class CampaignsService {
         const campaign = await prisma.campaign.findFirst({ where: { id, companyId } });
         if (!campaign) throw ApiError.notFound('Campanha não encontrada');
 
-        const usages = await prisma.campaignUsage.findMany({ where: { campaignId: id } });
-        const totalDiscount = usages.reduce((sum, u) => sum + Number(u.discount), 0);
-        const uniqueCustomers = new Set(usages.filter(u => u.customerId).map(u => u.customerId)).size;
+        const [agg, customerGroups] = await Promise.all([
+            prisma.campaignUsage.aggregate({
+                where: { campaignId: id },
+                _sum: { discount: true },
+                _count: { _all: true }
+            }),
+            prisma.campaignUsage.groupBy({
+                by: ['customerId'],
+                where: { campaignId: id, customerId: { not: null } },
+                _count: { _all: true }
+            })
+        ]);
+
+        const totalUses = agg._count._all;
+        const totalDiscount = Number(agg._sum.discount ?? 0);
+        const uniqueCustomers = customerGroups.length;
 
         return {
-            totalUses: usages.length,
+            totalUses,
             totalDiscount,
             uniqueCustomers,
-            avgDiscount: usages.length > 0 ? totalDiscount / usages.length : 0,
+            avgDiscount: totalUses > 0 ? totalDiscount / totalUses : 0,
             remainingUses: campaign.maxTotalUses ? campaign.maxTotalUses - campaign.currentUses : null
         };
     }

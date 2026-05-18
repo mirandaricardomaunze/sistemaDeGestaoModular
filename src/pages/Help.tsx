@@ -12,13 +12,12 @@
 import { useState, useMemo } from 'react';
 import {
     HiOutlineQuestionMarkCircle,
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass,
     HiOutlineBookOpen,
     HiOutlineChevronDown,
     HiOutlineChevronRight,
     HiOutlineLightBulb,
-    HiOutlineSupport,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import {
     HiOutlineBeaker,
     HiOutlineBuildingStorefront,
@@ -31,7 +30,7 @@ import {
     HiOutlineChartBar,
     HiOutlineCube,
 } from 'react-icons/hi2';
-import { Card } from '../components/ui';
+import { Card, Button } from '../components/ui';
 import { useTenant } from '../contexts/TenantContext';
 import { cn } from '../utils/helpers';
 
@@ -602,7 +601,7 @@ export default function Help() {
 
                     {/* Search */}
                     <div className="relative max-w-xl">
-                        <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
                             type="text"
                             placeholder="Pesquisar ajuda..."
@@ -627,11 +626,13 @@ export default function Help() {
                                     const Icon = section.icon;
                                     const isActive = activeSection === section.id;
                                     return (
-                                        <button
+                                        <div
                                             key={section.id}
+                                            role="button"
+                                            tabIndex={0}
                                             onClick={() => setActiveSection(section.id)}
                                             className={cn(
-                                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all",
+                                                "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all cursor-pointer",
                                                 isActive
                                                     ? "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300"
                                                     : "hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-700 dark:text-gray-300"
@@ -647,7 +648,7 @@ export default function Help() {
                                             <span className="ml-auto text-xs text-gray-400 bg-gray-100 dark:bg-dark-600 px-2 py-0.5 rounded-full">
                                                 {section.topics.length}
                                             </span>
-                                        </button>
+                                        </div>
                                     );
                                 })}
                             </nav>
@@ -662,7 +663,7 @@ export default function Help() {
                                         href="mailto:suporte@multicore.co.mz"
                                         className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-primary-600 transition-colors"
                                     >
-                                        <HiOutlineSupport className="w-4 h-4" />
+                                        <HiOutlineQuestionMarkCircle className="w-4 h-4" />
                                         Contactar Suporte
                                     </a>
                                 </div>
@@ -698,9 +699,10 @@ export default function Help() {
                                         const isExpanded = expandedTopics.has(topic.id);
                                         return (
                                             <Card key={topic.id} className="overflow-hidden">
-                                                <button
+                                                <Button
+                                                    variant="ghost"
                                                     onClick={() => toggleTopic(topic.id)}
-                                                    className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors"
+                                                    className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 dark:hover:bg-dark-700/50 rounded-none"
                                                 >
                                                     <span className="font-bold text-gray-900 dark:text-white">
                                                         {topic.title}
@@ -710,7 +712,7 @@ export default function Help() {
                                                     ) : (
                                                         <HiOutlineChevronRight className="w-5 h-5 text-gray-400" />
                                                     )}
-                                                </button>
+                                                </Button>
 
                                                 {isExpanded && (
                                                     <div className="px-5 pb-5 border-t border-gray-100 dark:border-dark-700 pt-4 animate-in fade-in slide-in-from-top-2 duration-200">
@@ -770,7 +772,7 @@ export default function Help() {
                                 {/* Não results */}
                                 {currentSection.topics.length === 0 && (
                                     <Card className="p-12 text-center">
-                                        <HiOutlineSearch className="w-12 h-12 mx-auto text-gray-300 dark:text-dark-600 mb-4" />
+                                        <HiOutlineMagnifyingGlass className="w-12 h-12 mx-auto text-gray-300 dark:text-dark-600 mb-4" />
                                         <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
                                             Nenhum resultado encontrado
                                         </h3>

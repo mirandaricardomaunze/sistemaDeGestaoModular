@@ -1,8 +1,27 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 
+type AvailableRoomsParams = {
+    checkIn?: string;
+    checkOut?: string;
+    guests?: number | string;
+    type?: string;
+    companyId?: string;
+};
+
+type MealPlan = 'none' | 'breakfast' | 'half_board' | 'full_board';
+type CreateReservationInput = {
+    roomId?: string;
+    companyId?: string;
+    customerName?: string;
+    checkIn?: string;
+    checkOut?: string;
+    mealPlan?: MealPlan | string;
+};
+
 export class PublicReservationService {
-    async listAvailableRooms(params: any) {
+    async listAvailableRooms(params: AvailableRoomsParams) {
         const { checkIn, checkOut, guests, type, companyId } = params;
         if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         if (!checkIn || !checkOut) throw ApiError.badRequest('Datas de check-in e check-out são obrigatórias');
@@ -20,8 +39,8 @@ export class PublicReservationService {
             select: { roomId: true }
         });
 
-        const roomWhere: any = { companyId, status: { in: ['available', 'dirty'] }, id: { notIn: occupiedRoomIds.map(b => b.roomId) } };
-        if (type) roomWhere.type = type;
+        const roomWhere: Prisma.RoomWhereInput = { companyId, status: { in: ['available', 'dirty'] }, id: { notIn: occupiedRoomIds.map(b => b.roomId) } };
+        if (type) roomWhere.type = type as Prisma.RoomWhereInput['type'];
 
         const rooms = await prisma.room.findMany({ where: roomWhere, orderBy: { number: 'asc' } });
         const nights = Math.ceil(Math.abs(checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -40,7 +59,7 @@ export class PublicReservationService {
         };
     }
 
-    async createReservation(data: any) {
+    async createReservation(data: CreateReservationInput) {
         const { roomId, companyId, customerName, checkIn, checkOut, mealPlan } = data;
         if (!companyId || !roomId || !customerName || !checkIn || !checkOut) throw ApiError.badRequest('Campos obrigatórios ausentes');
 
@@ -56,7 +75,7 @@ export class PublicReservationService {
         const booking = await prisma.booking.create({
             data: {
                 roomId, companyId, customerName, checkIn: checkInDate, expectedCheckout: checkOutDate,
-                totalPrice: pricePerNight * nights, mealPlan: mealPlan || 'none', status: 'confirmed'
+                totalPrice: pricePerNight * nights, mealPlan: (mealPlan as MealPlan) || 'none', status: 'confirmed'
             }
         });
 

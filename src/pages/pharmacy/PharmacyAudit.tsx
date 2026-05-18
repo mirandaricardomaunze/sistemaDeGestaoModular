@@ -1,15 +1,54 @@
 import { useState, useMemo } from 'react';
 import { Card, Button, Input, Badge, PageHeader } from '../../components/ui';
+
+// ── Local row shapes (read by this view) ────────────────────────────────────
+type MedicationRow = {
+    id: string;
+    productId: string;
+    isControlled?: boolean;
+    product?: { name?: string; price?: number; costPrice?: number };
+};
+type SaleItemRow = {
+    quantity: number;
+    unitPrice?: number;
+    batch?: {
+        batchNumber?: string;
+        costPrice?: number;
+        medication?: { productId?: string };
+    };
+};
+type SaleRow = {
+    createdAt: string | Date;
+    customerName?: string;
+    soldBy?: string;
+    prescription?: { prescriptionNumber?: string; prescriptionNo?: string };
+    items?: SaleItemRow[];
+};
+type ProfitRow = {
+    name: string;
+    qty: number;
+    revenue: number;
+    cost: number;
+    profit: number;
+};
+type MovementRow = {
+    createdAt: string | Date;
+    batch?: { batchNumber?: string };
+    type?: string;
+    quantity?: number;
+    reason?: string;
+    user?: { name?: string };
+};
 import {
-    HiOutlineDocumentChartBar as HiOutlineDocumentReport,
+    HiOutlineDocumentChartBar as HiOutlineDocumentChartBar,
     HiOutlineShieldCheck,
-    HiOutlineArrowTrendingUp as HiOutlineTrendingUp,
-    HiOutlineClipboardDocumentList as HiOutlineClipboardList,
-    HiOutlineArrowDownTray as HiOutlineDownload,
+    HiOutlineArrowTrendingUp as HiOutlineArrowTrendingUp,
+    HiOutlineClipboardDocumentList as HiOutlineClipboardDocumentList,
+    HiOutlineArrowDownTray as HiOutlineArrowDownTray,
     HiOutlineCalendar,
     HiOutlineExclamationCircle,
     HiOutlineCurrencyDollar,
-    HiOutlineArchiveBox as HiOutlineArchive
+    HiOutlineArchiveBox as HiOutlineArchiveBox
 } from 'react-icons/hi2';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { usePharmacy } from '../../hooks/usePharmacy';
@@ -39,14 +78,14 @@ export default function PharmacyAudit() {
     const [isProfitLoading, setIsProfitLoading] = useState(false);
 
     const controlledMedications = useMemo(() => {
-        return medications.filter((m: any) => m.isControlled);
+        return (medications as unknown as MedicationRow[]).filter((m) => m.isControlled);
     }, [medications]);
 
     const sarrRecords = useMemo(() => {
         // Sales are already date-filtered by the server; filter by controlled medications only
-        return sales.filter((sale: any) =>
-            sale.items?.some((item: any) => {
-                const med = medications.find((m: any) => m.productId === item.batch?.medication?.productId);
+        return (sales as SaleRow[]).filter((sale) =>
+            sale.items?.some((item) => {
+                const med = (medications as unknown as MedicationRow[]).find((m) => m.productId === item.batch?.medication?.productId);
                 return med?.isControlled;
             })
         );
@@ -57,9 +96,9 @@ export default function PharmacyAudit() {
         let totalRevenue = 0;
         let totalCost = 0;
 
-        sales.forEach((sale: any) => {
-            sale.items?.forEach((item: any) => {
-                const med = medications.find((m: any) => m.productId === item.batch?.medication?.productId);
+        (sales as SaleRow[]).forEach((sale) => {
+            sale.items?.forEach((item) => {
+                const med = (medications as unknown as MedicationRow[]).find((m) => m.productId === item.batch?.medication?.productId);
                 if (!med) return;
                 totalRevenue += item.quantity * (item.unitPrice || med.product?.price || 0);
                 totalCost += item.quantity * (item.batch?.costPrice || med.product?.costPrice || 0);
@@ -87,10 +126,10 @@ export default function PharmacyAudit() {
         doc.setFontSize(10);
         doc.text(`Substâncias de Acção de Risco Relevante - Período: ${period.start || 'Início'} a ${period.end || 'Fim'}`, pageWidth / 2, 28, { align: 'center' });
 
-        const tableData: any[][] = [];
-        sarrRecords.forEach((sale: any) => {
-            sale.items.forEach((item: any) => {
-                const med = medications.find((m: any) => m.productId === item.batch?.medication?.productId);
+        const tableData: string[][] = [];
+        sarrRecords.forEach((sale) => {
+            sale.items?.forEach((item) => {
+                const med = (medications as unknown as MedicationRow[]).find((m) => m.productId === item.batch?.medication?.productId);
                 if (med?.isControlled) {
                     tableData.push([
                         formatDate(sale.createdAt),
@@ -132,11 +171,11 @@ export default function PharmacyAudit() {
             doc.setFontSize(10);
             doc.text(`Análise de Margens - ${period.start || 'Início'} a ${period.end || 'Fim'}`, pageWidth / 2, 28, { align: 'center' });
 
-            const profitData: any = {};
+            const profitData: Record<string, ProfitRow> = {};
 
-            sales.forEach((sale: any) => {
-                sale.items?.forEach((item: any) => {
-                    const med = medications.find((m: any) => m.productId === item.batch?.medication?.productId);
+            (sales as SaleRow[]).forEach((sale) => {
+                sale.items?.forEach((item) => {
+                    const med = (medications as unknown as MedicationRow[]).find((m) => m.productId === item.batch?.medication?.productId);
                     if (!med) return;
 
                     const id = med.id;
@@ -160,14 +199,14 @@ export default function PharmacyAudit() {
                 });
             });
 
-            const tableData = Object.values(profitData).map((d: any) => [
+            const tableData = Object.values(profitData).map((d) => [
                 d.name,
                 d.qty.toString(),
                 formatCurrency(d.revenue),
                 formatCurrency(d.cost),
                 formatCurrency(d.profit),
                 `${d.revenue > 0 ? ((d.profit / d.revenue) * 100).toFixed(1) : '0'}%`
-            ]).sort((a: any, b: any) => parseFloat(b[4].replace(/[^0-9.-]+/g, "")) - parseFloat(a[4].replace(/[^0-9.-]+/g, "")));
+            ]).sort((a, b) => parseFloat(b[4].replace(/[^0-9.-]+/g, "")) - parseFloat(a[4].replace(/[^0-9.-]+/g, "")));
 
             autoTable(doc, {
                 startY: 35,
@@ -211,7 +250,7 @@ export default function PharmacyAudit() {
             doc.setFontSize(10);
             doc.text(`Período: ${period.start || 'Início'} a ${period.end || 'Fim'}`, pageWidth / 2, 28, { align: 'center' });
 
-            const tableData = movementsData.map((mov: any) => [
+            const tableData = (movementsData as MovementRow[]).map((mov) => [
                 formatDateTime(mov.createdAt),
                 mov.batch?.batchNumber || '-',
                 mov.type?.toUpperCase() || '-',
@@ -246,7 +285,7 @@ export default function PharmacyAudit() {
             <PageHeader 
                 title="Auditoria & Conformidade SARR"
                 subtitle="Relatórios regulatórios, controlo de substâncias e análise de performance"
-                icon={<HiOutlineClipboardList />}
+                icon={<HiOutlineClipboardDocumentList />}
                 actions={
                     <Card className="p-4 bg-gray-50 dark:bg-dark-800 border-0 shadow-sm grow-0 shrink-0">
                         <div className="flex items-center gap-4">
@@ -287,7 +326,7 @@ export default function PharmacyAudit() {
                 <MetricCard
                     label="Vendas (Período)"
                     value={sarrRecords.length}
-                    icon={<HiOutlineArchive className="w-5 h-5" />}
+                    icon={<HiOutlineArchiveBox className="w-5 h-5" />}
                     color="blue"
                     isLoading={isLoading}
                 />
@@ -305,7 +344,7 @@ export default function PharmacyAudit() {
                 <MetricCard
                     label="Total Vendas"
                     value={profitabilityMetrics.transactions}
-                    icon={<HiOutlineTrendingUp className="w-5 h-5" />}
+                    icon={<HiOutlineArrowTrendingUp className="w-5 h-5" />}
                     color="purple"
                     isLoading={isLoading}
                 />
@@ -314,7 +353,7 @@ export default function PharmacyAudit() {
             {/* Report Actions Grid */}
             <div>
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <HiOutlineDownload className="w-5 h-5 text-gray-400" />
+                    <HiOutlineArrowDownTray className="w-5 h-5 text-gray-400" />
                     Exportar Relatórios
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -339,7 +378,7 @@ export default function PharmacyAudit() {
                             <Button
                                 variant="secondary"
                                 className="w-full bg-white text-red-600 hover:bg-white/90 font-bold"
-                                leftIcon={<HiOutlineDocumentReport className="w-5 h-5" />}
+                                leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />}
                                 onClick={handleExportSARR}
                                 disabled={isLoading}
                             >
@@ -354,7 +393,7 @@ export default function PharmacyAudit() {
                         <div className="p-6 relative z-10">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-14 h-14 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                    <HiOutlineTrendingUp className="w-8 h-8 text-white" />
+                                    <HiOutlineArrowTrendingUp className="w-8 h-8 text-white" />
                                 </div>
                                 <div>
                                     <h4 className="font-bold text-lg text-white">Lucratividade</h4>
@@ -369,7 +408,7 @@ export default function PharmacyAudit() {
                             <Button
                                 variant="secondary"
                                 className="w-full bg-white text-emerald-600 hover:bg-white/90 font-bold"
-                                leftIcon={<HiOutlineDocumentReport className="w-5 h-5" />}
+                                leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />}
                                 onClick={handleExportProfitability}
                                 disabled={isProfitLoading}
                             >
@@ -384,7 +423,7 @@ export default function PharmacyAudit() {
                         <div className="p-6 relative z-10">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-14 h-14 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                    <HiOutlineClipboardList className="w-8 h-8 text-white" />
+                                    <HiOutlineClipboardDocumentList className="w-8 h-8 text-white" />
                                 </div>
                                 <div>
                                     <h4 className="font-bold text-lg text-white">Audit Log</h4>
@@ -399,7 +438,7 @@ export default function PharmacyAudit() {
                             <Button
                                 variant="secondary"
                                 className="w-full bg-white text-indigo-600 hover:bg-white/90 font-bold"
-                                leftIcon={<HiOutlineDocumentReport className="w-5 h-5" />}
+                                leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />}
                                 onClick={handleExportAuditLog}
                                 disabled={isMovementsLoading}
                             >

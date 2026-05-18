@@ -100,7 +100,7 @@ export { SkeletonText, SkeletonCard, SkeletonTable, SkeletonAvatar, SkeletonButt
 // Table Components
 // ============================================================================
 
-export { DataTable, TableContainer } from './DataTable';
+export { DataTable, SimpleTable, TableContainer, TableLoadingState } from './DataTable';
 export { VirtualTable } from './VirtualTable';
 export { VirtualList } from './VirtualList';
 export { SmartTable } from './SmartTable';

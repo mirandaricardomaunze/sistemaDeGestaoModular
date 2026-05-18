@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { HiOutlineDeviceMobile, HiOutlineCheckCircle, HiOutlineXCircle } from 'react-icons/hi';
+import { HiOutlineDevicePhoneMobile, HiOutlineCheckCircle, HiOutlineXCircle } from 'react-icons/hi2';
 import { Button, Input, Modal } from '../ui';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useMpesaPayment } from '../../hooks/useMpesaPayment';
@@ -14,7 +14,7 @@ interface MobilePaymentModalProps {
     isOpen: boolean;
     onClose: () => void;
     amount: number;
-    provider: 'mpesa' | 'emola';
+    provider: 'mpesa' | 'emola'| 'mkesh';
     onConfirm: (phoneNumber: string) => void;
     // Optional: for tracking payments to specific module/reference
     module?: PaymentModule;
@@ -152,7 +152,7 @@ export default function MobilePaymentModal({
                         ) : status === 'error' ? (
                             <HiOutlineXCircle className="w-12 h-12 text-red-600" />
                         ) : (
-                            <HiOutlineDeviceMobile className={cn(
+                            <HiOutlineDevicePhoneMobile className={cn(
                                 "w-10 h-10",
                                 provider === 'mpesa' ? "text-red-600" : "text-orange-600"
                             )} />

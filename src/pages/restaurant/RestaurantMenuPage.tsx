@@ -172,12 +172,12 @@ function MenuCard({ item, onEdit, onDelete }: { item: RestaurantMenuItem; onEdit
 
                 {/* Overlays on hover */}
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                    <button onClick={onEdit} className="w-10 h-10 rounded-full bg-white text-gray-900 flex items-center justify-center hover:scale-110 transition-transform">
+                    <Button variant="ghost" size="sm" onClick={onEdit} className="w-10 h-10 rounded-full bg-white text-gray-900 flex items-center justify-center hover:scale-110 active:scale-95">
                         <HiOutlinePencil className="w-5 h-5" />
-                    </button>
-                    <button onClick={onDelete} className="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center hover:scale-110 transition-transform">
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={onDelete} className="w-10 h-10 rounded-full bg-red-600 text-white flex items-center justify-center hover:scale-110 active:scale-95">
                         <HiOutlineTrash className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -197,16 +197,18 @@ function MenuCard({ item, onEdit, onDelete }: { item: RestaurantMenuItem; onEdit
                         <HiOutlinePlus className="w-3 h-3" />
                         {item.prepTime || 15} MIN
                     </div>
-                    <button 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => toggleAvailability.mutate({ id: item.id, isAvailable: !item.isAvailable })}
                         disabled={toggleAvailability.isLoading}
                         className={cn(
-                            "text-xs font-bold transition-colors",
+                            "text-xs font-bold",
                             item.isAvailable ? "text-red-500 hover:text-red-600" : "text-emerald-500 hover:text-emerald-600"
                         )}
                     >
                         {item.isAvailable ? 'Marcar Esgotado' : 'Marcar Disponível'}
-                    </button>
+                    </Button>
                 </div>
             </div>
         </Card>

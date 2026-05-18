@@ -81,7 +81,7 @@ export function CommercialBonusConfig() {
             toast.success('Regra de comissão salva com sucesso!');
             setShowForm(false);
             fetchData();
-        } catch (error) {
+        } catch {
             toast.error('Erro ao salvar regra');
         } finally {
             setIsSaving(false);
@@ -94,7 +94,7 @@ export function CommercialBonusConfig() {
             await employeesAPI.deleteCommissionRule(id);
             toast.success('Regra removida');
             fetchData();
-        } catch (error) {
+        } catch {
             toast.error('Erro ao remover regra');
         }
     };
@@ -103,11 +103,11 @@ export function CommercialBonusConfig() {
         <div className="space-y-6 animate-fade-in">
             <div className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-tighter">
                         <HiOutlineTicket className="text-primary-500" />
-                        Configurador de Bónus Dinâmicos
+                        Regras de Bónus
                     </h2>
-                    <p className="text-gray-500">Defina regras de comissão automatizadas para a equipa comercial</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mt-1">Configuração de comissões automatizadas para a equipa</p>
                 </div>
                 {!showForm && (
                     <Button 
@@ -121,7 +121,7 @@ export function CommercialBonusConfig() {
             </div>
 
             {showForm && (
-                <Card className="border-primary-100 dark:border-primary-900/30 overflow-visible animate-slide-up">
+                <Card variant="glass" className="overflow-visible animate-slide-up border-primary-500/20">
                     <div className="p-6 space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <Select
@@ -166,7 +166,7 @@ export function CommercialBonusConfig() {
                                     </Button>
                                 </div>
                                 <div className="space-y-3">
-                                    {(newRule.tiers as any[] || []).map((tier, idx) => (
+                                    {(newRule.tiers || []).map((tier, idx) => (
                                         <div key={idx} className="flex gap-4 items-end animate-fade-in">
                                             <div className="flex-1">
                                                 <Input
@@ -186,12 +186,14 @@ export function CommercialBonusConfig() {
                                                     rightIcon={<span className="text-gray-400">%</span>}
                                                 />
                                             </div>
-                                            <button 
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
                                                 onClick={() => handleRemoveTier(idx)}
-                                                className="p-2.5 mb-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-2.5 mb-1 text-red-500 hover:bg-red-50 active:scale-95"
                                             >
                                                 <HiOutlineTrash />
-                                            </button>
+                                            </Button>
                                         </div>
                                     ))}
                                 </div>
@@ -210,9 +212,9 @@ export function CommercialBonusConfig() {
 
             <div className="grid grid-cols-1 gap-4">
                 {isLoading ? (
-                   <div className="p-12 text-center bg-gray-50 dark:bg-dark-800 rounded-lg border border-dashed border-gray-200 dark:border-dark-700">
-                       <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                       <p className="text-gray-500">A carregar configurações...</p>
+                   <div className="p-12 text-center bg-white/50 dark:bg-dark-800/50 backdrop-blur-xl rounded-2xl border border-dashed border-gray-200 dark:border-dark-700">
+                       <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                       <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 italic">A carregar configurações...</p>
                    </div>
                 ) : rules.length === 0 ? (
                     <div className="text-center p-12 bg-white dark:bg-dark-700 rounded-lg border border-dashed border-gray-300 dark:border-dark-600">
@@ -223,7 +225,7 @@ export function CommercialBonusConfig() {
                     </div>
                 ) : (
                     rules.map(rule => (
-                        <Card key={rule.id} className="hover:shadow-md transition-shadow group">
+                        <Card key={rule.id} variant="glass" className="hover:shadow-md transition-shadow group">
                             <div className="p-4 flex justify-between items-center">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-primary-100 dark:bg-primary-900/30 rounded-lg text-primary-600">
@@ -235,10 +237,10 @@ export function CommercialBonusConfig() {
                                         </h4>
                                         <div className="flex items-center gap-2 mt-1">
                                             <Badge variant={rule.type === 'tiered' ? 'warning' : 'info'}>
-                                                {rule.type === 'tiered' ? 'Escalonado' : 'Fixo'}
+                                                {rule.type === 'tiered' ? 'Escalonado' : rule.type === 'profit_based' ? 'Lucro' : 'Fixo'}
                                             </Badge>
                                             <span className="text-sm text-gray-500">
-                                                {rule.type === 'fixed' ? `${rule.rate}% de comissão` : `${(rule.tiers as any[]).length} escalões definidos`}
+                                                {rule.type === 'fixed' || rule.type === 'profit_based' ? `${rule.rate}% de comissão` : `${(rule.tiers || []).length} escalões definidos`}
                                             </span>
                                         </div>
                                     </div>
@@ -257,7 +259,7 @@ export function CommercialBonusConfig() {
                 )}
             </div>
 
-            <Card className="bg-gradient-to-br from-primary-600 to-primary-800 text-white border-none overflow-hidden relative">
+            <Card variant="glass" className="bg-gradient-to-br from-primary-600 to-primary-800 text-white border-none overflow-hidden relative shadow-2xl shadow-primary-500/20">
                 <div className="p-6 relative z-10">
                     <div className="flex items-start justify-between">
                         <div className="space-y-2">

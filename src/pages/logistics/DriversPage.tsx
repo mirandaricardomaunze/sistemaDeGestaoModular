@@ -21,10 +21,12 @@ import { useDrivers, useCreateDriver, useUpdateDriver, useDeleteDriver } from '.
 import { useDebounce } from '../../hooks/useDebounce';
 import type { Driver } from '../../services/api/logistics.api';
 import { PageHeader } from '../../components/ui';
+import type { BadgeVariant } from '../../components/ui/Badge';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
-const getStatusBadge = (status: string, t: any) => {
-    const variants: Record<string, any> = {
+const getStatusBadge = (status: string, t: TFunction) => {
+    const variants: Record<string, BadgeVariant> = {
         available: 'success',
         on_delivery: 'primary',
         off_duty: 'warning',
@@ -39,7 +41,7 @@ const getStatusBadge = (status: string, t: any) => {
  */
 function getLicenseExpiryAlert(
     licenseExpiry: string | undefined,
-    t: any
+    t: TFunction
 ): { label: string; className: string } | null {
     if (!licenseExpiry) return null;
 

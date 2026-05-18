@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Router, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { ApiError } from '../middleware/error.middleware';
@@ -8,7 +9,7 @@ import { clearModuleCache } from '../middleware/module';
 
 const router = Router();
 
-const requireSuperAdmin = (req: AuthRequest, res: any, next: any) => {
+const requireSuperAdmin = (req: AuthRequest, _res: Response, next: NextFunction) => {
     if (req.userRole !== 'super_admin') throw ApiError.forbidden('Apenas super administradores');
     next();
 };
@@ -79,14 +80,14 @@ router.get('/stats', authenticate, requireSuperAdmin, async (req: AuthRequest, r
         modules: moduleUsage.map(m => ({
             moduleCode: m.moduleCode,
             moduleName: moduleNameMap.get(m.moduleCode) || m.moduleCode,
-            companiesUsing: (m as any)._count.id,
+            companiesUsing: m._count.id,
         })),
         recentActivity: {
             sales: recentSales,
             newUsers,
         },
         system: {
-            dbSize: (dbSizeResult as any)[0]?.size || 'N/A',
+            dbSize: dbSizeResult[0]?.size || 'N/A',
         },
     });
 });
@@ -100,12 +101,12 @@ router.get('/companies', authenticate, requireSuperAdmin, async (req: AuthReques
     const search = String(req.query.search || '').trim();
     const status = req.query.status as string | undefined;
 
-    const where: any = {};
+    const where: Prisma.CompanyWhereInput = {};
     if (search) where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { tradeName: { contains: search, mode: 'insensitive' } },
     ];
-    if (status && ['active', 'trial', 'blocked', 'cancelled'].includes(status)) where.status = status;
+    if (status && ['active', 'trial', 'blocked', 'cancelled'].includes(status)) where.status = status as Prisma.CompanyWhereInput['status'];
 
     const [total, companies] = await Promise.all([
         prisma.company.count({ where }),
@@ -157,7 +158,7 @@ router.get('/companies/:id', authenticate, requireSuperAdmin, async (req: AuthRe
 
 router.patch('/companies/:id/status', authenticate, requireSuperAdmin, async (req: AuthRequest, res) => {
     const { status } = z.object({ status: z.enum(['active', 'trial', 'blocked', 'cancelled']) }).parse(req.body);
-    const updated = await prisma.company.update({ where: { id: req.params.id }, data: { status: status as any } });
+    const updated = await prisma.company.update({ where: { id: req.params.id }, data: { status: status as Prisma.CompanyUncheckedUpdateInput['status'] } });
     res.json(updated);
 });
 
@@ -193,7 +194,7 @@ router.get('/users', authenticate, requireSuperAdmin, async (req: AuthRequest, r
     const search = String(req.query.search || '').trim();
     const companyId = req.query.companyId as string | undefined;
 
-    const where: any = {};
+    const where: Prisma.UserWhereInput = {};
     if (search) where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
@@ -260,7 +261,7 @@ router.get('/activity', authenticate, requireSuperAdmin, async (req: AuthRequest
     const startDate = req.query.startDate as string | undefined;
     const endDate = req.query.endDate as string | undefined;
 
-    const where: any = {};
+    const where: Prisma.AuditLogWhereInput = {};
     if (companyId) {
         // AuditLog doesn't have companyId, filter via user's company
         where.user = { companyId };
@@ -333,7 +334,7 @@ router.get('/system/health', authenticate, requireSuperAdmin, async (req: AuthRe
         `.catch(() => [] as Array<{ tablename: string; row_count: bigint }>),
     ]);
 
-    const db = (dbResult as any)[0] || {};
+    const db = dbResult[0] || { size: 'N/A', version: 'N/A' };
 
     res.json({
         status: 'healthy',
@@ -341,7 +342,7 @@ router.get('/system/health', authenticate, requireSuperAdmin, async (req: AuthRe
         database: {
             size: db.size || 'N/A',
             version: db.version || 'N/A',
-            topTables: (tableStats as any[]).map(t => ({
+            topTables: tableStats.map(t => ({
                 table: t.tablename,
                 rows: Number(t.row_count),
             })),
@@ -393,9 +394,9 @@ router.get('/revenue', authenticate, requireSuperAdmin, async (req: AuthRequest,
             companyId: r.companyId,
             companyName: (r.companyId ? nameMap.get(r.companyId) : null) || 'Desconhecida',
             revenue: Number(r._sum?.total || 0),
-            salesCount: (r as any)._count.id,
+            salesCount: r._count.id,
         })),
-        byDay: (byDay as any[]).map(d => ({
+        byDay: byDay.map(d => ({
             day: d.day,
             revenue: Number(d.revenue),
             count: Number(d.count),

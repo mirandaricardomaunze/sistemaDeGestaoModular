@@ -5,18 +5,18 @@
  * and quick actions for managing alerts across all system modules.
  */
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     HiOutlineBell,
     HiOutlineCheck,
     HiOutlineCheckCircle,
-    HiOutlineXMark as HiOutlineX,
-    HiOutlineExclamationTriangle as HiOutlineExclamation,
+    HiOutlineXMark as HiOutlineXMark,
+    HiOutlineExclamationTriangle as HiOutlineExclamationTriangle,
     HiOutlineExclamationCircle,
     HiOutlineInformationCircle,
     HiOutlineChevronRight,
-    HiOutlineArrowPath as HiOutlineRefresh,
+    HiOutlineArrowPath as HiOutlineArrowPath,
     HiOutlineTrash,
     HiOutlineFunnel as HiOutlineFilter
 } from 'react-icons/hi2';
@@ -47,7 +47,7 @@ const PRIORITY_CONFIG: Record<AlertPriority, { label: string; color: string; ico
     high: {
         label: 'Alto',
         color: 'orange',
-        icon: <HiOutlineExclamation className="w-4 h-4" />
+        icon: <HiOutlineExclamationTriangle className="w-4 h-4" />
     },
     medium: {
         label: 'Médio',
@@ -185,10 +185,10 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
                             onClick={() => generateAlerts()}
                             title="Actualizar alertas"
                         >
-                            <HiOutlineRefresh className="w-4 h-4" />
+                            <HiOutlineArrowPath className="w-4 h-4" />
                         </Button>
                         <Button variant="ghost" size="sm" onClick={onClose}>
-                            <HiOutlineX className="w-4 h-4" />
+                            <HiOutlineXMark className="w-4 h-4" />
                         </Button>
                     </div>
                 </div>

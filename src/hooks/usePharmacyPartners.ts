@@ -23,7 +23,7 @@ export const usePharmacyPartners = () => {
         setIsLoading(true);
         try {
             const data = await pharmacyAPI.getPartners();
-            setPartners(data);
+            setPartners(data as unknown as Partner[]);
         } catch (error) {
             logger.error('Error fetching partners:', error);
             toast.error('Erro ao carregar parceiros.');
@@ -39,7 +39,7 @@ export const usePharmacyPartners = () => {
     const addPartner = useCallback(async (data: Omit<Partner, 'id' | 'isActive'>) => {
         setIsLoading(true);
         try {
-            const newPartner = await pharmacyAPI.createPartner(data);
+            const newPartner = await pharmacyAPI.createPartner(data as object) as unknown as Partner;
             setPartners(prev => [...prev, newPartner]);
             toast.success('Parceiro adicionado com sucesso.');
             return newPartner;
@@ -55,7 +55,7 @@ export const usePharmacyPartners = () => {
     const updatePartner = useCallback(async (id: string, data: Partial<Partner>) => {
         setIsLoading(true);
         try {
-            const updated = await pharmacyAPI.updatePartner(id, data);
+            const updated = await pharmacyAPI.updatePartner(id, data as object) as unknown as Partner;
             setPartners(prev => prev.map(p => p.id === id ? updated : p));
             toast.success('Parceiro atualizado com sucesso.');
             return updated;

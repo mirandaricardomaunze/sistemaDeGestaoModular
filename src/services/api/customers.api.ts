@@ -5,7 +5,13 @@ import api from './client';
 // ============================================================================
 
 export const customersAPI = {
-    getAll: async (params?: { search?: string; type?: string; originModule?: string }) => {
+    getAll: async (params?: {
+        search?: string;
+        type?: string;
+        originModule?: string;
+        page?: number;
+        limit?: number;
+    }) => {
         const response = await api.get('/customers', { params });
         return response.data;
     },

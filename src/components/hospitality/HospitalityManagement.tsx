@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { HotelRoom as HotelRoomBase } from '../../types/hotel';
+
+type HotelRoom = HotelRoomBase & {
+    priceNoMeal?: number | string | null;
+    priceBreakfast?: number | string | null;
+    priceHalfBoard?: number | string | null;
+    priceFullBoard?: number | string | null;
+    notes?: string | null;
+};
 import { Card, Button, EmptyState, ConfirmationModal, Pagination, usePagination } from '../ui';
-import { HiOutlineHome, HiOutlinePlus, HiOutlineTrash, HiOutlinePencil, HiOutlineCog } from 'react-icons/hi2';
+import { HiOutlineHome, HiOutlinePlus, HiOutlineTrash, HiOutlinePencil, HiOutlineCog, HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
 import { formatCurrency } from '../../utils/helpers';
 import { useHospitality } from '../../hooks/useHospitality';
 import { useTenant } from '../../contexts/TenantContext';
-import { HiOutlineArrowTopRightOnSquare } from 'react-icons/hi2';
+import { env } from '../../config/env';
 import RoomFormModal from './RoomFormModal';
 import toast from 'react-hot-toast';
 
@@ -25,7 +34,7 @@ export default function HospitalityManagement() {
 
     // Modal state
     const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
-    const [editingRoom, setEditingRoom] = useState<any>(null);
+    const [editingRoom, setEditingRoom] = useState<HotelRoom | null>(null);
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
 
@@ -56,10 +65,10 @@ export default function HospitalityManagement() {
         setIsRoomModalOpen(true);
     };
 
-    const handleOpenEditModal = (room: any) => {
+    const handleOpenEditModal = (room: HotelRoom) => {
         setEditingRoom(room);
         setRoomFormData({
-            number: room.number || '',
+            number: String(room.number || ''),
             type: room.type || 'single',
             price: String(room.price || ''),
             priceNoMeal: room.priceNoMeal ? String(room.priceNoMeal) : '',
@@ -96,8 +105,9 @@ export default function HospitalityManagement() {
             setIsRoomModalOpen(false);
             setEditingRoom(null);
             refetch();
-        } catch (err: any) {
-            toast.error(err.message || t('messages.errorOccurred'));
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: unknown; errors?: unknown[] } } };
+            toast.error(apiErr.message || t('messages.errorOccurred'));
         }
     };
 
@@ -114,15 +124,17 @@ export default function HospitalityManagement() {
             setDeleteConfirmOpen(false);
             setRoomToDelete(null);
             refetch();
-        } catch (err: any) {
-            toast.error(err.message || t('messages.errorOccurred'));
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: unknown; errors?: unknown[] } } };
+            toast.error(apiErr.message || t('messages.errorOccurred'));
         }
     };
 
     const handleCopyICal = (roomId: string) => {
         const companyId = company?.id;
         if (!companyId) return;
-        const icalUrl = `${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/hospitality/channels/rooms/${roomId}/ical?c=${companyId}`;
+        // Construct the ical URL using the validated env object
+        const icalUrl = `${env.VITE_API_URL}/hospitality/channels/rooms/${roomId}/ical?c=${companyId}`;
         navigator.clipboard.writeText(icalUrl);
         toast.success(t('hotel_module.rooms.icalCopied') || 'Link iCal copiado!');
     };
@@ -170,10 +182,10 @@ export default function HospitalityManagement() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 dark:divide-dark-700/50">
-                                {paginatedRooms.map((room: any) => (
+                                {paginatedRooms.map((room) => (
                                     <tr key={room.id} className="hover:bg-gray-50/50 dark:hover:bg-dark-700/20 transition-colors">
                                         <td className="px-4 py-4 font-bold text-primary-600">
-                                            {t('hotel_module.rooms.types.single')} {room.number}
+                                            {room.number}
                                         </td>
                                         <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400 capitalize">
                                             {t(`hotel_module.rooms.types.${room.type}`) || room.type}
@@ -285,5 +297,3 @@ export default function HospitalityManagement() {
         </div>
     );
 }
-
-

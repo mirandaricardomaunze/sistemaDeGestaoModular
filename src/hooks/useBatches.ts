@@ -9,8 +9,8 @@ import { batchesAPI, type CreateBatchDto } from '../services/api';
 
 const KEYS = {
     dashboard: ['batches', 'dashboard'] as const,
-    expiring: (p?: any) => ['batches', 'expiring', p ?? {}] as const,
-    list: (p?: any) => ['batches', 'list', p ?? {}] as const,
+    expiring: (p?: Record<string, unknown>) => ['batches', 'expiring', p ?? {}] as const,
+    list: (p?: Record<string, unknown>) => ['batches', 'list', p ?? {}] as const,
     one: (id: string) => ['batches', 'one', id] as const,
 };
 
@@ -64,7 +64,7 @@ export function useCreateBatch() {
     const m = useMutation({
         mutationFn: (data: CreateBatchDto) => batchesAPI.create(data),
         onSuccess: () => { invalidateAll(qc); toast.success('Lote registado com sucesso'); },
-        onError: (e: any) => {
+        onError: (e: { response?: { data?: { message?: string; error?: string } } }) => {
             const msg = e?.response?.data?.message || e?.response?.data?.error || 'Erro ao registar lote';
             toast.error(msg);
         },
@@ -78,7 +78,7 @@ export function useUpdateBatch() {
         mutationFn: ({ id, data }: { id: string; data: Partial<CreateBatchDto> & { status?: string } }) =>
             batchesAPI.update(id, data),
         onSuccess: () => { invalidateAll(qc); toast.success('Lote actualizado'); },
-        onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao actualizar lote'),
+        onError: (e: { response?: { data?: { message?: string; error?: string } } }) => toast.error(e?.response?.data?.message || 'Erro ao actualizar lote'),
     });
     return { mutate: m.mutate, mutateAsync: m.mutateAsync, isLoading: m.isPending };
 }
@@ -88,7 +88,7 @@ export function useDeleteBatch() {
     const m = useMutation({
         mutationFn: (id: string) => batchesAPI.delete(id),
         onSuccess: () => { invalidateAll(qc); toast.success('Lote eliminado'); },
-        onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao eliminar lote'),
+        onError: (e: { response?: { data?: { message?: string; error?: string } } }) => toast.error(e?.response?.data?.message || 'Erro ao eliminar lote'),
     });
     return { mutate: m.mutate, mutateAsync: m.mutateAsync, isLoading: m.isPending };
 }

@@ -7,37 +7,38 @@ interface Option {
     icon?: React.ElementType;
 }
 
-interface SegmentedControlProps {
+interface SegmentedControlProps<V extends string | number = string | number> {
     options: Option[];
-    value: string | number;
-    onChange: (value: any) => void;
+    value: V;
+    onChange: (value: V) => void;
     className?: string;
     size?: 'sm' | 'md';
 }
 
-export function SegmentedControl({
+export function SegmentedControl<V extends string | number = string | number>({
     options,
     value,
     onChange,
     className,
     size = 'sm'
-}: SegmentedControlProps) {
+}: SegmentedControlProps<V>) {
     return (
         <div className={cn(
-            "flex items-center bg-slate-100 dark:bg-dark-800 rounded-xl p-1 border border-slate-200 dark:border-white/5 shadow-inner",
+            "flex items-center bg-slate-100/90 dark:bg-dark-800 rounded-xl p-1 border border-slate-300/80 dark:border-white/5 shadow-inner",
+            size === 'sm' ? "h-10" : "h-11",
             className
         )}>
             {options.map((opt) => (
                 <button
                     key={opt.value}
                     type="button"
-                    onClick={() => onChange(opt.value)}
+                    onClick={() => onChange(opt.value as V)}
                     className={cn(
-                        "transition-all duration-300 flex items-center justify-center font-black uppercase tracking-widest gap-2",
-                        size === 'sm' ? "px-4 h-8 text-[10px] rounded-lg" : "px-6 h-10 text-[11px] rounded-xl",
+                        "transition-all duration-300 flex items-center justify-center font-black uppercase tracking-widest gap-2 flex-1 h-full whitespace-nowrap",
+                        size === 'sm' ? "px-4 text-[10px] rounded-lg" : "px-6 text-xs rounded-lg",
                         value === opt.value
-                            ? "bg-white dark:bg-dark-700 text-primary-600 dark:text-primary-400 shadow-sm scale-[1.02]"
-                            : "text-slate-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400"
+                            ? "bg-white dark:bg-dark-700 text-primary-700 dark:text-primary-400 shadow-[0_8px_18px_-12px_rgba(15,23,42,0.7)] scale-[1.02]"
+                            : "text-slate-600 dark:text-gray-400 hover:text-primary-700 dark:hover:text-primary-400"
                     )}
                 >
                     {opt.icon && <opt.icon className="w-3.5 h-3.5" />}

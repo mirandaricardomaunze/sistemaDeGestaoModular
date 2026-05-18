@@ -65,7 +65,8 @@ export default function QRScannerModal({
                     scannerRef.current = scanner;
                     setScannerActive(true);
                     setError(null);
-                } catch (err: any) {
+                } catch (err) {
+
                     logger.error("Scanner startup error:", err);
                     setError("Não foi possível aceder à câmara. Verifique as permissões.");
                 }

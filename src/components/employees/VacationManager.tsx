@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { format, getYear, differenceInDays } from 'date-fns';
 import {
     HiOutlineCalendar,
@@ -6,18 +7,26 @@ import {
     HiOutlineClock,
     HiOutlineTrash,
     HiOutlineSun
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { useEmployees, useVacations } from '../../hooks/useData';
-import { Button, Card, Input, Modal, Select, Pagination, usePagination, ConfirmationModal } from '../ui';
+import { Button, Card, Input, Modal, Select, Pagination, usePagination, ConfirmationModal, SmartTable } from '../ui';
 import { generateId } from '../../utils/helpers';
-import type { VacationRequest } from '../../types';
+import type { Employee, VacationRequest } from '../../types';
 import toast from 'react-hot-toast';
+
+type EmployeeVacationStats = Employee & {
+    stats: {
+        total: number;
+        used: number;
+        remaining: number;
+    };
+};
 
 export default function VacationManager() {
     const { employees: employeesData } = useEmployees();
     const { vacations: vacationsData, requestVacation: addVacation, updateVacation } = useVacations();
-    const employees = Array.isArray(employeesData) ? employeesData : [];
-    const vacations = Array.isArray(vacationsData) ? vacationsData : [];
+    const employees = useMemo(() => Array.isArray(employeesData) ? employeesData : [], [employeesData]);
+    const vacations = useMemo(() => Array.isArray(vacationsData) ? vacationsData : [], [vacationsData]);
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [selectedYear] = useState(() => new Date().getFullYear());
     const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
@@ -32,7 +41,7 @@ export default function VacationManager() {
     const activeEmployees = useMemo(() => employees.filter(e => e.isActive), [employees]);
 
     // Calculate vacation stats per employee
-    const employeeVacationStats = useMemo(() => {
+    const employeeVacationStats = useMemo<EmployeeVacationStats[]>(() => {
         return activeEmployees.map(emp => {
             const total = emp.vacationDaysTotal || 22;
             const used = emp.vacationDaysUsed || 0;
@@ -58,7 +67,7 @@ export default function VacationManager() {
 
     const employeeNextVacations = useMemo(() => {
         const today = new Date();
-        const nextVacationsMap: Record<string, any> = {};
+        const nextVacationsMap: Record<string, { startDate: string; endDate: string; employeeId: string } | undefined> = {};
 
         activeEmployees.forEach(emp => {
             const next = vacations
@@ -89,6 +98,69 @@ export default function VacationManager() {
         paginatedItems: paginatedVacations,
         totalItems: totalVacations,
     } = usePagination(activeVacations, 6);
+
+    const employeeBalanceColumns = useMemo<ColumnDef<EmployeeVacationStats, unknown>[]>(() => [
+        {
+            header: 'Colaborador',
+            cell: ({ row }) => (
+                <span className="font-medium text-gray-900 dark:text-white">
+                    {row.original.name}
+                </span>
+            ),
+        },
+        {
+            header: 'Direito Anual',
+            cell: ({ row }) => (
+                <span className="block text-center text-gray-600 dark:text-gray-300">
+                    {row.original.stats.total} dias
+                </span>
+            ),
+        },
+        {
+            header: 'Gozados',
+            cell: ({ row }) => (
+                <span className="block text-center text-orange-600 font-medium">
+                    {row.original.stats.used} dias
+                </span>
+            ),
+        },
+        {
+            header: 'Saldo Restante',
+            cell: ({ row }) => (
+                <span className="block text-center text-green-600 font-bold">
+                    {row.original.stats.remaining} dias
+                </span>
+            ),
+        },
+        {
+            header: 'Proximas Ferias',
+            cell: ({ row }) => {
+                const nextVacation = employeeNextVacations[row.original.id];
+
+                return nextVacation ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                        {format(new Date(nextVacation.startDate), 'dd/MM/yyyy')}
+                    </span>
+                ) : '-';
+            },
+        },
+        {
+            header: 'Accoes',
+            cell: ({ row }) => (
+                <div className="text-right">
+                    <button
+                        onClick={() => {
+                            setSelectedEmployee(row.original.id);
+                            setShowRequestModal(true);
+                        }}
+                        className="text-primary-600 hover:text-primary-900 dark:hover:text-primary-400 font-medium text-sm"
+                    >
+                        Agendar
+                    </button>
+                </div>
+            ),
+        },
+    ], [employeeNextVacations]);
 
     const handleCreateRequest = (e: React.FormEvent) => {
         e.preventDefault();
@@ -150,7 +222,7 @@ export default function VacationManager() {
             toast.success('Férias canceladas. O saldo foi devolvido.');
             setCancelConfirmOpen(false);
             setVacationToCancel(null);
-        } catch (error) {
+        } catch {
             toast.error('Erro ao cancelar férias');
         }
     };
@@ -218,73 +290,20 @@ export default function VacationManager() {
             </Card>
 
             {/* Employee Balance List */}
-            <Card padding="none" className="overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-dark-700 dark:text-gray-400">
-                            <tr>
-                                <th className="px-4 py-3">Colaborador</th>
-                                <th className="px-4 py-3 text-center">Direito Anual</th>
-                                <th className="px-4 py-3 text-center">Gozados</th>
-                                <th className="px-4 py-3 text-center">Saldo Restante</th>
-                                <th className="px-4 py-3">Próximas Férias</th>
-                                <th className="px-4 py-3 text-right">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                            {paginatedEmployeeStats.map((emp) => {
-                                const nextVacation = employeeNextVacations[emp.id];
-
-                                return (
-                                    <tr key={emp.id} className="bg-white dark:bg-dark-800 hover:bg-gray-50 dark:hover:bg-dark-700">
-                                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                                            {emp.name}
-                                        </td>
-                                        <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">
-                                            {emp.stats.total} dias
-                                        </td>
-                                        <td className="px-4 py-3 text-center text-orange-600 font-medium">
-                                            {emp.stats.used} dias
-                                        </td>
-                                        <td className="px-4 py-3 text-center text-green-600 font-bold">
-                                            {emp.stats.remaining} dias
-                                        </td>
-                                        <td className="px-4 py-3 text-gray-500">
-                                            {nextVacation ? (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                                                    {format(new Date(nextVacation.startDate), 'dd/MM/yyyy')}
-                                                </span>
-                                            ) : '-'}
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedEmployee(emp.id);
-                                                    setShowRequestModal(true);
-                                                }}
-                                                className="text-primary-600 hover:text-primary-900 dark:hover:text-primary-400 font-medium text-sm"
-                                            >
-                                                Agendar
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div className="px-6">
-                    <Pagination
-                        currentPage={empPage}
-                        totalItems={totalEmpStats}
-                        itemsPerPage={empPerPage}
-                        onPageChange={setEmpPage}
-                        onItemsPerPageChange={setEmpPerPage}
-                    />
-                </div>
-            </Card>
-
+            <SmartTable
+                data={paginatedEmployeeStats}
+                columns={employeeBalanceColumns}
+                hideToolbar
+                emptyTitle="Sem colaboradores ativos"
+                emptyDescription="Nao existem colaboradores ativos para mostrar no mapa de ferias."
+                pagination={{
+                    currentPage: empPage,
+                    totalItems: totalEmpStats,
+                    itemsPerPage: empPerPage,
+                    onPageChange: setEmpPage,
+                    onItemsPerPageChange: setEmpPerPage,
+                }}
+            />
             {/* Recent Vacations List */}
             <div className="space-y-4">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white px-1">Histórico de Agendamentos</h3>
@@ -414,3 +433,4 @@ export default function VacationManager() {
         </div>
     );
 }
+

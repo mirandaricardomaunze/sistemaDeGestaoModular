@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Card, Button, Input, Modal, Badge, ConfirmationModal, Pagination, usePagination } from '../ui';
+import { Card, Button, Input, Modal, Badge, ConfirmationModal, Pagination, SimpleTable, usePagination } from '../ui';
 import {
-    HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineRefresh,
+    HiOutlinePlus, HiOutlinePencil, HiOutlineTrash, HiOutlineArrowPath,
     HiOutlineCheckCircle, HiOutlineChartBar, HiOutlineCurrencyDollar,
     HiOutlineStar, HiOutlineInformationCircle,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import {
     useIvaDashboard, useIvaRates,
     useCreateIvaRate, useUpdateIvaRate, useDeleteIvaRate,
@@ -122,7 +122,7 @@ function IvaRateModal({ open, onClose, editing }: { open: boolean; onClose: () =
                             {(form.applicableCategories || []).map(cat => (
                                 <span key={cat} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
                                     {cat}
-                                    <button type="button" onClick={() => removeCat(cat)} className="hover:text-red-500">x</button>
+                                    <Button variant="ghost" size="sm" type="button" onClick={() => removeCat(cat)} className="p-0.5 hover:text-red-500 text-xs leading-none active:scale-90">×</Button>
                                 </span>
                             ))}
                         </div>
@@ -196,7 +196,7 @@ export default function IvaManager() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">Gerir taxas de IVA aplicadas a produtos e facturas</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button variant="ghost" onClick={() => { refetch(); refetchDash(); }} leftIcon={<HiOutlineRefresh className="w-4 h-4" />}>Atualizar</Button>
+                    <Button variant="ghost" onClick={() => { refetch(); refetchDash(); }} leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}>Atualizar</Button>
                     <Button onClick={() => setModalOpen(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />}>Nova Taxa</Button>
                 </div>
             </div>
@@ -258,7 +258,7 @@ export default function IvaManager() {
                 <Card padding="md">
                     <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Distribuição por Taxa</h3>
                     <div className="space-y-3">
-                        {breakdown.map((r: any) => (
+                        {breakdown.map((r: { id: string; code: string; rate: number; productCount: number; ivaCollected: number; taxableBase: number; invoiceItemCount?: number; isActive?: boolean }) => (
                             <div key={r.id} className="flex items-center gap-4">
                                 <div className="w-24 flex-shrink-0">
                                     <RateBadge rate={r.rate} />
@@ -284,25 +284,31 @@ export default function IvaManager() {
             {/* Rates Table */}
             <Card padding="md">
                 <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Taxas Configuradas</h3>
-                {isLoading ? (
-                    <div className="space-y-3">{[1, 2, 3].map(i => <div key={i} className="h-16 bg-gray-100 dark:bg-dark-700 rounded-lg animate-pulse" />)}</div>
-                ) : rates.length === 0 ? (
-                    <div className="text-center py-10">
-                        <HiOutlineInformationCircle className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 text-sm mb-4">Nenhuma taxa configurada.</p>
-                        <Button onClick={() => setModalOpen(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />}>Criar Primeira Taxa</Button>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b border-gray-200 dark:border-dark-700">
-                                    {['Código', 'Nome', 'Taxa', 'Produtos', 'Padrão', 'Estado', 'Vigência', ''].map(h => (
-                                        <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider pb-3 pr-4">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
+                <SimpleTable
+                    columns={[
+                        { key: 'code', label: 'Código', className: 'pr-4' },
+                        { key: 'name', label: 'Nome', className: 'pr-4' },
+                        { key: 'rate', label: 'Taxa', className: 'pr-4' },
+                        { key: 'products', label: 'Produtos', className: 'pr-4' },
+                        { key: 'default', label: 'Padrão', className: 'pr-4' },
+                        { key: 'status', label: 'Estado', className: 'pr-4' },
+                        { key: 'effective', label: 'Vigência', className: 'pr-4' },
+                        { key: 'actions', label: '', className: 'pr-4' },
+                    ]}
+                    isLoading={isLoading}
+                    isEmpty={!isLoading && rates.length === 0}
+                    emptyTitle="Nenhuma taxa configurada"
+                    emptyDescription="Crie a primeira taxa para começar a classificar produtos."
+                    emptyIcon={<HiOutlineInformationCircle className="w-10 h-10 text-gray-300" />}
+                    onEmptyAction={() => setModalOpen(true)}
+                    emptyActionLabel="Criar Primeira Taxa"
+                    minHeight="360px"
+                    loadingRows={6}
+                    loadingMessage="A carregar taxas..."
+                    tableClassName="w-full text-sm"
+                    headerRowClassName="border-gray-200 dark:border-dark-700"
+                    tbodyClassName="divide-y divide-gray-100 dark:divide-dark-700"
+                >
                                 {paginatedRates.map((rate) => (
                                     <tr key={rate.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/50 transition-colors">
                                         <td className="py-3 pr-4 font-mono text-xs font-semibold text-gray-700 dark:text-gray-300">{rate.code}</td>
@@ -326,20 +332,17 @@ export default function IvaManager() {
                                         </td>
                                         <td className="py-3">
                                             <div className="flex items-center gap-2">
-                                                <button onClick={() => handleEdit(rate)} className="p-1.5 rounded text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors">
+                                                <Button variant="ghost" size="sm" onClick={() => handleEdit(rate)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 active:scale-95">
                                                     <HiOutlinePencil className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => setDeleting(rate)} className="p-1.5 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                                </Button>
+                                                <Button variant="ghost" size="sm" onClick={() => setDeleting(rate)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-95">
                                                     <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                </SimpleTable>
                 
                 {!isLoading && rates.length > 0 && (
                     <div className="pt-4 mt-4 border-t border-gray-200 dark:border-dark-700">

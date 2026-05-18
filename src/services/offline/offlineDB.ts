@@ -22,7 +22,7 @@ export interface OfflineCustomer {
 export interface SyncItem {
   id?: number;
   type: 'SALE' | 'CUSTOMER' | 'RESERVATION';
-  data: any;
+  data: Record<string, unknown>;
   timestamp: number;
   status: 'pending' | 'syncing' | 'failed';
   attempts: number;

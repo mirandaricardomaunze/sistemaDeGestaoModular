@@ -28,14 +28,25 @@ export function useScale(): UseScaleReturn {
     const [reading, setReading] = useState<ScaleReading | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const portRef = useRef<any>(null);
-    const readerRef = useRef<any>(null);
+    interface SerialPort {
+        readable: ReadableStream<Uint8Array> | null;
+        open(options: object): Promise<void>;
+        close(): Promise<void>;
+    }
+    interface SerialReader {
+        read(): Promise<{ value?: Uint8Array; done: boolean }>;
+        releaseLock(): void;
+        cancel(): Promise<void>;
+    }
+
+    const portRef = useRef<SerialPort | null>(null);
+    const readerRef = useRef<SerialReader | null>(null);
     const abortRef = useRef<boolean>(false);
 
     const isSupported = hasSerialSupport();
 
     // ── Leitura contínua ──────────────────────────────────────────────────────
-    const startReading = useCallback(async (port: any) => {
+    const startReading = useCallback(async (port: SerialPort) => {
         abortRef.current = false;
         setStatus('reading');
 
@@ -46,7 +57,7 @@ export function useScale(): UseScaleReturn {
                 readerRef.current = port.readable.getReader();
                 try {
                     while (!abortRef.current) {
-                        const { value, done } = await readerRef.current.read();
+                        const { value, done } = await readerRef.current!.read();
                         if (done) break;
 
                         lineBuffer += decoder.decode(value, { stream: true });
@@ -63,9 +74,9 @@ export function useScale(): UseScaleReturn {
                             }
                         }
                     }
-                } catch (err: any) {
+                } catch (err) {
                     if (!abortRef.current) {
-                        setError('Erro na leitura: ' + err.message);
+                        setError('Erro na leitura: ' + (err as Error).message);
                     }
                 } finally {
                     try { readerRef.current?.releaseLock(); } catch { /* ignore */ }
@@ -88,19 +99,19 @@ export function useScale(): UseScaleReturn {
             setStatus('error');
             return;
         }
-        if (portRef.current) return; // j conectado
+        if (portRef.current) return; // já conectado
 
         setStatus('connecting');
         setError(null);
 
         try {
-            // Tenta porta j autorizada primeiro
-            const existingPorts = await (navigator as any).serial.getPorts();
+            // Tenta porta já autorizada primeiro
+            const existingPorts = await (navigator as Navigator & { serial: { getPorts(): Promise<SerialPort[]>; requestPort(options?: { filters?: object[] }): Promise<SerialPort> } }).serial.getPorts();
             let port = existingPorts[0];
 
             if (!port) {
                 // Pede ao utilizador para seleccionar a porta da balança
-                port = await (navigator as any).serial.requestPort({
+                port = await (navigator as Navigator & { serial: { getPorts(): Promise<SerialPort[]>; requestPort(options?: { filters?: object[] }): Promise<SerialPort> } }).serial.requestPort({
                     filters: [] // aceita qualquer dispositivo série
                 });
             }
@@ -120,9 +131,10 @@ export function useScale(): UseScaleReturn {
 
             // Inicia leitura em background
             startReading(port);
-        } catch (err: any) {
-            if (err.name !== 'NotFoundError') { // utilizador cancelou a seleção
-                setError(err.message || 'Erro ao conectar à balança');
+        } catch (err) {
+            const e = err as Error;
+            if (e.name !== 'NotFoundError') { // utilizador cancelou a seleção
+                setError(e.message || 'Erro ao conectar à balança');
                 setStatus('error');
             } else {
                 setStatus('disconnected');

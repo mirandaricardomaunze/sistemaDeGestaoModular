@@ -134,7 +134,7 @@ export default function RoutesPage() {
         return `${mins}min`;
     };
 
-    const getRouteMapLocations = (route: any) => {
+    const getRouteMapLocations = (route: DeliveryRoute) => {
         const originLat = Number(route.originLat);
         const originLng = Number(route.originLng);
         const destLat = Number(route.destinationLat);

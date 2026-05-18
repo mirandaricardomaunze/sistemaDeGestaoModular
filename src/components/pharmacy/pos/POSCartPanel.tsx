@@ -4,12 +4,67 @@ import CustomerAutocomplete from '../../common/CustomerAutocomplete';
 import {
     HiOutlineShoppingCart, HiOutlineTrash, HiOutlineDocumentArrowDown,
     HiOutlineCheck, HiOutlineMagnifyingGlass, HiOutlineExclamationCircle,
-    HiOutlineUser, HiOutlineCheckCircle, HiOutlinePhoto, HiOutlineXMark as HiOutlineX,
+    HiOutlineUser, HiOutlineCheckCircle, HiOutlinePhoto, HiOutlineXMark as HiOutlineXMark,
     HiOutlineEye
 } from 'react-icons/hi2';
 import { formatCurrency } from '../../../utils/helpers';
 import { pharmacyAPI } from '../../../services/api';
+import type { Prescription } from '../../../types/pharmacy';
 import toast from 'react-hot-toast';
+import { env } from '../../../config/env';
+
+interface CartItem {
+    batchId: string;
+    medicationId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+    total: number;
+    maxQuantity: number;
+    posologyLabel?: string;
+    expiryDate?: string;
+    requiresPrescription?: boolean;
+    isControlled?: boolean;
+}
+
+interface CustomerLite { id: string; name: string }
+interface InsurancePartner {
+    id: string;
+    name: string;
+    isActive: boolean;
+    coveragePercentage?: number;
+}
+
+interface POSCartPanelProps {
+    cart: CartItem[];
+    setCart: (cart: CartItem[]) => void;
+    updateCartItem: (batchId: string, qty: number) => void;
+    removeFromCart: (batchId: string) => void;
+    cartTotal: number;
+    insuranceAmount: number;
+    discount: number;
+    setDiscount: (n: number) => void;
+    cartHasControlledItems: boolean;
+    prescriptionNumber: string;
+    setPrescriptionNumber: (s: string) => void;
+    selectedCustomer: string | null;
+    setSelectedCustomer: (id: string | null) => void;
+    manualCustomerName: string;
+    setManualCustomerName: (s: string) => void;
+    paymentMethod: string;
+    setPaymentMethod: (s: string) => void;
+    handleCheckout: () => void;
+    lastSale: { id: string; receiptNumber?: string } | null;
+    handlePrintLastReceipt: () => void;
+    customers: CustomerLite[];
+    partners: InsurancePartner[];
+    insuranceEntity: string | null;
+    setInsuranceEntity: (id: string | null) => void;
+    setInsuranceCoverage: (n: number) => void;
+    handleViewPatientHistory: () => void;
+    onPrescriptionValidated?: (rx: Prescription) => void;
+}
 
 export function POSCartPanel({
     cart,
@@ -39,10 +94,10 @@ export function POSCartPanel({
     setInsuranceCoverage,
     handleViewPatientHistory,
     onPrescriptionValidated,
-}: any) {
-    const subtotal = cart.reduce((sum: number, item: any) => sum + item.total, 0);
+}: POSCartPanelProps) {
+    const subtotal = cart.reduce((sum: number, item) => sum + item.total, 0);
     const [lookingUp, setLookingUp] = useState(false);
-    const [validatedRx, setValidatedRx] = useState<any>(null);
+    const [validatedRx, setValidatedRx] = useState<Prescription | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [rxImageUrl, setRxImageUrl] = useState<string | null>(null);
     const [showImageModal, setShowImageModal] = useState(false);
@@ -53,11 +108,17 @@ export function POSCartPanel({
         setLookingUp(true);
         try {
             const rx = await pharmacyAPI.lookupPrescription(prescriptionNumber.trim());
+            if (!rx) {
+                toast.error('Receita não encontrada');
+                setValidatedRx(null);
+                return;
+            }
             setValidatedRx(rx);
-            toast.success(`Receita ${rx.prescriptionNumber || rx.prescriptionNo || ''} encontrada - ${rx.patientName || 'Paciente'}`);
+            toast.success(`Receita ${rx.number || ''} encontrada - ${rx.customer?.name || 'Paciente'}`);
             if (onPrescriptionValidated) onPrescriptionValidated(rx);
-        } catch (err: any) {
-            const msg = err?.response?.data?.message || 'Receita não encontrada';
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: unknown[] } } };
+            const msg = apiErr?.response?.data?.message || 'Receita não encontrada';
             toast.error(msg);
             setValidatedRx(null);
         } finally {
@@ -86,10 +147,11 @@ export function POSCartPanel({
         try {
             const result = await pharmacyAPI.uploadPrescriptionImage(validatedRx.id, file);
             setRxImageUrl(result.imageUrl);
-            setValidatedRx((prev: any) => ({ ...prev, imageUrl: result.imageUrl }));
+            setValidatedRx((prev) => prev ? ({ ...prev, imageUrl: result.imageUrl }) : null);
             toast.success('Imagem da receita guardada!');
-        } catch (err: any) {
-            toast.error('Erro ao guardar imagem: ' + (err?.response?.data?.message || err.message));
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: unknown[] } } };
+            toast.error('Erro ao guardar imagem: ' + (apiErr?.response?.data?.message || apiErr.message));
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -101,7 +163,7 @@ export function POSCartPanel({
         try {
             await pharmacyAPI.deletePrescriptionImage(validatedRx.id);
             setRxImageUrl(null);
-            setValidatedRx((prev: any) => ({ ...prev, imageUrl: null }));
+            setValidatedRx((prev) => prev ? ({ ...prev, imageUrl: undefined }) : null);
             toast.success('Imagem removida');
         } catch {
             toast.error('Erro ao remover imagem');
@@ -154,7 +216,7 @@ export function POSCartPanel({
                         <div className="flex-1">
                             <CustomerAutocomplete
                                 selectedId={selectedCustomer}
-                                selectedName={customers?.find((c: any) => c.id === selectedCustomer)?.name}
+                                selectedName={customers?.find((c) => c.id === selectedCustomer)?.name}
                                 onSelect={(id) => setSelectedCustomer(id)}
                                 label="Cliente"
                                 placeholder="Pesquisar paciente..."
@@ -176,7 +238,7 @@ export function POSCartPanel({
                         <Input
                             placeholder="Nome do cliente (opcional)..."
                             value={manualCustomerName}
-                            onChange={(e: any) => setManualCustomerName(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setManualCustomerName(e.target.value)}
                         />
                     )}
 
@@ -185,30 +247,30 @@ export function POSCartPanel({
                         label="Convénio / Seguro"
                         options={[
                             { value: '', label: 'Sem seguro' },
-                            ...partners.filter((p: any) => p.isActive).map((p: any) => ({
+                            ...partners.filter((p) => p.isActive).map((p) => ({
                                 value: p.id,
-                                label: `${p.name} (${p.coveragePercentage}%)`
+                                label: `${p.name} (${p.coveragePercentage ?? 0}%)`
                             }))
                         ]}
                         value={insuranceEntity || ''}
-                        onChange={(e: any) => {
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                             const id = e.target.value;
                             setInsuranceEntity(id || null);
-                            const sel = partners.find((p: any) => p.id === id);
-                            setInsuranceCoverage(sel ? sel.coveragePercentage : 0);
+                            const sel = partners.find((p) => p.id === id);
+                            setInsuranceCoverage(sel?.coveragePercentage ?? 0);
                         }}
                     />
 
                     {/* Prescription (controlled items) */}
                     {cartHasControlledItems && (
                         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-700">
-                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">⚠️ Receita obrigatória</p>
+                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">⚠️ï¸ Receita obrigatória</p>
                             <div className="flex gap-2">
                                 <div className="flex-1">
                                     <Input
                                         placeholder="Nº da Receita Médica *"
                                         value={prescriptionNumber}
-                                        onChange={(e: any) => handlePrescriptionChange(e.target.value)}
+                                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePrescriptionChange(e.target.value)}
                                     />
                                 </div>
                                 <Button
@@ -240,7 +302,7 @@ export function POSCartPanel({
                                                 <p className="text-green-600">Prescritor: {validatedRx.prescriberName}</p>
                                             )}
                                             {validatedRx.status === 'dispensed' && (
-                                                <p className="text-amber-600 font-medium mt-0.5">⚠️ Esta receita já foi dispensada anteriormente.</p>
+                                                <p className="text-amber-600 font-medium mt-0.5">⚠️ï¸ Esta receita já foi dispensada anteriormente.</p>
                                             )}
                                         </div>
                                     </div>
@@ -266,7 +328,7 @@ export function POSCartPanel({
                                                         className="w-12 h-12 rounded-lg overflow-hidden border-2 border-green-300 flex-shrink-0 hover:border-green-500 transition-colors"
                                                     >
                                                         <img
-                                                            src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001'}${rxImageUrl || validatedRx.imageUrl}`}
+                                                            src={`${env.VITE_API_URL.replace('/api', '')}${rxImageUrl || validatedRx.imageUrl}`}
                                                             alt="Receita"
                                                             className="w-full h-full object-cover"
                                                         />
@@ -297,7 +359,7 @@ export function POSCartPanel({
                                                     className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
                                                     title="Remover imagem"
                                                 >
-                                                    <HiOutlineX className="w-4 h-4" />
+                                                    <HiOutlineXMark className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         ) : (
@@ -329,10 +391,10 @@ export function POSCartPanel({
                                             onClick={() => setShowImageModal(false)}
                                             className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg z-10"
                                         >
-                                            <HiOutlineX className="w-4 h-4 text-gray-700" />
+                                            <HiOutlineXMark className="w-4 h-4 text-gray-700" />
                                         </button>
                                         <img
-                                            src={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001'}${rxImageUrl || validatedRx?.imageUrl}`}
+                                            src={`${env.VITE_API_URL.replace('/api', '')}${rxImageUrl || validatedRx?.imageUrl}`}
                                             alt="Imagem da Receita"
                                             className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain"
                                         />
@@ -350,7 +412,7 @@ export function POSCartPanel({
                                 <p className="text-sm text-gray-400">Carrinho vazio</p>
                                 <p className="text-xs text-gray-300 dark:text-dark-500 mt-1">Clique num medicamento para adicionar</p>
                             </div>
-                        ) : cart.map((item: any) => (
+                        ) : cart.map((item) => (
                             <div key={item.batchId} className="flex items-start gap-2 p-2.5 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold truncate text-gray-900 dark:text-white">{item.productName}</p>
@@ -405,7 +467,7 @@ export function POSCartPanel({
                             label="Desconto (MT)"
                             type="number"
                             value={discount}
-                            onChange={(e: any) => setDiscount(Number(e.target.value) || 0)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDiscount(Number(e.target.value) || 0)}
                             min={0}
                         />
                     )}
@@ -422,7 +484,7 @@ export function POSCartPanel({
                                 { value: 'transfer', label: 'Transferência' },
                             ]}
                             value={paymentMethod}
-                            onChange={(e: any) => setPaymentMethod(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPaymentMethod(e.target.value)}
                         />
                     )}
                 </div>

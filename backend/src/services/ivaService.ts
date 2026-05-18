@@ -1,6 +1,13 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { getPaginationParams, createPaginatedResponse } from '../utils/pagination';
+
+type ListParams = {
+    page?: string | number;
+    limit?: string | number;
+    isActive?: string | boolean;
+};
 
 export interface CreateIvaRateInput {
     code: string;
@@ -20,9 +27,9 @@ export class IvaService {
     // LIST
     // =========================================================================
 
-    async list(companyId: string, params: any = {}) {
+    async list(companyId: string, params: ListParams = {}) {
         const { page, limit, skip } = getPaginationParams(params);
-        const where: any = { companyId };
+        const where: Prisma.IvaRateWhereInput = { companyId };
         if (params.isActive !== undefined) where.isActive = params.isActive === 'true' || params.isActive === true;
 
         const [total, rates] = await Promise.all([
@@ -106,7 +113,7 @@ export class IvaService {
             await prisma.ivaRate.updateMany({ where: { companyId, isDefault: true, id: { not: id } }, data: { isDefault: false } });
         }
 
-        const updateData: any = {};
+        const updateData: Prisma.IvaRateUpdateInput = {};
         if (data.code !== undefined) updateData.code = data.code.toUpperCase();
         if (data.name !== undefined) updateData.name = data.name;
         if (data.description !== undefined) updateData.description = data.description;

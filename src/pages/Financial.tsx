@@ -351,7 +351,7 @@ export default function Financial() {
                             <div className="flex flex-col lg:flex-row gap-4">
                                 <div className="flex-1">
                                     <Input
-                                        placeholder="Buscar transaces..."
+                                        placeholder="Buscar transações..."
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}

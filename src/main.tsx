@@ -5,36 +5,60 @@ import './i18n'; // Initialize i18n
 import './index.css';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
-// Layout
-import Layout from './components/layout/Layout';
-import ProtectedRoute from './components/auth/ProtectedRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TenantProvider } from './contexts/TenantContext';
 import { SocketProvider } from './contexts/SocketContext';
-import { useNotifications } from './hooks/useNotifications';
 import { LoadingOverlay } from './components/ui/Loading';
 import { useIdleLogout } from './hooks/useIdleLogout';
-import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { useEffect } from 'react';
-import { prefetchCatalog } from './services/offline/catalogPrefetch';
+
+// Layout/auth shell is only needed after the user enters protected routes.
+const Layout = lazy(() => import('./components/layout/Layout'));
+const ProtectedRoute = lazy(() => import('./components/auth/ProtectedRoute'));
+
+const AppRealtimeEffects = lazy(() => import('./components/app/AppRealtimeEffects'));
+
+const ReactQueryDevtools = import.meta.env.DEV
+  ? lazy(() =>
+      import('@tanstack/react-query-devtools').then((module) => ({
+        default: module.ReactQueryDevtools,
+      }))
+    )
+  : null;
 
 const AppContainer = ({ children }: { children: React.ReactNode }) => {
   useIdleLogout(15); // Auto-logout after 15 minutes of inactivity
-  useNotifications(); // Initialize real-time notification listeners
-  useRealtimeSync();  // Invalidate query cache on any backend data change
 
   // Warm the offline cache once authenticated and whenever we come back online.
+  // Deferred via requestIdleCallback (com fallback) para não bloquear o primeiro
+  // paint nem a transição login → home — ver `performance-and-caching` §4.3.
   useEffect(() => {
     const isAuthed = () => Boolean(localStorage.getItem('auth_token'));
-    if (isAuthed()) prefetchCatalog().catch(() => {});
-    const onOnline = () => { if (isAuthed()) prefetchCatalog().catch(() => {}); };
+    const schedulePrefetch = () => {
+      const run = () => {
+        void import('./services/offline/catalogPrefetch')
+          .then(({ prefetchCatalog }) => prefetchCatalog())
+          .catch(() => {});
+      };
+      const idle = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+      if (typeof idle === 'function') idle(run, { timeout: 5000 });
+      else setTimeout(run, 1500);
+    };
+    if (isAuthed()) schedulePrefetch();
+    const onOnline = () => { if (isAuthed()) schedulePrefetch(); };
     window.addEventListener('online', onOnline);
     return () => window.removeEventListener('online', onOnline);
   }, []);
 
-  return <>{children}</>;
+  return (
+    <>
+      <Suspense fallback={null}>
+        <AppRealtimeEffects />
+      </Suspense>
+      {children}
+    </>
+  );
 };
 
 // Auth Pages (Lazy)
@@ -46,8 +70,10 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Home = lazy(() => import('./pages/Home'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Inventory = lazy(() => import('./pages/Inventory'));
+const PhysicalInventoryPage = lazy(() => import('./pages/PhysicalInventoryPage'));
 const POS = lazy(() => import('./pages/POS'));
 const Financial = lazy(() => import('./pages/Financial'));
+const AccountingPage = lazy(() => import('./pages/AccountingPage'));
 const Invoices = lazy(() => import('./pages/Invoices'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Alerts = lazy(() => import('./pages/Alerts'));
@@ -58,6 +84,7 @@ const Suppliers = lazy(() => import('./pages/Suppliers'));
 const Categories = lazy(() => import('./pages/Categories'));
 const Fiscal = lazy(() => import('./pages/Fiscal'));
 const Audit = lazy(() => import('./pages/Audit'));
+const Approvals = lazy(() => import('./pages/Approvals'));
 const CRM = lazy(() => import('./pages/CRM'));
 const BackupManagement = lazy(() => import('./pages/BackupManagement'));
 const Help = lazy(() => import('./pages/Help'));
@@ -75,11 +102,14 @@ const PharmacyShiftHistory = lazy(() => import('./pages/pharmacy/PharmacyShiftHi
 // Logistics Dashboard
 const CommercialInventory = lazy(() => import('./pages/commercial/CommercialInventory'));
 const CommercialPurchaseOrders = lazy(() => import('./pages/commercial/PurchaseOrders'));
+const CommercialSupplierInvoices = lazy(() => import('./pages/commercial/SupplierInvoices'));
 const CommercialQuotes = lazy(() => import('./pages/commercial/CommercialQuotes'));
 const CommercialFinanceHub = lazy(() => import('./pages/commercial/CommercialFinanceHub'));
+const CommercialReturns = lazy(() => import('./pages/commercial/CommercialReturns'));
 const CommercialPOS = lazy(() => import('./pages/commercial/CommercialPOS'));
 const CommercialHistoryHub = lazy(() => import('./pages/commercial/CommercialHistoryHub'));
 const CommercialInsightHub = lazy(() => import('./pages/commercial/CommercialInsightHub'));
+const CommercialPendingVoids = lazy(() => import('./pages/commercial/CommercialPendingVoids'));
 
 const Hospitality = lazy(() => import('./pages/Hospitality'));
 const BottleStoreDashboard = lazy(() => import('./pages/bottlestore/BottleStoreDashboard'));
@@ -166,6 +196,7 @@ createRoot(document.getElementById('root')!).render(
                     <Route index element={<Home />} />
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="inventory" element={<Inventory />} />
+                    <Route path="inventory/physical" element={<PhysicalInventoryPage />} />
                     <Route path="warehouses" element={<WarehousesPage />} />
                     <Route path="transfers" element={<TransfersPage />} />
                     <Route path="stock-movements" element={<StockMovements />} />
@@ -173,6 +204,7 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="employees" element={<HRHub />} />
                     <Route path="hr" element={<HRHub />} />
                     <Route path="financial" element={<Financial />} />
+                    <Route path="accounting" element={<AccountingPage />} />
                     <Route path="invoices" element={<Invoices />} />
                     <Route path="orders" element={<Orders />} />
                     <Route path="customers" element={<Customers />} />
@@ -182,6 +214,7 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="reports" element={<Reports />} />
                     <Route path="fiscal" element={<Fiscal />} />
                     <Route path="audit" element={<Audit />} />
+                    <Route path="approvals" element={<Approvals />} />
                     <Route path="crm" element={<CRM />} />
                     <Route path="backups" element={<BackupManagement />} />
 
@@ -240,9 +273,12 @@ createRoot(document.getElementById('root')!).render(
                     <Route path="commercial/categories" element={<Categories originModule="commercial" />} />
                     <Route path="commercial/suppliers" element={<Suppliers originModule="commercial" />} />
                     <Route path="commercial/purchase-orders" element={<CommercialPurchaseOrders />} />
+                    <Route path="commercial/supplier-invoices" element={<CommercialSupplierInvoices />} />
                     <Route path="commercial/quotes" element={<CommercialQuotes />} />
                     <Route path="commercial/accounts-receivable" element={<CommercialFinanceHub />} />
                     <Route path="commercial/finance" element={<CommercialFinanceHub />} />
+                    <Route path="commercial/returns" element={<CommercialReturns />} />
+                    <Route path="commercial/pending-voids" element={<CommercialPendingVoids />} />
                     <Route path="commercial/employees" element={<HRHub />} />
                     <Route path="commercial/settings" element={<Navigate to="/settings" replace />} />
                     <Route path="commercial/audit" element={<CommercialHistoryHub />} />
@@ -300,7 +336,11 @@ createRoot(document.getElementById('root')!).render(
             </AppContainer>
           </TenantProvider>
         </SocketProvider>
-        <ReactQueryDevtools initialIsOpen={false} />
+        {ReactQueryDevtools && (
+          <Suspense fallback={null}>
+            <ReactQueryDevtools initialIsOpen={false} />
+          </Suspense>
+        )}
       </QueryClientProvider>
     </BrowserRouter>
   </StrictMode>

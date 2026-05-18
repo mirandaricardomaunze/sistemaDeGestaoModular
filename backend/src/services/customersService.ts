@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
@@ -9,8 +10,44 @@ const CUSTOMER_FIELD_ALLOWLIST = [
     'createdAt', 'updatedAt'
 ] as const;
 
+type ListQuery = {
+    page?: string | number;
+    limit?: string | number;
+    search?: string;
+    type?: string;
+    isActive?: string | boolean;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    fields?: string;
+};
+
+type CustomerInput = {
+    code?: string;
+    companyId?: string;
+    name?: string;
+    type?: string;
+    document?: string | null;
+    taxId?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    city?: string | null;
+    province?: string | null;
+    creditLimit?: number | string | null;
+    currentBalance?: number | string | null;
+    isActive?: boolean;
+    [key: string]: unknown;
+};
+
+type PurchasesQuery = {
+    page?: string | number;
+    limit?: string | number;
+    startDate?: string;
+    endDate?: string;
+};
+
 export class CustomersService {
-    async list(params: any, companyId: string) {
+    async list(params: ListQuery, companyId: string) {
         const { page, limit, skip } = getPaginationParams(params);
         const {
             search,
@@ -20,7 +57,7 @@ export class CustomersService {
             sortOrder = 'asc'
         } = params;
 
-        const where: any = { companyId };
+        const where: Prisma.CustomerWhereInput = { companyId };
 
         if (search) {
             where.OR = [
@@ -31,17 +68,17 @@ export class CustomersService {
             ];
         }
 
-        if (type) where.type = type;
-        if (isActive !== undefined) where.isActive = isActive === 'true';
+        if (type) where.type = type as Prisma.EnumCustomerTypeFilter['equals'];
+        if (isActive !== undefined) where.isActive = isActive === 'true' || isActive === true;
 
         const projection = parseFields(params.fields, CUSTOMER_FIELD_ALLOWLIST);
-        const findArgs: any = {
+        const findArgs: Prisma.CustomerFindManyArgs = {
             where,
-            orderBy: { [sortBy as string]: sortOrder },
+            orderBy: { [sortBy]: sortOrder },
             skip,
             take: limit
         };
-        if (projection) findArgs.select = projection;
+        if (projection) findArgs.select = projection satisfies Prisma.CustomerSelect;
 
         const [total, customers] = await Promise.all([
             prisma.customer.count({ where }),
@@ -64,13 +101,13 @@ export class CustomersService {
         return customer;
     }
 
-    async create(data: any, companyId: string) {
+    async create(data: CustomerInput, companyId: string) {
         const customerCode = data.code || `CLI-${Date.now().toString().slice(-6)}`;
-        const { code, companyId: _dataCompanyId, ...customerData } = data;
+        const { code: _code, companyId: _dataCompanyId, ...customerData } = data;
 
         return prisma.customer.create({
             data: {
-                ...customerData,
+                ...(customerData as Prisma.CustomerCreateInput),
                 code: customerCode,
                 phone: customerData.phone || '',
                 company: { connect: { id: companyId } }
@@ -78,10 +115,10 @@ export class CustomersService {
         });
     }
 
-    async update(id: string, data: any, companyId: string) {
-        const updateData: any = {};
+    async update(id: string, data: CustomerInput, companyId: string) {
+        const updateData: Prisma.CustomerUpdateInput = {};
         for (const [key, value] of Object.entries(data)) {
-            if (value !== null) updateData[key] = value;
+            if (value !== null) (updateData as Record<string, unknown>)[key] = value;
         }
 
         const result = await prisma.customer.updateMany({
@@ -106,19 +143,20 @@ export class CustomersService {
         return true;
     }
 
-    async getPurchases(id: string, params: any, companyId: string) {
+    async getPurchases(id: string, params: PurchasesQuery, companyId: string) {
         const { page, limit, skip } = getPaginationParams(params);
         const { startDate, endDate } = params;
 
-        const where: any = {
+        const where: Prisma.SaleWhereInput = {
             customerId: id,
             customer: { companyId }
         };
 
         if (startDate || endDate) {
-            where.createdAt = {};
-            if (startDate) where.createdAt.gte = new Date(String(startDate));
-            if (endDate) where.createdAt.lte = new Date(String(endDate));
+            const dateFilter: Prisma.DateTimeFilter = {};
+            if (startDate) dateFilter.gte = new Date(String(startDate));
+            if (endDate) dateFilter.lte = new Date(String(endDate));
+            where.createdAt = dateFilter;
         }
 
         const [total, sales] = await Promise.all([

@@ -1,7 +1,60 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { subMonths, format, eachDayOfInterval, startOfDay, endOfDay } from 'date-fns';
 import { ApiError } from '../middleware/error.middleware';
 import { getPaginationParams, createPaginatedResponse, parseFields } from '../utils/pagination';
+
+type ListQuery = {
+    page?: string | number;
+    limit?: string | number;
+    fields?: string;
+    status?: string;
+    section?: string;
+    category?: string;
+    isAvailable?: string | boolean;
+    search?: string;
+    tableId?: string;
+    startDate?: string;
+    endDate?: string;
+    date?: string;
+};
+
+type MenuItemInput = {
+    name: string;
+    description?: string;
+    category?: string;
+    price: number | string;
+    imageUrl?: string;
+    prepTime?: number | string;
+    isAvailable?: boolean;
+    allergens?: string;
+    calories?: number | string;
+    notes?: string;
+};
+
+type OrderItemInput = {
+    menuItemId?: string;
+    name?: string;
+    quantity: number | string;
+    unitPrice: number | string;
+    notes?: string;
+};
+
+type OrderInput = {
+    tableId?: string | null;
+    notes?: string | null;
+    items: OrderItemInput[];
+};
+
+type ReservationInput = {
+    guestName: string;
+    guestPhone: string;
+    guestEmail?: string | null;
+    partySize?: number | string;
+    tableId?: string | null;
+    scheduledAt: string | Date;
+    notes?: string | null;
+};
 
 const RESTAURANT_TABLE_FIELDS = ['id', 'number', 'capacity', 'section', 'status', 'createdAt'] as const;
 const RESTAURANT_MENU_FIELDS = [
@@ -92,26 +145,27 @@ export class RestaurantService {
     // TABLES
     // =========================================================================
 
-    async listTables(companyId: string, params: any) {
+    async listTables(companyId: string, params: ListQuery) {
         const { page, limit, skip } = getPaginationParams(params);
-        const where: any = { companyId };
+        const where: Prisma.RestaurantTableWhereInput = { companyId };
         if (params.status) where.status = params.status;
         if (params.section) where.section = params.section;
 
         const projection = parseFields(params.fields, RESTAURANT_TABLE_FIELDS);
-        const findArgs: any = { where, orderBy: { number: 'asc' }, skip, take: limit };
-        if (projection) {
-            findArgs.select = projection;
-        } else {
-            findArgs.include = {
-                sales: {
-                    where: { originModule: 'restaurant' },
-                    orderBy: { createdAt: 'desc' },
-                    take: 1,
-                    select: { id: true, receiptNumber: true, total: true, createdAt: true, items: { select: { quantity: true, total: true, product: { select: { name: true } } } } },
-                },
+        const baseArgs = { where, orderBy: { number: 'asc' as const }, skip, take: limit };
+        const findArgs: Prisma.RestaurantTableFindManyArgs = projection
+            ? { ...baseArgs, select: projection as Prisma.RestaurantTableSelect }
+            : {
+                ...baseArgs,
+                include: {
+                    sales: {
+                        where: { originModule: 'restaurant' },
+                        orderBy: { createdAt: 'desc' },
+                        take: 1,
+                        select: { id: true, receiptNumber: true, total: true, createdAt: true, items: { select: { quantity: true, total: true, product: { select: { name: true } } } } },
+                    },
+                }
             };
-        }
 
         const [total, tables] = await Promise.all([
             prisma.restaurantTable.count({ where }),
@@ -176,11 +230,11 @@ export class RestaurantService {
     // REPORTS
     // =========================================================================
 
-    async getReports(companyId: string, params: any) {
+    async getReports(companyId: string, params: ListQuery) {
         const { startDate, endDate, page, limit } = params;
         const { skip } = getPaginationParams(params);
 
-        const where: any = { companyId, originModule: 'restaurant' };
+        const where: Prisma.SaleWhereInput = { companyId, originModule: 'restaurant' };
         if (startDate || endDate) {
             where.createdAt = {};
             if (startDate) where.createdAt.gte = startOfDay(new Date(startDate));
@@ -221,16 +275,23 @@ export class RestaurantService {
     // MENU ITEMS
     // =========================================================================
 
-    async listMenuItems(companyId: string, params: any) {
+    async listMenuItems(companyId: string, params: ListQuery) {
         const { page, limit, skip } = getPaginationParams(params);
-        const where: any = { companyId };
+        const where: Prisma.RestaurantMenuItemWhereInput = { companyId };
         if (params.category) where.category = params.category;
         if (params.isAvailable !== undefined) where.isAvailable = params.isAvailable === 'true' || params.isAvailable === true;
         if (params.search) where.name = { contains: params.search, mode: 'insensitive' };
 
         const projection = parseFields(params.fields, RESTAURANT_MENU_FIELDS);
-        const findArgs: any = { where, orderBy: [{ category: 'asc' }, { name: 'asc' }], skip, take: limit };
-        if (projection) findArgs.select = projection;
+        const baseArgs = {
+            where,
+            orderBy: [{ category: 'asc' as const }, { name: 'asc' as const }],
+            skip,
+            take: limit
+        };
+        const findArgs: Prisma.RestaurantMenuItemFindManyArgs = projection
+            ? { ...baseArgs, select: projection as Prisma.RestaurantMenuItemSelect }
+            : baseArgs;
 
         const [total, items] = await Promise.all([
             prisma.restaurantMenuItem.count({ where }),
@@ -239,7 +300,7 @@ export class RestaurantService {
         return createPaginatedResponse(items, page, limit, total);
     }
 
-    async createMenuItem(companyId: string, data: any) {
+    async createMenuItem(companyId: string, data: MenuItemInput) {
         return prisma.restaurantMenuItem.create({
             data: {
                 companyId,
@@ -257,10 +318,18 @@ export class RestaurantService {
         });
     }
 
-    async updateMenuItem(id: string, companyId: string, data: any) {
+    async updateMenuItem(id: string, companyId: string, data: Partial<MenuItemInput>) {
         const item = await prisma.restaurantMenuItem.findFirst({ where: { id, companyId } });
         if (!item) throw ApiError.notFound('Item de menu não encontrado');
-        return prisma.restaurantMenuItem.update({ where: { id }, data: { ...data, price: data.price ? Number(data.price) : undefined } });
+        return prisma.restaurantMenuItem.update({
+            where: { id },
+            data: {
+                ...data,
+                price: data.price !== undefined ? Number(data.price) : undefined,
+                prepTime: data.prepTime !== undefined ? Number(data.prepTime) : undefined,
+                calories: data.calories !== undefined ? Number(data.calories) : undefined,
+            } as Prisma.RestaurantMenuItemUncheckedUpdateInput
+        });
     }
 
     async deleteMenuItem(id: string, companyId: string) {
@@ -285,9 +354,9 @@ export class RestaurantService {
         return `ORD-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${String(count + 1).padStart(4, '0')}`;
     }
 
-    async listOrders(companyId: string, params: any) {
-        const where: any = { companyId };
-        if (params.status) where.status = params.status;
+    async listOrders(companyId: string, params: ListQuery) {
+        const where: Prisma.RestaurantOrderWhereInput = { companyId };
+        if (params.status) where.status = params.status as Prisma.RestaurantOrderWhereInput['status'];
         if (params.tableId) where.tableId = params.tableId;
 
         const orders = await prisma.restaurantOrder.findMany({
@@ -302,23 +371,23 @@ export class RestaurantService {
         return orders;
     }
 
-    async createOrder(companyId: string, data: any) {
+    async createOrder(companyId: string, data: OrderInput) {
         const orderNumber = await this.generateOrderNumber(companyId);
         const items = data.items || [];
-        
+
         // ====================================================================
         // SERVER-SIDE AUTHORITATIVE CALCULATION
         // Fetch real menu prices from DB and recalculate total.
         // ====================================================================
-        const menuItemIds = items.map((i: any) => i.menuItemId).filter(Boolean);
+        const menuItemIds = items.map((i) => i.menuItemId).filter((id): id is string => !!id);
         const menuItems = await prisma.restaurantMenuItem.findMany({
             where: { id: { in: menuItemIds }, companyId },
             select: { id: true, name: true, price: true }
         });
         const menuMap = new Map(menuItems.map(m => [m.id, m]));
 
-        const verifiedItems = items.map((item: any) => {
-            const menuItem = menuMap.get(item.menuItemId);
+        const verifiedItems = items.map((item) => {
+            const menuItem = item.menuItemId ? menuMap.get(item.menuItemId) : undefined;
             const unitPrice = Number(item.unitPrice);
 
             if (menuItem && Math.abs(Number(menuItem.price) - unitPrice) > 0.01) {
@@ -338,7 +407,7 @@ export class RestaurantService {
             };
         });
 
-        const totalAmount = verifiedItems.reduce((sum: number, i: any) => sum + i.total, 0);
+        const totalAmount = verifiedItems.reduce((sum, i) => sum + i.total, 0);
 
         const order = await prisma.restaurantOrder.create({
             data: {
@@ -349,9 +418,9 @@ export class RestaurantService {
                 totalAmount: Math.round(totalAmount * 100) / 100,
                 status: 'pending',
                 items: {
-                    create: verifiedItems.map((i: any) => ({
+                    create: verifiedItems.map((i) => ({
                         menuItemId: i.menuItemId || null,
-                        name: i.name,
+                        name: i.name ?? '',
                         quantity: Number(i.quantity),
                         unitPrice: Number(i.unitPrice),
                         notes: i.notes,
@@ -379,7 +448,7 @@ export class RestaurantService {
         const order = await prisma.restaurantOrder.findFirst({ where: { id, companyId } });
         if (!order) throw ApiError.notFound('Pedido não encontrado');
 
-        const updateData: any = { status };
+        const updateData: Prisma.RestaurantOrderUncheckedUpdateInput = { status: status as Prisma.RestaurantOrderUncheckedUpdateInput['status'] };
         if (notes) updateData.notes = notes;
         if (status === 'ready') updateData.readyAt = new Date();
         if (status === 'served') updateData.servedAt = new Date();
@@ -408,10 +477,10 @@ export class RestaurantService {
     // RESERVATIONS
     // =========================================================================
 
-    async listReservations(companyId: string, params: any) {
+    async listReservations(companyId: string, params: ListQuery) {
         const { page, limit, skip } = getPaginationParams(params);
-        const where: any = { companyId };
-        if (params.status) where.status = params.status;
+        const where: Prisma.RestaurantReservationWhereInput = { companyId };
+        if (params.status) where.status = params.status as Prisma.RestaurantReservationWhereInput['status'];
         if (params.search) {
             where.OR = [
                 { guestName: { contains: params.search, mode: 'insensitive' } },
@@ -424,9 +493,10 @@ export class RestaurantService {
         }
 
         const projection = parseFields(params.fields, RESTAURANT_RESERVATION_FIELDS);
-        const findArgs: any = { where, orderBy: { scheduledAt: 'asc' }, skip, take: limit };
-        if (projection) findArgs.select = projection;
-        else findArgs.include = { table: { select: { id: true, number: true, name: true } } };
+        const baseArgs = { where, orderBy: { scheduledAt: 'asc' as const }, skip, take: limit };
+        const findArgs: Prisma.RestaurantReservationFindManyArgs = projection
+            ? { ...baseArgs, select: projection as Prisma.RestaurantReservationSelect }
+            : { ...baseArgs, include: { table: { select: { id: true, number: true, name: true } } } };
 
         const [total, reservations] = await Promise.all([
             prisma.restaurantReservation.count({ where }),
@@ -435,7 +505,7 @@ export class RestaurantService {
         return createPaginatedResponse(reservations, page, limit, total);
     }
 
-    async createReservation(companyId: string, data: any) {
+    async createReservation(companyId: string, data: ReservationInput) {
         if (!data.guestName || !data.guestPhone || !data.scheduledAt) {
             throw ApiError.badRequest('Nome, telefone e data/hora são obrigatórios');
         }
@@ -455,7 +525,7 @@ export class RestaurantService {
         });
     }
 
-    async updateReservation(id: string, companyId: string, data: any) {
+    async updateReservation(id: string, companyId: string, data: Partial<ReservationInput>) {
         const res = await prisma.restaurantReservation.findFirst({ where: { id, companyId } });
         if (!res) throw ApiError.notFound('Reserva não encontrada');
         return prisma.restaurantReservation.update({

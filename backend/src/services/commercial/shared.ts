@@ -1,7 +1,25 @@
 import { cacheService } from '../cacheService';
+import { Prisma } from '@prisma/client';
 
 export const UNCATEGORISED = 'Sem Categoria';
 export const DEFAULT_IVA_RATE = 0.16;
+
+const DEFAULT_CATEGORY_FALLBACKS = new Set(['other', 'outros']);
+
+/**
+ * Resolve um nome de categoria amigável.
+ * Prioridade: nome do Category vinculado (via categoryId) → string legacy (se não for o default 'other'/'outros') → 'Sem Categoria'.
+ */
+export function resolveCategoryName(
+    legacyCategory?: string | null,
+    relatedCategoryName?: string | null,
+): string {
+    const related = relatedCategoryName?.trim();
+    if (related) return related;
+    const legacy = legacyCategory?.trim();
+    if (legacy && !DEFAULT_CATEGORY_FALLBACKS.has(legacy.toLowerCase())) return legacy;
+    return UNCATEGORISED;
+}
 
 export function round2(n: number): number {
     return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -46,8 +64,8 @@ export async function withSequenceRetry<T>(op: () => Promise<T>, maxAttempts = 5
     for (let i = 0; i < maxAttempts; i++) {
         try {
             return await op();
-        } catch (err: any) {
-            const isUniqueViolation = err?.code === 'P2002';
+        } catch (err: unknown) {
+            const isUniqueViolation = err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002';
             if (!isUniqueViolation) throw err;
             lastErr = err;
             // Small jittered backoff to spread out colliders

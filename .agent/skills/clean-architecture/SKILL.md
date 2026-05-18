@@ -30,6 +30,13 @@ A strict separation of concerns is required. Do not mix responsibilities between
 4. **Cross-Cutting Concerns**:
    - Error handling, logging, caching, and authentication (middlewares) should be cleanly separated from the core business flow.
 
+5. **Shared Calculation & Normalization Utilities**:
+   - Money, IVA, percentage, rounding, and numeric normalization rules must live in reusable utilities or domain services, not inline inside JSX components or route handlers.
+   - Frontend components may display calculated values, but calculations should come from hooks/utilities with a single shared formula.
+   - Backend services remain the final authority for financial calculations and must recalculate totals using trusted database/configuration data.
+   - Normalize boundary values once when they enter the calculation layer. Example: convert `companySettings.ivaRate` from `"16"` to `16` before calling percentage helpers.
+   - Keep frontend preview formulas aligned with backend formulas: `total = subtotal - discount + tax`.
+
 ## 🧼 Clean Code
 
 - **Meaningful Names**: Use descriptive and intention-revealing names for variables, functions, and classes. Avoid abbreviations.
@@ -69,6 +76,14 @@ Every new feature or module MUST follow this 6-step lifecycle to ensure professi
 5.  **Step 5: Atomic UI Components**: Build or update Atoms, Molecules, and Organisms in `src/components/ui/` or module-specific card components.
 6.  **Step 6: Page Orchestration**: Assemble everything in the main page file in `src/pages/[module]/`.
 
+### Financial Calculation Placement
+
+- Put pure money helpers in `src/utils/` when reusable across modules (`toCents`, `toMoney`, `applyPercent`, rounding, normalization).
+- Put UI-facing derived values in hooks/pages only when they compose helpers and state.
+- Put authoritative financial rules in backend services, inside transactions when persistence is involved.
+- Do not duplicate IVA formulas in multiple components. Components such as cart panels, payment modals, and receipts must receive already-derived `subtotal`, `tax`, and `total` values or call the same helper.
+- If a visible label says `IVA (16%)` but the amount is `0`, inspect data type normalization at the calculation boundary before changing UI markup.
+
 ---
 
 ## ♻️ DRY Code (Don't Repeat Yourself)
@@ -84,6 +99,61 @@ Every new feature or module MUST follow this 6-step lifecycle to ensure professi
   - *Example*: A `PDFGenerator` should only generate PDFs, not calculate the business logic for the data it's printing. Pass the pre-calculated data to it.
 - **Open/Closed Principle (OCP)**: Code should be open for extension but closed for modification.
 - **Dependency Inversion**: Rely on abstractions/types rather than concrete implementations where possible to decouple modules.
+
+## 🔠 Type Safety (No `any`)
+
+> 🤖 **AI INSTRUCTION (MANDATORY)**: NEVER write `any` in new code. ESLint enforces `@typescript-eslint/no-explicit-any: error`. If you find yourself reaching for `any`, stop and apply one of the patterns below.
+
+### Why this matters
+`any` disables type-checking on the value, which in this codebase has repeatedly **hidden real bugs**:
+- `where: any` masked a query against a non-existent column (`receiptNumber` vs `saleNumber`).
+- `(item as any).costPrice` made it look like a missing field needed a fallback when the field already existed on the Prisma model.
+- `data as any` covered up a hook/API type mismatch where the backend returned `{ date, total }` but the hook declared `{ date, amount, count }`.
+
+`any` is not a shortcut — it's a *bug-hiding mechanism*.
+
+### Patterns to use instead
+
+**Backend (Prisma)**:
+- `Prisma.<Model>WhereInput` for filter objects, `Prisma.DateTimeFilter` for date ranges.
+- `Prisma.<Model>UncheckedCreateInput` / `UncheckedUpdateInput` when you need to pass `companyId` directly.
+- Import Prisma enums (`EmployeeRole`, `MaritalStatus`, `InvoiceStatus`, etc.) from `@prisma/client` and cast strings explicitly: `role as EmployeeRole`.
+- `Prisma.InputJsonValue` for JSON fields, never `any`.
+- In `$transaction(async (tx) => ...)`: let TS infer `tx`. NEVER `tx: any`.
+
+**Backend (Express handlers)**:
+- Local `type ListQuery = { page?: string|number; limit?: string|number; search?: string; ... }` for query objects.
+- Reuse Zod-inferred types: `import type { CreateInvoiceInput } from '../validation/...'`.
+- For catch blocks: `catch (err) { const apiErr = err as Error & { response?: { ... } } }` — never `catch (err: any)`.
+
+**Frontend (React)**:
+- Centralize domain types in `src/types/[module].ts` and import them. If a hook returns data with a shape, the type should live in the types module, not be redefined per page.
+- For React events: `React.ChangeEvent<HTMLInputElement>`, `React.FormEvent`, or `import type { ChangeEvent } from 'react'`.
+- For icon components: `type IconComponent = ComponentType<SVGProps<SVGSVGElement>>`.
+- For Badge variants and other UI unions: import the literal-union type (`BadgeVariant`) from the component file.
+- For reusable filter/control components that accept literal unions: make them generic `<T extends string>` instead of using `value={x as any}`.
+
+**Last-resort escape hatches** (in order of preference):
+1. `unknown` + a type guard or narrow cast at the boundary.
+2. `Record<string, unknown>` for opaque JSON blobs.
+3. `as SpecificType` cast — but only when you've verified the runtime shape (e.g. just after a Zod parse).
+4. `// eslint-disable-next-line @typescript-eslint/no-explicit-any` with a comment explaining the library limitation. Keep the exception to a single line.
+
+### Banned patterns (auto-reject in review)
+
+- `: any` parameter type, return type, or variable annotation.
+- `as any` — except when chained as `as unknown as T` to cross unrelated structural types, and even then only at well-justified boundaries.
+- `any[]`, `Array<any>`, `Record<string, any>`, `Promise<any>`.
+- `(x as any).field` to access a property the type doesn't expose — fix the type instead, the missing field is usually a real bug.
+- `catch (e: any)` — use `catch (e)` and narrow `e` with `instanceof Error` or a typed cast.
+
+### When a hook type doesn't match what the backend returns
+
+The fix is **always** in this order:
+1. Read the backend service/route and confirm the actual response shape.
+2. Update the hook's `useQuery<T>` generic to match reality.
+3. Update the page to use the correct fields.
+*Never* add `as any` to "make TypeScript shut up" — that's how the next bug ships.
 
 ## 🛡️ Reliability & Error Handling
 
@@ -109,4 +179,6 @@ As an AI Assistant, you are strictly bound to these rules. Every single time you
 5. [ ] Are variables and functions named clearly enough that comments are not necessary to explain what they do?
 6. [ ] Are all inputs validated using Zod schemas before being processed?
 7. [ ] Are errors being properly caught, handled, and returned with correct HTTP status codes?
-8. [ ] Has the AI independently verified that this change adheres to the Clean Architecture guidelines before finalizing?
+8. [ ] Are financial calculations centralized in helpers/services instead of duplicated in UI components?
+9. [ ] **Is the code free of `any`?** No `: any`, `as any`, `any[]`, `Record<string, any>`, or `catch (e: any)` in new code. Prisma types / Zod-inferred types / domain interfaces are used at all boundaries.
+10. [ ] Has the AI independently verified that this change adheres to the Clean Architecture guidelines before finalizing?

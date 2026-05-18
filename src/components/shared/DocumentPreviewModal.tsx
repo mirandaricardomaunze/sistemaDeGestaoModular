@@ -4,7 +4,7 @@
  */
 
 import { useRef, type ReactNode } from 'react';
-import { HiOutlinePrinter, HiOutlineX } from 'react-icons/hi';
+import { HiOutlinePrinter, HiOutlineXMark as HiOutlineXMark } from 'react-icons/hi2';
 import { Modal, Button, Card } from '../ui';
 import { useStore } from '../../stores/useStore';
 import { format } from 'date-fns';
@@ -82,6 +82,16 @@ export default function DocumentPreviewModal({
                             padding: 15mm;
                             background: white !important;
                         }
+                        .document-container table,
+                        .print-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            background: white !important;
+                        }
+                        .document-container th,
+                        .document-container td {
+                            background-color: white !important;
+                        }
                         .document-container * {
                             background-color: transparent !important;
                         }
@@ -147,7 +157,7 @@ export default function DocumentPreviewModal({
             {/* Action Buttons */}
             <div className="flex justify-end gap-2 mb-4 no-print">
                 <Button variant="outline" size="sm" onClick={onClose}>
-                    <HiOutlineX className="w-4 h-4 mr-2" />
+                    <HiOutlineXMark className="w-4 h-4 mr-2" />
                     Fechar
                 </Button>
                 <Button size="sm" onClick={handlePrint} className="bg-gray-800 hover:bg-black text-white px-6">
@@ -157,7 +167,7 @@ export default function DocumentPreviewModal({
             </div>
 
             {/* Document Preview Container */}
-            <Card padding="none" className="h-[calc(100vh-200px)] overflow-auto !bg-white dark:!bg-white p-4 sm:p-8 border-none shadow-none flex justify-center">
+            <Card padding="none" className="h-[calc(100vh-200px)] overflow-auto !bg-white dark:!bg-white p-4 sm:p-8 border-none shadow-none">
                 <div
                     ref={printRef}
                     className="bg-white text-black shadow-2xl p-6 sm:p-12 max-w-[850px] w-full mx-auto relative flex flex-col border border-gray-100 min-h-[29.7cm] !bg-white !text-black"

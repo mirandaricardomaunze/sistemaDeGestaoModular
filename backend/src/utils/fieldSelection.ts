@@ -3,7 +3,7 @@
  * Exemplo de query: ?fields=id,name,price
  * Resultado Prisma: { id: true, name: true, price: true }
  */
-export function getSelectFields(query: any): Record<string, boolean> | undefined {
+export function getSelectFields(query: { fields?: unknown }): Record<string, boolean> | undefined {
     const fieldsRaw = query.fields as string;
     
     if (!fieldsRaw || typeof fieldsRaw !== 'string') {

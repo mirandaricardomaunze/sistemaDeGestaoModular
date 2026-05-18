@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
 import {
     HiOutlineCheck,
-    HiOutlineExclamation,
+    HiOutlineExclamationTriangle,
     HiOutlineCube,
     HiOutlineShieldCheck,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import { Button, Modal, Card } from '../ui';
 import { formatCurrency, cn } from '../../utils/helpers';
 import type { Product } from '../../types';
@@ -224,7 +224,7 @@ export default function OrderCompletionModal({
                     {/* Info Banner */}
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <div className="flex items-start gap-3">
-                            <HiOutlineExclamation className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+                            <HiOutlineExclamationTriangle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-semibold text-blue-800 dark:text-blue-400">
                                     Confirmação de Finalização

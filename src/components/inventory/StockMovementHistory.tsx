@@ -1,23 +1,24 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ElementType } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
+import { format } from 'date-fns';
+import {
+    HiOutlineArrowDown,
+    HiOutlineArrowPath,
+    HiOutlineArrowUp,
+    HiOutlineClock,
+    HiOutlineExclamationTriangle,
+    HiOutlineEye,
+    HiOutlineTrash,
+    HiOutlineTruck,
+} from 'react-icons/hi2';
 import { logger } from '../../utils/logger';
-import { useState, useEffect, useCallback } from 'react';
-import { Card, Input, Select, Badge, Button, Modal, LoadingOverlay, SkeletonTable } from '../ui';
-import Pagination from '../ui/Pagination';
 import { productsAPI } from '../../services/api';
 import { useWarehouses } from '../../hooks/useData';
-import { format } from 'date-fns';
-import { 
-    HiOutlineMagnifyingGlass as HiOutlineSearch, 
-    HiOutlineFunnel, 
-    HiOutlineArrowPath, 
-    HiOutlineArrowUp, 
-    HiOutlineArrowDown, 
-    HiOutlineTruck, 
-    HiOutlineExclamationTriangle, 
-    HiOutlineClock, 
-    HiOutlineEye, 
-    HiOutlineTrash 
-} from 'react-icons/hi2';
 import type { MovementType, StockMovement } from '../../types';
+import { Badge, Button, Input, Modal, Select } from '../ui';
+import type { BadgeVariant } from '../ui';
+import { SmartTable } from '../ui/SmartTable';
 
 interface MovementFilters {
     search: string;
@@ -27,14 +28,22 @@ interface MovementFilters {
     endDate: string;
 }
 
-const movementTypeConfig: Record<MovementType, { label: string; color: 'success' | 'warning' | 'danger' | 'info' | 'primary' | 'gray'; icon: any }> = {
+interface MovementPagination {
+    total: number;
+}
+
+interface StockMovementHistoryProps {
+    originModule?: string;
+}
+
+const movementTypeConfig: Record<MovementType, { label: string; color: BadgeVariant; icon: ElementType }> = {
     purchase: { label: 'Compra', color: 'success', icon: HiOutlineArrowUp },
     sale: { label: 'Venda', color: 'danger', icon: HiOutlineArrowDown },
     return_in: { label: 'Devol. Entrada', color: 'info', icon: HiOutlineArrowPath },
-    return_out: { label: 'Devol. Saída', color: 'warning', icon: HiOutlineArrowDown },
+    return_out: { label: 'Devol. Saida', color: 'warning', icon: HiOutlineArrowDown },
     adjustment: { label: 'Ajuste', color: 'primary', icon: HiOutlineClock },
     expired: { label: 'Expirado', color: 'danger', icon: HiOutlineExclamationTriangle },
-    transfer: { label: 'Transferência', color: 'info', icon: HiOutlineTruck },
+    transfer: { label: 'Transferencia', color: 'info', icon: HiOutlineTruck },
     loss: { label: 'Perda', color: 'danger', icon: HiOutlineExclamationTriangle },
 };
 
@@ -42,42 +51,43 @@ const movementTypeOptions = [
     { value: 'all', label: 'Todos os tipos' },
     { value: 'sale', label: 'Vendas' },
     { value: 'purchase', label: 'Compras' },
-    { value: 'transfer', label: 'Transferências' },
+    { value: 'transfer', label: 'Transferencias' },
     { value: 'adjustment', label: 'Ajustes' },
-    { value: 'return_in', label: 'Devoluções (Entrada)' },
-    { value: 'return_out', label: 'Devoluções (Saída)' },
+    { value: 'return_in', label: 'Devolucoes (Entrada)' },
+    { value: 'return_out', label: 'Devolucoes (Saida)' },
     { value: 'expired', label: 'Expirados' },
     { value: 'loss', label: 'Perdas' },
 ];
 
-interface StockMovementHistoryProps {
-    originModule?: string;
-}
+const getMovementConfig = (type: MovementType) => movementTypeConfig[type] || movementTypeConfig.adjustment;
 
 export default function StockMovementHistory({ originModule }: StockMovementHistoryProps) {
     const [movements, setMovements] = useState<StockMovement[]>([]);
-    const [pagination, setPagination] = useState<any>(null);
+    const [pagination, setPagination] = useState<MovementPagination | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isError, setIsError] = useState(false);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(15);
-    const [selectedMovement, setSelectedMovement] = useState<any>(null);
+    const [selectedMovement, setSelectedMovement] = useState<StockMovement | null>(null);
     const [filters, setFilters] = useState<MovementFilters>({
         search: '',
         type: 'all',
         warehouseId: 'all',
         startDate: '',
-        endDate: ''
+        endDate: '',
     });
 
     const { warehouses } = useWarehouses();
 
-    const warehouseOptions = [
-        { value: 'all', label: 'Todos os armazéns' },
-        ...warehouses.map(w => ({ value: w.id, label: w.name }))
-    ];
+    const warehouseOptions = useMemo(() => [
+        { value: 'all', label: 'Todos os armazens' },
+        ...warehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name })),
+    ], [warehouses]);
 
     const fetchMovements = useCallback(async () => {
         setIsLoading(true);
+        setIsError(false);
+
         try {
             const response = await productsAPI.getStockMovements({
                 page,
@@ -87,280 +97,259 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                 search: filters.search || undefined,
                 startDate: filters.startDate || undefined,
                 endDate: filters.endDate || undefined,
-                originModule
+                originModule,
             });
+
             setMovements(response.data || []);
-            setPagination(response.pagination);
+            setPagination(response.pagination ?? null);
         } catch (error) {
+            setIsError(true);
             logger.error('Error fetching movements:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [page, pageSize, filters]);
+    }, [filters, originModule, page, pageSize]);
 
     useEffect(() => {
         fetchMovements();
     }, [fetchMovements]);
 
     const handleFilterChange = (key: keyof MovementFilters, value: string) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
-        setPage(1); // Reset to first page on filter change
+        setFilters((prev) => ({ ...prev, [key]: value }));
+        setPage(1);
     };
 
-    const getMovementConfig = (type: MovementType) => {
-        return movementTypeConfig[type] || movementTypeConfig.adjustment;
-    };
+    const movementColumns = useMemo<ColumnDef<StockMovement, unknown>[]>(() => [
+        {
+            header: 'Data',
+            cell: ({ row }) => (
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {format(new Date(row.original.createdAt), 'dd/MM/yyyy')}
+                    </span>
+                    <span className="text-[10px] text-gray-500">
+                        {format(new Date(row.original.createdAt), 'HH:mm')}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            header: 'Tipo',
+            cell: ({ row }) => {
+                const config = getMovementConfig(row.original.movementType);
+                const Icon = config.icon;
+
+                return (
+                    <Badge variant={config.color} className="flex items-center gap-1 w-fit font-black uppercase tracking-widest text-[9px]">
+                        <Icon className="w-3 h-3" />
+                        {config.label}
+                    </Badge>
+                );
+            },
+        },
+        {
+            header: 'Produto',
+            cell: ({ row }) => (
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {row.original.product?.name || '-'}
+                    </span>
+                    <span className="text-[10px] text-gray-500 font-mono">
+                        {row.original.product?.code}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            header: 'Armazem',
+            cell: ({ row }) => (
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {row.original.warehouse?.name || <span className="italic text-gray-400">Global</span>}
+                </span>
+            ),
+        },
+        {
+            header: 'Qtd',
+            cell: ({ row }) => (
+                <span className={`font-bold ${row.original.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {row.original.quantity > 0 ? `+${row.original.quantity}` : row.original.quantity}
+                </span>
+            ),
+        },
+        {
+            header: 'Saldo',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-1.5 text-sm">
+                    <span className="text-gray-400 text-[10px]">{row.original.balanceBefore}</span>
+                    <span className="text-gray-300">-&gt;</span>
+                    <span className="font-bold text-slate-700 dark:text-white uppercase tracking-tighter text-xs">
+                        {row.original.balanceAfter}
+                    </span>
+                </div>
+            ),
+        },
+        {
+            header: 'Motivo',
+            cell: ({ row }) => (
+                <div className="max-w-[180px]">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate" title={row.original.reason || ''}>
+                        {row.original.reason || '-'}
+                    </p>
+                    {row.original.reference && (
+                        <p className="text-[10px] text-primary-500 font-medium">
+                            REF: {row.original.reference}
+                        </p>
+                    )}
+                </div>
+            ),
+        },
+        {
+            header: 'Responsavel',
+            cell: ({ row }) => (
+                <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-[10px] font-black text-emerald-700 dark:text-emerald-400 shadow-sm border border-emerald-200/50 dark:border-emerald-500/20">
+                        {(row.original.performedBy || 'S').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[11px] font-black text-slate-700 dark:text-gray-300 uppercase tracking-tight">
+                            {row.original.performedBy || 'Sistema'}
+                        </span>
+                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                            {row.original.performedBy ? 'Operador' : 'Automatico'}
+                        </span>
+                    </div>
+                </div>
+            ),
+        },
+        {
+            header: 'Accoes',
+            cell: ({ row }) => (
+                <div className="flex items-center justify-end gap-1">
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => setSelectedMovement(row.original)}
+                        title="Ver detalhes"
+                        className="h-8 w-8 px-0 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                    >
+                        <HiOutlineEye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => logger.info('Eliminar:', row.original.id)}
+                        title="Eliminar"
+                        className="h-8 w-8 px-0 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                        <HiOutlineTrash className="w-4 h-4" />
+                    </Button>
+                </div>
+            ),
+        },
+    ], []);
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter italic">
-                        Controlo de Movimentações
+                        Controlo de Movimentacoes
                     </h1>
                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-1 flex items-center gap-2">
-                        <span className="w-8 h-[1px] bg-emerald-500"></span>
-                        Registo completo de todas as entradas e saídas de stock
+                        <span className="w-8 h-[1px] bg-emerald-500" />
+                        Registo completo de todas as entradas e saidas de stock
                     </p>
                 </div>
                 <Button
                     variant="ghost"
                     onClick={fetchMovements}
                     isLoading={isLoading}
+                    loadingText=""
                     className="text-[10px] font-black uppercase tracking-widest"
+                    title="Actualizar dados"
                 >
                     <HiOutlineArrowPath className="w-5 h-5" />
                 </Button>
             </div>
 
-            {/* Filters */}
-            <Card padding="md">
-                <div className="flex flex-col lg:flex-row gap-4">
-                    {/* Search */}
-                    <div className="flex-1">
-                        <Input
-                            placeholder="Pesquisar por produto, referência..."
-                            value={filters.search}
-                            onChange={(e) => handleFilterChange('search', e.target.value)}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5" />}
-                        />
-                    </div>
-
-                    {/* Type Filter */}
-                    <div className="w-full lg:w-48">
-                        <Select
-                            options={movementTypeOptions}
-                            value={filters.type}
-                            onChange={(e) => handleFilterChange('type', e.target.value)}
-                        />
-                    </div>
-
-                    {/* Warehouse Filter */}
-                    <div className="w-full lg:w-48">
-                        <Select
-                            options={warehouseOptions}
-                            value={filters.warehouseId}
-                            onChange={(e) => handleFilterChange('warehouseId', e.target.value)}
-                        />
-                    </div>
-
-                    {/* Date Range */}
-                    <div className="flex gap-2">
-                        <Input
-                            type="date"
-                            value={filters.startDate}
-                            onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                            className="w-36"
-                        />
-                        <Input
-                            type="date"
-                            value={filters.endDate}
-                            onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                            className="w-36"
-                        />
-                    </div>
-                </div>
-            </Card>
-
-            {/* Table */}
-            <Card padding="none" className="min-h-[500px] relative overflow-hidden">
-                {isLoading && movements.length === 0 ? (
-                    <div className="p-6">
-                        <SkeletonTable rows={10} columns={8} />
-                    </div>
-                ) : (
+            <SmartTable
+                data={movements}
+                columns={movementColumns}
+                isLoading={isLoading}
+                isError={isError}
+                errorMessage="Nao foi possivel carregar as movimentacoes."
+                onRetry={fetchMovements}
+                search={{
+                    value: filters.search,
+                    onChange: (value) => handleFilterChange('search', value),
+                    placeholder: 'Pesquisar por produto, referencia...',
+                }}
+                renderFilters={(
                     <>
-                        {isLoading && (
-                            <div className="absolute inset-0 z-20">
-                                <LoadingOverlay 
-                                    fullScreen={false} 
-                                    message="A carregar movimentações..." 
-                                    subtext="Sincronizando com base de dados"
-                                />
-                            </div>
-                        )}
-
-                        {movements.length === 0 ? (
-                    <div className="py-16 flex flex-col items-center justify-center text-center">
-                        <div className="w-16 h-16 mb-4 rounded-full bg-gray-100 dark:bg-dark-700 flex items-center justify-center">
-                            <HiOutlineFunnel className="w-8 h-8 text-gray-400" />
+                        <div className="w-full lg:w-48">
+                            <Select
+                                options={movementTypeOptions}
+                                value={filters.type}
+                                onChange={(event) => handleFilterChange('type', event.target.value)}
+                                size="sm"
+                            />
                         </div>
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
-                            Nenhuma movimentação encontrada
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm">
-                            Tente ajustar os filtros ou termos de pesquisa.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                            <thead className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
-                                <tr>
-                                    <th className="px-6 py-4 text-left">Data</th>
-                                    <th className="px-6 py-4 text-left">Tipo</th>
-                                    <th className="px-6 py-4 text-left">Produto</th>
-                                    <th className="px-6 py-4 text-left text-emerald-500">Armazém</th>
-                                    <th className="px-6 py-4 text-left">Qtd</th>
-                                    <th className="px-6 py-4 text-left">Saldo</th>
-                                    <th className="px-6 py-4 text-left">Motivo</th>
-                                    <th className="px-6 py-4 text-left text-emerald-500">Responsável</th>
-                                    <th className="px-6 py-4 text-right">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200 dark:divide-dark-700 bg-white dark:bg-dark-900">
-                                {movements.map((mov: any) => {
-                                    const config = getMovementConfig(mov.movementType);
-                                    const Icon = config.icon;
-                                    return (
-                                        <tr key={mov.id} className="hover:bg-gray-50 dark:hover:bg-dark-800 transition-colors">
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                        {format(new Date(mov.createdAt), 'dd/MM/yyyy')}
-                                                    </span>
-                                                    <span className="text-[10px] text-gray-500">
-                                                        {format(new Date(mov.createdAt), 'HH:mm')}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <Badge variant={config.color} className="flex items-center gap-1 w-fit font-black uppercase tracking-widest text-[9px]">
-                                                    <Icon className="w-3 h-3" />
-                                                    {config.label}
-                                                </Badge>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                        {mov.product?.name || '-'}
-                                                    </span>
-                                                    <span className="text-[10px] text-gray-500 font-mono">
-                                                        {mov.product?.code}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                                                {mov.warehouse?.name || <span className="italic text-gray-400">Global</span>}
-                                            </td>
-                                            <td className="px-5 py-3 whitespace-nowrap text-left">
-                                                <span className={`font-bold ${mov.quantity > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {mov.quantity > 0 ? `+${mov.quantity}` : mov.quantity}
-                                                </span>
-                                            </td>
-                                            <td className="px-5 py-3 whitespace-nowrap text-left">
-                                                <div className="flex items-center gap-1.5 text-sm">
-                                                    <span className="text-gray-400 text-[10px]">{mov.balanceBefore}</span>
-                                                    <span className="text-gray-300">→</span>
-                                                    <span className="font-bold text-slate-700 dark:text-white uppercase tracking-tighter text-xs">{mov.balanceAfter}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 max-w-[180px]">
-                                                <p className="text-xs text-gray-600 dark:text-gray-400 truncate" title={mov.reason || ''}>
-                                                    {mov.reason || '-'}
-                                                </p>
-                                                {mov.reference && (
-                                                    <p className="text-[10px] text-primary-500 font-medium">
-                                                        REF: {mov.reference}
-                                                    </p>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3 whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-[10px] font-black text-emerald-700 dark:text-emerald-400 shadow-sm border border-emerald-200/50 dark:border-emerald-500/20">
-                                                        {(mov.performedBy || 'S').charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[11px] font-black text-slate-700 dark:text-gray-300 uppercase tracking-tight">
-                                                            {mov.performedBy || 'Sistema'}
-                                                        </span>
-                                                        <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                                                            {mov.performedBy ? 'Operador' : 'Automático'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-5 py-3 whitespace-nowrap">
-                                                <div className="flex items-center gap-1">
-                                                    <button
-                                                        onClick={() => setSelectedMovement(mov)}
-                                                        className="p-2 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all border border-transparent hover:border-primary-100"
-                                                        title="Ver detalhes"
-                                                    >
-                                                        <HiOutlineEye className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => logger.info('Eliminar:', mov.id)}
-                                                        className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all border border-transparent hover:border-red-100"
-                                                        title="Eliminar"
-                                                    >
-                                                        <HiOutlineTrash className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                        <div className="w-full lg:w-48">
+                            <Select
+                                options={warehouseOptions}
+                                value={filters.warehouseId}
+                                onChange={(event) => handleFilterChange('warehouseId', event.target.value)}
+                                size="sm"
+                            />
                         </div>
-                        )}
+                        <div className="flex gap-2">
+                            <Input
+                                type="date"
+                                value={filters.startDate}
+                                onChange={(event) => handleFilterChange('startDate', event.target.value)}
+                                className="w-36"
+                                size="sm"
+                            />
+                            <Input
+                                type="date"
+                                value={filters.endDate}
+                                onChange={(event) => handleFilterChange('endDate', event.target.value)}
+                                className="w-36"
+                                size="sm"
+                            />
+                        </div>
                     </>
                 )}
+                onRefresh={fetchMovements}
+                emptyTitle="Nenhuma movimentacao encontrada"
+                emptyDescription="Tente ajustar os filtros ou termos de pesquisa."
+                minHeight="500px"
+                pagination={pagination ? {
+                    currentPage: page,
+                    totalItems: pagination.total,
+                    itemsPerPage: pageSize,
+                    onPageChange: setPage,
+                    onItemsPerPageChange: (size) => {
+                        setPageSize(size);
+                        setPage(1);
+                    },
+                    itemsPerPageOptions: [5, 10, 15, 25, 50],
+                } : undefined}
+            />
 
-                {/* Pagination */}
-                {pagination && (
-                    <div className="px-6 py-4 border-t border-gray-200 dark:border-dark-700">
-                        <Pagination
-                            currentPage={page}
-                            totalItems={pagination.total}
-                            itemsPerPage={pageSize}
-                            onPageChange={setPage}
-                            onItemsPerPageChange={(size) => {
-                                setPageSize(size);
-                                setPage(1);
-                            }}
-                            itemsPerPageOptions={[5, 10, 15, 25, 50]}
-                        />
-                    </div>
-                )}
-            </Card>
-
-            {/* Movement Details Modal */}
             <Modal
                 isOpen={!!selectedMovement}
                 onClose={() => setSelectedMovement(null)}
-                title="Detalhes da Movimentação"
+                title="Detalhes da Movimentacao"
                 size="md"
             >
                 {selectedMovement && (
                     <div className="space-y-4">
-                        {/* Movement Type Badge */}
                         <div className="flex items-center gap-3">
                             {(() => {
-                                const config = movementTypeConfig[selectedMovement.movementType as MovementType] || movementTypeConfig.adjustment;
+                                const config = getMovementConfig(selectedMovement.movementType);
                                 const Icon = config.icon;
+
                                 return (
                                     <Badge variant={config.color} className="flex items-center gap-1">
                                         <Icon className="w-4 h-4" />
@@ -373,7 +362,6 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                             </span>
                         </div>
 
-                        {/* Details Grid */}
                         <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-dark-700 rounded-lg">
                             <div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Produto</p>
@@ -385,7 +373,7 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                                 </p>
                             </div>
                             <div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Armazém</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Armazem</p>
                                 <p className="font-medium text-gray-900 dark:text-white">
                                     {selectedMovement.warehouse?.name || 'Global'}
                                 </p>
@@ -399,43 +387,38 @@ export default function StockMovementHistory({ originModule }: StockMovementHist
                             <div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Saldo</p>
                                 <p className="font-medium text-gray-900 dark:text-white">
-                                    {selectedMovement.balanceBefore} → {selectedMovement.balanceAfter}
+                                    {selectedMovement.balanceBefore} -&gt; {selectedMovement.balanceAfter}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Additional Info */}
                         <div className="space-y-3 border-t border-gray-200 dark:border-dark-600 pt-4">
                             {selectedMovement.reason && (
                                 <div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Motivo / Observações</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Motivo / Observacoes</p>
                                     <p className="text-sm text-gray-700 dark:text-gray-300">{selectedMovement.reason}</p>
                                 </div>
                             )}
                             {selectedMovement.reference && (
                                 <div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Referência</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Referencia</p>
                                     <p className="text-sm font-mono text-primary-600">{selectedMovement.reference}</p>
                                 </div>
                             )}
                             <div>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Responsável</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Responsavel</p>
                                 <p className="text-sm text-gray-700 dark:text-gray-300">{selectedMovement.performedBy || '-'}</p>
                             </div>
                             {selectedMovement.originModule && (
                                 <div>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Módulo de Origem</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase mb-1">Modulo de Origem</p>
                                     <Badge variant="outline">{selectedMovement.originModule}</Badge>
                                 </div>
                             )}
                         </div>
 
-                        {/* Close Button */}
                         <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-dark-600">
-                            <Button
-                                variant="secondary"
-                                onClick={() => setSelectedMovement(null)}
-                            >
+                            <Button variant="secondary" onClick={() => setSelectedMovement(null)}>
                                 Fechar
                             </Button>
                         </div>

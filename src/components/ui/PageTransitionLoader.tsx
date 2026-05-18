@@ -19,12 +19,12 @@ export function PageTransitionLoader() {
         sawFetchRef.current = false;
         graceElapsedRef.current = false;
 
-        const minTimer = setTimeout(() => setMinTimeElapsed(true), 400);
+        const minTimer = setTimeout(() => setMinTimeElapsed(true), 700);
 
         const graceTimer = setTimeout(() => {
             graceElapsedRef.current = true;
             forceTick(x => x + 1);
-        }, 600);
+        }, 900);
 
         return () => {
             clearTimeout(minTimer);

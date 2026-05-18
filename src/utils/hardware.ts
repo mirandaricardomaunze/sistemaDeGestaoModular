@@ -33,16 +33,29 @@ export const hasSerialSupport = (): boolean => 'serial' in navigator;
  * a partir da o browser memoriza.
  * @returns true se conseguiu enviar o comando, false caso contrrio
  */
+interface SerialWriter {
+    write(data: Uint8Array): Promise<void>;
+    releaseLock(): void;
+}
+interface SerialPort {
+    open(options: { baudRate: number }): Promise<void>;
+    close(): Promise<void>;
+    writable: { getWriter(): SerialWriter };
+}
+interface SerialNavigator {
+    serial: { getPorts(): Promise<SerialPort[]>; requestPort(): Promise<SerialPort> };
+}
+
 export async function openCashDrawerSerial(): Promise<boolean> {
     if (!hasSerialSupport()) return false;
-    let port: any;
+    let port: SerialPort | undefined;
     try {
-        // Tenta obter porta j autorizada sem pedir ao utilizador
-        const ports = await (navigator as any).serial.getPorts();
+        // Tenta obter porta já autorizada sem pedir ao utilizador
+        const ports = await (navigator as unknown as SerialNavigator).serial.getPorts();
         port = ports[0];
         if (!port) {
             // Primeira vez -- pede ao utilizador para seleccionar
-            port = await (navigator as any).serial.requestPort();
+            port = await (navigator as unknown as SerialNavigator).serial.requestPort();
         }
         await port.open({ baudRate: 9600 });
         const writer = port.writable.getWriter();

@@ -4,7 +4,13 @@
  */
 
 import { useRef, useEffect, useMemo } from 'react';
-import { HiOutlinePrinter, HiOutlineX, HiOutlineDownload, HiOutlineMail, HiOutlineDocumentText } from 'react-icons/hi';
+import {
+    HiOutlineArrowDownTray as HiOutlineArrowDownTray,
+    HiOutlineDocumentText,
+    HiOutlineEnvelope as HiOutlineEnvelope,
+    HiOutlinePrinter,
+    HiOutlineXMark as HiOutlineXMark,
+} from 'react-icons/hi2';
 import { useNavigate } from 'react-router-dom';
 import { Modal, Button, Badge } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
@@ -23,6 +29,7 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
     const { companySettings: company, loadCompanySettings } = useStore();
     const navigate = useNavigate();
     const printRef = useRef<HTMLDivElement>(null);
+    const taxRate = Number((sale as { taxRate?: number | string }).taxRate ?? company.ivaRate ?? 16);
     // Deterministic display hash derived from sale ID -- replace with AT-issued digital hash when available
     const simulatedHash = useMemo(() => {
         const seed = sale.id.replace(/-/g, '');
@@ -197,11 +204,11 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                             Imprimir
                         </Button>
                         <Button variant="outline" size="sm">
-                            <HiOutlineDownload className="w-4 h-4 mr-2" />
+                            <HiOutlineArrowDownTray className="w-4 h-4 mr-2" />
                             Baixar PDF
                         </Button>
                         <Button variant="outline" size="sm">
-                            <HiOutlineMail className="w-4 h-4 mr-2" />
+                            <HiOutlineEnvelope className="w-4 h-4 mr-2" />
                             Enviar por Email
                         </Button>
                         <Button
@@ -215,7 +222,7 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                         </Button>
                     </div>
                     <Button variant="ghost" size="sm" onClick={onClose}>
-                        <HiOutlineX className="w-5 h-5" />
+                        <HiOutlineXMark className="w-5 h-5" />
                     </Button>
                 </div>
 
@@ -300,7 +307,7 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                                                     <th className="px-4 py-3 text-[10px] font-black uppercase">Descrição do Item</th>
                                                     <th className="px-4 py-3 text-[10px] font-black uppercase text-center">Qtd</th>
                                                     <th className="px-4 py-3 text-[10px] font-black uppercase text-right">Preço Unit.</th>
-                                                    <th className="px-4 py-3 text-[10px] font-black uppercase text-right">IVA (%)</th>
+                                                    <th className="px-4 py-3 text-[10px] font-black uppercase text-right">IVA ({taxRate}%)</th>
                                                     {hasWeight && <th className="px-4 py-3 text-[10px] font-black uppercase text-right">Peso Total</th>}
                                                     <th className="px-4 py-3 text-[10px] font-black uppercase text-right">Subtotal</th>
                                                 </tr>
@@ -308,18 +315,19 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                                             <tbody className="divide-y divide-gray-100">
                                                 {(sale.items || []).map((item, index) => {
                                                     const lineWeight = item.product?.weight ? item.product.weight * item.quantity : null;
+                                                    const publicRef = item.product.sku || item.product.barcode;
                                                     return (
                                                         <tr key={index}>
                                                             <td className="px-4 py-3">
                                                                 <p className="font-bold text-[11px] text-gray-900 leading-tight">{item.product.name}</p>
-                                                                <p className="text-[9px] text-gray-400">{item.product.code}</p>
+                                                                {publicRef && <p className="text-[9px] text-gray-400">Ref: {publicRef}</p>}
                                                                 {Number(item.product?.weight) > 0 && (
                                                                     <p className="text-[9px] text-gray-300">{Number(item.product!.weight).toFixed(3)} kg/un</p>
                                                                 )}
                                                             </td>
                                                             <td className="px-4 py-3 text-center text-[11px] text-gray-600">{item.quantity}</td>
                                                             <td className="px-4 py-3 text-right text-[11px] text-gray-600">{formatCurrency(item.unitPrice)}</td>
-                                                            <td className="px-4 py-3 text-right text-[10px] text-gray-500">{formatCurrency(item.total * 0.16 / 1.16)}</td>
+                                                            <td className="px-4 py-3 text-right text-[10px] text-gray-500">{formatCurrency(item.total * taxRate / (100 + taxRate))}</td>
                                                             {hasWeight && (
                                                                 <td className="px-4 py-3 text-right text-[11px] text-gray-500">
                                                                     {lineWeight !== null ? `${lineWeight.toFixed(3)} kg` : '—'}
@@ -359,7 +367,7 @@ export default function A4InvoicePreview({ isOpen, onClose, sale }: A4InvoicePre
                                     </div>
                                 )}
                                 <div className="flex justify-between text-[10px] text-gray-600">
-                                    <span className="font-bold uppercase">IVA (16%)</span>
+                                    <span className="font-bold uppercase">IVA ({taxRate}%)</span>
                                     <span className="font-semibold">{formatCurrency(sale.tax)}</span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2 border-t-2 border-gray-900 mt-2">

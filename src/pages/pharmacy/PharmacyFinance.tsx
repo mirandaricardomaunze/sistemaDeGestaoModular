@@ -46,9 +46,22 @@ const periodOptions: { value: TimePeriod; label: string }[] = [
     { value: '1y', label: '1 Ano' },
 ];
 
+type FinanceTransaction = {
+    id: string;
+    type: 'income' | 'expense';
+    category: string;
+    description: string;
+    amount: number | string;
+    date: string;
+    dueDate?: string | null;
+    paymentMethod?: string;
+    reference?: string;
+    notes?: string;
+};
+
 export default function PharmacyFinance() {
     useTranslation();
-    const [transactions, setTransactions] = useState<any[]>([]);
+    const [transactions, setTransactions] = useState<FinanceTransaction[]>([]);
     const [summary, setSummary] = useState({ 
         totalRevenue: 0, 
         totalExpenses: 0, 
@@ -63,8 +76,8 @@ export default function PharmacyFinance() {
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
     const [showFormModal, setShowFormModal] = useState(false);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-    const [transactionToDelete, setTransactionToDelete] = useState<any | null>(null);
-    const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
+    const [transactionToDelete, setTransactionToDelete] = useState<FinanceTransaction | null>(null);
+    const [editingTransaction, setEditingTransaction] = useState<FinanceTransaction | null>(null);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -107,7 +120,7 @@ export default function PharmacyFinance() {
         setValue,
         formState: { errors },
     } = useForm<TransactionFormData>({
-        resolver: zodResolver(transactionSchema) as any,
+        resolver: zodResolver(transactionSchema) as unknown as import('react-hook-form').Resolver<TransactionFormData>,
         defaultValues: {
             type: 'expense',
             category: '',
@@ -138,12 +151,12 @@ export default function PharmacyFinance() {
         }
     };
 
-    const handleEdit = (transaction: any) => {
+    const handleEdit = (transaction: FinanceTransaction) => {
         setEditingTransaction(transaction);
         setValue('type', transaction.type);
         setValue('category', transaction.category);
         setValue('description', transaction.description);
-        setValue('amount', transaction.amount);
+        setValue('amount', Number(transaction.amount));
         setValue('date', new Date(transaction.date).toISOString().split('T')[0]);
         setValue('dueDate', transaction.dueDate ? new Date(transaction.dueDate).toISOString().split('T')[0] : '');
         setValue('paymentMethod', transaction.paymentMethod || 'cash');
@@ -353,7 +366,7 @@ export default function PharmacyFinance() {
                                                 "text-sm font-black tracking-tight",
                                                 t.type === 'income' ? 'text-emerald-600' : 'text-rose-600'
                                             )}>
-                                                {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                                                {t.type === 'income' ? '+' : '-'} {formatCurrency(Number(t.amount))}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">

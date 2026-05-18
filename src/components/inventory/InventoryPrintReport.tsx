@@ -5,7 +5,7 @@ import { formatCurrency } from '../../utils/helpers';
 import { categoryLabels } from '../../utils/constants';
 import { Button, Modal } from '../ui';
 
-import { HiOutlinePrinter, HiOutlineXMark as HiOutlineX } from 'react-icons/hi2';
+import { HiOutlinePrinter, HiOutlineXMark as HiOutlineXMark } from 'react-icons/hi2';
 
 interface InventoryPrintReportProps {
     isOpen: boolean;
@@ -210,7 +210,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                     .meta-value { font-size: 11px; font-weight: 700; color: #334155; }
 
                     /* Table Styles */
-                    table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 30px; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+                    table.print-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 30px; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; background: #ffffff !important; }
                     th { 
                         background: #f1f5f9 !important; 
                         color: #475569 !important; 
@@ -305,7 +305,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                         border-radius: 50%;
                         margin: 0 auto 10px;
                         display: flex;
-                        items-center;
+                        align-items: center;
                         justify-content: center;
                         color: #cbd5e1;
                         font-size: 8px;
@@ -404,7 +404,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                         </div>
 
                         <!-- Table -->
-                        <table>
+                        <table class="print-table">
                             <thead>
                                 <tr>
                                     <th style="width: 100px;">Referência</th>
@@ -536,7 +536,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                         <Button 
                             variant="ghost" 
                             onClick={onClose} 
-                            leftIcon={<HiOutlineX className="w-4 h-4" />}
+                            leftIcon={<HiOutlineXMark className="w-4 h-4" />}
                             className="!text-slate-500 hover:!bg-slate-100 font-bold uppercase text-[10px] tracking-widest"
                         >
                             Cancelar
@@ -579,7 +579,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                                 </div>
 
                                 {/* Table Preview */}
-                                <table className="w-full" style={{ backgroundColor: 'white' }}>
+                                <table className="w-full print-table" style={{ backgroundColor: 'white' }}>
                                     <thead>
                                         <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: 'white' }}>
                                             <th style={{ backgroundColor: 'white', color: '#0f172a', padding: '12px', fontSize: '10px', textAlign: 'left', fontWeight: '800', textTransform: 'uppercase' }}>REF</th>

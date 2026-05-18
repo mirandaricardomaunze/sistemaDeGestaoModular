@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
-import { HiOutlineSearch, HiOutlineX, HiOutlineCube } from 'react-icons/hi';
-import { Input, Badge } from '../ui';
+import { HiOutlineMagnifyingGlass, HiOutlineXMark, HiOutlineCube } from 'react-icons/hi2';
+import { Input, Badge, Button } from '../ui';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useDebounce } from '../../hooks/useDebounce';
 import { productsAPI } from '../../services/api';
@@ -29,6 +29,42 @@ export interface ProductOption {
     barcode?: string;
     packSize?: number;
 }
+
+type ProductSearchResponseItem = {
+    id: string;
+    code?: string | null;
+    name: string;
+    price?: number | string | null;
+    costPrice?: number | string | null;
+    currentStock?: number | string | null;
+    unit?: string | null;
+    category?: string | null;
+    status?: string | null;
+    barcode?: string | null;
+    packSize?: number | string | null;
+};
+
+type ProductSearchResponse = ProductSearchResponseItem[] | {
+    data?: ProductSearchResponseItem[];
+};
+
+const getProductRows = (response: ProductSearchResponse): ProductSearchResponseItem[] => (
+    Array.isArray(response) ? response : response.data ?? []
+);
+
+const toProductOption = (product: ProductSearchResponseItem): ProductOption => ({
+    id: product.id,
+    code: product.code ?? '',
+    name: product.name,
+    price: Number(product.price ?? 0),
+    costPrice: Number(product.costPrice ?? 0),
+    currentStock: Number(product.currentStock ?? 0),
+    unit: product.unit ?? 'un',
+    category: product.category ?? 'other',
+    status: product.status ?? 'in_stock',
+    barcode: product.barcode ?? undefined,
+    packSize: Number(product.packSize ?? 1),
+});
 
 interface ProductSearchInputProps {
     /** Called when the user selects a product */
@@ -127,22 +163,9 @@ export function ProductSearchInput({
                 // Relax filter: commercial module sees everything except specialized modules
                 ...(originModule && originModule !== 'commercial' ? { originModule } : {}),
             })
-            .then((res: any) => {
+            .then((res: ProductSearchResponse) => {
                 if (cancelled) return;
-                const rawItems = Array.isArray(res) ? res : (res.data || []);
-                const items: ProductOption[] = rawItems.map((p: any) => ({
-                    id:           p.id,
-                    code:         p.code,
-                    name:         p.name,
-                    price:        Number(p.price || 0),
-                    costPrice:    Number(p.costPrice || 0),
-                    currentStock: Number(p.currentStock || 0),
-                    unit:         p.unit || 'un',
-                    category:     p.category || 'other',
-                    status:       p.status || 'in_stock',
-                    barcode:      p.barcode,
-                    packSize:     Number(p.packSize || 1),
-                }));
+                const items = getProductRows(res).map(toProductOption);
                 setResults(requireStock ? items.filter(p => p.currentStock > 0) : items);
                 if (items.length > 0) {
                     setIsOpen(true);
@@ -159,6 +182,13 @@ export function ProductSearchInput({
         return () => { cancelled = true; };
     }, [debouncedQuery, originModule, requireStock, isOpen]);
 
+    const handleSelect = useCallback((product: ProductOption) => {
+        onSelect(product);
+        setQuery('');
+        setResults([]);
+        setIsOpen(false);
+    }, [onSelect]);
+
     // ── Keyboard navigation ──────────────────────────────────────────────────
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if (!isOpen || !results.length) return;
@@ -174,16 +204,9 @@ export function ProductSearchInput({
         } else if (e.key === 'Escape') {
             setIsOpen(false);
         }
-    }, [isOpen, results, highlightIdx]);
+    }, [handleSelect, isOpen, results, highlightIdx]);
 
     // ── Selection ────────────────────────────────────────────────────────────-
-    const handleSelect = useCallback((product: ProductOption) => {
-        onSelect(product);
-        setQuery('');
-        setResults([]);
-        setIsOpen(false);
-    }, [onSelect]);
-
     const handleClear = () => {
         setQuery('');
         setResults([]);
@@ -221,14 +244,16 @@ export function ProductSearchInput({
                                 {selectedProduct.code} · {formatCurrency(selectedProduct.price)}
                             </p>
                         </div>
-                        <button
+                        <Button
                             type="button"
                             onClick={handleClear}
-                            className="text-gray-400 hover:text-red-500 transition-colors flex-shrink-0"
+                            variant="ghost"
+                            size="xs"
+                            className="h-8 w-8 p-0 text-gray-400 hover:text-red-500"
                             title="Remover produto"
                         >
-                            <HiOutlineX className="w-4 h-4" />
-                        </button>
+                            <HiOutlineXMark className="w-4 h-4" />
+                        </Button>
                     </div>
                 </div>
             ) : (
@@ -249,13 +274,9 @@ export function ProductSearchInput({
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                               </svg>
-                            : <HiOutlineSearch className="w-4 h-4" />
+                            : <HiOutlineMagnifyingGlass className="w-4 h-4" />
                     }
-                    rightIcon={query ? (
-                        <button type="button" onClick={handleClear} className="hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                            <HiOutlineX className="w-4 h-4" />
-                        </button>
-                    ) : undefined}
+                    rightIcon={query ? <HiOutlineXMark className="w-4 h-4" /> : undefined}
                 />
             )}
 
@@ -323,7 +344,7 @@ export function ProductSearchInput({
                             </ul>
                             <div className="px-3 py-2 border-t border-gray-100 dark:border-dark-700 bg-gray-50 dark:bg-dark-900/50">
                                 <p className="text-xs text-gray-400 font-medium">
-                                    →↔ navegar · Enter seleccionar · Esc fechar
+                                    →â†” navegar · Enter seleccionar · Esc fechar
                                 </p>
                             </div>
                         </>

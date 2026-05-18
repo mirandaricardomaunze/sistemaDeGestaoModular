@@ -3,8 +3,8 @@ import {
     HiOutlineDocumentText,
     HiOutlineClock,
     HiOutlineUser,
-    HiOutlineSearch,
-} from 'react-icons/hi';
+    HiOutlineMagnifyingGlass,
+} from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
 import { Card, Badge, Input, Pagination, usePagination } from '../ui';
 import { useState } from 'react';
@@ -120,7 +120,7 @@ export default function FiscalAuditLog() {
                             placeholder="Pesquisar por descrição, utilizador..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                            leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                         />
                     </div>
                     <div className="w-full sm:w-48">

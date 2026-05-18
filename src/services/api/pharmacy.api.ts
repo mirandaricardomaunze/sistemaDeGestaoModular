@@ -1,53 +1,107 @@
 import api from './client';
+import type {
+    Medication,
+    PharmacyBatch,
+    Prescription,
+    PharmacySale,
+    PharmacyPartner,
+    DrugInteraction,
+    PharmacyDashboardSummary,
+} from '../../types/pharmacy';
+
+type ApiPayload = object;
+type ApiQueryParams = Record<string, unknown>;
+
+export interface Pagination {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
+
+export interface PharmacyMedicationsParams {
+    search?: string;
+    requiresPrescription?: boolean;
+    isControlled?: boolean;
+    lowStock?: boolean;
+    expiringDays?: number;
+    page?: number;
+    limit?: number;
+}
+
+export interface PharmacyBatchesParams {
+    status?: string;
+    expiringDays?: number;
+    medicationId?: string;
+    page?: number;
+    limit?: number;
+}
+
+export interface PharmacySalesParams {
+    page?: number;
+    limit?: number;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    customerId?: string;
+    search?: string;
+}
+
+export interface PharmacyPrescriptionsParams {
+    status?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+}
 
 export const pharmacyAPI = {
     // Medications
-    getMedications: async (params?: { search?: string; requiresPrescription?: boolean; isControlled?: boolean; lowStock?: boolean; expiringDays?: number; page?: number; limit?: number }) => {
+    getMedications: async (params?: PharmacyMedicationsParams): Promise<{ data: Medication[]; pagination: Pagination }> => {
         const response = await api.get('/pharmacy/medications', { params });
         return response.data;
     },
 
-    createMedication: async (data: any) => {
+    createMedication: async (data: Partial<Medication>): Promise<Medication> => {
         const response = await api.post('/pharmacy/medications', data);
         return response.data;
     },
 
-    updateMedication: async (id: string, data: any) => {
+    updateMedication: async (id: string, data: Partial<Medication>): Promise<Medication> => {
         const response = await api.put(`/pharmacy/medications/${id}`, data);
         return response.data;
     },
-    deleteMedication: async (id: string) => {
+    deleteMedication: async (id: string): Promise<void> => {
         const response = await api.delete(`/pharmacy/medications/${id}`);
         return response.data;
     },
 
     // Batches
-    getBatches: async (params?: { status?: string; expiringDays?: number; medicationId?: string; page?: number; limit?: number }) => {
+    getBatches: async (params?: PharmacyBatchesParams): Promise<{ data: PharmacyBatch[]; pagination: Pagination }> => {
         const response = await api.get('/pharmacy/batches', { params });
         return response.data;
     },
 
-    createBatch: async (data: any) => {
+    createBatch: async (data: Partial<PharmacyBatch>): Promise<PharmacyBatch> => {
         const response = await api.post('/pharmacy/batches', data);
         return response.data;
     },
 
-    updateBatch: async (id: string, data: any) => {
+    updateBatch: async (id: string, data: Partial<PharmacyBatch>): Promise<PharmacyBatch> => {
         const response = await api.put(`/pharmacy/batches/${id}`, data);
         return response.data;
     },
-    deleteBatch: async (id: string) => {
+    deleteBatch: async (id: string): Promise<void> => {
         const response = await api.delete(`/pharmacy/batches/${id}`);
         return response.data;
     },
 
     // Sales (POS)
-    getSales: async (params?: { page?: number; limit?: number; startDate?: string; endDate?: string; status?: string; customerId?: string; search?: string }) => {
+    getSales: async (params?: PharmacySalesParams): Promise<{ data: PharmacySale[]; pagination: Pagination }> => {
         const response = await api.get('/pharmacy/sales', { params });
         return response.data;
     },
 
-    createSale: async (data: any) => {
+    createSale: async (data: Partial<PharmacySale>): Promise<PharmacySale> => {
         const response = await api.post('/pharmacy/sales', data);
         return response.data;
     },
@@ -58,17 +112,17 @@ export const pharmacyAPI = {
     },
 
     // Prescriptions
-    getPrescriptions: async (params?: { status?: string; search?: string; page?: number; limit?: number }) => {
+    getPrescriptions: async (params?: PharmacyPrescriptionsParams): Promise<{ data: Prescription[]; pagination: Pagination }> => {
         const response = await api.get('/pharmacy/prescriptions', { params });
         return response.data;
     },
 
-    createPrescription: async (data: any) => {
+    createPrescription: async (data: Partial<Prescription>): Promise<Prescription> => {
         const response = await api.post('/pharmacy/prescriptions', data);
         return response.data;
     },
 
-    lookupPrescription: async (number: string) => {
+    lookupPrescription: async (number: string): Promise<Prescription | null> => {
         const response = await api.get('/pharmacy/prescriptions/lookup', { params: { number } });
         return response.data;
     },
@@ -84,12 +138,12 @@ export const pharmacyAPI = {
     },
 
     // Dashboard
-    getDashboardSummary: async () => {
+    getDashboardSummary: async (): Promise<PharmacyDashboardSummary> => {
         const response = await api.get('/pharmacy/dashboard');
         return response.data;
     },
 
-    getSalesChart: async (period: '7days' | '30days' | '90days' | '180days' | '365days') => {
+    getSalesChart: async (period: '7days' | '30days' | '90days' | '180days' | '365days'): Promise<Array<{ date: string; amount: number; count: number }>> => {
         const response = await api.get('/pharmacy/sales/chart', { params: { period } });
         return response.data;
     },
@@ -120,17 +174,17 @@ export const pharmacyAPI = {
     },
 
     // Partners
-    getPartners: async (params?: { search?: string; isActive?: boolean }) => {
+    getPartners: async (params?: { search?: string; isActive?: boolean }): Promise<PharmacyPartner[]> => {
         const response = await api.get('/pharmacy/partners', { params });
         return response.data;
     },
 
-    createPartner: async (data: any) => {
+    createPartner: async (data: Partial<PharmacyPartner>): Promise<PharmacyPartner> => {
         const response = await api.post('/pharmacy/partners', data);
         return response.data;
     },
 
-    updatePartner: async (id: string, data: any) => {
+    updatePartner: async (id: string, data: Partial<PharmacyPartner>): Promise<PharmacyPartner> => {
         const response = await api.put(`/pharmacy/partners/${id}`, data);
         return response.data;
     },
@@ -145,21 +199,21 @@ export const pharmacyAPI = {
         const response = await api.get(`/pharmacy/patients/${id}/profile`);
         return response.data;
     },
-    updatePatientProfile: async (id: string, data: any) => {
+    updatePatientProfile: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/pharmacy/patients/${id}/profile`, data);
         return response.data;
     },
-    getPatientMedicationHistory: async (id: string, params?: any) => {
+    getPatientMedicationHistory: async (id: string, params?: ApiQueryParams) => {
         const response = await api.get(`/pharmacy/patients/${id}/medication-history`, { params });
         return response.data;
     },
 
     // Drug Interactions
-    getDrugInteractions: async (params?: { medicationId?: string }) => {
+    getDrugInteractions: async (params?: { medicationId?: string }): Promise<DrugInteraction[]> => {
         const response = await api.get('/pharmacy/interactions', { params });
         return response.data;
     },
-    createDrugInteraction: async (data: any) => {
+    createDrugInteraction: async (data: Partial<DrugInteraction>): Promise<DrugInteraction> => {
         const response = await api.post('/pharmacy/interactions', data);
         return response.data;
     },
@@ -173,29 +227,29 @@ export const pharmacyAPI = {
     },
 
     // Narcotic Register
-    getNarcoticRegister: async (params?: any) => {
+    getNarcoticRegister: async (params?: ApiQueryParams) => {
         const response = await api.get('/pharmacy/narcotic-register', { params });
         return response.data;
     },
-    createNarcoticEntry: async (data: any) => {
+    createNarcoticEntry: async (data: ApiPayload) => {
         const response = await api.post('/pharmacy/narcotic-register', data);
         return response.data;
     },
-    updateNarcoticEntry: async (id: string, data: any) => {
+    updateNarcoticEntry: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/pharmacy/narcotic-register/${id}`, data);
         return response.data;
     },
 
     // Batch Recalls
-    getRecalls: async (params?: any) => {
+    getRecalls: async (params?: ApiQueryParams) => {
         const response = await api.get('/pharmacy/recalls', { params });
         return response.data;
     },
-    createRecall: async (data: any) => {
+    createRecall: async (data: ApiPayload) => {
         const response = await api.post('/pharmacy/recalls', data);
         return response.data;
     },
-    resolveRecall: async (id: string, data: any) => {
+    resolveRecall: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/pharmacy/recalls/${id}/resolve`, data);
         return response.data;
     },
@@ -205,11 +259,11 @@ export const pharmacyAPI = {
     },
 
     // Partner Invoices
-    getPartnerInvoices: async (params?: any) => {
+    getPartnerInvoices: async (params?: ApiQueryParams) => {
         const response = await api.get('/pharmacy/partner-invoices', { params });
         return response.data;
     },
-    generatePartnerInvoice: async (data: any) => {
+    generatePartnerInvoice: async (data: ApiPayload) => {
         const response = await api.post('/pharmacy/partner-invoices/generate', data);
         return response.data;
     },
@@ -281,15 +335,15 @@ export const pharmacyAPI = {
         const response = await api.get('/pharmacy/finance/dashboard', { params: { period } });
         return response.data;
     },
-    getTransactions: async (params?: any) => {
+    getTransactions: async (params?: ApiQueryParams) => {
         const response = await api.get('/pharmacy/finance/transactions', { params });
         return response.data;
     },
-    createTransaction: async (data: any) => {
+    createTransaction: async (data: ApiPayload) => {
         const response = await api.post('/pharmacy/finance/transactions', data);
         return response.data;
     },
-    updateTransaction: async (id: string, data: any) => {
+    updateTransaction: async (id: string, data: ApiPayload) => {
         const response = await api.put(`/pharmacy/finance/transactions/${id}`, data);
         return response.data;
     },

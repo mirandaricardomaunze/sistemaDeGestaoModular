@@ -1,3 +1,5 @@
+export type ChatDataPayload = Record<string, unknown> | unknown[] | null;
+
 export interface ChatMessage {
     id: string;
     role: 'user' | 'assistant' | 'system';
@@ -5,7 +7,7 @@ export interface ChatMessage {
     timestamp: Date;
     metadata?: {
         query?: string;
-        data?: any;
+        data?: ChatDataPayload;
         pdfUrl?: string;
     };
 }
@@ -21,7 +23,7 @@ export interface ChatRequest {
 
 export interface ChatResponse {
     message: string;
-    data?: any;
+    data?: ChatDataPayload;
     pdfUrl?: string;
     suggestions?: string[];
 }
@@ -29,7 +31,7 @@ export interface ChatResponse {
 export interface AIPrompt {
     system: string;
     user: string;
-    context: any;
+    context: Record<string, unknown>;
 }
 
 export interface Intent {

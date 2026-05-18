@@ -30,6 +30,13 @@ class CommercialService {
     updatePurchaseOrderStatus  = commercialPurchaseOrderService.updatePurchaseOrderStatus.bind(commercialPurchaseOrderService);
     registerPartialDelivery    = commercialPurchaseOrderService.registerPartialDelivery.bind(commercialPurchaseOrderService);
     deletePurchaseOrder        = commercialPurchaseOrderService.deletePurchaseOrder.bind(commercialPurchaseOrderService);
+    listSupplierInvoices       = commercialPurchaseOrderService.listSupplierInvoices.bind(commercialPurchaseOrderService);
+    createSupplierInvoice      = commercialPurchaseOrderService.createSupplierInvoice.bind(commercialPurchaseOrderService);
+    getSupplierInvoiceById     = commercialPurchaseOrderService.getSupplierInvoiceById.bind(commercialPurchaseOrderService);
+    updateSupplierInvoiceStatus = commercialPurchaseOrderService.updateSupplierInvoiceStatus.bind(commercialPurchaseOrderService);
+    addSupplierInvoicePayment  = commercialPurchaseOrderService.addSupplierInvoicePayment.bind(commercialPurchaseOrderService);
+    listSupplierInvoicePayments = commercialPurchaseOrderService.listSupplierInvoicePayments.bind(commercialPurchaseOrderService);
+    deleteSupplierInvoicePayment = commercialPurchaseOrderService.deleteSupplierInvoicePayment.bind(commercialPurchaseOrderService);
 
     // Quotations
     listQuotations             = commercialQuotationService.listQuotations.bind(commercialQuotationService);
@@ -42,6 +49,7 @@ class CommercialService {
     // Stock Reservations
     reserveItem                 = commercialReservationService.reserveItem.bind(commercialReservationService);
     releaseItem                 = commercialReservationService.releaseItem.bind(commercialReservationService);
+    releaseReservations         = commercialReservationService.releaseReservations.bind(commercialReservationService);
     cleanupExpiredReservations  = commercialReservationService.cleanupExpiredReservations.bind(commercialReservationService);
 }
 

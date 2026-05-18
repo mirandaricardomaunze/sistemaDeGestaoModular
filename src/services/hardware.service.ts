@@ -4,13 +4,20 @@ import { logger } from '../utils/logger';
  * Uses Web Serial and Web USB APIs.
  */
 
+interface SerialNavigator {
+    serial: { requestPort(options?: Record<string, unknown>): Promise<unknown> };
+}
+interface UsbNavigator {
+    usb: { requestDevice(options: Record<string, unknown>): Promise<unknown> };
+}
+
 class HardwareService {
-    async requestSerialPort(options?: any): Promise<any | null> {
+    async requestSerialPort(options?: Record<string, unknown>): Promise<unknown> {
         try {
             if (!('serial' in navigator)) {
                 throw new Error('Web Serial API not supported in this browser');
             }
-            const port = await (navigator as any).serial.requestPort(options);
+            const port = await (navigator as unknown as SerialNavigator).serial.requestPort(options);
             return port;
         } catch (error) {
             logger.error('Error requesting serial port:', error);
@@ -18,12 +25,12 @@ class HardwareService {
         }
     }
 
-    async requestUSBDevice(options: any): Promise<any | null> {
+    async requestUSBDevice(options: Record<string, unknown>): Promise<unknown> {
         try {
             if (!('usb' in navigator)) {
                 throw new Error('Web USB API not supported in this browser');
             }
-            const device = await (navigator as any).usb.requestDevice(options);
+            const device = await (navigator as unknown as UsbNavigator).usb.requestDevice(options);
             return device;
         } catch (error) {
             logger.error('Error requesting USB device:', error);

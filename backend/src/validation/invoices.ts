@@ -65,15 +65,32 @@ export const addPaymentSchema = z.object({
 });
 
 export const creditNoteSchema = z.object({
+    originalInvoiceId: z.string().uuid('ID da fatura original invalido').optional(),
     reason: z.string().min(1, 'Motivo é obrigatório').max(500, 'Motivo muito longo'),
     items: z.array(z.object({
         productId: z.string().uuid('ID do produto inválido').optional().nullable(),
         description: z.string().min(1, 'Descrição obrigatória'),
-        quantity: z.number().positive('Quantidade deve ser maior que zero'),
+        quantity: z.number().int('Quantidade deve ser um numero inteiro').positive('Quantidade deve ser maior que zero'),
         unitPrice: z.number().positive('Preço unitrio deve ser maior que zero'),
         total: z.number().positive('Total deve ser maior que zero'),
         originalInvoiceItemId: z.string().uuid('ID do item original inválido').optional().nullable()
     })).min(1, 'Deve ter pelo menos um item'),
+    notes: z.string().max(500, 'Notas muito longas').optional().nullable()
+});
+
+// Nota de Débito — itens são livres (juros, multa, frete, correção de preço, etc.)
+// e podem opcionalmente referenciar um item da fatura original.
+export const debitNoteSchema = z.object({
+    originalInvoiceId: z.string().uuid('ID da fatura original invalido').optional(),
+    reason: z.string().min(1, 'Motivo é obrigatório').max(500, 'Motivo muito longo'),
+    items: z.array(z.object({
+        productId: z.string().uuid('ID do produto inválido').optional().nullable(),
+        description: z.string().min(1, 'Descrição obrigatória').max(500, 'Descrição muito longa'),
+        quantity: z.number().positive('Quantidade deve ser maior que zero'),
+        unitPrice: z.number().positive('Preço unitário deve ser maior que zero'),
+        total: z.number().positive('Total deve ser maior que zero'),
+        originalInvoiceItemId: z.string().uuid('ID do item original inválido').optional().nullable()
+    })).min(1, 'Deve ter pelo menos um item').max(50, 'Máximo de 50 itens'),
     notes: z.string().max(500, 'Notas muito longas').optional().nullable()
 });
 
@@ -86,3 +103,4 @@ export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
 export type UpdateInvoiceStatusInput = z.infer<typeof updateInvoiceStatusSchema>;
 export type AddPaymentInput = z.infer<typeof addPaymentSchema>;
 export type CreditNoteInput = z.infer<typeof creditNoteSchema>;
+export type DebitNoteInput = z.infer<typeof debitNoteSchema>;

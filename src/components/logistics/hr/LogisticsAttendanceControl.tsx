@@ -5,7 +5,7 @@ import {
     HiOutlineClock,
     HiOutlineCalendar
 } from 'react-icons/hi2';
-import { HiOutlineLogin, HiOutlineLogout } from 'react-icons/hi';
+import { HiOutlineArrowRightOnRectangle, HiOutlineArrowLeftOnRectangle } from 'react-icons/hi2';
 import { Card, Button, Input, Badge, LoadingSpinner } from '../../ui';
 import { useDrivers, useStaffAttendance, useRecordStaffTime } from '../../../hooks/useLogistics';
 import { format } from 'date-fns';
@@ -57,7 +57,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card variant="glass" className="p-4 border-l-4 border-l-green-500 flex items-center gap-4">
                     <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600">
-                        <HiOutlineLogin className="w-6 h-6" />
+                        <HiOutlineArrowRightOnRectangle className="w-6 h-6" />
                     </div>
                     <div>
                         <p className="text-xs text-gray-500 uppercase font-black tracking-widest">{t('logistics_module.hr.attendance.present')}</p>
@@ -66,7 +66,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                 </Card>
                 <Card variant="glass" className="p-4 border-l-4 border-l-blue-500 flex items-center gap-4">
                     <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600">
-                        <HiOutlineLogout className="w-6 h-6" />
+                        <HiOutlineArrowLeftOnRectangle className="w-6 h-6" />
                     </div>
                     <div>
                         <p className="text-xs text-gray-500 uppercase font-black tracking-widest">{t('logistics_module.hr.attendance.finished')}</p>
@@ -87,7 +87,11 @@ export const LogisticsAttendanceControl: React.FC = () => {
             {/* Staff Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredStaff.map((person) => {
-                    const record = attendance?.find(a => a.staffId === person.id);
+                    const record = attendance?.find(a =>
+                        a.staffId === person.id ||
+                        a.employeeId === person.id ||
+                        a.employee?.code === person.code
+                    );
                     return (
                         <Card key={person.id} variant="glass" className="relative group overflow-hidden border-t-2 border-t-primary-500/30">
                             <div className="p-5 space-y-4">
@@ -121,7 +125,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                                         size="sm"
                                         className="flex-1 rounded-lg font-black text-[10px] uppercase"
                                         disabled={!!record?.checkIn || recordMutation.isLoading}
-                                        leftIcon={<HiOutlineLogin className="w-4 h-4" />}
+                                        leftIcon={<HiOutlineArrowRightOnRectangle className="w-4 h-4" />}
                                         onClick={() => handleRecord(person.id, 'checkIn')}
                                     >
                                         Check-In
@@ -131,7 +135,7 @@ export const LogisticsAttendanceControl: React.FC = () => {
                                         size="sm"
                                         className="flex-1 rounded-lg font-black text-[10px] uppercase border-orange-200 text-orange-600"
                                         disabled={!record?.checkIn || !!record?.checkOut || recordMutation.isLoading}
-                                        leftIcon={<HiOutlineLogout className="w-4 h-4" />}
+                                        leftIcon={<HiOutlineArrowLeftOnRectangle className="w-4 h-4" />}
                                         onClick={() => handleRecord(person.id, 'checkOut')}
                                     >
                                         Check-Out

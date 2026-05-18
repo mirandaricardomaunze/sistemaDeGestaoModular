@@ -6,10 +6,10 @@ import { ivaAPI, type CreateIvaRateDto } from '../services/api';
 const bus = new EventTarget();
 const inv = (keys: string[]) => keys.forEach(k => bus.dispatchEvent(new CustomEvent('inv', { detail: k })));
 
-function useQ<T>(fn: () => Promise<T>, key: string, deps: any[] = [], enabled = true) {
+function useQ<T>(fn: () => Promise<T>, key: string, deps: unknown[] = [], enabled = true) {
     const [data, setData] = useState<T | null>(null);
     const [isLoading, setIsLoading] = useState(enabled);
-    const [error, setError] = useState<any>(null);
+    const [error, setError] = useState<unknown>(null);
 
     const fetch = useCallback(async () => {
         setIsLoading(true); setError(null);
@@ -19,7 +19,7 @@ function useQ<T>(fn: () => Promise<T>, key: string, deps: any[] = [], enabled = 
 
     useEffect(() => { if (enabled) fetch(); }, [enabled, key, ...deps]);
     useEffect(() => {
-        const h = (e: any) => { if (e.detail === key) fetch(); };
+        const h = (e: Event) => { if ((e as CustomEvent).detail === key) fetch(); };
         bus.addEventListener('inv', h);
         return () => bus.removeEventListener('inv', h);
     }, [key, fetch]);
@@ -27,7 +27,7 @@ function useQ<T>(fn: () => Promise<T>, key: string, deps: any[] = [], enabled = 
     return { data, isLoading, error, refetch: fetch };
 }
 
-function useM<T, V>(fn: (v: V) => Promise<T>, opts?: { onSuccess?: (d: T) => void; onError?: (e: any) => void; invalidates?: string[] }) {
+function useM<T, V>(fn: (v: V) => Promise<T>, opts?: { onSuccess?: (d: T) => void; onError?: (e: unknown) => void; invalidates?: string[] }) {
     const [isLoading, setIsLoading] = useState(false);
     const mutate = async (v: V) => {
         setIsLoading(true);
@@ -66,7 +66,7 @@ export function useCreateIvaRate() {
     return useM((data: CreateIvaRateDto) => ivaAPI.create(data), {
         invalidates: ['iva-rates', 'iva-rates-active', 'iva-dashboard'],
         onSuccess: () => toast.success('Taxa IVA criada com sucesso'),
-        onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao criar taxa'),
+        onError: (e) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Erro ao criar taxa'),
     });
 }
 
@@ -74,7 +74,7 @@ export function useUpdateIvaRate() {
     return useM(({ id, data }: { id: string; data: Partial<CreateIvaRateDto> }) => ivaAPI.update(id, data), {
         invalidates: ['iva-rates', 'iva-rates-active', 'iva-dashboard', 'iva-rate'],
         onSuccess: () => toast.success('Taxa actualizada'),
-        onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao actualizar taxa'),
+        onError: (e) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Erro ao actualizar taxa'),
     });
 }
 
@@ -82,6 +82,6 @@ export function useDeleteIvaRate() {
     return useM((id: string) => ivaAPI.delete(id), {
         invalidates: ['iva-rates', 'iva-rates-active', 'iva-dashboard'],
         onSuccess: () => toast.success('Taxa eliminada'),
-        onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao eliminar taxa'),
+        onError: (e) => toast.error((e as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Erro ao eliminar taxa'),
     });
 }

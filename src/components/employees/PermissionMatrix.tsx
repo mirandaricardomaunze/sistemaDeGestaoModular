@@ -1,6 +1,6 @@
 import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
-import { HiOutlineShieldCheck, HiOutlineLockClosed, HiOutlineSave } from 'react-icons/hi';
+import { HiOutlineShieldCheck, HiOutlineLockClosed, HiOutlineBookmarkSquare } from 'react-icons/hi2';
 import { Card, Button, LoadingSpinner } from '../ui';
 import { modulesAPI, type BusinessModule } from '../../services/api/admin.api';
 import { cn } from '../../utils/helpers';
@@ -81,7 +81,7 @@ export default function PermissionMatrix() {
                     variant="primary"
                     onClick={handleSave}
                     isLoading={isSaving}
-                    leftIcon={<HiOutlineSave className="w-5 h-5" />}
+                    leftIcon={<HiOutlineBookmarkSquare className="w-5 h-5" />}
                 >
                     Guardar Alterações
                 </Button>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { HiOutlineX, HiOutlineCheck, HiOutlineRefresh } from 'react-icons/hi';
+import { HiOutlineXMark, HiOutlineCheck, HiOutlineArrowPath } from 'react-icons/hi2';
 import { Button } from '../../ui/Button';
 import { useScale } from '../../../hooks/useScale';
 import { formatCurrency } from '../../../utils/helpers';
@@ -77,9 +77,14 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm, isLo
                             <span className={`text-[10px] font-black uppercase tracking-wider ${conf.color}`}>{conf.label}</span>
                         </div>
                     </div>
-                    <button onClick={handleClose} className="p-1.5 rounded-lg hover:bg-white/10 text-white transition-colors">
-                        <HiOutlineX className="w-4 h-4" />
-                    </button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClose}
+                        className="p-1.5 text-white hover:bg-white/10 active:scale-95"
+                    >
+                        <HiOutlineXMark className="w-4 h-4" />
+                    </Button>
                 </div>
 
                 <div className="p-6 space-y-5">
@@ -100,7 +105,7 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm, isLo
                     }`}>
                         {!isSupported ? (
                             <div className="space-y-2">
-                                <p className="text-2xl">⚠️</p>
+                                <p className="text-2xl">⚠️ï¸</p>
                                 <p className="text-sm font-bold text-gray-600 dark:text-gray-400">Web Serial API não suportada</p>
                                 <p className="text-xs text-gray-400">Use o Chrome 89+ para ligar à balança</p>
                             </div>
@@ -183,32 +188,36 @@ export function CommercialScaleModal({ isOpen, onClose, product, onConfirm, isLo
                     {/* Acções */}
                     <div className="flex gap-2">
                         {!isConnected ? (
-                            <button
+                            <Button
+                                variant="ghost"
                                 onClick={connect}
                                 disabled={!isSupported || status === 'connecting'}
-                                className="flex-1 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-xs uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-lg"
+                                className="flex-1 py-3 rounded-lg bg-gray-900 hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95"
                             >
                                 <ScaleIcon className="w-4 h-4" />
                                 {status === 'connecting' ? 'A conectar...' : 'Conectar Balança'}
-                            </button>
+                            </Button>
                         ) : (
                             <>
-                                <button
+                                <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={disconnect}
-                                    className="px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-500 font-black text-xs uppercase hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
                                     title="Desconectar"
+                                    className="px-4 py-3 rounded-lg font-black text-xs uppercase active:scale-95"
                                 >
-                                    <HiOutlineX className="w-4 h-4" />
-                                </button>
+                                    <HiOutlineXMark className="w-4 h-4" />
+                                </Button>
 
-                                <button
+                                <Button
+                                    variant="ghost"
                                     onClick={handleCapture}
                                     disabled={!isStable || weightG <= 0}
-                                    className="flex-1 py-3 rounded-lg border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-black text-xs uppercase tracking-widest hover:bg-blue-50 dark:hover:bg-blue-900/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5"
+                                    className="flex-1 py-3 rounded-lg border-2 border-blue-500 text-blue-600 dark:text-blue-400 font-black text-xs uppercase tracking-widest hover:bg-blue-50 dark:hover:bg-blue-900/10 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 active:scale-95"
                                 >
-                                    <HiOutlineRefresh className="w-4 h-4" />
+                                    <HiOutlineArrowPath className="w-4 h-4" />
                                     Capturar
-                                </button>
+                                </Button>
 
                                 {product && (
                                     <Button

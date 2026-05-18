@@ -13,19 +13,24 @@ export const PERIOD_OPTIONS: { value: TimePeriod; label: string }[] = [
     { value: '1y', label: '1 Ano' },
 ];
 
-interface ModulePeriodFilterProps {
-    value: TimePeriod;
-    onChange: (period: TimePeriod) => void;
-    options?: { value: string; label: string }[];
+interface ModulePeriodFilterProps<T extends string = TimePeriod> {
+    value: T;
+    onChange: (period: T) => void;
+    options?: { value: T; label: string }[];
     className?: string;
 }
 
-export function ModulePeriodFilter({ value, onChange, options = PERIOD_OPTIONS, className }: ModulePeriodFilterProps) {
+export function ModulePeriodFilter<T extends string = TimePeriod>({
+    value,
+    onChange,
+    options = PERIOD_OPTIONS as unknown as { value: T; label: string }[],
+    className,
+}: ModulePeriodFilterProps<T>) {
     return (
         <SegmentedControl
             options={options}
             value={value}
-            onChange={(val) => onChange(val as TimePeriod)}
+            onChange={(val) => onChange(val as T)}
             className={className}
         />
     );

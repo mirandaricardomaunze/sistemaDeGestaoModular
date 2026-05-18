@@ -65,4 +65,16 @@ router.post('/orders/:orderId/receive', authenticate, async (req: AuthRequest, r
     res.json({ message: 'Itens recebidos com sucesso' });
 });
 
+router.post('/orders/:orderId/cancel', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const order = await suppliersService.cancelOrder(
+        req.params.orderId,
+        req.companyId,
+        req.userId,
+        req.userName,
+        typeof req.body?.reason === 'string' ? req.body.reason : undefined
+    );
+    res.json(order);
+});
+
 export default router;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { formatCurrency } from '../../../utils/helpers';
-import { HiOutlineCheck, HiOutlineDocumentChartBar as HiOutlineDocumentReport } from 'react-icons/hi2';
-import { HiOutlineXMark as HiOutlineX, HiOutlineBanknotes as HiOutlineCash, HiOutlineBuildingStorefront as HiOutlineHome } from 'react-icons/hi2';
+import { HiOutlineCheck, HiOutlineDocumentChartBar as HiOutlineDocumentChartBar } from 'react-icons/hi2';
+import { HiOutlineXMark as HiOutlineXMark, HiOutlineBanknotes as HiOutlineBanknotes, HiOutlineBuildingStorefront as HiOutlineHome } from 'react-icons/hi2';
 import { useQuery } from '@tanstack/react-query';
 import { warehousesAPI } from '../../../services/api';
 
@@ -72,7 +72,7 @@ export function PharmacyShiftModal({ isOpen, mode, shift, onOpenShift, onCloseSh
                         )}
                     </div>
                     <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors">
-                        <HiOutlineX className="w-5 h-5" />
+                        <HiOutlineXMark className="w-5 h-5" />
                     </button>
                 </div>
 
@@ -81,7 +81,7 @@ export function PharmacyShiftModal({ isOpen, mode, shift, onOpenShift, onCloseSh
                     {mode === 'close' && shift && (
                         <div className="bg-gray-50 dark:bg-dark-900 rounded-lg p-4 space-y-2">
                             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5 mb-3">
-                                <HiOutlineDocumentReport className="w-3.5 h-3.5" />
+                                <HiOutlineDocumentChartBar className="w-3.5 h-3.5" />
                                 Resumo do Turno
                             </p>
                             {[
@@ -117,7 +117,7 @@ export function PharmacyShiftModal({ isOpen, mode, shift, onOpenShift, onCloseSh
                     {/* Amount input */}
                     <div>
                         <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 block mb-2 flex items-center gap-1.5">
-                            <HiOutlineCash className="w-3.5 h-3.5" />
+                            <HiOutlineBanknotes className="w-3.5 h-3.5" />
                             {mode === 'open' ? 'Fundo de Caixa Inicial (MTn)' : 'Contagem de Caixa (MTn)'}
                         </label>
                         <div className="relative">
@@ -171,7 +171,7 @@ export function PharmacyShiftModal({ isOpen, mode, shift, onOpenShift, onCloseSh
                                 className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 focus:border-teal-500 focus:outline-none bg-white dark:bg-dark-900 text-gray-900 dark:text-white text-sm font-bold"
                             >
                                 <option value="">Seleccione o armazém...</option>
-                                {warehouses.map((w: any) => (
+                                {warehouses.map((w: { id: string; name: string }) => (
                                     <option key={w.id} value={w.id}>{w.name}</option>
                                 ))}
                             </select>

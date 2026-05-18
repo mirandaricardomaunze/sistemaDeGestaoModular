@@ -28,13 +28,15 @@ export default function Header() {
     const [showSyncPanel, setShowSyncPanel] = useState(false);
     const { t } = useTranslation();
 
+    const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Utilizador';
+    const firstName = displayName.split(/\s+/)[0];
     const getUserInitials = (name: string) => {
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .slice(0, 2)
-            .join('')
-            .toUpperCase();
+        const parts = name.trim().split(/\s+/).filter(Boolean);
+        const initials = parts.length > 1
+            ? parts.slice(0, 2).map((part) => part[0]).join('')
+            : parts[0]?.slice(0, 2) || 'U';
+
+        return initials.toUpperCase();
     };
 
     const handleLogout = () => {
@@ -44,14 +46,14 @@ export default function Header() {
     };
 
     return (
-        <header className="sticky top-0 z-30 h-16 bg-white/70 dark:bg-dark-900/70 backdrop-blur-md border-b border-gray-200/50 dark:border-dark-800/50 transition-all duration-300">
+        <header className="sticky top-0 z-30 h-16 bg-white dark:bg-dark-900/70 backdrop-blur-md border-b border-slate-300/70 dark:border-dark-800/50 shadow-[0_1px_2px_rgba(15,23,42,0.06),0_10px_26px_-24px_rgba(15,23,42,0.75)] transition-all duration-300">
             <div className="flex items-center justify-between h-full px-4 lg:px-8 gap-4 max-w-[1600px] mx-auto">
                 {/* Left Section */}
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                     {/* Mobile Menu Toggle */}
                     <button
                         onClick={toggleSidebar}
-                        className="p-2.5 rounded-xl hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-all duration-300 ring-1 ring-gray-200 dark:ring-dark-700 hover:ring-primary-500/50 shadow-sm hover:shadow-md"
+                        className="p-2.5 rounded-xl bg-white hover:bg-primary-50 dark:bg-transparent dark:hover:bg-primary-900/20 text-slate-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-all duration-200 ring-1 ring-slate-300 dark:ring-dark-700 hover:ring-primary-500/50 shadow-sm"
                         title="Menu"
                     >
                         <HiOutlineBars3 className="w-5 h-5" />
@@ -62,11 +64,11 @@ export default function Header() {
                 </div>
 
                 {/* Right Section */}
-                <div className="flex items-center gap-3 lg:gap-4">
+                <div className="flex items-center gap-2 lg:gap-3">
                     {/* Theme Toggle */}
                     <button
                         onClick={toggleTheme}
-                        className="p-2.5 rounded-xl hover:bg-gray-100 dark:hover:bg-dark-800 text-gray-600 dark:text-gray-300 transition-all duration-300 hover:rotate-12 ring-1 ring-gray-200/50 dark:ring-dark-700/50 shadow-sm"
+                        className="p-2.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-transparent dark:hover:bg-dark-800 text-slate-700 dark:text-gray-300 transition-all duration-200 ring-1 ring-slate-300 dark:ring-dark-700/50 shadow-sm"
                         title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}
                     >
                         {theme === 'light' ? (
@@ -85,12 +87,12 @@ export default function Header() {
                         {(pendingCount > 0 || failedCount > 0) ? (
                             <button
                                 onClick={() => setShowSyncPanel(true)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm ring-1 hover:scale-105 active:scale-95 ${
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ring-1 active:scale-95 ${
                                     failedCount > 0
                                         ? 'bg-red-100/60 text-red-700 hover:bg-red-200 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-900/40'
                                         : 'bg-amber-100/50 text-amber-700 hover:bg-amber-200 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-900/40'
                                 }`}
-                                title={isOnline ? 'Ver fila de sincronização' : 'Offline — dados guardados localmente'}
+                                title={isOnline ? 'Ver fila de sincronizacao' : 'Offline - dados guardados localmente'}
                             >
                                 <HiArrowPath className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                                 <span className="hidden sm:inline">
@@ -100,25 +102,19 @@ export default function Header() {
                         ) : (
                             <button
                                 onClick={() => setShowSyncPanel(true)}
-                                className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all ring-1 ${isOnline
-                                    ? 'text-emerald-500 bg-emerald-50/50 ring-emerald-100/50 dark:bg-emerald-900/10 dark:ring-emerald-900/20 hover:bg-emerald-100/50'
+                                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ring-1 ${isOnline
+                                    ? 'text-emerald-600 bg-white ring-slate-300 hover:bg-emerald-50 dark:bg-transparent dark:ring-dark-700/50 dark:hover:bg-emerald-900/10'
                                     : 'text-amber-500 bg-amber-50 ring-amber-100 dark:bg-amber-900/20 dark:ring-amber-900/40 hover:bg-amber-100'
                                     }`}
-                                title={isOnline ? 'Sistema Online — clique para ver fila' : 'Sistema Offline — dados salvos localmente'}
+                                title={isOnline ? 'Sistema online - clique para ver fila' : 'Sistema offline - dados salvos localmente'}
                             >
                                 {isOnline ? (
-                                    <>
-                                        <div className="relative flex h-2 w-2">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                        </div>
-                                        <span className="text-[10px] font-bold uppercase hidden lg:inline tracking-widest opacity-80">Online</span>
-                                    </>
+                                    <div className="relative flex h-2.5 w-2.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                                    </div>
                                 ) : (
-                                    <>
-                                        <MdCloudOff className="w-4 h-4" />
-                                        <span className="text-[10px] font-bold uppercase hidden lg:inline tracking-widest opacity-80">Offline</span>
-                                    </>
+                                    <MdCloudOff className="w-4 h-4" />
                                 )}
                             </button>
                         )}
@@ -131,40 +127,37 @@ export default function Header() {
                     <div className="relative">
                         <button
                             onClick={() => setShowUserMenu(!showUserMenu)}
-                            className={`flex items-center gap-2 p-1 rounded-xl transition-all duration-300 ring-1 ${
+                            className={`flex items-center gap-2 rounded-xl py-1 pl-1 pr-2 transition-all duration-200 ring-1 ${
                                 showUserMenu 
                                 ? 'bg-primary-50 ring-primary-200 dark:bg-primary-900/20 dark:ring-primary-800' 
-                                : 'hover:bg-gray-100 dark:hover:bg-dark-800 ring-gray-200/50 dark:ring-dark-700/50'
+                                : 'bg-white hover:bg-slate-50 dark:bg-transparent dark:hover:bg-dark-800 ring-slate-300 dark:ring-dark-700/50 shadow-sm'
                             }`}
                         >
-                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-primary-500/20 overflow-hidden">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-600 to-indigo-600 flex items-center justify-center shadow-sm shadow-primary-500/20 overflow-hidden">
                                 <span className="text-white font-bold text-sm tracking-tighter">
-                                    {user ? getUserInitials(user.name) : 'U'}
+                                    {getUserInitials(displayName)}
                                 </span>
                             </div>
-                            <div className="hidden sm:block text-left mr-1">
-                                <p className="text-xs font-bold text-gray-900 dark:text-white leading-none mb-0.5">
-                                    {user?.name.split(' ')[0] || 'Utilizador'}
-                                </p>
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium leading-none">
-                                    Painel
+                            <div className="hidden md:block text-left">
+                                <p className="text-xs font-bold text-gray-900 dark:text-white leading-none max-w-24 truncate">
+                                    {firstName}
                                 </p>
                             </div>
                         </button>
 
                         {/* User Dropdown */}
                         {showUserMenu && (
-                            <div className="absolute right-0 mt-3 w-64 bg-white/95 dark:bg-dark-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-dark-700/50 overflow-hidden animate-slide-up z-50">
-                                <div className="p-4 bg-gradient-to-br from-gray-50 to-white dark:from-dark-800 dark:to-dark-900 border-b border-gray-100 dark:border-dark-700">
+                            <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-dark-800/95 backdrop-blur-xl rounded-2xl shadow-card-hover border border-slate-300/70 dark:border-dark-700/50 overflow-hidden animate-slide-up z-50">
+                                <div className="p-4 bg-slate-50 dark:bg-dark-900 border-b border-slate-200 dark:border-dark-700">
                                     <div className="flex items-center gap-3">
                                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold shadow-inner">
-                                            {user ? getUserInitials(user.name) : 'U'}
+                                            {getUserInitials(displayName)}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                {user?.name || 'Utilizador'}
+                                                {displayName}
                                             </p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate mb-1">
+                                            <p className="text-xs text-slate-600 dark:text-gray-400 truncate mb-1">
                                                 {user?.email || ''}
                                             </p>
                                             {user?.role && (

@@ -1,6 +1,28 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { buildPaginationMeta, parseFields } from '../utils/pagination';
+
+type ListQuery = {
+    status?: string;
+    priority?: string;
+    page?: string | number;
+    limit?: string | number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    fields?: string;
+};
+
+type IncomingOrderItem = {
+    productId: string;
+    quantity: number;
+    price?: number;
+    unitPrice?: number;
+    productName?: string;
+    total?: number;
+};
+
+const OPEN_INVOICE_STATUSES: Prisma.InvoiceWhereInput['status'] = { in: ['draft', 'sent', 'partial', 'overdue'] };
 
 const ORDER_FIELD_ALLOWLIST = [
     'id', 'orderNumber', 'customerId', 'customerName', 'customerPhone',
@@ -8,43 +30,49 @@ const ORDER_FIELD_ALLOWLIST = [
     'subtotal', 'discount', 'total', 'paymentMethod', 'deliveryDate',
     'notes', 'createdAt', 'updatedAt'
 ] as const;
-import { pdfService } from './pdfService';
 import { stockService } from './stockService';
 import { logger } from '../utils/logger';
 import type { CreateOrderInput, UpdateOrderInput, UpdateOrderStatusInput } from '../validation/orders';
 
 // Valid status transitions: enforces sequential flow
 const validTransitions: Record<string, string[]> = {
-    created: ['printed', 'cancelled'],
-    printed: ['separated', 'cancelled'],
-    separated: ['completed', 'cancelled'],
+    created: ['printed'],
+    printed: ['separated'],
+    separated: ['completed'],
     completed: [],
+    cancellation_requested: [],
+    cancellation_rejected: [],
     cancelled: [],
 };
 
 export class OrdersService {
-    async list(params: any, companyId: string) {
+    async list(params: ListQuery, companyId: string) {
         const { status, priority, page = '1', limit = '20', sortBy = 'createdAt', sortOrder = 'desc' } = params;
-        const pageNum = parseInt(page as string);
-        const limitNum = parseInt(limit as string);
+        const pageNum = parseInt(String(page));
+        const limitNum = parseInt(String(limit));
         const skip = (pageNum - 1) * limitNum;
 
-        const where: any = { companyId };
-        if (status && status !== 'all') where.status = status;
-        if (priority && priority !== 'all') where.priority = priority;
+        const where: Prisma.CustomerOrderWhereInput = { companyId };
+        if (status && status !== 'all') where.status = status as Prisma.CustomerOrderWhereInput['status'];
+        if (priority && priority !== 'all') where.priority = priority as Prisma.CustomerOrderWhereInput['priority'];
 
         const projection = parseFields(params.fields, ORDER_FIELD_ALLOWLIST);
-        const findArgs: any = {
+        const baseArgs = {
             where,
-            orderBy: { [sortBy as string]: sortOrder },
+            orderBy: { [sortBy]: sortOrder } as Prisma.CustomerOrderOrderByWithRelationInput,
             skip,
             take: limitNum
         };
-        if (projection) {
-            findArgs.select = projection;
-        } else {
-            findArgs.include = { items: true, transitions: { orderBy: { timestamp: 'asc' } } };
-        }
+        const findArgs: Prisma.CustomerOrderFindManyArgs = projection
+            ? { ...baseArgs, select: projection as Prisma.CustomerOrderSelect }
+            : {
+                ...baseArgs,
+                include: {
+                    items: true,
+                    cancellationRequests: { orderBy: { requestedAt: 'desc' }, take: 1 },
+                    transitions: { orderBy: { timestamp: 'asc' } }
+                }
+            };
 
         const [total, orders] = await Promise.all([
             prisma.customerOrder.count({ where }),
@@ -60,7 +88,11 @@ export class OrdersService {
     async getById(id: string, companyId: string) {
         const order = await prisma.customerOrder.findFirst({
             where: { id, companyId },
-            include: { items: true, transitions: { orderBy: { timestamp: 'asc' } } }
+            include: {
+                items: true,
+                cancellationRequests: { orderBy: { requestedAt: 'desc' } },
+                transitions: { orderBy: { timestamp: 'asc' } }
+            }
         });
         if (!order) throw ApiError.notFound('Encomenda não encontrada');
         return order;
@@ -97,9 +129,9 @@ export class OrdersService {
             }
 
             // Verify and recalculate each item
-            const verifiedItems = items.map((item: any) => {
+            const verifiedItems = (items as IncomingOrderItem[]).map((item) => {
                 const product = productPriceMap.get(item.productId);
-                const unitPrice = item.price || item.unitPrice;
+                const unitPrice = item.price || item.unitPrice || 0;
 
                 if (product && product.price > 0 && Math.abs(product.price - unitPrice) > 0.01) {
                     logger.warn('Order price mismatch detected', {
@@ -135,7 +167,7 @@ export class OrdersService {
             // exact totals the customer agreed to, even if the company-wide
             // rate changes in the meantime.
             // ====================================================================
-            const subtotal = Math.round(verifiedItems.reduce((sum: number, item: any) => sum + item.total, 0) * 100) / 100;
+            const subtotal = Math.round(verifiedItems.reduce((sum, item) => sum + item.total, 0) * 100) / 100;
             const discount = Math.max(0, Math.round(Number(requestedDiscount || 0) * 100) / 100);
             const taxableBase = Math.max(0, subtotal - discount);
 
@@ -158,12 +190,12 @@ export class OrdersService {
                         _sum: { total: true }
                     });
                     const openInvoicesTotal = await tx.invoice.aggregate({
-                        where: { customerId, companyId, status: { in: ['draft', 'sent', 'partial', 'overdue'] as any[] } },
+                        where: { customerId, companyId, status: OPEN_INVOICE_STATUSES },
                         _sum: { amountDue: true }
                     });
                     const currentExposure =
                         Number(openOrdersTotal._sum.total ?? 0) +
-                        Number((openInvoicesTotal._sum as any).amountDue ?? 0);
+                        Number(openInvoicesTotal._sum.amountDue ?? 0);
                     if (currentExposure + total > Number(customer.creditLimit)) {
                         throw ApiError.badRequest(
                             `Limite de crédito excedido para "${customer.name}". ` +
@@ -201,11 +233,11 @@ export class OrdersService {
                     notes: notes || null,
                     companyId,
                     items: {
-                        create: verifiedItems.map((item: any) => ({
+                        create: verifiedItems.map((item) => ({
                             productId: item.productId,
                             productName: item.productName || '',
                             quantity: item.quantity,
-                            price: item.price || item.unitPrice,
+                            price: item.price || item.unitPrice || 0,
                             total: item.total
                         }))
                     },
@@ -229,8 +261,18 @@ export class OrdersService {
 
         const { status, responsibleName, notes } = data;
 
-        // Enforce sequential status transitions
-        const allowed = validTransitions[existing.status] || [];
+        // Quotations don't need the cancellation-approval flow — they can be cancelled directly.
+        const isQuotation = existing.orderType === 'quotation';
+        if (!isQuotation && (status === 'cancelled' || status === 'cancellation_requested' || status === 'cancellation_rejected')) {
+            throw ApiError.badRequest('Use o fluxo de pedido/aprovacao de cancelamento para cancelar encomendas.');
+        }
+
+        // Enforce sequential status transitions.
+        // Quotations also allow direct cancellation from any non-terminal state.
+        const allowed = [...(validTransitions[existing.status] || [])];
+        if (isQuotation && status === 'cancelled' && existing.status !== 'completed' && existing.status !== 'cancelled') {
+            allowed.push('cancelled');
+        }
         if (!allowed.includes(status)) {
             if (existing.status === 'cancelled' || existing.status === 'completed') {
                 throw ApiError.badRequest(`Esta encomenda já se encontra no estado final: ${existing.status}`);
@@ -243,69 +285,34 @@ export class OrdersService {
         }
 
         return await prisma.$transaction(async (tx) => {
-            // If the order is cancelled, release the reserved stock
-            let cancellationDocUrl = null;
-            if (status === 'cancelled') {
-                let totalCanceled = 0;
-                const itemsToReport = [];
-
-                for (const item of existing.items) {
-                    if (!item.productId) continue;
-                    await stockService.releaseReservation(item.productId, item.quantity, companyId, tx);
-
-                    totalCanceled += item.total.toNumber ? item.total.toNumber() : Number(item.total);
-                    itemsToReport.push({
-                        productName: item.productName || 'N/A',
-                        quantity: item.quantity,
-                        total: item.total.toNumber ? item.total.toNumber() : Number(item.total)
-                    });
-                }
-
-                // Fetch real company info for the cancellation document
-                const company = await prisma.company.findUnique({
-                    where: { id: companyId },
-                    select: { name: true, address: true, nuit: true }
-                });
-                const companyInfo = {
-                    name: company?.name || 'N/A',
-                    address: company?.address || '',
-                    nuit: company?.nuit || ''
-                };
-                const reportData = {
-                    orderNumber: existing.orderNumber,
-                    customerName: 'Cliente Associado',
-                    responsibleName: responsibleName || 'Sistema',
-                    notes: notes,
-                    items: itemsToReport,
-                    total: totalCanceled
-                };
-
-                try {
-                    cancellationDocUrl = await pdfService.generateReport(reportData, 'order_cancellation', companyInfo);
-                } catch (err) {
-                    logger.error('Failed to generate cancellation PDF', { orderId: id, error: err });
-                }
-            }
-
-            // If the order is completed/delivered, do nothing to the stock.
-            // Stock deduction and reservation release happens on Invoicing.
-            // The reservation is kept until invoiced or cancelled.
-
-            const updateData: any = {
-                status: status as any,
+            const orderStatus = status as Prisma.CustomerOrderUncheckedUpdateInput['status'];
+            const updateData: Prisma.CustomerOrderUncheckedUpdateInput = {
+                status: orderStatus,
                 transitions: {
-                    create: { status: status as any, responsibleName: responsibleName || 'Sistema', notes }
+                    create: {
+                        status: status as Prisma.OrderStatusTransitionUncheckedCreateWithoutOrderInput['status'],
+                        responsibleName: responsibleName || 'Sistema',
+                        notes
+                    }
                 }
             };
-
-            if (cancellationDocUrl) {
-                updateData.cancellationDocUrl = cancellationDocUrl;
-            }
 
             await tx.customerOrder.update({
                 where: { id },
                 data: updateData
             });
+
+            // Release reservedStock when a quotation is cancelled (mirrors the create-time increment).
+            if (isQuotation && status === 'cancelled') {
+                for (const item of existing.items) {
+                    if (item.productId) {
+                        await tx.product.update({
+                            where: { id: item.productId },
+                            data: { reservedStock: { decrement: Number(item.quantity) } }
+                        });
+                    }
+                }
+            }
 
             return this.getById(id, companyId);
         });
@@ -331,10 +338,27 @@ export class OrdersService {
     }
 
     async delete(id: string, companyId: string) {
-        const result = await prisma.customerOrder.deleteMany({
-            where: { id, companyId }
+        await prisma.$transaction(async (tx) => {
+            const order = await tx.customerOrder.findFirst({
+                where: { id, companyId },
+                include: { items: { select: { productId: true, quantity: true } } }
+            });
+            if (!order) throw ApiError.notFound('Encomenda não encontrada');
+
+            // Quotations increment reservedStock on create; release it on delete to avoid leaks.
+            if (order.orderType === 'quotation' && order.status !== 'completed' && order.status !== 'cancelled') {
+                for (const item of order.items) {
+                    if (item.productId) {
+                        await tx.product.update({
+                            where: { id: item.productId },
+                            data: { reservedStock: { decrement: Number(item.quantity) } }
+                        });
+                    }
+                }
+            }
+
+            await tx.customerOrder.delete({ where: { id } });
         });
-        if (result.count === 0) throw ApiError.notFound('Encomenda não encontrada');
         return true;
     }
 

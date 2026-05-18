@@ -8,6 +8,7 @@
  */
 
 import request from 'supertest';
+import type { Request, Response, NextFunction } from 'express';
 import { app } from '../../index';
 import { prisma } from '../../lib/prisma';
 
@@ -16,19 +17,21 @@ import { prisma } from '../../lib/prisma';
 const CO  = 'multi-test-co';
 const UID = 'multi-test-user';
 
+type MockReq = Request & { userId?: string; companyId?: string; userName?: string; userRole?: string };
+
 jest.mock('../../middleware/auth', () => ({
-    authenticate: (req: any, _res: any, next: any) => {
-        req.userId    = req.headers['x-mock-uid']  || UID;
-        req.companyId = req.headers['x-mock-co']   || CO;
-        req.userRole  = req.headers['x-mock-role'] || 'admin';
+    authenticate: (req: MockReq, _res: Response, next: NextFunction) => {
+        req.userId    = (req.headers['x-mock-uid'] as string)  || UID;
+        req.companyId = (req.headers['x-mock-co'] as string)   || CO;
+        req.userRole  = (req.headers['x-mock-role'] as string) || 'admin';
         req.userName  = 'Test User';
         next();
     },
-    authorize: (...roles: string[]) => (req: any, res: any, next: any) => {
-        if (!roles.includes(req.userRole)) return res.status(403).json({ message: 'Acesso negado' });
+    authorize: (...roles: string[]) => (req: MockReq, res: Response, next: NextFunction) => {
+        if (!roles.includes(req.userRole ?? '')) return res.status(403).json({ message: 'Acesso negado' });
         next();
     },
-    AuthRequest: {} as any,
+    AuthRequest: {} as unknown,
 }));
 
 jest.mock('../../lib/socket', () => ({
@@ -42,10 +45,10 @@ jest.mock('../../lib/socket', () => ({
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // Result service wraps: { success, data: payload } where payload may be paginated { data, pagination }
-const unwrap = (res: any) => res.body?.data ?? res.body;
-const rows   = (res: any) => {
-    const d = res.body?.data;
-    return Array.isArray(d) ? d : (d?.data ?? res.body);
+const unwrap = (res: { body: unknown }) => (res.body as { data?: unknown })?.data ?? res.body;
+const rows   = (res: { body: unknown }) => {
+    const d = (res.body as { data?: unknown })?.data;
+    return Array.isArray(d) ? d : ((d as { data?: unknown[] })?.data ?? res.body);
 };
 
 // ── Setup / Teardown ──────────────────────────────────────────────────────────
@@ -155,7 +158,7 @@ describe('Suppliers', () => {
             const s = await prisma.supplier.create({ data: { name: 'Outsider', code: `OS-${Date.now()}`, phone: '800', companyId: other } });
 
             const res = await request(app).get('/api/suppliers').expect(200);
-            expect(res.body.data.map((x: any) => x.id)).not.toContain(s.id);
+            expect((res.body.data as Array<{ id: string }>).map((x) => x.id)).not.toContain(s.id);
 
             await prisma.supplier.delete({ where: { id: s.id } });
             await prisma.company.delete({ where: { id: other } });

@@ -99,8 +99,9 @@ export default function GuestProfileModal({
         try {
             const data = await hospitalityAPI.getBookingDetails(bookingId);
             setBooking(data);
-        } catch (err: any) {
-            setError(err.message || t('messages.errorOccurred'));
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: unknown; errors?: unknown[] } } };
+            setError(apiErr.message || t('messages.errorOccurred'));
         } finally {
             setIsLoading(false);
         }
@@ -123,7 +124,7 @@ export default function GuestProfileModal({
     const { companySettings } = useStore();
     const handlePrint = () => {
         if (booking) {
-            generateBookingReceipt(booking as any, {
+            generateBookingReceipt(booking as unknown as Parameters<typeof generateBookingReceipt>[0], {
                 ...companySettings,
                 name: companySettings?.companyName ?? 'Empresa',
                 companyName: companySettings?.companyName ?? 'Empresa',
@@ -131,7 +132,7 @@ export default function GuestProfileModal({
                 phone: companySettings?.phone ?? '',
                 email: companySettings?.email ?? '',
                 taxId: companySettings?.taxId ?? '',
-            } as any);
+            });
         }
     };
 

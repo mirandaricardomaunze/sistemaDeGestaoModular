@@ -61,7 +61,7 @@ export const CORE_MODULES: BusinessModule[] = [
     {
         code: 'FINANCIAL',
         name: 'Finanças',
-        description: 'Gestão financeira e transaces.',
+        description: 'Gestão financeira e transações.',
         icon: 'HiOutlineCurrencyDollar',
         color: '#14B8A6',
         isCore: true

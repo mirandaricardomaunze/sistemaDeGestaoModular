@@ -16,17 +16,17 @@ interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
     return (
-        <div className={cn('flex flex-col items-center justify-center py-12 px-4 text-center', className)}>
+        <div className={cn('flex flex-col items-center justify-center py-10 px-4 text-center', className)}>
             {icon && (
-                <div className="mb-4 text-gray-400 dark:text-gray-500">
+                <div className="mb-4 text-slate-500 dark:text-gray-500">
                     {icon}
                 </div>
             )}
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="text-lg font-bold text-slate-950 dark:text-white mb-2">
                 {title}
             </h3>
             {description && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-6">
+                <p className="text-sm text-slate-600 dark:text-gray-400 max-w-md mb-5">
                     {description}
                 </p>
             )}
@@ -34,8 +34,8 @@ export function EmptyState({ icon, title, description, action, className }: Empt
                 React.isValidElement(action) ? (
                     action
                 ) : (
-                    <Button onClick={(action as any).onClick} leftIcon={(action as any).icon}>
-                        {(action as any).label}
+                    <Button onClick={(action as { label: string; onClick: () => void; icon?: ReactNode }).onClick} leftIcon={(action as { label: string; onClick: () => void; icon?: ReactNode }).icon}>
+                        {(action as { label: string; onClick: () => void; icon?: ReactNode }).label}
                     </Button>
                 )
             )}
@@ -59,7 +59,7 @@ export function NoDataFound({ onAction, actionLabel = 'Tentar Novamente', classN
                 </svg>
             }
             title="Nenhum dado encontrado"
-            description="Não h informações para exibir no momento."
+            description="Não há informações para exibir no momento."
             action={onAction ? { label: actionLabel, onClick: onAction } : undefined}
             className={className}
         />
@@ -107,7 +107,7 @@ export function ComingSoon({ className }: { className?: string }) {
                 </svg>
             }
             title="Em breve"
-            description="Esta funcionalidade estar disponível em breve. Fique atento!"
+            description="Esta funcionalidade estará disponível em breve. Fique atento!"
             className={className}
         />
     );

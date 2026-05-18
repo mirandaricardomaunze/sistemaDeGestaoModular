@@ -55,6 +55,11 @@ This skill ensures the Multicore system not only works flawlessly on the backend
     - `sm`: 36px height (`px-3 py-1.5`)
     - `md`: 44px height (`px-4 py-2`)
     - `lg`: 56px height (`px-6 py-3`)
+- **Filter Toolbar Control Matching**:
+  - Adjacent `Input`, `Select`, date/month inputs, and `Button` controls in the same filter row MUST use the same explicit height.
+  - For dense table filters and `SmartTable` toolbars, prefer `size="sm"` on `Input`/`Select` and `h-10` on native inputs/custom buttons.
+  - If a native `<input>` is beside a system `Select` or `Button`, set `h-10` explicitly instead of relying on `py-*`, otherwise the controls drift by a few pixels.
+  - When some controls have labels, use `items-end` on the row container so the actual input boxes align on the same baseline.
 - **Consistent Rounding**:
   - Use `rounded-lg` (8px) for buttons, cards, and inputs by default.
   - Use `rounded-xl` (12px) for larger modal containers or featured cards.
@@ -92,6 +97,10 @@ The Multicore system uses a centralized component-based design system. **Direct 
   - Never leave the user guessing. Always provide visual feedback during asynchronous actions.
   - **Dashboards**: Mandatory use of **Skeleton Loaders** for the initial `isLoading` state. This prevents content shifting and provides a high-end "feel" compared to generic spinners.
   - **Actions**: Use Spinner icons inside buttons ONLY during active submission (`isPending`).
+- **Professional Copywriting & Feedback**:
+  - In operational environments (like POS or inventory), avoid casual conversational feedback (e.g., "A adicionar...").
+  - Use direct, formal, and technical jargon to convey high performance and reliability (e.g., "A PROCESSAR", "A REGISTAR", "AGUARDE").
+  - Button loading states should ideally match the uppercase tracking aesthetic of the button (e.g., `A PROCESSAR` instead of `A processar...`).
 - **Toast Notifications**:
   - Use elegant, non-intrusive toast notifications for success/error messages rather than blocking `alert()` dialogues.
 
@@ -153,8 +162,14 @@ The Multicore system uses a centralized component-based design system. **Direct 
 - **Totals & Validation**:
   - Include a highlighted "Totals Box" at the bottom right with clear labels (Total Unidades, Total Valor).
   - Formal reports MUST have a **Signature Area** at the footer for "Responsável" and "Aprovação".
-- **Modal Preview (Dark Mode Handling)**:
-  - When displaying a print preview inside a modal, use **inline styles** for background and text colors to bypass global dark mode overrides. The preview must always look like "white paper".
+- **Commercial Transaction Documents**:
+  - Client/supplier-facing documents (`Cotacao`, `Fatura`, `Ordem de Compra`, `Encomenda`, `Guia de Transferencia`) must share the same professional structure: company logo/name, NUIT, address, phone/email, document number, date, status, party data, item table, totals, terms/notes, signatures, and generated timestamp.
+  - Transfer guides must include source warehouse, destination warehouse, transfer status, total units, responsible person, reason, item references/barcodes, quantities, and receiver/signature areas.
+  - Purchase orders must not duplicate logo/header in the browser print window. Print only the preview content once, and use any available supplier fields (`name`, `code`, `nuit`, `phone`, `email`) before falling back to a plain supplier name.
+- **Modal Preview (Dark Mode Handling & Bugs)**:
+  - When displaying a print preview inside a modal, use **inline styles** for background and text colors to bypass global dark mode overrides. The preview must always look like "white paper" (`backgroundColor: '#ffffff'`).
+  - **Flexbox Scroll Bug (CRITICAL)**: NEVER use `flex justify-center` on the scrolling container (e.g., `<Card overflow-y-auto>`) holding the A4 preview. Flexbox cuts off the background rendering of overflowing children, leaving the bottom of the document transparent. Instead, use block layout on the container and center the child using `margin: '0 auto'`.
+  - **Table Isolation**: Global dark-mode CSS rules (like `@apply dark:bg-dark-800`) in `index.css` aggressively target all `th` and `td` elements. You MUST add `className="print-table"` to the `<table>` element to completely shield the preview table from these global overrides.
 
 ## 11. PDF Generation Pattern (Transactional Documents)
 
@@ -195,7 +210,11 @@ Workflow transition buttons in a row's action cell (e.g., "Marcar Enviada", "Can
   - `HiOutlineXCircle` → Cancelar
 - `size="xs"` keeps them compact in a row. Add `text-[10px] font-black uppercase tracking-widest` for the project's micro-CTA look.
 
-## 13. UI/UX Enforcement Checklist
+## 13. Product Identification & Categorization (Data Display)
+- **SKU/Reference over Internal Code**: When displaying products in Point of Sale (POS) grids or lists, ALWAYS prioritize the real-world `product.sku` (Referência) or `product.barcode` (Código de Barras). NEVER display the internal database `product.code` (e.g., PROD-12345) to end-users as it has no operational meaning. If both are missing, display 'S/ REF' (Sem Referência).
+- **Dynamic Category Resolution**: Products often carry a legacy `category` string field (often hardcoded to `'other'`). You MUST resolve the actual category name dynamically by looking up `product.categoryId` against the system categories (fetched via the `useCategories` hook). Do not rely on the raw string field for UI display.
+
+## 14. UI/UX Enforcement Checklist
 1. [ ] Does this component look premium and professional (colors, spacing, typography)?
 2. [ ] Does it use the `Button` component instead of raw `<button>` tags?
 3. [ ] Does it use `SegmentedControl` for tab/filter switching?

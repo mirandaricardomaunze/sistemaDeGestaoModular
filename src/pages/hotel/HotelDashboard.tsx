@@ -29,6 +29,7 @@ import {
     HiOutlineBuildingOffice2
 } from 'react-icons/hi2';
 import { Card, Button, Badge, Skeleton } from '../../components/ui';
+import type { BadgeVariant } from '../../components/ui/Badge';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 import { useHotelDashboardSummary, useRecentBookings } from '../../hooks/useHospitality';
 import { MetricCard, CHART_COLORS } from '../../components/common/ModuleMetricCard';
@@ -68,15 +69,15 @@ export default function HotelDashboard() {
 
     // Status Badge Component
     const StatusBadge = ({ status }: { status: string }) => {
-        const statusMap: Record<string, { label: string; variant: any }> = {
+        const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {
             'confirmed': { label: 'Confirmada', variant: 'info' },
             'checked_in': { label: 'Check-in', variant: 'success' },
-            'checked_out': { label: 'Check-out', variant: 'default' },
+            'checked_out': { label: 'Check-out', variant: 'gray' },
             'canceled': { label: 'Cancelada', variant: 'danger' },
             'pending': { label: 'Pendente', variant: 'warning' },
         };
 
-        const { label, variant } = statusMap[status] || { label: status, variant: 'default' };
+        const { label, variant } = statusMap[status] || { label: status, variant: 'gray' as BadgeVariant };
         return <Badge variant={variant}>{label}</Badge>;
     };
 
@@ -247,7 +248,7 @@ export default function HotelDashboard() {
                                     paddingAngle={4}
                                     dataKey="value"
                                 >
-                                    {roomTypeData.map((_: any, index: any) => (
+                                    {roomTypeData.map((_, index) => (
                                         <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                                     ))}
                                 </Pie>
@@ -256,19 +257,19 @@ export default function HotelDashboard() {
                         </ResponsiveContainer>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mt-4">
-                        {roomTypeData.map((item: any, index: any) => (
-                            <div key={item.name} className="flex items-center justify-between gap-2">
+                        {roomTypeData.map((item, index) => (
+                            <div key={item.type} className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <div
                                         className="w-3 h-3 rounded-full flex-shrink-0"
                                         style={{ backgroundColor: CHART_COLORS[index] }}
                                     />
                                     <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                                        {item.name}
+                                        {item.type}
                                     </span>
                                 </div>
                                 <span className="text-xs font-medium text-gray-900 dark:text-white flex-shrink-0">
-                                    {item.value}
+                                    {item.count}
                                 </span>
                             </div>
                         ))}
@@ -413,26 +414,24 @@ export default function HotelDashboard() {
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
                             {recentBookings.length > 0 ? (
-                                recentBookings.map((booking) => {
-                                    const b = booking as any;
-                                    return (
+                                recentBookings.map((booking) => (
                                     <tr key={booking.id} className="hover:bg-gray-50 dark:hover:bg-dark-700/30 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-700 dark:text-primary-300 font-medium text-xs">
-                                                    {b.customerName?.charAt(0) || '?'}
+                                                    {(booking.customerName || booking.guestName)?.charAt(0) || '?'}
                                                 </div>
                                                 <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {b.customerName}
+                                                    {booking.customerName || booking.guestName}
                                                 </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-sm text-gray-900 dark:text-white">
-                                                Quarto {b.roomNumber}
+                                                Quarto {booking.roomNumber}
                                             </div>
                                             <div className="text-xs text-gray-500">
-                                                {b.roomType}
+                                                {booking.roomType}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
@@ -442,14 +441,13 @@ export default function HotelDashboard() {
                                             {booking.checkOut ? formatDate(booking.checkOut) : '-'}
                                         </td>
                                         <td className="px-6 py-4 text-sm font-semibold text-gray-900 dark:text-white">
-                                            {formatCurrency(b.totalPrice)}
+                                            {formatCurrency(booking.totalPrice ?? booking.totalAmount)}
                                         </td>
                                         <td className="px-6 py-4">
                                             <StatusBadge status={booking.status} />
                                         </td>
                                     </tr>
-                                    );
-                                })
+                                ))
                             ) : (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">

@@ -8,7 +8,7 @@ export default function HotelEmployees() {
                 department: 'Hospitalidade',
                 moduleName: 'Hospitalidade',
                 accentColor: 'blue',
-                icon: <HiOutlineHomeModern />,
+                icon: HiOutlineHomeModern,
                 showCommissions: false,
                 documentTypes: [
                     { id: 'bi', label: 'Bilhete de Identidade', required: true },

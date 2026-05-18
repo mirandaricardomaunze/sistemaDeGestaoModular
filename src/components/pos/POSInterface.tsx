@@ -1,21 +1,21 @@
 import { logger } from '../../utils/logger';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
-    HiOutlineSearch,
+    HiOutlineMagnifyingGlass,
     HiOutlinePlus,
     HiOutlineMinus,
     HiOutlineTrash,
-    HiOutlineCash,
+    HiOutlineBanknotes,
     HiOutlineCreditCard,
-    HiOutlineQrcode,
+    HiOutlineQrCode,
     HiOutlinePrinter,
-    HiOutlineX,
+    HiOutlineXMark,
     HiOutlineScale,
     HiOutlineLockOpen,
     HiOutlineLockClosed,
     HiOutlineUserCircle,
     HiOutlineTag,
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 import MobilePaymentModal from './MobilePaymentModal';
 import ThermalReceiptPreview from './ThermalReceiptPreview';
 import A4InvoicePreview from './A4InvoicePreview';
@@ -41,9 +41,9 @@ interface POSInterfaceProps {
 }
 
 export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
-    // API hooks for data — limit:999 to fetch all products for POS grid
+    // API hooks for data — limit:2000 alinhado com cap do backend (performance-and-caching §4)
     const { products, isLoading: isLoadingProducts, refetch: refetchProducts } = useProducts(
-        originModule ? { originModule, limit: 999 } : { limit: 999 }
+        originModule ? { originModule, limit: 2000 } : { limit: 2000 }
     );
     const { customers, isLoading: isLoadingCustomers } = useCustomers();
     const { createSale } = useSales();
@@ -110,7 +110,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             key: 'F2',
             action: () => {
                 searchInputRef.current?.focus();
-                toast('🔍 Foco na busca', { duration: 1000 });
+                toast('ðŸ” Foco na busca', { duration: 1000 });
             },
             description: 'Focar campo de busca',
         },
@@ -130,10 +130,10 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             action: () => {
                 if (cashDrawerOpen) {
                     setCashDrawerOpen(false);
-                    toast.success('Gaveta fechada!', { icon: '🔒' });
+                    toast.success('Gaveta fechada!', { icon: 'ðŸ”’' });
                 } else {
                     setCashDrawerOpen(true);
-                    toast.success('Gaveta aberta!', { icon: '💰' });
+                    toast.success('Gaveta aberta!', { icon: 'ðŸ’°' });
                 }
             },
             description: 'Abrir/Fechar gaveta',
@@ -148,7 +148,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     } else {
                         setThermalPreviewOpen(true);
                     }
-                    toast('🖨️ Último recibo', { duration: 1000 });
+                    toast('ðŸ–¨ï¸ Último recibo', { duration: 1000 });
                 } else {
                     toast.error('Nenhuma venda recente');
                 }
@@ -168,7 +168,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     setCashDrawerModalOpen(false);
                 } else if (cart.length > 0) {
                     clearCart();
-                    toast('🗑️ Carrinho limpo', { duration: 1500 });
+                    toast('ðŸ—‘ï¸ Carrinho limpo', { duration: 1500 });
                 }
             },
             description: 'Cancelar/Limpar',
@@ -188,7 +188,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                     addToCart(product, 1);
                     playScanSound();
                     toast.success(`${product.name} adicionado`, {
-                        icon: '📷',
+                        icon: 'ðŸ“·',
                         duration: 2000,
                     });
                 } else if (product) {
@@ -288,9 +288,9 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
 
     // Payment methods
     const paymentMethods: { id: PaymentMethod; label: string; icon: React.ReactNode }[] = [
-        { id: 'cash', label: 'Dinheiro', icon: <HiOutlineCash className="w-6 h-6" /> },
+        { id: 'cash', label: 'Dinheiro', icon: <HiOutlineBanknotes className="w-6 h-6" /> },
         { id: 'card', label: 'Cartão', icon: <HiOutlineCreditCard className="w-6 h-6" /> },
-        { id: 'pix', label: 'PIX', icon: <HiOutlineQrcode className="w-6 h-6" /> },
+        { id: 'pix', label: 'PIX', icon: <HiOutlineQrCode className="w-6 h-6" /> },
         { id: 'mpesa', label: 'M-Pesa', icon: <span className="font-bold text-red-600">M</span> },
         { id: 'emola', label: 'e-Mola', icon: <span className="font-bold text-orange-600">E</span> },
     ];
@@ -304,7 +304,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
         } else {
             addToCart(product, 1);
             toast.success(`${product.name} adicionado`, {
-                icon: '🛒',
+                icon: 'ðŸ›’',
                 duration: 1500,
             });
         }
@@ -318,7 +318,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
         setTimeout(() => {
             setScaleWeight(simulatedWeight);
             setIsSimulatingScale(false);
-            toast.success('Peso capturado da balança!', { icon: '⚖️' });
+            toast.success('Peso capturado da balança!', { icon: 'âš–ï¸' });
         }, 1500);
     };
 
@@ -330,7 +330,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             return;
         }
         addToCart(scaleProduct, weight);
-        toast.success(`${scaleProduct.name} adicionado (${weight}kg)`, { icon: '⚖️' });
+        toast.success(`${scaleProduct.name} adicionado (${weight}kg)`, { icon: 'âš–ï¸' });
         setScaleModalOpen(false);
         setScaleProduct(null);
         setScaleWeight('');
@@ -339,14 +339,14 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
     // Cash drawer handlers
     const handleOpenCashDrawer = () => {
         setCashDrawerOpen(true);
-        toast.success('Gaveta aberta!', { icon: '💰' });
+        toast.success('Gaveta aberta!', { icon: 'ðŸ’°' });
         // In real implementation, this would send command to hardware
         // For example: window.electronAPI?.openCashDrawer()
     };
 
     const handleCloseCashDrawer = () => {
         setCashDrawerOpen(false);
-        toast.success('Gaveta fechada!', { icon: '🔒' });
+        toast.success('Gaveta fechada!', { icon: 'ðŸ”’' });
     };
 
     const handleCashOperation = () => {
@@ -381,7 +381,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             if (productByBarcode) {
                 addToCart(productByBarcode, 1);
                 toast.success(`${productByBarcode.name} adicionado via código de barras`, {
-                    icon: '📷',
+                    icon: 'ðŸ“·',
                     duration: 2000,
                 });
                 setSearchQuery('');
@@ -396,7 +396,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             if (productByCode) {
                 addToCart(productByCode, 1);
                 toast.success(`${productByCode.name} adicionado`, {
-                    icon: '🛒',
+                    icon: 'ðŸ›’',
                     duration: 1500,
                 });
                 setSearchQuery('');
@@ -407,7 +407,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             if (filteredProducts.length === 1) {
                 addToCart(filteredProducts[0], 1);
                 toast.success(`${filteredProducts[0].name} adicionado`, {
-                    icon: '🛒',
+                    icon: 'ðŸ›’',
                     duration: 1500,
                 });
                 setSearchQuery('');
@@ -466,7 +466,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
 
         setIsProcessing(true);
         try {
-            // 🔒 MELHORIA 1: Validação de estoque em tempo real antes de processar venda
+            // ðŸ”’ MELHORIA 1: Validação de estoque em tempo real antes de processar venda
             // Refetch products to get latest stock levels
             await refetchProducts();
 
@@ -573,17 +573,16 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             refetchProducts();
             refetchAlerts();
 
-            // 🎉 Success feedback
+            // ðŸŽ‰ Success feedback
             toast.success('Venda realizada com sucesso!', {
-                icon: '✅',
+                icon: 'âœ…',
                 duration: 3000
             });
 
-        } catch (error: any) {
+        } catch (error) {
             logger.error('Sale confirmation error:', error);
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const err = error as any;
+            const err = error as { message?: string; code?: string; response?: { data?: { error?: string; details?: Array<{ field: string; message: string }> } } };
             const errorResponse = err.response?.data;
             const errorMessage = errorResponse?.error || err.message;
 
@@ -629,7 +628,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             // Network/timeout errors
             if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK' || errorMessage?.includes('timeout')) {
                 toast.error(
-                    `🌐 Erro de conexão\n\nVerifique sua internet e tente novamente.`,
+                    `ðŸŒ Erro de conexão\n\nVerifique sua internet e tente novamente.`,
                     { duration: 5000 }
                 );
                 return;
@@ -638,8 +637,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
             // Validation errors with details
             if (errorResponse?.details && Array.isArray(errorResponse.details)) {
                 const validationErrors = errorResponse.details
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    .map((detail: any) => `• ${detail.field}: ${detail.message}`)
+                    .map((detail) => `• ${detail.field}: ${detail.message}`)
                     .join('\n');
 
                 toast.error(
@@ -676,7 +674,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
     };
 
 
-    // 🔒 MELHORIA 3: Loading state com skeleton loader profissional
+    // ðŸ”’ MELHORIA 3: Loading state com skeleton loader profissional
     if (isLoadingProducts || isLoadingCustomers) {
         return (
             <div className="h-full flex gap-4">
@@ -754,7 +752,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     onKeyDown={handleBarcodeSearch}
-                                    leftIcon={<HiOutlineSearch className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
+                                    leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-primary-600 dark:text-primary-400" />}
                                     autoFocus
                                 />
                             </div>
@@ -771,7 +769,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         </div>
                         <div className="flex items-center justify-between mt-2">
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                💡 <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-700 rounded text-xs font-mono">Enter</kbd> adicionar produto
+                                ðŸ’¡ <kbd className="px-1.5 py-0.5 bg-gray-100 dark:bg-dark-700 rounded text-xs font-mono">Enter</kbd> adicionar produto
                             </p>
                             <div className="flex gap-2 text-xs text-gray-500 dark:text-gray-400">
                                 <span><kbd className="px-1 py-0.5 bg-gray-100 dark:bg-dark-700 rounded font-mono">F2</kbd> Busca</span>
@@ -787,7 +785,9 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Hardware:</span>
                             {/* Scale Button */}
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={() => {
                                     if (filteredProducts.length > 0) {
                                         setScaleProduct(filteredProducts[0]);
@@ -797,20 +797,22 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                         toast.error('Selecione um produto primeiro');
                                     }
                                 }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 transition-colors text-sm"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/50 text-sm active:scale-95"
                                 title="Abrir Balança"
                             >
                                 <HiOutlineScale className="w-4 h-4" />
                                 <span className="font-medium">Balança</span>
-                            </button>
+                            </Button>
 
                             {/* Cash Drawer Open/Close */}
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={cashDrawerOpen ? handleCloseCashDrawer : handleOpenCashDrawer}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors text-sm ${cashDrawerOpen
+                                className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm active:scale-95', cashDrawerOpen
                                     ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200'
                                     : 'bg-gray-100 dark:bg-dark-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-                                    }`}
+                                )}
                                 title={cashDrawerOpen ? 'Fechar Gaveta' : 'Abrir Gaveta'}
                             >
                                 {cashDrawerOpen ? (
@@ -824,18 +826,20 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                         <span className="font-medium">Gaveta</span>
                                     </>
                                 )}
-                            </button>
+                            </Button>
                         </div>
 
                         {/* Cash Balance */}
-                        <button
+                        <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => setCashDrawerModalOpen(true)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors text-sm"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50 text-sm active:scale-95"
                             title="Gestão da Gaveta"
                         >
-                            <HiOutlineCash className="w-4 h-4" />
+                            <HiOutlineBanknotes className="w-4 h-4" />
                             <span className="font-medium">Caixa: {formatCurrency(cashDrawerBalance)}</span>
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Products Grid */}
@@ -843,13 +847,14 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         <div className="h-full overflow-y-auto scrollbar-thin">
                             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {filteredProducts.map((product) => (
-                                    <button
+                                    <Button
                                         key={product.id}
+                                        variant="ghost"
                                         onClick={() => handleAddProduct(product)}
-                                        className="p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 bg-white dark:bg-dark-800 text-left transition-all hover:shadow-xl group overflow-hidden flex flex-col min-h-[180px]"
+                                        className="p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 bg-white dark:bg-dark-800 text-left hover:shadow-xl group overflow-hidden flex flex-col min-h-[180px] active:scale-95"
                                     >
                                         <div className="w-full h-24 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-3 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20 transition-colors flex-shrink-0">
-                                            <span className="text-3xl">{product.category === 'food' ? '🍔' : '📦'}</span>
+                                            <span className="text-3xl">{product.category === 'food' ? 'ðŸ”' : 'ðŸ“¦'}</span>
                                         </div>
                                         <div className="flex-1">
                                             <p className="text-[10px] text-primary-600 dark:text-primary-400 font-bold uppercase tracking-widest mb-1 truncate">
@@ -867,7 +872,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                                 {product.currentStock} {product.unit || 'UN'}
                                             </Badge>
                                         </div>
-                                    </button>
+                                    </Button>
                                 ))}
 
                                 {filteredProducts.length === 0 && (
@@ -924,7 +929,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                             }}
                                             className="p-1 text-primary-400 hover:text-red-500"
                                         >
-                                            <HiOutlineX className="w-4 h-4" />
+                                            <HiOutlineXMark className="w-4 h-4" />
                                         </button>
                                     </div>
                                 ) : (
@@ -1048,14 +1053,14 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                                     setPromoCodeApplied(true);
                                                     toast.success(result.message);
                                                 } else {
-                                                    toast.error('Este código j foi aplicado');
+                                                    toast.error('Este código já foi aplicado');
                                                 }
                                             } else {
                                                 toast.error(result.message);
                                             }
                                         }}
                                     >
-                                        {promoCodeApplied ? '✅' : 'Aplicar'}
+                                        {promoCodeApplied ? 'âœ…' : 'Aplicar'}
                                     </Button>
                                 </div>
                                 {promoCodeApplied && (
@@ -1101,7 +1106,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                             {cart.length === 0 ? (
                                 <div className="h-full min-h-[120px] flex items-center justify-center text-gray-400 dark:text-gray-500">
                                     <div className="text-center">
-                                        <HiOutlineSearch className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                        <HiOutlineMagnifyingGlass className="w-12 h-12 mx-auto mb-2 opacity-50" />
                                         <p>Carrinho vazio</p>
                                         <p className="text-sm">Busque e adicione produtos</p>
                                     </div>
@@ -1113,7 +1118,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                         className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg"
                                     >
                                         <div className="w-12 h-12 rounded-lg bg-white dark:bg-dark-600 flex items-center justify-center flex-shrink-0">
-                                            <span className="text-xl">{'📦'}</span>
+                                            <span className="text-xl">{'ðŸ“¦'}</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -1184,7 +1189,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                         ? "bg-primary-500/10 text-primary-400 border border-primary-500/20 cursor-not-allowed shadow-none" 
                                         : "bg-primary-600 text-white shadow-primary-500/30 hover:bg-primary-700 active:scale-95"
                                 )}
-                                leftIcon={<HiOutlineCash className={cn("w-5 h-5", cart.length === 0 ? "text-primary-400" : "text-white")} />}
+                                leftIcon={<HiOutlineBanknotes className={cn("w-5 h-5", cart.length === 0 ? "text-primary-400" : "text-white")} />}
                             >
                                 {cart.length === 0 ? 'LISTA VAZIA' : `Finalizar Venda (${formatCurrency(cartTotal)})`}
                             </Button>
@@ -1344,7 +1349,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                 setReceiptModalOpen(false);
                                 setLastSale(null);
                             }}>
-                                <HiOutlineX className="w-4 h-4 mr-2" />
+                                <HiOutlineXMark className="w-4 h-4 mr-2" />
                                 Fechar
                             </Button>
                             <Button className="flex-1" onClick={() => {

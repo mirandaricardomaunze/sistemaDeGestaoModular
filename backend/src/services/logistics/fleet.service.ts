@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { ApiError } from '../../middleware/error.middleware';
 import { ResultHandler } from '../../utils/result';
@@ -11,32 +12,128 @@ const VEHICLE_FIELDS = [
 ] as const;
 
 const DRIVER_FIELDS = [
-    'id', 'code', 'name', 'phone', 'license', 'status',
-    'cnhCategory', 'cnhExpiry', 'createdAt'
+    'id', 'code', 'name', 'phone', 'email', 'category',
+    'licenseNumber', 'licenseType', 'licenseExpiry', 'status',
+    'medicalExamExpiry', 'safetyTrainingDate', 'createdAt'
 ] as const;
 
 const DEFAULT_LIMIT = 20;
 
+type ListQuery = {
+    page?: string | number;
+    limit?: string | number;
+    fields?: string;
+    search?: string;
+    status?: string;
+    category?: string;
+    type?: string;
+    vehicleId?: string;
+    driverId?: string;
+    startDate?: string;
+    endDate?: string;
+};
+
+type VehicleInput = {
+    plate: string;
+    brand: string;
+    model: string;
+    year?: number;
+    type?: string;
+    capacity?: number | string;
+    capacityUnit?: string;
+    fuelType?: string;
+    status?: string;
+    mileage?: number;
+    insuranceExpiry?: string | Date;
+    notes?: string;
+};
+
+type DriverInput = {
+    code?: string;
+    name: string;
+    phone: string;
+    email?: string;
+    category?: string;
+    licenseNumber: string;
+    licenseType?: string;
+    licenseExpiry?: string | Date;
+    medicalExamExpiry?: string | Date;
+    safetyTrainingDate?: string | Date;
+    status?: string;
+    hireDate?: string | Date;
+    address?: string;
+    emergencyContact?: string;
+    baseSalary?: number | string;
+    subsidyTransport?: number | string;
+    subsidyFood?: number | string;
+    commissionRate?: number | string | null;
+    bankName?: string | null;
+    bankAccountNumber?: string | null;
+    bankNib?: string | null;
+    socialSecurityNumber?: string | null;
+    nuit?: string | null;
+    birthDate?: string | Date | null;
+    notes?: string;
+};
+
+type MaintenanceInput = {
+    vehicleId: string;
+    type?: string;
+    description: string;
+    cost: number | string;
+    date: string | Date;
+    nextDate?: string | Date;
+    mileageAt?: number;
+    status?: string;
+    provider?: string;
+    notes?: string;
+};
+
+type FuelSupplyInput = {
+    vehicleId: string;
+    date?: string | Date;
+    liters: number | string;
+    pricePerLiter?: number | string | null;
+    amount: number | string;
+    mileage?: number;
+    provider?: string | null;
+    notes?: string | null;
+};
+
+type IncidentInput = {
+    vehicleId: string;
+    driverId?: string | null;
+    date?: string | Date;
+    type?: string;
+    severity?: string;
+    description: string;
+    cost?: number | string | null;
+    location?: string | null;
+    status?: string;
+    notes?: string | null;
+};
+
 export class FleetService {
     // ── Vehicles ──────────────────────────────────────────────────────────────
 
-    async getVehicles(companyId: string, query: any) {
+    async getVehicles(companyId: string, query: ListQuery) {
         const { limit, skip, page } = getPaginationParams({ limit: DEFAULT_LIMIT, ...query });
         const { status, type, search } = query;
-        const where: any = { companyId };
-        if (status) where.status = status;
-        if (type) where.type = type;
+        const where: Prisma.VehicleWhereInput = { companyId };
+        if (status) where.status = status as Prisma.VehicleWhereInput['status'];
+        if (type) where.type = type as Prisma.VehicleWhereInput['type'];
         if (search) {
             where.OR = [
-                { plate: { contains: search as string, mode: 'insensitive' } },
-                { brand: { contains: search as string, mode: 'insensitive' } },
-                { model: { contains: search as string, mode: 'insensitive' } }
+                { plate: { contains: search, mode: 'insensitive' } },
+                { brand: { contains: search, mode: 'insensitive' } },
+                { model: { contains: search, mode: 'insensitive' } }
             ];
         }
         const projection = parseFields(query.fields, VEHICLE_FIELDS);
-        const findArgs: any = { where, skip, take: limit, orderBy: { createdAt: 'desc' } };
-        if (projection) findArgs.select = projection;
-        else findArgs.include = { _count: { select: { deliveries: true } } };
+        const baseArgs = { where, skip, take: limit, orderBy: { createdAt: 'desc' as const } };
+        const findArgs: Prisma.VehicleFindManyArgs = projection
+            ? { ...baseArgs, select: projection as Prisma.VehicleSelect }
+            : { ...baseArgs, include: { _count: { select: { deliveries: true } } } };
         const [vehicles, total] = await Promise.all([
             prisma.vehicle.findMany(findArgs),
             prisma.vehicle.count({ where })
@@ -44,20 +141,22 @@ export class FleetService {
         return ResultHandler.success(createPaginatedResponse(vehicles, page, limit, total));
     }
 
-    async createVehicle(companyId: string, data: any) {
+    async createVehicle(companyId: string, data: VehicleInput) {
         const existing = await prisma.vehicle.findFirst({ where: { companyId, plate: data.plate } });
         if (existing) throw ApiError.badRequest('Já existe um veículo com esta matrícula');
-        const vehicle = await prisma.vehicle.create({ data: { ...data, companyId } });
+        const vehicle = await prisma.vehicle.create({ data: { ...data, companyId } as Prisma.VehicleUncheckedCreateInput });
         return ResultHandler.success(vehicle);
     }
 
-    async updateVehicle(companyId: string, id: string, data: any) {
+    async updateVehicle(companyId: string, id: string, data: Partial<VehicleInput>) {
         const vehicle = await prisma.vehicle.findFirst({ where: { id, companyId } });
         if (!vehicle) throw ApiError.notFound('Veículo não encontrado');
         try {
-            return ResultHandler.success(await prisma.vehicle.update({ where: { id }, data }));
-        } catch (e: any) {
-            if (e.code === 'P2002') throw ApiError.badRequest('Já existe um veículo com esta matrícula');
+            return ResultHandler.success(await prisma.vehicle.update({ where: { id }, data: data as Prisma.VehicleUncheckedUpdateInput }));
+        } catch (e) {
+            if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+                throw ApiError.badRequest('Já existe um veículo com esta matrícula');
+            }
             throw e;
         }
     }
@@ -73,21 +172,23 @@ export class FleetService {
 
     // ── Drivers ───────────────────────────────────────────────────────────────
 
-    async getDrivers(companyId: string, query: any) {
+    async getDrivers(companyId: string, query: ListQuery) {
         const { limit, skip, page } = getPaginationParams({ limit: DEFAULT_LIMIT, ...query });
-        const { status, search } = query;
-        const where: any = { companyId };
-        if (status) where.status = status;
+        const { status, search, category } = query;
+        const where: Prisma.DriverWhereInput = { companyId };
+        if (status) where.status = status as Prisma.DriverWhereInput['status'];
+        if (category) where.category = category as Prisma.DriverWhereInput['category'];
         if (search) {
             where.OR = [
-                { name: { contains: search as string, mode: 'insensitive' } },
-                { code: { contains: search as string, mode: 'insensitive' } }
+                { name: { contains: search, mode: 'insensitive' } },
+                { code: { contains: search, mode: 'insensitive' } }
             ];
         }
         const projection = parseFields(query.fields, DRIVER_FIELDS);
-        const findArgs: any = { where, skip, take: limit, orderBy: { name: 'asc' } };
-        if (projection) findArgs.select = projection;
-        else findArgs.include = { _count: { select: { deliveries: true } } };
+        const baseArgs = { where, skip, take: limit, orderBy: { name: 'asc' as const } };
+        const findArgs: Prisma.DriverFindManyArgs = projection
+            ? { ...baseArgs, select: projection as Prisma.DriverSelect }
+            : { ...baseArgs, include: { _count: { select: { deliveries: true } } } };
         const [drivers, total] = await Promise.all([
             prisma.driver.findMany(findArgs),
             prisma.driver.count({ where })
@@ -107,15 +208,30 @@ export class FleetService {
         return ResultHandler.success(driver);
     }
 
-    async createDriver(companyId: string, data: any) {
-        const code = await generateDriverCode(companyId);
-        return ResultHandler.success(await prisma.driver.create({ data: { ...data, code, companyId } }));
+    async createDriver(companyId: string, data: DriverInput) {
+        const code = data.code || await generateDriverCode(companyId);
+        const driverData = this.normalizeDriverData({ ...data, code });
+        return ResultHandler.success(await prisma.driver.create({ data: { ...driverData, companyId } as Prisma.DriverUncheckedCreateInput }));
     }
 
-    async updateDriver(companyId: string, id: string, data: any) {
+    async updateDriver(companyId: string, id: string, data: Partial<DriverInput>) {
         const driver = await prisma.driver.findFirst({ where: { id, companyId } });
         if (!driver) throw ApiError.notFound('Motorista não encontrado');
-        return ResultHandler.success(await prisma.driver.update({ where: { id }, data }));
+        const driverData = this.normalizeDriverData(data);
+        return ResultHandler.success(await prisma.driver.update({ where: { id }, data: driverData as Prisma.DriverUncheckedUpdateInput }));
+    }
+
+    private normalizeDriverData(data: Partial<DriverInput>) {
+        const normalized: Record<string, unknown> = { ...data };
+        ['licenseExpiry', 'medicalExamExpiry', 'safetyTrainingDate', 'hireDate', 'birthDate'].forEach((field) => {
+            const value = normalized[field];
+            if (value === '') {
+                normalized[field] = null;
+            } else if (value) {
+                normalized[field] = new Date(value as string | Date);
+            }
+        });
+        return normalized;
     }
 
     async deleteDriver(companyId: string, id: string) {
@@ -129,12 +245,12 @@ export class FleetService {
 
     // ── Maintenance ───────────────────────────────────────────────────────────
 
-    async getMaintenances(companyId: string, query: any) {
+    async getMaintenances(companyId: string, query: ListQuery) {
         const { limit, skip, page } = getPaginationParams({ limit: DEFAULT_LIMIT, ...query });
         const { vehicleId, status } = query;
-        const where: any = { vehicle: { companyId } };
+        const where: Prisma.VehicleMaintenanceWhereInput = { vehicle: { companyId } };
         if (vehicleId) where.vehicleId = vehicleId;
-        if (status) where.status = status;
+        if (status) where.status = status as Prisma.VehicleMaintenanceWhereInput['status'];
         const [data, total] = await Promise.all([
             prisma.vehicleMaintenance.findMany({ where, skip, take: limit, orderBy: { date: 'desc' }, include: { vehicle: true } }),
             prisma.vehicleMaintenance.count({ where })
@@ -142,12 +258,15 @@ export class FleetService {
         return ResultHandler.success(createPaginatedResponse(data, page, limit, total));
     }
 
-    async createMaintenance(companyId: string, data: any) {
+    async createMaintenance(companyId: string, data: MaintenanceInput) {
         const vehicle = await prisma.vehicle.findFirst({ where: { id: data.vehicleId, companyId } });
         if (!vehicle) throw ApiError.notFound('Veículo não encontrado');
         return prisma.$transaction(async (tx) => {
-            const maintenance = await tx.vehicleMaintenance.create({ data: { ...data, date: new Date(data.date) }, include: { vehicle: true } });
-            const vehicleUpdate: any = { lastMaintenance: new Date(data.date) };
+            const maintenance = await tx.vehicleMaintenance.create({
+                data: { ...data, date: new Date(data.date) } as Prisma.VehicleMaintenanceUncheckedCreateInput,
+                include: { vehicle: true }
+            });
+            const vehicleUpdate: Prisma.VehicleUpdateInput = { lastMaintenance: new Date(data.date) };
             if (data.nextDate) vehicleUpdate.nextMaintenance = new Date(data.nextDate);
             if (data.mileageAt) vehicleUpdate.mileage = data.mileageAt;
             if (data.status === 'in_progress') vehicleUpdate.status = 'maintenance';
@@ -156,11 +275,15 @@ export class FleetService {
         });
     }
 
-    async updateMaintenance(companyId: string, id: string, data: any) {
+    async updateMaintenance(companyId: string, id: string, data: Partial<MaintenanceInput>) {
         const maintenance = await prisma.vehicleMaintenance.findFirst({ where: { id, vehicle: { companyId } } });
         if (!maintenance) throw ApiError.notFound('Manutenção não encontrada');
         return prisma.$transaction(async (tx) => {
-            const updated = await tx.vehicleMaintenance.update({ where: { id }, data, include: { vehicle: true } });
+            const updated = await tx.vehicleMaintenance.update({
+                where: { id },
+                data: data as Prisma.VehicleMaintenanceUncheckedUpdateInput,
+                include: { vehicle: true }
+            });
             if (data.status === 'completed') {
                 await tx.vehicle.update({ where: { id: maintenance.vehicleId }, data: { status: 'available' } });
             }
@@ -176,10 +299,10 @@ export class FleetService {
 
     // ── Fuel ──────────────────────────────────────────────────────────────────
 
-    async getFuelSupplies(companyId: string, params: any) {
+    async getFuelSupplies(companyId: string, params: ListQuery) {
         const { limit, skip, page } = getPaginationParams({ limit: DEFAULT_LIMIT, ...params });
         const { vehicleId, startDate, endDate } = params;
-        const where: any = { companyId };
+        const where: Prisma.FuelSupplyWhereInput = { companyId };
         if (vehicleId) where.vehicleId = vehicleId;
         if (startDate || endDate) {
             where.date = {};
@@ -187,16 +310,16 @@ export class FleetService {
             if (endDate) where.date.lte = new Date(new Date(endDate).setHours(23, 59, 59, 999));
         }
         const [data, total] = await Promise.all([
-            (prisma as any).fuelSupply.findMany({ where, include: { vehicle: { select: { id: true, plate: true, brand: true, model: true } } }, orderBy: { date: 'desc' }, skip, take: limit }),
-            (prisma as any).fuelSupply.count({ where }),
+            prisma.fuelSupply.findMany({ where, include: { vehicle: { select: { id: true, plate: true, brand: true, model: true } } }, orderBy: { date: 'desc' }, skip, take: limit }),
+            prisma.fuelSupply.count({ where }),
         ]);
         return ResultHandler.success(createPaginatedResponse(data, page, limit, total));
     }
 
-    async createFuelSupply(companyId: string, data: any) {
+    async createFuelSupply(companyId: string, data: FuelSupplyInput) {
         const vehicle = await prisma.vehicle.findFirst({ where: { id: data.vehicleId, companyId } });
         if (!vehicle) throw ApiError.notFound('Veículo não encontrado');
-        const supply = await (prisma as any).fuelSupply.create({
+        const supply = await prisma.fuelSupply.create({
             data: {
                 vehicleId: data.vehicleId, companyId,
                 date: data.date ? new Date(data.date) : new Date(),
@@ -214,22 +337,22 @@ export class FleetService {
     }
 
     async deleteFuelSupply(companyId: string, id: string) {
-        const supply = await (prisma as any).fuelSupply.findFirst({ where: { id, companyId } });
+        const supply = await prisma.fuelSupply.findFirst({ where: { id, companyId } });
         if (!supply) throw ApiError.notFound('Abastecimento não encontrado');
-        return (prisma as any).fuelSupply.delete({ where: { id } });
+        return prisma.fuelSupply.delete({ where: { id } });
     }
 
     // ── Incidents ─────────────────────────────────────────────────────────────
 
-    async getIncidents(companyId: string, params: any) {
+    async getIncidents(companyId: string, params: ListQuery) {
         const { limit, skip, page } = getPaginationParams({ limit: DEFAULT_LIMIT, ...params });
         const { vehicleId, driverId, type } = params;
-        const where: any = { companyId };
+        const where: Prisma.VehicleIncidentWhereInput = { companyId };
         if (vehicleId) where.vehicleId = vehicleId;
         if (driverId) where.driverId = driverId;
-        if (type) where.type = type;
+        if (type) where.type = type as Prisma.VehicleIncidentWhereInput['type'];
         const [data, total] = await Promise.all([
-            (prisma as any).vehicleIncident.findMany({
+            prisma.vehicleIncident.findMany({
                 where,
                 include: {
                     vehicle: { select: { id: true, plate: true, brand: true, model: true } },
@@ -237,25 +360,27 @@ export class FleetService {
                 },
                 orderBy: { date: 'desc' }, skip, take: limit,
             }),
-            (prisma as any).vehicleIncident.count({ where }),
+            prisma.vehicleIncident.count({ where }),
         ]);
         return ResultHandler.success(createPaginatedResponse(data, page, limit, total));
     }
 
-    async createIncident(companyId: string, data: any) {
+    async createIncident(companyId: string, data: IncidentInput) {
         const vehicle = await prisma.vehicle.findFirst({ where: { id: data.vehicleId, companyId } });
         if (!vehicle) throw ApiError.notFound('Veículo não encontrado');
         if (data.driverId) {
             const driver = await prisma.driver.findFirst({ where: { id: data.driverId, companyId } });
             if (!driver) throw ApiError.notFound('Motorista não encontrado');
         }
-        const incident = await (prisma as any).vehicleIncident.create({
+        const incident = await prisma.vehicleIncident.create({
             data: {
                 vehicleId: data.vehicleId, driverId: data.driverId ?? null, companyId,
                 date: data.date ? new Date(data.date) : new Date(),
-                type: data.type ?? 'other', severity: data.severity ?? 'low',
+                type: (data.type ?? 'other') as Prisma.VehicleIncidentUncheckedCreateInput['type'],
+                severity: (data.severity ?? 'low') as Prisma.VehicleIncidentUncheckedCreateInput['severity'],
                 description: data.description, cost: data.cost ?? null,
-                location: data.location ?? null, status: data.status ?? 'open',
+                location: data.location ?? null,
+                status: (data.status ?? 'open') as Prisma.VehicleIncidentUncheckedCreateInput['status'],
                 notes: data.notes ?? null,
             },
             include: {
@@ -270,11 +395,11 @@ export class FleetService {
         return incident;
     }
 
-    async updateIncident(companyId: string, id: string, data: any) {
-        const incident = await (prisma as any).vehicleIncident.findFirst({ where: { id, companyId } });
+    async updateIncident(companyId: string, id: string, data: Partial<IncidentInput>) {
+        const incident = await prisma.vehicleIncident.findFirst({ where: { id, companyId } });
         if (!incident) throw ApiError.notFound('Incidente não encontrado');
 
-        const updateData = Object.fromEntries(
+        const updateData: Prisma.VehicleIncidentUpdateInput = Object.fromEntries(
             Object.entries({
                 type: data.type, severity: data.severity, description: data.description,
                 cost: data.cost, location: data.location, status: data.status, notes: data.notes,
@@ -282,7 +407,7 @@ export class FleetService {
             }).filter(([, v]) => v !== undefined)
         );
 
-        const updated = await (prisma as any).vehicleIncident.update({
+        const updated = await prisma.vehicleIncident.update({
             where: { id }, data: updateData,
             include: {
                 vehicle: { select: { id: true, plate: true, brand: true, model: true } },
@@ -300,8 +425,8 @@ export class FleetService {
     }
 
     async deleteIncident(companyId: string, id: string) {
-        const incident = await (prisma as any).vehicleIncident.findFirst({ where: { id, companyId } });
+        const incident = await prisma.vehicleIncident.findFirst({ where: { id, companyId } });
         if (!incident) throw ApiError.notFound('Incidente não encontrado');
-        return (prisma as any).vehicleIncident.delete({ where: { id } });
+        return prisma.vehicleIncident.delete({ where: { id } });
     }
 }

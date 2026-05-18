@@ -37,6 +37,33 @@ import type { Invoice, InvoiceStatus } from '../types';
 import toast from 'react-hot-toast';
 import { PAGE_SIZE } from '../utils/constants';
 
+// ── Local shapes for invoice-source items and product picks ────────────────
+type SourceItem = {
+    productId?: string | null;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+};
+type InvoiceSource = {
+    id: string;
+    number: string;
+    type: 'pharmacy' | 'commercial' | string;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    customerAddress?: string;
+    status?: string;
+    items: SourceItem[];
+    subtotal?: number | string;
+    discount?: number | string;
+    taxRate?: number | string;
+    taxAmount?: number | string;
+    total: number | string;
+};
+type ProductPick = { id: string; name: string; price: number };
+type ApiValidationError = { path?: string; message?: string };
+
 // Time period options
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
@@ -49,6 +76,7 @@ const periodOptions: { value: TimePeriod; label: string }[] = [
 // Invoice Form Schema
 const invoiceItemSchema = z.object({
     id: z.string(),
+    productId: z.string().optional().nullable(),
     description: z.string().min(1, 'Descrição obrigatória'),
     quantity: z.coerce.number().min(1, 'Mínimo 1'),
     unitPrice: z.coerce.number().min(0.01, 'Preço inválido'),
@@ -222,9 +250,10 @@ export default function Invoices({ originModule }: InvoicesProps) {
     const sourceContainerRef = useRef<HTMLDivElement>(null);
 
     const filteredSources = useMemo(() => {
+        const sources = availableSources as InvoiceSource[];
         const term = sourceSearch.trim().toLowerCase();
-        if (!term) return availableSources;
-        return availableSources.filter((s: any) => {
+        if (!term) return sources;
+        return sources.filter((s) => {
             return (
                 (s.number || '').toLowerCase().includes(term) ||
                 (s.customerName || '').toLowerCase().includes(term) ||
@@ -380,19 +409,20 @@ export default function Invoices({ originModule }: InvoicesProps) {
             return;
         }
 
-        const source = availableSources.find((s: any) => s.id === sourceId);
+        const source = (availableSources as InvoiceSource[]).find((s) => s.id === sourceId);
         if (source) {
             setSelectedOrderNumber(source.number);
             setValue('orderId', source.id);
             setValue('orderNumber', source.number);
-            setValue('customerName', source.customerName);
+            setValue('customerName', source.customerName || '');
             setValue('customerPhone', source.customerPhone || '');
             setValue('customerEmail', source.customerEmail || '');
             setValue('customerAddress', source.customerAddress || '');
 
             // Add source items (pre-tax line totals)
-            const sourceItems = source.items.map((item: any) => ({
+            const sourceItems = source.items.map((item) => ({
                 id: generateId(),
+                productId: item.productId || null,
                 description: item.description,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
@@ -431,9 +461,10 @@ export default function Invoices({ originModule }: InvoicesProps) {
         }
     };
 
-    const handleAddProduct = (product: any) => {
+    const handleAddProduct = (product: ProductPick) => {
         append({
             id: generateId(),
+            productId: product.id,
             description: product.name,
             quantity: 1,
             unitPrice: product.price,
@@ -448,7 +479,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
     // Auto-fill when availableSources matches the search param (for the "Gerar Fatura" flow)
     useEffect(() => {
         if (showFormModal && search && availableSources.length > 0 && !selectedOrderNumber) {
-            const match = availableSources.find((s: any) => s.number === search);
+            const match = (availableSources as InvoiceSource[]).find((s) => s.number === search);
             if (match) {
                 handleOrderSelect(match.id);
             }
@@ -467,6 +498,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
 
             // Map items to include calculated totals
             const mappedItems = data.items.map(item => ({
+                productId: item.productId || undefined,
                 description: item.description,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
@@ -498,22 +530,24 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 });
             }
             closeFormModal();
-        } catch (err: any) {
-            const responseData = err?.response?.data;
+        } catch (err) {
+            const apiErr = err as Error & { response?: { status?: number; data?: { message?: string; error?: string; errors?: ApiValidationError[] } } };
+            const responseData = apiErr?.response?.data;
             if (responseData?.errors && Array.isArray(responseData.errors)) {
-                const errorDetails = responseData.errors.map((e: any) => `${e.path}: ${e.message}`).join(', ');
+                const errorDetails = responseData.errors.map((e) => `${e.path}: ${e.message}`).join(', ');
                 toast.error(`Erro de validação: ${errorDetails}`);
             } else {
-                const message = responseData?.message || responseData?.error || err?.message || 'Erro ao criar fatura';
+                const message = responseData?.message || responseData?.error || apiErr?.message || 'Erro ao criar fatura';
                 toast.error(message);
             }
-            logger.error('Error saving invoice:', err?.response?.data || err);
+            logger.error('Error saving invoice:', apiErr?.response?.data || err);
         }
     };
 
     // Show validation errors to the user
-    const onFormError = (errors: any) => {
-        const firstError = Object.values(errors).find((e: any) => e?.message || e?.root?.message) as any;
+    type RHFFieldErrors = Record<string, { message?: string; root?: { message?: string } } | undefined>;
+    const onFormError = (errors: RHFFieldErrors) => {
+        const firstError = Object.values(errors).find((e) => e?.message || e?.root?.message);
         const message = firstError?.message || firstError?.root?.message || 'Verifique os campos obrigatórios';
         toast.error(`Erro de validação: ${message}`);
         logger.error('Form validation errors:', errors);
@@ -533,7 +567,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
         try {
             await registerInvoicePayment(selectedInvoice.id, {
                 amount: data.amount,
-                method: data.method as any,
+                method: data.method,
                 reference: data.reference,
                 notes: data.notes,
             });
@@ -616,7 +650,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         >
                             Actualizar
                         </Button>
-                        <ExportInvoicesButton data={invoices} />
+                        <ExportInvoicesButton data={invoices} size="sm" />
                         <Button 
                             size="sm" 
                             className="font-black text-[10px] uppercase tracking-widest"
@@ -630,11 +664,12 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 tabs={
                     <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
-                            <button
+                            <Button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
+                                variant="ghost"
+                                onClick={() => setActiveTab(tab.id as 'invoices' | 'credit_notes')}
                                 className={cn(
-                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
+                                    "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 rounded-none whitespace-nowrap uppercase tracking-widest",
                                     activeTab === tab.id
                                         ? "border-primary-500 text-primary-600 dark:text-primary-400"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-dark-600"
@@ -643,7 +678,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 <span className="shrink-0">{tab.icon}</span>
                                 <span className="hidden sm:inline-block">{tab.label}</span>
                                 <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 }
@@ -659,18 +694,20 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         <div className="flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm border border-gray-100 dark:border-dark-700">
                             <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1">
                                 {periodOptions.map((option) => (
-                                    <button
+                                    <Button
                                         key={option.value}
+                                        variant="ghost"
+                                        size="sm"
                                         onClick={() => setSelectedPeriod(option.value)}
                                         className={cn(
-                                            'px-6 py-2 rounded-md text-xs font-bold transition-all uppercase tracking-widest',
+                                            'px-6 py-2 rounded-md text-xs font-bold uppercase tracking-widest active:scale-95',
                                             selectedPeriod === option.value
-                                                ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm'
+                                                ? 'bg-white dark:bg-dark-800 text-primary-600 shadow-sm hover:bg-white'
                                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                         )}
                                     >
                                         {option.label}
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         </div>
@@ -908,7 +945,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                             </div>
                                         ) : (
                                             <div className="p-2 space-y-1">
-                                                {filteredSources.map((source: any) => (
+                                                {filteredSources.map((source) => (
                                                     <button
                                                         key={source.id}
                                                         type="button"
@@ -939,7 +976,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                                             <span className="text-sm text-gray-700 dark:text-gray-300 truncate mt-0.5">{source.customerName}</span>
                                                         </div>
                                                         <div className="text-right ml-3">
-                                                            <span className="font-bold text-primary-600 dark:text-primary-400">{formatCurrency(source.total)}</span>
+                                                            <span className="font-bold text-primary-600 dark:text-primary-400">{formatCurrency(Number(source.total))}</span>
                                                         </div>
                                                     </button>
                                                 ))}

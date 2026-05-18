@@ -1,4 +1,5 @@
 import request from 'supertest';
+import type { Request, Response, NextFunction } from 'express';
 import { app } from '../../index';
 import { prisma } from '../../lib/prisma';
 
@@ -6,20 +7,22 @@ const SUPER_ADMIN_ID = 'admin-test-super';
 const REGULAR_USER_ID = 'admin-test-regular';
 const COMPANY_ID = 'admin-test-co';
 
+type MockReq = Request & { userId?: string; companyId?: string; userName?: string; userRole?: string };
+
 jest.mock('../../middleware/auth', () => {
     const original = jest.requireActual('../../middleware/auth');
     return {
         ...original,
-        authenticate: (req: any, _res: any, next: any) => {
+        authenticate: (req: MockReq, _res: Response, next: NextFunction) => {
             // Role is set by each test via req headers trick or a mock store
-            req.userId = req.headers['x-mock-user-id'] || SUPER_ADMIN_ID;
-            req.companyId = req.headers['x-mock-company-id'] || COMPANY_ID;
-            req.userRole = req.headers['x-mock-role'] || 'super_admin';
+            req.userId = (req.headers['x-mock-user-id'] as string) || SUPER_ADMIN_ID;
+            req.companyId = (req.headers['x-mock-company-id'] as string) || COMPANY_ID;
+            req.userRole = (req.headers['x-mock-role'] as string) || 'super_admin';
             req.userName = 'Test Admin';
             next();
         },
-        authorize: () => (_req: any, _res: any, next: any) => next(),
-        AuthRequest: {} as any,
+        authorize: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+        AuthRequest: {} as unknown,
     };
 });
 
@@ -73,12 +76,12 @@ describe('GET /api/admin/companies', () => {
 
     it('supports search filter', async () => {
         const res = await request(app).get('/api/admin/companies?search=Admin').expect(200);
-        expect(res.body.data.some((c: any) => c.name.includes('Admin'))).toBe(true);
+        expect((res.body.data as Array<{ name: string }>).some((c) => c.name.includes('Admin'))).toBe(true);
     });
 
     it('supports status filter', async () => {
         const res = await request(app).get('/api/admin/companies?status=active').expect(200);
-        res.body.data.forEach((c: any) => expect(c.status).toBe('active'));
+        (res.body.data as Array<{ status: string }>).forEach((c) => expect(c.status).toBe('active'));
     });
 });
 
@@ -125,7 +128,7 @@ describe('GET /api/admin/users', () => {
 
     it('does not expose password or otp fields', async () => {
         const res = await request(app).get('/api/admin/users').expect(200);
-        res.body.data.forEach((u: any) => {
+        (res.body.data as Array<{ password?: string; otp?: string }>).forEach((u) => {
             expect(u.password).toBeUndefined();
             expect(u.otp).toBeUndefined();
         });

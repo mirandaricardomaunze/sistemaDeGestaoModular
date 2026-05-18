@@ -1,12 +1,17 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { ResultHandler, Result } from '../utils/result';
+
+type RosterRow = Pick<Prisma.EmployeeGetPayload<Record<string, never>>, 'id' | 'name' | 'code' | 'department' | 'phone'>;
+type AttendanceRow = Prisma.AttendanceRecordGetPayload<Record<string, never>>;
+type EmployeeRow = Prisma.EmployeeGetPayload<Record<string, never>>;
 
 export class AttendanceService {
     /**
      * Get all employees currently in the attendance roster for a specific company
      */
-    async getRoster(companyId: string): Promise<Result<any>> {
+    async getRoster(companyId: string): Promise<Result<RosterRow[]>> {
         const roster = await prisma.employee.findMany({
             where: {
                 companyId,
@@ -28,8 +33,8 @@ export class AttendanceService {
     /**
      * Add employees to the attendance roster
      */
-    async addToRoster(companyId: string, employeeIds?: string[], department?: string): Promise<Result<any>> {
-        const where: any = { companyId };
+    async addToRoster(companyId: string, employeeIds?: string[], department?: string): Promise<Result<Prisma.BatchPayload>> {
+        const where: Prisma.EmployeeWhereInput = { companyId };
 
         if (employeeIds && employeeIds.length > 0) {
             where.id = { in: employeeIds };
@@ -49,7 +54,7 @@ export class AttendanceService {
     /**
      * Remove an employee from the attendance roster
      */
-    async removeFromRoster(companyId: string, employeeId: string): Promise<Result<any>> {
+    async removeFromRoster(companyId: string, employeeId: string): Promise<Result<EmployeeRow>> {
         const result = await prisma.employee.update({
             where: {
                 id: employeeId,
@@ -63,7 +68,7 @@ export class AttendanceService {
     /**
      * Record time (check-in/check-out)
      */
-    async recordTime(companyId: string, employeeId: string, type: 'checkIn' | 'checkOut', date: Date): Promise<Result<any>> {
+    async recordTime(companyId: string, employeeId: string, type: 'checkIn' | 'checkOut', date: Date): Promise<Result<AttendanceRow>> {
         const today = new Date(date);
         today.setHours(0, 0, 0, 0);
 

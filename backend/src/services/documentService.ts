@@ -2,13 +2,12 @@ import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import { Response } from 'express';
 import { prisma } from '../lib/prisma';
-import { ApiError } from '../middleware/error.middleware';
 
 export interface ExportOptions {
     title: string;
     subtitle?: string;
     columns: { header: string; key: string; width?: number }[];
-    data: any[];
+    data: Record<string, unknown>[];
     companyId: string;
     module?: string;
 }
@@ -57,7 +56,7 @@ export class DocumentService {
         // Draw Header
         let currentX = 50;
         options.columns.forEach(col => {
-            doc.text(col.header, currentX, tableTop, { width: col.width || 100, bold: true } as any);
+            doc.text(col.header, currentX, tableTop, { width: col.width || 100 });
             currentX += col.width || 100;
         });
 
@@ -69,11 +68,12 @@ export class DocumentService {
         options.data.forEach(row => {
             currentX = 50;
             const rowY = doc.y;
-            let maxHeight = 0;
+            const maxHeight = 0;
 
             options.columns.forEach(col => {
-                const val = row[col.key]?.toString() || '';
-                doc.text(val, currentX, rowY, { width: col.width || 100 } as any);
+                const cell = row[col.key];
+                const val = cell != null ? String(cell) : '';
+                doc.text(val, currentX, rowY, { width: col.width || 100 });
                 currentX += col.width || 100;
             });
             doc.moveDown();
@@ -82,7 +82,6 @@ export class DocumentService {
         });
 
         // --- Footer ---
-        const pageCount = (doc as any)._pageBuffer.length;
         // PDFKit footer is complex, simplified for now
         doc.fontSize(8).fillColor('#a0aec0').text(
             `Gerado em ${new Date().toLocaleString()} | Multicore`,

@@ -10,9 +10,9 @@ import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 import {
-    HiOutlineDocumentChartBar as HiOutlineDocumentReport, HiOutlineArrowDownTray as HiOutlineDownload, HiOutlineArrowTrendingUp as HiOutlineTrendingUp,
+    HiOutlineDocumentChartBar as HiOutlineDocumentChartBar, HiOutlineArrowDownTray as HiOutlineArrowDownTray, HiOutlineArrowTrendingUp as HiOutlineArrowTrendingUp,
     HiOutlineCurrencyDollar, HiOutlineCube, HiOutlinePrinter,
-    HiOutlineChartBar, HiOutlineTableCells as HiOutlineTable, HiOutlineUsers, HiOutlineTruck,
+    HiOutlineChartBar, HiOutlineTableCells as HiOutlineTableCells, HiOutlineUsers, HiOutlineTruck,
     HiOutlineExclamationCircle,
 } from 'react-icons/hi2';
 import { Card, Button, Input, LoadingSpinner, TableContainer, PageHeader } from '../../components/ui';
@@ -25,9 +25,78 @@ import toast from 'react-hot-toast';
 
 type ReportType = 'sales' | 'stock' | 'profitability' | 'top-customers' | 'suppliers';
 
+// API response row shapes (only fields read by this view)
+type SaleRow = {
+    id: string;
+    saleNumber?: string;
+    receiptNumber?: string;
+    createdAt: string;
+    customerName?: string;
+    customer?: { name?: string };
+    paymentMethod?: string;
+    total?: number | string;
+    cost?: number | string;
+    profit?: number | string;
+    margin?: number;
+};
+
+type MedicationRow = {
+    id: string;
+    code?: string;
+    name?: string;
+    totalStock: number;
+    totalValue?: number;
+    isLowStock?: boolean;
+    daysToExpiry: number | null;
+    minimumStock?: number;
+    product?: { name?: string; minStock?: number };
+    category?: { name?: string };
+};
+
+type TopCustomerRow = {
+    customerId?: string;
+    customerName?: string;
+    name?: string;
+    totalSpent: number;
+    visitCount?: number;
+    transactions: number;
+    lastPurchase?: string;
+};
+
+type SupplierRow = {
+    supplier: string;
+    name?: string;
+    totalBatches: number;
+    totalUnits: number;
+    totalCost: number;
+    medicationCount: number;
+    totalPurchases?: number;
+    orderCount?: number;
+    lastOrder?: string;
+};
+
+type PaymentMethodAgg = {
+    paymentMethod?: string;
+    _sum?: { total?: number | string };
+};
+
+type ReportSummary = {
+    totalRevenue?: number;
+    totalProfit?: number;
+    margin?: number;
+    avgTicket?: number;
+    totalProducts?: number;
+    totalValue?: number;
+    lowStockCount?: number;
+    totalCost?: number;
+    byPaymentMethod?: PaymentMethodAgg[];
+};
+
+type ReportPagination = { total: number; page: number; limit: number; totalPages: number };
+
 const REPORT_OPTIONS = [
     { value: 'sales', label: 'Vendas', icon: HiOutlineCurrencyDollar },
-    { value: 'profitability', label: 'Lucratividade', icon: HiOutlineTrendingUp },
+    { value: 'profitability', label: 'Lucratividade', icon: HiOutlineArrowTrendingUp },
     { value: 'stock', label: 'Stock', icon: HiOutlineCube },
     { value: 'top-customers', label: 'Top Clientes', icon: HiOutlineUsers },
     { value: 'suppliers', label: 'Fornecedores', icon: HiOutlineTruck },
@@ -47,12 +116,12 @@ export default function PharmacyReports() {
     const [limit] = useState(50);
 
     const [reportData, setReportData] = useState<{
-        sales: any[];
-        medications: any[];
-        customers: any[];
-        suppliers: any[];
-        summary?: any;
-        pagination?: any;
+        sales: SaleRow[];
+        medications: MedicationRow[];
+        customers: TopCustomerRow[];
+        suppliers: SupplierRow[];
+        summary?: ReportSummary;
+        pagination?: ReportPagination;
     }>({ sales: [], medications: [], customers: [], suppliers: [] });
 
     const handleGenerateReport = async (targetPage = 1) => {
@@ -96,8 +165,8 @@ export default function PharmacyReports() {
             setIsReportGenerated(true);
             setPage(targetPage);
             toast.success('Relatório gerado!');
-        } catch (error: any) {
-            toast.error('Erro ao gerar relatório: ' + (error.message || 'Erro desconhecido'));
+        } catch (error) {
+            toast.error('Erro ao gerar relatório: ' + ((error as Error).message || 'Erro desconhecido'));
         } finally {
             setIsGenerating(false);
         }
@@ -109,7 +178,7 @@ export default function PharmacyReports() {
 
     const dailySalesData = useMemo(() => {
         const map: Record<string, { date: string; revenue: number; profit: number; transactions: number }> = {};
-        reportData.sales.forEach((s: any) => {
+        reportData.sales.forEach((s) => {
             const key = formatDate(s.createdAt);
             if (!map[key]) map[key] = { date: key, revenue: 0, profit: 0, transactions: 0 };
             map[key].revenue += Number(s.total || 0);
@@ -121,7 +190,7 @@ export default function PharmacyReports() {
 
     const paymentMethodData = useMemo(() => {
         if (!reportData.summary?.byPaymentMethod) return [];
-        return reportData.summary.byPaymentMethod.map((p: any) => ({
+        return reportData.summary.byPaymentMethod.map((p: PaymentMethodAgg) => ({
             name: p.paymentMethod?.toUpperCase() || 'Outro',
             value: Number(p._sum?.total || 0)
         }));
@@ -129,7 +198,7 @@ export default function PharmacyReports() {
 
     const stockDistribution = useMemo(() => {
         let normal = 0, low = 0, critical = 0, expired = 0;
-        reportData.medications.forEach((m: any) => {
+        reportData.medications.forEach((m) => {
             if (m.totalStock === 0) critical++;
             else if (m.isLowStock) low++;
             else normal++;
@@ -163,7 +232,16 @@ export default function PharmacyReports() {
                 }, action);
             } else if (reportType === 'stock') {
                 generatePharmacyStockReport(
-                    { items: reportData.medications, summary: reportData.summary },
+                    {
+                        items: reportData.medications as unknown as Record<string, unknown>[],
+                        summary: {
+                            totalProducts: reportData.summary?.totalProducts ?? 0,
+                            totalStock: reportData.medications.reduce((acc, m) => acc + (m.totalStock ?? 0), 0),
+                            lowStockCount: reportData.summary?.lowStockCount ?? 0,
+                            totalValue: reportData.summary?.totalValue ?? 0,
+                            totalCost: reportData.summary?.totalCost ?? 0,
+                        }
+                    },
                     {
                         name: companySettings.companyName,
                         companyName: companySettings.companyName,
@@ -186,7 +264,7 @@ export default function PharmacyReports() {
                 filename = `vendas_${period.start || 'inicio'}_${period.end || 'fim'}`;
                 rows = [
                     ['Nº Recibo', 'Data', 'Cliente', 'Método Pagamento', 'Total', 'Lucro'],
-                    ...reportData.sales.map((s: any) => [
+                    ...reportData.sales.map((s) => [
                         s.receiptNumber || s.id?.slice(-8) || '',
                         s.createdAt ? s.createdAt.slice(0, 10) : '',
                         s.customer?.name || 'Balcão',
@@ -199,7 +277,7 @@ export default function PharmacyReports() {
                 filename = `stock_${new Date().toISOString().slice(0, 10)}`;
                 rows = [
                     ['Código', 'Medicamento', 'Categoria', 'Stock Total', 'Stock Mínimo', 'Stock Baixo'],
-                    ...reportData.medications.map((m: any) => [
+                    ...reportData.medications.map((m) => [
                         m.code || '',
                         m.name || '',
                         m.category?.name || '',
@@ -212,7 +290,7 @@ export default function PharmacyReports() {
                 filename = `top_clientes_${new Date().toISOString().slice(0, 10)}`;
                 rows = [
                     ['Cliente', 'Total Compras', 'Nº Visitas', 'Última Compra'],
-                    ...reportData.customers.map((c: any) => [
+                    ...reportData.customers.map((c) => [
                         c.name || '',
                         String(Number(c.totalSpent || 0).toFixed(2)),
                         String(c.visitCount || 0),
@@ -223,7 +301,7 @@ export default function PharmacyReports() {
                 filename = `fornecedores_${new Date().toISOString().slice(0, 10)}`;
                 rows = [
                     ['Fornecedor', 'Total Compras', 'Nº Encomendas', 'Última Encomenda'],
-                    ...reportData.suppliers.map((s: any) => [
+                    ...reportData.suppliers.map((s) => [
                         s.name || '',
                         String(Number(s.totalPurchases || 0).toFixed(2)),
                         String(s.orderCount || 0),
@@ -252,13 +330,13 @@ export default function PharmacyReports() {
                 <PageHeader
                     title="Relatórios de Farmácia"
                     subtitle="Vendas, Lucratividade, Stock, Clientes e Fornecedores"
-                    icon={<HiOutlineDocumentReport />}
+                    icon={<HiOutlineDocumentChartBar />}
                     className="mb-4"
                     actions={
                         <>
                             <Button variant="ghost" className="bg-gray-50/50 dark:bg-dark-700 text-gray-500 hover:text-teal-600 font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlinePrinter className="w-4 h-4" />} onClick={() => handleExport('print')}>Imprimir</Button>
-                            <Button variant="ghost" className="bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={() => handleExport('excel')}>Excel</Button>
-                            <Button variant="primary" className="bg-teal-500 hover:bg-teal-600 shadow-lg shadow-teal-500/20 font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlineDownload className="w-4 h-4" />} onClick={() => handleExport('pdf')}>PDF</Button>
+                            <Button variant="ghost" className="bg-emerald-50/50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />} onClick={() => handleExport('excel')}>Excel</Button>
+                            <Button variant="primary" className="bg-teal-500 hover:bg-teal-600 shadow-lg shadow-teal-500/20 font-black text-[10px] uppercase tracking-widest" size="sm" leftIcon={<HiOutlineArrowDownTray className="w-4 h-4" />} onClick={() => handleExport('pdf')}>PDF</Button>
                         </>
                     }
                 />
@@ -301,7 +379,7 @@ export default function PharmacyReports() {
                             <HiOutlineChartBar className="w-4 h-4" />
                         </button>
                         <button onClick={() => setViewMode('table')} className={cn('p-2 h-full aspect-square rounded-md flex items-center justify-center', viewMode === 'table' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
-                            <HiOutlineTable className="w-4 h-4" />
+                            <HiOutlineTableCells className="w-4 h-4" />
                         </button>
                     </div>
 
@@ -314,7 +392,7 @@ export default function PharmacyReports() {
             {/* Empty state */}
             {!isReportGenerated && !isGenerating && (
                 <Card className="p-12 text-center">
-                    <HiOutlineDocumentReport className="w-16 h-16 mx-auto text-gray-300 mb-4" />
+                    <HiOutlineDocumentChartBar className="w-16 h-16 mx-auto text-gray-300 mb-4" />
                     <h3 className="text-lg font-bold mb-2 text-gray-700 dark:text-gray-300">Selecione o tipo de relatório e clique em Gerar</h3>
                     <p className="text-gray-500 text-sm mb-6">Vendas, Lucratividade, Stock, Top Clientes ou Fornecedores</p>
                     <Button variant="primary" onClick={() => handleGenerateReport(1)}>Gerar Agora</Button>
@@ -338,7 +416,7 @@ export default function PharmacyReports() {
                         <MetricCard
                             label="Lucro Bruto"
                             value={summary.totalProfit}
-                            icon={<HiOutlineTrendingUp className="w-5 h-5" />}
+                            icon={<HiOutlineArrowTrendingUp className="w-5 h-5" />}
                             color="emerald"
                             isCurrency
                         />
@@ -351,7 +429,7 @@ export default function PharmacyReports() {
                         <MetricCard
                             label="Ticket Médio"
                             value={summary.avgTicket}
-                            icon={<HiOutlineTable className="w-5 h-5" />}
+                            icon={<HiOutlineTableCells className="w-5 h-5" />}
                             color="purple"
                             isCurrency
                         />
@@ -367,7 +445,7 @@ export default function PharmacyReports() {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                                         <YAxis tick={{ fontSize: 11 }} />
-                                        <Tooltip formatter={(v: any) => formatCurrency(v)} />
+                                        <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                                         <Legend />
                                         <Area type="monotone" dataKey="revenue" name="Receita" stroke="#0d9488" fill="#0d9488" fillOpacity={0.1} />
                                         <Area type="monotone" dataKey="profit" name="Lucro" stroke="#10b981" fill="#10b981" fillOpacity={0.2} />
@@ -381,23 +459,23 @@ export default function PharmacyReports() {
                                 <ResponsiveContainer width="100%" height={280}>
                                     <PieChart>
                                         <Pie data={paymentMethodData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
-                                            {paymentMethodData.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                                            {paymentMethodData.map((_: unknown, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                                         </Pie>
-                                        <Tooltip formatter={(v: any) => formatCurrency(v)} />
+                                        <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </Card>
 
                             {/* Daily transactions bar */}
                             <Card className="p-6 lg:col-span-2">
-                                <h3 className="font-bold mb-4">Transaces por Dia</h3>
+                                <h3 className="font-bold mb-4">Transações por Dia</h3>
                                 <ResponsiveContainer width="100%" height={200}>
                                     <BarChart data={dailySalesData}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                                         <YAxis tick={{ fontSize: 11 }} />
                                         <Tooltip />
-                                        <Bar dataKey="transactions" name="Transaces" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="transactions" name="Transações" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </Card>
@@ -419,15 +497,15 @@ export default function PharmacyReports() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y dark:divide-dark-700">
-                                        {reportData.sales.map((s: any) => (
+                                        {reportData.sales.map((s) => (
                                             <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                                 <td className="px-4 py-3 text-sm font-mono">{s.saleNumber}</td>
                                                 <td className="px-4 py-3 text-sm">{formatDate(s.createdAt)}</td>
                                                 <td className="px-4 py-3 text-sm">{s.customerName || ''}</td>
                                                 <td className="px-4 py-3 text-sm uppercase">{s.paymentMethod}</td>
-                                                <td className="px-4 py-3 text-sm text-right font-medium">{formatCurrency(s.total)}</td>
-                                                <td className="px-4 py-3 text-sm text-right text-gray-500">{formatCurrency(s.cost || 0)}</td>
-                                                <td className="px-4 py-3 text-sm text-right text-emerald-600 font-medium">{formatCurrency(s.profit || 0)}</td>
+                                                <td className="px-4 py-3 text-sm text-right font-medium">{formatCurrency(Number(s.total ?? 0))}</td>
+                                                <td className="px-4 py-3 text-sm text-right text-gray-500">{formatCurrency(Number(s.cost ?? 0))}</td>
+                                                <td className="px-4 py-3 text-sm text-right text-emerald-600 font-medium">{formatCurrency(Number(s.profit ?? 0))}</td>
                                                 <td className="px-4 py-3 text-sm text-right">
                                                     <span className={cn('px-2 py-0.5 rounded-full text-xs font-bold', (s.margin || 0) >= 20 ? 'bg-green-100 text-green-700' : (s.margin || 0) >= 10 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700')}>
                                                         {(s.margin || 0).toFixed(1)}%
@@ -476,7 +554,7 @@ export default function PharmacyReports() {
                         <MetricCard
                             label="Custo Total"
                             value={summary.totalCost}
-                            icon={<HiOutlineTrendingUp className="w-5 h-5" />}
+                            icon={<HiOutlineArrowTrendingUp className="w-5 h-5" />}
                             color="emerald"
                             isCurrency
                         />
@@ -499,11 +577,11 @@ export default function PharmacyReports() {
                             <Card className="p-6">
                                 <h3 className="font-bold mb-4">Top 10 por Valor em Stock</h3>
                                 <ResponsiveContainer width="100%" height={280}>
-                                    <BarChart data={[...reportData.medications].sort((a: any, b: any) => b.totalValue - a.totalValue).slice(0, 10)} layout="vertical">
+                                    <BarChart data={[...reportData.medications].sort((a, b) => (b.totalValue ?? 0) - (a.totalValue ?? 0)).slice(0, 10)} layout="vertical">
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis type="number" tickFormatter={(v) => formatCurrency(v)} tick={{ fontSize: 10 }} />
                                         <YAxis type="category" dataKey="product.name" width={120} tick={{ fontSize: 10 }} />
-                                        <Tooltip formatter={(v: any) => formatCurrency(v)} />
+                                        <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                                         <Bar dataKey="totalValue" name="Valor" fill="#0d9488" radius={[0, 4, 4, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -524,7 +602,7 @@ export default function PharmacyReports() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y dark:divide-dark-700">
-                                        {reportData.medications.map((m: any) => (
+                                        {reportData.medications.map((m) => (
                                             <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                                 <td className="px-4 py-3 text-sm font-medium">{m.product?.name}</td>
                                                 <td className="px-4 py-3 text-sm text-right">{m.totalStock}</td>
@@ -574,7 +652,7 @@ export default function PharmacyReports() {
                         />
                         <MetricCard
                             label="Total Top 20"
-                            value={reportData.customers.reduce((s: number, c: any) => s + c.totalSpent, 0)}
+                            value={reportData.customers.reduce((s, c) => s + c.totalSpent, 0)}
                             icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
                             color="emerald"
                             isCurrency
@@ -590,7 +668,7 @@ export default function PharmacyReports() {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis type="number" tickFormatter={(v) => formatCurrency(v)} tick={{ fontSize: 10 }} />
                                         <YAxis type="category" dataKey="customerName" width={120} tick={{ fontSize: 10 }} />
-                                        <Tooltip formatter={(v: any) => formatCurrency(v)} />
+                                        <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                                         <Bar dataKey="totalSpent" name="Total Gasto" fill="#3b82f6" radius={[0, 4, 4, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -603,13 +681,13 @@ export default function PharmacyReports() {
                                     <tr className="text-xs text-gray-500 uppercase">
                                         <th className="px-4 py-3 text-center">#</th>
                                         <th className="px-4 py-3 text-left">Cliente</th>
-                                        <th className="px-4 py-3 text-right">Transaces</th>
+                                        <th className="px-4 py-3 text-right">Transações</th>
                                         <th className="px-4 py-3 text-right">Total Gasto</th>
                                         <th className="px-4 py-3 text-right">Ticket Médio</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y dark:divide-dark-700">
-                                    {reportData.customers.map((c: any, idx: number) => (
+                                    {reportData.customers.map((c, idx: number) => (
                                         <tr key={c.customerId || idx} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                             <td className="px-4 py-3 text-center">
                                                 <span className={cn('w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-bold text-white',
@@ -644,13 +722,13 @@ export default function PharmacyReports() {
                         />
                         <MetricCard
                             label="Total Unidades"
-                            value={reportData.suppliers.reduce((s: number, x: any) => s + x.totalUnits, 0)}
+                            value={reportData.suppliers.reduce((s, x) => s + x.totalUnits, 0)}
                             icon={<HiOutlineCube className="w-6 h-6" />}
                             color="teal"
                         />
                         <MetricCard
                             label="Total Custo Compras"
-                            value={reportData.suppliers.reduce((s: number, x: any) => s + x.totalCost, 0)}
+                            value={reportData.suppliers.reduce((s, x) => s + x.totalCost, 0)}
                             icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
                             color="orange"
                             isCurrency
@@ -666,7 +744,7 @@ export default function PharmacyReports() {
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis type="number" tickFormatter={(v) => formatCurrency(v)} tick={{ fontSize: 10 }} />
                                         <YAxis type="category" dataKey="supplier" width={120} tick={{ fontSize: 10 }} />
-                                        <Tooltip formatter={(v: any) => formatCurrency(v)} />
+                                        <Tooltip formatter={(v) => formatCurrency(Number(v))} />
                                         <Bar dataKey="totalCost" name="Custo Total" fill="#6366f1" radius={[0, 4, 4, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -685,7 +763,7 @@ export default function PharmacyReports() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y dark:divide-dark-700">
-                                    {reportData.suppliers.map((s: any, idx: number) => (
+                                    {reportData.suppliers.map((s, idx: number) => (
                                         <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-dark-700">
                                             <td className="px-4 py-3 text-sm font-medium">{s.supplier}</td>
                                             <td className="px-4 py-3 text-sm text-right">{s.totalBatches}</td>

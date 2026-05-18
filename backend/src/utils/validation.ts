@@ -10,6 +10,7 @@ export interface SaleItemInput {
     unitPrice: number;
     discount?: number;
     total: number;
+    reservationIds?: string[];
     discountReason?: string;
     discountKind?: 'percent' | 'amount';
     discountAppliedBy?: string;
@@ -48,6 +49,7 @@ export interface CreateSaleInput {
     discountReason?: string;
     discountKind?: 'percent' | 'amount';
     discountAudit?: DiscountAudit;
+    discountApprovalId?: string;
 }
 
 // ============================================================================
@@ -60,6 +62,7 @@ export const saleItemSchema = z.object({
     unitPrice: z.number().positive('Preço unitário deve ser maior que zero'),
     discount: z.number().min(0, 'Desconto não pode ser negativo').optional().default(0),
     total: z.number().positive('Total deve ser maior que zero'),
+    reservationIds: z.array(z.string().uuid('ID de reserva invalido')).optional(),
     discountReason: z.string().max(200, 'Motivo do desconto demasiado longo').optional(),
     discountKind: z.enum(['percent', 'amount']).optional(),
     discountAppliedBy: z.string().max(150).optional()
@@ -216,7 +219,7 @@ export function validateSalesQuery(data: unknown) {
  * - page: minimum 1
  * - limit: minimum 1, maximum MAX_LIMIT (default 500) to prevent DoS attacks
  */
-export function parsePaginationParams(query: Record<string, any>, maxLimit = 500) {
+export function parsePaginationParams(query: Record<string, unknown>, maxLimit = 500) {
     const page = Math.max(1, parseInt(query.page as string) || 1);
     const limit = Math.min(maxLimit, Math.max(1, parseInt(query.limit as string) || 20));
     return { page, limit };

@@ -4,8 +4,19 @@ import { usePagination } from '../ui/Pagination';
 import { HiOutlineUser } from 'react-icons/hi2';
 import { formatCurrency, formatDate } from '../../utils/helpers';
 
+interface HistoryRecord {
+    id: string;
+    customerName: string;
+    checkIn: string | Date;
+    checkOut?: string | Date | null;
+    status: string;
+    totalPrice?: number;
+    saleId?: string;
+    room?: { number?: string | number };
+}
+
 interface HospitalityHistoryProps {
-    history: any[];
+    history: HistoryRecord[];
     isLoading: boolean;
 }
 

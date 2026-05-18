@@ -1,15 +1,16 @@
 import {
-    HiOutlineDocumentAdd,
+    HiOutlineDocumentPlus,
     HiOutlinePrinter,
     HiOutlineCube,
     HiOutlineCheck,
     HiOutlineClock,
-} from 'react-icons/hi';
+    HiOutlineXCircle,
+} from 'react-icons/hi2';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../utils/helpers';
 
-export type OrderStatus = 'created' | 'printed' | 'separated' | 'completed' | 'cancelled';
+export type OrderStatus = 'created' | 'printed' | 'separated' | 'completed' | 'cancellation_requested' | 'cancellation_rejected' | 'cancelled';
 
 export interface StatusTransition {
     status: OrderStatus;
@@ -32,7 +33,7 @@ const statusConfig: Record<OrderStatus, {
 }> = {
     created: {
         label: 'Criada',
-        icon: HiOutlineDocumentAdd,
+        icon: HiOutlineDocumentPlus,
         color: 'text-blue-600',
         bgColor: 'bg-blue-100 dark:bg-blue-900/30',
     },
@@ -54,6 +55,18 @@ const statusConfig: Record<OrderStatus, {
         color: 'text-green-600',
         bgColor: 'bg-green-100 dark:bg-green-900/30',
     },
+    cancellation_requested: {
+        label: 'Cancelamento Solicitado',
+        icon: HiOutlineClock,
+        color: 'text-amber-600',
+        bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+    },
+    cancellation_rejected: {
+        label: 'Cancelamento Rejeitado',
+        icon: HiOutlineXCircle,
+        color: 'text-gray-600',
+        bgColor: 'bg-gray-100 dark:bg-gray-900/30',
+    },
     cancelled: {
         label: 'Cancelada',
         icon: HiOutlineClock,
@@ -71,6 +84,8 @@ export default function OrderStatusTracker({
 }: OrderStatusTrackerProps) {
     const currentIndex = statusOrder.indexOf(currentStatus);
     const isCancelled = currentStatus === 'cancelled';
+    const isCancellationRequested = currentStatus === 'cancellation_requested';
+    const isCancellationRejected = currentStatus === 'cancellation_rejected';
 
     const getTransitionForStatus = (status: OrderStatus): StatusTransition | undefined => {
         return transitions.find((t) => t.status === status);
@@ -232,6 +247,43 @@ export default function OrderStatusTracker({
                                     )}
                                     {getTransitionForStatus('cancelled')?.responsibleName && (
                                         <span> por {getTransitionForStatus('cancelled')?.responsibleName}</span>
+                                    )}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {(isCancellationRequested || isCancellationRejected) && (
+                <div className={cn(
+                    'mt-6 p-4 rounded-lg border',
+                    isCancellationRequested
+                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                        : 'bg-gray-50 dark:bg-dark-700 border-gray-200 dark:border-dark-600'
+                )}>
+                    <div className="flex items-center gap-3">
+                        <div className={cn(
+                            'w-10 h-10 rounded-full flex items-center justify-center',
+                            statusConfig[currentStatus].bgColor
+                        )}>
+                            {(() => {
+                                const Icon = statusConfig[currentStatus].icon;
+                                return <Icon className={cn('w-5 h-5', statusConfig[currentStatus].color)} />;
+                            })()}
+                        </div>
+                        <div>
+                            <p className={cn('font-medium', statusConfig[currentStatus].color)}>
+                                {statusConfig[currentStatus].label}
+                            </p>
+                            {getTransitionForStatus(currentStatus) && (
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    {format(
+                                        new Date(getTransitionForStatus(currentStatus)!.timestamp),
+                                        "dd/MM/yyyy 'as' HH:mm",
+                                        { locale: ptBR }
+                                    )}
+                                    {getTransitionForStatus(currentStatus)?.responsibleName && (
+                                        <span> por {getTransitionForStatus(currentStatus)?.responsibleName}</span>
                                     )}
                                 </p>
                             )}

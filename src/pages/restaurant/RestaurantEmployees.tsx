@@ -8,7 +8,7 @@ export default function RestaurantEmployees() {
                 department: 'Restaurante',
                 moduleName: 'Restaurante',
                 accentColor: 'rose',
-                icon: <HiOutlineFire />,
+                icon: HiOutlineFire,
                 showCommissions: false,
                 documentTypes: [
                     { id: 'bi', label: 'Bilhete de Identidade', required: true },

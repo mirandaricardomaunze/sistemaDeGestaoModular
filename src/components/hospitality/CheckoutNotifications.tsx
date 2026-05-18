@@ -9,12 +9,12 @@ import { Card, Button, Badge } from '../ui';
 import { hospitalityAPI } from '../../services/api';
 import {
     HiOutlineBell,
-    HiOutlineLogout,
+    HiOutlineArrowLeftOnRectangle,
     HiOutlineUser,
     HiOutlineHome,
     HiOutlineChevronDown,
     HiOutlineChevronUp
-} from 'react-icons/hi';
+} from 'react-icons/hi2';
 
 interface CheckoutBooking {
     id: string;
@@ -25,7 +25,7 @@ interface CheckoutBooking {
         number: string;
         type: string;
     };
-    consumptions: any[];
+    consumptions: Array<{ id: string; quantity: number; totalPrice: number | string }>;
 }
 
 interface CheckoutNotificationsProps {
@@ -141,7 +141,7 @@ export default function CheckoutNotifications({ onViewGuest, onCheckout }: Check
                                     variant="danger"
                                     size="sm"
                                     onClick={() => onCheckout?.(booking.id)}
-                                    leftIcon={<HiOutlineLogout className="w-4 h-4" />}
+                                    leftIcon={<HiOutlineArrowLeftOnRectangle className="w-4 h-4" />}
                                 >
                                     Check-out
                                 </Button>

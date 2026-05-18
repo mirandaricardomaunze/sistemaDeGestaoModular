@@ -1,6 +1,28 @@
 import { Input, Badge, Pagination } from '../../ui';
 import { HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 
+export interface POSMedication {
+    id: string;
+    code?: string;
+    dosage?: string;
+    pharmaceuticalForm?: string;
+    dci?: string;
+    isLowStock?: boolean;
+    totalStock?: number;
+    requiresPrescription?: boolean;
+    product?: { name?: string; price?: number | string; code?: string; costPrice?: number };
+    batches?: Array<{ sellingPrice?: number | string }>;
+}
+
+interface POSPaginationLike<T> {
+    paginatedItems: T[];
+    currentPage: number;
+    totalItems: number;
+    itemsPerPage: number;
+    setCurrentPage: (p: number) => void;
+    setItemsPerPage: (n: number) => void;
+}
+
 export function POSProductGrid({
     searchInputRef,
     posSearch,
@@ -12,9 +34,9 @@ export function POSProductGrid({
     searchInputRef?: React.RefObject<HTMLInputElement>;
     posSearch: string;
     setPosSearch: (v: string) => void;
-    filteredMedications: any[];
-    posPagination: any;
-    addToCart: (med: any) => void;
+    filteredMedications: POSMedication[];
+    posPagination: POSPaginationLike<POSMedication>;
+    addToCart: (med: POSMedication) => void;
 }) {
     return (
         <div className="space-y-4">
@@ -26,21 +48,21 @@ export function POSProductGrid({
                 leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}
             />
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[700px] overflow-y-auto pr-2">
-                {posPagination.paginatedItems.map((med: any) => (
+                {posPagination.paginatedItems.map((med) => (
                     <div
                         key={med.id}
                         className="p-5 cursor-pointer bg-white dark:bg-dark-800 border-2 border-gray-100 dark:border-dark-700 rounded-lg hover:border-teal-500 hover:shadow-2xl hover:shadow-teal-500/10 transition-all flex flex-col min-h-[160px] group"
                         onClick={() => addToCart(med)}
                     >
                         <div className="flex-1">
-                            <p className="font-black text-lg text-gray-900 dark:text-white truncate mb-1">{med.product.name}</p>
+                            <p className="font-black text-lg text-gray-900 dark:text-white truncate mb-1">{med.product?.name}</p>
                             <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{med.dosage} • {med.pharmaceuticalForm}</p>
                             {med.dci && <p className="text-[10px] text-gray-400 italic truncate mt-1">{med.dci}</p>}
                         </div>
                         <div className="mt-4 flex items-end justify-between">
                             <div className="flex flex-col">
                                 <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 group-hover:scale-105 transition-transform origin-left block">
-                                    {Number(med.batches[0]?.sellingPrice || med.product.price).toLocaleString()} <span className="text-sm font-bold">MT</span>
+                                    {Number(med.batches?.[0]?.sellingPrice || med.product?.price || 0).toLocaleString()} <span className="text-sm font-bold">MT</span>
                                 </span>
                             </div>
                             <div className="flex flex-col items-end gap-1">

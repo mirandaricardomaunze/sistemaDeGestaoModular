@@ -133,20 +133,33 @@ class BackupService {
                 throw new Error('DIRECT_URL/DATABASE_URL não configurada');
             }
 
+            // Remove query params incompatíveis com pg_dump (pgbouncer=true, etc.)
+            // mas garante SSL para Supabase via variável de ambiente PGSSLMODE
             const sanitizedUrl = databaseUrl.split('?')[0];
 
-            // Executar pg_dump
-            // Tentamos usar o caminho absoluto caso não esteja no PATH
+            // Extrair password da URL para PGPASSWORD (evita prompt interativo)
+            let pgPassword = '';
+            try {
+                const urlObj = new URL(sanitizedUrl);
+                pgPassword = urlObj.password || '';
+            } catch { /* ignorar */ }
+
+            // Executar pg_dump com SSL forçado via env var
             const pgDumpPath = 'C:\\Program Files\\PostgreSQL\\18\\bin\\pg_dump.exe';
+            const env = {
+                ...process.env,
+                PGSSLMODE: 'require',
+                PGPASSWORD: pgPassword,
+            };
             const command = `"${pgDumpPath}" "${sanitizedUrl}" > "${filepath}"`;
             try {
-                await execAsync(command);
-            } catch (execError: any) {
-                // Fallback para comando simples caso o caminho acima falhe por algum motivo (ex: versão diferente)
-                if (execError.message.includes('não é reconhecido') || execError.message.includes('not found')) {
+                await execAsync(command, { env });
+            } catch (execError: unknown) {
+                const execMessage = execError instanceof Error ? execError.message : String(execError);
+                if (execMessage.includes('não é reconhecido') || execMessage.includes('not found')) {
                     try {
-                        await execAsync(`pg_dump "${sanitizedUrl}" > "${filepath}"`);
-                    } catch (finalError: any) {
+                        await execAsync(`pg_dump "${sanitizedUrl}" > "${filepath}"`, { env });
+                    } catch {
                         throw new Error('PostgreSQL client (pg_dump) não encontrado no sistema. Por favor, instale o PostgreSQL client tools ou verifique o caminho.');
                     }
                 } else {
@@ -281,16 +294,30 @@ class BackupService {
 
             const sanitizedUrl = databaseUrl.split('?')[0];
 
-            // ATENÇÀO: Isso vai SUBSTITUIR todos os dados atuais!
+            // Extrair password da URL para PGPASSWORD (evita prompt interativo)
+            let pgPassword = '';
+            try {
+                const urlObj = new URL(sanitizedUrl);
+                pgPassword = urlObj.password || '';
+            } catch { /* ignorar */ }
+
+            const env = {
+                ...process.env,
+                PGSSLMODE: 'require',
+                PGPASSWORD: pgPassword,
+            };
+
+            // ATENÇÃO: Isso vai SUBSTITUIR todos os dados atuais!
             const psqlPath = 'C:\\Program Files\\PostgreSQL\\18\\bin\\psql.exe';
             const command = `"${psqlPath}" "${sanitizedUrl}" < "${filepath}"`;
             try {
-                await execAsync(command);
-            } catch (execError: any) {
-                if (execError.message.includes('não é reconhecido') || execError.message.includes('not found')) {
+                await execAsync(command, { env });
+            } catch (execError: unknown) {
+                const execMessage = execError instanceof Error ? execError.message : String(execError);
+                if (execMessage.includes('não é reconhecido') || execMessage.includes('not found')) {
                     try {
-                        await execAsync(`psql "${sanitizedUrl}" < "${filepath}"`);
-                    } catch (finalError: any) {
+                        await execAsync(`psql "${sanitizedUrl}" < "${filepath}"`, { env });
+                    } catch {
                         throw new Error('PostgreSQL client (psql) não encontrado no sistema. Por favor, instale o PostgreSQL client tools ou verifique o caminho.');
                     }
                 } else {
@@ -341,7 +368,7 @@ class BackupService {
 
             if (backups.length === 0) {
                 // Mesmo sem backups, tentamos buscar o tamanho do banco
-                const dbSizeResult: any = await prisma.$queryRaw`SELECT pg_size_pretty(pg_database_size(current_database())) as size`;
+                const dbSizeResult = await prisma.$queryRaw<Array<{ size: string }>>`SELECT pg_size_pretty(pg_database_size(current_database())) as size`;
                 const dbSize = dbSizeResult[0]?.size || 'N/A';
 
                 return {
@@ -354,7 +381,7 @@ class BackupService {
             const totalSizeBytes = await this.calculateTotalSize(companyId);
             const totalSizeMB = (totalSizeBytes / (1024 * 1024)).toFixed(2);
 
-            const dbSizeResult: any = await prisma.$queryRaw`SELECT pg_size_pretty(pg_database_size(current_database())) as size`;
+            const dbSizeResult = await prisma.$queryRaw<Array<{ size: string }>>`SELECT pg_size_pretty(pg_database_size(current_database())) as size`;
             const dbSize = dbSizeResult[0]?.size || 'N/A';
 
             return {

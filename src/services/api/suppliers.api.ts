@@ -76,4 +76,9 @@ export const suppliersAPI = {
         const response = await api.post(`/suppliers/orders/${orderId}/receive`, { items, warehouseId });
         return response.data;
     },
+
+    cancelPurchaseOrder: async (orderId: string, reason?: string) => {
+        const response = await api.post(`/suppliers/orders/${orderId}/cancel`, { reason });
+        return response.data;
+    },
 };

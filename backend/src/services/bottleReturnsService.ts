@@ -1,5 +1,25 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
+
+type MovementsQuery = {
+    page?: string | number;
+    limit?: string | number;
+    customerId?: string;
+    type?: string;
+    startDate?: string;
+    endDate?: string;
+};
+
+type DepositInput = {
+    productId: string;
+    customerId?: string | null;
+    quantity: number;
+    saleId?: string | null;
+    notes?: string | null;
+};
+
+type ReturnInput = DepositInput & { sessionId?: string };
 
 export class BottleReturnsService {
     async getCustomerBalance(companyId: string, customerId: string) {
@@ -16,12 +36,12 @@ export class BottleReturnsService {
         return { totalDeposited, totalReturned, bottlesOwed: totalDeposited - totalReturned, depositBalance: totalPaid - totalRefunded };
     }
 
-    async getMovements(companyId: string, query: any) {
+    async getMovements(companyId: string, query: MovementsQuery) {
         const { page = 1, limit = 20, customerId, type, startDate, endDate } = query;
         const skip = (Number(page) - 1) * Number(limit);
-        const where: any = { companyId };
+        const where: Prisma.BottleReturnWhereInput = { companyId };
         if (customerId) where.customerId = customerId;
-        if (type) where.type = type;
+        if (type) where.type = type as Prisma.BottleReturnWhereInput['type'];
         if (startDate && endDate) where.createdAt = { gte: new Date(startDate), lte: new Date(endDate) };
 
         const [movements, total] = await Promise.all([
@@ -35,7 +55,7 @@ export class BottleReturnsService {
         return { data: movements, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
     }
 
-    async recordDeposit(companyId: string, performedBy: string, data: any) {
+    async recordDeposit(companyId: string, performedBy: string, data: DepositInput) {
         return prisma.$transaction(async (tx) => {
             const product = await tx.product.findFirst({
                 where: { id: data.productId, companyId }
@@ -54,7 +74,7 @@ export class BottleReturnsService {
         });
     }
 
-    async recordReturn(companyId: string, performedBy: string, data: any) {
+    async recordReturn(companyId: string, performedBy: string, data: ReturnInput) {
         return prisma.$transaction(async (tx) => {
             // ====================================================================
             // OPERATIONAL PREREQUISITE: CASH SESSION

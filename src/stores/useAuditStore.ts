@@ -1,22 +1,19 @@
 import { logger } from '../utils/logger';
 /**
  * Audit Store
- * Gerencia o estado e operações de auditoria
+ * Gerencia o estado e operações de auditoria (apenas configuração e operações locais pendentes)
  */
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { generateId } from '../utils/helpers';
 import { auditAPI } from '../services/api';
 import type {
-    AuditLog,
-    AuditLogFilter,
-    AuditStats,
-    AuditModule,
-    AuditAction,
     AuditSeverity,
     AuditConfig,
     CreateAuditLog,
+    AuditLog,
+    AuditLogFilter,
+    AuditStats,
 } from '../types/audit';
 
 // ============================================================================
@@ -36,55 +33,89 @@ const defaultConfig: AuditConfig = {
 // ============================================================================
 
 interface AuditState {
-    // Logs
-    logs: AuditLog[];
     config: AuditConfig;
     syncEnabled: boolean; // Enable/disable database sync
     isSyncing: boolean; // Track sync status
     pendingSync: CreateAuditLog[]; // Queue for offline logs
 
+    // Read state (populated by loadFromDatabase)
+    logs: AuditLog[];
+
     // Actions
     addLog: (log: CreateAuditLog) => void;
     addLogs: (logs: CreateAuditLog[]) => void;
-    clearOldLogs: () => void;
-    clearAllLogs: () => void;
 
     // Configuration
     updateConfig: (config: Partial<AuditConfig>) => void;
 
-    // Queries
-    getFilteredLogs: (filter: AuditLogFilter) => AuditLog[];
-    getLogById: (id: string) => AuditLog | undefined;
-    getLogsByEntity: (entityType: string, entityId: string) => AuditLog[];
-    getLogsByUser: (userId: string) => AuditLog[];
-    getRecentLogs: (count: number) => AuditLog[];
-
-    // Statistics
-    getStats: (filter?: AuditLogFilter) => AuditStats;
-
-    // Export
-    exportLogs: (filter: AuditLogFilter, format: 'csv' | 'json') => string;
-
     // Database Sync
     setSyncEnabled: (enabled: boolean) => void;
     syncToDatabase: () => Promise<void>;
-    loadFromDatabase: (filter?: AuditLogFilter) => Promise<void>;
+
+    // Read / report helpers used by the AuditLogViewer
+    loadFromDatabase: (filters?: AuditLogFilter) => Promise<void>;
+    getFilteredLogs: (filters: AuditLogFilter) => AuditLog[];
+    getStats: (filters: AuditLogFilter) => AuditStats;
+    exportLogs: (filters: AuditLogFilter, format: 'csv' | 'json') => string;
+    clearAllLogs: () => void;
 }
 
 // ============================================================================
 // Store Implementation
 // ============================================================================
 
+// Adapter: the API audit row uses `entity`/`createdAt`, but the viewer reads
+// `module`/`action`/`timestamp` from the richer local `AuditLog` shape. Map the
+// API rows onto that shape so the viewer's reads stay valid.
+function mapApiLog(row: {
+    id?: string;
+    userId?: string;
+    userName?: string;
+    action?: string;
+    entity?: string;
+    entityId?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    createdAt?: string;
+}): AuditLog {
+    return {
+        id: row.id ?? '',
+        timestamp: row.createdAt ?? new Date().toISOString(),
+        userId: row.userId ?? '',
+        userName: row.userName ?? 'Sistema',
+        ipAddress: row.ipAddress,
+        userAgent: row.userAgent,
+        module: 'auth' as AuditLog['module'],
+        action: (row.action as AuditLog['action']) ?? 'view',
+        severity: 'info',
+        entityType: row.entity ?? 'unknown',
+        entityId: row.entityId,
+        description: `${row.action ?? ''} ${row.entity ?? ''}`.trim(),
+        success: true,
+    };
+}
+
+const emptyStats = (): AuditStats => ({
+    totalLogs: 0,
+    byModule: {} as AuditStats['byModule'],
+    byAction: {} as AuditStats['byAction'],
+    bySeverity: { info: 0, warning: 0, error: 0, critical: 0 },
+    byUser: [],
+    recentActivity: [],
+    failedActions: 0,
+    period: { start: new Date().toISOString(), end: new Date().toISOString() },
+});
+
 export const useAuditStore = create<AuditState>()(
     persist(
         (set, get) => ({
-            logs: [],
             config: defaultConfig,
             syncEnabled: true, // Enable database sync by default
             isSyncing: false,
             pendingSync: [],
+            logs: [],
 
-            // Add a single log entry
+            // Add a single log entry (queues it for sync or sends it immediately)
             addLog: (logData) => {
                 const config = get().config;
 
@@ -100,16 +131,6 @@ export const useAuditStore = create<AuditState>()(
                 // Check excluded modules and actions
                 if (config.excludeModules.includes(logData.module)) return;
                 if (config.excludeActions.includes(logData.action)) return;
-
-                const log: AuditLog = {
-                    ...logData,
-                    id: generateId(),
-                    timestamp: new Date().toISOString(),
-                };
-
-                set((state) => ({
-                    logs: [log, ...state.logs].slice(0, 100), // Keep max 100 logs (historic in DB)
-                }));
 
                 // Sync to database if enabled
                 if (get().syncEnabled) {
@@ -128,6 +149,10 @@ export const useAuditStore = create<AuditState>()(
                             pendingSync: [...state.pendingSync, logData],
                         }));
                     });
+                } else {
+                    set((state) => ({
+                        pendingSync: [...state.pendingSync, logData],
+                    }));
                 }
             },
 
@@ -136,33 +161,7 @@ export const useAuditStore = create<AuditState>()(
                 const config = get().config;
                 if (!config.enabled) return;
 
-                const now = new Date().toISOString();
-                const newLogs: AuditLog[] = logsData.map((logData) => ({
-                    ...logData,
-                    id: generateId(),
-                    timestamp: now,
-                }));
-
-                set((state) => ({
-                    logs: [...newLogs, ...state.logs].slice(0, 100),
-                }));
-            },
-
-            // Clear logs older than retention period
-            clearOldLogs: () => {
-                const config = get().config;
-                const cutoffDate = new Date();
-                cutoffDate.setDate(cutoffDate.getDate() - config.retentionDays);
-                const cutoffISO = cutoffDate.toISOString();
-
-                set((state) => ({
-                    logs: state.logs.filter((log) => log.timestamp >= cutoffISO),
-                }));
-            },
-
-            // Clear all logs
-            clearAllLogs: () => {
-                set({ logs: [] });
+                logsData.forEach(logData => get().addLog(logData));
             },
 
             // Update configuration
@@ -170,179 +169,6 @@ export const useAuditStore = create<AuditState>()(
                 set((state) => ({
                     config: { ...state.config, ...updates },
                 }));
-            },
-
-            // Get filtered logs
-            getFilteredLogs: (filter) => {
-                let logs = get().logs;
-
-                if (filter.startDate) {
-                    logs = logs.filter((log) => log.timestamp >= filter.startDate!);
-                }
-
-                if (filter.endDate) {
-                    const endDate = new Date(filter.endDate);
-                    endDate.setHours(23, 59, 59, 999);
-                    logs = logs.filter((log) => log.timestamp <= endDate.toISOString());
-                }
-
-                if (filter.userId) {
-                    logs = logs.filter((log) => log.userId === filter.userId);
-                }
-
-                if (filter.module) {
-                    logs = logs.filter((log) => log.module === filter.module);
-                }
-
-                if (filter.action) {
-                    logs = logs.filter((log) => log.action === filter.action);
-                }
-
-                if (filter.severity) {
-                    logs = logs.filter((log) => log.severity === filter.severity);
-                }
-
-                if (filter.entityType) {
-                    logs = logs.filter((log) => log.entityType === filter.entityType);
-                }
-
-                if (filter.entityId) {
-                    logs = logs.filter((log) => log.entityId === filter.entityId);
-                }
-
-                if (filter.success !== undefined) {
-                    logs = logs.filter((log) => log.success === filter.success);
-                }
-
-                if (filter.searchTerm) {
-                    const term = filter.searchTerm.toLowerCase();
-                    logs = logs.filter((log) =>
-                        log.description.toLowerCase().includes(term) ||
-                        log.userName.toLowerCase().includes(term) ||
-                        log.entityName?.toLowerCase().includes(term) ||
-                        log.entityType.toLowerCase().includes(term)
-                    );
-                }
-
-                return logs;
-            },
-
-            // Get log by ID
-            getLogById: (id) => {
-                return get().logs.find((log) => log.id === id);
-            },
-
-            // Get logs for a specific entity
-            getLogsByEntity: (entityType, entityId) => {
-                return get().logs.filter(
-                    (log) => log.entityType === entityType && log.entityId === entityId
-                );
-            },
-
-            // Get logs by user
-            getLogsByUser: (userId) => {
-                return get().logs.filter((log) => log.userId === userId);
-            },
-
-            // Get recent logs
-            getRecentLogs: (count) => {
-                return get().logs.slice(0, count);
-            },
-
-            // Get statistics
-            getStats: (filter) => {
-                const logs = filter ? get().getFilteredLogs(filter) : get().logs;
-
-                const byModule: Record<AuditModule, number> = {} as Record<AuditModule, number>;
-                const byAction: Record<AuditAction, number> = {} as Record<AuditAction, number>;
-                const bySeverity: Record<AuditSeverity, number> = {
-                    info: 0,
-                    warning: 0,
-                    error: 0,
-                    critical: 0,
-                };
-                const userCounts: Record<string, { userId: string; userName: string; count: number }> = {};
-                let failedActions = 0;
-
-                logs.forEach((log) => {
-                    // By module
-                    byModule[log.module] = (byModule[log.module] || 0) + 1;
-
-                    // By action
-                    byAction[log.action] = (byAction[log.action] || 0) + 1;
-
-                    // By severity
-                    bySeverity[log.severity] = (bySeverity[log.severity] || 0) + 1;
-
-                    // By user
-                    if (!userCounts[log.userId]) {
-                        userCounts[log.userId] = { userId: log.userId, userName: log.userName, count: 0 };
-                    }
-                    userCounts[log.userId].count++;
-
-                    // Failed actions
-                    if (!log.success) {
-                        failedActions++;
-                    }
-                });
-
-                const byUser = Object.values(userCounts).sort((a, b) => b.count - a.count);
-
-                return {
-                    totalLogs: logs.length,
-                    byModule,
-                    byAction,
-                    bySeverity,
-                    byUser,
-                    recentActivity: logs.slice(0, 10),
-                    failedActions,
-                    period: {
-                        start: filter?.startDate || (logs[logs.length - 1]?.timestamp || new Date().toISOString()),
-                        end: filter?.endDate || (logs[0]?.timestamp || new Date().toISOString()),
-                    },
-                };
-            },
-
-            // Export logs to CSV or JSON
-            exportLogs: (filter, format) => {
-                const logs = get().getFilteredLogs(filter);
-
-                if (format === 'json') {
-                    return JSON.stringify(logs, null, 2);
-                }
-
-                // CSV format
-                const headers = [
-                    'Data/Hora',
-                    'Utilizador',
-                    'Cargo',
-                    'Módulo',
-                    'Ação',
-                    'Severidade',
-                    'Tipo Entidade',
-                    'ID Entidade',
-                    'Nome Entidade',
-                    'Descrição',
-                    'Sucesso',
-                    'Erro',
-                ].join(';');
-
-                const rows = logs.map((log) => [
-                    new Date(log.timestamp).toLocaleString('pt-MZ'),
-                    log.userName,
-                    log.userRole || '',
-                    log.module,
-                    log.action,
-                    log.severity,
-                    log.entityType,
-                    log.entityId || '',
-                    log.entityName || '',
-                    `"${log.description.replace(/"/g, '')}"`,
-                    log.success ? 'Sim' : 'Não',
-                    log.errorMessage || '',
-                ].join(';'));
-
-                return [headers, ...rows].join('\n');
             },
 
             // Enable/disable database sync
@@ -353,6 +179,58 @@ export const useAuditStore = create<AuditState>()(
                     get().syncToDatabase();
                 }
             },
+
+            // Read API logs into local state. Filters with no API mapping
+            // (severity, success, searchTerm) are applied client-side by
+            // `getFilteredLogs` instead.
+            loadFromDatabase: async (filters?: AuditLogFilter) => {
+                try {
+                    const res = await auditAPI.getAll({
+                        startDate: filters?.startDate,
+                        endDate: filters?.endDate,
+                        userId: filters?.userId,
+                        action: filters?.action,
+                        entity: filters?.entityType,
+                        searchTerm: filters?.searchTerm,
+                    });
+                    const mapped = (res.data || []).map((r: Parameters<typeof mapApiLog>[0]) => mapApiLog(r));
+                    set({ logs: mapped });
+                } catch (err) {
+                    logger.error('Failed to load audit logs from database:', err);
+                }
+            },
+
+            getFilteredLogs: (filters: AuditLogFilter) => {
+                const all = get().logs;
+                return all.filter((l) => {
+                    if (filters.userId && l.userId !== filters.userId) return false;
+                    if (filters.module && l.module !== filters.module) return false;
+                    if (filters.action && l.action !== filters.action) return false;
+                    if (filters.severity && l.severity !== filters.severity) return false;
+                    if (filters.entityType && l.entityType !== filters.entityType) return false;
+                    if (filters.searchTerm) {
+                        const t = filters.searchTerm.toLowerCase();
+                        if (!l.description.toLowerCase().includes(t) && !l.userName.toLowerCase().includes(t)) return false;
+                    }
+                    return true;
+                });
+            },
+
+            getStats: (_filters: AuditLogFilter) => emptyStats(),
+
+            exportLogs: (filters: AuditLogFilter, format: 'csv' | 'json') => {
+                const rows = get().getFilteredLogs(filters);
+                if (format === 'json') return JSON.stringify(rows, null, 2);
+                const header = 'timestamp,userName,module,action,entityType,description\n';
+                const body = rows.map((l) =>
+                    [l.timestamp, l.userName, l.module, l.action, l.entityType, l.description]
+                        .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
+                        .join(',')
+                ).join('\n');
+                return header + body;
+            },
+
+            clearAllLogs: () => set({ logs: [] }),
 
             // Sync pending logs to database
             syncToDatabase: async () => {
@@ -386,63 +264,10 @@ export const useAuditStore = create<AuditState>()(
                     set({ isSyncing: false });
                 }
             },
-
-            // Load logs from database
-            loadFromDatabase: async (filter = {}) => {
-                if (!get().syncEnabled) return;
-
-                try {
-                    const response = await auditAPI.getAll({
-                        startDate: filter.startDate,
-                        endDate: filter.endDate,
-                        userId: filter.userId,
-                        action: filter.action,
-                        entity: filter.entityType,
-                        limit: 100, // Load last 100 logs to prevent timeout
-                    });
-
-                    const dbLogs = response?.logs || (Array.isArray(response) ? response : []);
-
-                    if (dbLogs.length > 0) {
-                        // Transform database logs to app format
-                        const transformedLogs: AuditLog[] = dbLogs.map((dbLog: any) => ({
-                            id: dbLog.id,
-                            userId: dbLog.userId || 'system',
-                            userName: dbLog.userName || 'Sistema',
-                            userRole: undefined,
-                            module: (dbLog.entity || 'system') as any,
-                            action: dbLog.action as any,
-                            entityType: dbLog.entity,
-                            entityId: dbLog.entityId,
-                            entityName: undefined,
-                            description: `${dbLog.action} ${dbLog.entity}${dbLog.entityId ? ` #${dbLog.entityId}` : ''}`,
-                            severity: (dbLog.action === 'DELETE' || dbLog.action === 'ERROR' ? 'error' : 'info') as any,
-                            timestamp: dbLog.createdAt,
-                            success: true,
-                            details: dbLog.newData,
-                            previousValues: dbLog.oldData,
-                            newValues: dbLog.newData,
-                        }));
-
-                        // Merge with local logs (keep local as primary, add missing from DB)
-                        const localIds = new Set(get().logs.map(l => l.id));
-                        const newLogs = transformedLogs.filter(l => !localIds.has(l.id));
-
-                        set((state) => ({
-                            logs: [...state.logs, ...newLogs].sort((a, b) =>
-                                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-                            ).slice(0, 100),
-                        }));
-                    }
-                } catch (error) {
-                    logger.error('Failed to load audit logs from database:', error);
-                }
-            },
         }),
         {
             name: 'audit-storage',
             partialize: (state) => ({
-                logs: state.logs.slice(0, 100), // Only persist last 100 logs
                 config: state.config,
                 syncEnabled: state.syncEnabled,
                 pendingSync: state.pendingSync, // Persist pending sync queue
@@ -455,8 +280,6 @@ export const useAuditStore = create<AuditState>()(
                         // Try to sync pending logs after rehydration
                         setTimeout(() => {
                             state.syncToDatabase();
-                            // Load recent logs from database
-                            state.loadFromDatabase();
                         }, 1000);
                     }
                 }
@@ -464,5 +287,3 @@ export const useAuditStore = create<AuditState>()(
         }
     )
 );
-
-// useAuditStore remains as a pure store without hook-based dependencies on other stores

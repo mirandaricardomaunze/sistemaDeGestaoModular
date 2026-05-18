@@ -1,4 +1,5 @@
 import { logger } from '../utils/logger';
+import { API_HOST } from '../config/env';
 import { io, Socket } from 'socket.io-client';
 
 // Socket.io client for real-time alerts
@@ -35,7 +36,7 @@ export const socketService = {
             return;
         }
 
-        const url = config?.url || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const url = config?.url || API_HOST;
         const token = config?.token || localStorage.getItem('token');
 
         socket = io(url, {

@@ -1,4 +1,4 @@
-﻿import { logger } from '../../utils/logger';
+import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, LoadingSpinner, EmptyState, ConfirmationModal } from '../ui';
@@ -77,8 +77,8 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
             if (newStatus === 'completed') {
                 onRoomCleaned?.();
             }
-        } catch (error: any) {
-            toast.error(error.message || t('messages.errorOccurred'));
+        } catch (error) {
+            toast.error((error as Error).message || t('messages.errorOccurred'));
         }
     };
 
@@ -95,8 +95,8 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
             setDeleteConfirmOpen(false);
             setTaskToDelete(null);
             fetchTasks();
-        } catch (error: any) {
-            toast.error(error.message || t('messages.errorOccurred'));
+        } catch (error) {
+            toast.error((error as Error).message || t('messages.errorOccurred'));
         }
     };
 
@@ -175,7 +175,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                         {['all', 'pending', 'in_progress', 'completed'].map((status) => (
                             <button
                                 key={status}
-                                onClick={() => setFilter(status as any)}
+                                onClick={() => setFilter(status as 'all' | 'pending' | 'in_progress' | 'completed')}
                                 className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filter === status
                                     ? 'bg-white dark:bg-dark-700 text-primary-600 shadow-sm border border-gray-200 dark:border-dark-600'
                                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'

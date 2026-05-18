@@ -1,17 +1,18 @@
 import { logger } from '../utils/logger';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
     HiOutlineUser,
-    HiOutlineEnvelope as HiOutlineMail,
+    HiOutlineEnvelope as HiOutlineEnvelope,
     HiOutlineLockClosed,
     HiOutlinePhone,
     HiOutlineUserPlus as HiOutlineUserAdd,
     HiOutlineExclamationCircle,
-    HiOutlineBuildingOffice as HiOutlineOfficeBuilding,
+    HiOutlineBuildingOffice as HiOutlineBuildingOffice,
     HiOutlineChevronRight,
     HiOutlineCheckCircle,
     HiOutlineShoppingCart,
@@ -102,7 +103,7 @@ export default function Register() {
             fieldsToValidate = ['moduleCode'];
         }
 
-        const result = await trigger(fieldsToValidate as any);
+        const result = await trigger(fieldsToValidate);
         if (result) {
             setCurrentStep(currentStep + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -149,6 +150,21 @@ export default function Register() {
 
     return (
         <div className="min-h-screen flex w-full font-sans bg-white dark:bg-dark-950 overflow-hidden">
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    duration: 5000,
+                    style: { borderRadius: '12px', padding: '14px 18px', fontSize: '14px', fontWeight: 500 },
+                    error: {
+                        style: { background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3' },
+                        iconTheme: { primary: '#e11d48', secondary: '#fff1f2' },
+                    },
+                    success: {
+                        style: { background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' },
+                        iconTheme: { primary: '#16a34a', secondary: '#f0fdf4' },
+                    },
+                }}
+            />
             {/* Left Side: Form Section */}
             <div className="w-full lg:w-[45%] xl:w-[40%] flex flex-col px-6 sm:px-12 lg:px-16 py-8 relative z-10 transition-all h-screen overflow-y-auto custom-scrollbar">
                 <div className="w-full max-w-[420px] mx-auto animate-fade-in my-auto py-8">
@@ -222,7 +238,7 @@ export default function Register() {
                                     <Input
                                         label="Razão Social"
                                         placeholder="Ex: Farmácia Sagrada Lda"
-                                        leftIcon={<HiOutlineOfficeBuilding className="h-5 w-5" />}
+                                        leftIcon={<HiOutlineBuildingOffice className="h-5 w-5" />}
                                         error={errors.companyName?.message}
                                         size="lg"
                                         {...register('companyName')}
@@ -326,7 +342,7 @@ export default function Register() {
                                         label="Email Login"
                                         type="email"
                                         placeholder="admin@multicore.co.mz"
-                                        leftIcon={<HiOutlineMail className="h-5 w-5" />}
+                                        leftIcon={<HiOutlineEnvelope className="h-5 w-5" />}
                                         error={errors.email?.message}
                                         size="lg"
                                         {...register('email')}

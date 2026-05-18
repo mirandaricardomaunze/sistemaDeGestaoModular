@@ -1,19 +1,20 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
     HiOutlineMagnifyingGlass, 
     HiOutlineClock,
     HiOutlineCalendar,
     HiOutlineDocumentMagnifyingGlass
 } from 'react-icons/hi2';
-import { HiOutlineLogin, HiOutlineLogout } from 'react-icons/hi';
+import { HiOutlineArrowRightOnRectangle, HiOutlineArrowLeftOnRectangle } from 'react-icons/hi2';
 import { Card, Button, Input, Badge, LoadingSpinner, Modal } from '../../ui';
 import { useEmployees, useAttendance } from '../../../hooks/useData';
+import type { Employee } from '../../../types';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 export const PharmacyAttendanceControl: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
     const { employees: staff, isLoading: isLoadingStaff } = useEmployees({ limit: 100 });
@@ -42,7 +43,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
         refetch();
     };
 
-    const openHistory = (employee: any) => {
+    const openHistory = (employee: Employee) => {
         setSelectedEmployee(employee);
         setIsHistoryOpen(true);
     };
@@ -88,7 +89,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card variant="glass" className="p-4 border-l-4 border-l-teal-500 flex items-center gap-4">
                     <div className="p-3 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-600">
-                        <HiOutlineLogin className="w-6 h-6" />
+                        <HiOutlineArrowRightOnRectangle className="w-6 h-6" />
                     </div>
                     <div>
                         <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Presentes Hoje</p>
@@ -97,7 +98,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                 </Card>
                 <Card variant="glass" className="p-4 border-l-4 border-l-blue-500 flex items-center gap-4">
                     <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600">
-                        <HiOutlineLogout className="w-6 h-6" />
+                        <HiOutlineArrowLeftOnRectangle className="w-6 h-6" />
                     </div>
                     <div>
                         <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Saídas Registadas</p>
@@ -162,7 +163,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                                         size="sm"
                                         className={`flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10`}
                                         disabled={!!record?.checkIn}
-                                        leftIcon={<HiOutlineLogin className="w-4 h-4" />}
+                                        leftIcon={<HiOutlineArrowRightOnRectangle className="w-4 h-4" />}
                                         onClick={() => handleRecord(person.id, 'checkIn')}
                                     >
                                         Check-In
@@ -172,7 +173,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                                         size="sm"
                                         className="flex-1 rounded-lg font-black text-[10px] uppercase tracking-widest h-10 border-orange-200 text-orange-600 hover:bg-orange-50"
                                         disabled={!record?.checkIn || !!record?.checkOut}
-                                        leftIcon={<HiOutlineLogout className="w-4 h-4" />}
+                                        leftIcon={<HiOutlineArrowLeftOnRectangle className="w-4 h-4" />}
                                         onClick={() => handleRecord(person.id, 'checkOut')}
                                     >
                                         Check-Out

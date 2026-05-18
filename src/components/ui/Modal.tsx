@@ -44,7 +44,7 @@ export function Modal({
             <div className="flex min-h-full items-center justify-center p-4">
                 <div
                     className={cn(
-                        'relative w-full rounded-2xl shadow-premium animate-slide-up border border-white/50 dark:border-dark-700/50 flex flex-col max-h-[90vh] overflow-hidden',
+                        'relative w-full rounded-2xl shadow-card-hover animate-slide-up border border-slate-300/70 dark:border-dark-700/50 flex flex-col max-h-[90vh] overflow-hidden',
                         isLight ? 'bg-white text-slate-900' : 'bg-white dark:bg-dark-800',
                         sizeClasses[size],
                         className
@@ -55,12 +55,12 @@ export function Modal({
                     {(title || showCloseButton) && (
                         <div className={cn(
                             "flex items-center justify-between p-6 border-b",
-                            isLight ? "border-gray-100" : "border-gray-200 dark:border-dark-700"
+                            isLight ? "border-slate-200" : "border-slate-200 dark:border-dark-700"
                         )}>
                             {title && (
                                 <h2 className={cn(
-                                    "text-xl font-semibold",
-                                    isLight ? "text-slate-900" : "text-gray-900 dark:text-white"
+                                    "text-xl font-bold",
+                                    isLight ? "text-slate-950" : "text-slate-950 dark:text-white"
                                 )}>
                                     {title}
                                 </h2>
@@ -71,8 +71,8 @@ export function Modal({
                                     className={cn(
                                         "p-2 rounded-lg transition-colors",
                                         isLight 
-                                            ? "hover:bg-gray-100 text-gray-400" 
-                                            : "hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 dark:text-gray-400"
+                                            ? "hover:bg-slate-100 text-slate-500"
+                                            : "hover:bg-slate-100 dark:hover:bg-dark-700 text-slate-500 dark:text-gray-400"
                                     )}
                                 >
                                     <svg

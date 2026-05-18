@@ -112,26 +112,25 @@ export const useCRMStore = create<CRMState>()(
                     const oppsData = await crmAPI.getOpportunities();
                     if (oppsData && Array.isArray(oppsData)) {
                         // Transform Decimals and dates
-                        const opportunities: FunnelOpportunity[] = oppsData.map((o: any) => ({
-                            id: o.id,
-                            title: o.title,
-                            description: o.description,
+                        const opportunities: FunnelOpportunity[] = oppsData.map((o: Record<string, unknown> & { customer?: { name?: string }; interactions?: FunnelInteraction[]; stageHistory?: FunnelOpportunity['stageHistory'] }): FunnelOpportunity => ({
+                            id: o.id as string,
+                            title: o.title as string,
                             value: Number(o.value),
-                            probability: o.probability,
-                            customerId: o.customerId,
+                            probability: o.probability as number,
+                            customerId: o.customerId as string,
                             customerName: o.customer?.name || 'Cliente Desconhecido',
-                            stageId: o.stageId,
-                            stageType: o.stageType as any,
-                            expectedCloseDate: o.expectedCloseDate,
-                            closedAt: o.closedAt,
-                            closedReason: o.closedReason,
-                            invoiceId: o.invoiceId,
-                            userId: o.userId,
-                            notes: o.notes,
-                            tags: o.tags,
-                            createdAt: o.createdAt,
-                            updatedAt: o.updatedAt,
-                            stageChangedAt: o.stageChangedAt,
+                            stageId: o.stageId as string,
+                            stageType: o.stageType as FunnelOpportunity['stageType'],
+                            expectedCloseDate: o.expectedCloseDate as string | undefined,
+                            closedAt: o.closedAt as string | undefined,
+                            closedReason: o.closedReason as string | undefined,
+                            invoiceId: o.invoiceId as string | undefined,
+                            ownerId: o.ownerId as string | undefined,
+                            notes: o.notes as string | undefined,
+                            tags: (o.tags as string[] | undefined) || [],
+                            createdAt: o.createdAt as string,
+                            updatedAt: o.updatedAt as string,
+                            stageChangedAt: o.stageChangedAt as string,
                             interactions: o.interactions || [],
                             stageHistory: o.stageHistory || [],
                         }));
@@ -518,25 +517,25 @@ export const useCRMStore = create<CRMState>()(
                     const data = await campaignsAPI.getAll();
                     if (data && Array.isArray(data)) {
                         // Transform backend data to store format
-                        const campaigns: Campaign[] = data.map((c: any) => ({
-                            id: c.id,
-                            name: c.name,
-                            description: c.description,
-                            code: c.code,
-                            status: c.status as any,
-                            startDate: c.startDate,
-                            endDate: c.endDate,
-                            discountType: c.discountType as any,
+                        const campaigns: Campaign[] = data.map((c: Record<string, unknown>): Campaign => ({
+                            id: c.id as string,
+                            name: c.name as string,
+                            description: c.description as string | undefined,
+                            code: c.code as string | undefined,
+                            status: c.status as Campaign['status'],
+                            startDate: c.startDate as string,
+                            endDate: c.endDate as string,
+                            discountType: c.discountType as Campaign['discountType'],
                             discountValue: Number(c.discountValue),
                             minPurchaseAmount: c.minPurchaseAmount ? Number(c.minPurchaseAmount) : undefined,
                             maxDiscountAmount: c.maxDiscountAmount ? Number(c.maxDiscountAmount) : undefined,
-                            maxTotalUses: c.maxTotalUses,
-                            currentUses: c.currentUses || 0,
-                            applyToAllProducts: c.applyToAllProducts ?? true,
-                            targetAudience: c.targetAudience || { allCustomers: true },
-                            createdAt: c.createdAt,
-                            updatedAt: c.updatedAt,
-                            createdBy: c.createdBy,
+                            maxTotalUses: c.maxTotalUses as number | undefined,
+                            currentUses: (c.currentUses as number | undefined) || 0,
+                            applyToAllProducts: (c.applyToAllProducts as boolean | undefined) ?? true,
+                            targetAudience: (c.targetAudience as Campaign['targetAudience']) || { allCustomers: true },
+                            createdAt: c.createdAt as string,
+                            updatedAt: c.updatedAt as string,
+                            createdBy: (c.createdBy as string | undefined) || '',
                             metrics: {
                                 customersTargeted: 0,
                                 customersReached: 0,
@@ -609,7 +608,7 @@ export const useCRMStore = create<CRMState>()(
                 }));
 
                 // Sync to database
-                campaignsAPI.update(id, updates as any).catch(error => {
+                campaignsAPI.update(id, updates as Parameters<typeof campaignsAPI.update>[1]).catch(error => {
                     logger.error('Failed to sync campaign update to database:', error);
                 });
             },
@@ -826,13 +825,21 @@ export const useCRMStore = create<CRMState>()(
                 return get().customerCRMData.find((c) => c.customerId === customerId);
             },
         }),
-        {
-            name: 'crm-storage',
+        {\n            name: 'crm-storage',
             version: 2,
             migrate: (persistedState: unknown) => {
                 const state = persistedState as CRMState;
                 return state;
             },
+            // ── P3 Performance Fix ────────────────────────────────────────────
+            // Apenas persistir stages[] (raramente mudam, ~5 entradas).
+            // opportunities, campaigns, campaignUsages e customerCRMData NÃO são
+            // persistidos — são sempre carregados da BD via loadFunnelFromDatabase()
+            // e loadCampaignsFromDatabase() ao iniciar sessão. Isto previne
+            // crescimento ilimitado do localStorage e QuotaExceededError em produção.
+            partialize: (state) => ({
+                stages: state.stages,
+            }),
             onRehydrateStorage: () => (state) => {
                 if (state) {
                     // Load data from database after rehydration

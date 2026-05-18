@@ -24,9 +24,12 @@ export { suppliersAPI } from './suppliers.api';
 export { salesAPI } from './sales.api';
 export { invoicesAPI } from './invoices.api';
 export { employeesAPI } from './employees.api';
+export { payrollAPI, type PayrollPreviewInput, type PayrollPreviewResult } from './payroll.api';
 
 // Operations
 export { warehousesAPI, dashboardAPI } from './warehouses.api';
+export { physicalInventoryAPI } from './physicalInventory.api';
+export { accountingAPI, type IncomeStatement, type BalanceSheet } from './accounting.api';
 export { settingsAPI, campaignsAPI, alertsAPI, ordersAPI, type Alert, type AlertModule, type AlertPriority, type AlertsSummary, type UnreadCount } from './settings.api';
 
 // Specialized Modules
@@ -54,7 +57,14 @@ export { ivaAPI, type IvaRate, type CreateIvaRateDto } from './iva.api';
 export { batchesAPI, type ProductBatch, type CreateBatchDto } from './batches.api';
 
 // Commercial Module Analytics
-export { commercialAPI, shiftAPI, type CommercialAnalytics, type MarginAnalysis, type MarginByCategory, type MarginByProduct, type StockAgingReport, type StockAgingProduct, type SupplierPerformance, type PurchaseOrder, type InventoryTurnoverItem, type SalesReport, type ShiftSession, type ShiftSummary, type InventoryForecast } from './commercial.api';
+export { commercialAPI, shiftAPI, type CommercialAnalytics, type MarginAnalysis, type MarginByCategory, type MarginByProduct, type StockAgingReport, type StockAgingProduct, type SupplierPerformance, type PurchaseOrder, type InventoryTurnoverItem, type SalesReport, type ShiftSession, type ShiftSummary, type ShiftZReport, type InventoryForecast } from './commercial.api';
+export { salesTargetsAPI, type SalesTarget } from './salesTargets.api';
 
 // Calendar Module
 export { calendarAPI, type CalendarEvent, type CalendarAttendee, type CreateCalendarEventDto, type UpdateCalendarEventDto } from './calendar.api';
+
+// Approvals
+export { approvalsAPI } from './approvals.api';
+
+// SAF-T XML Export
+export { saftAPI, type SAFTParams } from './saft.api';

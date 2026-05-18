@@ -4,13 +4,14 @@ import {
     createInvoiceSchema,
     updateInvoiceSchema,
     addPaymentSchema,
-    creditNoteSchema
+    creditNoteSchema,
+    debitNoteSchema
 } from '../validation';
 import { invoicesService } from '../services/invoicesService';
 import { ApiError } from '../middleware/error.middleware';
 import { prisma } from '../lib/prisma';
 import { pdfService } from '../services/pdfService';
-import { sendInvoiceEmail } from '../utils/mail';
+import { sendInvoiceEmail, sendNoteEmail } from '../utils/mail';
 import { emitToCompany } from '../lib/socket';
 
 const router = Router();
@@ -35,6 +36,42 @@ router.get('/credit-notes', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const result = await invoicesService.listCreditNotes(req.query, req.companyId);
     res.json(result);
+});
+
+router.post('/credit-notes', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa nao identificada. Faca login novamente.');
+    const validatedData = creditNoteSchema.parse(req.body);
+    if (!validatedData.originalInvoiceId) throw ApiError.badRequest('Fatura original obrigatoria');
+    const result = await invoicesService.createCreditNote(
+        validatedData.originalInvoiceId,
+        validatedData,
+        req.companyId,
+        req.userId,
+        req.userName,
+        req.ip
+    );
+    res.status(201).json(result);
+});
+
+router.get('/debit-notes', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const result = await invoicesService.listDebitNotes(req.query, req.companyId);
+    res.json(result);
+});
+
+router.post('/debit-notes', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const validatedData = debitNoteSchema.parse(req.body);
+    if (!validatedData.originalInvoiceId) throw ApiError.badRequest('Fatura original obrigatória');
+    const result = await invoicesService.createDebitNote(
+        validatedData.originalInvoiceId,
+        validatedData,
+        req.companyId,
+        req.userId,
+        req.userName,
+        req.ip,
+    );
+    res.status(201).json(result);
 });
 
 router.get('/:id', authenticate, async (req: AuthRequest, res) => {
@@ -74,22 +111,182 @@ router.post('/:id/payments', authenticate, async (req: AuthRequest, res) => {
 
 router.post('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-    await invoicesService.cancel(req.params.id, req.companyId);
+    await invoicesService.cancel(req.params.id, req.companyId, req.body?.approvalId);
     res.json({ message: 'Fatura cancelada com sucesso' });
 });
 
 // Alias: frontend calls PUT /:id/cancel
 router.put('/:id/cancel', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-    await invoicesService.cancel(req.params.id, req.companyId);
+    await invoicesService.cancel(req.params.id, req.companyId, req.body?.approvalId);
     res.json({ message: 'Fatura cancelada com sucesso' });
 });
 
 router.post('/:id/credit-notes', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
     const validatedData = creditNoteSchema.parse(req.body);
-    const result = await invoicesService.createCreditNote(req.params.id, validatedData, req.companyId);
+    const result = await invoicesService.createCreditNote(req.params.id, validatedData, req.companyId, req.userId, req.userName, req.ip);
     res.status(201).json(result);
+});
+
+router.post('/:id/debit-notes', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const validatedData = debitNoteSchema.parse(req.body);
+    const result = await invoicesService.createDebitNote(req.params.id, validatedData, req.companyId, req.userId, req.userName, req.ip);
+    res.status(201).json(result);
+});
+
+router.post('/debit-notes/:id/cancel', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const result = await invoicesService.cancelDebitNote(req.params.id, req.companyId, req.userId, req.userName, req.ip);
+    res.json(result);
+});
+
+router.post('/debit-notes/:id/settle', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const result = await invoicesService.settleDebitNote(req.params.id, req.companyId, req.userId, req.userName, req.ip);
+    res.json(result);
+});
+
+// ─── PDF e Email para Notas de Crédito ─────────────────────────────────────
+async function buildCompanyInfo(companyId: string) {
+    const company = await prisma.companySettings.findFirst({ where: { companyId } });
+    return {
+        companyName: company?.companyName,
+        tradeName: company?.tradeName,
+        taxId: company?.nuit,
+        phone: company?.phone,
+        email: company?.email,
+        address: company?.address,
+        ivaRate: company?.ivaRate,
+        bankAccounts: company?.bankAccounts,
+    };
+}
+
+router.get('/credit-notes/:id/pdf', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const note = await invoicesService.getCreditNoteById(req.params.id, req.companyId);
+    const companyInfo = await buildCompanyInfo(req.companyId);
+    const pdfBuffer = await pdfService.generateNotePDF(
+        { ...note, issueDate: note.issueDate as string | Date, status: note.status as string | null },
+        'credit',
+        companyInfo,
+    );
+    res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="NotaCredito-${note.number}.pdf"`,
+        'Content-Length': pdfBuffer.length,
+    });
+    res.send(pdfBuffer);
+});
+
+router.post('/credit-notes/:id/send-email', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const { email } = req.body;
+    const note = await invoicesService.getCreditNoteById(req.params.id, req.companyId);
+
+    // Tenta obter email do cliente da fatura original se não foi fornecido.
+    let recipient = email as string | undefined;
+    if (!recipient && note.customerId) {
+        const customer = await prisma.customer.findFirst({ where: { id: note.customerId, companyId: req.companyId } });
+        recipient = customer?.email ?? undefined;
+    }
+    if (!recipient) throw ApiError.badRequest('Email do destinatário não fornecido');
+
+    const companyInfo = await buildCompanyInfo(req.companyId);
+    const pdfBuffer = await pdfService.generateNotePDF(
+        { ...note, issueDate: note.issueDate as string | Date, status: note.status as string | null },
+        'credit',
+        companyInfo,
+    );
+
+    await sendNoteEmail({
+        to: recipient,
+        type: 'credit',
+        note: {
+            number: note.number,
+            originalInvoiceNumber: note.originalInvoiceNumber,
+            customerName: note.customerName,
+            issueDate: note.issueDate as string | Date,
+            reason: note.reason,
+            subtotal: note.subtotal,
+            tax: note.tax,
+            total: note.total,
+            items: note.items.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, total: i.total })),
+        },
+        company: {
+            name: companyInfo.tradeName || companyInfo.companyName || 'Empresa',
+            email: companyInfo.email ?? undefined,
+            phone: companyInfo.phone ?? undefined,
+            taxId: companyInfo.taxId ?? undefined,
+        },
+        pdfBuffer,
+    });
+
+    res.json({ message: `Nota de Crédito enviada com sucesso para ${recipient}` });
+});
+
+// ─── PDF e Email para Notas de Débito ──────────────────────────────────────
+router.get('/debit-notes/:id/pdf', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const note = await invoicesService.getDebitNoteById(req.params.id, req.companyId);
+    const companyInfo = await buildCompanyInfo(req.companyId);
+    const pdfBuffer = await pdfService.generateNotePDF(
+        { ...note, issueDate: note.issueDate as string | Date, status: note.status as string | null },
+        'debit',
+        companyInfo,
+    );
+    res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="NotaDebito-${note.number}.pdf"`,
+        'Content-Length': pdfBuffer.length,
+    });
+    res.send(pdfBuffer);
+});
+
+router.post('/debit-notes/:id/send-email', authenticate, async (req: AuthRequest, res) => {
+    if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
+    const { email } = req.body;
+    const note = await invoicesService.getDebitNoteById(req.params.id, req.companyId);
+
+    let recipient = email as string | undefined;
+    if (!recipient && note.customerId) {
+        const customer = await prisma.customer.findFirst({ where: { id: note.customerId, companyId: req.companyId } });
+        recipient = customer?.email ?? undefined;
+    }
+    if (!recipient) throw ApiError.badRequest('Email do destinatário não fornecido');
+
+    const companyInfo = await buildCompanyInfo(req.companyId);
+    const pdfBuffer = await pdfService.generateNotePDF(
+        { ...note, issueDate: note.issueDate as string | Date, status: note.status as string | null },
+        'debit',
+        companyInfo,
+    );
+
+    await sendNoteEmail({
+        to: recipient,
+        type: 'debit',
+        note: {
+            number: note.number,
+            originalInvoiceNumber: note.originalInvoiceNumber,
+            customerName: note.customerName,
+            issueDate: note.issueDate as string | Date,
+            reason: note.reason,
+            subtotal: note.subtotal,
+            tax: note.tax,
+            total: note.total,
+            items: note.items.map(i => ({ description: i.description, quantity: i.quantity, unitPrice: i.unitPrice, total: i.total })),
+        },
+        company: {
+            name: companyInfo.tradeName || companyInfo.companyName || 'Empresa',
+            email: companyInfo.email ?? undefined,
+            phone: companyInfo.phone ?? undefined,
+            taxId: companyInfo.taxId ?? undefined,
+        },
+        pdfBuffer,
+    });
+
+    res.json({ message: `Nota de Débito enviada com sucesso para ${recipient}` });
 });
 
 // Download PDF
@@ -150,7 +347,7 @@ router.post('/:id/send-email', authenticate, async (req: AuthRequest, res) => {
             total: Number(invoice.total),
             amountDue: Number(invoice.amountDue),
             status: invoice.status,
-            items: (invoice.items || []).map((i: any) => ({
+            items: (invoice.items || []).map((i) => ({
                 description: i.description,
                 quantity: i.quantity,
                 unitPrice: Number(i.unitPrice),

@@ -5,7 +5,7 @@ export interface ExportPayload {
     title: string;
     subtitle?: string;
     columns: { header: string; key: string; width?: number }[];
-    data: any[];
+    data: object[];
     filename?: string;
 }
 

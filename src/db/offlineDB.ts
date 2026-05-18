@@ -6,7 +6,7 @@ export type SyncStatus = 'pending' | 'syncing' | 'failed' | 'done';
 export interface PendingSale {
     id?: number;
     clientId: string;          // idempotency key
-    data: any;                 // Sale creation data
+    data: Record<string, unknown>; // Sale creation data
     timestamp: number;
     status: SyncStatus;
     synced: boolean;           // legacy mirror of status === 'done'
@@ -21,7 +21,7 @@ export interface PendingOperation {
     module: string;
     endpoint: string;
     method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-    data: any;
+    data: Record<string, unknown> | null;
     timestamp: number;
     status: SyncStatus;
     synced: boolean;           // legacy mirror of status === 'done'
@@ -29,6 +29,16 @@ export interface PendingOperation {
     nextRetryAt: number;
     lastError?: string;
     priority?: number;
+}
+
+interface MigrationRow {
+    clientId?: string;
+    status?: SyncStatus;
+    synced?: boolean;
+    attempts?: number;
+    nextRetryAt?: number;
+    error?: string;
+    lastError?: string;
 }
 
 export interface CatalogMeta {
@@ -42,8 +52,8 @@ export class OfflineDB extends Dexie {
     pendingOperations!: Table<PendingOperation>;
     products!: Table<Product>;
     customers!: Table<Customer>;
-    medications!: Table<any>;
-    rooms!: Table<any>;
+    medications!: Table<Record<string, unknown>>;
+    rooms!: Table<Record<string, unknown>>;
     catalogMeta!: Table<CatalogMeta>;
 
     constructor() {
@@ -72,14 +82,14 @@ export class OfflineDB extends Dexie {
             })
             .upgrade(async (tx) => {
                 const now = Date.now();
-                await tx.table('pendingSales').toCollection().modify((row: any) => {
+                await tx.table('pendingSales').toCollection().modify((row: MigrationRow) => {
                     row.clientId = row.clientId ?? cryptoRandomId();
                     row.status = row.synced ? 'done' : (row.error ? 'failed' : 'pending');
                     row.attempts = row.attempts ?? 0;
                     row.nextRetryAt = row.nextRetryAt ?? now;
                     if (row.error && !row.lastError) row.lastError = row.error;
                 });
-                await tx.table('pendingOperations').toCollection().modify((row: any) => {
+                await tx.table('pendingOperations').toCollection().modify((row: MigrationRow) => {
                     row.clientId = row.clientId ?? cryptoRandomId();
                     row.status = row.synced ? 'done' : (row.error ? 'failed' : 'pending');
                     row.attempts = row.attempts ?? 0;

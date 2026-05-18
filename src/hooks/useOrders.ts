@@ -27,7 +27,7 @@ export interface CustomerOrder {
     customerEmail?: string;
     customerAddress?: string;
     total: number;
-    status: 'created' | 'printed' | 'separated' | 'completed' | 'cancelled';
+    status: 'created' | 'printed' | 'separated' | 'completed' | 'cancellation_requested' | 'cancellation_rejected' | 'cancelled';
     priority: 'low' | 'normal' | 'high' | 'urgent';
     paymentMethod?: string;
     deliveryDate?: string;
@@ -36,6 +36,18 @@ export interface CustomerOrder {
     updatedAt: string;
     items: CustomerOrderItem[];
     transitions: OrderTransition[];
+    cancellationRequests?: Array<{
+        id: string;
+        status: 'pending' | 'approved' | 'rejected';
+        reason: string;
+        riskLevel: string;
+        requiresCreditNote: boolean;
+        requestedByName?: string;
+        requestedAt: string;
+        decidedByName?: string;
+        decidedAt?: string;
+        decisionNotes?: string;
+    }>;
 }
 
 interface PaginationMeta {
@@ -66,7 +78,7 @@ export function useOrders(params?: UseOrdersParams) {
     const query = useQuery({
         queryKey: [...QK, params ?? {}],
         queryFn: async () => {
-            const response = await ordersAPI.getAll(params as any);
+            const response = await ordersAPI.getAll(params);
             let ordersData: CustomerOrder[];
             let pagination: PaginationMeta;
             if (response?.data && response?.pagination) {
@@ -130,6 +142,36 @@ export function useOrders(params?: UseOrdersParams) {
         onError: (err) => logger.error('Error deleting order:', err),
     });
 
+    const requestCancellationMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: Parameters<typeof ordersAPI.requestCancellation>[1] }) =>
+            ordersAPI.requestCancellation(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
+            toast.success('Pedido de cancelamento enviado para aprovacao.');
+        },
+        onError: (err) => logger.error('Error requesting order cancellation:', err),
+    });
+
+    const approveCancellationMutation = useMutation({
+        mutationFn: ({ requestId, data }: { requestId: string; data?: Parameters<typeof ordersAPI.approveCancellation>[1] }) =>
+            ordersAPI.approveCancellation(requestId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
+            toast.success('Cancelamento aprovado e executado.');
+        },
+        onError: (err) => logger.error('Error approving order cancellation:', err),
+    });
+
+    const rejectCancellationMutation = useMutation({
+        mutationFn: ({ requestId, data }: { requestId: string; data?: Parameters<typeof ordersAPI.rejectCancellation>[1] }) =>
+            ordersAPI.rejectCancellation(requestId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: QK });
+            toast.success('Pedido de cancelamento rejeitado.');
+        },
+        onError: (err) => logger.error('Error rejecting order cancellation:', err),
+    });
+
     return {
         orders: query.data?.orders ?? [],
         pagination: query.data?.pagination ?? null,
@@ -138,8 +180,11 @@ export function useOrders(params?: UseOrdersParams) {
         error: query.error ? 'Erro ao carregar encomendas' : null,
         refetch: query.refetch,
         addOrder: addMutation.mutateAsync,
-        updateOrder: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
-        updateOrderStatus: (id: string, data: any) => statusMutation.mutateAsync({ id, data }),
+        updateOrder: (id: string, data: Parameters<typeof ordersAPI.update>[1]) => updateMutation.mutateAsync({ id, data }),
+        updateOrderStatus: (id: string, data: Parameters<typeof ordersAPI.updateStatus>[1]) => statusMutation.mutateAsync({ id, data }),
+        requestOrderCancellation: (id: string, data: Parameters<typeof ordersAPI.requestCancellation>[1]) => requestCancellationMutation.mutateAsync({ id, data }),
+        approveOrderCancellation: (requestId: string, data?: Parameters<typeof ordersAPI.approveCancellation>[1]) => approveCancellationMutation.mutateAsync({ requestId, data }),
+        rejectOrderCancellation: (requestId: string, data?: Parameters<typeof ordersAPI.rejectCancellation>[1]) => rejectCancellationMutation.mutateAsync({ requestId, data }),
         deleteOrder: deleteMutation.mutateAsync,
     };
 }

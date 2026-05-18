@@ -26,22 +26,27 @@ interface UseEmployeesParams {
 
 const QK = ['employees'] as const;
 
-function unwrap(result: any): { data: Employee[]; pagination: PaginationMeta | null } {
+interface UnwrappedResult {
+    success?: boolean;
+    data?: Employee[] | { data?: Employee[]; meta?: PaginationMeta; pagination?: PaginationMeta };
+}
+
+function unwrap(result: UnwrappedResult | Employee[]): { data: Employee[]; pagination: PaginationMeta | null } {
     let employeesData: Employee[] = [];
     let pagination: PaginationMeta | null = null;
-    if (result?.success && result?.data) {
+    if (Array.isArray(result)) {
+        employeesData = result;
+    } else if (result?.success && result?.data) {
         const payload = result.data;
-        if (payload.data && payload.meta) {
+        if (Array.isArray(payload)) {
+            employeesData = payload;
+        } else if (payload.data && payload.meta) {
             employeesData = payload.data;
             pagination = payload.meta;
-        } else if (Array.isArray(payload)) {
-            employeesData = payload;
         } else if (payload.data) {
             employeesData = payload.data;
             if (payload.pagination) pagination = payload.pagination;
         }
-    } else if (Array.isArray(result)) {
-        employeesData = result;
     }
     return { data: employeesData, pagination };
 }
@@ -52,7 +57,7 @@ export function useEmployees(params?: UseEmployeesParams) {
     const query = useQuery({
         queryKey: [...QK, params ?? {}],
         queryFn: async () => {
-            const result = await employeesAPI.getAll(params as any);
+            const result = await employeesAPI.getAll(params);
             const { data, pagination } = unwrap(result);
             return {
                 employees: data,
@@ -104,7 +109,7 @@ export function useEmployees(params?: UseEmployeesParams) {
         error: query.error ? 'Erro ao carregar funcionários' : null,
         refetch: query.refetch,
         addEmployee: addMutation.mutateAsync,
-        updateEmployee: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
+        updateEmployee: (id: string, data: Parameters<typeof employeesAPI.update>[1]) => updateMutation.mutateAsync({ id, data }),
         deleteEmployee: deleteMutation.mutateAsync,
     };
 }

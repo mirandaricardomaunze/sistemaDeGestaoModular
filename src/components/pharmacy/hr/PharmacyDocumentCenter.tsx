@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     HiOutlineDocumentCheck,
     HiOutlineExclamationTriangle,
@@ -19,7 +19,7 @@ import { useEmployees } from '../../../hooks/useData';
 import { cn } from '../../../utils/helpers';
 import { isBefore, addDays, format } from 'date-fns';
 import toast from 'react-hot-toast';
-import type { Employee } from '../../../types';
+import type { Employee, ContractType } from '../../../types';
 
 // ──-Types ──────────────────────────────────────────────────────────────────-
 
@@ -70,7 +70,7 @@ function getDocStatus(expiry?: string): ComplianceStatus {
     return 'valid';
 }
 
-function getComplianceStatus(employee: any): ComplianceStatus {
+function getComplianceStatus(employee: Pick<Employee, 'contractExpiry'>): ComplianceStatus {
     if (!employee.contractExpiry) return 'missing';
     const expiry = new Date(employee.contractExpiry);
     const today = new Date();
@@ -103,6 +103,16 @@ const STATUS_COLORS: Record<ComplianceStatus, string> = {
 
 // ──-Documents View Modal ────────────────────────────────────────────────────-
 
+type DocItem = {
+    label: string;
+    icon: typeof HiOutlineDocumentCheck;
+    value?: string;
+    expiry?: string;
+    expiry_raw?: string;
+    institution?: string;
+    type: 'static' | 'expiry';
+};
+
 interface DocumentsModalProps {
     employee: Employee;
     isOpen: boolean;
@@ -113,7 +123,7 @@ interface DocumentsModalProps {
 const DocumentsModal: React.FC<DocumentsModalProps> = ({ employee, isOpen, onClose, onEdit }) => {
     const compliance = parseCompliance(employee?.notes);
 
-    const docs = [
+    const docs: DocItem[] = [
         {
             label: 'Bilhete de Identidade',
             icon: HiOutlineIdentification,
@@ -225,7 +235,7 @@ const DocumentsModal: React.FC<DocumentsModalProps> = ({ employee, isOpen, onClo
                                     {doc.value && (
                                         <p className="text-[10px] font-mono text-gray-500 mt-0.5">
                                             {doc.value}
-                                            {(doc as any).institution && ` • ${(doc as any).institution}`}
+                                            {doc.institution && ` • ${doc.institution}`}
                                         </p>
                                     )}
                                 </div>
@@ -237,8 +247,8 @@ const DocumentsModal: React.FC<DocumentsModalProps> = ({ employee, isOpen, onClo
                                 {doc.expiry != null && (
                                     <p className={cn('text-[10px] font-mono block', STATUS_COLORS[status])}>
                                         {doc.type === 'expiry'
-                                            ? `Expira: ${format(new Date(doc.expiry as string), 'dd/MM/yyyy')}`
-                                            : String((doc as any).expiry)}
+                                            ? `Expira: ${format(new Date(doc.expiry), 'dd/MM/yyyy')}`
+                                            : String(doc.expiry)}
                                     </p>
                                 )}
                             </div>
@@ -271,7 +281,7 @@ interface EditDocumentsModalProps {
     employee: Employee;
     isOpen: boolean;
     onClose: () => void;
-    onSave: (id: string, data: Partial<Employee>) => Promise<unknown>;
+    onSave: (id: string, data: Partial<Employee>) => Promise<void>;
 }
 
 const EditDocumentsModal: React.FC<EditDocumentsModalProps> = ({ employee, isOpen, onClose, onSave }) => {
@@ -321,7 +331,7 @@ const EditDocumentsModal: React.FC<EditDocumentsModalProps> = ({ employee, isOpe
                 nuit: nuit || undefined,
                 socialSecurityNumber: inss || undefined,
                 contractExpiry: contractExpiry || undefined,
-                contractType: (contractType as any) || undefined,
+                contractType: (contractType || undefined) as ContractType | undefined,
                 notes: updatedNotes,
             });
 
@@ -495,8 +505,8 @@ export const PharmacyDocumentCenter: React.FC = () => {
 
     const stats = useMemo(() => {
         if (!staff) return { valid: 0, expiring: 0, expired: 0, missing: 0 };
-        return staff.reduce(
-            (acc: Record<ComplianceStatus, number>, s: any) => {
+        return staff.reduce<Record<ComplianceStatus, number>>(
+            (acc, s) => {
                 acc[getComplianceStatus(s)]++;
                 return acc;
             },
@@ -588,7 +598,7 @@ export const PharmacyDocumentCenter: React.FC = () => {
                                 { value: 'missing', label: 'Sem Dados de Contrato' },
                             ]}
                             value={complianceFilter}
-                            onChange={(e) => setComplianceFilter(e.target.value as any)}
+                            onChange={(e) => setComplianceFilter(e.target.value as 'all' | ComplianceStatus)}
                         />
                     </div>
                     <Button

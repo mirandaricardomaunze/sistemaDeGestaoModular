@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Card, Button, Input, Modal, Badge, Textarea, PageHeader, Pagination, usePagination } from '../../components/ui';
 import {
-    HiOutlinePlus, HiOutlineRefresh, HiOutlinePencil, HiOutlineTrash,
-    HiOutlineSearch, HiOutlineUsers, HiOutlineCheckCircle,
-} from 'react-icons/hi';
+    HiOutlinePlus, HiOutlineArrowPath, HiOutlinePencil, HiOutlineTrash,
+    HiOutlineMagnifyingGlass, HiOutlineUsers, HiOutlineCheckCircle,
+} from 'react-icons/hi2';
 import { HiOutlineCake } from 'react-icons/hi2';
 import { cn } from '../../utils/helpers';
 import {
@@ -204,7 +204,7 @@ export default function RestaurantTables() {
                 icon={<HiOutlineCake className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
-                        <Button variant="ghost" onClick={() => refetch()} leftIcon={<HiOutlineRefresh className="w-5 h-5 text-primary-600 dark:text-primary-400" />}>Atualizar</Button>
+                        <Button variant="ghost" onClick={() => refetch()} leftIcon={<HiOutlineArrowPath className="w-5 h-5 text-primary-600 dark:text-primary-400" />}>Atualizar</Button>
                         <Button onClick={() => setModalOpen(true)} leftIcon={<HiOutlinePlus className="w-5 h-5" />} className="bg-red-600 hover:bg-red-700">Nova Mesa</Button>
                     </>
                 }
@@ -234,7 +234,7 @@ export default function RestaurantTables() {
                 <div className="flex-1">
                     <Input
                         placeholder="Pesquisar mesa, nome ou secção..."
-                        leftIcon={<HiOutlineSearch className="w-5 h-5" />}
+                        leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                     />

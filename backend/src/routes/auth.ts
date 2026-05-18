@@ -19,10 +19,13 @@ const isPasswordStrong = (pwd: string): boolean =>
 /**
  * Utility to remove sensitive fields from user object
  */
-const sanitizeUser = (user: any) => {
+type SanitizableUser = { password?: unknown; otp?: unknown; preferences?: unknown; [key: string]: unknown };
+const sanitizeUser = (user: SanitizableUser | null | undefined) => {
     if (!user) return null;
-    const { password, otp, ...safeUser } = user;
-    return safeUser;
+    const { password: _password, otp: _otp, ...safeUser } = user;
+    void _password; void _otp;
+    // ensure preferences is an object if null
+    return { ...safeUser, preferences: safeUser.preferences || {} };
 };
 
 /**
@@ -173,10 +176,11 @@ router.post('/register', rateLimiters.auth, async (req, res) => {
         );
 
         res.status(201).json({ user: sanitizeUser(result.user), token });
-    } catch (error: any) {
+    } catch (error) {
         // Handle Prisma unique constraint violations
-        if (error?.code === 'P2002') {
-            const target = error?.meta?.target;
+        const err = error as { code?: string; meta?: { target?: string[] } };
+        if (err?.code === 'P2002') {
+            const target = err?.meta?.target;
             if (target?.includes('nuit')) {
                 throw ApiError.badRequest('Este NUIT já está registado por outra empresa.');
             }
@@ -349,6 +353,26 @@ router.put('/profile', authenticate, async (req: AuthRequest, res) => {
             ...(name && { name }),
             ...(phone !== undefined && { phone }),
             ...(avatar !== undefined && { avatar }),
+        }
+    });
+    res.json(sanitizeUser(updated));
+});
+
+// ---------------------------------------------------------------------------
+// PUT /auth/preferences -- update user preferences (e.g. dashboard layout)
+// ---------------------------------------------------------------------------
+router.put('/preferences', authenticate, async (req: AuthRequest, res) => {
+    if (!req.userId) throw ApiError.unauthorized('Não autenticado');
+    const { preferences } = req.body;
+    
+    // Merge existing preferences
+    const user = await prisma.user.findUnique({ where: { id: req.userId } });
+    const currentPrefs = (user?.preferences && typeof user.preferences === 'object' ? user.preferences : {}) as Record<string, unknown>;
+    
+    const updated = await prisma.user.update({
+        where: { id: req.userId },
+        data: {
+            preferences: { ...currentPrefs, ...preferences }
         }
     });
     res.json(sanitizeUser(updated));

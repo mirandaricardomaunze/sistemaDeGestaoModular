@@ -14,11 +14,11 @@ import {
     HiOutlineViewColumns,
     HiOutlineXMark,
     HiOutlineCheck,
-    HiOutlineBell,
 } from 'react-icons/hi2';
 import { calendarAPI, type CalendarEvent, type CreateCalendarEventDto } from '../services/api/calendar.api';
 import { cn } from '../utils/helpers';
 import { useAuthStore } from '../stores/useAuthStore';
+import { Button, Input, Select } from '../components/ui';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -168,7 +168,7 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
         isCompleted: initial?.isCompleted || false,
     });
 
-    const set = (k: string, v: any) => setForm(prev => ({ ...prev, [k]: v }));
+    const set = (k: string, v: string | number | boolean) => setForm(prev => ({ ...prev, [k]: v }));
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -199,22 +199,18 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {initial?.id ? 'Editar Evento' : 'Novo Evento'}
                     </h2>
-                    <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <Button variant="ghost" size="sm" type="button" onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 active:scale-90">
                         <HiOutlineXMark className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
 
-                {/* Title */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Título *</label>
-                    <input
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={form.title}
-                        onChange={e => set('title', e.target.value)}
-                        placeholder="Nome do evento"
-                        required
-                    />
-                </div>
+                <Input
+                    label="Título *"
+                    value={form.title}
+                    onChange={e => set('title', e.target.value)}
+                    placeholder="Nome do evento"
+                    required
+                />
 
                 {/* Description */}
                 <div>
@@ -230,26 +226,20 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
 
                 {/* Dates */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Início *</label>
-                        <input
-                            type={form.allDay ? 'date' : 'datetime-local'}
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={form.allDay ? form.startAt.substring(0, 10) : form.startAt}
-                            onChange={e => set('startAt', e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Fim *</label>
-                        <input
-                            type={form.allDay ? 'date' : 'datetime-local'}
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={form.allDay ? form.endAt.substring(0, 10) : form.endAt}
-                            onChange={e => set('endAt', e.target.value)}
-                            required
-                        />
-                    </div>
+                    <Input
+                        label="Início *"
+                        type={form.allDay ? 'date' : 'datetime-local'}
+                        value={form.allDay ? form.startAt.substring(0, 10) : form.startAt}
+                        onChange={e => set('startAt', e.target.value)}
+                        required
+                    />
+                    <Input
+                        label="Fim *"
+                        type={form.allDay ? 'date' : 'datetime-local'}
+                        value={form.allDay ? form.endAt.substring(0, 10) : form.endAt}
+                        onChange={e => set('endAt', e.target.value)}
+                        required
+                    />
                 </div>
 
                 {/* All day + Module badge row */}
@@ -277,50 +267,44 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Cor</label>
                         <div className="flex gap-2 flex-wrap">
                             {EVENT_COLORS.map(c => (
-                                <button
+                                <div
                                     key={c.value}
-                                    type="button"
+                                    role="button"
+                                    tabIndex={0}
                                     title={c.label}
-                                    className={cn('w-6 h-6 rounded-full border-2 transition-all', form.color === c.value ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent')}
+                                    className={cn('w-6 h-6 rounded-full border-2 transition-all cursor-pointer', form.color === c.value ? 'border-gray-900 dark:border-white scale-110' : 'border-transparent')}
                                     style={{ backgroundColor: c.value }}
                                     onClick={() => set('color', form.color === c.value ? '' : c.value)}
                                 />
                             ))}
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            <HiOutlineBell className="inline w-4 h-4 mr-1" />Lembrete (min)
-                        </label>
-                        <select
-                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value={form.notifyBefore}
-                            onChange={e => set('notifyBefore', e.target.value)}
-                        >
-                            <option value="">Sem lembrete</option>
-                            <option value="5">5 minutos antes</option>
-                            <option value="15">15 minutos antes</option>
-                            <option value="30">30 minutos antes</option>
-                            <option value="60">1 hora antes</option>
-                            <option value="1440">1 dia antes</option>
-                        </select>
-                    </div>
+                    <Select
+                        label="Lembrete antes do evento"
+                        value={form.notifyBefore}
+                        onChange={e => set('notifyBefore', e.target.value)}
+                        options={[
+                            { value: '', label: 'Sem lembrete' },
+                            { value: '5', label: '5 minutos antes' },
+                            { value: '15', label: '15 minutos antes' },
+                            { value: '30', label: '30 minutos antes' },
+                            { value: '60', label: '1 hora antes' },
+                            { value: '1440', label: '1 dia antes' },
+                        ]}
+                    />
                 </div>
 
-                {/* Recurrence */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recorrência</label>
-                    <select
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={form.recurrence}
-                        onChange={e => set('recurrence', e.target.value)}
-                    >
-                        <option value="">Não se repete</option>
-                        <option value="daily">Diariamente</option>
-                        <option value="weekly">Semanalmente</option>
-                        <option value="monthly">Mensalmente</option>
-                    </select>
-                </div>
+                <Select
+                    label="Recorrência"
+                    value={form.recurrence}
+                    onChange={e => set('recurrence', e.target.value)}
+                    options={[
+                        { value: '', label: 'Não se repete' },
+                        { value: 'daily', label: 'Diariamente' },
+                        { value: 'weekly', label: 'Semanalmente' },
+                        { value: 'monthly', label: 'Mensalmente' },
+                    ]}
+                />
 
                 {/* Completed (edit only) */}
                 {initial?.id && (
@@ -338,17 +322,17 @@ function EventForm({ initial, defaultDate, currentModule, onSave, onClose, loadi
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <Button variant="outline" type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg">
                         Cancelar
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="submit"
                         disabled={loading}
                         className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2"
                     >
                         {loading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
                         {initial?.id ? 'Guardar' : 'Criar Evento'}
-                    </button>
+                    </Button>
                 </div>
             </form>
         </div>
@@ -382,9 +366,9 @@ function EventDetail({
                             {event.title}
                         </h3>
                     </div>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+                    <Button variant="ghost" size="sm" onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0 active:scale-90">
                         <HiOutlineXMark className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
 
                 {event.description && (
@@ -435,18 +419,22 @@ function EventDetail({
 
                 {isOwner && (
                     <div className="flex gap-2 pt-1">
-                        <button
-                            onClick={onEdit}
-                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                        >
-                            <HiOutlinePencilSquare className="w-4 h-4" /> Editar
-                        </button>
-                        <button
-                            onClick={onDelete}
-                            className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100"
-                        >
-                            <HiOutlineTrash className="w-4 h-4" /> Eliminar
-                        </button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onEdit}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm rounded-lg active:scale-95"
+                    >
+                        <HiOutlinePencilSquare className="w-4 h-4" /> Editar
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onDelete}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 active:scale-95"
+                    >
+                        <HiOutlineTrash className="w-4 h-4" /> Eliminar
+                    </Button>
                     </div>
                 )}
             </div>
@@ -641,7 +629,7 @@ export default function CalendarPage() {
     });
 
     const updateMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => calendarAPI.updateEvent(id, data),
+        mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => calendarAPI.updateEvent(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
             setEditingEvent(null);
@@ -675,9 +663,9 @@ export default function CalendarPage() {
         setDetailEvent(event);
     }, []);
 
-    const handleSave = (data: any) => {
+    const handleSave = (data: CreateCalendarEventDto & { isCompleted?: boolean }) => {
         if (editingEvent) {
-            updateMutation.mutate({ id: editingEvent.id, data });
+            updateMutation.mutate({ id: editingEvent.id, data: data as unknown as Record<string, unknown> });
         } else {
             createMutation.mutate(data);
         }
@@ -717,15 +705,15 @@ export default function CalendarPage() {
 
                     {/* Navigation */}
                     <div className="flex items-center gap-1">
-                        <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400">
+                        <Button variant="ghost" size="sm" onClick={prevMonth} className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95">
                             <HiOutlineChevronLeft className="w-4 h-4" />
-                        </button>
-                        <button onClick={goToday} className="px-3 py-1 text-sm rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium">
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={goToday} className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95">
                             Hoje
-                        </button>
-                        <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400">
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={nextMonth} className="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95">
                             <HiOutlineChevronRight className="w-4 h-4" />
-                        </button>
+                        </Button>
                     </div>
 
                     <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
@@ -743,28 +731,22 @@ export default function CalendarPage() {
 
                     {/* View toggle */}
                     <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <button
-                            onClick={() => setViewMode('month')}
-                            className={cn('px-3 py-1.5 text-sm flex items-center gap-1', viewMode === 'month' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setViewMode('month')} className={cn('px-3 py-1.5 text-sm flex items-center gap-1 rounded-none', viewMode === 'month' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}>
                             <HiOutlineViewColumns className="w-4 h-4" /> Mês
-                        </button>
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={cn('px-3 py-1.5 text-sm flex items-center gap-1', viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}
-                        >
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setViewMode('list')} className={cn('px-3 py-1.5 text-sm flex items-center gap-1 rounded-none', viewMode === 'list' ? 'bg-blue-600 text-white hover:bg-blue-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')}>
                             <HiOutlineListBullet className="w-4 h-4" /> Lista
-                        </button>
+                        </Button>
                     </div>
 
                     {/* New event */}
-                    <button
+                    <Button
                         onClick={() => { setDefaultDate(undefined); setEditingEvent(null); setShowForm(true); }}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
                     >
                         <HiOutlinePlus className="w-4 h-4" />
                         Novo Evento
-                    </button>
+                    </Button>
                 </div>
             </div>
 

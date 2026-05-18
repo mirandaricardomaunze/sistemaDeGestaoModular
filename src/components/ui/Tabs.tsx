@@ -36,26 +36,26 @@ export function Tabs({ tabs, activeTab, onChange, variant = 'default', className
         if (variant === 'pills') {
             return `${base} ${disabled} rounded-lg ${isActive
                     ? 'bg-primary-600 text-white shadow-md'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700'
+                    : 'text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 hover:text-slate-950'
                 }`;
         }
 
         if (variant === 'underline') {
             return `${base} ${disabled} border-b-2 -mb-px ${isActive
                     ? 'border-primary-600 text-primary-600 dark:text-primary-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300'
+                    : 'border-transparent text-slate-600 dark:text-gray-400 hover:text-slate-950 dark:hover:text-gray-200 hover:border-slate-300'
                 }`;
         }
 
         // Default style
         return `${base} ${disabled} rounded-t-lg border border-b-0 ${isActive
-                ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-600 text-primary-600'
-                : 'bg-gray-50 dark:bg-dark-700 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-600'
+                ? 'bg-white dark:bg-dark-800 border-slate-200 dark:border-dark-600 text-primary-700 shadow-sm'
+                : 'bg-slate-100/80 dark:bg-dark-700 border-transparent text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-600 hover:text-slate-950'
             }`;
     };
 
     return (
-        <div className={`${baseClasses} ${variant === 'underline' ? 'border-b border-gray-200 dark:border-dark-600' : ''} ${className}`}>
+        <div className={`${baseClasses} ${variant === 'underline' ? 'border-b border-slate-200 dark:border-dark-600' : ''} ${className}`}>
             {tabs.map(tab => (
                 <button
                     key={tab.id}
@@ -112,7 +112,7 @@ export function Stepper({ steps, currentStep, className = '' }: StepperProps) {
                                 ? 'bg-green-500 text-white'
                                 : index === currentStep
                                     ? 'bg-primary-600 text-white ring-4 ring-primary-100 dark:ring-primary-900'
-                                    : 'bg-gray-200 dark:bg-dark-600 text-gray-500 dark:text-gray-400'
+                                    : 'bg-slate-200 dark:bg-dark-600 text-slate-600 dark:text-gray-400'
                             }
                         `}>
                             {index < currentStep ? (
@@ -126,12 +126,12 @@ export function Stepper({ steps, currentStep, className = '' }: StepperProps) {
                         <div className="mt-2 text-center">
                             <p className={`text-xs font-medium ${index <= currentStep
                                     ? 'text-gray-900 dark:text-white'
-                                    : 'text-gray-500 dark:text-gray-400'
+                                    : 'text-slate-600 dark:text-gray-400'
                                 }`}>
                                 {step.label}
                             </p>
                             {step.description && (
-                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                <p className="text-[10px] text-slate-600 dark:text-gray-400 mt-0.5">
                                     {step.description}
                                 </p>
                             )}

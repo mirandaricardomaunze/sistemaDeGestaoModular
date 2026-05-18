@@ -27,6 +27,7 @@ const paymentLabels: Record<string, string> = {
 
 export default function ProfessionalReceipt({ isOpen, onClose, sale }: ProfessionalReceiptProps) {
     const { companySettings } = useStore();
+    const taxRate = Number((sale as { taxRate?: number | string }).taxRate ?? companySettings.ivaRate ?? 16);
 
     const formatDateTime = (dateString: string) => {
         const date = new Date(dateString);
@@ -138,7 +139,7 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
                     : 0;
                 return (
                     <>
-                        <table className="receipt-table">
+                        <table className="receipt-table print-table">
                             <thead>
                                 <tr>
                                     <th style={{ width: hasWeight ? '40%' : '50%' }}>Descrição</th>
@@ -151,11 +152,12 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
                             <tbody>
                                 {(sale.items || []).map((item, index) => {
                                     const lineWeight = item.product?.weight ? item.product.weight * item.quantity : null;
+                                    const publicRef = item.product.sku || item.product.barcode;
                                     return (
                                         <tr key={index}>
                                             <td>
                                                 <p className="font-medium text-gray-900">{item.product.name}</p>
-                                                <p className="text-[8pt] text-gray-400">{item.product.code}</p>
+                                                {publicRef && <p className="text-[8pt] text-gray-400">Ref: {publicRef}</p>}
                                                 {Number(item.product?.weight) > 0 && (
                                                     <p className="text-[7pt] text-gray-300">{Number(item.product!.weight).toFixed(3)} kg/un</p>
                                                 )}
@@ -201,7 +203,7 @@ export default function ProfessionalReceipt({ isOpen, onClose, sale }: Professio
                         </div>
                     )}
                     <div className="receipt-totals-row">
-                        <span className="text-gray-500">IVA (16%)</span>
+                        <span className="text-gray-500">IVA ({taxRate}%)</span>
                         <span>{formatCurrency(sale.tax)}</span>
                     </div>
                     <div className="receipt-totals-row total">

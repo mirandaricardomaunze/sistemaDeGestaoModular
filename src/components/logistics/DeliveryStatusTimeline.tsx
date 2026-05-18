@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DeliveryStatusTimeline Component
  *
  * Responsibility: Render ONLY. Receives pre-computed timeline events via props.
@@ -83,13 +83,13 @@ interface DeliveryStatusTimelineProps {
 export function DeliveryStatusTimeline({ events }: DeliveryStatusTimelineProps) {
     if (events.length === 0) return null;
 
-    const terminalFailureStatuses = ['failed', 'returned', 'cancelled'] as const;
+    const terminalFailureStatuses: readonly string[] = ['failed', 'returned', 'cancelled'];
 
     return (
         <ol aria-label="Histórico de estado da entrega" className="space-y-0">
             {events.map((event, index) => {
                 const isLast = index === events.length - 1;
-                const isTerminalFailure = terminalFailureStatuses.includes(event.status as any);
+                const isTerminalFailure = terminalFailureStatuses.includes(event.status);
 
                 return (
                     <li key={event.status} className="flex gap-3">

@@ -71,6 +71,41 @@ interface SearchResultItem {
     module?: string;
 }
 
+// ── Minimal shape interfaces — only the fields this component reads. ────────
+// API responses come either as a raw array or wrapped in `{ data: [...] }`,
+// so the helper below normalises both forms.
+type ListResponse<T> = T[] | { data?: T[] };
+function pickItems<T>(res: unknown): T[] {
+    if (Array.isArray(res)) return res as T[];
+    if (res && typeof res === 'object' && 'data' in res && Array.isArray((res as { data?: unknown }).data)) {
+        return (res as { data: T[] }).data;
+    }
+    return [];
+}
+
+type ProductHit = {
+    id: string | number;
+    name: string;
+    code?: string | null;
+    barcode?: string | null;
+    sku?: string | null;
+    currentStock?: number;
+    originModule?: string | null;
+};
+type SupplierHit = { id: string | number; name: string; contactPerson?: string | null; phone?: string | null };
+type CategoryHit = { id: string | number; name: string; code?: string | null };
+type OrderHit = { id: string | number; orderNumber: string; customerName?: string | null };
+type CustomerHit = { id: string | number; name: string; phone?: string | null; email?: string | null };
+type OpportunityHit = { id: string | number; title: string; status?: string | null; customer?: { name?: string | null } | null };
+type EmployeeHit = { id: string | number; name: string; role?: string | null; department?: string | null };
+type SaleHit = { id: string | number; receiptNumber?: string | null; customerName?: string | null; total?: number | string | null };
+type InvoiceHit = { id: string | number; invoiceNumber: string; customerName?: string | null; status?: string | null };
+type MedicationHit = { id: string | number; name: string; concentration?: string | null; dosageForm?: string | null };
+type RoomHit = { id: string | number; number: string | number; type?: string | null; status?: string | null };
+type BookingHit = { id: string | number; customerName?: string | null; status?: string | null; room?: { number?: string | number | null } | null };
+type TableHit = { id: string | number; number: string | number; name?: string | null; zone?: string | null; status?: string | null };
+type MenuItemHit = { id: string | number; name: string; category?: string | null; price?: number | string | null };
+
 interface ModuleConfig {
     code: string;
     label: string;
@@ -427,42 +462,40 @@ export default function GlobalSearch() {
                     tasks.push(
                         productsAPI
                             .getAll({ search: q, originModule: userSpecializedModule })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
+                            .then((res) => {
+                                const items = pickItems<ProductHit>(res);
                                 const ql = q.toLowerCase();
-                                return items.slice(0, MAX_PER_TYPE).map(
-                                    (p: any): SearchResultItem => {
-                                        // Derive module from product.originModule so badges/chips group correctly.
-                                        const om = (p.originModule || 'inventory').toLowerCase();
-                                        const moduleCode = MODULE_CONFIG.find((m) => m.code === om)?.code || 'inventory';
-                                        const hrefByModule: Record<string, string> = {
-                                            pharmacy: `/pharmacy/manage?search=${encodeURIComponent(p.code || p.name)}`,
-                                            restaurant: `/restaurant/menu?search=${encodeURIComponent(p.name)}`,
-                                            bottle_store: `/bottle-store/inventory?search=${encodeURIComponent(p.name)}`,
-                                            commercial: `/commercial/inventory?search=${encodeURIComponent(p.code || p.name)}`,
-                                            logistics: `/logistics/dashboard?search=${encodeURIComponent(p.name)}`,
-                                        };
-                                        // Surface whichever identifier matched the query so the user sees the hit.
-                                        const idParts: string[] = [];
-                                        if (p.code) idParts.push(p.code);
-                                        if (p.barcode && lower(p.barcode).includes(ql) && p.barcode !== p.code) {
-                                            idParts.push(`cb:${p.barcode}`);
-                                        }
-                                        if (p.sku && lower(p.sku).includes(ql) && p.sku !== p.code) {
-                                            idParts.push(`sku:${p.sku}`);
-                                        }
-                                        const stockPart = p.currentStock !== undefined ? `${p.currentStock} em stock` : '';
-                                        const subtitle = [idParts.join(' · '), stockPart].filter(Boolean).join(' • ');
-                                        return {
-                                            id: p.id,
-                                            type: 'product',
-                                            title: p.name,
-                                            subtitle,
-                                            href: hrefByModule[moduleCode] || `/inventory?search=${encodeURIComponent(p.code || p.name)}`,
-                                            module: moduleCode,
-                                        };
+                                return items.slice(0, MAX_PER_TYPE).map((p): SearchResultItem => {
+                                    // Derive module from product.originModule so badges/chips group correctly.
+                                    const om = (p.originModule || 'inventory').toLowerCase();
+                                    const moduleCode = MODULE_CONFIG.find((m) => m.code === om)?.code || 'inventory';
+                                    const hrefByModule: Record<string, string> = {
+                                        pharmacy: `/pharmacy/manage?search=${encodeURIComponent(p.code || p.name)}`,
+                                        restaurant: `/restaurant/menu?search=${encodeURIComponent(p.name)}`,
+                                        bottle_store: `/bottle-store/inventory?search=${encodeURIComponent(p.name)}`,
+                                        commercial: `/commercial/inventory?search=${encodeURIComponent(p.code || p.name)}`,
+                                        logistics: `/logistics/dashboard?search=${encodeURIComponent(p.name)}`,
+                                    };
+                                    // Surface whichever identifier matched the query so the user sees the hit.
+                                    const idParts: string[] = [];
+                                    if (p.code) idParts.push(p.code);
+                                    if (p.barcode && lower(p.barcode).includes(ql) && p.barcode !== p.code) {
+                                        idParts.push(`cb:${p.barcode}`);
                                     }
-                                );
+                                    if (p.sku && lower(p.sku).includes(ql) && p.sku !== p.code) {
+                                        idParts.push(`sku:${p.sku}`);
+                                    }
+                                    const stockPart = p.currentStock !== undefined ? `${p.currentStock} em stock` : '';
+                                    const subtitle = [idParts.join(' · '), stockPart].filter(Boolean).join(' • ');
+                                    return {
+                                        id: p.id,
+                                        type: 'product',
+                                        title: p.name,
+                                        subtitle,
+                                        href: hrefByModule[moduleCode] || `/inventory?search=${encodeURIComponent(p.code || p.name)}`,
+                                        module: moduleCode,
+                                    };
+                                });
                             })
                             .catch(() => [])
                     );
@@ -470,18 +503,16 @@ export default function GlobalSearch() {
                     tasks.push(
                         suppliersAPI
                             .getAll({ search: q })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
-                                return items.slice(0, MAX_PER_TYPE).map(
-                                    (s: any): SearchResultItem => ({
-                                        id: s.id,
-                                        type: 'supplier',
-                                        title: s.name,
-                                        subtitle: [s.contactPerson, s.phone].filter(Boolean).join(' • '),
-                                        href: `/suppliers?search=${encodeURIComponent(s.name)}`,
-                                        module: 'inventory',
-                                    })
-                                );
+                            .then((res) => {
+                                const items = pickItems<SupplierHit>(res);
+                                return items.slice(0, MAX_PER_TYPE).map((s): SearchResultItem => ({
+                                    id: s.id,
+                                    type: 'supplier',
+                                    title: s.name,
+                                    subtitle: [s.contactPerson, s.phone].filter(Boolean).join(' • '),
+                                    href: `/suppliers?search=${encodeURIComponent(s.name)}`,
+                                    module: 'inventory',
+                                }));
                             })
                             .catch(() => [])
                     );
@@ -489,44 +520,42 @@ export default function GlobalSearch() {
                     tasks.push(
                         settingsAPI
                             .getCategories()
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
+                            .then((res) => {
+                                const items = pickItems<CategoryHit>(res);
                                 return items
-                                    .filter((c: any) => matches(q.toLowerCase(), c.name, c.code))
+                                    .filter((c) => matches(q.toLowerCase(), c.name, c.code))
                                     .slice(0, MAX_PER_TYPE)
-                                    .map(
-                                        (c: any): SearchResultItem => ({
-                                            id: c.id,
-                                            type: 'category',
-                                            title: c.name,
-                                            subtitle: c.code || '',
-                                            href: `/categories?search=${encodeURIComponent(c.name)}`,
-                                            module: 'inventory',
-                                        })
-                                    );
+                                    .map((c): SearchResultItem => ({
+                                        id: c.id,
+                                        type: 'category',
+                                        title: c.name,
+                                        subtitle: c.code || '',
+                                        href: `/categories?search=${encodeURIComponent(c.name)}`,
+                                        module: 'inventory',
+                                    }));
                             })
                             .catch(() => [])
                     );
 
-                    if ((ordersAPI as any).getAll) {
+                    // ordersAPI.getAll doesn't formally accept `search` — backend
+                    // ignores unknown params, so cast just the call signature.
+                    if (ordersAPI.getAll) {
+                        const getOrders = ordersAPI.getAll as (p: { search?: string; originModule?: string }) => Promise<ListResponse<OrderHit>>;
                         tasks.push(
-                            (ordersAPI as any)
-                                .getAll({ search: q, originModule: userSpecializedModule })
-                                .then((res: any) => {
-                                    const items = Array.isArray(res) ? res : res?.data || [];
+                            getOrders({ search: q, originModule: userSpecializedModule })
+                                .then((res) => {
+                                    const items = pickItems<OrderHit>(res);
                                     return items
-                                        .filter((o: any) => matches(q.toLowerCase(), o.orderNumber, o.customerName))
+                                        .filter((o) => matches(q.toLowerCase(), o.orderNumber, o.customerName))
                                         .slice(0, MAX_PER_TYPE)
-                                        .map(
-                                            (o: any): SearchResultItem => ({
-                                                id: o.id,
-                                                type: 'order',
-                                                title: o.orderNumber,
-                                                subtitle: o.customerName,
-                                                href: `/orders?search=${encodeURIComponent(o.orderNumber)}`,
-                                                module: 'inventory',
-                                            })
-                                        );
+                                        .map((o): SearchResultItem => ({
+                                            id: o.id,
+                                            type: 'order',
+                                            title: o.orderNumber,
+                                            subtitle: o.customerName ?? undefined,
+                                            href: `/orders?search=${encodeURIComponent(o.orderNumber)}`,
+                                            module: 'inventory',
+                                        }));
                                 })
                                 .catch(() => [])
                         );
@@ -538,41 +567,35 @@ export default function GlobalSearch() {
                     tasks.push(
                         customersAPI
                             .getAll({ search: q })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
-                                return items.slice(0, MAX_PER_TYPE).map(
-                                    (c: any): SearchResultItem => ({
-                                        id: c.id,
-                                        type: 'customer',
-                                        title: c.name,
-                                        subtitle: [c.phone, c.email].filter(Boolean).join(' • ') || 'Sem contacto',
-                                        href: `/customers?search=${encodeURIComponent(c.name)}`,
-                                        module: 'crm',
-                                    })
-                                );
+                            .then((res) => {
+                                const items = pickItems<CustomerHit>(res);
+                                return items.slice(0, MAX_PER_TYPE).map((c): SearchResultItem => ({
+                                    id: c.id,
+                                    type: 'customer',
+                                    title: c.name,
+                                    subtitle: [c.phone, c.email].filter(Boolean).join(' • ') || 'Sem contacto',
+                                    href: `/customers?search=${encodeURIComponent(c.name)}`,
+                                    module: 'crm',
+                                }));
                             })
                             .catch(() => [])
                     );
                 }
 
-                if (hasModule('crm') && (crmAPI as any).getOpportunities) {
+                if (hasModule('crm') && crmAPI.getOpportunities) {
                     tasks.push(
-                        (crmAPI as any)
+                        crmAPI
                             .getOpportunities({ search: q, limit: SERVER_LIMIT })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
-                                return items
-                                    .slice(0, MAX_PER_TYPE)
-                                    .map(
-                                        (o: any): SearchResultItem => ({
-                                            id: o.id,
-                                            type: 'opportunity',
-                                            title: o.title,
-                                            subtitle: [o.customer?.name, o.status].filter(Boolean).join(' • '),
-                                            href: `/crm?search=${encodeURIComponent(o.title)}`,
-                                            module: 'crm',
-                                        })
-                                    );
+                            .then((res) => {
+                                const items = pickItems<OpportunityHit>(res);
+                                return items.slice(0, MAX_PER_TYPE).map((o): SearchResultItem => ({
+                                    id: o.id,
+                                    type: 'opportunity',
+                                    title: o.title,
+                                    subtitle: [o.customer?.name, o.status].filter(Boolean).join(' • '),
+                                    href: `/crm?search=${encodeURIComponent(o.title)}`,
+                                    module: 'crm',
+                                }));
                             })
                             .catch(() => [])
                     );
@@ -583,133 +606,119 @@ export default function GlobalSearch() {
                     tasks.push(
                         employeesAPI
                             .getAll({ search: q })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
-                                return items.slice(0, MAX_PER_TYPE).map(
-                                    (e: any): SearchResultItem => ({
-                                        id: e.id,
-                                        type: 'employee',
-                                        title: e.name,
-                                        subtitle: [e.role, e.department].filter(Boolean).join(' • '),
-                                        href: `/employees?search=${encodeURIComponent(e.name)}`,
-                                        module: 'hr',
-                                    })
-                                );
+                            .then((res) => {
+                                const items = pickItems<EmployeeHit>(res);
+                                return items.slice(0, MAX_PER_TYPE).map((e): SearchResultItem => ({
+                                    id: e.id,
+                                    type: 'employee',
+                                    title: e.name,
+                                    subtitle: [e.role, e.department].filter(Boolean).join(' • '),
+                                    href: `/employees?search=${encodeURIComponent(e.name)}`,
+                                    module: 'hr',
+                                }));
                             })
                             .catch(() => [])
                     );
                 }
 
                 // Sales (POS) + invoices
-                if (hasModule('pos') && (salesAPI as any).getAll) {
+                if (hasModule('pos') && salesAPI.getAll) {
                     tasks.push(
-                        (salesAPI as any)
+                        salesAPI
                             .getAll({ search: q, originModule: userSpecializedModule, limit: SERVER_LIMIT })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
-                                return items
-                                    .slice(0, MAX_PER_TYPE)
-                                    .map(
-                                        (s: any): SearchResultItem => ({
-                                            id: s.id,
-                                            type: 'sale',
-                                            title: s.receiptNumber || `Venda #${s.id}`,
-                                            subtitle: [s.customerName, s.total ? `${s.total} MT` : null].filter(Boolean).join(' • '),
-                                            href: `/financial?search=${encodeURIComponent(s.receiptNumber || '')}`,
-                                            module: 'sales',
-                                        })
-                                    );
+                            .then((res) => {
+                                const items = pickItems<SaleHit>(res);
+                                return items.slice(0, MAX_PER_TYPE).map((s): SearchResultItem => ({
+                                    id: s.id,
+                                    type: 'sale',
+                                    title: s.receiptNumber || `Venda #${s.id}`,
+                                    subtitle: [s.customerName, s.total ? `${s.total} MT` : null].filter(Boolean).join(' • '),
+                                    href: `/financial?search=${encodeURIComponent(s.receiptNumber || '')}`,
+                                    module: 'sales',
+                                }));
                             })
                             .catch(() => [])
                     );
                 }
 
-                if (hasModule('invoices') && (invoicesAPI as any).getAll) {
+                // invoicesAPI.getAll doesn't formally accept `search`; the backend
+                // ignores unknown params, so cast just the call signature.
+                if (hasModule('invoices') && invoicesAPI.getAll) {
+                    const getInvoices = invoicesAPI.getAll as (p: { search?: string; originModule?: string }) => Promise<ListResponse<InvoiceHit>>;
                     tasks.push(
-                        (invoicesAPI as any)
-                            .getAll({ search: q, originModule: userSpecializedModule })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
+                        getInvoices({ search: q, originModule: userSpecializedModule })
+                            .then((res) => {
+                                const items = pickItems<InvoiceHit>(res);
                                 return items
-                                    .filter((i: any) => matches(q.toLowerCase(), i.invoiceNumber, i.customerName))
+                                    .filter((i) => matches(q.toLowerCase(), i.invoiceNumber, i.customerName))
                                     .slice(0, MAX_PER_TYPE)
-                                    .map(
-                                        (i: any): SearchResultItem => ({
-                                            id: i.id,
-                                            type: 'invoice',
-                                            title: i.invoiceNumber,
-                                            subtitle: [i.customerName, i.status].filter(Boolean).join(' • '),
-                                            href: `/invoices?search=${encodeURIComponent(i.invoiceNumber)}`,
-                                            module: 'sales',
-                                        })
-                                    );
+                                    .map((i): SearchResultItem => ({
+                                        id: i.id,
+                                        type: 'invoice',
+                                        title: i.invoiceNumber,
+                                        subtitle: [i.customerName, i.status].filter(Boolean).join(' • '),
+                                        href: `/invoices?search=${encodeURIComponent(i.invoiceNumber)}`,
+                                        module: 'sales',
+                                    }));
                             })
                             .catch(() => [])
                     );
                 }
 
                 // Pharmacy
-                if (hasModule('pharmacy') && (pharmacyAPI as any).getMedications) {
+                if (hasModule('pharmacy') && pharmacyAPI.getMedications) {
                     tasks.push(
-                        (pharmacyAPI as any)
+                        pharmacyAPI
                             .getMedications({ search: q })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
-                                return items.slice(0, MAX_PER_TYPE).map(
-                                    (m: any): SearchResultItem => ({
-                                        id: m.id,
-                                        type: 'medication',
-                                        title: m.name,
-                                        subtitle: [m.concentration, m.dosageForm].filter(Boolean).join(' • '),
-                                        href: `/pharmacy?search=${encodeURIComponent(m.name)}`,
-                                        module: 'pharmacy',
-                                    })
-                                );
+                            .then((res) => {
+                                const items = pickItems<MedicationHit>(res);
+                                return items.slice(0, MAX_PER_TYPE).map((m): SearchResultItem => ({
+                                    id: m.id,
+                                    type: 'medication',
+                                    title: m.name,
+                                    subtitle: [m.concentration, m.dosageForm].filter(Boolean).join(' • '),
+                                    href: `/pharmacy?search=${encodeURIComponent(m.name)}`,
+                                    module: 'pharmacy',
+                                }));
                             })
                             .catch(() => [])
                     );
                 }
 
                 // Hospitality
-                if (hasModule('hospitality') && (hospitalityAPI as any).getRooms) {
+                if (hasModule('hospitality') && hospitalityAPI.getRooms) {
                     tasks.push(
-                        (hospitalityAPI as any)
+                        hospitalityAPI
                             .getRooms({ search: q })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
-                                return items.slice(0, MAX_PER_TYPE).map(
-                                    (r: any): SearchResultItem => ({
-                                        id: r.id,
-                                        type: 'room',
-                                        title: `Quarto ${r.number}`,
-                                        subtitle: [r.type, r.status].filter(Boolean).join(' • '),
-                                        href: `/hospitality/rooms?number=${encodeURIComponent(r.number)}`,
-                                        module: 'hospitality',
-                                    })
-                                );
+                            .then((res) => {
+                                const items = pickItems<RoomHit>(res);
+                                return items.slice(0, MAX_PER_TYPE).map((r): SearchResultItem => ({
+                                    id: r.id,
+                                    type: 'room',
+                                    title: `Quarto ${r.number}`,
+                                    subtitle: [r.type, r.status].filter(Boolean).join(' • '),
+                                    href: `/hospitality/rooms?number=${encodeURIComponent(String(r.number))}`,
+                                    module: 'hospitality',
+                                }));
                             })
                             .catch(() => [])
                     );
                 }
 
-                if (hasModule('hospitality') && (hospitalityAPI as any).getBookings) {
+                if (hasModule('hospitality') && hospitalityAPI.getBookings) {
                     tasks.push(
-                        (hospitalityAPI as any)
+                        hospitalityAPI
                             .getBookings({ search: q, limit: SERVER_LIMIT })
-                            .then((res: any) => {
-                                const items = Array.isArray(res) ? res : res?.data || [];
-                                return items
-                                    .slice(0, MAX_PER_TYPE)
-                                    .map(
-                                        (b: any): SearchResultItem => ({
-                                            id: b.id,
-                                            type: 'booking',
-                                            title: b.customerName || `Reserva #${b.id}`,
-                                            subtitle: [b.room?.number ? `Quarto ${b.room.number}` : null, b.status].filter(Boolean).join(' • '),
-                                            href: `/hospitality/reservations?search=${encodeURIComponent(b.customerName || '')}`,
-                                            module: 'hospitality',
-                                        })
-                                    );
+                            .then((res) => {
+                                const items = pickItems<BookingHit>(res);
+                                return items.slice(0, MAX_PER_TYPE).map((b): SearchResultItem => ({
+                                    id: b.id,
+                                    type: 'booking',
+                                    title: b.customerName || `Reserva #${b.id}`,
+                                    subtitle: [b.room?.number ? `Quarto ${b.room.number}` : null, b.status].filter(Boolean).join(' • '),
+                                    href: `/hospitality/reservations?search=${encodeURIComponent(b.customerName || '')}`,
+                                    module: 'hospitality',
+                                }));
                             })
                             .catch(() => [])
                     );
@@ -717,45 +726,41 @@ export default function GlobalSearch() {
 
                 // Restaurant
                 if (hasModule('restaurant')) {
-                    if ((restaurantAPI as any).getTables) {
+                    if (restaurantAPI.getTables) {
                         tasks.push(
-                            (restaurantAPI as any)
+                            restaurantAPI
                                 .getTables()
-                                .then((res: any) => {
-                                    const items = Array.isArray(res) ? res : res?.data || [];
+                                .then((res) => {
+                                    const items = pickItems<TableHit>(res);
                                     return items
-                                        .filter((tbl: any) => matches(q.toLowerCase(), tbl.number, tbl.name, tbl.zone))
+                                        .filter((tbl) => matches(q.toLowerCase(), tbl.number, tbl.name, tbl.zone))
                                         .slice(0, MAX_PER_TYPE)
-                                        .map(
-                                            (tbl: any): SearchResultItem => ({
-                                                id: tbl.id,
-                                                type: 'table',
-                                                title: `Mesa ${tbl.number}${tbl.name ? ` — ${tbl.name}` : ''}`,
-                                                subtitle: [tbl.zone, tbl.status].filter(Boolean).join(' • '),
-                                                href: `/restaurant/tables`,
-                                                module: 'restaurant',
-                                            })
-                                        );
+                                        .map((tbl): SearchResultItem => ({
+                                            id: tbl.id,
+                                            type: 'table',
+                                            title: `Mesa ${tbl.number}${tbl.name ? ` — ${tbl.name}` : ''}`,
+                                            subtitle: [tbl.zone, tbl.status].filter(Boolean).join(' • '),
+                                            href: `/restaurant/tables`,
+                                            module: 'restaurant',
+                                        }));
                                 })
                                 .catch(() => [])
                         );
                     }
-                    if ((restaurantAPI as any).getMenuItems) {
+                    if (restaurantAPI.getMenuItems) {
                         tasks.push(
-                            (restaurantAPI as any)
+                            restaurantAPI
                                 .getMenuItems({ search: q })
-                                .then((res: any) => {
-                                    const items = Array.isArray(res) ? res : res?.data || [];
-                                    return items.slice(0, MAX_PER_TYPE).map(
-                                        (m: any): SearchResultItem => ({
-                                            id: m.id,
-                                            type: 'menuItem',
-                                            title: m.name,
-                                            subtitle: [m.category, m.price ? `${m.price} MT` : null].filter(Boolean).join(' • '),
-                                            href: `/restaurant/menu?search=${encodeURIComponent(m.name)}`,
-                                            module: 'restaurant',
-                                        })
-                                    );
+                                .then((res) => {
+                                    const items = pickItems<MenuItemHit>(res);
+                                    return items.slice(0, MAX_PER_TYPE).map((m): SearchResultItem => ({
+                                        id: m.id,
+                                        type: 'menuItem',
+                                        title: m.name,
+                                        subtitle: [m.category, m.price ? `${m.price} MT` : null].filter(Boolean).join(' • '),
+                                        href: `/restaurant/menu?search=${encodeURIComponent(m.name)}`,
+                                        module: 'restaurant',
+                                    }));
                                 })
                                 .catch(() => [])
                         );
@@ -874,9 +879,9 @@ export default function GlobalSearch() {
         <>
             {/* Multi-empresa header */}
             {company && (
-                <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/30">
-                    <HiOutlineBuildingOffice2 className="w-3.5 h-3.5 text-gray-400" />
-                    <span className="text-[11px] uppercase tracking-wider font-semibold text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-200 dark:border-dark-700 bg-slate-50 dark:bg-dark-900/30">
+                    <HiOutlineBuildingOffice2 className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="text-[11px] uppercase tracking-wider font-bold text-slate-600 dark:text-gray-400">
                         Pesquisando em
                     </span>
                     <span className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate">
@@ -891,13 +896,13 @@ export default function GlobalSearch() {
             )}
 
             {showResults && availableModules.length > 1 && (
-                <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-100 dark:border-dark-700 overflow-x-auto scrollbar-thin">
+                <div className="flex items-center gap-1.5 px-3 py-2 border-b border-slate-200 dark:border-dark-700 overflow-x-auto scrollbar-thin">
                     <button
                         onClick={() => setActiveFilter('all')}
                         className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide transition-colors ${
                             activeFilter === 'all'
                                 ? 'bg-primary-600 text-white'
-                                : 'bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
+                                : 'bg-slate-100 dark:bg-dark-700 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-dark-600'
                         }`}
                     >
                         Todos
@@ -914,7 +919,7 @@ export default function GlobalSearch() {
                                 className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide transition-colors ${
                                     activeFilter === cfg.code
                                         ? 'bg-primary-600 text-white'
-                                        : 'bg-gray-100 dark:bg-dark-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-dark-600'
+                                    : 'bg-slate-100 dark:bg-dark-700 text-slate-600 dark:text-gray-300 hover:bg-slate-200 dark:hover:bg-dark-600'
                                 }`}
                             >
                                 <Icon className="w-3 h-3" />
@@ -1125,7 +1130,7 @@ export default function GlobalSearch() {
                     setOpen(true);
                     setTimeout(() => inputRef.current?.focus(), 0);
                 }}
-                className="md:hidden p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-500 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
+                className="md:hidden p-2.5 rounded-lg bg-white hover:bg-slate-50 dark:bg-transparent dark:hover:bg-dark-700 text-slate-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors border border-slate-300 dark:border-transparent shadow-sm"
                 title={t('common.search')}
             >
                 <HiOutlineMagnifyingGlass className="w-5 h-5" />
@@ -1135,7 +1140,7 @@ export default function GlobalSearch() {
             <div className="hidden md:block relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <HiOutlineMagnifyingGlass
-                        className={`w-4 h-4 ${isSearching ? 'text-primary-500 animate-pulse' : 'text-gray-400'}`}
+                        className={`w-4 h-4 ${isSearching ? 'text-primary-500 animate-pulse' : 'text-slate-500'}`}
                     />
                 </div>
                 <input
@@ -1149,7 +1154,7 @@ export default function GlobalSearch() {
                     onFocus={() => setOpen(true)}
                     onKeyDown={onKeyDown}
                     placeholder={`${t('common.search')} em ${company?.name || 'todos os módulos'}...`}
-                    className="w-full pl-10 pr-20 py-2.5 bg-slate-100/50 dark:bg-dark-800/50 border border-slate-200 dark:border-dark-700 rounded-xl text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-800 transition-all shadow-sm"
+                    className="w-full pl-10 pr-20 py-2.5 bg-white dark:bg-dark-800/50 border border-slate-300 dark:border-dark-700 rounded-xl text-sm text-slate-950 dark:text-gray-100 placeholder-slate-500 focus:outline-none focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 focus:bg-white dark:focus:bg-dark-800 transition-all shadow-sm"
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
                     {query && (
@@ -1158,13 +1163,13 @@ export default function GlobalSearch() {
                                 setQuery('');
                                 inputRef.current?.focus();
                             }}
-                            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-dark-700 text-gray-400 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-dark-700 text-slate-500 transition-colors"
                             title="Limpar"
                         >
                             <HiOutlineXMark className="w-3.5 h-3.5" />
                         </button>
                     )}
-                    <kbd className="hidden lg:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black text-gray-500 dark:text-gray-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg shadow-sm">
+                    <kbd className="hidden lg:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black text-slate-600 dark:text-gray-400 bg-white dark:bg-dark-700 border border-slate-300 dark:border-dark-600 rounded-lg shadow-sm">
                         <span className="text-[12px]">{isMac ? '⌘' : 'Ctrl'}</span>
                         <span>K</span>
                     </kbd>
@@ -1173,7 +1178,7 @@ export default function GlobalSearch() {
 
             {/* Desktop dropdown (md+ only) */}
             {(showEmpty || showResults) && (
-                <div className="hidden md:flex absolute top-full left-0 right-0 mt-2 bg-white dark:bg-dark-800 rounded-lg shadow-2xl border border-gray-200 dark:border-dark-700 overflow-hidden animate-slide-up flex-col max-h-[70vh] z-50">
+                <div className="hidden md:flex absolute top-full left-0 right-0 mt-2 bg-white dark:bg-dark-800 rounded-xl shadow-card-hover border border-slate-300/70 dark:border-dark-700 overflow-hidden animate-slide-up flex-col max-h-[70vh] z-50">
                     {dropdownBody}
                 </div>
             )}

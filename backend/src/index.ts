@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import 'express-async-errors';
-import express from 'express';
+import express, { type RequestHandler } from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { prisma } from './lib/prisma';
@@ -8,8 +8,9 @@ import { initSocket } from './lib/socket';
 import { errorHandler } from './middleware/error.middleware';
 import { authenticate, AuthRequest } from './middleware/auth';
 import { ApiError } from './middleware/error.middleware';
+import { env } from './config/env';
 
-// Import Routes (Selection of main ones for brevity in this refactor)
+// Import Routes
 import authRoutes from './routes/auth';
 import salesRoutes from './routes/sales';
 import productsRoutes from './routes/products';
@@ -53,6 +54,11 @@ import batchesRoutes from './routes/batches';
 import validitiesRoutes from './routes/validities';
 import hospitalityChannelsRoutes from './routes/hospitalityChannels';
 import calendarRoutes from './routes/calendar';
+import approvalsRoutes from './routes/approvals';
+import saftRoutes from './routes/saft';
+import physicalInventoryRoutes from './routes/physicalInventory';
+import accountingRoutes from './routes/accounting';
+import payrollRoutes from './routes/payroll';
 
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -63,13 +69,7 @@ import { auditMiddleware } from './middleware/audit';
 import { idempotency } from './middleware/idempotency';
 import { logger } from './utils/logger';
 
-// ── Startup Validation ──────────────────────────────────────────────────────
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET || JWT_SECRET.length < 32) {
-    console.error('FATAL: JWT_SECRET must be set and at least 32 characters long.');
-    process.exit(1);
-}
-
+// ── App Initialization ──────────────────────────────────────────────────────
 export const app = express();
 
 // Security Middleware
@@ -83,11 +83,7 @@ app.use(helmet({
 }));
 app.use(cookieParser());
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(s => s.trim()).filter(Boolean);
-if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
-    console.error('FATAL: ALLOWED_ORIGINS must be configured in production.');
-    process.exit(1);
-}
+const allowedOrigins = env.ALLOWED_ORIGINS;
 
 app.use(cors({
     origin: (origin, callback) => {
@@ -97,7 +93,7 @@ app.use(cors({
         }
         // Reject requests without an Origin header in production (prevents CSRF from forms)
         if (!origin) {
-            if (process.env.NODE_ENV === 'production') {
+            if (env.NODE_ENV === 'production') {
                 return callback(new Error('Origin header is required'));
             }
             return callback(null, true);
@@ -125,7 +121,7 @@ app.get('/uploads/prescriptions/:filename', authenticate, async (req: AuthReques
 });
 
 // HTTP request/response logging
-app.use((req, res, next) => {
+app.use((req: AuthRequest, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
         const duration = Date.now() - start;
@@ -135,8 +131,8 @@ app.use((req, res, next) => {
             status: res.statusCode,
             duration,
             ip: req.ip,
-            userId: (req as any).userId,
-            companyId: (req as any).companyId
+            userId: req.userId,
+            companyId: req.companyId
         });
     });
     next();
@@ -166,9 +162,9 @@ app.use((req, _res, next) => {
 app.use('/api', idempotency);
 
 // Audit mutations (POST, PUT, DELETE, PATCH)
-app.use(auditMiddleware as any);
+app.use(auditMiddleware as RequestHandler);
 
-// Main API Routes
+// ── Main API Routes ──────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/products', productsRoutes);
@@ -176,7 +172,7 @@ app.use('/api/commercial', commercialRoutes);
 app.use('/api/commercial/finance', commercialFinanceRoutes);
 app.use('/api/customers', customersRoutes);
 
-// Specific Hospitality Routes First
+// Specific Hospitality Routes First (order matters — specific before general)
 app.use('/api/hospitality/dashboard', hospitalityDashboardRoutes);
 app.use('/api/hospitality/finance', hospitalityFinanceRoutes);
 app.use('/api/hospitality/channels', hospitalityChannelsRoutes);
@@ -187,7 +183,8 @@ app.use('/api/hospitality', hospitalityRoutes);
 app.use('/api/logistics', logisticsRoutes);
 app.use('/api/logistics/finance', logisticsFinanceRoutes);
 app.use('/api/bottleStore', bottleStoreRoutes);
-app.use('/api/bottle-store/finance', bottleStoreFinanceRoutes);
+app.use('/api/bottleStore/finance', bottleStoreFinanceRoutes);   // camelCase — frontend & tests
+app.use('/api/bottle-store/finance', bottleStoreFinanceRoutes);  // kebab alias — legacy compat
 app.use('/api/ai', aiRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/gdrive', gdriveRoutes);
@@ -196,6 +193,10 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/fiscal', fiscalRoutes);
+app.use('/api/saft', saftRoutes);
+app.use('/api/physical-inventory', physicalInventoryRoutes);
+app.use('/api/accounting', accountingRoutes);
+app.use('/api/payroll', payrollRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/employees', employeesRoutes);
 app.use('/api/invoices', invoicesRoutes);
@@ -218,6 +219,7 @@ app.use('/api/restaurant', restaurantRoutes);
 app.use('/api/restaurant/finance', restaurantFinanceRoutes);
 app.use('/api/batches', batchesRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/approvals', approvalsRoutes);
 app.use('/api', validitiesRoutes);
 
 app.get('/api/health', async (req, res) => {
@@ -233,9 +235,10 @@ app.use(errorHandler);
 import { startCronJobs } from './cron/automation';
 import { initRedis } from './config/redis';
 import { createEmailWorker } from './workers/emailWorker';
+import { createAuditWorker } from './workers/auditWorker';
 import { backupService } from './services/backupService';
 
-const PORT = process.env.PORT || 3001;
+const PORT = env.PORT;
 const httpServer = createServer(app);
 const io = initSocket(httpServer);
 
@@ -262,6 +265,14 @@ const start = async () => {
             logger.warn('Email worker disabled (Redis not available)');
         }
 
+        // BullMQ audit log worker (P5: replaces fire-and-forget audit writes)
+        const auditWorker = createAuditWorker();
+        if (auditWorker) {
+            logger.info('Audit worker started (Redis connected)');
+        } else {
+            logger.warn('Audit worker disabled — fallback to direct writes (Redis not available)');
+        }
+
         httpServer.listen(PORT, () => console.log(`🚀 MultiCore ERP running on port ${PORT} (with WebSockets)`));
     } catch (error) {
         console.error('Fatal Error:', error);
@@ -269,7 +280,7 @@ const start = async () => {
     }
 };
 
-if (process.env.NODE_ENV !== 'test') {
+if (env.NODE_ENV !== 'test') {
     start();
 }
 

@@ -34,7 +34,7 @@ export const invoicesAPI = {
         customerAddress?: string;
         customerNuit?: string;
         items: Array<{
-            productId?: string;
+            productId?: string | null;
             description: string;
             quantity: number;
             unitPrice: number;
@@ -98,22 +98,77 @@ export const invoicesAPI = {
         customerId?: string;
         customerName: string;
         items: Array<{
-            productId?: string;
+            productId?: string | null;
             description: string;
             quantity: number;
             unitPrice: number;
+            total: number;
             originalInvoiceItemId?: string;
         }>;
         reason: string;
         notes?: string;
     }) => {
-        const response = await api.post('/invoices/credit-notes', data);
+        const response = await api.post(`/invoices/${data.originalInvoiceId}/credit-notes`, data);
         return response.data;
     },
 
     getCreditNotes: async (params?: { invoiceId?: string }) => {
         const response = await api.get('/invoices/credit-notes', { params });
         return response.data.data || response.data; // Handle both paginated and direct array responses
+    },
+
+    downloadCreditNotePdf: async (id: string): Promise<Blob> => {
+        const response = await api.get(`/invoices/credit-notes/${id}/pdf`, { responseType: 'blob' });
+        return response.data;
+    },
+
+    sendCreditNoteByEmail: async (id: string, email?: string): Promise<{ message: string }> => {
+        const response = await api.post(`/invoices/credit-notes/${id}/send-email`, { email });
+        return response.data;
+    },
+
+    createDebitNote: async (data: {
+        originalInvoiceId: string;
+        customerId?: string;
+        customerName: string;
+        items: Array<{
+            productId?: string | null;
+            description: string;
+            quantity: number;
+            unitPrice: number;
+            total: number;
+            originalInvoiceItemId?: string | null;
+        }>;
+        reason: string;
+        notes?: string;
+    }) => {
+        const response = await api.post(`/invoices/${data.originalInvoiceId}/debit-notes`, data);
+        return response.data;
+    },
+
+    getDebitNotes: async (params?: { invoiceId?: string }) => {
+        const response = await api.get('/invoices/debit-notes', { params });
+        return response.data.data || response.data;
+    },
+
+    cancelDebitNote: async (id: string) => {
+        const response = await api.post(`/invoices/debit-notes/${id}/cancel`);
+        return response.data;
+    },
+
+    settleDebitNote: async (id: string) => {
+        const response = await api.post(`/invoices/debit-notes/${id}/settle`);
+        return response.data;
+    },
+
+    downloadDebitNotePdf: async (id: string): Promise<Blob> => {
+        const response = await api.get(`/invoices/debit-notes/${id}/pdf`, { responseType: 'blob' });
+        return response.data;
+    },
+
+    sendDebitNoteByEmail: async (id: string, email?: string): Promise<{ message: string }> => {
+        const response = await api.post(`/invoices/debit-notes/${id}/send-email`, { email });
+        return response.data;
     },
 
     convertOrderToInvoice: async (orderId: string) => {

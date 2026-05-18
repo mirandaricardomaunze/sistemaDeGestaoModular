@@ -9,6 +9,8 @@ export { useInvoices } from './useInvoices';
 export { useEmployees } from './useEmployees';
 export { useAttendance } from './useAttendance';
 export { usePayroll } from './usePayroll';
+export * from './usePhysicalInventory';
+export * from './useAccounting';
 export { useVacations } from './useVacations';
 export { useWarehouses } from './useWarehouses';
 export { useStockTransfers } from './useStockTransfers';

@@ -15,8 +15,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build application
-ENV VITE_API_URL=http://localhost:3001/api
+# Build-time API URL. Override via:
+#   docker build --build-arg VITE_API_URL=https://api.exemplo.co.mz/api
+# Or rely on .env.production (auto-loaded by Vite when mode=production).
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 # Production image with nginx
