@@ -593,6 +593,11 @@ export class InvoicesService {
     async addPayment(id: string, data: AddPaymentInput, companyId: string) {
         const invoice = await prisma.invoice.findFirst({ where: { id, companyId } });
         if (!invoice) throw ApiError.notFound('Fatura não encontrada');
+        const currentDue = Number(invoice.amountDue || 0);
+        if (currentDue <= 0) throw ApiError.badRequest('Esta fatura ja esta liquidada');
+        if (data.amount > currentDue) {
+            throw ApiError.badRequest(`Valor excede o saldo da fatura (${currentDue.toFixed(2)} MT)`);
+        }
 
         const payment = await prisma.invoicePayment.create({
             data: {
@@ -609,7 +614,7 @@ export class InvoicesService {
         });
 
         const newAmountPaid = Number(invoice.amountPaid) + data.amount;
-        const newAmountDue = Number(invoice.total) - newAmountPaid;
+        const newAmountDue = currentDue - data.amount;
         let newStatus: InvoiceStatus = invoice.status;
         if (newAmountDue <= 0) newStatus = 'paid';
         else if (newAmountPaid > 0) newStatus = 'partial';

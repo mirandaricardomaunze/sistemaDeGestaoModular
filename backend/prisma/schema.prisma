@@ -223,58 +223,58 @@ model CompanyModule {
 }
 
 model Product {
-  id                   String                @id @default(uuid())
-  code                 String
-  name                 String
-  description          String?
-  price                Decimal               @db.Decimal(15, 2)
-  costPrice            Decimal               @default(0) @db.Decimal(15, 2)
-  currentStock         Int                   @default(0)
-  minStock             Int                   @default(5)
-  maxStock             Int?
-  unit                 String                @default("un")
-  barcode              String?
-  location             String?
-  status               StockStatus           @default(in_stock)
-  imageUrl             String?
-  isActive             Boolean               @default(true)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  supplierId           String?
-  isReturnable         Boolean               @default(false)
-  packSize             Int                   @default(1)
-  returnPrice          Decimal               @default(0) @db.Decimal(15, 2)
-  companyId            String?
-  ivaRateId            String?               @map("iva_rate_id")
-  taxRate              Decimal?              @map("tax_rate") @db.Decimal(5, 2)
-  categoryId           String?
-  originModule         String                @default("inventory") @map("origin_module")
-  reservedStock        Int                   @default(0)
-  sku                  String?
-  category             String                @default("other")
-  weight               Decimal?              @db.Decimal(10, 3)
-  bookingConsumptions  BookingConsumption[]
-  bottleReturns        BottleReturn[]
-  creditNoteItems      CreditNoteItem[]
-  debitNoteItems       DebitNoteItem[]
-  deliveryItems        DeliveryItem[]
-  invoiceItems         InvoiceItem[]
-  medication           Medication?
-  priceTiers           PriceTier[]
-  batches              ProductBatch[]
-  categoryModel        Category?             @relation(fields: [categoryId], references: [id])
-  company              Company?              @relation(fields: [companyId], references: [id])
-  ivaRate              IvaRate?              @relation(fields: [ivaRateId], references: [id])
-  supplier             Supplier?             @relation(fields: [supplierId], references: [id])
-  purchaseOrderItems   PurchaseOrderItem[]
-  saleItems            SaleItem[]
-  stockMovements       StockMovement[]
+  id                     String                  @id @default(uuid())
+  code                   String
+  name                   String
+  description            String?
+  price                  Decimal                 @db.Decimal(15, 2)
+  costPrice              Decimal                 @default(0) @db.Decimal(15, 2)
+  currentStock           Int                     @default(0)
+  minStock               Int                     @default(5)
+  maxStock               Int?
+  unit                   String                  @default("un")
+  barcode                String?
+  location               String?
+  status                 StockStatus             @default(in_stock)
+  imageUrl               String?
+  isActive               Boolean                 @default(true)
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  supplierId             String?
+  isReturnable           Boolean                 @default(false)
+  packSize               Int                     @default(1)
+  returnPrice            Decimal                 @default(0) @db.Decimal(15, 2)
+  companyId              String?
+  ivaRateId              String?                 @map("iva_rate_id")
+  taxRate                Decimal?                @map("tax_rate") @db.Decimal(5, 2)
+  categoryId             String?
+  originModule           String                  @default("inventory") @map("origin_module")
+  reservedStock          Int                     @default(0)
+  sku                    String?
+  category               String                  @default("other")
+  weight                 Decimal?                @db.Decimal(10, 3)
+  bookingConsumptions    BookingConsumption[]
+  bottleReturns          BottleReturn[]
+  creditNoteItems        CreditNoteItem[]
+  debitNoteItems         DebitNoteItem[]
+  deliveryItems          DeliveryItem[]
+  invoiceItems           InvoiceItem[]
+  medication             Medication?
+  priceTiers             PriceTier[]
+  batches                ProductBatch[]
+  categoryModel          Category?               @relation(fields: [categoryId], references: [id])
+  company                Company?                @relation(fields: [companyId], references: [id])
+  ivaRate                IvaRate?                @relation(fields: [ivaRateId], references: [id])
+  supplier               Supplier?               @relation(fields: [supplierId], references: [id])
+  purchaseOrderItems     PurchaseOrderItem[]
+  saleItems              SaleItem[]
+  stockMovements         StockMovement[]
   physicalInventoryLines PhysicalInventoryLine[]
-  stockReservations    StockReservation[]
-  transferItems        StockTransferItem[]
-  supplierInvoiceItems SupplierInvoiceItem[]
-  warehouseStocks      WarehouseStock[]
-  commissionRules      CommissionRule[]
+  stockReservations      StockReservation[]
+  transferItems          StockTransferItem[]
+  supplierInvoiceItems   SupplierInvoiceItem[]
+  warehouseStocks        WarehouseStock[]
+  commissionRules        CommissionRule[]
 
   @@unique([companyId, code])
   @@unique([companyId, barcode])
@@ -302,18 +302,18 @@ model PriceTier {
 }
 
 model Category {
-  id          String     @id @default(uuid())
-  code        String
-  name        String
-  description String?
-  parentId    String?
-  color       String?
-  icon        String?
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  companyId   String?
-  company     Company?   @relation(fields: [companyId], references: [id])
+  id              String           @id @default(uuid())
+  code            String
+  name            String
+  description     String?
+  parentId        String?
+  color           String?
+  icon            String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  companyId       String?
+  company         Company?         @relation(fields: [companyId], references: [id])
   parent          Category?        @relation("CategoryTree", fields: [parentId], references: [id])
   children        Category[]       @relation("CategoryTree")
   products        Product[]
@@ -324,29 +324,29 @@ model Category {
 }
 
 model Warehouse {
-  id             String           @id @default(uuid())
-  code           String
-  name           String
-  location       String?
-  responsible    String?
-  isActive       Boolean          @default(true)
-  isDefault      Boolean          @default(false)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  companyId      String?
-  latitude       Decimal?         @db.Decimal(10, 8)
-  longitude      Decimal?         @db.Decimal(11, 8)
-  cashSessions   CashSession[]
-  parcels        Parcel[]
-  productBatches ProductBatch[]
-  sales          Sale[]
-  stockMovements StockMovement[]
-  transfersFrom  StockTransfer[]  @relation("SourceWarehouse")
-  transfersTo    StockTransfer[]  @relation("TargetWarehouse")
-  stocks         WarehouseStock[]
+  id                  String              @id @default(uuid())
+  code                String
+  name                String
+  location            String?
+  responsible         String?
+  isActive            Boolean             @default(true)
+  isDefault           Boolean             @default(false)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  companyId           String?
+  latitude            Decimal?            @db.Decimal(10, 8)
+  longitude           Decimal?            @db.Decimal(11, 8)
+  cashSessions        CashSession[]
+  parcels             Parcel[]
+  productBatches      ProductBatch[]
+  sales               Sale[]
+  stockMovements      StockMovement[]
+  transfersFrom       StockTransfer[]     @relation("SourceWarehouse")
+  transfersTo         StockTransfer[]     @relation("TargetWarehouse")
+  stocks              WarehouseStock[]
   physicalInventories PhysicalInventory[]
-  salesTargets   SalesTarget[]
-  company        Company?         @relation(fields: [companyId], references: [id])
+  salesTargets        SalesTarget[]
+  company             Company?            @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -1179,23 +1179,23 @@ model PayrollRecord {
 }
 
 model Account {
-  id             String        @id @default(uuid())
-  companyId      String?
-  code           String
-  name           String
-  type           AccountType
-  nature         AccountNature
-  parentId       String?
-  level          Int           @default(1)
-  isActive       Boolean       @default(true)
-  allowsEntries  Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  company        Company?      @relation(fields: [companyId], references: [id])
-  parent         Account?      @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children       Account[]     @relation("AccountHierarchy")
-  debitLines     JournalLine[] @relation("DebitAccount")
-  creditLines    JournalLine[] @relation("CreditAccount")
+  id            String        @id @default(uuid())
+  companyId     String?
+  code          String
+  name          String
+  type          AccountType
+  nature        AccountNature
+  parentId      String?
+  level         Int           @default(1)
+  isActive      Boolean       @default(true)
+  allowsEntries Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  company       Company?      @relation(fields: [companyId], references: [id])
+  parent        Account?      @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children      Account[]     @relation("AccountHierarchy")
+  debitLines    JournalLine[] @relation("DebitAccount")
+  creditLines   JournalLine[] @relation("CreditAccount")
 
   @@unique([companyId, code])
   @@index([companyId, type])
@@ -1666,21 +1666,40 @@ model FiscalDeadline {
 }
 
 model DocumentSeries {
-  id         String   @id @default(uuid())
-  code       String
-  name       String
-  prefix     String
-  series     String
-  lastNumber Int      @default(0)
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  companyId  String?
-  company    Company? @relation(fields: [companyId], references: [id])
+  id           String                      @id @default(uuid())
+  code         String
+  name         String
+  prefix       String
+  series       String
+  lastNumber   Int                         @default(0)
+  isActive     Boolean                     @default(true)
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+  companyId    String?
+  company      Company?                    @relation(fields: [companyId], references: [id])
+  reservations DocumentSeriesReservation[]
 
   @@unique([companyId, code])
   @@index([companyId])
   @@map("document_series")
+}
+
+model DocumentSeriesReservation {
+  id         String         @id @default(uuid())
+  seriesId   String
+  sessionId  String         @unique
+  companyId  String
+  fromNumber Int
+  toNumber   Int
+  nextNumber Int
+  releasedAt DateTime?
+  createdAt  DateTime       @default(now())
+  series     DocumentSeries @relation(fields: [seriesId], references: [id])
+  session    CashSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([seriesId])
+  @@map("document_series_reservations")
 }
 
 model Room {
@@ -2182,38 +2201,38 @@ model Vehicle {
 }
 
 model Driver {
-  id               String            @id @default(uuid())
-  code             String
-  name             String
-  phone            String
-  email            String?
-  category         StaffCategory     @default(driver)
-  licenseNumber    String
-  licenseType      String?
-  licenseExpiry    DateTime?
-  medicalExamExpiry DateTime?
-  safetyTrainingDate DateTime?
-  status           DriverStatus      @default(available)
-  hireDate         DateTime?
-  address          String?
-  emergencyContact String?
-  baseSalary       Decimal           @default(0) @db.Decimal(15, 2)
-  subsidyTransport Decimal           @default(0) @db.Decimal(15, 2)
-  subsidyFood      Decimal           @default(0) @db.Decimal(15, 2)
-  commissionRate   Decimal?          @db.Decimal(5, 2)
-  bankName         String?
-  bankAccountNumber String?
-  bankNib          String?
+  id                   String            @id @default(uuid())
+  code                 String
+  name                 String
+  phone                String
+  email                String?
+  category             StaffCategory     @default(driver)
+  licenseNumber        String
+  licenseType          String?
+  licenseExpiry        DateTime?
+  medicalExamExpiry    DateTime?
+  safetyTrainingDate   DateTime?
+  status               DriverStatus      @default(available)
+  hireDate             DateTime?
+  address              String?
+  emergencyContact     String?
+  baseSalary           Decimal           @default(0) @db.Decimal(15, 2)
+  subsidyTransport     Decimal           @default(0) @db.Decimal(15, 2)
+  subsidyFood          Decimal           @default(0) @db.Decimal(15, 2)
+  commissionRate       Decimal?          @db.Decimal(5, 2)
+  bankName             String?
+  bankAccountNumber    String?
+  bankNib              String?
   socialSecurityNumber String?
-  nuit             String?
-  birthDate        DateTime?
-  notes            String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  companyId        String?
-  deliveries       Delivery[]
-  company          Company?          @relation(fields: [companyId], references: [id])
-  incidents        VehicleIncident[]
+  nuit                 String?
+  birthDate            DateTime?
+  notes                String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  companyId            String?
+  deliveries           Delivery[]
+  company              Company?          @relation(fields: [companyId], references: [id])
+  incidents            VehicleIncident[]
 
   @@unique([companyId, code])
   @@index([companyId])
@@ -2460,34 +2479,35 @@ model BottleReturn {
 }
 
 model CashSession {
-  id              String            @id @default(uuid())
-  openedById      String            @map("opened_by_id")
-  closedById      String?           @map("closed_by_id")
-  openedAt        DateTime          @default(now())
-  closedAt        DateTime?
-  openingBalance  Decimal           @db.Decimal(15, 2)
-  closingBalance  Decimal?          @db.Decimal(15, 2)
-  expectedBalance Decimal?          @db.Decimal(15, 2)
-  difference      Decimal?          @db.Decimal(15, 2)
-  cashSales       Decimal           @default(0) @db.Decimal(15, 2)
-  mpesaSales      Decimal           @default(0) @db.Decimal(15, 2)
-  emolaSales      Decimal           @default(0) @db.Decimal(15, 2)
-  cardSales       Decimal           @default(0) @db.Decimal(15, 2)
-  creditSales     Decimal           @default(0) @db.Decimal(15, 2)
-  totalSales      Decimal           @default(0) @db.Decimal(15, 2)
-  withdrawals     Decimal           @default(0) @db.Decimal(15, 2)
-  deposits        Decimal           @default(0) @db.Decimal(15, 2)
-  notes           String?
-  status          CashSessionStatus @default(open)
-  companyId       String?
-  terminalId      String?           @map("terminal_id")
-  warehouseId     String?           @map("warehouse_id")
-  movements       CashMovement[]
-  closedBy        User?             @relation("ClosedSessions", fields: [closedById], references: [id])
-  company         Company?          @relation(fields: [companyId], references: [id])
-  openedBy        User              @relation("OpenedSessions", fields: [openedById], references: [id])
-  warehouse       Warehouse?        @relation(fields: [warehouseId], references: [id])
-  sales           Sale[]
+  id                String                     @id @default(uuid())
+  openedById        String                     @map("opened_by_id")
+  closedById        String?                    @map("closed_by_id")
+  openedAt          DateTime                   @default(now())
+  closedAt          DateTime?
+  openingBalance    Decimal                    @db.Decimal(15, 2)
+  closingBalance    Decimal?                   @db.Decimal(15, 2)
+  expectedBalance   Decimal?                   @db.Decimal(15, 2)
+  difference        Decimal?                   @db.Decimal(15, 2)
+  cashSales         Decimal                    @default(0) @db.Decimal(15, 2)
+  mpesaSales        Decimal                    @default(0) @db.Decimal(15, 2)
+  emolaSales        Decimal                    @default(0) @db.Decimal(15, 2)
+  cardSales         Decimal                    @default(0) @db.Decimal(15, 2)
+  creditSales       Decimal                    @default(0) @db.Decimal(15, 2)
+  totalSales        Decimal                    @default(0) @db.Decimal(15, 2)
+  withdrawals       Decimal                    @default(0) @db.Decimal(15, 2)
+  deposits          Decimal                    @default(0) @db.Decimal(15, 2)
+  notes             String?
+  status            CashSessionStatus          @default(open)
+  companyId         String?
+  terminalId        String?                    @map("terminal_id")
+  warehouseId       String?                    @map("warehouse_id")
+  movements         CashMovement[]
+  closedBy          User?                      @relation("ClosedSessions", fields: [closedById], references: [id])
+  company           Company?                   @relation(fields: [companyId], references: [id])
+  openedBy          User                       @relation("OpenedSessions", fields: [openedById], references: [id])
+  warehouse         Warehouse?                 @relation(fields: [warehouseId], references: [id])
+  sales             Sale[]
+  fiscalReservation DocumentSeriesReservation?
 
   @@index([companyId])
   @@index([status])
