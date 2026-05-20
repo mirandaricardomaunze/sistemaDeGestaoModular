@@ -32,15 +32,15 @@ Se algum `tsc` falhar antes do passo 1, **parar** e corrigir primeiro — não c
 
 ---
 
-## Passo 1 — Cleanup do root `package.json`  🟡
+## Passo 1 — Cleanup do root `package.json`  🟢
 
 **Objectivo**: remover Prisma (não usado) do root e alinhar TypeScript com backend.
 
 ### Alterações
 
-- [ ] Remover `@prisma/client` e `prisma` de [package.json](package.json) `dependencies` e `devDependencies`
-- [ ] Alinhar `typescript` no root para a versão mais recente que ambos suportam (sugestão: manter `~5.9.3` no root, actualizar backend para `^5.9.3` num commit separado se quiser — opcional neste passo)
-- [ ] `npm install` para regenerar `package-lock.json`
+- [x] Remover `@prisma/client` e `prisma` de [package.json](package.json) `dependencies` e `devDependencies`
+- [ ] Alinhar `typescript` no root para a versão mais recente que ambos suportam (sugestão: manter `~5.9.3` no root, actualizar backend para `^5.9.3` num commit separado se quiser — opcional neste passo) — adiado
+- [x] `npm install` para regenerar `package-lock.json` (75 packages removidos)
 
 ### Validação
 
@@ -290,7 +290,7 @@ git commit -m "docs: remove completed migration plan"
 
 | Passo | Descrição | Estado | Commit |
 |---|---|---|---|
-| 1 | Cleanup root (remover Prisma) | 🟡 não iniciado | — |
+| 1 | Cleanup root (remover Prisma) | 🟢 concluído | (pendente) |
 | 2 | Mover frontend para `frontend/` | 🟡 não iniciado | — |
 | 3 | Activar npm workspaces | 🟡 não iniciado | — |
 | 4 | Configs derivadas + docs | 🟡 não iniciado | — |
