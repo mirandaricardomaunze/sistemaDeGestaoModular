@@ -100,8 +100,20 @@ router.post('/login', rateLimiters.auth, async (req, res) => {
         throw ApiError.unauthorized('Credenciais inválidas');
     }
 
-    // Log successful login
     await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } });
+    await prisma.auditLog.create({
+        data: {
+            userId: user.id,
+            userName: user.name,
+            action: 'LOGIN',
+            entity: 'User',
+            entityId: user.id,
+            companyId: user.companyId,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'],
+            newData: { email: user.email, role: user.role }
+        }
+    }).catch(() => {}); // Never block login flow due to audit failure
 
     const token = jwt.sign({ userId: user.id, role: user.role, companyId: user.companyId, name: user.name }, process.env.JWT_SECRET!, { expiresIn: '7d', algorithm: 'HS256' });
     const authData = await getAuthData(user.id);
@@ -321,8 +333,12 @@ router.patch('/users/:id/status', authenticate, authorize('admin'), async (req: 
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
     const { isActive } = req.body;
 
+    if (req.params.id === req.userId) {
+        throw ApiError.badRequest('Nao pode alterar o estado da sua propria conta');
+    }
+
     const user = await prisma.user.updateMany({
-        where: { id: req.params.id, companyId: req.companyId },
+        where: { id: req.params.id, companyId: req.companyId, role: { not: 'super_admin' } },
         data: { isActive }
     });
 

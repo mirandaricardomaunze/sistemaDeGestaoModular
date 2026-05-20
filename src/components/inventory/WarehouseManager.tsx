@@ -168,7 +168,7 @@ export default function WarehouseManager() {
 
     return (
         <div className="space-y-6">
-            <button id="new-warehouse-btn" className="hidden" onClick={() => handleOpenModal()} />
+            <Button variant="ghost" id="new-warehouse-btn" className="hidden" onClick={() => handleOpenModal()} />
 
             <SmartTable
                 data={paginatedWarehouses}

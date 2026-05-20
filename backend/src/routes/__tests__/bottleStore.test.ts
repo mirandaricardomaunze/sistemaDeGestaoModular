@@ -52,26 +52,47 @@ let customerId: string;
 let saleId: string;
 
 async function cleanup() {
-    await Promise.all([
-        prisma.bottleReturn.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.priceTier.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.creditPayment.deleteMany({ where: { customer: { companyId: CO } } }).catch(() => {}),
-        prisma.transaction.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.cashMovement.deleteMany({ where: { session: { companyId: CO } } }).catch(() => {}),
-        prisma.stockMovement.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.auditLog.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-    ]);
-    await Promise.all([
-        prisma.saleItem.deleteMany({ where: { sale: { companyId: CO } } }).catch(() => {}),
-        prisma.cashSession.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-    ]);
-    await prisma.sale.deleteMany({ where: { companyId: CO } }).catch(() => {});
-    await Promise.all([
-        prisma.customer.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.product.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-    ]);
-    await prisma.user.deleteMany({ where: { id: UID } }).catch(() => {});
-    await prisma.company.deleteMany({ where: { id: CO } }).catch(() => {});
+    // 1. Audit logs
+    await prisma.auditLog.deleteMany({ where: { OR: [{ userId: UID }, { companyId: CO }] } }).catch(() => {});
+
+    // 2. Bottle returns
+    await prisma.bottleReturn.deleteMany({ where: { OR: [{ companyId: CO }, { customer: { companyId: CO } }] } }).catch(() => {});
+
+    // 3. Price tiers
+    await prisma.priceTier.deleteMany({ where: { OR: [{ companyId: CO }, { product: { companyId: CO } }] } }).catch(() => {});
+
+    // 4. Credit payments
+    await prisma.creditPayment.deleteMany({ where: { OR: [{ sale: { userId: UID } }, { sale: { companyId: CO } }, { customer: { companyId: CO } }] } }).catch(() => {});
+
+    // 5. Transactions
+    await prisma.transaction.deleteMany({ where: { OR: [{ companyId: CO }] } }).catch(() => {});
+
+    // 6. Cash movements
+    await prisma.cashMovement.deleteMany({ where: { OR: [{ session: { openedById: UID } }, { session: { closedById: UID } }, { session: { companyId: CO } }] } }).catch(() => {});
+
+    // 7. Stock movements
+    await prisma.stockMovement.deleteMany({ where: { OR: [{ companyId: CO }, { product: { companyId: CO } }] } }).catch(() => {});
+
+    // 8. Sale items
+    await prisma.saleItem.deleteMany({ where: { OR: [{ sale: { userId: UID } }, { sale: { companyId: CO } }, { product: { companyId: CO } }] } }).catch(() => {});
+
+    // 9. Cash sessions
+    await prisma.cashSession.deleteMany({ where: { OR: [{ openedById: UID }, { closedById: UID }, { companyId: CO }] } }).catch(() => {});
+
+    // 10. Sales
+    await prisma.sale.deleteMany({ where: { OR: [{ userId: UID }, { companyId: CO }] } }).catch(() => {});
+
+    // 11. Customers
+    await prisma.customer.deleteMany({ where: { OR: [{ companyId: CO }] } }).catch(() => {});
+
+    // 12. Products
+    await prisma.product.deleteMany({ where: { OR: [{ companyId: CO }] } }).catch(() => {});
+
+    // 13. Users
+    await prisma.user.deleteMany({ where: { OR: [{ id: UID }, { companyId: CO }] } }).catch(() => {});
+
+    // 14. Companies
+    await prisma.company.deleteMany({ where: { OR: [{ id: CO }] } }).catch(() => {});
 }
 
 beforeAll(async () => {
@@ -84,6 +105,8 @@ beforeAll(async () => {
             name: 'Coca-Cola 1L', code: `BS-${Date.now()}`,
             price: 80, costPrice: 50, currentStock: 100,
             unit: 'un', companyId: CO, originModule: 'bottle_store',
+            // bottleStoreService.recordStockMovement filters by category=beverages
+            category: 'beverages',
         }
     });
     productId = p.id;
@@ -131,8 +154,9 @@ describe('BottleStore Dashboard & Reports', () => {
     });
 
     it('POST /movements records a stock movement', async () => {
+        // Service contract: { productId, type, quantity, reason } — `type` not `movementType`.
         const res = await request(app).post('/api/bottleStore/movements').send({
-            productId, movementType: 'adjustment', quantity: 10,
+            productId, type: 'adjustment', quantity: 10,
             reason: 'Inventário inicial',
         });
         expect([200, 201]).toContain(res.status);
@@ -143,6 +167,21 @@ describe('BottleStore Dashboard & Reports', () => {
 // BOTTLE RETURNS (Vasilhames)
 // ═════════════════════════════════════════════════════════════════════════════
 describe('BottleStore - Bottle Returns', () => {
+    let returnsSessionId: string;
+
+    beforeAll(async () => {
+        // recordReturn requires an open cash session (refund flows through the till).
+        await prisma.cashSession.deleteMany({ where: { companyId: CO } }).catch(() => {});
+        const res = await request(app)
+            .post('/api/bottleStore/cash-session/open')
+            .send({ openingBalance: 500 });
+        returnsSessionId = res.body?.id;
+    });
+
+    afterAll(async () => {
+        await prisma.cashSession.deleteMany({ where: { companyId: CO } }).catch(() => {});
+    });
+
     it('GET /bottle-returns returns list', async () => {
         const res = await request(app).get('/api/bottleStore/bottle-returns').expect(200);
         expect(res.body).toBeDefined();
@@ -158,7 +197,7 @@ describe('BottleStore - Bottle Returns', () => {
     it('POST /bottle-returns/return registers return', async () => {
         const res = await request(app)
             .post('/api/bottleStore/bottle-returns/return')
-            .send({ customerId, productId, quantity: 2, depositValue: 50 });
+            .send({ customerId, productId, quantity: 2, depositValue: 50, sessionId: returnsSessionId });
         expect([200, 201]).toContain(res.status);
     });
 
@@ -184,8 +223,6 @@ describe('BottleStore - Bottle Returns', () => {
 // CASH SESSIONS — POS
 // ═════════════════════════════════════════════════════════════════════════════
 describe('BottleStore - Cash Sessions', () => {
-    let sessionId: string;
-
     beforeEach(async () => {
         await prisma.cashMovement.deleteMany({ where: { session: { companyId: CO } } }).catch(() => {});
         await prisma.cashSession.deleteMany({ where: { companyId: CO } }).catch(() => {});
@@ -203,7 +240,7 @@ describe('BottleStore - Cash Sessions', () => {
             .expect(201);
         expect(res.body).toHaveProperty('id');
         expect(res.body.status).toBe('open');
-        sessionId = res.body.id;
+        expect(res.body.id).toBeDefined();
     });
 
     it('POST /cash-session/open rejects negative balance', async () => {
@@ -262,6 +299,21 @@ describe('BottleStore - Cash Sessions', () => {
 // CREDIT SALES
 // ═════════════════════════════════════════════════════════════════════════════
 describe('BottleStore - Credit Sales', () => {
+    let creditSessionId: string;
+
+    beforeAll(async () => {
+        // registerPayment requires an open cash session (receipts go through the till).
+        await prisma.cashSession.deleteMany({ where: { companyId: CO } }).catch(() => {});
+        const res = await request(app)
+            .post('/api/bottleStore/cash-session/open')
+            .send({ openingBalance: 500 });
+        creditSessionId = res.body?.id;
+    });
+
+    afterAll(async () => {
+        await prisma.cashSession.deleteMany({ where: { companyId: CO } }).catch(() => {});
+    });
+
     it('GET /credit-sales returns list', async () => {
         const res = await request(app).get('/api/bottleStore/credit-sales').expect(200);
         expect(res.body).toBeDefined();
@@ -270,7 +322,7 @@ describe('BottleStore - Credit Sales', () => {
     it('POST /credit-sales/pay registers a payment', async () => {
         const res = await request(app)
             .post('/api/bottleStore/credit-sales/pay')
-            .send({ saleId, amount: 50, paymentMethod: 'cash' });
+            .send({ saleId, amount: 50, paymentMethod: 'cash', sessionId: creditSessionId });
         expect([200, 201]).toContain(res.status);
     });
 
@@ -460,9 +512,15 @@ describe('BottleStore RBAC', () => {
         });
 
         it('POST /credit-sales/pay', async () => {
+            // registerPayment requires an open cash session; beforeEach wipes them
+            // so open one here before exercising the cashier path.
+            const sess = await request(app)
+                .post('/api/bottleStore/cash-session/open')
+                .send({ openingBalance: 500 })
+                .set('x-mock-role', 'cashier');
             const res = await request(app)
                 .post('/api/bottleStore/credit-sales/pay')
-                .send({ saleId, amount: 10, paymentMethod: 'cash' })
+                .send({ saleId, amount: 10, paymentMethod: 'cash', sessionId: sess.body?.id })
                 .set('x-mock-role', 'cashier');
             expect([200, 201]).toContain(res.status);
         });

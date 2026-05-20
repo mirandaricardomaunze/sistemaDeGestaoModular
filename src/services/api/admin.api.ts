@@ -52,6 +52,7 @@ export type AdminUser = {
     role: string;
     isActive: boolean;
     createdAt: string;
+    lastLogin?: string | null;
     lastLoginAt: string | null;
     company: { id: string; name: string; status: string } | null;
 };
@@ -124,7 +125,13 @@ export const adminAPI = {
 
     getAllUsers: async (params?: { page?: number; limit?: number; search?: string; companyId?: string }): Promise<PaginatedResponse<AdminUser>> => {
         const response = await api.get<PaginatedResponse<AdminUser>>('/admin/users', silentConfig({ params }));
-        return response.data;
+        return {
+            ...response.data,
+            data: response.data.data.map((user) => ({
+                ...user,
+                lastLoginAt: user.lastLoginAt ?? user.lastLogin ?? null,
+            })),
+        };
     },
 
     toggleUserStatus: async (id: string, isActive: boolean): Promise<AdminUser> => {

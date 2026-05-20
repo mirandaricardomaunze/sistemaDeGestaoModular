@@ -37,7 +37,7 @@ export const socketService = {
         }
 
         const url = config?.url || API_HOST;
-        const token = config?.token || localStorage.getItem('token');
+        const token = config?.token || localStorage.getItem('auth_token');
 
         socket = io(url, {
             auth: { token },

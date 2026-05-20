@@ -3,7 +3,7 @@ import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { logisticsService } from '../services/logisticsService';
 import { ApiError } from '../middleware/error.middleware';
 import { prisma } from '../lib/prisma';
-import { emitToCompany, emitToModule } from '../lib/socket';
+import { emitToModule } from '../lib/socket';
 import { requireModule } from '../middleware/module';
 import { emailQueue, JOB_OPTIONS } from '../queues/emailQueue';
 import { generateDeliveryPDF } from '../utils/pdf.generator';

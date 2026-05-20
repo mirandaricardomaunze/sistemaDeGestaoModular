@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineMinus, HiOutlineListBullet, HiOutlineCheck } from 'react-icons/hi2';
 import { Modal, Button, Input, Select, Textarea } from '../ui';
@@ -63,7 +63,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
 
     const operationOptions = [
         { id: 'add' as const, label: 'Entrada (+)', icon: <HiOutlinePlus className="w-5 h-5" />, color: 'text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20' },
-        { id: 'subtract' as const, label: 'Saída (-)', icon: <HiOutlineMinus className="w-5 h-5" />, color: 'text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20' },
+        { id: 'subtract' as const, label: 'SaÃ­da (-)', icon: <HiOutlineMinus className="w-5 h-5" />, color: 'text-rose-600 bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20' },
         { id: 'set' as const, label: 'Definir (=)', icon: <HiOutlineListBullet className="w-5 h-5" />, color: 'text-blue-600 bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20' },
     ];
 
@@ -94,7 +94,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                 {/* Operation Selector */}
                 <div className="grid grid-cols-3 gap-3">
                     {operationOptions.map((op) => (
-                        <button
+                        <Button variant="ghost"
                             key={op.id}
                             type="button"
                             onClick={() => setOperation(op.id)}
@@ -107,7 +107,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                         >
                             <span className="text-xl mb-1">{op.icon}</span>
                             <span className="text-xs font-bold uppercase tracking-wider">{op.label.split(' ')[0]}</span>
-                        </button>
+                        </Button>
                     ))}
                 </div>
 
@@ -124,7 +124,7 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                         autoFocus
                     />
                     <Select
-                        label="Armazém"
+                        label="ArmazÃ©m"
                         options={warehouses.map(w => ({ value: w.id, label: w.name }))}
                         value={warehouseId}
                         onChange={(e) => setWarehouseId(e.target.value)}
@@ -133,11 +133,11 @@ export default function StockAdjustmentModal({ isOpen, onClose, product, onSucce
                 </div>
 
                 <Textarea
-                    label="Motivo do Ajuste (Obrigatório)"
+                    label="Motivo do Ajuste (ObrigatÃ³rio)"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
                     required
-                    placeholder="Ex: Compra de mercadoria, Quebra detectada, Inventário periódico..."
+                    placeholder="Ex: Compra de mercadoria, Quebra detectada, InventÃ¡rio periÃ³dico..."
                     rows={3}
                 />
 

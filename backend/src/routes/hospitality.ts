@@ -5,14 +5,13 @@ import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { hospitalityService } from '../services/hospitalityService';
 import { createRoomSchema, updateRoomSchema, checkInSchema, createHousekeepingTaskSchema } from '../validation';
 import { ApiError } from '../middleware/error.middleware';
-import { emitToCompany, emitToModule } from '../lib/socket';
+import { emitToModule } from '../lib/socket';
 import { requireModule } from '../middleware/module';
 import { emailQueue, JOB_OPTIONS } from '../queues/emailQueue';
 
 const router = Router();
 router.use(authenticate, requireModule('HOSPITALITY'));
 
-const STAFF_ROLES = ['super_admin', 'admin', 'manager', 'operator'] as const;
 const MANAGER_ROLES = ['super_admin', 'admin', 'manager'] as const;
 
 // ============================================================================

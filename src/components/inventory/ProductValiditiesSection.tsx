@@ -10,7 +10,7 @@ import {
     HiOutlineClock,
     HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
-import { Button, Input, Badge } from '../ui';
+import { Button, Input, Badge, ConfirmationModal } from '../ui';
 import { batchesAPI, type ProductBatch } from '../../services/api/batches.api';
 import { productsAPI } from '../../services/api';
 import { useWarehouses } from '../../hooks/useWarehouses';
@@ -195,14 +195,23 @@ export default function ProductValiditiesSection({ productId }: Props) {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Eliminar este lote?')) return;
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDelete = (id: string) => setPendingDeleteId(id);
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId) return;
         try {
-            await batchesAPI.delete(id);
+            setIsDeleting(true);
+            await batchesAPI.delete(pendingDeleteId);
             toast.success('Lote eliminado');
+            setPendingDeleteId(null);
             await load();
         } catch {
             // error handled
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -404,25 +413,37 @@ export default function ProductValiditiesSection({ productId }: Props) {
                             </div>
                             <div className="flex items-center gap-3">
                                 <StatusBadge status={b.status} daysToExpiry={b.daysToExpiry} />
-                                <button
+                                <Button variant="ghost"
                                     onClick={() => openEdit(b)}
                                     className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
                                     title="Editar"
                                 >
                                     <HiOutlinePencil className="w-4 h-4" />
-                                </button>
-                                <button
+                                </Button>
+                                <Button variant="ghost"
                                     onClick={() => handleDelete(b.id)}
                                     className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                     title="Eliminar"
                                 >
                                     <HiOutlineTrash className="w-4 h-4" />
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
+
+            <ConfirmationModal
+                isOpen={!!pendingDeleteId}
+                onClose={() => !isDeleting && setPendingDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Eliminar lote?"
+                message="Tem a certeza que deseja eliminar este lote? Esta acção não pode ser desfeita."
+                confirmText="Sim, eliminar"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 }

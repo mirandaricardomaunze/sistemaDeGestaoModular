@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
     HiOutlineCalendar,
     HiOutlineUsers,
@@ -23,19 +23,19 @@ import { cn } from '../../utils/helpers';
 import type { Employee } from '../../types';
 
 const PHARMACY_CONFIG = {
-    department: 'Farmácia',
-    moduleName: 'Farmácia',
+    department: 'FarmÃ¡cia',
+    moduleName: 'FarmÃ¡cia',
     accentColor: 'green',
     icon: null,
     showCommissions: false,
     documentTypes: [
         { id: 'bi', label: 'Bilhete de Identidade', required: true },
         { id: 'nuit', label: 'NUIT', required: true },
-        { id: 'inss', label: 'Cartão INSS', required: true },
+        { id: 'inss', label: 'CartÃ£o INSS', required: true },
         { id: 'contract', label: 'Contrato de Trabalho', required: true },
-        { id: 'ordem', label: 'Ordem dos Farmacêuticos', required: true },
-        { id: 'license', label: 'Licença Profissional', required: true },
-        { id: 'narcotic', label: 'Habilitação para Medicamentos Controlados' },
+        { id: 'ordem', label: 'Ordem dos FarmacÃªuticos', required: true },
+        { id: 'license', label: 'LicenÃ§a Profissional', required: true },
+        { id: 'narcotic', label: 'HabilitaÃ§Ã£o para Medicamentos Controlados' },
     ],
 };
 
@@ -46,7 +46,7 @@ export default function PharmacyEmployees() {
     const [showEmployeeForm, setShowEmployeeForm] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
-    // Lightweight — EmployeeList manages its own paginated fetching
+    // Lightweight â€” EmployeeList manages its own paginated fetching
     const { refetch, isLoading } = useEmployees({ page: 1, limit: 1 });
 
     const handleAddEmployee = () => {
@@ -65,20 +65,20 @@ export default function PharmacyEmployees() {
     };
 
     const tabs = [
-        { id: 'dashboard', label: 'Visão Geral', icon: <HiOutlineChartBar className="w-5 h-5" /> },
-        { id: 'staff', label: 'Equipe Técnica', icon: <HiOutlineUsers className="w-5 h-5" /> },
+        { id: 'dashboard', label: 'VisÃ£o Geral', icon: <HiOutlineChartBar className="w-5 h-5" /> },
+        { id: 'staff', label: 'Equipe TÃ©cnica', icon: <HiOutlineUsers className="w-5 h-5" /> },
         { id: 'attendance', label: 'Controle de Ponto', icon: <HiOutlineCalendar className="w-5 h-5" /> },
         { id: 'payroll', label: 'Processamento Salarial', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
-        { id: 'vacations', label: 'Férias', icon: <HiOutlineSun className="w-5 h-5" /> },
+        { id: 'vacations', label: 'FÃ©rias', icon: <HiOutlineSun className="w-5 h-5" /> },
         { id: 'compliance', label: 'Conformidade Legal', icon: <HiOutlineShieldCheck className="w-5 h-5" /> },
-        { id: 'config', label: 'Configurações', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> },
+        { id: 'config', label: 'ConfiguraÃ§Ãµes', icon: <HiOutlineCurrencyDollar className="w-5 h-5" /> },
     ];
 
     return (
         <div className="space-y-6 animate-fade-in pb-10">
             <PageHeader
-                title="Recursos Humanos - Farmácia"
-                subtitle="Gestão completa de funcionários, assiduidade e conformidade farmacêutica"
+                title="Recursos Humanos - FarmÃ¡cia"
+                subtitle="GestÃ£o completa de funcionÃ¡rios, assiduidade e conformidade farmacÃªutica"
                 icon={<HiOutlineUsers />}
                 actions={
                     <div className="flex items-center gap-2">
@@ -107,7 +107,7 @@ export default function PharmacyEmployees() {
             {/* Tab Navigation */}
             <div className="flex gap-1 p-1 bg-gray-100 dark:bg-dark-800 rounded-lg overflow-x-auto scroller-hidden">
                 {tabs.map((tab) => (
-                    <button
+                    <Button variant="ghost"
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as Tab)}
                         className={cn(
@@ -119,7 +119,7 @@ export default function PharmacyEmployees() {
                     >
                         {tab.icon}
                         <span className="hidden sm:inline">{tab.label}</span>
-                    </button>
+                    </Button>
                 ))}
             </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { pharmacyAPI } from '../../services/api';
 import { Card, Button, Input, Select } from '../../components/ui';
 import { HiOutlinePlus, HiOutlineTrash, HiOutlineExclamationCircle, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
@@ -223,12 +223,12 @@ export default function PharmacyDrugInteractions() {
                                             <p className="text-xs text-gray-500 mt-0.5"><span className="font-medium">Gest?o:</span> {interaction.management}</p>
                                         )}
                                     </div>
-                                    <button
+                                    <Button variant="ghost"
                                         onClick={() => setDeleteId(interaction.id)}
                                         className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
                                     >
                                         <HiOutlineTrash className="w-4 h-4" />
-                                    </button>
+                                    </Button>
                                 </div>
                             </Card>
                         );

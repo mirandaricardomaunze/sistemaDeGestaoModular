@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import type { ComponentType, SVGProps } from 'react';
-import { Card, Button, Input, Modal, Badge, Pagination, Select, TableLoadingState } from '../../components/ui';
+import { Card, Button, Input, Modal, Badge, Pagination, Select, TableLoadingState, ConfirmationModal } from '../../components/ui';
 
 type BadgeVariant = 'warning' | 'info' | 'success' | 'danger' | 'gray';
 
@@ -64,7 +64,7 @@ export default function PharmacyPartners() {
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Parceiros & Fornecedores</h1>
-                <p className="text-gray-500 dark:text-gray-400">Seguradoras, convénios, fornecedores e faturação</p>
+                <p className="text-gray-500 dark:text-gray-400">Seguradoras, convÃ©nios, fornecedores e faturaÃ§Ã£o</p>
             </div>
 
             {/* Tab switcher */}
@@ -72,11 +72,11 @@ export default function PharmacyPartners() {
                 {([
                     { id: 'insurers', label: 'Seguradoras', icon: HiOutlineShieldCheck },
                     { id: 'suppliers', label: 'Fornecedores', icon: HiOutlineTruck },
-                    { id: 'billing', label: 'Faturação', icon: HiOutlineCurrencyDollar },
+                    { id: 'billing', label: 'FaturaÃ§Ã£o', icon: HiOutlineCurrencyDollar },
                 ] as { id: Tab; label: string; icon: IconComponent }[]).map(t => {
                     const Icon = t.icon;
                     return (
-                        <button key={t.id} onClick={() => setTab(t.id)}
+                        <Button variant="ghost" key={t.id} onClick={() => setTab(t.id)}
                             className={cn(
                                 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
                                 tab === t.id
@@ -84,7 +84,7 @@ export default function PharmacyPartners() {
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
                             )}>
                             <Icon className={cn("w-4 h-4", tab === t.id ? "text-primary-600 dark:text-primary-400" : "text-gray-400")} />{t.label}
-                        </button>
+                        </Button>
                     );
                 })}
             </div>
@@ -96,12 +96,25 @@ export default function PharmacyPartners() {
     );
 }
 
-// ──-Seguradoras/Convénios ────────────────────────────────────────────────────
+// â”€â”€-Seguradoras/ConvÃ©nios â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function InsurersTab() {
     const { partners, isLoading, addPartner, updatePartner, deletePartner } = usePharmacyPartners();
     const [search, setSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId) return;
+        try {
+            setIsDeleting(true);
+            await deletePartner(pendingDeleteId);
+            setPendingDeleteId(null);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     const filteredPartners = useMemo(() =>
         partners.filter(p => p.name.toLowerCase().includes(search.toLowerCase())), [partners, search]);
@@ -163,7 +176,7 @@ function InsurersTab() {
                                     <Button 
                                         variant="ghost" 
                                         size="sm" 
-                                        onClick={() => { if (confirm('Remover parceiro?')) deletePartner(partner.id); }} 
+                                        onClick={() => setPendingDeleteId(partner.id)}
                                         className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
                                     >
                                         <HiOutlineTrash className="w-4 h-4" />
@@ -197,7 +210,7 @@ function InsurersTab() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <Input label="NUIT" name="nuit" defaultValue={editingPartner?.nuit} />
-                        <Input label="Endereço" name="address" defaultValue={editingPartner?.address} />
+                        <Input label="EndereÃ§o" name="address" defaultValue={editingPartner?.address} />
                     </div>
                     <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-700">
                         <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
@@ -205,15 +218,40 @@ function InsurersTab() {
                     </div>
                 </form>
             </Modal>
+
+            <ConfirmationModal
+                isOpen={!!pendingDeleteId}
+                onClose={() => !isDeleting && setPendingDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Remover parceiro?"
+                message="Tem a certeza que deseja remover este parceiro? Esta acÃ§Ã£o nÃ£o pode ser desfeita."
+                confirmText="Sim, remover"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 }
 
-// ──-Fornecedores ────────────────────────────────────────────────────────────
+// â”€â”€-Fornecedores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SuppliersTab() {
     const { suppliers, isLoading, pagination, page, setPage, search, setSearch, addSupplier, updateSupplier, deleteSupplier } = usePharmacySuppliers();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editing, setEditing] = useState<SupplierRow | null>(null);
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId) return;
+        try {
+            setIsDeleting(true);
+            await deleteSupplier(pendingDeleteId);
+            setPendingDeleteId(null);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -255,7 +293,7 @@ function SuppliersTab() {
                         <table className="w-full text-sm">
                             <thead className="bg-gray-50 dark:bg-dark-700 border-b dark:border-dark-600">
                                 <tr>
-                                    {['Fornecedor', 'Contacto', 'Responsável', 'NUIT', ''].map(h => (
+                                    {['Fornecedor', 'Contacto', 'ResponsÃ¡vel', 'NUIT', ''].map(h => (
                                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
                                     ))}
                                 </tr>
@@ -292,7 +330,7 @@ function SuppliersTab() {
                                                 <Button 
                                                     variant="ghost" 
                                                     size="sm" 
-                                                    onClick={() => { if (confirm('Remover fornecedor?')) deleteSupplier(s.id); }} 
+                                                    onClick={() => setPendingDeleteId(s.id)}
                                                     className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20 shadow-sm"
                                                 >
                                                     <HiOutlineTrash className="w-4 h-4" />
@@ -321,20 +359,32 @@ function SuppliersTab() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <Input label="NUIT" name="nuit" defaultValue={editing?.nuit ?? ''} />
-                        <Input label="Responsável" name="contactPerson" defaultValue={editing?.contactPerson ?? ''} />
+                        <Input label="ResponsÃ¡vel" name="contactPerson" defaultValue={editing?.contactPerson ?? ''} />
                     </div>
-                    <Input label="Endereço" name="address" defaultValue={editing?.address ?? ''} />
+                    <Input label="EndereÃ§o" name="address" defaultValue={editing?.address ?? ''} />
                     <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-dark-700">
                         <Button variant="ghost" type="button" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
                         <Button type="submit">Guardar</Button>
                     </div>
                 </form>
             </Modal>
+
+            <ConfirmationModal
+                isOpen={!!pendingDeleteId}
+                onClose={() => !isDeleting && setPendingDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Remover fornecedor?"
+                message="Tem a certeza que deseja remover este fornecedor? Esta acÃ§Ã£o nÃ£o pode ser desfeita."
+                confirmText="Sim, remover"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 }
 
-// ──-Faturação a Parceiros ────────────────────────────────────────────────────
+// â”€â”€-FaturaÃ§Ã£o a Parceiros â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function BillingTab() {
     const queryClient = useQueryClient();
     const [showGenerate, setShowGenerate] = useState(false);
@@ -436,8 +486,8 @@ function BillingTab() {
                                 ]}
                             />
                         </div>
-                        <Input label="Período de Início" type="date" value={generateForm.periodStart} onChange={e => setGenerateForm(f => ({ ...f, periodStart: e.target.value }))} />
-                        <Input label="Período de Fim" type="date" value={generateForm.periodEnd} onChange={e => setGenerateForm(f => ({ ...f, periodEnd: e.target.value }))} />
+                        <Input label="PerÃ­odo de InÃ­cio" type="date" value={generateForm.periodStart} onChange={e => setGenerateForm(f => ({ ...f, periodStart: e.target.value }))} />
+                        <Input label="PerÃ­odo de Fim" type="date" value={generateForm.periodEnd} onChange={e => setGenerateForm(f => ({ ...f, periodEnd: e.target.value }))} />
                         <Input label="Vencimento" type="date" value={generateForm.dueDate} onChange={e => setGenerateForm(f => ({ ...f, dueDate: e.target.value }))} />
                     </div>
                     <div className="flex gap-2">
@@ -461,7 +511,7 @@ function BillingTab() {
                         <table className="w-full text-sm">
                             <thead className="bg-gray-50 dark:bg-dark-700 border-b dark:border-dark-600">
                                 <tr>
-                                    {['Fatura', 'Parceiro', 'Período', 'Total', 'Pago', 'Em Falta', 'Vencimento', 'Estado', ''].map(h => (
+                                    {['Fatura', 'Parceiro', 'PerÃ­odo', 'Total', 'Pago', 'Em Falta', 'Vencimento', 'Estado', ''].map(h => (
                                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">{h}</th>
                                     ))}
                                 </tr>

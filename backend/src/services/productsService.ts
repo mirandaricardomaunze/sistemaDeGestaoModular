@@ -323,8 +323,8 @@ export class ProductsService {
     async create(data: ProductCreateInput, companyId: string) {
         const {
             code, name, description, category, categoryId, price, costPrice,
-            currentStock, minStock, maxStock, unit, barcode, sku,
-            isActive, isService, requiresPrescription, dosageForm, strength, manufacturer,
+            minStock, maxStock, unit, barcode, sku,
+            isActive,
             originModule, location, supplierId,
             isReturnable, returnPrice, packSize, weight
         } = data;
@@ -884,7 +884,6 @@ export class ProductsService {
 
         let totalValue = 0;
         let totalCost = 0;
-        const lowStockCount = 0;
         const categoryData: Record<string, { count: number; value: number }> = {};
 
         products.forEach(p => {

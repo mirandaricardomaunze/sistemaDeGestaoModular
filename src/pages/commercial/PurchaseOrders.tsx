@@ -6,7 +6,7 @@ import {
     HiOutlineArrowDownTray, HiOutlineCurrencyDollar, HiOutlineSparkles,
     HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
-import { Card, Badge, Button, Input, Select, Textarea, Modal, Pagination, PageHeader, SimpleTable } from '../../components/ui';
+import { Card, Badge, Button, Input, Select, Textarea, Modal, Pagination, PageHeader, SimpleTable, ConfirmationModal } from '../../components/ui';
 import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { ProductSearchInput, type ProductOption } from '../../components/commercial/ProductSearchInput';
 import { formatCurrency, cn } from '../../utils/helpers';
@@ -446,10 +446,22 @@ export default function PurchaseOrders() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Eliminar este rascunho?')) return;
-        try { await deletePO(id); }
-        catch { toast.error('Erro ao eliminar'); }
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDelete = (id: string) => setPendingDeleteId(id);
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId) return;
+        try {
+            setIsDeleting(true);
+            await deletePO(pendingDeleteId);
+            setPendingDeleteId(null);
+        } catch {
+            toast.error('Erro ao eliminar');
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const statusOptions = [
@@ -1030,6 +1042,18 @@ export default function PurchaseOrders() {
                     </div>
                 )
             )}
+
+            <ConfirmationModal
+                isOpen={!!pendingDeleteId}
+                onClose={() => !isDeleting && setPendingDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Eliminar rascunho?"
+                message="Tem a certeza que deseja eliminar este rascunho de ordem de compra? Esta acção não pode ser desfeita."
+                confirmText="Sim, eliminar"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 }

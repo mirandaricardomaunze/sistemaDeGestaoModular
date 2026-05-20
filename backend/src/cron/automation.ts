@@ -34,7 +34,6 @@ const runAlertGeneration = async () => {
 const runFiscalDeadlineAlerts = async () => {
     const today   = new Date();
     const in7Days = new Date(Date.now() + 7 * 86400000);
-    const in1Day  = new Date(Date.now() + 1 * 86400000);
 
     const upcoming = await prisma.fiscalDeadline.findMany({
         where: {

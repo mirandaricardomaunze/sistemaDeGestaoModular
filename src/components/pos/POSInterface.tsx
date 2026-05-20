@@ -357,7 +357,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
         }
         if (cashOperation === 'add') {
             setCashDrawerBalance(prev => prev + amount);
-            toast.success(`+${formatCurrency(amount)} adicionado à gaveta`);
+            toast.success(`+${formatCurrency(amount)} adicionado �  gaveta`);
         } else {
             if (amount > cashDrawerBalance) {
                 toast.error('Saldo insuficiente na gaveta!');
@@ -895,12 +895,13 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                     Carrinho
                                 </h2>
                                 {cart.length > 0 && (
-                                    <button
+                                    <Button
+                                        variant="ghost"
                                         onClick={clearCart}
-                                        className="text-sm text-red-600 hover:text-red-700 dark:text-red-400"
+                                        className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400"
                                     >
                                         Limpar
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -922,7 +923,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                                 </p>
                                             </div>
                                         </div>
-                                        <button
+                                        <Button variant="ghost"
                                             onClick={() => {
                                                 setSelectedCustomer(null);
                                                 setCustomerSearchQuery('');
@@ -930,7 +931,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                             className="p-1 text-primary-400 hover:text-red-500"
                                         >
                                             <HiOutlineXMark className="w-4 h-4" />
-                                        </button>
+                                        </Button>
                                     </div>
                                 ) : (
                                     <div className="relative">
@@ -947,7 +948,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                         {showCustomerSearch && customerSearchResults.length > 0 && (
                                             <div className="absolute z-10 w-full mt-1 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 max-h-48 overflow-y-auto">
                                                 {customerSearchResults.map((customer) => (
-                                                    <button
+                                                    <Button variant="ghost"
                                                         key={customer.id}
                                                         type="button"
                                                         onClick={() => {
@@ -967,7 +968,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                                                 {customer.activeCampaigns}
                                                             </Badge>
                                                         )}
-                                                    </button>
+                                                    </Button>
                                                 ))}
                                             </div>
                                         )}
@@ -1064,8 +1065,9 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                     </Button>
                                 </div>
                                 {promoCodeApplied && (
-                                    <button
-                                        className="text-xs text-red-500 hover:text-red-600 mt-1"
+                                    <Button
+                                        variant="ghost"
+                                        className="mt-1 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
                                         onClick={() => {
                                             // Remove the promo code campaign
                                             setAppliedCampaigns(appliedCampaigns.filter(c => c.code?.toLowerCase() !== promoCode.toLowerCase()));
@@ -1075,7 +1077,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                         }}
                                     >
                                         Remover código
-                                    </button>
+                                    </Button>
                                 )}
                             </div>
 
@@ -1129,28 +1131,28 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button
+                                            <Button variant="ghost"
                                                 onClick={() => handleQuantityChange(item.productId, item.quantity - 1)}
                                                 className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-dark-500 transition-colors"
                                             >
                                                 <HiOutlineMinus className="w-3 h-3" />
-                                            </button>
+                                            </Button>
                                             <span className="w-8 text-center font-medium text-gray-900 dark:text-white">
                                                 {item.quantity}
                                             </span>
-                                            <button
+                                            <Button variant="ghost"
                                                 onClick={() => handleQuantityChange(item.productId, item.quantity + 1)}
                                                 className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300 dark:hover:bg-dark-500 transition-colors"
                                             >
                                                 <HiOutlinePlus className="w-3 h-3" />
-                                            </button>
+                                            </Button>
                                         </div>
-                                        <button
+                                        <Button variant="ghost"
                                             onClick={() => removeFromCart(item.productId)}
                                             className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                                         >
                                             <HiOutlineTrash className="w-4 h-4" />
-                                        </button>
+                                        </Button>
                                     </div>
                                 ))
                             )}
@@ -1213,7 +1215,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         </label>
                         <div className="grid grid-cols-3 gap-3">
                             {paymentMethods.map((method) => (
-                                <button
+                                <Button variant="ghost"
                                     key={method.id}
                                     onClick={() => handlePaymentMethodSelect(method.id)}
                                     className={`
@@ -1226,7 +1228,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                                 >
                                     <div className="mb-2">{method.icon}</div>
                                     <span className="text-sm font-medium">{method.label}</span>
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
@@ -1489,7 +1491,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
 
                     {/* Operation Type */}
                     <div className="grid grid-cols-2 gap-3">
-                        <button
+                        <Button variant="ghost"
                             onClick={() => setCashOperation('add')}
                             className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${cashOperation === 'add'
                                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20 text-green-600'
@@ -1498,8 +1500,8 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         >
                             <HiOutlinePlus className="w-6 h-6" />
                             <span className="font-medium">Entrada</span>
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={() => setCashOperation('remove')}
                             className={`p-4 rounded-lg border-2 flex flex-col items-center gap-2 transition-all ${cashOperation === 'remove'
                                 ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-600'
@@ -1508,7 +1510,7 @@ export default function POSInterface({ originModule }: POSInterfaceProps = {}) {
                         >
                             <HiOutlineMinus className="w-6 h-6" />
                             <span className="font-medium">Sangria</span>
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Amount Input */}

@@ -1,12 +1,9 @@
 import { Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
-import { logger } from '../utils/logger';
 import {
     createProductSchema,
     updateProductSchema,
-    adjustStockSchema,
-    formatZodError,
-    ZodError
+    adjustStockSchema
 } from '../validation';
 import { productsService } from '../services/productsService';
 import { ApiError } from '../middleware/error.middleware';
@@ -172,4 +169,3 @@ router.put('/:id/price-tiers', authenticate, async (req: AuthRequest, res) => {
 });
 
 export default router;
-

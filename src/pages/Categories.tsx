@@ -42,7 +42,8 @@ const colorOptions = [
     { value: '#6b7280', label: 'Cinza' },
     { value: '#84cc16', label: 'Lima' },
 ];
-interface CategoriesProps {
+
+interface CategoriesProps {
     hideHeader?: boolean;
     originModule?: string;
 }
@@ -249,14 +250,14 @@ export default function Categories({ hideHeader = false, originModule }: Categor
             header: () => <span className="block text-right">Accoes</span>,
             cell: ({ row }) => (
                 <div className="flex gap-2 justify-end">
-                    <button
+                    <Button variant="ghost"
                         onClick={() => handleEdit(row.original)}
                         className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20 shadow-sm"
                         title="Editar"
                     >
                         <HiOutlinePencil className="w-4 h-4" />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="ghost"
                         onClick={() => {
                             setCategoryToDelete(row.original);
                             setDeleteModalOpen(true);
@@ -265,7 +266,7 @@ export default function Categories({ hideHeader = false, originModule }: Categor
                         title="Excluir"
                     >
                         <HiOutlineTrash className="w-4 h-4" />
-                    </button>
+                    </Button>
                 </div>
             ),
         },
@@ -388,7 +389,7 @@ export default function Categories({ hideHeader = false, originModule }: Categor
                         </label>
                         <div className="flex flex-wrap gap-2">
                             {colorOptions.map((color) => (
-                                <button
+                                <Button variant="ghost"
                                     key={color.value}
                                     type="button"
                                     onClick={() => setSelectedColor(color.value)}
@@ -430,7 +431,7 @@ export default function Categories({ hideHeader = false, originModule }: Categor
                     {categoryToDelete && (categoryToDelete.productCount || 0) > 0 && (
                         <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                             <p className="text-sm text-yellow-700 dark:text-yellow-400">
-                                ⚠️ Esta categoria possui {categoryToDelete.productCount} produtos associados.
+                                � ️ Esta categoria possui {categoryToDelete.productCount} produtos associados.
                             </p>
                         </div>
                     )}

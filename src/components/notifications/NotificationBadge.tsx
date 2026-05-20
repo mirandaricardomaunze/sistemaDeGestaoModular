@@ -5,25 +5,68 @@
  * click-to-open dropdown notification center.
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { HiOutlineBell } from 'react-icons/hi2';
-import { useUnreadCount } from '../../hooks/useAlerts';
+import { useAlerts, useUnreadCount } from '../../hooks/useAlerts';
+import type { AlertModule } from '../../services/api';
 import NotificationCenter from './NotificationCenter';
+import { Button } from '../ui/Button';
 
 interface NotificationBadgeProps {
     className?: string;
 }
 
+// Mirrors ROUTE_MODULE_SCOPE in NotificationCenter — kept in sync so the badge
+// only counts alerts the open panel will actually display.
+const ROUTE_MODULE_SCOPE: Record<string, AlertModule[]> = {
+    commercial: ['inventory', 'invoices', 'crm', 'pos'],
+    pharmacy: ['pharmacy', 'inventory', 'invoices'],
+    hospitality: ['hospitality'],
+    hotel: ['hospitality'],
+    'bottle-store': ['inventory', 'invoices', 'pos'],
+    bottlestore: ['inventory', 'invoices', 'pos'],
+    bottleStore: ['inventory', 'invoices', 'pos'],
+    restaurant: ['hospitality', 'inventory', 'pos'],
+    logistics: ['inventory'],
+};
+
 export default function NotificationBadge({ className = '' }: NotificationBadgeProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const location = useLocation();
     const { counts } = useUnreadCount();
 
-    const total = counts?.total || 0;
-    const hasCritical = (counts?.byPriority?.critical || 0) > 0;
+    const scope = useMemo<AlertModule[] | null>(() => {
+        const segment = location.pathname.split('/').filter(Boolean)[0];
+        return segment ? ROUTE_MODULE_SCOPE[segment] ?? null : null;
+    }, [location.pathname]);
+
+    // When in a scoped section, fetch unread alerts so we can show a
+    // module-relevant badge count. Outside scope we use the global summary.
+    const { alerts: scopedAlerts } = useAlerts({
+        isResolved: false,
+        autoRefresh: !!scope,
+    });
+
+    const { total, hasCritical } = useMemo(() => {
+        if (!scope) {
+            return {
+                total: counts?.total ?? 0,
+                hasCritical: (counts?.byPriority?.critical ?? 0) > 0,
+            };
+        }
+        const filtered = scopedAlerts.filter(
+            a => !a.isRead && a.module && scope.includes(a.module as AlertModule),
+        );
+        return {
+            total: filtered.length,
+            hasCritical: filtered.some(a => a.priority === 'critical'),
+        };
+    }, [scope, counts, scopedAlerts]);
 
     return (
         <div className={`relative ${className}`}>
-            <button
+            <Button variant="ghost"
                 onClick={() => setIsOpen(!isOpen)}
                 className={`relative p-2.5 rounded-xl transition-all duration-300 ring-1 shadow-sm
                     ${isOpen
@@ -52,7 +95,7 @@ export default function NotificationBadge({ className = '' }: NotificationBadgeP
                 {hasCritical && (
                     <span className="absolute inset-0 rounded-xl border-2 border-red-500 animate-ping opacity-75" />
                 )}
-            </button>
+            </Button>
 
             <NotificationCenter
                 isOpen={isOpen}

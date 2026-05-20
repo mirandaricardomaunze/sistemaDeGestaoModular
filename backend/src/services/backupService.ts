@@ -6,6 +6,7 @@ import cron from 'node-cron';
 import { googleDriveService } from './googleDrive.service';
 import { prisma } from '../lib/prisma';
 import { logger } from '../utils/logger';
+import { ApiError } from '../middleware/error.middleware';
 
 const execAsync = promisify(exec);
 
@@ -130,7 +131,7 @@ class BackupService {
             // Preferir DIRECT_URL (conexão direta :5432) quando disponível.
             const databaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
             if (!databaseUrl) {
-                throw new Error('DIRECT_URL/DATABASE_URL não configurada');
+                throw ApiError.internal('DIRECT_URL/DATABASE_URL não configurada');
             }
 
             // Remove query params incompatíveis com pg_dump (pgbouncer=true, etc.)
@@ -160,7 +161,7 @@ class BackupService {
                     try {
                         await execAsync(`pg_dump "${sanitizedUrl}" > "${filepath}"`, { env });
                     } catch {
-                        throw new Error('PostgreSQL client (pg_dump) não encontrado no sistema. Por favor, instale o PostgreSQL client tools ou verifique o caminho.');
+                        throw ApiError.internal('PostgreSQL client (pg_dump) não encontrado no sistema. Por favor, instale o PostgreSQL client tools ou verifique o caminho.');
                     }
                 } else {
                     throw execError;
@@ -289,7 +290,7 @@ class BackupService {
 
             const databaseUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
             if (!databaseUrl) {
-                throw new Error('DIRECT_URL/DATABASE_URL não configurada');
+                throw ApiError.internal('DIRECT_URL/DATABASE_URL não configurada');
             }
 
             const sanitizedUrl = databaseUrl.split('?')[0];
@@ -318,7 +319,7 @@ class BackupService {
                     try {
                         await execAsync(`psql "${sanitizedUrl}" < "${filepath}"`, { env });
                     } catch {
-                        throw new Error('PostgreSQL client (psql) não encontrado no sistema. Por favor, instale o PostgreSQL client tools ou verifique o caminho.');
+                        throw ApiError.internal('PostgreSQL client (psql) não encontrado no sistema. Por favor, instale o PostgreSQL client tools ou verifique o caminho.');
                     }
                 } else {
                     throw execError;

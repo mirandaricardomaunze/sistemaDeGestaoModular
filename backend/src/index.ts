@@ -240,7 +240,7 @@ import { backupService } from './services/backupService';
 
 const PORT = env.PORT;
 const httpServer = createServer(app);
-const io = initSocket(httpServer);
+initSocket(httpServer);
 
 let emailWorker: ReturnType<typeof createEmailWorker> = null;
 

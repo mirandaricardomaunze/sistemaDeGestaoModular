@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Campaign Manager Component
- * Gestão de campanhas promocionais e segmentação de clientes
+ * GestÃ£o de campanhas promocionais e segmentaÃ§Ã£o de clientes
  */
 
 import { useState, useMemo } from 'react';
@@ -517,21 +517,21 @@ export default function CampaignManager() {
                 <div className="space-y-6">
                     {/* Basic Info */}
                     <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Informações Básicas</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-white">InformaÃ§Ãµes BÃ¡sicas</h4>
                         <Input
                             label="Nome da Campanha *"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="Ex: Promoção de Natal"
+                            placeholder="Ex: PromoÃ§Ã£o de Natal"
                         />
                         <Textarea
-                            label="Descrição"
+                            label="DescriÃ§Ã£o"
                             value={formData.description}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
                             rows={2}
                         />
                         <Input
-                            label="Código Promocional"
+                            label="CÃ³digo Promocional"
                             value={formData.code}
                             onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                             placeholder="Ex: NATAL2024"
@@ -540,10 +540,10 @@ export default function CampaignManager() {
 
                     {/* Dates */}
                     <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Período</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-white">PerÃ­odo</h4>
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="Data Início"
+                                label="Data InÃ­cio"
                                 type="date"
                                 value={formData.startDate}
                                 onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
@@ -576,13 +576,13 @@ export default function CampaignManager() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <Input
-                                label="Compra Mínima (MZN)"
+                                label="Compra MÃ­nima (MZN)"
                                 type="number"
                                 value={formData.minPurchaseAmount}
                                 onChange={(e) => setFormData({ ...formData, minPurchaseAmount: Number(e.target.value) })}
                             />
                             <Input
-                                label="Desconto Máximo (MZN)"
+                                label="Desconto MÃ¡ximo (MZN)"
                                 type="number"
                                 value={formData.maxDiscountAmount}
                                 onChange={(e) => setFormData({ ...formData, maxDiscountAmount: Number(e.target.value) })}
@@ -611,7 +611,7 @@ export default function CampaignManager() {
 
                     {/* Segmentation */}
                     <div className="space-y-4">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">Público-Alvo</h4>
+                        <h4 className="font-semibold text-gray-900 dark:text-white">PÃºblico-Alvo</h4>
 
                         <label className="flex items-center gap-2">
                             <input
@@ -631,7 +631,7 @@ export default function CampaignManager() {
                                     </label>
                                     <div className="flex flex-wrap gap-2">
                                         {Object.entries(CUSTOMER_CATEGORY_LABELS).map(([value, label]) => (
-                                            <button
+                                            <Button variant="ghost"
                                                 key={value}
                                                 type="button"
                                                 onClick={() => toggleCategory(value)}
@@ -641,17 +641,17 @@ export default function CampaignManager() {
                                                     } `}
                                             >
                                                 {label}
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                 </div>
 
                                 <Input
-                                    label="Compras Mínimas (MZN)"
+                                    label="Compras MÃ­nimas (MZN)"
                                     type="number"
                                     value={formData.minTotalPurchases}
                                     onChange={(e) => setFormData({ ...formData, minTotalPurchases: Number(e.target.value) })}
-                                    helperText="Apenas clientes com histórico de compras acima deste valor"
+                                    helperText="Apenas clientes com histÃ³rico de compras acima deste valor"
                                 />
                             </div>
                         )}
@@ -661,7 +661,7 @@ export default function CampaignManager() {
                     <div className="flex justify-end gap-2 pt-4 border-t border-gray-200 dark:border-dark-700">
                         <Button variant="ghost" onClick={() => setShowFormModal(false)}>Cancelar</Button>
                         <Button onClick={handleSubmit}>
-                            {isEditing ? 'Guardar Alterações' : 'Criar Campanha'}
+                            {isEditing ? 'Guardar AlteraÃ§Ãµes' : 'Criar Campanha'}
                         </Button>
                     </div>
                 </div>
@@ -698,7 +698,7 @@ export default function CampaignManager() {
                         {/* Info Grid */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <p className="text-sm text-gray-500">Código</p>
+                                <p className="text-sm text-gray-500">CÃ³digo</p>
                                 <p className="font-mono font-medium">{selectedCampaign.code || '-'}</p>
                             </div>
                             <div>
@@ -711,7 +711,7 @@ export default function CampaignManager() {
                                 </p>
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500">Período</p>
+                                <p className="text-sm text-gray-500">PerÃ­odo</p>
                                 <p className="text-sm">
                                     {new Date(selectedCampaign.startDate).toLocaleDateString('pt-MZ')} -{' '}
                                     {new Date(selectedCampaign.endDate).toLocaleDateString('pt-MZ')}
@@ -734,7 +734,7 @@ export default function CampaignManager() {
                                     <p className="text-lg font-bold text-blue-600">
                                         {selectedCampaign.metrics.customersReached}
                                     </p>
-                                    <p className="text-xs text-blue-700">Clientes Alcançados</p>
+                                    <p className="text-xs text-blue-700">Clientes AlcanÃ§ados</p>
                                 </div>
                                 <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
                                     <p className="text-lg font-bold text-green-600">
@@ -759,7 +759,7 @@ export default function CampaignManager() {
 
                         {/* Segmentation Info */}
                         <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Público-Alvo</h4>
+                            <h4 className="font-semibold text-gray-900 dark:text-white mb-3">PÃºblico-Alvo</h4>
                             <div className="p-3 bg-gray-50 dark:bg-dark-800 rounded-lg">
                                 {selectedCampaign.targetAudience.allCustomers ? (
                                     <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -776,7 +776,7 @@ export default function CampaignManager() {
                                             </p>
                                         )}
                                         {selectedCampaign.targetAudience.minTotalPurchases && (
-                                            <p>Compras mínimas: {formatCurrency(selectedCampaign.targetAudience.minTotalPurchases)}</p>
+                                            <p>Compras mÃ­nimas: {formatCurrency(selectedCampaign.targetAudience.minTotalPurchases)}</p>
                                         )}
                                         {selectedCampaign.targetAudience.cities && (
                                             <p>Cidades: {selectedCampaign.targetAudience.cities.join(', ')}</p>
@@ -794,7 +794,7 @@ export default function CampaignManager() {
                 onClose={() => setShowDeleteModal(false)}
                 onConfirm={performDelete}
                 title="Eliminar Campanha"
-                message={`Tem certeza que deseja eliminar a campanha "${selectedCampaign?.name}"? Esta ação não pode ser desfeita.`}
+                message={`Tem certeza que deseja eliminar a campanha "${selectedCampaign?.name}"? Esta aÃ§Ã£o nÃ£o pode ser desfeita.`}
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 variant="danger"

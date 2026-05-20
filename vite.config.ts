@@ -96,7 +96,32 @@ export default defineConfig({
         manualChunks(id) {
           const normalizedId = id.replace(/\\/g, '/');
 
+          // ── App Domain Chunks (P4 Performance Fix) ────────────────────────
+          // Separa o código da aplicação por módulo de negócio para reduzir
+          // o chunk index.js de 1.5 MB em chunks lazy-loadáveis independentes.
           if (!normalizedId.includes('/node_modules/')) {
+            const appChunks: [string, string][] = [
+              ['/src/components/commercial/', 'app-commercial'],
+              ['/src/components/pharmacy/', 'app-pharmacy'],
+              ['/src/components/logistics/', 'app-logistics'],
+              ['/src/components/hospitality/', 'app-hospitality'],
+              ['/src/components/restaurant/', 'app-restaurant'],
+              ['/src/components/bottlestore/', 'app-bottle-store'],
+              ['/src/components/fiscal/', 'app-fiscal'],
+              ['/src/components/accounting/', 'app-accounting'],
+              ['/src/pages/commercial/', 'app-commercial'],
+              ['/src/pages/pharmacy/', 'app-pharmacy'],
+              ['/src/pages/logistics/', 'app-logistics'],
+              ['/src/pages/hotel/', 'app-hotel'],
+              ['/src/pages/restaurant/', 'app-restaurant'],
+              ['/src/pages/bottlestore/', 'app-bottle-store'],
+              ['/src/pages/hr/', 'app-hr'],
+              ['/src/stores/', 'app-stores'],
+              ['/src/hooks/', 'app-hooks'],
+            ];
+            for (const [pattern, chunkName] of appChunks) {
+              if (normalizedId.includes(pattern)) return chunkName;
+            }
             return undefined;
           }
 
@@ -237,35 +262,6 @@ export default defineConfig({
             normalizedId.includes('/node_modules/space-separated-tokens')
           ) {
             return 'markdown-vendor';
-          }
-
-          // ── App Domain Chunks (P4 Performance Fix) ────────────────────────
-          // Separa o código da aplicação por módulo de negócio para reduzir
-          // o chunk index.js de 1.5 MB em chunks lazy-loadáveis independentes.
-          // Os chunks de vendor (node_modules) já estão separados acima.
-          if (!normalizedId.includes('/node_modules/')) {
-            const appChunks: [string, string][] = [
-              ['/src/components/commercial/', 'app-commercial'],
-              ['/src/components/pharmacy/', 'app-pharmacy'],
-              ['/src/components/logistics/', 'app-logistics'],
-              ['/src/components/hospitality/', 'app-hospitality'],
-              ['/src/components/restaurant/', 'app-restaurant'],
-              ['/src/components/bottlestore/', 'app-bottle-store'],
-              ['/src/components/fiscal/', 'app-fiscal'],
-              ['/src/components/accounting/', 'app-accounting'],
-              ['/src/pages/commercial/', 'app-commercial'],
-              ['/src/pages/pharmacy/', 'app-pharmacy'],
-              ['/src/pages/logistics/', 'app-logistics'],
-              ['/src/pages/hotel/', 'app-hotel'],
-              ['/src/pages/restaurant/', 'app-restaurant'],
-              ['/src/pages/bottlestore/', 'app-bottle-store'],
-              ['/src/pages/hr/', 'app-hr'],
-              ['/src/stores/', 'app-stores'],
-              ['/src/hooks/', 'app-hooks'],
-            ];
-            for (const [pattern, chunkName] of appChunks) {
-              if (normalizedId.includes(pattern)) return chunkName;
-            }
           }
 
           return 'vendor';

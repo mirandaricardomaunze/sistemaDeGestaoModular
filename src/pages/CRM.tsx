@@ -1,6 +1,6 @@
-/**
+﻿/**
  * CRM Page
- * Página principal do CRM com funil de vendas e campanhas
+ * PÃ¡gina principal do CRM com funil de vendas e campanhas
  */
 
 import { useState } from 'react';
@@ -38,18 +38,18 @@ export default function CRM() {
     );
 
     const tabs = [
-        { id: 'dashboard' as const, label: 'Estatísticas', icon: <HiOutlineHome className="w-5 h-5" /> },
+        { id: 'dashboard' as const, label: 'EstatÃ­sticas', icon: <HiOutlineHome className="w-5 h-5" /> },
         { id: 'funnel' as const, label: 'Funil de Vendas', icon: <HiOutlineChartBar className="w-5 h-5" /> },
         { id: 'campaigns' as const, label: 'Campanhas', icon: <HiOutlineTag className="w-5 h-5" /> },
-        { id: 'customers' as const, label: 'Segmentação', icon: <HiOutlineUserGroup className="w-5 h-5" /> },
-        { id: 'settings' as const, label: 'Configuração', icon: <HiOutlineCog className="w-5 h-5" /> },
+        { id: 'customers' as const, label: 'SegmentaÃ§Ã£o', icon: <HiOutlineUserGroup className="w-5 h-5" /> },
+        { id: 'settings' as const, label: 'ConfiguraÃ§Ã£o', icon: <HiOutlineCog className="w-5 h-5" /> },
     ];
 
     return (
         <div className="space-y-6">
             <PageHeader 
                 title="CRM & Marketing"
-                subtitle="Gestão de Clientes, Oportunidades e Campanhas"
+                subtitle="GestÃ£o de Clientes, Oportunidades e Campanhas"
                 icon={<HiOutlinePresentationChartBar className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
@@ -75,7 +75,7 @@ export default function CRM() {
                 tabs={
                     <div className="flex flex-wrap -mb-px">
                         {tabs.map((tab) => (
-                            <button
+                            <Button variant="ghost"
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id as CRMTab)}
                                 className={cn(
@@ -88,7 +88,7 @@ export default function CRM() {
                                 <span className="shrink-0">{tab.icon}</span>
                                 <span className="hidden sm:inline-block">{tab.label}</span>
                                 <span className="sm:hidden text-[10px]">{tab.label.substring(0, 3)}...</span>
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 }
@@ -103,7 +103,7 @@ export default function CRM() {
                     color="primary"
                 />
                 <MetricCard 
-                    label="Taxa de Conversão"
+                    label="Taxa de ConversÃ£o"
                     value={`${metrics.winRate}%`}
                     icon={<HiOutlineChartBar className="w-6 h-6 text-green-600 dark:text-green-400" />}
                     color="green"
@@ -132,13 +132,13 @@ export default function CRM() {
                     <Card padding="lg" className="text-center">
                         <HiOutlineUserGroup className="w-16 h-16 text-primary-600/30 dark:text-primary-400/30 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                            Segmentação de Clientes
+                            SegmentaÃ§Ã£o de Clientes
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400 mb-4">
-                            Configure segmentos de clientes baseados em comportamento, compras e dados demográficos.
+                            Configure segmentos de clientes baseados em comportamento, compras e dados demogrÃ¡ficos.
                         </p>
                         <p className="text-sm text-gray-400">
-                            Esta funcionalidade est disponível nas campanhas promocionais.
+                            Esta funcionalidade est disponÃ­vel nas campanhas promocionais.
                         </p>
                     </Card>
                 )}
@@ -146,7 +146,7 @@ export default function CRM() {
                     <div className="space-y-6">
                         <Card padding="md">
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                                Configuração do Funil
+                                ConfiguraÃ§Ã£o do Funil
                             </h3>
                             <p className="text-gray-600 dark:text-gray-400 mb-4">
                                 Configure as etapas do funil de vendas de acordo com o seu processo comercial.
@@ -197,12 +197,12 @@ export default function CRM() {
                                 <HiOutlineCog className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                                 <div>
                                     <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                                        Automação Configurada
+                                        AutomaÃ§Ã£o Configurada
                                     </h4>
                                     <ul className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
-                                        <li>• Quando uma fatura é emitida para um cliente com oportunidade aberta, a oportunidade é automaticamente movida para "Fechado Ganho"</li>
-                                        <li>• Os descontos de campanhas ativas são aplicados automaticamente no PDV</li>
-                                        <li>• O histórico de interações é mantido para cada oportunidade</li>
+                                        <li>â€¢ Quando uma fatura Ã© emitida para um cliente com oportunidade aberta, a oportunidade Ã© automaticamente movida para "Fechado Ganho"</li>
+                                        <li>â€¢ Os descontos de campanhas ativas sÃ£o aplicados automaticamente no PDV</li>
+                                        <li>â€¢ O histÃ³rico de interaÃ§Ãµes Ã© mantido para cada oportunidade</li>
                                     </ul>
                                 </div>
                             </div>

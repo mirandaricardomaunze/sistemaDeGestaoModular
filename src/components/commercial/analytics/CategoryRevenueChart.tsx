@@ -47,10 +47,10 @@ export function CategoryRevenueChart({ data, isLoading }: CategoryRevenueChartPr
             const share = totalRevenue > 0 ? (value / totalRevenue) * 100 : 0;
 
             return (
-                <div className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-md border border-gray-200 dark:border-white/20 p-3 rounded-xl shadow-2xl">
-                    <p className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1">{entry.name}</p>
-                    <p className="text-sm font-black text-gray-900 dark:text-white">{formatCurrency(value)}</p>
-                    <p className="text-[9px] font-bold text-primary-400 mt-1">
+                <div className="bg-white/95 dark:bg-dark-900/95 backdrop-blur-md border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-2xl text-[12px] text-slate-900 dark:text-white">
+                    <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{entry.name}</p>
+                    <p className="text-sm font-black text-slate-900 dark:text-white">{formatCurrency(value)}</p>
+                    <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-1">
                         {share.toFixed(1)}% do Total
                     </p>
                 </div>
@@ -60,15 +60,15 @@ export function CategoryRevenueChart({ data, isLoading }: CategoryRevenueChartPr
     };
 
     return (
-        <Card padding="lg" className="bg-white dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_18px_42px_-26px_rgba(15,23,42,0.7)] h-full">
+        <Card padding="lg" className="bg-white dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] h-full">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2.5">
-                    <span className="w-8 h-8 rounded-lg bg-emerald-600 dark:bg-emerald-500/15 border border-emerald-600 dark:border-emerald-500/25 shadow-sm flex items-center justify-center flex-shrink-0">
+                    <span className="w-8 h-8 rounded-lg bg-emerald-600 dark:bg-emerald-50/15 border border-emerald-600 dark:border-emerald-500/25 shadow-sm flex items-center justify-center flex-shrink-0">
                         <HiOutlineChartPie className="w-4 h-4 text-white dark:text-emerald-400" />
                     </span>
                     <div>
                         <h3 className="font-black text-slate-950 dark:text-white uppercase tracking-tighter">Receita por Categoria</h3>
-                        <p className="text-[10px] text-slate-600 dark:text-gray-300 font-black uppercase tracking-widest mt-0.5">Distribuição de Faturação</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest mt-0.5">Distribuição de Faturação</p>
                     </div>
                 </div>
             </div>

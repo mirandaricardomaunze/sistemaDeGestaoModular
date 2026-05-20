@@ -18,6 +18,7 @@ import { NotificationBadge } from '../notifications';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import GlobalSearch from './GlobalSearch';
 import SyncQueuePanel from '../offline/SyncQueuePanel';
+import { Button } from '../ui/Button';
 
 export default function Header() {
     const navigate = useNavigate();
@@ -51,13 +52,13 @@ export default function Header() {
                 {/* Left Section */}
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                     {/* Mobile Menu Toggle */}
-                    <button
+                    <Button
                         onClick={toggleSidebar}
                         className="p-2.5 rounded-xl bg-white hover:bg-primary-50 dark:bg-transparent dark:hover:bg-primary-900/20 text-slate-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-all duration-200 ring-1 ring-slate-300 dark:ring-dark-700 hover:ring-primary-500/50 shadow-sm"
                         title="Menu"
                     >
                         <HiOutlineBars3 className="w-5 h-5" />
-                    </button>
+                    </Button>
 
                     {/* Global Search */}
                     <GlobalSearch />
@@ -66,7 +67,7 @@ export default function Header() {
                 {/* Right Section */}
                 <div className="flex items-center gap-2 lg:gap-3">
                     {/* Theme Toggle */}
-                    <button
+                    <Button variant="ghost"
                         onClick={toggleTheme}
                         className="p-2.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-transparent dark:hover:bg-dark-800 text-slate-700 dark:text-gray-300 transition-all duration-200 ring-1 ring-slate-300 dark:ring-dark-700/50 shadow-sm"
                         title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}
@@ -76,7 +77,7 @@ export default function Header() {
                         ) : (
                             <HiOutlineSun className="w-5 h-5 text-amber-500" />
                         )}
-                    </button>
+                    </Button>
 
                     {/* Language Selector */}
                     <div className="hidden md:block">
@@ -85,7 +86,7 @@ export default function Header() {
 
                     <div className="flex items-center">
                         {(pendingCount > 0 || failedCount > 0) ? (
-                            <button
+                            <Button variant="ghost"
                                 onClick={() => setShowSyncPanel(true)}
                                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ring-1 active:scale-95 ${
                                     failedCount > 0
@@ -98,9 +99,9 @@ export default function Header() {
                                 <span className="hidden sm:inline">
                                     {failedCount > 0 ? `${failedCount} falhadas` : `${pendingCount} pendentes`}
                                 </span>
-                            </button>
+                            </Button>
                         ) : (
-                            <button
+                            <Button variant="ghost"
                                 onClick={() => setShowSyncPanel(true)}
                                 className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ring-1 ${isOnline
                                     ? 'text-emerald-600 bg-white ring-slate-300 hover:bg-emerald-50 dark:bg-transparent dark:ring-dark-700/50 dark:hover:bg-emerald-900/10'
@@ -116,7 +117,7 @@ export default function Header() {
                                 ) : (
                                     <MdCloudOff className="w-4 h-4" />
                                 )}
-                            </button>
+                            </Button>
                         )}
                     </div>
 
@@ -125,7 +126,7 @@ export default function Header() {
 
                     {/* User Menu */}
                     <div className="relative">
-                        <button
+                        <Button variant="ghost"
                             onClick={() => setShowUserMenu(!showUserMenu)}
                             className={`flex items-center gap-2 rounded-xl py-1 pl-1 pr-2 transition-all duration-200 ring-1 ${
                                 showUserMenu 
@@ -143,7 +144,7 @@ export default function Header() {
                                     {firstName}
                                 </p>
                             </div>
-                        </button>
+                        </Button>
 
                         {/* User Dropdown */}
                         {showUserMenu && (
@@ -190,7 +191,7 @@ export default function Header() {
                                         {t('nav.settings')}
                                     </Link>
                                     <div className="my-2 border-t border-gray-100 dark:border-dark-700" />
-                                    <button
+                                    <Button variant="danger"
                                         onClick={handleLogout}
                                         className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all"
                                     >
@@ -198,7 +199,7 @@ export default function Header() {
                                             <HiOutlineArrowRightOnRectangle className="w-4 h-4" />
                                         </div>
                                         {t('auth.logout')}
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         )}

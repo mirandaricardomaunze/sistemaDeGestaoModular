@@ -22,11 +22,11 @@ description: "Plano passo a passo para corrigir os 5 problemas críticos de perf
 
 | # | Problema | Ficheiro(s) | Estado |
 |---|---|---|---|
-| P1 | `tsc` backend dá OOM (heap out of memory) | `backend/package.json` | 🔴 NÃO CORRIGIDO |
-| P2 | Rota `/api/bottleStore/finance` errada | `backend/src/index.ts` linha 186 | 🔴 NÃO CORRIGIDO |
-| P3 | `useCRMStore` persiste dados ilimitados | `src/stores/useCRMStore.ts` | 🔴 NÃO CORRIGIDO |
-| P4 | Bundle `index.js` de 1.5 MB | `vite.config.ts` | 🟡 PARCIAL |
-| P5 | Audit N+1 no Prisma Extension | `backend/src/lib/prisma.ts` | 🔴 NÃO CORRIGIDO |
+| P1 | `tsc` backend dá OOM (heap out of memory) | `backend/package.json` | ✅ CORRIGIDO (2026-05-19) |
+| P2 | Rota `/api/bottleStore/finance` errada | `backend/src/index.ts` linha 186 | ✅ CORRIGIDO (2026-05-19) |
+| P3 | `useCRMStore` persiste dados ilimitados | `src/stores/useCRMStore.ts` | ✅ CORRIGIDO (2026-05-19) |
+| P4 | Bundle `index.js` de 1.5 MB | `vite.config.ts` | ✅ CORRIGIDO (2026-05-19) |
+| P5 | Audit N+1 no Prisma Extension | `backend/src/lib/prisma.ts` | ✅ CORRIGIDO (2026-05-19) |
 
 > **Actualiza a tabela acima** depois de cada sessão de trabalho. Marca `✅ CORRIGIDO` com a data quando terminares.
 

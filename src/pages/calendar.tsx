@@ -18,7 +18,7 @@ import {
 import { calendarAPI, type CalendarEvent, type CreateCalendarEventDto } from '../services/api/calendar.api';
 import { cn } from '../utils/helpers';
 import { useAuthStore } from '../stores/useAuthStore';
-import { Button, Input, Select } from '../components/ui';
+import { Button, Input, Select, ConfirmationModal } from '../components/ui';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -679,10 +679,18 @@ export default function CalendarPage() {
         }
     };
 
+    const [pendingDeleteEvent, setPendingDeleteEvent] = useState<CalendarEvent | null>(null);
+
     const handleDelete = () => {
-        if (detailEvent && window.confirm(`Eliminar "${detailEvent.title}"?`)) {
-            deleteMutation.mutate(detailEvent.id);
+        if (detailEvent) {
+            setPendingDeleteEvent(detailEvent);
         }
+    };
+
+    const confirmDeleteEvent = async () => {
+        if (!pendingDeleteEvent) return;
+        await deleteMutation.mutateAsync(pendingDeleteEvent.id);
+        setPendingDeleteEvent(null);
     };
 
     // Filter events for list view (current month only)
@@ -795,6 +803,18 @@ export default function CalendarPage() {
                     onClose={() => setDetailEvent(null)}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={!!pendingDeleteEvent}
+                onClose={() => !deleteMutation.isPending && setPendingDeleteEvent(null)}
+                onConfirm={confirmDeleteEvent}
+                title="Eliminar evento?"
+                message={`Tem a certeza que deseja eliminar "${pendingDeleteEvent?.title}"? Esta acção não pode ser desfeita.`}
+                confirmText="Sim, eliminar"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={deleteMutation.isPending}
+            />
         </div>
     );
 }

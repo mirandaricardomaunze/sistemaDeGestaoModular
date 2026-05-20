@@ -114,7 +114,7 @@ export default function OrderPrintPreview({
                 await fetch(`/api/orders/${order.id}/print`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
                     }
                 });
                 onMarkAsPrinted();

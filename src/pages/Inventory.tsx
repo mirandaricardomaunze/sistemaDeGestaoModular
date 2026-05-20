@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import InventoryTable from '../components/inventory/InventoryTable';
 import ProductForm from '../components/inventory/ProductForm';
@@ -57,7 +57,7 @@ export default function Inventory() {
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Gestão de Inventário"
+                title="GestÃ£o de InventÃ¡rio"
                 subtitle="Controlo de Produtos, Stock e Lotes de Validade"
                 icon={<HiOutlineCube className="text-primary-600 dark:text-primary-400" />}
                 actions={
@@ -96,7 +96,7 @@ export default function Inventory() {
                 }
                 tabs={
                     <nav className="flex gap-1">
-                        <button
+                        <Button variant="ghost"
                             onClick={() => setActiveTab('products')}
                             className={cn(
                                 "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
@@ -107,8 +107,8 @@ export default function Inventory() {
                         >
                             <HiOutlineSquares2X2 className="w-5 h-5 text-current" />
                             Produtos
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={() => setActiveTab('batches')}
                             className={cn(
                                 "flex-1 flex items-center justify-center gap-2 px-2 md:px-6 py-4 text-xs md:text-sm font-black border-b-2 transition-all whitespace-nowrap uppercase tracking-widest",
@@ -119,7 +119,7 @@ export default function Inventory() {
                         >
                             <HiOutlineClock className="w-5 h-5 text-current" />
                             Lotes & Validades
-                        </button>
+                        </Button>
                     </nav>
                 }
             />

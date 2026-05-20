@@ -482,8 +482,13 @@ router.post('/release/:id', authorize(...POS_ROLES), async (req: AuthRequest, re
 
 // GET /api/commercial/targets
 router.get('/targets', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
-    const { employeeId } = salesTargetQuerySchema.parse(req.query);
-    res.json(await salesTargetService.listTargets(req.companyId!, employeeId));
+    const { employeeId, warehouseId } = salesTargetQuerySchema.parse(req.query);
+    res.json(await salesTargetService.listTargets(req.companyId!, { employeeId, warehouseId }));
+});
+
+// GET /api/commercial/targets/summary — comparativo agregado (diária/semanal/mensal × filial)
+router.get('/targets/summary', authorize(...STAFF_ROLES), async (req: AuthRequest, res) => {
+    res.json(await salesTargetService.summarize(req.companyId!));
 });
 
 // POST /api/commercial/targets

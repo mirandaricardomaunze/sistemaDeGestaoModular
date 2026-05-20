@@ -16,6 +16,7 @@ import {
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 import { ConfirmationModal } from '../ui/ConfirmationModal';
+import { Button } from '../ui/Button';
 
 interface Props {
     open: boolean;
@@ -108,48 +109,48 @@ export default function SyncQueuePanel({ open, onClose }: Props) {
                             {rows.length} {rows.length === 1 ? 'item' : 'itens'}
                         </p>
                     </div>
-                    <button
+                    <Button variant="ghost"
                         onClick={onClose}
                         className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-dark-800 text-gray-500"
                         aria-label="Fechar"
                     >
                         <HiOutlineXMark className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </header>
 
                 <div className="flex flex-wrap gap-2 px-5 py-3 border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-800/50">
-                    <button
+                    <Button variant="ghost"
                         onClick={() => syncAll()}
                         disabled={!isOnline || isSyncing}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <HiArrowPath className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                         Sincronizar agora
-                    </button>
+                    </Button>
                     {failedCount > 0 && (
                         <>
-                            <button
+                            <Button variant="ghost"
                                 onClick={handleRetryAll}
                                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300"
                             >
                                 <HiArrowPath className="w-4 h-4" />
                                 Repetir falhadas ({failedCount})
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="ghost"
                                 onClick={() => setConfirmDiscard(true)}
                                 className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-50 text-red-700 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300"
                             >
                                 <HiOutlineTrash className="w-4 h-4" />
                                 Descartar falhadas
-                            </button>
+                            </Button>
                         </>
                     )}
-                    <button
+                    <Button variant="ghost"
                         onClick={handlePurge}
                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 dark:hover:bg-dark-800 dark:text-gray-300"
                     >
                         Limpar concluídos
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto">

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react';
+﻿import { useMemo, useRef, useEffect } from 'react';
 import { useStore } from '../../stores/useStore';
 import { useProducts } from '../../hooks/useData';
 import { formatCurrency } from '../../utils/helpers';
@@ -101,7 +101,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                 companySettings?.address,
                 companySettings?.city,
                 companySettings?.province
-            ].filter(Boolean).join(' - ') || 'Endereço não configurado',
+            ].filter(Boolean).join(' - ') || 'EndereÃ§o nÃ£o configurado',
             phone: companySettings?.phone || '',
             email: companySettings?.email || '',
             taxId: companySettings?.taxId || '',
@@ -131,7 +131,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Inventário - ${reportData.company.name}</title>
+                <title>InventÃ¡rio - ${reportData.company.name}</title>
                 <meta charset="utf-8">
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -359,12 +359,12 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
             </head>
             <body>
                 <div class="no-print" style="position: fixed; top: 20px; right: 20px; display: flex; gap: 10px; z-index: 1000;">
-                    <button onclick="window.print()" style="padding: 10px 24px; cursor: pointer; background: #0f172a; color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                         Confirmar Impressão
-                    </button>
-                    <button onclick="window.close()" style="padding: 10px 24px; cursor: pointer; background: white; color: #0f172a; border: 1px solid #e2e8f0; border-radius: 6px; font-weight: 700; font-size: 13px;">
+                    <Button variant="ghost" onclick="window.print()" style="padding: 10px 24px; cursor: pointer; background: #0f172a; color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                         Confirmar ImpressÃ£o
+                    </Button>
+                    <Button variant="ghost" onclick="window.close()" style="padding: 10px 24px; cursor: pointer; background: white; color: #0f172a; border: 1px solid #e2e8f0; border-radius: 6px; font-weight: 700; font-size: 13px;">
                         Fechar
-                    </button>
+                    </Button>
                 </div>
 
                 <div class="print-container">
@@ -377,14 +377,14 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                                 ${companySettings?.logo ? `<img src="${companySettings.logo}" alt="Logo" style="height: 70px; margin-bottom: 25px; object-fit: contain; filter: grayscale(100%);">` : ''}
                                 <h2>${reportData.company.name}</h2>
                                 <p>${reportData.company.address}</p>
-                                <p>Tel: ${reportData.company.phone} • Email: ${reportData.company.email}</p>
+                                <p>Tel: ${reportData.company.phone} â€¢ Email: ${reportData.company.email}</p>
                                 <p class="tax-id">NUIT: ${reportData.company.taxId}</p>
                             </div>
                             <div class="document-info">
-                                <div class="title">Inventário</div>
+                                <div class="title">InventÃ¡rio</div>
                                 <div class="meta-grid">
                                     <div class="meta-item">
-                                        <span class="meta-label">Emissão</span>
+                                        <span class="meta-label">EmissÃ£o</span>
                                         <span class="meta-value">${reportData.generatedAt.split(',')[0]}</span>
                                     </div>
                                     <div class="meta-item">
@@ -392,11 +392,11 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                                         <span class="meta-value">#INV-${new Date().getTime().toString().slice(-6)}</span>
                                     </div>
                                     <div class="meta-item">
-                                        <span class="meta-label">Responsável</span>
+                                        <span class="meta-label">ResponsÃ¡vel</span>
                                         <span class="meta-value">Admin</span>
                                     </div>
                                     <div class="meta-item">
-                                        <span class="meta-label">Página</span>
+                                        <span class="meta-label">PÃ¡gina</span>
                                         <span class="meta-value">1 de 1</span>
                                     </div>
                                 </div>
@@ -407,8 +407,8 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                         <table class="print-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 100px;">Referência</th>
-                                    <th style="width: 120px;">Cód. Barras</th>
+                                    <th style="width: 100px;">ReferÃªncia</th>
+                                    <th style="width: 120px;">CÃ³d. Barras</th>
                                     <th>Produto</th>
                                     <th style="width: 80px; text-align: right;">Qtd. (Un)</th>
                                     <th style="width: 80px; text-align: right;">Caixas</th>
@@ -450,7 +450,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                                 <span class="total-value">${reportData.grandTotalUnits}</span>
                             </div>
                             <div class="total-card highlight">
-                                <span class="total-label">Valor do Inventário</span>
+                                <span class="total-label">Valor do InventÃ¡rio</span>
                                 <span class="total-value grand-total">${formatCurrency(reportData.grandTotalValue)}</span>
                             </div>
                         </div>
@@ -461,23 +461,23 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                                 <div class="signature-box">
                                     <div class="stamp-placeholder">Carimbo</div>
                                     <div class="signature-line"></div>
-                                    <div class="signature-label">Responsável pelo Inventário</div>
+                                    <div class="signature-label">ResponsÃ¡vel pelo InventÃ¡rio</div>
                                 </div>
                                 <div class="signature-box">
                                     <div class="stamp-placeholder">Carimbo</div>
                                     <div class="signature-line"></div>
-                                    <div class="signature-label">Verificação Financeira</div>
+                                    <div class="signature-label">VerificaÃ§Ã£o Financeira</div>
                                 </div>
                                 <div class="signature-box">
                                     <div class="stamp-placeholder">Carimbo</div>
                                     <div class="signature-line"></div>
-                                    <div class="signature-label">Direcção Geral</div>
+                                    <div class="signature-label">DirecÃ§Ã£o Geral</div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="branding">
-                            Multicore ERP Solutions · Rastreabilidade e Gestão de Stock · ${new Date().getFullYear()}
+                            Multicore ERP Solutions Â· Rastreabilidade e GestÃ£o de Stock Â· ${new Date().getFullYear()}
                         </div>
                     </div>
                 </div>
@@ -489,7 +489,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
     };
 
     const handleExportExcel = () => {
-        const headers = ['REF', 'Cód. Barras', 'Produto', 'Categoria', 'Stock (Unid)', 'Caixas', 'Preço Unit', 'Valor Total'];
+        const headers = ['REF', 'CÃ³d. Barras', 'Produto', 'Categoria', 'Stock (Unid)', 'Caixas', 'PreÃ§o Unit', 'Valor Total'];
         const rows = reportData.products.map(p => [
             p.sku || '',
             p.barcode || '',
@@ -521,7 +521,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
         <Modal 
             isOpen={isOpen} 
             onClose={onClose} 
-            title="Visualização do Inventário" 
+            title="VisualizaÃ§Ã£o do InventÃ¡rio" 
             size="xl"
             isLight
         >
@@ -529,8 +529,8 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                 {/* Modal Header Actions */}
                 <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                     <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Relatório Gerado</p>
-                        <h3 className="text-lg font-black text-slate-900">Pré-visualização do Documento</h3>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">RelatÃ³rio Gerado</p>
+                        <h3 className="text-lg font-black text-slate-900">PrÃ©-visualizaÃ§Ã£o do Documento</h3>
                     </div>
                     <div className="flex gap-2">
                         <Button 
@@ -562,7 +562,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                             </div>
                         ) : productsList.length === 0 ? (
                             <div className="py-20 text-center">
-                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhum dado disponível para os filtros selecionados</p>
+                                <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Nenhum dado disponÃ­vel para os filtros selecionados</p>
                             </div>
                         ) : (
                             <div className="print-container" style={{ width: '100%', pointerEvents: 'none' }}>
@@ -570,7 +570,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                                 <div className="flex justify-between items-start mb-8">
                                     <div>
                                         <h2 className="text-xl font-black text-slate-900">{reportData.company.name}</h2>
-                                        <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-bold">Relatório de Inventário</p>
+                                        <p className="text-xs text-slate-500 mt-1 uppercase tracking-wider font-bold">RelatÃ³rio de InventÃ¡rio</p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Data</p>
@@ -583,7 +583,7 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                                     <thead>
                                         <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: 'white' }}>
                                             <th style={{ backgroundColor: 'white', color: '#0f172a', padding: '12px', fontSize: '10px', textAlign: 'left', fontWeight: '800', textTransform: 'uppercase' }}>REF</th>
-                                            <th style={{ backgroundColor: 'white', color: '#0f172a', padding: '12px', fontSize: '10px', textAlign: 'left', fontWeight: '800', textTransform: 'uppercase' }}>CÓDIGO</th>
+                                            <th style={{ backgroundColor: 'white', color: '#0f172a', padding: '12px', fontSize: '10px', textAlign: 'left', fontWeight: '800', textTransform: 'uppercase' }}>CÃ“DIGO</th>
                                             <th style={{ backgroundColor: 'white', color: '#0f172a', padding: '12px', fontSize: '10px', textAlign: 'left', fontWeight: '800', textTransform: 'uppercase' }}>PRODUTO</th>
                                             <th style={{ backgroundColor: 'white', color: '#0f172a', padding: '12px', fontSize: '10px', textAlign: 'right', fontWeight: '800', textTransform: 'uppercase' }}>UNID</th>
                                             <th style={{ backgroundColor: 'white', color: '#0f172a', padding: '12px', fontSize: '10px', textAlign: 'right', fontWeight: '800', textTransform: 'uppercase' }}>CAIXAS</th>
@@ -639,8 +639,8 @@ export default function InventoryPrintReport({ isOpen, onClose, category, status
                         <HiOutlinePrinter className="w-5 h-5 text-amber-600" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-amber-900 uppercase tracking-tight">Dica de Impressão</p>
-                        <p className="text-xs text-amber-700 mt-0.5">Para melhores resultados, certifique-se de habilitar "Gráficos de Segundo Plano" nas configurações de impressão do seu navegador.</p>
+                        <p className="text-xs font-bold text-amber-900 uppercase tracking-tight">Dica de ImpressÃ£o</p>
+                        <p className="text-xs text-amber-700 mt-0.5">Para melhores resultados, certifique-se de habilitar "GrÃ¡ficos de Segundo Plano" nas configuraÃ§Ãµes de impressÃ£o do seu navegador.</p>
                     </div>
                 </div>
             </div>

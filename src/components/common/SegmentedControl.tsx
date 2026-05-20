@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/helpers';
+import { Button } from '../ui/Button';
 
 interface Option {
     label: string;
@@ -29,7 +30,7 @@ export function SegmentedControl<V extends string | number = string | number>({
             className
         )}>
             {options.map((opt) => (
-                <button
+                <Button variant="ghost"
                     key={opt.value}
                     type="button"
                     onClick={() => onChange(opt.value as V)}
@@ -43,7 +44,7 @@ export function SegmentedControl<V extends string | number = string | number>({
                 >
                     {opt.icon && <opt.icon className="w-3.5 h-3.5" />}
                     {opt.label}
-                </button>
+                </Button>
             ))}
         </div>
     );

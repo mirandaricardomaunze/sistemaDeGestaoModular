@@ -37,7 +37,6 @@ jest.mock('../../lib/socket', () => ({
 }));
 
 describe('Sales Route', () => {
-    let authToken: string;
     let testCustomerId: string;
     let testProductId: string;
     let testSessionId: string;

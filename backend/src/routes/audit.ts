@@ -82,7 +82,7 @@ router.get('/', authenticate, authorize('admin'), async (req: AuthRequest, res) 
 router.post('/', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada');
 
-    const { action, entity, entityId, oldData, newData, ipAddress, userAgent, userName } = req.body;
+    const { action, entity, entityId, oldData, newData, reason, ipAddress, userAgent, userName } = req.body;
 
     const log = await prisma.auditLog.create({
         data: {
@@ -91,6 +91,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             entityId,
             oldData,
             newData,
+            reason,
             ipAddress,
             userAgent,
             userName: userName || req.userName,

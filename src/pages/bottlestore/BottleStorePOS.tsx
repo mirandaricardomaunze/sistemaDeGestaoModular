@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, Button, Input, Badge, LoadingSpinner, EmptyState, Modal, ConfirmationModal, LoadingOverlay } from '../../components/ui';
 import ThermalReceiptPreview from '../../components/pos/ThermalReceiptPreview';
@@ -180,7 +180,7 @@ export default function BottleStorePOS() {
                 playScanSound();
                 toast.success(`Adicionado: ${found.name}`);
             } else {
-                toast.error('Bebida não encontrada');
+                toast.error('Bebida nÃ£o encontrada');
             }
         },
         enabled: !isCheckoutModalOpen && !clearCartModalOpen && !thermalPreviewOpen
@@ -207,7 +207,7 @@ export default function BottleStorePOS() {
             const totalUnitsNeeded = nextQuantity * (mode === 'crate' ? packSize : 1);
 
             if (product.currentStock < totalUnitsNeeded) {
-                toast.error(`Stock insuficiente! Disponível: ${product.currentStock} unidades`);
+                toast.error(`Stock insuficiente! DisponÃ­vel: ${product.currentStock} unidades`);
                 return;
             }
 
@@ -220,7 +220,7 @@ export default function BottleStorePOS() {
             newCart[existingIndex].finalPrice = bestPrice - returnDiscount;
 
             if (tier && bestPrice < prevFinalPrice) {
-                toast.success(`Desconto por volume aplicado! ${tier.label || `≥${tier.minQty} un`} → ${formatCurrency(bestPrice)}/un`, { icon: '' });
+                toast.success(`Desconto por volume aplicado! ${tier.label || `â‰¥${tier.minQty} un`} â†’ ${formatCurrency(bestPrice)}/un`, { icon: '' });
             }
             setCart(newCart);
         } else {
@@ -235,7 +235,7 @@ export default function BottleStorePOS() {
             const returnDiscount = withReturn ? ((product.returnPrice ?? 0) * (mode === 'crate' ? packSize : 1)) : 0;
 
             if (tier) {
-                toast.success(`Desconto por volume: ${tier.label || `≥${tier.minQty} un`} → ${formatCurrency(bestPrice)}/un`, { icon: '' });
+                toast.success(`Desconto por volume: ${tier.label || `â‰¥${tier.minQty} un`} â†’ ${formatCurrency(bestPrice)}/un`, { icon: '' });
             }
 
             setCart(prev => [...prev, {
@@ -318,9 +318,9 @@ export default function BottleStorePOS() {
 
             if (errorResponse?.errors && Array.isArray(errorResponse.errors)) {
                 const validationErrors = errorResponse.errors
-                    .map((detail) => `• ${detail.label || detail.field || 'campo'}: ${detail.message}`)
+                    .map((detail) => `â€¢ ${detail.label || detail.field || 'campo'}: ${detail.message}`)
                     .join('\n');
-                toast.error(`Erro de Validação\n\n${validationErrors}`, { duration: 8000 });
+                toast.error(`Erro de ValidaÃ§Ã£o\n\n${validationErrors}`, { duration: 8000 });
             } else {
                 toast.error(errorMessage, { duration: 6000 });
             }
@@ -347,7 +347,7 @@ export default function BottleStorePOS() {
                     <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-dark-600">
                         <HiOutlineScale className={`w-5 h-5 ${isScaleConnected ? 'text-green-500' : 'text-gray-400'}`} />
                         <span className="text-sm font-bold dark:text-white">
-                            {isScaleConnected ? `${scaleWeight.toFixed(3)} kg` : 'Balança OFF'}
+                            {isScaleConnected ? `${scaleWeight.toFixed(3)} kg` : 'BalanÃ§a OFF'}
                         </span>
                         <Button
                             size="sm"
@@ -355,7 +355,7 @@ export default function BottleStorePOS() {
                             onClick={connectScale}
                             className="h-7 text-[10px]"
                         >
-                            {isScaleConnected ? 'Reconectar' : 'Ligar Balança'}
+                            {isScaleConnected ? 'Reconectar' : 'Ligar BalanÃ§a'}
                         </Button>
                     </div>
 
@@ -373,7 +373,7 @@ export default function BottleStorePOS() {
                     <Card padding="md" className="flex-shrink-0">
                         <Input
                             ref={productSearchRef}
-                            placeholder="Escaneie o código ou busque bebida, marca..."
+                            placeholder="Escaneie o cÃ³digo ou busque bebida, marca..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5 text-gray-400" />}
@@ -390,7 +390,7 @@ export default function BottleStorePOS() {
                                 <EmptyState
                                     icon={<HiOutlineCube className="w-12 h-12 text-gray-300" />}
                                     title="Nenhum produto"
-                                    description="Não encontramos bebidas com este critrio."
+                                    description="NÃ£o encontramos bebidas com este critrio."
                                 />
                             </div>
                         ) : (
@@ -414,7 +414,7 @@ export default function BottleStorePOS() {
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Carrinho</h2>
                                 {cart.length > 0 && (
-                                    <button onClick={() => setClearCartModalOpen(true)} className="text-sm text-red-600 hover:text-red-700">Limpar</button>
+                                    <Button variant="ghost" onClick={() => setClearCartModalOpen(true)} className="text-sm text-red-600 hover:text-red-700">Limpar</Button>
                                 )}
                             </div>
                             <p className="text-sm text-gray-500">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</p>
@@ -429,7 +429,7 @@ export default function BottleStorePOS() {
                                 />
                                 {selectedCustomer && customerHistory && (
                                     <p className="mt-1 text-[10px] text-primary-600">
-                                        {customerHistory.purchaseCount} compras · {formatCurrency(customerHistory.totalSpent)}
+                                        {customerHistory.purchaseCount} compras Â· {formatCurrency(customerHistory.totalSpent)}
                                     </p>
                                 )}
                             </div>
@@ -445,7 +445,7 @@ export default function BottleStorePOS() {
                                 cart.map((item, index) => (
                                     <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
                                         <div className="w-10 h-10 rounded-lg bg-white dark:bg-dark-600 flex items-center justify-center flex-shrink-0">
-                                            <span>{item.mode === 'crate' ? '🍾' : '🍺'}</span>
+                                            <span>{item.mode === 'crate' ? 'ðŸ¾' : 'ðŸº'}</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.name}</p>
@@ -457,7 +457,7 @@ export default function BottleStorePOS() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button onClick={async () => {
+                                            <Button variant="ghost" onClick={async () => {
                                                 const newCart = [...cart];
                                                 if (newCart[index].quantity > 1) {
                                                     const nextQty = newCart[index].quantity - 1;
@@ -469,9 +469,9 @@ export default function BottleStorePOS() {
                                                     newCart[index].finalPrice = bestPrice - returnDiscount;
                                                     setCart(newCart);
                                                 } else { removeFromCart(index); }
-                                            }} className="w-6 h-6 rounded bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300"><HiOutlineMinus className="w-3 h-3" /></button>
+                                            }} className="w-6 h-6 rounded bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300"><HiOutlineMinus className="w-3 h-3" /></Button>
                                             <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
-                                            <button onClick={async () => {
+                                            <Button variant="ghost" onClick={async () => {
                                                 const newCart = [...cart];
                                                 const nextQty = newCart[index].quantity + 1;
                                                 const tiers = await getTiersForProduct(newCart[index].id);
@@ -482,12 +482,12 @@ export default function BottleStorePOS() {
                                                 newCart[index].quantity = nextQty;
                                                 newCart[index].finalPrice = bestPrice - returnDiscount;
                                                 if (tier && bestPrice < prevPrice) {
-                                                    toast.success(`Desconto por volume aplicado! ${tier.label || `≥${tier.minQty} un`}`, { icon: '' });
+                                                    toast.success(`Desconto por volume aplicado! ${tier.label || `â‰¥${tier.minQty} un`}`, { icon: '' });
                                                 }
                                                 setCart(newCart);
-                                            }} className="w-6 h-6 rounded bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300"><HiOutlinePlus className="w-3 h-3" /></button>
+                                            }} className="w-6 h-6 rounded bg-gray-200 dark:bg-dark-600 flex items-center justify-center hover:bg-gray-300"><HiOutlinePlus className="w-3 h-3" /></Button>
                                         </div>
-                                        <button onClick={() => removeFromCart(index)} className="p-1 text-gray-400 hover:text-red-500"><HiOutlineTrash className="w-4 h-4" /></button>
+                                        <Button variant="ghost" onClick={() => removeFromCart(index)} className="p-1 text-gray-400 hover:text-red-500"><HiOutlineTrash className="w-4 h-4" /></Button>
                                     </div>
                                 ))
                             )}
@@ -572,7 +572,7 @@ function BottleProductCard({ product, onAdd }: { product: BottleProduct, onAdd: 
                 }`}>
             <div className="p-3">
                 <div className="w-full h-16 rounded-lg bg-gray-100 dark:bg-dark-700 flex items-center justify-center mb-2 flex-shrink-0">
-                    <span className="text-2xl">{product.category === 'beverages' ? '🍺' : '🍾'}</span>
+                    <span className="text-2xl">{product.category === 'beverages' ? 'ðŸº' : 'ðŸ¾'}</span>
                 </div>
                 <p className="text-[10px] text-primary-600 dark:text-primary-400 font-mono mb-0.5 truncate">{product.code}</p>
                 <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1 line-clamp-1">{product.name}</h3>
@@ -583,33 +583,33 @@ function BottleProductCard({ product, onAdd }: { product: BottleProduct, onAdd: 
             </div>
 
             <div className="mt-auto grid grid-cols-1 gap-px bg-gray-200 dark:bg-dark-700 border-t border-gray-200 dark:border-dark-700">
-                <button
+                <Button variant="ghost"
                     onClick={() => onAdd(product, 'unit', false)}
                     disabled={isOut}
                     className="flex justify-center items-center py-2 bg-white dark:bg-dark-800 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase transition-colors disabled:cursor-not-allowed"
                 >
                     + Unidade
-                </button>
+                </Button>
                 
                 {product.isReturnable && (
-                    <button
+                    <Button variant="ghost"
                         onClick={() => onAdd(product, 'unit', true)}
                         disabled={isOut}
                         className="flex justify-center items-center py-2 bg-white dark:bg-dark-800 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-[10px] font-bold text-blue-600 dark:text-blue-400 border-t border-gray-100 dark:border-dark-700 uppercase transition-colors disabled:cursor-not-allowed"
                     >
                         <HiOutlineArrowPath className="w-3 h-3 mr-1" />
-                        Com Devolução
-                    </button>
+                        Com DevoluÃ§Ã£o
+                    </Button>
                 )}
 
                 {hasCrate && (
-                    <button
+                    <Button variant="ghost"
                         onClick={() => onAdd(product, 'crate', false)}
                         disabled={isOut}
                         className="flex justify-center items-center py-2 bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20 text-[10px] font-bold text-amber-600 dark:text-amber-400 border-t border-gray-100 dark:border-dark-700 uppercase transition-colors disabled:cursor-not-allowed"
                     >
                         + Caixa ({product.packSize})
-                    </button>
+                    </Button>
                 )}
             </div>
         </div>

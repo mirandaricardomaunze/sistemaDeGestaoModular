@@ -177,7 +177,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose }: CreatePurc
                                 <div className="absolute z-10 w-full mt-1 bg-white dark:bg-dark-700 rounded-md shadow-lg border border-gray-200 dark:border-dark-600 max-h-60 overflow-auto">
                                     {filteredProducts.length > 0 ? (
                                         filteredProducts.map(product => (
-                                            <button
+                                            <Button variant="ghost"
                                                 key={product.id}
                                                 type="button"
                                                 onClick={() => handleAddItem(product.id)}
@@ -187,7 +187,7 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose }: CreatePurc
                                                 <span className="text-sm text-gray-500">
                                                     Estoque: {product.currentStock} | Custo: {formatCurrency(product.costPrice)}
                                                 </span>
-                                            </button>
+                                            </Button>
                                         ))
                                     ) : (
                                         <div className="px-4 py-2 text-gray-500 text-sm">
@@ -242,20 +242,20 @@ export default function CreatePurchaseOrderModal({ isOpen, onClose }: CreatePurc
                                     </p>
                                 </div>
                                 <div className="pb-1">
-                                    <button
+                                    <Button variant="ghost"
                                         type="button"
                                         onClick={() => remove(index)}
                                         className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                                     >
                                         <HiOutlineTrash className="w-5 h-5" />
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         );
                     })}
                     {fields.length === 0 && (
                         <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 dark:border-dark-700 rounded-lg">
-                            Nenhum item adicionado Ã  encomenda.
+                            Nenhum item adicionado Ã  encomenda.
                         </div>
                     )}
                     {errors.items && (

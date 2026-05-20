@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment, useCallback } from 'react';
+﻿import React, { useState, useEffect, Fragment, useCallback } from 'react';
 import { Menu, Transition } from '@headlessui/react';
 import { 
     HiOutlineClock,
@@ -18,8 +18,7 @@ import {
 import { shiftAPI, warehousesAPI, type ShiftSession as CashSession, type ShiftZReport } from '../../services/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Button } from '../../components/ui/Button';
-import { Card, Badge, Input, Select, SimpleTable } from '../../components/ui';
+import { Card, Badge, Button, Input, Select, SimpleTable } from '../../components/ui';
 import Pagination from '../../components/ui/Pagination';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -97,7 +96,7 @@ const CommercialShiftHistory: React.FC = () => {
             setTotal(response?.pagination?.total || sessionsData.length);
         } catch (err) {
             logger.error('Error loading commercial shift history:', err);
-            toast.error(getApiErrorMessage(err, 'Erro ao carregar histórico de turnos'));
+            toast.error(getApiErrorMessage(err, 'Erro ao carregar histÃ³rico de turnos'));
         } finally {
             setLoading(false);
         }
@@ -142,7 +141,7 @@ const CommercialShiftHistory: React.FC = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        toast.success('Histórico exportado para CSV com sucesso');
+        toast.success('HistÃ³rico exportado para CSV com sucesso');
     };
 
     const handleExportPDF = () => {
@@ -174,15 +173,15 @@ const CommercialShiftHistory: React.FC = () => {
             }
             
             doc.setFontSize(10);
-            doc.text(`Data de Emissão: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, yPos);
+            doc.text(`Data de EmissÃ£o: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, yPos);
             yPos += 10;
             
             doc.setFontSize(12);
             doc.setTextColor(0, 0, 0);
-            doc.text("Relatório Oficial de Fechos de Caixa", 14, yPos);
+            doc.text("RelatÃ³rio Oficial de Fechos de Caixa", 14, yPos);
             yPos += 5;
             doc.setFontSize(9);
-            doc.text(`Período de Referência: ${format(new Date(dateRange.start), 'dd/MM/yyyy')} a ${format(new Date(dateRange.end), 'dd/MM/yyyy')}`, 14, yPos);
+            doc.text(`PerÃ­odo de ReferÃªncia: ${format(new Date(dateRange.start), 'dd/MM/yyyy')} a ${format(new Date(dateRange.end), 'dd/MM/yyyy')}`, 14, yPos);
 
             const totalFundo = sessions.reduce((acc, s) => acc + Number(s.openingBalance || 0), 0);
             const totalVendas = sessions.reduce((acc, s) => acc + Number(s.totalSales || 0), 0);
@@ -191,11 +190,11 @@ const CommercialShiftHistory: React.FC = () => {
             // Summary Table
             autoTable(doc, {
                 startY: yPos + 5,
-                head: [['Métricas do Período', 'Valores Acumulados']],
+                head: [['MÃ©tricas do PerÃ­odo', 'Valores Acumulados']],
                 body: [
                     ['Total de Fundo de Maneio', formatCurrency(totalFundo)],
                     ['Total de Vendas (Turnos)', formatCurrency(totalVendas)],
-                    ['Balanço de Discrepâncias', formatCurrency(totalDiscrepancia)]
+                    ['BalanÃ§o de DiscrepÃ¢ncias', formatCurrency(totalDiscrepancia)]
                 ],
                 theme: 'grid',
                 headStyles: { fillColor: [59, 84, 255], fontSize: 10 },
@@ -243,7 +242,7 @@ const CommercialShiftHistory: React.FC = () => {
             });
 
             doc.save(`Relatorio_Turnos_${dateRange.start}_a_${dateRange.end}.pdf`);
-            toast.success('Relatório PDF gerado com sucesso');
+            toast.success('RelatÃ³rio PDF gerado com sucesso');
         } catch (error) {
             logger.error('Error generating PDF:', error);
             toast.error('Erro ao gerar ficheiro PDF');
@@ -261,7 +260,7 @@ const CommercialShiftHistory: React.FC = () => {
             <html>
             <head>
                 <meta charset="utf-8">
-                <title>Histórico de Turnos</title>
+                <title>HistÃ³rico de Turnos</title>
                 <style>
                     body { font-family: sans-serif; font-size: 12px; }
                     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -275,21 +274,21 @@ const CommercialShiftHistory: React.FC = () => {
             </head>
             <body>
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <h1 style="margin: 0; color: #3b54ff;">${company?.name || 'SISTEMA DE GESTÃO MODULAR'}</h1>
+                    <h1 style="margin: 0; color: #3b54ff;">${company?.name || 'SISTEMA DE GESTÃƒO MODULAR'}</h1>
                     ${company?.nuit ? `<p style="margin: 2px 0; color: #666; font-size: 14px;">NUIT: ${company.nuit}</p>` : ''}
                     ${company?.address ? `<p style="margin: 2px 0; color: #666; font-size: 14px;">${company.address}</p>` : ''}
                 </div>
-                <h2>Histórico de Turnos (${format(new Date(dateRange.start), 'dd/MM/yyyy')} - ${format(new Date(dateRange.end), 'dd/MM/yyyy')})</h2>
+                <h2>HistÃ³rico de Turnos (${format(new Date(dateRange.start), 'dd/MM/yyyy')} - ${format(new Date(dateRange.end), 'dd/MM/yyyy')})</h2>
                 <table>
                     <thead>
                         <tr>
                             <th>Abertura</th>
                             <th>Fecho</th>
-                            <th>Responsável</th>
+                            <th>ResponsÃ¡vel</th>
                             <th class="text-right">Fundo de Maneio</th>
                             <th class="text-right">Total Vendas</th>
                             <th class="text-right">Saldo Final</th>
-                            <th class="text-right">Diferença</th>
+                            <th class="text-right">DiferenÃ§a</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -320,7 +319,7 @@ const CommercialShiftHistory: React.FC = () => {
         if (printWindow) {
             printWindow.document.write(html);
             printWindow.document.close();
-            toast.success('A abrir janela de impressão...');
+            toast.success('A abrir janela de impressÃ£o...');
         } else {
             toast.error('Por favor, permita pop-ups para imprimir');
         }
@@ -366,7 +365,7 @@ const CommercialShiftHistory: React.FC = () => {
             const doc = new jsPDF('p', 'mm', 'a4') as AutoTableDocument;
             const opened = session.openedAt ? new Date(session.openedAt) : null;
             const closed = session.closedAt ? new Date(session.closedAt) : null;
-            const fmtDate = (d: Date | null) => d ? format(d, "dd/MM/yyyy HH:mm", { locale: ptBR }) : '—';
+            const fmtDate = (d: Date | null) => d ? format(d, "dd/MM/yyyy HH:mm", { locale: ptBR }) : 'â€”';
             const fmt = (n: number | undefined) => formatCurrency(Number(n || 0));
             const diff = Number(session.difference || 0);
             
@@ -391,7 +390,7 @@ const CommercialShiftHistory: React.FC = () => {
             
             doc.setFontSize(14);
             doc.setTextColor(0, 0, 0);
-            doc.text(`Relatório Oficial de Fecho de Turno (Z-Report)`, 14, yPos);
+            doc.text(`RelatÃ³rio Oficial de Fecho de Turno (Z-Report)`, 14, yPos);
             yPos += 6;
             
             doc.setFontSize(10);
@@ -401,11 +400,11 @@ const CommercialShiftHistory: React.FC = () => {
             // Session Info
             autoTable(doc, {
                 startY: yPos,
-                head: [['Detalhes da Sessão', '']],
+                head: [['Detalhes da SessÃ£o', '']],
                 body: [
-                    ['Aberto por', session.openedBy?.name || '—'],
+                    ['Aberto por', session.openedBy?.name || 'â€”'],
                     ['Aberto em', fmtDate(opened)],
-                    ['Fechado por', session.closedBy?.name || '—'],
+                    ['Fechado por', session.closedBy?.name || 'â€”'],
                     ['Fechado em', fmtDate(closed)],
                     ['Total de Vendas Registadas', `${session._count?.sales || 0} Vendas`]
                 ],
@@ -416,7 +415,7 @@ const CommercialShiftHistory: React.FC = () => {
             });
 
             const diffColor = diff < 0 ? [239, 68, 68] : diff > 0 ? [16, 185, 129] : [100, 100, 100];
-            const diffText = diff < 0 ? 'Falta no Caixa' : diff > 0 ? 'Sobra no Caixa' : 'Sem Discrepâncias';
+            const diffText = diff < 0 ? 'Falta no Caixa' : diff > 0 ? 'Sobra no Caixa' : 'Sem DiscrepÃ¢ncias';
 
             // Financial Summary
             autoTable(doc, {
@@ -425,12 +424,12 @@ const CommercialShiftHistory: React.FC = () => {
                 body: [
                     ['Fundo de Maneio Inicial', fmt(session.openingBalance)],
                     ['(+) Suprimentos (Entradas)', fmt(session.deposits)],
-                    ['(-) Sangrias (Saídas)', fmt(session.withdrawals)],
-                    ['Receitas (Numerário)', fmt(session.cashSales)],
+                    ['(-) Sangrias (SaÃ­das)', fmt(session.withdrawals)],
+                    ['Receitas (NumerÃ¡rio)', fmt(session.cashSales)],
                     ['Receitas (M-Pesa)', fmt(session.mpesaSales)],
                     ['Receitas (e-Mola)', fmt(session.emolaSales)],
-                    ['Receitas (Cartão/TPA)', fmt(session.cardSales)],
-                    ['Receitas (Crédito)', fmt(session.creditSales)],
+                    ['Receitas (CartÃ£o/TPA)', fmt(session.cardSales)],
+                    ['Receitas (CrÃ©dito)', fmt(session.creditSales)],
                     ['TOTAL FACTURADO', fmt(session.totalSales)],
                     ['', ''],
                     ['Saldo Esperado no Sistema', fmt(session.expectedBalance)],
@@ -448,7 +447,7 @@ const CommercialShiftHistory: React.FC = () => {
                     if (data.row.index === 10 || data.row.index === 11) { // Esperado / Contado
                         data.cell.styles.fontStyle = 'bold';
                     }
-                    if (data.row.index === 12) { // Diferença
+                    if (data.row.index === 12) { // DiferenÃ§a
                         data.cell.styles.fontStyle = 'bold';
                         data.cell.styles.textColor = diffColor as [number, number, number];
                     }
@@ -512,11 +511,11 @@ const CommercialShiftHistory: React.FC = () => {
             doc.text('Conferencia', 162, safeSignatureY + 5);
 
             window.open(doc.output('bloburl'), '_blank');
-            toast.success(`Relatório Z profissional gerado com sucesso`);
+            toast.success(`RelatÃ³rio Z profissional gerado com sucesso`);
             logger.debug('Generated professional Z-Report PDF for shift:', session.id);
         } catch (err) {
             logger.error('Professional Z-Report generation failed', err);
-            toast.error('Erro ao gerar Relatório Z');
+            toast.error('Erro ao gerar RelatÃ³rio Z');
         }
     };
 
@@ -568,7 +567,7 @@ const CommercialShiftHistory: React.FC = () => {
                     </div>
                     <div className="md:col-span-2">
                         <Select
-                            label="Armazém"
+                            label="ArmazÃ©m"
                             value={warehouseId}
                             onChange={(e) => {
                                 setWarehouseId(e.target.value);
@@ -588,7 +587,7 @@ const CommercialShiftHistory: React.FC = () => {
                     </div>
                     <div className="md:col-span-2">
                         <Input
-                            label="Início"
+                            label="InÃ­cio"
                             type="date"
                             value={dateRange.start}
                             onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setPage(1); }}
@@ -702,7 +701,7 @@ const CommercialShiftHistory: React.FC = () => {
                     icon={<HiOutlineXCircle className="w-5 h-5" />}
                     color={sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0) < 0 ? 'danger' : 'success'}
                     value={formatCurrency(sessions.reduce((acc, s) => acc + Number(s.difference || 0), 0))}
-                    label="Discrepâncias"
+                    label="DiscrepÃ¢ncias"
                 />
             </div>
 
@@ -710,17 +709,17 @@ const CommercialShiftHistory: React.FC = () => {
             <Card padding="none" className="overflow-hidden border-gray-100 dark:border-dark-700 shadow-xl shadow-black/5">
                 <SimpleTable
                     columns={[
-                        { key: 'session', label: 'Sessão (Abertura/Fecho)' },
-                        { key: 'responsible', label: 'Responsável' },
+                        { key: 'session', label: 'SessÃ£o (Abertura/Fecho)' },
+                        { key: 'responsible', label: 'ResponsÃ¡vel' },
                         { key: 'fund', label: 'Fundo / Vendas', className: 'text-right' },
                         { key: 'balance', label: 'Saldo Final', className: 'text-right' },
                         { key: 'audit', label: 'Auditoria', className: 'text-center' },
-                        { key: 'actions', label: 'Acções', className: 'text-right pr-10' },
+                        { key: 'actions', label: 'AcÃ§Ãµes', className: 'text-right pr-10' },
                     ]}
                     isLoading={loading}
                     isEmpty={!loading && sessions.length === 0}
                     emptyTitle="Sem registos de turnos"
-                    emptyDescription="Os turnos aparecerão aqui assim que forem registados."
+                    emptyDescription="Os turnos aparecerÃ£o aqui assim que forem registados."
                     minHeight="460px"
                     loadingRows={8}
                     loadingMessage="A carregar turnos..."
@@ -746,7 +745,7 @@ const CommercialShiftHistory: React.FC = () => {
                                                 </span>
                                                 {session.closedAt ? (
                                                     <span className="text-[9px] text-gray-400 font-bold uppercase">
-                                                        FECHADO ÀS {format(new Date(session.closedAt), "HH:mm", { locale: ptBR })}
+                                                        FECHADO Ã€S {format(new Date(session.closedAt), "HH:mm", { locale: ptBR })}
                                                     </span>
                                                 ) : (
                                                     <Badge variant="warning" className="text-[8px] mt-1 w-fit px-1.5 py-0">EM ABERTO</Badge>
@@ -803,7 +802,7 @@ const CommercialShiftHistory: React.FC = () => {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handlePrintZReport(session)}
-                                                    title="Re-imprimir Relatório Z"
+                                                    title="Re-imprimir RelatÃ³rio Z"
                                                     className="p-2 text-gray-500 hover:bg-gray-800 hover:text-white rounded-lg shadow-sm active:scale-95"
                                                 >
                                                     <HiOutlinePrinter className="w-5 h-5" />

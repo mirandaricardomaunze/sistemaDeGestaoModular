@@ -5,8 +5,8 @@
  * and quick actions for managing alerts across all system modules.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     HiOutlineBell,
     HiOutlineCheck,
@@ -23,7 +23,6 @@ import {
 import { useAlerts, useUnreadCount } from '../../hooks/useAlerts';
 import { Button, Badge } from '../ui';
 import type { Alert, AlertModule, AlertPriority } from '../../services/api';
-
 // ============================================================================
 // Module Configuration
 // ============================================================================
@@ -33,10 +32,30 @@ const MODULE_CONFIG: Record<string, { label: string; color: string; icon?: strin
     invoices: { label: 'Facturas', color: 'green' },
     hospitality: { label: 'Hotelaria', color: 'purple' },
     pharmacy: { label: 'Farmácia', color: 'red' },
-    crm: { label: 'crm', color: 'orange' },
-    pos: { label: 'pos', color: 'cyan' },
+    crm: { label: 'CRM', color: 'orange' },
+    pos: { label: 'POS', color: 'cyan' },
     general: { label: 'Geral', color: 'gray' }
 };
+
+// Route prefix → alert modules considered relevant to that section.
+// When inside one of these routes, the notification panel only surfaces
+// alerts tagged with these modules.
+const ROUTE_MODULE_SCOPE: Record<string, AlertModule[]> = {
+    commercial: ['inventory', 'invoices', 'crm', 'pos'],
+    pharmacy: ['pharmacy', 'inventory', 'invoices'],
+    hospitality: ['hospitality'],
+    hotel: ['hospitality'],
+    'bottle-store': ['inventory', 'invoices', 'pos'],
+    bottlestore: ['inventory', 'invoices', 'pos'],
+    bottleStore: ['inventory', 'invoices', 'pos'],
+    restaurant: ['hospitality', 'inventory', 'pos'],
+    logistics: ['inventory'],
+};
+
+function getScopeFromPath(pathname: string): AlertModule[] | null {
+    const segment = pathname.split('/').filter(Boolean)[0];
+    return segment ? ROUTE_MODULE_SCOPE[segment] ?? null : null;
+}
 
 const PRIORITY_CONFIG: Record<AlertPriority, { label: string; color: string; icon: React.ReactNode }> = {
     critical: {
@@ -73,26 +92,55 @@ interface NotificationCenterProps {
 
 export default function NotificationCenter({ isOpen, onClose, className = '' }: NotificationCenterProps) {
     const navigate = useNavigate();
+    const location = useLocation();
     const containerRef = useRef<HTMLDivElement>(null);
+    const scope = useMemo(() => getScopeFromPath(location.pathname), [location.pathname]);
     const [selectedModule, setSelectedModule] = useState<AlertModule | 'all'>('all');
     const [showResolved, setShowResolved] = useState(false);
 
+    // Reset module filter whenever the user navigates into a different scope —
+    // the previously selected chip may not exist for the new module.
+    useEffect(() => {
+        setSelectedModule('all');
+    }, [scope]);
+
     const {
-        alerts,
+        alerts: rawAlerts,
         isLoading,
         markAsRead,
         markAsResolved,
         markAllAsRead,
         generateAlerts,
-        clearResolved,
-        unreadCount,
-        criticalCount
+        clearResolved
     } = useAlerts({
         isResolved: showResolved ? undefined : false,
         module: selectedModule === 'all' ? undefined : selectedModule
     });
 
     const { counts } = useUnreadCount();
+
+    // When inside a scoped section, hide alerts that don't belong to it.
+    const alerts = useMemo(() => {
+        if (!scope) return rawAlerts;
+        return rawAlerts.filter(a => a.module && scope.includes(a.module as AlertModule));
+    }, [rawAlerts, scope]);
+
+    const unreadCount = alerts.filter(a => !a.isRead && !a.isResolved).length;
+    const criticalCount = alerts.filter(a => a.priority === 'critical' && !a.isResolved).length;
+
+    // Restrict the module chip bar to modules that exist in the current scope
+    // (or all modules when there is no scope — e.g. on dashboard or /alerts).
+    const moduleChipEntries = useMemo(() => {
+        const byModule = counts?.byModule || {};
+        return Object.entries(byModule).filter(([mod]) =>
+            !scope || scope.includes(mod as AlertModule)
+        );
+    }, [counts, scope]);
+
+    const scopedTotal = useMemo(() => {
+        if (!scope) return counts?.total ?? 0;
+        return moduleChipEntries.reduce((sum, [, count]) => sum + count, 0);
+    }, [scope, counts, moduleChipEntries]);
 
     // Close on outside click
     useEffect(() => {
@@ -205,17 +253,17 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
 
                 {/* Module tabs */}
                 <div className="mt-3 flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin">
-                    <button
+                    <Button variant="ghost"
                         onClick={() => setSelectedModule('all')}
                         className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors
                             ${selectedModule === 'all'
                                 ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
                                 : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700'}`}
                     >
-                        Todos {counts?.total ? `(${counts.total})` : ''}
-                    </button>
-                    {Object.entries(counts?.byModule || {}).map(([mod, count]) => (
-                        <button
+                        Todos {scopedTotal ? `(${scopedTotal})` : ''}
+                    </Button>
+                    {moduleChipEntries.map(([mod, count]) => (
+                        <Button variant="ghost"
                             key={mod}
                             onClick={() => setSelectedModule(mod as AlertModule)}
                             className={`px-2 py-1 text-xs font-medium rounded-full whitespace-nowrap transition-colors
@@ -224,7 +272,7 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
                                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-dark-700'}`}
                         >
                             {MODULE_CONFIG[mod]?.label || mod} ({count})
-                        </button>
+                        </Button>
                     ))}
                 </div>
             </div>
@@ -232,32 +280,32 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
             {/* Actions bar */}
             <div className="px-4 py-2 border-b border-gray-100 dark:border-dark-700 flex items-center justify-between bg-gray-50/50 dark:bg-dark-800">
                 <div className="flex items-center gap-2">
-                    <button
+                    <Button variant="ghost"
                         onClick={() => setShowResolved(!showResolved)}
                         className={`text-xs flex items-center gap-1 ${showResolved ? 'text-primary-600' : 'text-gray-500'}`}
                     >
                         <HiOutlineFilter className="w-3.5 h-3.5" />
                         {showResolved ? 'Todos' : 'Activos'}
-                    </button>
+                    </Button>
                 </div>
                 <div className="flex items-center gap-2">
                     {unreadCount > 0 && (
-                        <button
+                        <Button variant="ghost"
                             onClick={() => markAllAsRead(selectedModule === 'all' ? undefined : selectedModule)}
                             className="text-xs text-primary-600 hover:text-primary-700 flex items-center gap-1"
                         >
                             <HiOutlineCheckCircle className="w-3.5 h-3.5" />
                             Marcar lidos
-                        </button>
+                        </Button>
                     )}
                     {showResolved && (
-                        <button
+                        <Button variant="ghost" 
                             onClick={clearResolved}
-                            className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1"
+                            className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 flex items-center gap-1"
                         >
                             <HiOutlineTrash className="w-3.5 h-3.5" />
                             Limpar
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>
@@ -330,13 +378,13 @@ export default function NotificationCenter({ isOpen, onClose, className = '' }: 
                                     {/* Actions */}
                                     <div className="flex items-center gap-1">
                                         {!alert.isResolved && (
-                                            <button
+                                            <Button variant="ghost"
                                                 onClick={(e) => handleResolve(e, alert.id)}
                                                 className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                                                 title="Resolver"
                                             >
                                                 <HiOutlineCheck className="w-4 h-4" />
-                                            </button>
+                                            </Button>
                                         )}
                                         {alert.actionUrl && (
                                             <HiOutlineChevronRight className="w-4 h-4 text-gray-400" />

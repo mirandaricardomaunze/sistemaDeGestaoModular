@@ -264,7 +264,7 @@ export function POSCartPanel({
                     {/* Prescription (controlled items) */}
                     {cartHasControlledItems && (
                         <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-3 border border-amber-200 dark:border-amber-700">
-                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">⚠️ï¸ Receita obrigatória</p>
+                            <p className="text-xs font-bold text-amber-700 dark:text-amber-400 mb-2">� ️ï¸ Receita obrigatória</p>
                             <div className="flex gap-2">
                                 <div className="flex-1">
                                     <Input
@@ -302,7 +302,7 @@ export function POSCartPanel({
                                                 <p className="text-green-600">Prescritor: {validatedRx.prescriberName}</p>
                                             )}
                                             {validatedRx.status === 'dispensed' && (
-                                                <p className="text-amber-600 font-medium mt-0.5">⚠️ï¸ Esta receita já foi dispensada anteriormente.</p>
+                                                <p className="text-amber-600 font-medium mt-0.5">� ️ï¸ Esta receita já foi dispensada anteriormente.</p>
                                             )}
                                         </div>
                                     </div>
@@ -322,7 +322,7 @@ export function POSCartPanel({
                                             <div className="flex items-center gap-2">
                                                 {/* Thumbnail (only for images, not PDFs) */}
                                                 {(rxImageUrl || validatedRx.imageUrl)?.match(/\.(jpg|jpeg|png|webp)$/i) && (
-                                                    <button
+                                                    <Button variant="ghost"
                                                         type="button"
                                                         onClick={() => setShowImageModal(true)}
                                                         className="w-12 h-12 rounded-lg overflow-hidden border-2 border-green-300 flex-shrink-0 hover:border-green-500 transition-colors"
@@ -332,38 +332,38 @@ export function POSCartPanel({
                                                             alt="Receita"
                                                             className="w-full h-full object-cover"
                                                         />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                                 <div className="flex-1 text-xs text-green-700 dark:text-green-400 font-medium">
                                                     Imagem anexada
                                                 </div>
-                                                <button
+                                                <Button variant="ghost"
                                                     type="button"
                                                     onClick={() => setShowImageModal(true)}
                                                     className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
                                                     title="Ver imagem"
                                                 >
                                                     <HiOutlineEye className="w-4 h-4" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="ghost"
                                                     type="button"
                                                     onClick={() => fileInputRef.current?.click()}
                                                     className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors"
                                                     title="Substituir imagem"
                                                 >
                                                     <HiOutlinePhoto className="w-4 h-4" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="danger"
                                                     type="button"
                                                     onClick={handleRemoveImage}
                                                     className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg transition-colors"
                                                     title="Remover imagem"
                                                 >
                                                     <HiOutlineXMark className="w-4 h-4" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         ) : (
-                                            <button
+                                            <Button variant="ghost"
                                                 type="button"
                                                 onClick={() => fileInputRef.current?.click()}
                                                 disabled={isUploading}
@@ -374,7 +374,7 @@ export function POSCartPanel({
                                                     : <HiOutlinePhoto className="w-4 h-4" />
                                                 }
                                                 {isUploading ? 'A guardar...' : 'Digitalizar / Anexar Receita'}
-                                            </button>
+                                            </Button>
                                         )}
                                     </div>
                                 </div>
@@ -387,12 +387,12 @@ export function POSCartPanel({
                                     onClick={() => setShowImageModal(false)}
                                 >
                                     <div className="relative max-w-2xl max-h-[80vh] mx-4" onClick={e => e.stopPropagation()}>
-                                        <button
+                                        <Button variant="ghost"
                                             onClick={() => setShowImageModal(false)}
                                             className="absolute -top-3 -right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg z-10"
                                         >
                                             <HiOutlineXMark className="w-4 h-4 text-gray-700" />
-                                        </button>
+                                        </Button>
                                         <img
                                             src={`${env.VITE_API_URL.replace('/api', '')}${rxImageUrl || validatedRx?.imageUrl}`}
                                             alt="Imagem da Receita"
@@ -433,19 +433,19 @@ export function POSCartPanel({
                                     <p className="text-xs font-bold text-teal-600 mt-0.5">{formatCurrency(item.total)}</p>
                                 </div>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                    <button onClick={() => updateCartItem(item.batchId, item.quantity - 1)}
+                                    <Button variant="ghost" onClick={() => updateCartItem(item.batchId, item.quantity - 1)}
                                         className="w-6 h-6 rounded-md bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 flex items-center justify-center text-sm font-bold transition-colors">
                                         -
-                                    </button>
+                                    </Button>
                                     <span className="w-6 text-center text-sm font-bold">{item.quantity}</span>
-                                    <button onClick={() => updateCartItem(item.batchId, Math.min(item.quantity + 1, item.maxQuantity))}
+                                    <Button variant="ghost" onClick={() => updateCartItem(item.batchId, Math.min(item.quantity + 1, item.maxQuantity))}
                                         className="w-6 h-6 rounded-md bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 flex items-center justify-center text-sm font-bold transition-colors">
                                         +
-                                    </button>
-                                    <button onClick={() => removeFromCart(item.batchId)}
+                                    </Button>
+                                    <Button variant="ghost" onClick={() => removeFromCart(item.batchId)}
                                         className="w-6 h-6 rounded-md bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-100 flex items-center justify-center ml-1 transition-colors">
                                         <HiOutlineTrash className="w-3.5 h-3.5" />
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         ))}

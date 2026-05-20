@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../utils/helpers';
 import { toCents, toMoney, applyPercent } from '../../utils/money';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Button, LoadingOverlay } from '../../components/ui';
+import { Button, LoadingOverlay, ConfirmationModal } from '../../components/ui';
 import { productsAPI, customersAPI, salesAPI, shiftAPI, warehousesAPI } from '../../services/api';
 import type { ShiftSession, ShiftSummary } from '../../services/api';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
@@ -964,20 +964,29 @@ export default function CommercialPOS() {
         }
     }, [lastReceipt]);
 
-    const handleClearCart = useCallback(() => {
-        if (cart.length > 0) {
-            const ok = window.confirm('Limpar carrinho? A venda actual será descartada.');
-            if (!ok) return;
-            if (isOnline) {
-                cart.forEach(item => {
-                    (item.reservations || []).forEach((r) => commercialAPI.releaseItem(r.id));
-                });
-            }
+    const [confirmClearCartOpen, setConfirmClearCartOpen] = useState(false);
+
+    const performClearCart = useCallback(() => {
+        if (isOnline) {
+            cart.forEach(item => {
+                (item.reservations || []).forEach((r) => commercialAPI.releaseItem(r.id));
+            });
         }
         setCart([]);
         setPosSearch('');
         setGlobalDiscount(null);
+        setConfirmClearCartOpen(false);
     }, [cart, isOnline]);
+
+    const handleClearCart = useCallback(() => {
+        if (cart.length === 0) {
+            setCart([]);
+            setPosSearch('');
+            setGlobalDiscount(null);
+            return;
+        }
+        setConfirmClearCartOpen(true);
+    }, [cart]);
 
     const shortcuts = useMemo(() => [
         { key: 'F1',     action: () => setShowShortcutsHUD(v => !v), description: 'Atalhos' },
@@ -1275,6 +1284,17 @@ export default function CommercialPOS() {
                         : 'A processar movimento de caixa...';
                 return <LoadingOverlay message={message} fullScreen />;
             })()}
+
+            <ConfirmationModal
+                isOpen={confirmClearCartOpen}
+                onClose={() => setConfirmClearCartOpen(false)}
+                onConfirm={performClearCart}
+                title="Limpar carrinho?"
+                message="A venda actual será descartada. Quer continuar?"
+                confirmText="Sim, limpar"
+                cancelText="Cancelar"
+                variant="warning"
+            />
         </div>
     );
 }

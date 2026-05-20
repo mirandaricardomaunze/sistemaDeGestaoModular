@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -63,10 +63,10 @@ const roleConfig: Record<EmployeeRole, { label: string; color: string }> = {
 
 const educationLevelLabels: Record<EducationLevel, string> = {
     ensino_fundamental: 'Fundamental',
-    ensino_medio: 'Médio',
-    tecnico: 'Técnico',
-    graduacao: 'Graduação',
-    pos_graduacao: 'Pós-Grad',
+    ensino_medio: 'MÃ©dio',
+    tecnico: 'TÃ©cnico',
+    graduacao: 'GraduaÃ§Ã£o',
+    pos_graduacao: 'PÃ³s-Grad',
     mestrado: 'Mestrado',
     doutorado: 'Doutorado',
 };
@@ -86,7 +86,7 @@ const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#0
 // Time period options
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 Mês' },
+    { value: '1m', label: '1 MÃªs' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -248,7 +248,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
         const distribution: Record<string, number> = {};
         employees.filter(e => e.isActive).forEach((employee) => {
             const highest = getHighestQualification(employee);
-            const level = highest ? educationLevelLabels[highest] : 'Sem formação';
+            const level = highest ? educationLevelLabels[highest] : 'Sem formaÃ§Ã£o';
             distribution[level] = (distribution[level] || 0) + 1;
         });
         return Object.entries(distribution).map(([level, count]) => ({
@@ -316,7 +316,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
     const columns = useMemo(
         () => [
             columnHelper.accessor('name', {
-                header: 'Funcionário',
+                header: 'FuncionÃ¡rio',
                 cell: (info) => (
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
@@ -341,7 +341,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
             }),
             columnHelper.display({
                 id: 'qualification',
-                header: 'Qualificação',
+                header: 'QualificaÃ§Ã£o',
                 cell: ({ row }) => {
                     const highestQualification = getHighestQualification(row.original);
                     const qualificationCount = row.original.qualifications?.length || 0;
@@ -355,13 +355,13 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                 </p>
                                 {qualificationCount > 1 && (
                                     <p className="text-xs text-gray-500">
-                                        +{qualificationCount - 1} formação
+                                        +{qualificationCount - 1} formaÃ§Ã£o
                                     </p>
                                 )}
                             </div>
                         </div>
                     ) : (
-                        <span className="text-gray-400 text-sm">Não informada</span>
+                        <span className="text-gray-400 text-sm">NÃ£o informada</span>
                     );
                 },
             }),
@@ -390,7 +390,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                 ),
             }),
             columnHelper.accessor('salary', {
-                header: 'Salário',
+                header: 'SalÃ¡rio',
                 cell: (info) => (
                     <span className="font-semibold text-gray-900 dark:text-white">
                         {formatCurrency(info.getValue())}
@@ -399,16 +399,16 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
             }),
             columnHelper.display({
                 id: 'actions',
-                header: 'Ações',
+                header: 'AÃ§Ãµes',
                 cell: ({ row }) => (
                     <div className="flex justify-start">
-                        <button
+                        <Button variant="ghost"
                             onClick={() => onEditEmployee(row.original)}
                             className="p-2 rounded-lg bg-slate-50 dark:bg-dark-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-400 hover:text-primary-600 transition-all border border-slate-100 dark:border-dark-600 hover:border-primary-200"
-                            title="Editar funcionário"
+                            title="Editar funcionÃ¡rio"
                         >
                             <HiOutlinePencilSquare className="w-4 h-4" />
-                        </button>
+                        </Button>
                     </div>
                 ),
             }),
@@ -453,11 +453,11 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
     ];
 
     const qualificationOptions = [
-        { value: 'all', label: 'Todas as Qualificações' },
-        { value: 'none', label: 'Sem Formação' },
-        { value: 'has_any', label: 'Com Qualificação' },
+        { value: 'all', label: 'Todas as QualificaÃ§Ãµes' },
+        { value: 'none', label: 'Sem FormaÃ§Ã£o' },
+        { value: 'has_any', label: 'Com QualificaÃ§Ã£o' },
         { value: 'higher_ed', label: 'Ensino Superior+' },
-        { value: '', label: 'â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬â"ââ€š¬' },
+        { value: '', label: 'Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬Ã¢"Ã¢Ã¢â‚¬Å¡Â¬' },
         ...educationLevelOrder.map(level => ({
             value: level,
             label: educationLevelLabels[level],
@@ -468,15 +468,15 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
         <div className="space-y-6">
             {/* Header */}
             <PageHeader
-                title="Gestão de Capital Humano"
-                subtitle="Controlo de assiduidade, qualificações e folha salarial"
+                title="GestÃ£o de Capital Humano"
+                subtitle="Controlo de assiduidade, qualificaÃ§Ãµes e folha salarial"
                 icon={<HiOutlineUsers />}
                 actions={
                     <div className="flex flex-wrap items-center gap-3">
                         {/* Period Filter */}
                         <div className="flex items-center gap-1 bg-gray-100 dark:bg-dark-800 p-1 rounded-xl border border-gray-200 dark:border-dark-700">
                             {periodOptions.map((option) => (
-                                <button
+                                <Button variant="ghost"
                                     key={option.value}
                                     onClick={() => setSelectedPeriod(option.value)}
                                     className={cn(
@@ -487,7 +487,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                     )}
                                 >
                                     {option.label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                         <Button
@@ -497,7 +497,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                             leftIcon={<HiOutlineUserPlus className="w-4 h-4" />}
                             onClick={onAddEmployee}
                         >
-                            Admitir Funcionário
+                            Admitir FuncionÃ¡rio
                         </Button>
                     </div>
                 }
@@ -512,7 +512,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                         </div>
                         <div>
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Conselheiro Inteligente</h2>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Padrões de assiduidade e performance da equipa</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">PadrÃµes de assiduidade e performance da equipa</p>
                         </div>
                     </div>
                     <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hidden">
@@ -582,7 +582,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                     icon={<HiOutlineCalendarDays />}
                     color="teal"
                     value={metrics.avgYearsOfService}
-                    label="Tempo Médio"
+                    label="Tempo MÃ©dio"
                     badge={<span className="text-[10px] font-black uppercase">Anos</span>}
                 />
                 <MetricCard
@@ -604,7 +604,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                 {/* Role Distribution */}
                 <Card padding="md">
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                        Distribuição por Cargo
+                        DistribuiÃ§Ã£o por Cargo
                     </h3>
                     <div className="h-64">
                         {roleDistribution.length > 0 ? (
@@ -632,7 +632,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-gray-500">
-                                Nenhum dado disponível
+                                Nenhum dado disponÃ­vel
                             </div>
                         )}
                     </div>
@@ -641,7 +641,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                 {/* Qualification Distribution */}
                 <Card padding="md">
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                        Distribuição por Qualificação
+                        DistribuiÃ§Ã£o por QualificaÃ§Ã£o
                     </h3>
                     <div className="h-64">
                         {qualificationDistribution.length > 0 ? (
@@ -655,7 +655,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-gray-500">
-                                Nenhum dado disponível
+                                Nenhum dado disponÃ­vel
                             </div>
                         )}
                     </div>
@@ -669,7 +669,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                     <div className="flex flex-col lg:flex-row gap-4">
                         <div className="flex-1">
                             <Input
-                                placeholder="Buscar por nome, email ou código..."
+                                placeholder="Buscar por nome, email ou cÃ³digo..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
@@ -716,7 +716,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                                 {flexRender(header.column.columnDef.header, header.getContext())}
                                                 {header.column.getIsSorted() && (
                                                     <span className="text-primary-500">
-                                                        {header.column.getIsSorted() === 'asc' ? 'â–²' : 'â–¼'}
+                                                        {header.column.getIsSorted() === 'asc' ? 'Ã¢â€“Â²' : 'Ã¢â€“Â¼'}
                                                     </span>
                                                 )}
                                             </div>
@@ -732,7 +732,7 @@ export default function EmployeesDashboard({ onEditEmployee, onAddEmployee }: Em
                                         colSpan={columns.length}
                                         className="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
                                     >
-                                        Nenhum funcionário encontrado
+                                        Nenhum funcionÃ¡rio encontrado
                                     </td>
                                 </tr>
                             ) : (

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,8 +17,8 @@ import toast from 'react-hot-toast';
 
 // Validation Schema
 const customerSchema = z.object({
-    name: z.string().min(2, 'Nome é obrigatório'),
-    email: z.string().email('Email inválido').optional().or(z.literal('')),
+    name: z.string().min(2, 'Nome Ã© obrigatÃ³rio'),
+    email: z.string().email('Email invÃ¡lido').optional().or(z.literal('')),
     phone: z.string().optional(),
     document: z.string().optional(),
     address: z.string().optional(),
@@ -70,7 +70,7 @@ export default function ReceiptGenerator() {
 
     // Calculations with IVA 16%
     const subtotal = selectedProducts.reduce((sum, item) => sum + item.total, 0);
-    const IVA_RATE = 0.16; // 16% IVA Moçambique
+    const IVA_RATE = 0.16; // 16% IVA MoÃ§ambique
     const tax = subtotal * IVA_RATE;
     const discount = 0;
     const total = subtotal + tax - discount;
@@ -197,13 +197,13 @@ export default function ReceiptGenerator() {
                 <Card padding="md">
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Adicionar Produtos</h3>
                     <Input
-                        placeholder="Buscar produto por código ou nome..."
+                        placeholder="Buscar produto por cÃ³digo ou nome..."
                         value={searchProduct}
                         onChange={(e) => setSearchProduct(e.target.value)}
                     />
                     <div className="mt-4 max-h-64 overflow-y-auto scrollbar-thin space-y-2">
                         {filteredProducts.map((product) => (
-                            <button
+                            <Button variant="ghost"
                                 key={product.id}
                                 onClick={() => addProduct(product)}
                                 className="w-full flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-dark-700 hover:bg-gray-100 dark:hover:bg-dark-600 transition-colors"
@@ -222,7 +222,7 @@ export default function ReceiptGenerator() {
                                     </p>
                                     <p className="text-xs text-gray-500">Estoque: {product.currentStock}</p>
                                 </div>
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 </Card>
@@ -252,29 +252,29 @@ export default function ReceiptGenerator() {
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button
+                                        <Button variant="ghost"
                                             onClick={() => updateQuantity(item.productId, -1)}
                                             className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center"
                                         >
                                             <HiOutlineMinus className="w-3 h-3" />
-                                        </button>
+                                        </Button>
                                         <span className="w-8 text-center font-medium">{item.quantity}</span>
-                                        <button
+                                        <Button variant="ghost"
                                             onClick={() => updateQuantity(item.productId, 1)}
                                             className="w-7 h-7 rounded-lg bg-gray-200 dark:bg-dark-600 flex items-center justify-center"
                                         >
                                             <HiOutlinePlus className="w-3 h-3" />
-                                        </button>
+                                        </Button>
                                     </div>
                                     <p className="font-semibold text-gray-900 dark:text-white w-20 text-right">
                                         {formatCurrency(item.total)}
                                     </p>
-                                    <button
+                                    <Button variant="ghost"
                                         onClick={() => removeProduct(item.productId)}
                                         className="p-2 text-gray-400 hover:text-red-500"
                                     >
                                         <HiOutlineTrash className="w-4 h-4" />
-                                    </button>
+                                    </Button>
                                 </div>
                             ))}
                         </div>
@@ -364,7 +364,7 @@ export default function ReceiptGenerator() {
 
                         {/* Footer */}
                         <div className="text-center mt-6 pt-4 border-t border-dashed border-gray-300 dark:border-dark-600">
-                            <p className="text-xs text-gray-500">Obrigado pela preferência!</p>
+                            <p className="text-xs text-gray-500">Obrigado pela preferÃªncia!</p>
                             <p className="text-xs text-gray-500">Volte sempre!</p>
                         </div>
                     </div>
@@ -417,9 +417,9 @@ export default function ReceiptGenerator() {
                         placeholder="000.000.000-00"
                     />
                     <Input
-                        label="Endereço"
+                        label="EndereÃ§o"
                         {...register('address')}
-                        placeholder="Rua, número, bairro"
+                        placeholder="Rua, nÃºmero, bairro"
                     />
                     <div className="flex gap-3 pt-4">
                         <Button

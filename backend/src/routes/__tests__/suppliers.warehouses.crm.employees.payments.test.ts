@@ -590,7 +590,7 @@ describe('Payments — M-Pesa', () => {
     describe('POST /api/payments/mpesa/callback (public)', () => {
         it('processes a success callback', async () => {
             const ts = `MPESA-CB-${Date.now()}`;
-            const tx = await prisma.mpesaTransaction.create({
+            await prisma.mpesaTransaction.create({
                 data: { phone: '258841234567', amount: 300, reference: `REF-CB-${Date.now()}`, module: 'invoice', companyId: CO, status: 'processing', transactionId: ts },
             });
             const res = await request(app)

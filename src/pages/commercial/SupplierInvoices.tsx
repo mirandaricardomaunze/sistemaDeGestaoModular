@@ -325,14 +325,25 @@ export default function SupplierInvoices() {
         }
     }, [confirmAction, updateStatus]);
 
-    const handleDeletePayment = useCallback(async (invoiceId: string, paymentId: string) => {
-        if (!confirm('Remover este pagamento? O saldo em divida será actualizado.')) return;
+    const [pendingPaymentDelete, setPendingPaymentDelete] = useState<{ invoiceId: string; paymentId: string } | null>(null);
+    const [isDeletingPayment, setIsDeletingPayment] = useState(false);
+
+    const handleDeletePayment = useCallback((invoiceId: string, paymentId: string) => {
+        setPendingPaymentDelete({ invoiceId, paymentId });
+    }, []);
+
+    const confirmDeletePayment = useCallback(async () => {
+        if (!pendingPaymentDelete) return;
         try {
-            await deletePayment(invoiceId, paymentId);
+            setIsDeletingPayment(true);
+            await deletePayment(pendingPaymentDelete.invoiceId, pendingPaymentDelete.paymentId);
+            setPendingPaymentDelete(null);
         } catch (err) {
             toast.error(getApiErrorMessage(err, 'Erro ao remover pagamento'));
+        } finally {
+            setIsDeletingPayment(false);
         }
-    }, [deletePayment]);
+    }, [pendingPaymentDelete, deletePayment]);
 
     const stats = useMemo(() => {
         const totalOpen = invoices.filter(i => i.status === 'registered' || i.status === 'partial').length;
@@ -636,6 +647,18 @@ export default function SupplierInvoices() {
                 }
                 confirmText={confirmAction?.status === 'paid' ? 'Confirmar Pagamento' : 'Cancelar Factura'}
                 variant={confirmAction?.status === 'paid' ? 'success' : 'danger'}
+            />
+
+            <ConfirmationModal
+                isOpen={!!pendingPaymentDelete}
+                onClose={() => !isDeletingPayment && setPendingPaymentDelete(null)}
+                onConfirm={confirmDeletePayment}
+                title="Remover pagamento?"
+                message="Remover este pagamento? O saldo em dívida será actualizado."
+                confirmText="Sim, remover"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isDeletingPayment}
             />
 
             {payingInvoice && (

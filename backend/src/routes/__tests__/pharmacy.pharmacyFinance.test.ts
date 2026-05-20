@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 /**
  * Tests: pharmacy + pharmacyFinance
  *
@@ -27,22 +28,25 @@ const UID = 'ph-test-user';
 type MockReq = Request & { userId?: string; companyId?: string; userName?: string; userRole?: string };
 
 // Auth mock — role driven by x-mock-role header (default admin) so RBAC can be tested.
-jest.mock('../../middleware/auth', () => ({
-    authenticate: (req: MockReq, _: Response, next: NextFunction) => {
-        req.userId    = (req.headers['x-mock-uid'] as string)  || UID;
-        req.companyId = (req.headers['x-mock-co'] as string)   || CO;
-        req.userRole  = (req.headers['x-mock-role'] as string) || 'admin';
-        req.userName  = 'Test';
-        next();
-    },
-    authorize: (...roles: string[]) => (req: MockReq, res: Response, next: NextFunction) => {
-        if (!roles.includes(req.userRole ?? '')) {
-            return res.status(403).json({ message: 'Acesso negado' });
-        }
-        next();
-    },
-    AuthRequest: {} as unknown,
-}));
+jest.mock('../../middleware/auth', () => {
+    const { tenantContext } = require('../../lib/context');
+    return {
+        authenticate: (req: MockReq, _: Response, next: NextFunction) => {
+            req.userId    = (req.headers['x-mock-uid'] as string)  || UID;
+            req.companyId = (req.headers['x-mock-co'] as string)   || CO;
+            req.userRole  = (req.headers['x-mock-role'] as string) || 'admin';
+            req.userName  = 'Test';
+            tenantContext.run({ companyId: req.companyId, userId: req.userId }, () => next());
+        },
+        authorize: (...roles: string[]) => (req: MockReq, res: Response, next: NextFunction) => {
+            if (!roles.includes(req.userRole ?? '')) {
+                return res.status(403).json({ message: 'Acesso negado' });
+            }
+            next();
+        },
+        AuthRequest: {} as unknown,
+    };
+});
 jest.mock('../../lib/socket', () => ({ emitToCompany: jest.fn(), emitToModule: jest.fn(), emitToUser: jest.fn(), getIO: jest.fn(), initSocket: jest.fn().mockReturnValue({ on: jest.fn() }) }));
 
 // The pharmacy suite hits many tables (medications, batches, sales, recalls,
@@ -57,41 +61,116 @@ let batchId: string;
 let sessionId: string;
 let customerId: string;
 
-const unwrap = (res: { body: unknown }) => {
-    const body = res.body as { data?: { data?: unknown[] } } | unknown;
-    return ((body as { data?: { data?: unknown[] } })?.data ?? body) as { data: Array<{ id: string }> };
+const unwrap = (res: { body: any }): any => {
+    const body = res.body;
+    return (body?.data ?? body) as any;
 };
 
 async function cleanup() {
-    // Step 1: leaf tables — can run in parallel since they reference one another via parents only
-    await Promise.all([
-        prisma.partnerInvoice.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.batchRecall.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.drugInteraction.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.narcoticRegister.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.pharmacySaleItem.deleteMany({ where: { sale: { companyId: CO } } }).catch(() => {}),
-        prisma.prescriptionItem.deleteMany({ where: { prescription: { companyId: CO } } }).catch(() => {}),
-        prisma.cashMovement.deleteMany({ where: { session: { companyId: CO } } }).catch(() => {}),
-        prisma.stockMovement.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.alert.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.transaction.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.auditLog.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-    ]);
-    // Step 2: parent tables (must come after their children)
-    await Promise.all([
-        prisma.pharmacySale.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.prescription.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.medicationBatch.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.cashSession.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-    ]);
-    await prisma.medication.deleteMany({ where: { product: { companyId: CO } } }).catch(() => {});
-    await Promise.all([
-        prisma.pharmacyPartner.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.customer.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-        prisma.product.deleteMany({ where: { companyId: CO } }).catch(() => {}),
-    ]);
-    await prisma.user.deleteMany({ where: { id: UID } }).catch(() => {});
-    await prisma.company.deleteMany({ where: { id: CO } }).catch(() => {});
+    // 1. Limpar referências do usuário UID para evitar violações de chave estrangeira
+    try {
+        await prisma.cashMovement.deleteMany({ where: { performedById: UID } });
+    } catch (err) {}
+    try {
+        await prisma.cashSession.deleteMany({ where: { OR: [{ openedById: UID }, { closedById: UID }] } });
+    } catch (err) {}
+    try {
+        await prisma.sale.deleteMany({ where: { userId: UID } });
+    } catch (err) {}
+    try {
+        await prisma.employee.deleteMany({ where: { userId: UID } });
+    } catch (err) {}
+    try {
+        await prisma.userModuleRole.deleteMany({ where: { userId: UID } });
+    } catch (err) {}
+    try {
+        await prisma.calendarAttendee.deleteMany({ where: { userId: UID } });
+    } catch (err) {}
+    try {
+        await prisma.calendarEvent.deleteMany({ where: { createdById: UID } });
+    } catch (err) {}
+    try {
+        await prisma.auditLog.deleteMany({ where: { userId: UID } });
+    } catch (err) {}
+
+    // 2. Limpar tabelas filhas (leaf tables) associadas ao companyId CO
+    try {
+        await prisma.partnerInvoice.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.batchRecall.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.drugInteraction.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.narcoticRegister.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.pharmacySaleItem.deleteMany({ where: { sale: { companyId: CO } } });
+    } catch (err) {}
+    try {
+        await prisma.prescriptionItem.deleteMany({ where: { prescription: { companyId: CO } } });
+    } catch (err) {}
+    try {
+        await prisma.cashMovement.deleteMany({ where: { session: { companyId: CO } } });
+    } catch (err) {}
+    try {
+        await prisma.stockMovement.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.alert.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.transaction.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.auditLog.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+
+    // 3. Limpar tabelas intermediárias (parent tables)
+    try {
+        await prisma.pharmacySale.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.prescription.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.medicationBatch.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.cashSession.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+
+    try {
+        await prisma.medication.deleteMany({ where: { product: { companyId: CO } } });
+    } catch (err) {}
+
+    try {
+        await prisma.pharmacyPartner.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.customer.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.product.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+
+    // 4. Limpar configurações específicas de empresa se houver
+    try {
+        await prisma.companyModule.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+    try {
+        await prisma.companySettings.deleteMany({ where: { companyId: CO } });
+    } catch (err) {}
+
+    // 5. Finalmente deletar o usuário e a empresa
+    try {
+        await prisma.user.deleteMany({ where: { id: UID } });
+    } catch (err) {}
+    try {
+        await prisma.company.deleteMany({ where: { id: CO } });
+    } catch (err) {}
 }
 
 beforeAll(async () => {

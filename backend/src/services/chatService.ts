@@ -1,7 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { aiService } from './aiService';
 import { pdfService } from './pdfService';
-import { ApiError } from '../middleware/error.middleware';
 
 export class ChatService {
     async processMessage(message: string, userId: string, companyId: string, module?: string) {

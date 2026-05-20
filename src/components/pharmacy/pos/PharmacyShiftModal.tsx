@@ -4,6 +4,7 @@ import { HiOutlineCheck, HiOutlineDocumentChartBar as HiOutlineDocumentChartBar 
 import { HiOutlineXMark as HiOutlineXMark, HiOutlineBanknotes as HiOutlineBanknotes, HiOutlineBuildingStorefront as HiOutlineHome } from 'react-icons/hi2';
 import { useQuery } from '@tanstack/react-query';
 import { warehousesAPI } from '../../../services/api';
+import { Button } from '../../ui/Button';
 
 export interface ShiftData {
     openedAt: Date;
@@ -71,9 +72,9 @@ export function PharmacyShiftModal({ isOpen, mode, shift, onOpenShift, onCloseSh
                             </p>
                         )}
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors">
+                    <Button variant="ghost" onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors">
                         <HiOutlineXMark className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="p-6 space-y-5 overflow-y-auto flex-1 custom-scrollbar">
@@ -146,13 +147,13 @@ export function PharmacyShiftModal({ isOpen, mode, shift, onOpenShift, onCloseSh
                         {mode === 'open' && (
                             <div className="flex gap-2 mt-2 flex-wrap">
                                 {[1000, 2000, 5000, 10000].map(v => (
-                                    <button
+                                    <Button variant="ghost"
                                         key={v}
                                         onClick={() => setAmount(String(v))}
                                         className={`px-3 py-1.5 rounded-lg text-xs font-black border-2 transition-all ${amount === String(v) ? 'bg-teal-600 text-white border-teal-600' : 'bg-gray-100 dark:bg-dark-700 text-gray-500 border-transparent hover:border-gray-300'}`}
                                     >
                                         {v.toLocaleString()}
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
                         )}
@@ -180,19 +181,19 @@ export function PharmacyShiftModal({ isOpen, mode, shift, onOpenShift, onCloseSh
 
                     {/* Actions */}
                     <div className="flex gap-3">
-                        <button
+                        <Button variant="ghost"
                             onClick={onClose}
                             className="flex-1 py-3 rounded-lg border-2 border-gray-200 dark:border-dark-600 text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors"
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={handleConfirm}
                             className={`flex-1 py-3 rounded-lg font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 text-white shadow-lg transition-all ${mode === 'open' ? 'bg-teal-600 hover:bg-teal-700 shadow-teal-500/20' : 'bg-slate-700 hover:bg-slate-800 shadow-slate-500/20'}`}
                         >
                             <HiOutlineCheck className="w-5 h-5" />
                             {mode === 'open' ? 'Abrir Turno' : 'Fechar Turno'}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>

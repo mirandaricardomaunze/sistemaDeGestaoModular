@@ -14,6 +14,7 @@
 
 import { useState } from 'react';
 import type { ExpiryAlert, ExpiryAlertSeverity } from '../../services/api/logistics.api';
+import { Button } from '../ui/Button';
 import {
     HiOutlineExclamationTriangle,
     HiOutlineXCircle,
@@ -124,7 +125,7 @@ export function ExpiryAlertsPanel({ alerts }: ExpiryAlertsPanelProps) {
             className={`rounded-lg border-2 overflow-hidden shadow-sm ${headerSeverityClass}`}
         >
             {/* Header - always visible */}
-            <button
+            <Button variant="ghost"
                 type="button"
                 onClick={() => setIsExpanded((prev) => !prev)}
                 className="w-full flex items-center justify-between px-4 py-3 text-left hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-500"
@@ -151,7 +152,7 @@ export function ExpiryAlertsPanel({ alerts }: ExpiryAlertsPanelProps) {
                 ) : (
                     <HiOutlineChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" aria-hidden="true" />
                 )}
-            </button>
+            </Button>
 
             {/* Body - collapsible */}
             {isExpanded && (

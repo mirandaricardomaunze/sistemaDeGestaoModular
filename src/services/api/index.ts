@@ -58,7 +58,12 @@ export { batchesAPI, type ProductBatch, type CreateBatchDto } from './batches.ap
 
 // Commercial Module Analytics
 export { commercialAPI, shiftAPI, type CommercialAnalytics, type MarginAnalysis, type MarginByCategory, type MarginByProduct, type StockAgingReport, type StockAgingProduct, type SupplierPerformance, type PurchaseOrder, type InventoryTurnoverItem, type SalesReport, type ShiftSession, type ShiftSummary, type ShiftZReport, type InventoryForecast } from './commercial.api';
-export { salesTargetsAPI, type SalesTarget } from './salesTargets.api';
+export {
+    salesTargetsAPI,
+    type SalesTarget,
+    type SalesTargetSummary,
+    type SalesTargetListFilters
+} from './salesTargets.api';
 
 // Calendar Module
 export { calendarAPI, type CalendarEvent, type CalendarAttendee, type CreateCalendarEventDto, type UpdateCalendarEventDto } from './calendar.api';

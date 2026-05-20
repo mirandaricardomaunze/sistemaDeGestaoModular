@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -23,10 +23,10 @@ import { logger } from '../../utils/logger';
 // Validation Schema
 const transactionSchema = z.object({
     type: z.enum(['income', 'expense']),
-    category: z.string().min(1, 'Categoria é obrigatória'),
-    description: z.string().min(2, 'Descrição é obrigatória'),
+    category: z.string().min(1, 'Categoria Ã© obrigatÃ³ria'),
+    description: z.string().min(2, 'DescriÃ§Ã£o Ã© obrigatÃ³ria'),
     amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
-    date: z.string().min(1, 'Data é obrigatória'),
+    date: z.string().min(1, 'Data Ã© obrigatÃ³ria'),
     dueDate: z.string().optional().nullable(),
     paymentMethod: z.string().optional().nullable(),
     reference: z.string().optional().nullable(),
@@ -37,7 +37,7 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 Mês' },
+    { value: '1m', label: '1 MÃªs' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -133,17 +133,17 @@ export default function RestaurantFinance() {
         try {
             if (editingTransaction) {
                 await restaurantAPI.updateTransaction(editingTransaction.id, data);
-                toast.success('Lançamento actualizado!');
+                toast.success('LanÃ§amento actualizado!');
             } else {
                 await restaurantAPI.createTransaction(data);
-                toast.success('Lançamento financeiro realizado!');
+                toast.success('LanÃ§amento financeiro realizado!');
             }
             setShowFormModal(false);
             setEditingTransaction(null);
             reset();
             fetchData();
         } catch (error) {
-            toast.error('Erro ao processar lançamento');
+            toast.error('Erro ao processar lanÃ§amento');
         }
     };
 
@@ -165,12 +165,12 @@ export default function RestaurantFinance() {
         if (!transactionToDelete) return;
         try {
             await restaurantAPI.deleteTransaction(transactionToDelete.id);
-            toast.success('Lançamento eliminado!');
+            toast.success('LanÃ§amento eliminado!');
             setDeleteModalOpen(false);
             setTransactionToDelete(null);
             fetchData();
         } catch (error) {
-            toast.error('Erro ao eliminar lançamento');
+            toast.error('Erro ao eliminar lanÃ§amento');
         }
     };
 
@@ -185,24 +185,24 @@ export default function RestaurantFinance() {
     const expenseCategories = [
         { value: 'Food_Supplies', label: 'Insumos / Alimentos (Food)' },
         { value: 'Drink_Supplies', label: 'Bebidas e Bar (Beverage)' },
-        { value: 'Gas_Utilities', label: 'Gás e Energia' },
-        { value: 'Salary', label: 'Salários (Cozinha e Salão)' },
-        { value: 'Maintenance', label: 'Manutenção de Equipamentos' },
-        { value: 'Marketing', label: 'Marketing e Promoções' },
-        { value: 'Wastage', label: 'Quebras e Desperdícios' },
+        { value: 'Gas_Utilities', label: 'GÃ¡s e Energia' },
+        { value: 'Salary', label: 'SalÃ¡rios (Cozinha e SalÃ£o)' },
+        { value: 'Maintenance', label: 'ManutenÃ§Ã£o de Equipamentos' },
+        { value: 'Marketing', label: 'Marketing e PromoÃ§Ãµes' },
+        { value: 'Wastage', label: 'Quebras e DesperdÃ­cios' },
         { value: 'Other_Expense', label: 'Outras Despesas' },
     ];
 
     const paymentMethods = [
-        { value: 'cash', label: 'Numerário' },
-        { value: 'card', label: 'Cartão / M-Pesa / E-Mola' },
-        { value: 'transfer', label: 'Transferência' },
+        { value: 'cash', label: 'NumerÃ¡rio' },
+        { value: 'card', label: 'CartÃ£o / M-Pesa / E-Mola' },
+        { value: 'transfer', label: 'TransferÃªncia' },
     ];
 
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Gestão Financeira Restaurante"
+                title="GestÃ£o Financeira Restaurante"
                 subtitle="Controle de CMV, custos de insumos e receitas operacionais"
                 icon={<HiOutlineCurrencyDollar className="text-primary-600 dark:text-primary-400" />}
                 actions={
@@ -225,7 +225,7 @@ export default function RestaurantFinance() {
                                 setShowFormModal(true);
                             }}
                         >
-                            Novo Lançamento
+                            Novo LanÃ§amento
                         </Button>
                     </>
                 }
@@ -263,7 +263,7 @@ export default function RestaurantFinance() {
                             <HiOutlineCurrencyDollar className="w-6 h-6" />
                         </div>
                         <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60 mb-1">Resultado Líquido</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-primary-600/70 dark:text-primary-400/60 mb-1">Resultado LÃ­quido</p>
                             <ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-rose-700 dark:text-rose-400')} />
                         </div>
                     </div>
@@ -288,7 +288,7 @@ export default function RestaurantFinance() {
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4 py-2">
                 <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-dark-800 p-1 rounded-lg w-full lg:w-auto">
                     {periodOptions.map((option) => (
-                        <button
+                        <Button variant="ghost"
                             key={option.value}
                             onClick={() => { setSelectedPeriod(option.value); setPage(1); }}
                             className={cn(
@@ -299,7 +299,7 @@ export default function RestaurantFinance() {
                             )}
                         >
                             {option.label}
-                        </button>
+                        </Button>
                     ))}
                 </div>
 
@@ -332,10 +332,10 @@ export default function RestaurantFinance() {
                             <tr className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">
                                 <th className="px-6 py-4 text-left">Tipo</th>
                                 <th className="px-6 py-4 text-left">Data</th>
-                                <th className="px-6 py-4 text-left">Descrição</th>
+                                <th className="px-6 py-4 text-left">DescriÃ§Ã£o</th>
                                 <th className="px-6 py-4 text-left">Categoria</th>
                                 <th className="px-6 py-4 text-right">Valor</th>
-                                <th className="px-6 py-4 text-center">Ações</th>
+                                <th className="px-6 py-4 text-center">AÃ§Ãµes</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-dark-800 divide-y divide-gray-100 dark:divide-dark-700">
@@ -348,7 +348,7 @@ export default function RestaurantFinance() {
                             ) : transactions.length === 0 ? (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-20 text-center text-gray-400 italic font-medium">
-                                        Nenhum lançamento financeiro encontrado para este período.
+                                        Nenhum lanÃ§amento financeiro encontrado para este perÃ­odo.
                                     </td>
                                 </tr>
                             ) : (
@@ -383,13 +383,13 @@ export default function RestaurantFinance() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
+                                                <Button variant="ghost"
                                                     onClick={() => handleEdit(t)}
                                                     className="p-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600 transition-colors"
                                                 >
                                                     <HiOutlineCog className="w-4 h-4" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="ghost"
                                                     onClick={() => {
                                                         setTransactionToDelete(t);
                                                         setDeleteModalOpen(true);
@@ -397,7 +397,7 @@ export default function RestaurantFinance() {
                                                     className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-600 transition-colors"
                                                 >
                                                     <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -418,7 +418,7 @@ export default function RestaurantFinance() {
                 </div>
             </Card>
 
-            {/* Modal de Formulário */}
+            {/* Modal de FormulÃ¡rio */}
             <Modal
                 isOpen={showFormModal}
                 onClose={() => {
@@ -426,7 +426,7 @@ export default function RestaurantFinance() {
                     setEditingTransaction(null);
                     reset();
                 }}
-                title={editingTransaction ? "Editar Lançamento" : "Novo Lançamento Financeiro"}
+                title={editingTransaction ? "Editar LanÃ§amento" : "Novo LanÃ§amento Financeiro"}
                 size="lg"
             >
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -492,7 +492,7 @@ export default function RestaurantFinance() {
                     </div>
 
                     <Input
-                        label="Descrição do Lançamento *"
+                        label="DescriÃ§Ã£o do LanÃ§amento *"
                         {...register('description')}
                         error={errors.description?.message}
                         placeholder="Ex: Compra de carne para cozinha"
@@ -519,16 +519,16 @@ export default function RestaurantFinance() {
                             {...register('paymentMethod')}
                         />
                         <Input
-                            label="Nº do Recibo / Guia"
+                            label="NÂº do Recibo / Guia"
                             {...register('reference')}
                             placeholder="Ex: FT-Restu-001"
                         />
                     </div>
 
                     <Input
-                        label="Observações Internas"
+                        label="ObservaÃ§Ãµes Internas"
                         {...register('notes')}
-                        placeholder="Detalhes adicionais sobre o lançamento..."
+                        placeholder="Detalhes adicionais sobre o lanÃ§amento..."
                     />
 
                     <div className="flex gap-3 justify-end pt-6 border-t border-gray-100 dark:border-dark-700">
@@ -536,22 +536,22 @@ export default function RestaurantFinance() {
                             Cancelar
                         </Button>
                         <Button type="submit" variant={selectedType === 'income' ? 'primary' : 'danger'}>
-                            {editingTransaction ? 'Actualizar Lançamento' : 'Realizar Lançamento'}
+                            {editingTransaction ? 'Actualizar LanÃ§amento' : 'Realizar LanÃ§amento'}
                         </Button>
                     </div>
                 </form>
             </Modal>
 
-            {/* Modal de Eliminação */}
+            {/* Modal de EliminaÃ§Ã£o */}
             <Modal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                title="Eliminar Lançamento"
+                title="Eliminar LanÃ§amento"
                 size="sm"
             >
                 <div className="space-y-4 py-2">
                     <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                        Deseja realmente eliminar este lançamento permanente? Isto afectar os cálculos de rentabilidade do restaurante.
+                        Deseja realmente eliminar este lanÃ§amento permanente? Isto afectar os cÃ¡lculos de rentabilidade do restaurante.
                     </p>
                     <div className="flex gap-3 justify-end pt-4">
                         <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     HiOutlineUsers,
@@ -55,19 +55,19 @@ import {
 const columnHelper = createColumnHelper<Driver>();
 
 const LOGISTICS_CONFIG = {
-    department: 'Logística',
-    moduleName: 'Logística',
+    department: 'LogÃ­stica',
+    moduleName: 'LogÃ­stica',
     accentColor: 'violet',
     icon: null,
     showCommissions: false,
     documentTypes: [
         { id: 'bi', label: 'Bilhete de Identidade', required: true },
         { id: 'nuit', label: 'NUIT', required: true },
-        { id: 'inss', label: 'Cartão INSS', required: true },
+        { id: 'inss', label: 'CartÃ£o INSS', required: true },
         { id: 'contract', label: 'Contrato de Trabalho', required: true },
-        { id: 'license', label: 'Carta de Condução', required: true },
-        { id: 'medical', label: 'Exame Médico / Aptidão', required: true },
-        { id: 'safety', label: 'Certificado de Segurança Rodoviária' },
+        { id: 'license', label: 'Carta de ConduÃ§Ã£o', required: true },
+        { id: 'medical', label: 'Exame MÃ©dico / AptidÃ£o', required: true },
+        { id: 'safety', label: 'Certificado de SeguranÃ§a RodoviÃ¡ria' },
         { id: 'criminal', label: 'Registo Criminal' },
     ],
 };
@@ -244,7 +244,7 @@ export default function LogisticsHRPage() {
         search: searchTerm,
         category: categoryFilter || undefined
     });
-    const { employees: logisticsEmployees } = useEmployees({ department: 'Logística', limit: 200 });
+    const { employees: logisticsEmployees } = useEmployees({ department: 'LogÃ­stica', limit: 200 });
 
     const table = useReactTable({
         data: data?.data || [],
@@ -316,7 +316,7 @@ export default function LogisticsHRPage() {
                 ] as { id: HRTab; label: string; icon: React.ElementType }[]).map((tab) => {
                     const Icon = tab.icon;
                     return (
-                        <button
+                        <Button variant="ghost"
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={cn(
@@ -328,7 +328,7 @@ export default function LogisticsHRPage() {
                         >
                             <Icon className="w-4 h-4" />
                             <span className="hidden sm:inline">{tab.label}</span>
-                        </button>
+                        </Button>
                     );
                 })}
             </div>

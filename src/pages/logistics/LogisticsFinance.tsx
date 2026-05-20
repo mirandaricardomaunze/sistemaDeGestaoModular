@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,10 +24,10 @@ import { logger } from '../../utils/logger';
 // Validation Schema
 const transactionSchema = z.object({
     type: z.enum(['income', 'expense']),
-    category: z.string().min(1, 'Categoria é obrigatória'),
-    description: z.string().min(2, 'Descrição é obrigatória'),
+    category: z.string().min(1, 'Categoria Ã© obrigatÃ³ria'),
+    description: z.string().min(2, 'DescriÃ§Ã£o Ã© obrigatÃ³ria'),
     amount: z.coerce.number().min(0.01, 'Valor deve ser maior que zero'),
-    date: z.string().min(1, 'Data é obrigatória'),
+    date: z.string().min(1, 'Data Ã© obrigatÃ³ria'),
     dueDate: z.string().optional().nullable(),
     paymentMethod: z.string().optional().nullable(),
     reference: z.string().optional().nullable(),
@@ -38,7 +38,7 @@ type TransactionFormData = z.infer<typeof transactionSchema>;
 
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 Mês' },
+    { value: '1m', label: '1 MÃªs' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -134,10 +134,10 @@ export default function LogisticsFinance() {
         try {
             if (editingTransaction) {
                 await logisticsAPI.updateTransaction(editingTransaction.id, data);
-                toast.success('Transação actualizada!');
+                toast.success('TransaÃ§Ã£o actualizada!');
             } else {
                 await logisticsAPI.createTransaction(data);
-                toast.success('Transação registrada!');
+                toast.success('TransaÃ§Ã£o registrada!');
             }
             setShowFormModal(false);
             setEditingTransaction(null);
@@ -166,47 +166,47 @@ export default function LogisticsFinance() {
         if (!transactionToDelete) return;
         try {
             await logisticsAPI.deleteTransaction(transactionToDelete.id);
-            toast.success('Transação eliminada!');
+            toast.success('TransaÃ§Ã£o eliminada!');
             setDeleteModalOpen(false);
             setTransactionToDelete(null);
             fetchData();
         } catch (error) {
-            toast.error('Erro ao eliminar transação');
+            toast.error('Erro ao eliminar transaÃ§Ã£o');
         }
     };
 
     const incomeCategories = [
-        { value: 'Deliveries', label: 'Prestação de Serviços (Entregas)' },
+        { value: 'Deliveries', label: 'PrestaÃ§Ã£o de ServiÃ§os (Entregas)' },
         { value: 'Freight', label: 'Fretes e Transportes' },
         { value: 'Contracts', label: 'Contratos Fixos' },
-        { value: 'Fleet_Mgmt', label: 'Gestão de Frota' },
+        { value: 'Fleet_Mgmt', label: 'GestÃ£o de Frota' },
         { value: 'Other_Income', label: 'Outras Receitas' },
     ];
 
     const expenseCategories = [
-        { value: 'Fuel', label: 'Combustível' },
-        { value: 'Maintenance', label: 'Manutenção e Reparaces' },
-        { value: 'Insurance', label: 'Seguros e Inspeções' },
-        { value: 'Salary', label: 'Salários e Subsídios' },
-        { value: 'Tolls', label: 'Portagens e Taxas Rodoviárias' },
-        { value: 'Parts', label: 'Peças e Acessórios' },
+        { value: 'Fuel', label: 'CombustÃ­vel' },
+        { value: 'Maintenance', label: 'ManutenÃ§Ã£o e Reparaces' },
+        { value: 'Insurance', label: 'Seguros e InspeÃ§Ãµes' },
+        { value: 'Salary', label: 'SalÃ¡rios e SubsÃ­dios' },
+        { value: 'Tolls', label: 'Portagens e Taxas RodoviÃ¡rias' },
+        { value: 'Parts', label: 'PeÃ§as e AcessÃ³rios' },
         { value: 'Fines', label: 'Multas e Regularizaces' },
         { value: 'Other_Expense', label: 'Outras Despesas' },
     ];
 
     const paymentMethods = [
-        { value: 'cash', label: 'Numerário' },
-        { value: 'card', label: 'Cartão / TPA' },
+        { value: 'cash', label: 'NumerÃ¡rio' },
+        { value: 'card', label: 'CartÃ£o / TPA' },
         { value: 'mpesa', label: 'M-Pesa' },
         { value: 'emola', label: 'E-Mola' },
-        { value: 'transfer', label: 'Transferência Bancária' },
+        { value: 'transfer', label: 'TransferÃªncia BancÃ¡ria' },
     ];
 
     return (
         <div className="space-y-6">
             <PageHeader 
-                title="Gestão Financeira Logística"
-                subtitle="Controle de custos de frota, combustível e receitas de transporte"
+                title="GestÃ£o Financeira LogÃ­stica"
+                subtitle="Controle de custos de frota, combustÃ­vel e receitas de transporte"
                 icon={<HiOutlineCurrencyDollar />}
                 actions={
                     <>
@@ -253,14 +253,14 @@ export default function LogisticsFinance() {
                 />
 
                 <StatCard
-                    label="Saldo Líquido"
+                    label="Saldo LÃ­quido"
                     value={<ResponsiveValue value={summary.netProfit} size="md" className={cn("font-black", summary.netProfit >= 0 ? 'text-teal-700 dark:text-teal-400' : 'text-rose-700 dark:text-rose-400')} />}
                     icon={<HiOutlineCurrencyDollar className="w-6 h-6" />}
                     color="primary"
                 />
 
                 <StatCard
-                    label="Eficiência Provedor"
+                    label="EficiÃªncia Provedor"
                     value={`${summary.profitMargin.toFixed(1)}%`}
                     icon={<HiOutlineClipboardDocumentList className="w-6 h-6" />}
                     color="amber"
@@ -271,7 +271,7 @@ export default function LogisticsFinance() {
             <div className="flex flex-col lg:flex-row items-center justify-between gap-4 py-2">
                 <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-dark-800 p-1 rounded-lg w-full lg:w-auto">
                     {periodOptions.map((option) => (
-                        <button
+                        <Button variant="ghost"
                             key={option.value}
                             onClick={() => { setSelectedPeriod(option.value); setPage(1); }}
                             className={cn(
@@ -282,13 +282,13 @@ export default function LogisticsFinance() {
                             )}
                         >
                             {option.label}
-                        </button>
+                        </Button>
                     ))}
                 </div>
 
                 <div className="flex items-center gap-2 w-full lg:w-auto">
                     <Input
-                        placeholder="Pesquisar transação..."
+                        placeholder="Pesquisar transaÃ§Ã£o..."
                         value={search}
                         onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
@@ -315,10 +315,10 @@ export default function LogisticsFinance() {
                             <tr className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em] italic">
                                 <th className="px-6 py-4 text-left">Tipo</th>
                                 <th className="px-6 py-4 text-left">Data</th>
-                                <th className="px-6 py-4 text-left">Descrição</th>
+                                <th className="px-6 py-4 text-left">DescriÃ§Ã£o</th>
                                 <th className="px-6 py-4 text-left">Categoria</th>
                                 <th className="px-6 py-4 text-right">Valor</th>
-                                <th className="px-6 py-4 text-center">Ações</th>
+                                <th className="px-6 py-4 text-center">AÃ§Ãµes</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-dark-800 divide-y divide-gray-100 dark:divide-dark-700">
@@ -366,13 +366,13 @@ export default function LogisticsFinance() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
+                                                <Button variant="ghost"
                                                     onClick={() => handleEdit(t)}
                                                     className="p-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-gray-400 hover:text-primary-600 transition-colors"
                                                 >
                                                     <HiOutlineCog className="w-4 h-4" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="ghost"
                                                     onClick={() => {
                                                         setTransactionToDelete(t);
                                                         setDeleteModalOpen(true);
@@ -380,7 +380,7 @@ export default function LogisticsFinance() {
                                                     className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-600 transition-colors"
                                                 >
                                                     <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -401,7 +401,7 @@ export default function LogisticsFinance() {
                 </div>
             </Card>
 
-            {/* Modal de Formulário */}
+            {/* Modal de FormulÃ¡rio */}
             <Modal
                 isOpen={showFormModal}
                 onClose={() => {
@@ -475,7 +475,7 @@ export default function LogisticsFinance() {
                     </div>
 
                     <Input
-                        label="Descrição Detalhada *"
+                        label="DescriÃ§Ã£o Detalhada *"
                         {...register('description')}
                         error={errors.description?.message}
                         placeholder="Ex: Abastecimento Toyota Hilux - 50L"
@@ -502,7 +502,7 @@ export default function LogisticsFinance() {
                             {...register('paymentMethod')}
                         />
                         <Input
-                            label="Nº da Guia / Referência"
+                            label="NÂº da Guia / ReferÃªncia"
                             {...register('reference')}
                             placeholder="Ex: Fatura #FT2024/01"
                         />
@@ -511,7 +511,7 @@ export default function LogisticsFinance() {
                     <Input
                         label="Notas Adicionais"
                         {...register('notes')}
-                        placeholder="Observações pertinentes..."
+                        placeholder="ObservaÃ§Ãµes pertinentes..."
                     />
 
                     <div className="flex gap-3 justify-end pt-6 border-t border-gray-100 dark:border-dark-700">
@@ -525,16 +525,16 @@ export default function LogisticsFinance() {
                 </form>
             </Modal>
 
-            {/* Modal de Confirmação de Eliminação */}
+            {/* Modal de ConfirmaÃ§Ã£o de EliminaÃ§Ã£o */}
             <Modal
                 isOpen={deleteModalOpen}
                 onClose={() => setDeleteModalOpen(false)}
-                title="Eliminar Transacção"
+                title="Eliminar TransacÃ§Ã£o"
                 size="sm"
             >
                 <div className="space-y-4 py-2 text-center lg:text-left">
                     <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                        Deseja realmente eliminar este registo permanente? Esta acção impactar os relatórios operacionais.
+                        Deseja realmente eliminar este registo permanente? Esta acÃ§Ã£o impactar os relatÃ³rios operacionais.
                     </p>
                     <div className="flex gap-3 justify-center lg:justify-end pt-4">
                         <Button variant="ghost" onClick={() => setDeleteModalOpen(false)}>

@@ -14,7 +14,6 @@ import { payrollService } from '../services/payrollService';
 import { vacationService } from '../services/vacationService';
 import { prisma } from '../lib/prisma';
 import { ResultHandler } from '../utils/result';
-import { logger } from '../utils/logger';
 import { ApiError } from '../middleware/error.middleware';
 import { emitToCompany } from '../lib/socket';
 
@@ -116,7 +115,7 @@ router.get('/attendance', authenticate, async (req: AuthRequest, res) => {
 // Bulk attendance record via POST /attendance (for roster-based flow)
 router.post('/attendance', authenticate, async (req: AuthRequest, res) => {
     if (!req.companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
-    const { employeeId, date, checkIn, checkOut, status, notes } = req.body;
+    const { employeeId, date, checkIn } = req.body;
     
     // Use service for consistency
     const result = await attendanceService.recordTime(

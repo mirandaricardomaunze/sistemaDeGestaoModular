@@ -247,7 +247,7 @@ export default function BackupManagement() {
                 return (
                     <div className="flex justify-end gap-2">
                         {gdriveStatus?.configured && (
-                            <button
+                            <Button variant="ghost"
                                 onClick={() => handleGDriveUpload(backup.filename)}
                                 disabled={isUploadingToDrive === backup.filename}
                                 className={`p-2 rounded-lg transition-colors ${isUploadingToDrive === backup.filename
@@ -257,29 +257,29 @@ export default function BackupManagement() {
                                 title="Enviar para nuvem"
                             >
                                 <HiOutlineCloudArrowUp className={`w-5 h-5 ${isUploadingToDrive === backup.filename ? 'animate-bounce' : ''}`} />
-                            </button>
+                            </Button>
                         )}
-                        <button
+                        <Button variant="ghost"
                             onClick={() => handleDownload(backup.filename)}
                             className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 transition-colors"
                             title="Download"
                         >
                             <HiOutlineArrowDownTray className="w-5 h-5" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={() => confirmRestore(backup.filename)}
                             className="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 transition-colors"
                             title="Restaurar"
                         >
                             <HiOutlineArrowPath className="w-5 h-5" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={() => confirmDelete(backup.filename)}
                             className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 transition-colors"
                             title="Deletar"
                         >
                             <HiOutlineTrash className="w-5 h-5" />
-                        </button>
+                        </Button>
                     </div>
                 );
             },
@@ -471,7 +471,7 @@ export default function BackupManagement() {
                     </p>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                         <p className="text-sm text-yellow-800 dark:text-yellow-200 font-semibold">
-                            ⚠️ ATENÇÃO
+                            � ️ ATENÇÃO
                         </p>
                         <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
                             Esta operação vai SUBSTITUIR TODOS os dados atuais do banco de dados!

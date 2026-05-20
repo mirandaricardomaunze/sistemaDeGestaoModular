@@ -10,6 +10,7 @@ import { PageTransitionLoader } from '../ui/PageTransitionLoader';
 import { HiOutlineSparkles } from 'react-icons/hi2';
 
 import { useLocation } from 'react-router-dom';
+import { Button } from '../ui/Button';
 
 const ChatWidget = lazy(() => import('../chat/ChatWidget'));
 
@@ -32,14 +33,14 @@ function ChatWidgetLauncher() {
     if (isCommercialInsightsPage) return null;
 
     return (
-        <button
+        <Button variant="ghost"
             onClick={() => setIsLoaded(true)}
             className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-full shadow-2xl hover:shadow-primary-500/50 transition-all duration-300 flex items-center justify-center text-white z-50 group hover:scale-105"
             title="Assistente IA"
         >
             <HiOutlineSparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
             <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 rounded-full animate-pulse border-2 border-white" />
-        </button>
+        </Button>
     );
 }
 

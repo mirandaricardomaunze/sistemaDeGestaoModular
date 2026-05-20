@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sistema Maintenance"
+  short_description: "Manutencao segura do sistema local."
+  default_prompt: "Usar esta skill para corrigir, auditar e validar o sistema sem perder contexto."

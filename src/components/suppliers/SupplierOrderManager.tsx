@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
@@ -180,7 +180,7 @@ export default function SupplierOrderManager() {
 
                 return (
                     <div className="flex justify-center gap-1">
-                        <button
+                        <Button variant="ghost"
                             onClick={() => {
                                 setOrderToPrint(order);
                                 setShowPrintModal(true);
@@ -189,10 +189,10 @@ export default function SupplierOrderManager() {
                             title="Visualizar/Imprimir"
                         >
                             <HiOutlineEye className="w-4 h-4" />
-                        </button>
+                        </Button>
 
                         {order.status === 'ordered' && (
-                            <button
+                            <Button variant="ghost"
                                 onClick={() => {
                                     setSelectedOrder(order);
                                     setShowReceiveModal(true);
@@ -201,17 +201,17 @@ export default function SupplierOrderManager() {
                                 title="Receber Encomenda"
                             >
                                 <HiOutlineCheck className="w-4 h-4" />
-                            </button>
+                            </Button>
                         )}
 
                         {(order.status === 'ordered' || order.status === 'draft') && (
-                            <button
+                            <Button variant="ghost"
                                 onClick={() => handleCancelOrder(order)}
                                 className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600"
                                 title="Cancelar Encomenda"
                             >
                                 <HiOutlineXMark className="w-4 h-4" />
-                            </button>
+                            </Button>
                         )}
                     </div>
                 );
@@ -303,7 +303,7 @@ export default function SupplierOrderManager() {
                 }}
                 onConfirm={performCancelOrder}
                 title="Cancelar Encomenda?"
-                message={`Tem certeza que deseja cancelar a encomenda ${orderToCancel?.orderNumber}? Esta ação não pode ser desfeita.`}
+                message={`Tem certeza que deseja cancelar a encomenda ${orderToCancel?.orderNumber}? Esta aÃ§Ã£o nÃ£o pode ser desfeita.`}
                 confirmText="Sim, Cancelar"
                 cancelText="Nao Cancelar"
                 variant="danger"

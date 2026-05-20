@@ -66,4 +66,45 @@ describe('PayrollEngine.calculate', () => {
 
         expect(result.netSalary).toBe(0);
     });
+
+    it('applies INSS even when income is below the IRT threshold', () => {
+        // Base salary entirely under the 20250 MZN IRT exemption — only INSS is deducted.
+        const result = engine.calculate({ baseSalary: 18000 });
+
+        expect(result.irt).toBe(0);
+        expect(result.inssEmployee).toBe(540); // 3% of 18000
+        expect(result.netSalary).toBe(17460);
+        expect(result.breakdown.irtBracketRate).toBe(0);
+    });
+
+    it('exposes the marginal IRT bracket rate on the breakdown', () => {
+        // 60000 base − 1800 INSS = 58200 → falls in the 20% bracket (45001–70000)
+        const result = engine.calculate({ baseSalary: 60000 });
+
+        expect(result.breakdown.irtBracketRate).toBe(0.20);
+    });
+
+    it('combines manual deductions with statutory ones in totalDeductions', () => {
+        const result = engine.calculate({
+            baseSalary: 50000,
+            deductions: [
+                { name: 'Adiantamento', amount: 2000 },
+                { name: 'Sindicato', amount: 500 },
+            ],
+        });
+
+        // statutory (INSS 1500 + IRT 3925) + manual (2000 + 500) = 7925
+        expect(result.manualDeductions).toBe(2500);
+        expect(result.totalDeductions).toBe(7925);
+        expect(result.netSalary).toBe(50000 - 7925);
+    });
+
+    it('rounds money to 2 decimal places', () => {
+        const result = engine.calculate({ baseSalary: 33333.333 });
+
+        // No fractional cents anywhere — every numeric output is roundMoney'd.
+        expect(Number.isInteger(Math.round(result.netSalary * 100))).toBe(true);
+        expect(Number.isInteger(Math.round(result.inssEmployee * 100))).toBe(true);
+        expect(Number.isInteger(Math.round(result.irt * 100))).toBe(true);
+    });
 });

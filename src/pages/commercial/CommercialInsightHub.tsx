@@ -1,48 +1,12 @@
-import { lazy, Suspense, useMemo } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { useLocation } from 'react-router-dom';
 
-import {
-    HiOutlinePresentationChartLine,
-    HiOutlineDocumentChartBar,
-    HiOutlineChartBar,
-} from 'react-icons/hi2';
-import { Button, Skeleton } from '../../components/ui';
-import { cn } from '../../utils/helpers';
+import { Skeleton } from '../../components/ui';
 
 const CommercialDashboard = lazy(() => import('./CommercialDashboard'));
 const CommercialReports = lazy(() => import('./CommercialReports'));
-const MarginAnalysis = lazy(() => import('./MarginAnalysis'));
 
-const TABS = [
-    {
-        id: 'overview',
-        label: 'Visão Geral',
-        icon: HiOutlinePresentationChartLine,
-        subtitle: 'Análise de performance, vendas e KPIs em tempo real',
-    },
-    {
-        id: 'reports',
-        label: 'Relatórios & IA',
-        icon: HiOutlineDocumentChartBar,
-        subtitle: 'Exploração de dados, auditoria de stock e previsões preditivas',
-    },
-    {
-        id: 'margins',
-        label: 'Margens & Lucro',
-        icon: HiOutlineChartBar,
-        subtitle: 'Análise de rentabilidade por produto, categoria e tendências',
-    },
-] as const;
-
-type TabId = typeof TABS[number]['id'];
-
-const PATH_TO_TAB: Array<[string, TabId]> = [
-    ['/dashboard', 'overview'],
-    ['/reports', 'reports'],
-    ['/margins', 'margins'],
-];
-
-function TabFallback() {
+function PageFallback() {
     return (
         <div className="space-y-6">
             <Skeleton className="h-10 w-1/4 rounded-lg" />
@@ -55,69 +19,15 @@ function TabFallback() {
 }
 
 export default function CommercialInsightHub() {
-    const [searchParams, setSearchParams] = useSearchParams();
     const { pathname } = useLocation();
-
-    const activeTab: TabId = useMemo(() => {
-        const tabParam = searchParams.get('tab') as TabId | null;
-        if (tabParam && TABS.some(t => t.id === tabParam)) return tabParam;
-        const fromPath = PATH_TO_TAB.find(([fragment]) => pathname.includes(fragment));
-        return fromPath ? fromPath[1] : 'overview';
-    }, [searchParams, pathname]);
-
-    const setActiveTab = (tab: TabId) => {
-        // Preserve other query params (warehouse, days, filters) when switching tabs.
-        const next = new URLSearchParams(searchParams);
-        next.set('tab', tab);
-        setSearchParams(next);
-    };
-
-    const currentTabData = TABS.find(t => t.id === activeTab) ?? TABS[0];
+    const isReportsRoute = pathname.includes('/reports');
+    const isMarginsRoute = pathname.includes('/margins');
 
     return (
-        <div className="space-y-6 animate-fade-in pb-10">
-            <div className="mb-2">
-                <h1 className="text-2xl font-black text-slate-950 dark:text-white uppercase tracking-tighter">
-                    Gestão de Insights
-                </h1>
-                <p className="text-xs text-slate-600 dark:text-gray-400 font-semibold italic mt-1">
-                    {currentTabData.subtitle}
-                </p>
-            </div>
-
-            {/* Premium Tab Navigation (Segmented Control style) */}
-            <div className="flex p-1 bg-slate-100/90 dark:bg-dark-800/80 backdrop-blur-md rounded-xl border border-slate-300/70 dark:border-dark-700/50 shadow-inner overflow-x-auto scroller-hidden">
-                {TABS.map(tab => {
-                    const Icon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <Button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                                "h-10 px-6 rounded-lg text-[10px] font-black uppercase tracking-widest flex-1 whitespace-nowrap",
-                                isActive
-                                    ? "bg-white dark:bg-dark-700 text-primary-700 dark:text-white shadow-[0_8px_20px_-14px_rgba(15,23,42,0.8)] scale-[1.02]"
-                                    : "text-slate-600 hover:text-slate-950 dark:hover:text-gray-300"
-                            )}
-                        >
-                            <Icon className={cn("w-4 h-4", isActive ? "text-primary-600 dark:text-primary-400" : "opacity-70")} />
-                            <span>{tab.label}</span>
-                        </Button>
-                    );
-                })}
-            </div>
-
-            {/* Tab Content (lazy-loaded — only the active tab is fetched) */}
-            <div className="animate-fade-in transition-all duration-300">
-                <Suspense fallback={<TabFallback />}>
-                    {activeTab === 'overview' && <CommercialDashboard />}
-                    {activeTab === 'reports' && <CommercialReports />}
-                    {activeTab === 'margins' && <MarginAnalysis />}
-                </Suspense>
-            </div>
-        </div>
+        <Suspense fallback={<PageFallback />}>
+            {isReportsRoute && <CommercialReports />}
+            {isMarginsRoute && <CommercialReports initialTab="margins" />}
+            {!isReportsRoute && !isMarginsRoute && <CommercialDashboard />}
+        </Suspense>
     );
 }

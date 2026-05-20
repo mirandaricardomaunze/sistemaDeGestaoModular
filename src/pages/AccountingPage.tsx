@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import {
     HiOutlineBookOpen,
     HiOutlineCalculator,
@@ -126,7 +126,7 @@ export default function AccountingPage() {
                         {tabs.map((item) => {
                             const Icon = item.icon;
                             return (
-                                <button
+                                <Button variant="ghost"
                                     key={item.id}
                                     type="button"
                                     onClick={() => setTab(item.id)}
@@ -134,7 +134,7 @@ export default function AccountingPage() {
                                 >
                                     <Icon className="w-4 h-4" />
                                     {item.label}
-                                </button>
+                                </Button>
                             );
                         })}
                     </div>

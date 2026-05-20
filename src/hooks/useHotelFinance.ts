@@ -223,9 +223,9 @@ export function useHotelFinance(selectedPeriod: TimePeriod, activeTab: string) {
             .reduce((sum, e) => sum + Number(e.amount), 0);
     }, [expenses]);
 
+    // Caller is responsible for showing a confirmation UI (e.g. ConfirmationModal)
+    // before invoking this — the hook only performs the deletion.
     const handleDeleteExpense = async (id: string) => {
-        if (!confirm('Tem certeza que deseja eliminar esta despesa?')) return;
-
         try {
             await hospitalityAPI.deleteExpense(id);
             toast.success('Despesa eliminada com sucesso!');

@@ -1,5 +1,7 @@
 import React from 'react';
+import { HiOutlineXMark } from 'react-icons/hi2';
 import { cn } from '../../utils/helpers';
+import { Button } from './Button';
 
 export interface ModalProps {
     isOpen: boolean;
@@ -66,29 +68,19 @@ export function Modal({
                                 </h2>
                             )}
                             {showCloseButton && (
-                                <button
+                                <Button variant="ghost"
+                                    type="button"
                                     onClick={onClose}
+                                    aria-label="Fechar"
                                     className={cn(
-                                        "p-2 rounded-lg transition-colors",
-                                        isLight 
+                                        "p-2 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
+                                        isLight
                                             ? "hover:bg-slate-100 text-slate-500"
                                             : "hover:bg-slate-100 dark:hover:bg-dark-700 text-slate-500 dark:text-gray-400"
                                     )}
                                 >
-                                    <svg
-                                        className="w-5 h-5"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M6 18L18 6M6 6l12 12"
-                                        />
-                                    </svg>
-                                </button>
+                                    <HiOutlineXMark className="w-5 h-5" />
+                                </Button>
                             )}
                         </div>
                     )}

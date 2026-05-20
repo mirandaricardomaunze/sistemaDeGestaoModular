@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HospitalityDashboard Component
  * Main dashboard for hotel analytics with KPIs, interactive charts, and period filtering
  */
@@ -170,13 +170,13 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                             <HiOutlineChartBar className="w-6 h-6 text-primary-600" />
                             Dashboard de Hotelaria
                         </h2>
-                        <p className="text-sm text-gray-500">Análise de performance e receitas</p>
+                        <p className="text-sm text-gray-500">AnÃ¡lise de performance e receitas</p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
                         <div className="flex gap-1 bg-gray-100 dark:bg-dark-800 rounded-lg p-1">
                             {periodOptions.map(opt => (
-                                <button
+                                <Button variant="ghost"
                                     key={opt.value}
                                     onClick={() => setPeriod(opt.value as DashboardPeriod)}
                                     className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${period === opt.value
@@ -185,7 +185,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                                         }`}
                                 >
                                     {opt.label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                         <Button variant="outline" size="sm" onClick={refetch} leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}>
@@ -198,11 +198,11 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                     <div className="w-20 h-20 bg-gray-100 dark:bg-dark-700 rounded-full flex items-center justify-center mb-6 text-gray-400">
                         <HiOutlineChartBar className="w-10 h-10" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Sem dados para este período</h3>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Sem dados para este perÃ­odo</h3>
                     <p className="text-gray-500 max-w-sm mb-8">
-                        Não foram encontradas reservas ou facturação no período seleccionado para gerar as visualizaces.
+                        NÃ£o foram encontradas reservas ou facturaÃ§Ã£o no perÃ­odo seleccionado para gerar as visualizaces.
                     </p>
-                    <Button onClick={() => setPeriod('1m')} variant="primary">Ver Último Mês</Button>
+                    <Button onClick={() => setPeriod('1m')} variant="primary">Ver Ãšltimo MÃªs</Button>
                 </Card>
             </div>
         );
@@ -218,15 +218,15 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                         <HiOutlineChartBar className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">Análise de Performance</h3>
-                        <p className="text-[10px] text-gray-500 font-medium">Controle de receitas e ocupação</p>
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">AnÃ¡lise de Performance</h3>
+                        <p className="text-[10px] text-gray-500 font-medium">Controle de receitas e ocupaÃ§Ã£o</p>
                     </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="flex gap-1 bg-gray-100 dark:bg-dark-900 rounded-lg p-1">
                         {periodOptions.map(opt => (
-                            <button
+                            <Button variant="ghost"
                                 key={opt.value}
                                 onClick={() => setPeriod(opt.value as DashboardPeriod)}
                                 className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${period === opt.value
@@ -235,7 +235,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                                     }`}
                             >
                                 {opt.label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                     <Button variant="outline" size="sm" onClick={refetch} leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}>
@@ -256,7 +256,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Receita Total</span>
                     </div>
                     <p className="text-2xl font-black text-gray-900 dark:text-white">{formatCurrency(metrics?.totalRevenue || 0)}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-bold">Acumulado período</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-bold">Acumulado perÃ­odo</p>
                 </Card>
 
                 {/* Today Revenue */}
@@ -279,7 +279,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                         <div className="p-2.5 bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 rounded-xl border border-transparent dark:border-blue-500/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
                             <HiOutlineHome className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Ocupação</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">OcupaÃ§Ã£o</span>
                     </div>
                     <p className="text-2xl font-black text-gray-900 dark:text-white">{metrics?.occupancyRate || 0}%</p>
                     <div className="mt-2 h-1.5 bg-gray-100 dark:bg-dark-700 rounded-full overflow-hidden">
@@ -313,7 +313,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">ADR</span>
                     </div>
                     <p className="text-2xl font-black text-gray-900 dark:text-white">{formatCurrency(metrics?.avgDailyRate || 0)}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-bold">Ticket médio base/quarto</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-bold">Ticket mÃ©dio base/quarto</p>
                 </Card>
 
                 {/* RevPAR */}
@@ -325,7 +325,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">RevPAR</span>
                     </div>
                     <p className="text-2xl font-black text-gray-900 dark:text-white">{formatCurrency(metrics?.revpar || 0)}</p>
-                    <p className="text-[10px] text-gray-400 mt-1 font-bold">Receita/quarto disponível</p>
+                    <p className="text-[10px] text-gray-400 mt-1 font-bold">Receita/quarto disponÃ­vel</p>
                 </Card>
 
                 {/* Active Guests */}
@@ -334,7 +334,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                         <div className="p-2.5 bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 rounded-xl border border-transparent dark:border-rose-500/20 backdrop-blur-sm group-hover:scale-110 transition-transform">
                             <HiOutlineUsers className="w-5 h-5" />
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Hóspedes</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">HÃ³spedes</span>
                     </div>
                     <p className="text-2xl font-black text-gray-900 dark:text-white">{metrics?.activeGuests || 0}</p>
                     <p className="text-[10px] text-gray-400 mt-1 font-bold italic">Em estadia</p>
@@ -346,7 +346,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                 <div className="bg-primary-50/50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-900/30 rounded-lg p-4">
                     <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm">
                         <div className="flex items-center gap-2">
-                            <span className="text-primary-600 dark:text-primary-400 font-semibold">Média Diária:</span>
+                            <span className="text-primary-600 dark:text-primary-400 font-semibold">MÃ©dia DiÃ¡ria:</span>
                             <span className="text-gray-700 dark:text-gray-300">{formatCurrency(insights.avgDailyRevenue)}</span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -393,7 +393,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
 
                 {/* Occupancy Line Chart */}
                 <Card className="p-6 border-none shadow-sm dark:bg-dark-800">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6">Ocupação Histórica (%)</h3>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6">OcupaÃ§Ã£o HistÃ³rica (%)</h3>
                     <div className="h-72">
                         <ResponsiveContainer width="100%" height={288}>
                             <LineChart data={occupancyChart}>
@@ -401,7 +401,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                                 <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={d => d.slice(5)} axisLine={false} tickLine={false} dy={10} />
                                 <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} tickFormatter={v => `${v}%`} axisLine={false} tickLine={false} />
                                 <Tooltip content={<CustomTooltip formatter={(v: number) => `${v}%`} />} />
-                                <Line type="monotone" dataKey="rate" name="Taxa de Ocupação" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                                <Line type="monotone" dataKey="rate" name="Taxa de OcupaÃ§Ã£o" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </div>
@@ -445,7 +445,7 @@ export default function HospitalityDashboard({ className }: HospitalityDashboard
                                 <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v} />
                                 <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
                                 <Tooltip content={<CustomTooltip formatter={formatCurrency} />} />
-                                <Bar dataKey="revenue" name="Faturação" fill="#6366f1" radius={[0, 10, 10, 0]} barSize={20} />
+                                <Bar dataKey="revenue" name="FaturaÃ§Ã£o" fill="#6366f1" radius={[0, 10, 10, 0]} barSize={20} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>

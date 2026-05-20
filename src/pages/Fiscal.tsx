@@ -15,6 +15,7 @@ import DeadlineManager from '../components/fiscal/DeadlineManager';
 import IvaManager from '../components/fiscal/IvaManager';
 import { useStore } from '../stores/useStore';
 import { Badge } from '../components/ui';
+import { Button } from '../components/ui/Button';
 
 type FiscalTab = 'dashboard' | 'config' | 'reports' | 'audit' | 'deadlines' | 'iva';
 
@@ -74,7 +75,7 @@ export default function Fiscal() {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
                         return (
-                            <button
+                            <Button variant="ghost"
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${isActive
@@ -84,7 +85,7 @@ export default function Fiscal() {
                             >
                                 <Icon className="w-5 h-5" />
                                 {tab.label}
-                            </button>
+                            </Button>
                         );
                     })}
                 </nav>

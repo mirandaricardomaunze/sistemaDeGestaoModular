@@ -14,6 +14,7 @@ export const logAudit = async (params: {
     entityId?: string;
     oldData?: Record<string, unknown>;  // ✅ Fixed: was 'any'
     newData?: Record<string, unknown>;  // ✅ Fixed: was 'any'
+    reason?: string;
     ipAddress?: string;
     userAgent?: string;
 }) => {
@@ -37,6 +38,7 @@ export const logAudit = async (params: {
                 entityId: params.entityId,
                 oldData: params.oldData ? JSON.parse(JSON.stringify(params.oldData)) : null,
                 newData: params.newData ? JSON.parse(JSON.stringify(params.newData)) : null,
+                reason: params.reason,
                 ipAddress: params.ipAddress,
                 userAgent: params.userAgent,
             }

@@ -9,7 +9,7 @@ import {
     HiOutlineUserGroup,
     HiOutlineCheck
 } from 'react-icons/hi2';
-import { Card, Button, Input, Select, Badge } from '../../ui';
+import { Card, Button, Input, Select, Badge, ConfirmationModal } from '../../ui';
 import { employeesAPI } from '../../../services/api';
 import toast from 'react-hot-toast';
 import { logger } from '../../../utils/logger';
@@ -88,14 +88,23 @@ export function CommercialBonusConfig() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Tem a certeza que deseja remover esta regra?')) return;
+    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDelete = (id: string) => setPendingDeleteId(id);
+
+    const confirmDelete = async () => {
+        if (!pendingDeleteId) return;
         try {
-            await employeesAPI.deleteCommissionRule(id);
+            setIsDeleting(true);
+            await employeesAPI.deleteCommissionRule(pendingDeleteId);
             toast.success('Regra removida');
+            setPendingDeleteId(null);
             fetchData();
         } catch {
             toast.error('Erro ao remover regra');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -275,6 +284,18 @@ export function CommercialBonusConfig() {
                     </div>
                 </div>
             </Card>
+
+            <ConfirmationModal
+                isOpen={!!pendingDeleteId}
+                onClose={() => !isDeleting && setPendingDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Remover regra de bónus?"
+                message="Tem a certeza que deseja remover esta regra? Esta acção não pode ser desfeita."
+                confirmText="Sim, remover"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isDeleting}
+            />
         </div>
     );
 }

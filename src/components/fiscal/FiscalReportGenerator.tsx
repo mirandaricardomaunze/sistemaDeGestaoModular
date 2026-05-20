@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
     HiOutlineDocumentChartBar as HiOutlineDocumentChartBar,
     HiOutlineArrowDownTray as HiOutlineArrowDownTray,
@@ -94,7 +94,7 @@ export default function FiscalReportGenerator() {
         { value: 'commercial_iva_map', label: 'Mapa de IVA Comercial' },
         { value: 'inss_monthly', label: 'INSS - Mensal' },
         { value: 'irt_monthly', label: 'IRPS - Mensal' },
-        { value: 'withholding_monthly', label: 'Retenções Fonte - Mensal' },
+        { value: 'withholding_monthly', label: 'RetenÃ§Ãµes Fonte - Mensal' },
     ];
 
     const getTypeFilter = (reportType: FiscalReportType): TaxType[] => {
@@ -172,7 +172,7 @@ export default function FiscalReportGenerator() {
             exportedFormats: [],
             createdBy: 'Sistema',
             notes: selectedReportType === 'commercial_iva_map' && commercialSummary
-                ? `IVA facturas: ${commercialSummary.currentMonth.ivaCollected}; IVA estornado: ${commercialSummary.currentMonth.ivaReversed}; IVA dedutível: ${commercialSummary.currentMonth.ivaDeductible}`
+                ? `IVA facturas: ${commercialSummary.currentMonth.ivaCollected}; IVA estornado: ${commercialSummary.currentMonth.ivaReversed}; IVA dedutÃ­vel: ${commercialSummary.currentMonth.ivaDeductible}`
                 : undefined,
         };
 
@@ -180,16 +180,16 @@ export default function FiscalReportGenerator() {
         const validation = validateFiscalReport(report);
 
         if (!validation.isValid) {
-            toast.error('Erros na validação: ' + validation.errors.map(e => e.message).join(', '));
+            toast.error('Erros na validaÃ§Ã£o: ' + validation.errors.map(e => e.message).join(', '));
             return;
         }
 
         if (validation.warnings.length > 0) {
-            toast(validation.warnings.map(w => w.message).join('\n'), { icon: '⚠️ï¸' });
+            toast(validation.warnings.map(w => w.message).join('\n'), { icon: 'âš ï¸Ã¯Â¸Â' });
         }
 
         addFiscalReport(report);
-        toast.success('Relatório gerado com sucesso!');
+        toast.success('RelatÃ³rio gerado com sucesso!');
         setPreviewReport(report);
         setShowPreviewModal(true);
     };
@@ -262,7 +262,7 @@ export default function FiscalReportGenerator() {
                     companyName: companySettings?.companyName,
                     columns: [
                         { key: 'documentType', header: 'Tipo Doc', width: 15 },
-                        { key: 'documentNumber', header: 'Nº Documento', width: 20 },
+                        { key: 'documentNumber', header: 'NÂº Documento', width: 20 },
                         { key: 'entityName', header: 'Entidade', width: 30 },
                         { key: 'entityNuit', header: 'NUIT', width: 15 },
                         { key: 'baseAmount', header: 'Base Tributvel', format: 'currency', width: 20, align: 'right' },
@@ -270,7 +270,7 @@ export default function FiscalReportGenerator() {
                         { key: 'date', header: 'Data', format: 'date', width: 15 },
                     ],
                     data: report.retentions,
-                    footerText: `Relatório gerado automaticamente pelo sistema em ${new Date().toLocaleString('pt-MZ')}`,
+                    footerText: `RelatÃ³rio gerado automaticamente pelo sistema em ${new Date().toLocaleString('pt-MZ')}`,
                     orientation: 'landscape'
                 };
                 exportData(exportOptions, format === 'pdf' ? 'pdf' : 'excel');
@@ -279,7 +279,7 @@ export default function FiscalReportGenerator() {
             }
 
             default:
-                toast.error('Formato não suportado');
+                toast.error('Formato nÃ£o suportado');
                 return;
         }
 
@@ -332,13 +332,13 @@ export default function FiscalReportGenerator() {
                     <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
                         <HiOutlineArrowDownTray className="w-5 h-5 text-orange-600" />
                     </div>
-                    Exportar SAF-T XML (Moçambique)
+                    Exportar SAF-T XML (MoÃ§ambique)
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
                         <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">
-                            Data Início
+                            Data InÃ­cio
                         </label>
                         <input
                             id="saft-start-date"
@@ -389,8 +389,8 @@ export default function FiscalReportGenerator() {
                 </div>
 
                 <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
-                    Gera o ficheiro XML no formato SAF-T (Standard Audit File for Tax) conforme o standard OECD adaptado para Moçambique (AT-MZ 1.00).
-                    Inclui cabeçalho, clientes, produtos e todas as faturas do período seleccionado.
+                    Gera o ficheiro XML no formato SAF-T (Standard Audit File for Tax) conforme o standard OECD adaptado para MoÃ§ambique (AT-MZ 1.00).
+                    Inclui cabeÃ§alho, clientes, produtos e todas as faturas do perÃ­odo seleccionado.
                 </p>
             </Card>
             <Card padding="md">
@@ -398,19 +398,19 @@ export default function FiscalReportGenerator() {
                     <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
                         <HiOutlineDocumentChartBar className="w-5 h-5 text-primary-600" />
                     </div>
-                    Gerar Relatório Fiscal
+                    Gerar RelatÃ³rio Fiscal
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Select
-                        label="Tipo de Relatório"
+                        label="Tipo de RelatÃ³rio"
                         options={reportTypeOptions}
                         value={selectedReportType}
                         onChange={(e) => setSelectedReportType(e.target.value as FiscalReportType)}
                     />
 
                     <Select
-                        label="Período"
+                        label="PerÃ­odo"
                         options={periodOptions}
                         value={selectedPeriod}
                         onChange={(e) => setSelectedPeriod(e.target.value)}
@@ -419,7 +419,7 @@ export default function FiscalReportGenerator() {
                     <div className="flex items-end">
                         <Button onClick={handleGenerateReport} className="w-full">
                             <HiOutlineArrowPath className="w-5 h-5 mr-2" />
-                            Gerar Relatório
+                            Gerar RelatÃ³rio
                         </Button>
                     </div>
                 </div>
@@ -427,7 +427,7 @@ export default function FiscalReportGenerator() {
                 {/* Quick Stats for Selected Period */}
                 <div className="mt-4 p-4 bg-gray-50 dark:bg-dark-800 rounded-lg">
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                        Prévia para {formatPeriod(selectedPeriod)}:
+                        PrÃ©via para {formatPeriod(selectedPeriod)}:
                     </p>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {getTypeFilter(selectedReportType).map(type => {
@@ -451,7 +451,7 @@ export default function FiscalReportGenerator() {
             <Card padding="none">
                 <div className="p-4 border-b border-gray-200 dark:border-dark-700">
                     <h3 className="font-semibold text-gray-900 dark:text-white">
-                        Relatórios Gerados
+                        RelatÃ³rios Gerados
                     </h3>
                 </div>
 
@@ -459,20 +459,20 @@ export default function FiscalReportGenerator() {
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
                         <thead className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
                             <tr>
-                                <th className="px-6 py-4 text-left font-black">Relatório</th>
-                                <th className="px-6 py-4 text-left font-black">Período</th>
+                                <th className="px-6 py-4 text-left font-black">RelatÃ³rio</th>
+                                <th className="px-6 py-4 text-left font-black">PerÃ­odo</th>
                                 <th className="px-6 py-4 text-right font-black">Total Base</th>
                                 <th className="px-6 py-4 text-right font-black">Total Imposto</th>
                                 <th className="px-6 py-4 text-center font-black">Docs</th>
                                 <th className="px-6 py-4 text-center font-black">Estado</th>
-                                <th className="px-6 py-4 text-right font-black">Ações</th>
+                                <th className="px-6 py-4 text-right font-black">AÃ§Ãµes</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
                             {paginatedReports.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                                        Nenhum relatório gerado. Use o formulário acima para gerar o primeiro.
+                                        Nenhum relatÃ³rio gerado. Use o formulÃ¡rio acima para gerar o primeiro.
                                     </td>
                                 </tr>
                             ) : (
@@ -503,7 +503,7 @@ export default function FiscalReportGenerator() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex justify-end gap-1">
-                                                <button
+                                                <Button variant="ghost"
                                                     onClick={() => {
                                                         setPreviewReport(report);
                                                         setShowPreviewModal(true);
@@ -512,35 +512,35 @@ export default function FiscalReportGenerator() {
                                                     title="Ver Detalhes"
                                                 >
                                                     <HiOutlineDocumentChartBar className="w-5 h-5" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="ghost"
                                                     onClick={() => handleExport(report, 'pdf')}
                                                     className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                                                     title="Exportar PDF"
                                                 >
                                                     <HiOutlineArrowDownTray className="w-5 h-5 text-red-500" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="ghost"
                                                     onClick={() => handleExport(report, 'excel')}
                                                     className="p-2 text-gray-400 hover:text-green-700 transition-colors"
                                                     title="Exportar Excel"
                                                 >
                                                     <HiOutlineArrowDownTray className="w-5 h-5 text-green-600" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="ghost"
                                                     onClick={() => handleExport(report, 'csv')}
                                                     className="p-2 text-gray-400 hover:text-green-600 transition-colors"
                                                     title="Exportar CSV"
                                                 >
                                                     <HiOutlineArrowDownTray className="w-5 h-5" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="ghost"
                                                     onClick={() => handleExport(report, 'xml')}
                                                     className="p-2 text-gray-400 hover:text-orange-600 transition-colors"
                                                     title="Exportar XML"
                                                 >
                                                     <HiOutlinePrinter className="w-5 h-5" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -565,7 +565,7 @@ export default function FiscalReportGenerator() {
             <Modal
                 isOpen={showPreviewModal}
                 onClose={() => setShowPreviewModal(false)}
-                title={previewReport?.name || 'Detalhes do Relatório'}
+                title={previewReport?.name || 'Detalhes do RelatÃ³rio'}
                 size="lg"
             >
                 {previewReport && (

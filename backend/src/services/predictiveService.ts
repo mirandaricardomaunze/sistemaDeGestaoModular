@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { aiService } from './aiService';
 import { logger } from '../utils/logger';
+import { suppliersService } from './suppliersService';
 
 export interface ForecastResult {
     productId: string;
@@ -79,6 +80,9 @@ export class PredictiveService {
 
         const results: ForecastResult[] = [];
         const batchSize = 10;
+        const aiBatchTimeoutMs = 6_000;
+        const aiTotalBudgetMs = 12_000;
+        const startedAt = Date.now();
 
         for (let i = 0; i < analysisCandidates.length; i += batchSize) {
             const batch = analysisCandidates.slice(i, i + batchSize);
@@ -104,10 +108,21 @@ export class PredictiveService {
             }`;
 
             try {
-                const aiResponse = await aiService.generateResponse(prompt, companyId, { systemInstruction: "Você é um analista de suprimentos especializado em séries temporais." });
+                if (Date.now() - startedAt > aiTotalBudgetMs) {
+                    throw new Error('AI forecast budget exceeded');
+                }
+
+                const aiResponse = await this.withTimeout(
+                    aiService.generateResponse(prompt, companyId, { systemInstruction: "Voce e um analista de suprimentos especializado em series temporais." }),
+                    aiBatchTimeoutMs,
+                    'AI forecast timeout'
+                );
                 
                 // Clean AI response to ensure it's valid JSON
                 const jsonMatch = aiResponse.message.match(/\[[\s\S]*\]/);
+                if (!jsonMatch) {
+                    throw new Error('AI forecast did not return JSON');
+                }
                 if (jsonMatch) {
                     type AIForecast = { id: string; forecasted30d?: number; confidence?: number; status?: 'stable' | 'low_risk' | 'high_risk' | 'critical'; suggestedPurchase?: number; reasoning?: string };
                     const aiData = JSON.parse(jsonMatch[0]) as AIForecast[];
@@ -162,6 +177,20 @@ export class PredictiveService {
         return results;
     }
 
+    private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+        let timeout: NodeJS.Timeout | undefined;
+        try {
+            return await Promise.race([
+                promise,
+                new Promise<T>((_, reject) => {
+                    timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
+                }),
+            ]);
+        } finally {
+            if (timeout) clearTimeout(timeout);
+        }
+    }
+
     async createDraftOrdersFromSuggestions(companyId: string, suggestions: Array<{ productId: string; quantity: number }>) {
         if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         
@@ -189,7 +218,6 @@ export class PredictiveService {
             }
         });
 
-        const { suppliersService } = require('./suppliersService');
         const createdOrders = [];
 
         // 3. Create Orders for each group

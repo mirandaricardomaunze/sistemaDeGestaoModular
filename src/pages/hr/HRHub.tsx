@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -449,7 +449,7 @@ export default function HRHub() {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
                     return (
-                        <button
+                        <Button variant="ghost"
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={cn(
@@ -461,7 +461,7 @@ export default function HRHub() {
                         >
                             <Icon className={cn('w-4 h-4', isActive ? 'text-primary-600 dark:text-primary-400' : 'opacity-50')} />
                             <span>{tab.label}</span>
-                        </button>
+                        </Button>
                     );
                 })}
             </div>

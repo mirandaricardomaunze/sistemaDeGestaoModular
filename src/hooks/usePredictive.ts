@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 import { commercialAPI } from '../services/api/commercial.api';
 import type { InventoryForecast } from '../services/api/commercial.api';
@@ -16,8 +17,19 @@ export function usePredictiveForecast() {
         try {
             setData(await commercialAPI.getPredictiveForecast());
         } catch (err) {
-            logger.error('Error fetching predictive forecast:', err);
-            setError('Erro ao carregar análise preditiva');
+            if (axios.isAxiosError(err)) {
+                const message = err.response?.data?.message || err.message;
+                logger.error('Error fetching predictive forecast:', {
+                    status: err.response?.status,
+                    code: err.code,
+                    url: err.config?.url,
+                    message,
+                });
+                setError(message || 'Erro ao carregar analise preditiva');
+            } else {
+                logger.error('Error fetching predictive forecast:', err);
+                setError('Erro ao carregar analise preditiva');
+            }
         } finally {
             setIsLoading(false);
         }

@@ -29,7 +29,7 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
     const displayData = data.slice(0, maxItems);
 
     return (
-        <Card padding="lg" className="bg-white dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_18px_42px_-26px_rgba(15,23,42,0.7)]">
+        <Card padding="lg" className="bg-white dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]">
 
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2.5">
@@ -38,7 +38,7 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
                     </span>
                     <div>
                         <h3 className="font-black text-slate-950 dark:text-white uppercase tracking-tighter">Análise ABC (Pareto)</h3>
-                        <p className="text-[10px] text-slate-600 dark:text-gray-300 font-black uppercase tracking-widest mt-0.5">Classificação por Receita Acumulada</p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest mt-0.5">Classificação por Receita Acumulada</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -86,15 +86,15 @@ export function ABCClassificationChart({ data, maxItems = 30 }: ABCClassificatio
                             content={({ active, payload, label }) => {
                                 if (active && payload && payload.length) {
                                     return (
-                                        <div className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-md border border-gray-200 dark:border-white/20 p-3 rounded-xl shadow-2xl">
-                                            <p className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+                                        <div className="bg-white/95 dark:bg-dark-900/95 backdrop-blur-md border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-2xl text-[12px] text-slate-900 dark:text-white">
+                                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{label}</p>
                                             <div className="space-y-1">
                                                 <div className="flex items-center justify-between gap-4">
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Receita:</span>
+                                                    <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">Receita:</span>
                                                     <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{formatCurrency(payload[0].value)}</span>
                                                 </div>
                                                 <div className="flex items-center justify-between gap-4">
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Acumulado:</span>
+                                                    <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">Acumulado:</span>
                                                     <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">{Number(payload[1].value).toFixed(1)}%</span>
                                                 </div>
                                             </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * HospitalityReports Component
  * Reports section with summary, insights, data tables, and export functionality (PDF/Excel)
  */
@@ -115,8 +115,8 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
 
         await exportAPI.export({
             type,
-            title: 'HOSPITALIDADE: Relatório de Reservas',
-            subtitle: `Período: ${periodLabel} | Receita Total: ${formatCurrency(reportData.summary.totalRevenue)}`,
+            title: 'HOSPITALIDADE: RelatÃ³rio de Reservas',
+            subtitle: `PerÃ­odo: ${periodLabel} | Receita Total: ${formatCurrency(reportData.summary.totalRevenue)}`,
             columns,
             data,
             filename: `Relatorio_Hotel_${periodLabel}_${new Date().getTime()}`
@@ -136,7 +136,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
         const generatedAt = new Date().toLocaleString('pt-PT');
         const company = {
             name: companySettings?.companyName || 'Multicore',
-            address: [companySettings?.address, companySettings?.city].filter(Boolean).join(', ') || 'Endereço não configurado',
+            address: [companySettings?.address, companySettings?.city].filter(Boolean).join(', ') || 'EndereÃ§o nÃ£o configurado',
             phone: companySettings?.phone || '',
             email: companySettings?.email || '',
             nuit: companySettings?.taxId || ''
@@ -162,7 +162,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Relatório de Hotelaria - ${periodLabel}</title>
+                    <title>RelatÃ³rio de Hotelaria - ${periodLabel}</title>
                     <style>
                         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #000; line-height: 1.3; }
                         .header { border-bottom: 2px solid #000; margin-bottom: 20px; padding-bottom: 15px; display: flex; align-items: center; justify-content: space-between; }
@@ -203,9 +203,9 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                             <p class="company-info">NUIT: ${company.nuit}</p>
                         </div>
                         <div class="report-meta">
-                            <h2 class="report-title">Relatório de Hotelaria</h2>
-                            <p class="meta-text">Período: <strong>${periodLabel}</strong></p>
-                            <p class="meta-text">Data de Emissão: ${generatedAt}</p>
+                            <h2 class="report-title">RelatÃ³rio de Hotelaria</h2>
+                            <p class="meta-text">PerÃ­odo: <strong>${periodLabel}</strong></p>
+                            <p class="meta-text">Data de EmissÃ£o: ${generatedAt}</p>
                         </div>
                     </div>
 
@@ -216,7 +216,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                                 <th>Quarto</th>
                                 <th>Tipo</th>
                                 <th>Cliente</th>
-                                <th class="text-center">Hósp.</th>
+                                <th class="text-center">HÃ³sp.</th>
                                 <th class="text-right">Vlr. Quarto</th>
                                 <th class="text-right">Vlr. Consumos</th>
                                 <th class="text-right">Total Bruto</th>
@@ -241,7 +241,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
 
                     <div class="footer">
                         <span>Gerado via ERP Hotelaria - Documento para uso interno</span>
-                        <span>Página 1 de 1</span>
+                        <span>PÃ¡gina 1 de 1</span>
                     </div>
                 </body>
             </html>
@@ -280,15 +280,15 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                         <HiOutlineDocumentChartBar className="w-5 h-5" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">Gestão de Relatórios</h3>
-                        <p className="text-[10px] text-gray-500 font-medium">Exportação e análise de dados</p>
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">GestÃ£o de RelatÃ³rios</h3>
+                        <p className="text-[10px] text-gray-500 font-medium">ExportaÃ§Ã£o e anÃ¡lise de dados</p>
                     </div>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="flex gap-1 bg-gray-100 dark:bg-dark-900 rounded-lg p-1">
                         {periodOptions.map(opt => (
-                            <button
+                            <Button variant="ghost"
                                 key={opt.value}
                                 onClick={() => { setPeriod(opt.value as DashboardPeriod); setIsLoaded(false); }}
                                 className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${period === opt.value
@@ -297,11 +297,11 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                                     }`}
                             >
                                 {opt.label}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                     <Button onClick={handleLoadReport} disabled={reportLoading} leftIcon={<HiOutlineArrowPath className="w-4 h-4" />}>
-                        {reportLoading ? 'Carregando...' : isLoaded ? 'Actualizar' : 'Gerar Relatório'}
+                        {reportLoading ? 'Carregando...' : isLoaded ? 'Actualizar' : 'Gerar RelatÃ³rio'}
                     </Button>
                 </div>
             </div>
@@ -320,8 +320,8 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                     <div className="w-20 h-20 bg-gray-50 dark:bg-dark-800 rounded-full flex items-center justify-center mx-auto mb-6 text-gray-400">
                         <HiOutlineChartPie className="w-10 h-10" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Pronto para gerar relatório</h3>
-                    <p className="text-gray-500 max-w-sm mx-auto mb-8">Seleccione o período desejado acima para consolidar todos os dados de reservas e consumos.</p>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Pronto para gerar relatÃ³rio</h3>
+                    <p className="text-gray-500 max-w-sm mx-auto mb-8">Seleccione o perÃ­odo desejado acima para consolidar todos os dados de reservas e consumos.</p>
                     <Button size="lg" onClick={handleLoadReport} leftIcon={<HiOutlineDocumentChartBar className="w-5 h-5" />}>
                         Gerar Agora
                     </Button>
@@ -331,7 +331,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                     {/* Action Bar */}
                     <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-50 dark:bg-dark-800/50 p-3 rounded-lg border border-gray-200 dark:border-dark-700">
                         <div className="flex gap-2 print:hidden italic text-xs text-gray-500">
-                            Opções de exportação disponíveis:
+                            OpÃ§Ãµes de exportaÃ§Ã£o disponÃ­veis:
                         </div>
                         <div className="flex gap-2 print:hidden">
                             <Button variant="outline" size="sm" onClick={handleExportPDF} leftIcon={<HiOutlineDocument className="w-4 h-4" />}>
@@ -393,18 +393,18 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
 
                         {/* Insights Section */}
                         <Card className="p-6">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">?? Insights do Período</h3>
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">?? Insights do PerÃ­odo</h3>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-4">
-                                    <p className="text-sm text-gray-500 mb-1">Taxa de Ocupação Média</p>
+                                    <p className="text-sm text-gray-500 mb-1">Taxa de OcupaÃ§Ã£o MÃ©dia</p>
                                     <p className="text-xl font-bold text-gray-900 dark:text-white">{reportData.summary.occupancyRate}%</p>
                                 </div>
                                 <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-4">
-                                    <p className="text-sm text-gray-500 mb-1">Valor Médio por Reserva</p>
+                                    <p className="text-sm text-gray-500 mb-1">Valor MÃ©dio por Reserva</p>
                                     <p className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(reportData.summary.avgBookingValue)}</p>
                                 </div>
                                 <div className="bg-gray-50 dark:bg-dark-800 rounded-lg p-4">
-                                    <p className="text-sm text-gray-500 mb-1">Total de Hóspedes</p>
+                                    <p className="text-sm text-gray-500 mb-1">Total de HÃ³spedes</p>
                                     <p className="text-xl font-bold text-gray-900 dark:text-white">{reportData.summary.totalGuests}</p>
                                 </div>
                             </div>
@@ -414,10 +414,10 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                         <Card className="p-6">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">??? Status dos Quartos (Actual)</h3>
                             <div className="flex flex-wrap gap-3">
-                                <Badge variant="success" className="text-base px-3 py-1">{reportData.roomStats.available} Disponíveis</Badge>
+                                <Badge variant="success" className="text-base px-3 py-1">{reportData.roomStats.available} DisponÃ­veis</Badge>
                                 <Badge variant="info" className="text-base px-3 py-1">{reportData.roomStats.occupied} Ocupados</Badge>
                                 <Badge variant="warning" className="text-base px-3 py-1">{reportData.roomStats.dirty} Limpeza</Badge>
-                                <Badge variant="danger" className="text-base px-3 py-1">{reportData.roomStats.maintenance} Manutenção</Badge>
+                                <Badge variant="danger" className="text-base px-3 py-1">{reportData.roomStats.maintenance} ManutenÃ§Ã£o</Badge>
                             </div>
                         </Card>
 
@@ -455,7 +455,7 @@ export default function HospitalityReports({ className }: HospitalityReportsProp
                                             <th className="px-4 py-3">Quarto</th>
                                             <th className="px-4 py-3">Tipo</th>
                                             <th className="px-4 py-3">Cliente</th>
-                                            <th className="px-4 py-3 text-center">Hósp.</th>
+                                            <th className="px-4 py-3 text-center">HÃ³sp.</th>
                                             <th className="px-4 py-3 text-right">Hospedagem</th>
                                             <th className="px-4 py-3 text-right">Consumos</th>
                                             <th className="px-4 py-3 text-right">Total</th>

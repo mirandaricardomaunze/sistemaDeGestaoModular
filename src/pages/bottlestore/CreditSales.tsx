@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { Card, Button, Input, Badge, Modal, Select, LoadingSpinner, EmptyState } from '../../components/ui';
 import {
@@ -107,7 +107,7 @@ export default function CreditSales() {
             setSales(res.data || []);
             setTotal(res.total || 0);
         } catch (error) {
-            toast.error('Erro ao carregar vendas a crédito');
+            toast.error('Erro ao carregar vendas a crÃ©dito');
         } finally {
             setLoading(false);
         }
@@ -145,11 +145,11 @@ export default function CreditSales() {
     const handlePayment = async () => {
         if (!selectedSale) return;
         if (!paymentData.amount || parseFloat(paymentData.amount) <= 0) {
-            toast.error('Informe um valor válido');
+            toast.error('Informe um valor vÃ¡lido');
             return;
         }
         if (parseFloat(paymentData.amount) > selectedSale.remainingBalance) {
-            toast.error(`Valor máximo: ${formatCurrency(selectedSale.remainingBalance)}`);
+            toast.error(`Valor mÃ¡ximo: ${formatCurrency(selectedSale.remainingBalance)}`);
             return;
         }
 
@@ -195,10 +195,10 @@ export default function CreditSales() {
             <div className="flex flex-col md:flex-row justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                        Vendas a Crédito
+                        Vendas a CrÃ©dito
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400">
-                        Gestão de contas a receber e pagamentos
+                        GestÃ£o de contas a receber e pagamentos
                     </p>
                 </div>
                 <div className="flex gap-3">
@@ -234,9 +234,9 @@ export default function CreditSales() {
                 <Card className="bg-green-600 text-white">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-green-100 text-sm">Total em Crédito</p>
+                            <p className="text-green-100 text-sm">Total em CrÃ©dito</p>
                             <p className="text-3xl font-bold">{total}</p>
-                            <p className="text-green-200 text-xs mt-1">vendas a crédito</p>
+                            <p className="text-green-200 text-xs mt-1">vendas a crÃ©dito</p>
                         </div>
                         <HiOutlineCreditCard className="w-12 h-12 text-green-200 opacity-75" />
                     </div>
@@ -245,16 +245,16 @@ export default function CreditSales() {
 
             {/* Tabs */}
             <div className="flex gap-2 border-b border-gray-200 dark:border-dark-700">
-                <button
+                <Button variant="ghost"
                     onClick={() => setActiveTab('sales')}
                     className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'sales'
                         ? 'border-primary-500 text-primary-600'
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                         }`}
                 >
-                    Vendas a Crédito
-                </button>
-                <button
+                    Vendas a CrÃ©dito
+                </Button>
+                <Button variant="ghost"
                     onClick={() => setActiveTab('debtors')}
                     className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${activeTab === 'debtors'
                         ? 'border-primary-500 text-primary-600'
@@ -262,7 +262,7 @@ export default function CreditSales() {
                         }`}
                 >
                     Devedores ({debtors.length})
-                </button>
+                </Button>
             </div>
 
             {/* Sales Tab */}
@@ -270,14 +270,14 @@ export default function CreditSales() {
                 <Card>
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                            Lista de Vendas a Crédito
+                            Lista de Vendas a CrÃ©dito
                         </h3>
                         <Select
                             value={statusFilter}
                             onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                             options={[
                                 { value: '', label: 'Todos os status' },
-                                { value: 'pending', label: 'Não pagas' },
+                                { value: 'pending', label: 'NÃ£o pagas' },
                                 { value: 'partial', label: 'Parcialmente pagas' }
                             ]}
                         />
@@ -290,8 +290,8 @@ export default function CreditSales() {
                     ) : sales.length === 0 ? (
                         <EmptyState
                             icon={<HiOutlineCreditCard className="w-12 h-12 text-gray-300" />}
-                            title="Nenhuma venda a crédito"
-                            description="As vendas a crédito aparecerão aqui"
+                            title="Nenhuma venda a crÃ©dito"
+                            description="As vendas a crÃ©dito aparecerÃ£o aqui"
                         />
                     ) : (
                         <div className="overflow-x-auto">
@@ -305,7 +305,7 @@ export default function CreditSales() {
                                         <th className="text-right py-3 px-4 font-medium text-gray-500">Pago</th>
                                         <th className="text-right py-3 px-4 font-medium text-gray-500">Saldo</th>
                                         <th className="text-center py-3 px-4 font-medium text-gray-500">Status</th>
-                                        <th className="text-right py-3 px-4 font-medium text-gray-500">Ações</th>
+                                        <th className="text-right py-3 px-4 font-medium text-gray-500">AÃ§Ãµes</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -379,9 +379,9 @@ export default function CreditSales() {
                                 value={pageSize.toString()}
                                 onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
                                 options={[
-                                    { value: '10', label: '10 por página' },
-                                    { value: '20', label: '20 por página' },
-                                    { value: '50', label: '50 por página' }
+                                    { value: '10', label: '10 por pÃ¡gina' },
+                                    { value: '20', label: '20 por pÃ¡gina' },
+                                    { value: '50', label: '50 por pÃ¡gina' }
                                 ]}
                             />
                             <Pagination
@@ -399,14 +399,14 @@ export default function CreditSales() {
             {activeTab === 'debtors' && (
                 <Card>
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        Relatório de Devedores
+                        RelatÃ³rio de Devedores
                     </h3>
 
                     {debtors.length === 0 ? (
                         <EmptyState
                             icon={<HiOutlineUser className="w-12 h-12 text-gray-300" />}
                             title="Nenhum devedor"
-                            description="Não h clientes com dívidas pendentes"
+                            description="NÃ£o h clientes com dÃ­vidas pendentes"
                         />
                     ) : (
                         <div className="overflow-x-auto">
@@ -416,10 +416,10 @@ export default function CreditSales() {
                                         <th className="text-left py-3 px-4 font-medium text-gray-500">Cliente</th>
                                         <th className="text-left py-3 px-4 font-medium text-gray-500">Telefone</th>
                                         <th className="text-center py-3 px-4 font-medium text-gray-500">Vendas</th>
-                                        <th className="text-right py-3 px-4 font-medium text-gray-500">Total Crédito</th>
+                                        <th className="text-right py-3 px-4 font-medium text-gray-500">Total CrÃ©dito</th>
                                         <th className="text-right py-3 px-4 font-medium text-gray-500">Total Pago</th>
                                         <th className="text-right py-3 px-4 font-medium text-gray-500">Saldo Devedor</th>
-                                        <th className="text-left py-3 px-4 font-medium text-gray-500">Dívida Mais Antiga</th>
+                                        <th className="text-left py-3 px-4 font-medium text-gray-500">DÃ­vida Mais Antiga</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -499,21 +499,21 @@ export default function CreditSales() {
                         />
 
                         <Select
-                            label="Método de Pagamento"
+                            label="MÃ©todo de Pagamento"
                             value={paymentData.paymentMethod}
                             onChange={(e) => setPaymentData({ ...paymentData, paymentMethod: e.target.value })}
                             options={[
                                 { value: 'cash', label: 'Dinheiro' },
                                 { value: 'mpesa', label: 'M-Pesa' },
                                 { value: 'emola', label: 'E-Mola' },
-                                { value: 'card', label: 'Cartão' },
-                                { value: 'transfer', label: 'Transferência' }
+                                { value: 'card', label: 'CartÃ£o' },
+                                { value: 'transfer', label: 'TransferÃªncia' }
                             ]}
                         />
 
                         {['mpesa', 'emola', 'transfer'].includes(paymentData.paymentMethod) && (
                             <Input
-                                label="Referência da Transação"
+                                label="ReferÃªncia da TransaÃ§Ã£o"
                                 value={paymentData.reference}
                                 onChange={(e) => setPaymentData({ ...paymentData, reference: e.target.value })}
                                 placeholder="Ex: MP123456789"
@@ -521,7 +521,7 @@ export default function CreditSales() {
                         )}
 
                         <Input
-                            label="Observações (opcional)"
+                            label="ObservaÃ§Ãµes (opcional)"
                             value={paymentData.notes}
                             onChange={(e) => setPaymentData({ ...paymentData, notes: e.target.value })}
                             placeholder="Notas adicionais..."
@@ -580,7 +580,7 @@ export default function CreditSales() {
                                     <tr className="border-b dark:border-dark-700">
                                         <th className="text-left py-2">Produto</th>
                                         <th className="text-center py-2">Qtd</th>
-                                        <th className="text-right py-2">Preço</th>
+                                        <th className="text-right py-2">PreÃ§o</th>
                                         <th className="text-right py-2">Total</th>
                                     </tr>
                                 </thead>
@@ -614,12 +614,12 @@ export default function CreditSales() {
 
                         {(saleDetail.payments?.length ?? 0) > 0 && (
                             <div className="border-t dark:border-dark-700 pt-4">
-                                <p className="font-medium mb-2">Histórico de Pagamentos</p>
+                                <p className="font-medium mb-2">HistÃ³rico de Pagamentos</p>
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="border-b dark:border-dark-700">
                                             <th className="text-left py-2">Data</th>
-                                            <th className="text-left py-2">Método</th>
+                                            <th className="text-left py-2">MÃ©todo</th>
                                             <th className="text-right py-2">Valor</th>
                                             <th className="text-left py-2">Recebido Por</th>
                                         </tr>

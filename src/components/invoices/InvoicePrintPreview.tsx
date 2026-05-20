@@ -100,7 +100,7 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
             printWindow.close();
 
             try {
-                const token = localStorage.getItem('token');
+                const token = localStorage.getItem('auth_token');
                 await fetch('/api/invoices/' + invoice.id + '/print', {
                     method: 'POST',
                     headers: {
@@ -116,7 +116,7 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
     const handleDownloadPDF = async () => {
         setIsExporting(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             const response = await fetch('/api/invoices/' + invoice.id + '/pdf', {
                 headers: {
                     'Authorization': 'Bearer ' + token
@@ -144,7 +144,7 @@ export function InvoicePrintPreview({ invoice, isOpen, onClose, isCopy = false }
     const handleSendEmail = async () => {
         setIsExporting(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('auth_token');
             const response = await fetch('/api/invoices/' + invoice.id + '/email', {
                 method: 'POST',
                 headers: {

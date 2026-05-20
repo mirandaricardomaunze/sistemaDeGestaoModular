@@ -1,7 +1,7 @@
 import { logger } from '../../utils/logger';
 import { useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Button } from '../ui';
+import { Button, ConfirmationModal, Input } from '../ui';
 import { SmartTable } from '../ui/SmartTable';
 import {
     HiOutlinePlus,
@@ -93,15 +93,27 @@ export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) 
         }
     };
 
-    const handleSendEmail = async (note: CreditNote) => {
-        const email = window.prompt('Email do destinatário (deixe em branco para usar o do cliente):');
-        if (email === null) return;
+    const [emailPromptNote, setEmailPromptNote] = useState<CreditNote | null>(null);
+    const [emailInput, setEmailInput] = useState('');
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+    const handleSendEmail = (note: CreditNote) => {
+        setEmailInput('');
+        setEmailPromptNote(note);
+    };
+
+    const confirmSendEmail = async () => {
+        if (!emailPromptNote) return;
         try {
-            const result = await invoicesAPI.sendCreditNoteByEmail(note.id, email || undefined);
+            setIsSendingEmail(true);
+            const result = await invoicesAPI.sendCreditNoteByEmail(emailPromptNote.id, emailInput.trim() || undefined);
             toast.success(result.message);
+            setEmailPromptNote(null);
         } catch (error) {
             logger.error('Error sending credit note email:', error);
             toast.error('Erro ao enviar email');
+        } finally {
+            setIsSendingEmail(false);
         }
     };
 
@@ -240,6 +252,27 @@ export default function CreditNoteManager({ invoices }: CreditNoteManagerProps) 
                     creditNote={selectedNote}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={!!emailPromptNote}
+                onClose={() => !isSendingEmail && setEmailPromptNote(null)}
+                onConfirm={confirmSendEmail}
+                title="Enviar nota de crédito por email"
+                message="Deixe em branco para enviar para o email do cliente registado na fatura."
+                confirmText="Enviar"
+                cancelText="Cancelar"
+                variant="primary"
+                isLoading={isSendingEmail}
+            >
+                <Input
+                    type="email"
+                    label="Email do destinatário (opcional)"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="exemplo@empresa.com"
+                    autoFocus
+                />
+            </ConfirmationModal>
         </div>
     );
 }

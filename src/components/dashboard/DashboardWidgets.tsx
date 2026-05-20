@@ -35,7 +35,7 @@ import {
     HiOutlineClock,
 } from 'react-icons/hi2';
 import { Card, Button, Badge, ResponsiveValue } from '../ui';
-import { formatRelativeTime, cn } from '../../utils/helpers';
+import { formatRelativeTime, cn, formatCurrency } from '../../utils/helpers';
 import { productsAPI } from '../../services/api/products.api';
 import type { StockMovement, MovementType } from '../../types';
 
@@ -88,94 +88,94 @@ export const StatsWidget = ({ metrics, stats }: { metrics: DashboardMetrics; sta
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
-            <div className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-white to-indigo-50 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/40 shadow-card hover:shadow-card-hover transition-all duration-300 p-5">
+            <div className="relative group overflow-hidden rounded-xl bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300 p-5">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-indigo-600 dark:bg-indigo-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
+                    <div className="w-11 h-11 rounded-xl bg-indigo-600 dark:bg-indigo-500/15 border border-indigo-600 dark:border-indigo-500/25 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
                         <HiOutlineCurrencyDollar className="w-6 h-6 text-white dark:text-indigo-400" />
                     </div>
-                    <div className={cn('flex items-center gap-1 text-xs font-black', metrics.salesGrowth >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                    <div className={cn('flex items-center gap-1 text-xs font-black', metrics.salesGrowth >= 0 ? 'text-emerald-600' : 'text-rose-600')}>
                         {metrics.salesGrowth >= 0 ? <HiOutlineArrowTrendingUp className="w-3.5 h-3.5" /> : <HiOutlineArrowTrendingDown className="w-3.5 h-3.5" />}
                         {Math.abs(metrics.salesGrowth)}%
                     </div>
                 </div>
                 <ResponsiveValue value={stats?.totalRevenue ?? 0} size="xl" className="mb-1 text-slate-950 dark:text-white" />
-                <p className="text-[10px] text-slate-600 dark:text-gray-400 font-black uppercase tracking-widest">Faturação Consolidada</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest">Faturação Consolidada</p>
                 <div className="absolute bottom-0 left-0 h-0.5 bg-indigo-500 transition-all duration-500 group-hover:w-full w-8" />
             </div>
 
-            <Card padding="md">
+            <Card padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
                 <div className="flex items-center justify-between mb-3 text-slate-950 dark:text-white">
-                    <h3 className="text-xs font-black text-slate-600 dark:text-gray-400 uppercase tracking-wider">Desempenho por Módulo</h3>
+                    <h3 className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Desempenho por Módulo</h3>
                     <Badge variant="outline" size="sm" className="text-[10px]">Mensal</Badge>
                 </div>
                 <div className="space-y-3">
                     {stats?.commercialRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-slate-600 dark:text-gray-400">Comercial</span>
-                                <ResponsiveValue value={stats.commercialRevenue} size="sm" className="font-bold text-slate-950 dark:text-white" />
+                                <span className="text-slate-500 dark:text-slate-450 font-bold text-xs uppercase">Comercial</span>
+                                <ResponsiveValue value={stats.commercialRevenue} size="sm" className="font-black text-slate-950 dark:text-white" />
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-primary-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.commercialRevenue)}%` }} />
+                                <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 dark:from-indigo-600/80 dark:to-indigo-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.commercialRevenue)}%` }} />
                             </div>
                         </div>
                     ) : null}
                     {stats?.hospitalityRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-slate-600 dark:text-gray-400">Hotelaria</span>
-                                <ResponsiveValue value={stats.hospitalityRevenue} size="sm" className="font-bold text-slate-950 dark:text-white" />
+                                <span className="text-slate-500 dark:text-slate-450 font-bold text-xs uppercase">Hotelaria</span>
+                                <ResponsiveValue value={stats.hospitalityRevenue} size="sm" className="font-black text-slate-950 dark:text-white" />
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-green-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.hospitalityRevenue)}%` }} />
+                                <div className="bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-600/80 dark:to-teal-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.hospitalityRevenue)}%` }} />
                             </div>
                         </div>
                     ) : null}
                     {stats?.pharmacyRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-slate-600 dark:text-gray-400">Farmácia</span>
-                                <ResponsiveValue value={stats.pharmacyRevenue} size="sm" className="font-bold text-slate-950 dark:text-white" />
+                                <span className="text-slate-500 dark:text-slate-450 font-bold text-xs uppercase">Farmácia</span>
+                                <ResponsiveValue value={stats.pharmacyRevenue} size="sm" className="font-black text-slate-950 dark:text-white" />
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-amber-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.pharmacyRevenue)}%` }} />
+                                <div className="bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-600/80 dark:to-amber-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.pharmacyRevenue)}%` }} />
                             </div>
                         </div>
                     ) : null}
                     {stats?.bottleStoreRevenue ? (
                         <div>
                             <div className="flex items-center justify-between text-sm mb-1">
-                                <span className="text-slate-600 dark:text-gray-400">Bottle Store</span>
-                                <ResponsiveValue value={stats.bottleStoreRevenue} size="sm" className="font-bold text-slate-950 dark:text-white" />
+                                <span className="text-slate-500 dark:text-slate-450 font-bold text-xs uppercase">Bottle Store</span>
+                                <ResponsiveValue value={stats.bottleStoreRevenue} size="sm" className="font-black text-slate-950 dark:text-white" />
                             </div>
                             <div className="w-full bg-slate-100 dark:bg-dark-700 rounded-full h-1.5 overflow-hidden">
-                                <div className="bg-purple-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.bottleStoreRevenue)}%` }} />
+                                <div className="bg-gradient-to-r from-purple-500 to-indigo-500 dark:from-purple-600/80 dark:to-purple-500 h-full transition-all duration-1000" style={{ width: `${revenuePercent(stats.bottleStoreRevenue)}%` }} />
                             </div>
                         </div>
                     ) : null}
                 </div>
             </Card>
 
-            <div className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-white to-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40 shadow-card hover:shadow-card-hover transition-all duration-300 p-5">
+            <div className="relative group overflow-hidden rounded-xl bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300 p-5">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-amber-500 dark:bg-amber-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
+                    <div className="w-11 h-11 rounded-xl bg-amber-500 dark:bg-amber-500/15 border border-amber-500 dark:border-amber-500/25 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
                         <HiOutlineCube className="w-6 h-6 text-white dark:text-amber-400" />
                     </div>
                     <Badge variant={metrics.lowStock > 5 ? 'danger' : 'warning'}>{t('common.attention')}</Badge>
                 </div>
                 <p className="text-2xl font-black text-slate-950 dark:text-white tracking-tighter">{metrics.lowStock}/{metrics.totalProducts}</p>
-                <p className="text-[10px] text-slate-600 dark:text-gray-400 font-black uppercase tracking-widest">{t('dashboard.productsLow')}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest">{t('dashboard.productsLow')}</p>
                 <div className="absolute bottom-0 left-0 h-0.5 bg-amber-500 transition-all duration-500 group-hover:w-full w-8" />
             </div>
 
-            <div className="relative group overflow-hidden rounded-xl bg-gradient-to-br from-white to-cyan-50 dark:bg-cyan-950/30 border border-cyan-200/80 dark:border-cyan-800/40 shadow-card hover:shadow-card-hover transition-all duration-300 p-5">
+            <div className="relative group overflow-hidden rounded-xl bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300 p-5">
                 <div className="flex items-center justify-between mb-4">
-                    <div className="w-11 h-11 rounded-xl bg-cyan-600 dark:bg-cyan-900/40 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
+                    <div className="w-11 h-11 rounded-xl bg-cyan-600 dark:bg-cyan-500/15 border border-cyan-600 dark:border-cyan-500/25 flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 duration-300">
                         <HiOutlineUsers className="w-6 h-6 text-white dark:text-cyan-400" />
                     </div>
                 </div>
                 <p className="text-2xl font-black text-slate-950 dark:text-white tracking-tighter">{metrics.employees}</p>
-                <p className="text-[10px] text-slate-600 dark:text-gray-400 font-black uppercase tracking-widest">{t('dashboard.activeEmployees')}</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest">{t('dashboard.activeEmployees')}</p>
                 <div className="absolute bottom-0 left-0 h-0.5 bg-cyan-500 transition-all duration-500 group-hover:w-full w-8" />
             </div>
         </div>
@@ -185,37 +185,55 @@ export const StatsWidget = ({ metrics, stats }: { metrics: DashboardMetrics; sta
 export const RevenueChartWidget = ({ salesData }: { salesData: SalesDataPoint[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
+        <Card padding="md" className="w-full bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('dashboard.salesVsTarget')}</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">{t('dashboard.salesVsTarget')}</h2>
                 <Link to="/reports">
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="text-xs uppercase tracking-wider font-bold">
                         {t('common.viewMore')}
-                        <HiOutlineArrowRight className="w-4 h-4 ml-2" />
+                        <HiOutlineArrowRight className="w-3.5 h-3.5 ml-1.5" />
                     </Button>
                 </Link>
             </div>
             <div className="h-72">
                 <ResponsiveContainer width="100%" height={288}>
-                    <AreaChart data={salesData}>
+                    <AreaChart data={salesData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                         <defs>
                             <linearGradient id="colorVendas" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
                                 <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                             </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
-                        <XAxis dataKey="name" className="text-sm" stroke="#94a3b8" />
-                        <YAxis className="text-sm" stroke="#94a3b8" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} className="stroke-gray-200 dark:stroke-dark-700" />
+                        <XAxis dataKey="name" className="text-[10px] font-bold" stroke="#94a3b8" tickLine={false} axisLine={false} />
+                        <YAxis className="text-[10px] font-bold" stroke="#94a3b8" tickLine={false} axisLine={false} tickFormatter={(val) => formatCurrency(val).split(',')[0]} />
                         <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'var(--tooltip-bg, #fff)',
-                                border: 'none',
-                                borderRadius: '12px',
-                                boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                            content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-white/95 dark:bg-dark-900/95 backdrop-blur-md border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-2xl text-[12px] text-slate-900 dark:text-white">
+                                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+                                            <div className="space-y-1">
+                                                {payload.map((pld, index) => {
+                                                    const value = Number(pld.value ?? 0);
+                                                    const isTarget = pld.dataKey === 'meta';
+                                                    return (
+                                                        <div key={index} className="flex items-center justify-between gap-4">
+                                                            <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">{pld.name}:</span>
+                                                            <span className={cn("text-sm font-black", isTarget ? "text-emerald-600 dark:text-emerald-450" : "text-indigo-600 dark:text-indigo-400")}>
+                                                                {formatCurrency(value)}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
                             }}
                         />
-                        <Legend />
+                        <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 'bold' }} />
                         <Area type="monotone" dataKey="vendas" stroke="#6366f1" strokeWidth={3} fill="url(#colorVendas)" name="Vendas" />
                         <Line type="monotone" dataKey="meta" stroke="#22c55e" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Meta" />
                     </AreaChart>
@@ -228,8 +246,8 @@ export const RevenueChartWidget = ({ salesData }: { salesData: SalesDataPoint[] 
 export const CategoryPieWidget = ({ categoryData }: { categoryData: CategoryDataPoint[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">{t('dashboard.productsByCategory')}</h2>
+        <Card padding="md" className="w-full bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6 uppercase tracking-tight">{t('dashboard.productsByCategory')}</h2>
             <div className="h-64">
                 <ResponsiveContainer width="100%" height={256}>
                     <PieChart>
@@ -239,12 +257,20 @@ export const CategoryPieWidget = ({ categoryData }: { categoryData: CategoryData
                             ))}
                         </Pie>
                         <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'var(--tooltip-bg, #fff)',
-                                border: 'none',
-                                borderRadius: '12px',
-                                boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                                color: 'var(--tooltip-text, #1e293b)'
+                            content={({ active, payload }) => {
+                                if (active && payload && payload.length) {
+                                    const entry = payload[0];
+                                    return (
+                                        <div className="bg-white/95 dark:bg-dark-900/95 backdrop-blur-md border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-2xl text-[12px] text-slate-900 dark:text-white">
+                                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{entry.name}</p>
+                                            <div className="flex items-center justify-between gap-4">
+                                                <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">Produtos:</span>
+                                                <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{entry.value}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
                             }}
                         />
                     </PieChart>
@@ -255,9 +281,9 @@ export const CategoryPieWidget = ({ categoryData }: { categoryData: CategoryData
                     <div key={item.name} className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                             <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} />
-                            <span className="text-xs text-gray-600 dark:text-gray-400 truncate">{item.name}</span>
+                            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate">{item.name}</span>
                         </div>
-                        <span className="text-xs font-medium text-gray-900 dark:text-white flex-shrink-0">{item.value}</span>
+                        <span className="text-xs font-black text-slate-950 dark:text-white flex-shrink-0">{item.value}</span>
                     </div>
                 ))}
             </div>
@@ -301,26 +327,43 @@ export const RecentAlertsWidget = ({ alerts, metrics }: { alerts: AlertItem[]; m
 export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: WeeklyDataPoint[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+        <Card padding="md" className="w-full bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6 uppercase tracking-tight">
                 {t('dashboard.weeklySales')}
             </h2>
             <div className="h-48">
                 <ResponsiveContainer width="100%" height={192}>
-                    <BarChart data={weeklyData}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
-                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
-                        <YAxis stroke="#94a3b8" fontSize={12} />
+                    <BarChart data={weeklyData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="weeklyBarGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#6366f1" stopOpacity={0.95} />
+                                <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.6} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} className="stroke-gray-200 dark:stroke-dark-700" />
+                        <XAxis dataKey="name" className="text-[10px] font-bold" stroke="#94a3b8" tickLine={false} axisLine={false} />
+                        <YAxis className="text-[10px] font-bold" stroke="#94a3b8" tickLine={false} axisLine={false} tickFormatter={(val) => formatCurrency(val).split(',')[0]} />
                         <Tooltip
-                            contentStyle={{
-                                backgroundColor: 'var(--tooltip-bg, #fff)',
-                                border: 'none',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                color: 'var(--tooltip-text, #1e293b)'
+                            content={({ active, payload, label }) => {
+                                if (active && payload && payload.length) {
+                                    return (
+                                        <div className="bg-white/95 dark:bg-dark-900/95 backdrop-blur-md border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-2xl text-[12px] text-slate-900 dark:text-white">
+                                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+                                            {payload.map((pld, index) => (
+                                                <div key={index} className="flex items-center justify-between gap-4">
+                                                    <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase">{pld.name}:</span>
+                                                    <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">
+                                                        {formatCurrency(Number(pld.value ?? 0))}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                }
+                                return null;
                             }}
                         />
-                        <Bar dataKey="valor" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="valor" fill="url(#weeklyBarGradient)" radius={[4, 4, 0, 0]} name="Vendas" />
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -331,29 +374,29 @@ export const WeeklySalesWidget = ({ weeklyData }: { weeklyData: WeeklyDataPoint[
 export const RecentActivityWidget = ({ recentActivities }: { recentActivities: ActivityItem[] }) => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <Card padding="md" className="w-full bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-tight">
                 {t('dashboard.recentActivity')}
             </h2>
             <div className="space-y-4">
                 {recentActivities.length === 0 ? (
-                    <p className="text-center text-gray-500 dark:text-gray-400 py-4">
+                    <p className="text-center text-slate-500 dark:text-slate-400 py-4">
                         {t('dashboard.noRecentActivity')}
                     </p>
                 ) : recentActivities.map((activity) => (
-                    <div key={activity.id} className="flex items-start gap-3 p-2 hover:bg-gray-100/50 dark:hover:bg-dark-700 rounded-lg transition-colors">
-                        <div className="w-8 h-8 rounded-lg bg-gray-200/50 dark:bg-dark-700 flex items-center justify-center flex-shrink-0">
+                    <div key={activity.id} className="flex items-start gap-3 p-2 hover:bg-indigo-50/40 dark:hover:bg-indigo-950/10 rounded-lg transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-dark-700/80 flex items-center justify-center flex-shrink-0 border border-slate-200/50 dark:border-white/5">
                             <span className="text-sm">{activity.icon}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
                                 {activity.action}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                                 {activity.detail}
                             </p>
                         </div>
-                        <span className="text-xs text-gray-400 flex-shrink-0">
+                        <span className="text-[10px] font-bold text-slate-450 dark:text-slate-500 flex-shrink-0 uppercase">
                             {activity.time}
                         </span>
                     </div>
@@ -366,49 +409,49 @@ export const RecentActivityWidget = ({ recentActivities }: { recentActivities: A
 export const QuickActionsWidget = () => {
     const { t } = useTranslation();
     return (
-        <Card padding="md" className="w-full">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <Card padding="md" className="w-full bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-tight">
                 {t('dashboard.quickActions')}
             </h2>
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <Link to="/pos">
-                    <button className="w-full p-3 sm:p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                    <Button className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/20 transition-all group bg-transparent">
                         <HiOutlineShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
-                        <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600 break-words line-clamp-2">
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-650 dark:text-slate-350 group-hover:text-primary-600 break-words line-clamp-2 uppercase tracking-wide">
                             {t('sales.newSale')}
                         </p>
-                    </button>
+                    </Button>
                 </Link>
                 <Link to="/inventory">
-                    <button className="w-full p-3 sm:p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                    <Button className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/20 transition-all group bg-transparent">
                         <HiOutlineCube className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
-                        <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600 break-words line-clamp-2">
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-650 dark:text-slate-350 group-hover:text-primary-600 break-words line-clamp-2 uppercase tracking-wide">
                             {t('dashboard.newProduct')}
                         </p>
-                    </button>
+                    </Button>
                 </Link>
                 <Link to="/employees">
-                    <button className="w-full p-3 sm:p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                    <Button className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/20 transition-all group bg-transparent">
                         <HiOutlineUsers className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
-                        <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600 break-words line-clamp-2">
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-650 dark:text-slate-350 group-hover:text-primary-600 break-words line-clamp-2 uppercase tracking-wide">
                             {t('nav.employees')}
                         </p>
-                    </button>
+                    </Button>
                 </Link>
                 <Link to="/reports">
-                    <button className="w-full p-3 sm:p-4 rounded-lg border-2 border-dashed border-gray-200 dark:border-dark-600 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-all group">
+                    <Button className="w-full p-3 sm:p-4 rounded-xl border border-slate-200 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50/50 dark:hover:bg-primary-950/20 transition-all group bg-transparent">
                         <HiOutlineCurrencyDollar className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-slate-500 group-hover:text-primary-600 transition-colors" />
-                        <p className="text-[10px] sm:text-xs font-medium text-gray-600 dark:text-gray-300 group-hover:text-primary-600 break-words line-clamp-2">
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-650 dark:text-slate-350 group-hover:text-primary-600 break-words line-clamp-2 uppercase tracking-wide">
                             {t('nav.reports')}
                         </p>
-                    </button>
+                    </Button>
                 </Link>
             </div>
         </Card>
     );
 };
 
-// ── Movement type config ──────────────────────────────────────────────────────
+// ─── Movement type config ──────────────────────────────────────────────────────
 const MOVEMENT_CONFIG: Record<MovementType, {
     label: string;
     icon: React.ElementType;
@@ -417,14 +460,14 @@ const MOVEMENT_CONFIG: Record<MovementType, {
     qtyColor: string;
     sign: '+' | '-';
 }> = {
-    purchase:   { label: 'Compra',        icon: HiOutlineArrowDown,             iconBg: 'bg-green-100 dark:bg-green-900/30',   iconColor: 'text-green-600 dark:text-green-400',  qtyColor: 'text-green-600 dark:text-green-400',  sign: '+' },
-    sale:       { label: 'Venda',          icon: HiOutlineArrowUp,               iconBg: 'bg-red-100 dark:bg-red-900/30',       iconColor: 'text-red-600 dark:text-red-400',      qtyColor: 'text-red-600 dark:text-red-400',      sign: '-' },
-    return_in:  { label: 'Devolução In',   icon: HiOutlineReceiptRefund,         iconBg: 'bg-blue-100 dark:bg-blue-900/30',     iconColor: 'text-blue-600 dark:text-blue-400',    qtyColor: 'text-blue-600 dark:text-blue-400',    sign: '+' },
-    return_out: { label: 'Devolução Out',  icon: HiOutlineReceiptRefund,         iconBg: 'bg-orange-100 dark:bg-orange-900/30', iconColor: 'text-orange-600 dark:text-orange-400',qtyColor: 'text-orange-600 dark:text-orange-400',sign: '-' },
-    adjustment: { label: 'Ajuste',         icon: HiOutlineAdjustmentsHorizontal, iconBg: 'bg-purple-100 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400',qtyColor: 'text-purple-600 dark:text-purple-400',sign: '+' },
-    expired:    { label: 'Expirado',       icon: HiOutlineTrash,                 iconBg: 'bg-red-100 dark:bg-red-900/30',       iconColor: 'text-red-600 dark:text-red-400',      qtyColor: 'text-red-600 dark:text-red-400',      sign: '-' },
-    transfer:   { label: 'Transferência',  icon: HiOutlineArrowsRightLeft,       iconBg: 'bg-cyan-100 dark:bg-cyan-900/30',     iconColor: 'text-cyan-600 dark:text-cyan-400',    qtyColor: 'text-cyan-600 dark:text-cyan-400',    sign: '±' as '+' },
-    loss:       { label: 'Perda',          icon: HiOutlineTrash,                 iconBg: 'bg-gray-100 dark:bg-gray-800',        iconColor: 'text-gray-500 dark:text-gray-400',    qtyColor: 'text-gray-500 dark:text-gray-400',    sign: '-' },
+    purchase:   { label: 'Compra',        icon: HiOutlineArrowDown,             iconBg: 'bg-emerald-500/10 border border-emerald-500/20',   iconColor: 'text-emerald-600 dark:text-emerald-400',  qtyColor: 'text-emerald-650 dark:text-emerald-400',  sign: '+' },
+    sale:       { label: 'Venda',          icon: HiOutlineArrowUp,               iconBg: 'bg-rose-500/10 border border-rose-500/20',       iconColor: 'text-rose-600 dark:text-rose-450',      qtyColor: 'text-rose-650 dark:text-rose-450',      sign: '-' },
+    return_in:  { label: 'Devolução In',   icon: HiOutlineReceiptRefund,         iconBg: 'bg-blue-500/10 border border-blue-500/20',     iconColor: 'text-blue-600 dark:text-blue-400',    qtyColor: 'text-blue-655 dark:text-blue-400',    sign: '+' },
+    return_out: { label: 'Devolução Out',  icon: HiOutlineReceiptRefund,         iconBg: 'bg-amber-500/10 border border-amber-500/20', iconColor: 'text-amber-600 dark:text-amber-450',qtyColor: 'text-amber-655 dark:text-amber-450',sign: '-' },
+    adjustment: { label: 'Ajuste',         icon: HiOutlineAdjustmentsHorizontal, iconBg: 'bg-purple-500/10 border border-purple-500/20', iconColor: 'text-purple-600 dark:text-purple-400',qtyColor: 'text-purple-655 dark:text-purple-400',sign: '+' },
+    expired:    { label: 'Expirado',       icon: HiOutlineTrash,                 iconBg: 'bg-rose-500/10 border border-rose-500/20',       iconColor: 'text-rose-600 dark:text-rose-450',      qtyColor: 'text-rose-655 dark:text-rose-450',      sign: '-' },
+    transfer:   { label: 'Transferência',  icon: HiOutlineArrowsRightLeft,       iconBg: 'bg-cyan-500/10 border border-cyan-500/20',     iconColor: 'text-cyan-600 dark:text-cyan-400',    qtyColor: 'text-cyan-655 dark:text-cyan-400',    sign: '±' as any },
+    loss:       { label: 'Perda',          icon: HiOutlineTrash,                 iconBg: 'bg-slate-500/10 border border-slate-500/20',        iconColor: 'text-slate-500 dark:text-slate-400',    qtyColor: 'text-slate-550 dark:text-slate-400',    sign: '-' },
 };
 
 export const RecentMovementsWidget = () => {
@@ -438,16 +481,16 @@ export const RecentMovementsWidget = () => {
         Array.isArray(data) ? data : (data?.data ?? []);
 
     return (
-        <Card padding="md" className="w-full">
+        <Card padding="md" className="w-full bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
             <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                        <HiOutlineClock className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                        <HiOutlineClock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     </div>
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">Últimos Movimentos</h2>
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight">Últimos Movimentos</h2>
                 </div>
                 <Link to="/stock-movements">
-                    <Button variant="ghost" size="sm" className="text-xs">
+                    <Button variant="ghost" size="sm" className="text-xs uppercase tracking-wider font-bold">
                         Ver todos <HiOutlineArrowRight className="w-3.5 h-3.5 ml-1 inline" />
                     </Button>
                 </Link>
@@ -467,29 +510,29 @@ export const RecentMovementsWidget = () => {
                     ))}
                 </div>
             ) : movements.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+                <div className="flex flex-col items-center justify-center py-10 text-slate-400">
                     <HiOutlineClock className="w-10 h-10 mb-2 opacity-40" />
-                    <p className="text-sm">Sem movimentos registados</p>
+                    <p className="text-sm font-semibold">Sem movimentos registados</p>
                 </div>
             ) : (
-                <div className="divide-y divide-gray-100 dark:divide-dark-700">
+                <div className="divide-y divide-slate-100 dark:divide-dark-700">
                     {movements.map((mov) => {
                         const cfg = MOVEMENT_CONFIG[mov.movementType] ?? MOVEMENT_CONFIG.adjustment;
                         const Icon = cfg.icon;
                         const productName = mov.product?.name ?? mov.reason ?? '—';
                         return (
-                            <div key={mov.id} className="flex items-center gap-3 py-3 group hover:bg-gray-50 dark:hover:bg-dark-700/50 -mx-4 px-4 transition-colors duration-150 first:pt-0 last:pb-0">
+                            <div key={mov.id} className="flex items-center gap-3 py-3 group hover:bg-indigo-50/40 dark:hover:bg-indigo-950/10 -mx-4 px-4 transition-colors duration-150 first:pt-0 last:pb-0">
                                 <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0', cfg.iconBg)}>
                                     <Icon className={cn('w-4 h-4', cfg.iconColor)} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{productName}</p>
+                                    <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{productName}</p>
                                     <div className="flex items-center gap-2 mt-0.5">
-                                        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-100 dark:bg-dark-700 text-gray-500 dark:text-gray-400">
+                                        <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-100 dark:bg-dark-700 text-slate-500 dark:text-slate-400 border border-slate-200/50 dark:border-white/5">
                                             {cfg.label}
                                         </span>
                                         {mov.warehouse?.name && (
-                                            <span className="text-[10px] text-gray-400 truncate">{mov.warehouse.name}</span>
+                                            <span className="text-[10px] text-slate-400 font-bold tracking-wide truncate">{mov.warehouse.name}</span>
                                         )}
                                     </div>
                                 </div>
@@ -497,7 +540,7 @@ export const RecentMovementsWidget = () => {
                                     <span className={cn('text-sm font-black tabular-nums', cfg.qtyColor)}>
                                         {cfg.sign}{Math.abs(mov.quantity)}
                                     </span>
-                                    <span className="text-[10px] text-gray-400">{formatRelativeTime(mov.createdAt)}</span>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">{formatRelativeTime(mov.createdAt)}</span>
                                 </div>
                             </div>
                         );

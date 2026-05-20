@@ -76,6 +76,7 @@ export const reserveItemSchema = z.object({
 
 export const salesTargetQuerySchema = z.object({
     employeeId: z.string().min(1).optional(),
+    warehouseId: z.string().min(1).optional(),
 });
 
 export type CommercialListQuery = z.infer<typeof commercialListQuerySchema>;

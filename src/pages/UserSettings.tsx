@@ -113,7 +113,7 @@ type UserRow = {
     isActive: boolean;
     createdAt?: string;
     lastLogin?: string | null;
-    company?: { id: string; name: string; status?: string };
+    company?: { id: string; name: string; status?: string } | null;
 };
 
 type ActiveModuleRef = { code: string; name?: string };
@@ -400,8 +400,22 @@ export default function Settings() {
     const fetchUsers = async () => {
         setIsLoadingUsers(true);
         try {
-            const data = await authAPI.getUsers();
-            setUsers(data);
+            if (user?.role === 'super_admin') {
+                const firstPage = await adminAPI.getAllUsers({ page: 1, limit: 100 });
+                const allUsers = [...firstPage.data];
+                for (let page = 2; page <= firstPage.pagination.totalPages; page += 1) {
+                    const response = await adminAPI.getAllUsers({ page, limit: 100 });
+                    allUsers.push(...response.data);
+                }
+
+                setUsers(allUsers.map((adminUser) => ({
+                    ...adminUser,
+                    lastLogin: adminUser.lastLogin ?? adminUser.lastLoginAt ?? null,
+                })));
+            } else {
+                const data = await authAPI.getUsers();
+                setUsers(data);
+            }
         } catch (error) {
             logger.error('Fetch users error:', error);
             toast.error('Erro ao carregar utilizadores.');
@@ -414,7 +428,7 @@ export default function Settings() {
         if (activeTab === 'users') {
             fetchUsers();
         }
-    }, [activeTab]);
+    }, [activeTab, user?.role]);
 
     const handleEditUser = (user: UserRow) => {
         setSelectedUser(user);
@@ -430,6 +444,10 @@ export default function Settings() {
     const onSubmitUser = async (data: UserManageFormData) => {
         try {
             if (selectedUser) {
+                if (user?.role === 'super_admin') {
+                    toast.error('Super admin pode bloquear ou ativar utilizadores nesta tela. Edicao global ainda nao esta disponivel.');
+                    return;
+                }
                 await authAPI.updateUserData(selectedUser.id, data);
                 toast.success('Utilizador actualizado!');
             }
@@ -440,13 +458,23 @@ export default function Settings() {
         }
     };
 
-    const handleToggleUserStatus = async (user: UserRow) => {
+    const handleToggleUserStatus = async (userData: UserRow) => {
         try {
-            await authAPI.toggleUserStatus(user.id, !user.isActive);
-            toast.success(`Utilizador ${user.isActive ? 'desactivado' : 'activado'}!`);
+            if (userData.id === user?.id) {
+                toast.error('Nao pode alterar o estado da sua propria conta.');
+                return;
+            }
+
+            if (user?.role === 'super_admin') {
+                await adminAPI.toggleUserStatus(userData.id, !userData.isActive);
+                fetchAdminStats();
+            } else {
+                await authAPI.toggleUserStatus(userData.id, !userData.isActive);
+            }
+            toast.success(`Utilizador ${userData.isActive ? 'bloqueado/desactivado' : 'activado'}!`);
             fetchUsers();
         } catch (error) {
-            toast.error('Erro ao alterar status.');
+            toast.error((error as { response?: { data?: { message?: string; error?: string } } }).response?.data?.error || 'Erro ao alterar status.');
         }
     };
 
@@ -1565,6 +1593,9 @@ export default function Settings() {
                                                         <div>
                                                             <p className="font-medium text-gray-900 dark:text-white leading-none mb-1">{userData.name}</p>
                                                             <p className="text-sm text-gray-500 dark:text-gray-400">{userData.email}</p>
+                                                            {user?.role === 'super_admin' && userData.company?.name && (
+                                                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{userData.company.name}</p>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -1577,8 +1608,10 @@ export default function Settings() {
                                                     <Button
                                                         size="xs"
                                                         variant={userData.isActive ? 'success' : 'danger'}
-                                                        className="rounded-full px-2.5"
+                                                        className={`rounded-full px-2.5 ${userData.id === user?.id ? 'cursor-not-allowed opacity-60' : ''}`}
                                                         onClick={() => handleToggleUserStatus(userData)}
+                                                        disabled={userData.id === user?.id}
+                                                        title={userData.id === user?.id ? 'Nao pode bloquear a sua propria conta' : userData.isActive ? 'Bloquear/desativar utilizador' : 'Ativar utilizador'}
                                                     >
                                                         {userData.isActive ? (
                                                             <><HiOutlineCheckCircle className="w-3.5 h-3.5 mr-1" /> Activo</>
@@ -1598,8 +1631,9 @@ export default function Settings() {
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => handleEditUser(userData)}
-                                                            className="text-gray-400 hover:text-primary-600"
-                                                            title="Editar"
+                                                            disabled={user?.role === 'super_admin'}
+                                                            className={`text-gray-400 hover:text-primary-600 ${user?.role === 'super_admin' ? "cursor-not-allowed opacity-50" : ""}`}
+                                                            title={user?.role === 'super_admin' ? 'Edicao global indisponivel nesta tela' : 'Editar'}
                                                         >
                                                             <HiOutlinePencilAlt className="w-5 h-5" />
                                                         </Button>
@@ -1610,8 +1644,8 @@ export default function Settings() {
                                                                 setSelectedUser(userData);
                                                                 setIsDeleteModalOpen(true);
                                                             }}
-                                                            disabled={userData.id === user?.id}
-                                                            className={`text-gray-400 hover:text-red-600 ${userData.id === user?.id ? "cursor-not-allowed opacity-50" : ""}`}
+                                                            disabled={userData.id === user?.id || user?.role === 'super_admin'}
+                                                            className={`text-gray-400 hover:text-red-600 ${userData.id === user?.id || user?.role === 'super_admin' ? "cursor-not-allowed opacity-50" : ""}`}
                                                             title={userData.id === user?.id ? 'Não pode apagar a sua conta' : 'Apagar'}
                                                         >
                                                             <HiOutlineTrash className="w-5 h-5" />

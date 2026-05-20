@@ -19,7 +19,7 @@ import { adminAPI } from '../../services/api';
 import type { AdminCompanyStatus } from '../../services/api/admin.api';
 
 type ApiError = Error & { response?: { status?: number; data?: { message?: string; error?: string } } };
-import { Card, Pagination, Button, Input, Select } from '../../components/ui';
+import { Card, Pagination, Button, Input, Select, ConfirmationModal } from '../../components/ui';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -228,7 +228,9 @@ const SuperAdminDashboard: React.FC = () => {
         }
     };
 
-    const handleUserStatus = async (user: User) => {
+    const [pendingUserToggle, setPendingUserToggle] = useState<User | null>(null);
+
+    const handleUserStatus = (user: User) => {
         if (user.id === currentUser?.id) {
             toast.error('Não pode alterar o estado da sua própria conta');
             return;
@@ -237,13 +239,17 @@ const SuperAdminDashboard: React.FC = () => {
             toast.error('Não é permitido desativar outro super administrador');
             return;
         }
-        const action = user.isActive ? 'desativar' : 'ativar';
-        if (!window.confirm(`Tem a certeza que pretende ${action} o utilizador "${user.name}"?`)) return;
+        setPendingUserToggle(user);
+    };
 
+    const confirmToggleUserStatus = async () => {
+        if (!pendingUserToggle) return;
+        const user = pendingUserToggle;
         setTogglingId(user.id);
         try {
             await adminAPI.toggleUserStatus(user.id, !user.isActive);
             toast.success(`Utilizador ${user.isActive ? 'desativado' : 'ativado'} com sucesso`);
+            setPendingUserToggle(null);
             await loadUsers();
         } catch (e) {
             const err = e as ApiError;
@@ -749,6 +755,18 @@ const SuperAdminDashboard: React.FC = () => {
                     )}
                 </div>
             )}
+
+            <ConfirmationModal
+                isOpen={!!pendingUserToggle}
+                onClose={() => !togglingId && setPendingUserToggle(null)}
+                onConfirm={confirmToggleUserStatus}
+                title={pendingUserToggle?.isActive ? 'Desativar utilizador?' : 'Ativar utilizador?'}
+                message={`Tem a certeza que pretende ${pendingUserToggle?.isActive ? 'desativar' : 'ativar'} o utilizador "${pendingUserToggle?.name}"?`}
+                confirmText={pendingUserToggle?.isActive ? 'Sim, desativar' : 'Sim, ativar'}
+                cancelText="Cancelar"
+                variant={pendingUserToggle?.isActive ? 'warning' : 'primary'}
+                isLoading={!!togglingId}
+            />
         </div>
     );
 };

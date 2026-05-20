@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
     HiOutlineChartBar,
@@ -21,6 +21,7 @@ import { useStockAging, useSupplierPerformance, useSalesReport, useWarehouseDist
 import type { StockAgingProduct, SupplierPerformance } from '../../services/api/commercial.api';
 import { useCategories } from '../../hooks/useData';
 import { CHART_TOOLTIP_STYLE } from '../../utils/constants';
+import MarginAnalysis from './MarginAnalysis';
 
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
@@ -37,10 +38,14 @@ const AGING_CONFIG = {
     critical: { label: 'Crítico (>90d)', palette: 'danger', badgeVariant: 'danger' as const },
 };
 
-type ReportTab = 'sales' | 'aging' | 'suppliers' | 'warehouses';
+type ReportTab = 'sales' | 'margins' | 'aging' | 'suppliers' | 'warehouses';
 
-export default function CommercialReports() {
-    const [activeTab, setActiveTab] = useState<ReportTab>('sales');
+interface CommercialReportsProps {
+    initialTab?: ReportTab;
+}
+
+export default function CommercialReports({ initialTab = 'sales' }: CommercialReportsProps) {
+    const [activeTab, setActiveTab] = useState<ReportTab>(initialTab);
     const [period, setPeriod] = useState(30);
     const [agingFilter, setAgingFilter] = useState<string>('');
 
@@ -50,6 +55,9 @@ export default function CommercialReports() {
     const { data: warehouseData, isLoading: warehouseLoading, refetch: refetchWarehouses } = useWarehouseDistribution();
     const { categories } = useCategories();
 
+    useEffect(() => {
+        setActiveTab(initialTab);
+    }, [initialTab]);
 
     const categoryProductData = useMemo(() => {
         if (!categories || categories.length === 0) return [];
@@ -62,6 +70,7 @@ export default function CommercialReports() {
 
     const handleRefetch = () => {
         if (activeTab === 'sales') refetchSales();
+        else if (activeTab === 'margins') return;
         else if (activeTab === 'aging') refetchAging();
         else if (activeTab === 'suppliers') refetchSuppliers();
         else refetchWarehouses();
@@ -208,11 +217,13 @@ export default function CommercialReports() {
                     </p>
                     <h2 className="mt-1 text-lg font-black uppercase tracking-tight text-slate-950 dark:text-white">
                         {activeTab === 'sales' && 'Vendas & Produtos'}
+                        {activeTab === 'margins' && 'Margens & Lucro'}
                         {activeTab === 'aging' && 'Stock Envelhecido'}
                         {activeTab === 'suppliers' && 'Performance de Fornecedores'}
                         {activeTab === 'warehouses' && 'Distribuição por Armazém'}
                     </h2>
                     <p className="mt-1 text-sm font-medium text-slate-600 dark:text-gray-400">
+                        {activeTab === 'margins' && 'Rentabilidade por produto, categoria, tendencia e rotatividade.'}
                         {activeTab === 'sales' && 'Tendência comercial, produtos campeões e métodos de pagamento.'}
                         {activeTab === 'aging' && 'Priorização de stock parado por risco, valor e dias sem venda.'}
                         {activeTab === 'suppliers' && 'Gasto, pontualidade e pendências por fornecedor.'}
@@ -244,6 +255,7 @@ export default function CommercialReports() {
                     variant="ghost"
                     size="sm"
                     onClick={handleRefetch}
+                    disabled={activeTab === 'margins'}
                     className="flex h-10 w-10 items-center justify-center border border-slate-200/90 bg-white p-2 text-slate-600 shadow-sm hover:text-primary-600 dark:border-dark-700 dark:bg-dark-800"
                     title="Actualizar relatório"
                 >
@@ -252,9 +264,10 @@ export default function CommercialReports() {
                 </div>
             </div>
 
-            <div className="flex gap-1 rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner dark:border-white/10 dark:bg-dark-700/50">
+            <div className="flex gap-1 overflow-x-auto rounded-2xl border border-slate-200/90 bg-slate-100/80 p-1 shadow-inner scroller-hidden dark:border-white/10 dark:bg-dark-700/50">
                 {[
                     { key: 'sales', label: 'Vendas & Produtos', icon: HiOutlineChartBar, color: 'text-blue-500' },
+                    { key: 'margins', label: 'Margens & Lucro', icon: HiOutlineArrowTrendingUp, color: 'text-emerald-500' },
                     { key: 'aging', label: 'Stock Envelhecido', icon: HiOutlineClock, color: 'text-amber-500' },
                     { key: 'suppliers', label: 'Fornecedores', icon: HiOutlineTruck, color: 'text-indigo-500' },
                     { key: 'warehouses', label: 'Distribuição', icon: HiOutlineCircleStack, color: 'text-emerald-500' },
@@ -267,7 +280,7 @@ export default function CommercialReports() {
                             variant="ghost"
                             size="sm"
                             className={cn(
-                                'h-10 flex-1 text-sm font-black uppercase tracking-widest rounded-xl',
+                                'h-10 min-w-12 flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest lg:min-w-[9rem]',
                                 activeTab === tab.key
                                     ? 'bg-white dark:bg-dark-600 text-primary-700 dark:text-primary-400 shadow-sm'
                                     : 'text-slate-600 hover:text-slate-950 dark:hover:text-gray-300'
@@ -279,6 +292,8 @@ export default function CommercialReports() {
                     );
                 })}
             </div>
+
+            {activeTab === 'margins' && <MarginAnalysis />}
 
             {/* ---- Sales Report ------------------------------------------------------------------------------------------ */}
             {activeTab === 'sales' && (

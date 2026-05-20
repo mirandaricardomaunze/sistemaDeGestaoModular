@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Sales Funnel Component
- * Visualização do funil de vendas com drag and drop
+ * VisualizaÃ§Ã£o do funil de vendas com drag and drop
  */
 
 import { useState, useMemo } from 'react';
@@ -108,13 +108,13 @@ export default function SalesFunnel() {
     // Handlers
     const handleAddOpportunity = () => {
         if (!newOpportunity.customerName || !newOpportunity.title) {
-            toast.error('Preencha os campos obrigatórios');
+            toast.error('Preencha os campos obrigatÃ³rios');
             return;
         }
 
         const firstStage = activeStages[0];
         if (!firstStage) {
-            toast.error('Nenhuma etapa disponível');
+            toast.error('Nenhuma etapa disponÃ­vel');
             return;
         }
 
@@ -145,7 +145,7 @@ export default function SalesFunnel() {
 
     const handleAddInteraction = () => {
         if (!selectedOpportunity || !newInteraction.title) {
-            toast.error('Preencha o título da interação');
+            toast.error('Preencha o tÃ­tulo da interaÃ§Ã£o');
             return;
         }
 
@@ -164,7 +164,7 @@ export default function SalesFunnel() {
             nextActionDate: '',
         });
         setShowInteractionModal(false);
-        toast.success('Interação registada!');
+        toast.success('InteraÃ§Ã£o registada!');
     };
 
     const handleCloseOpportunity = () => {
@@ -205,7 +205,7 @@ export default function SalesFunnel() {
                         Funil de Vendas
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {opportunities.length} oportunidades • {formatCurrency(metrics.totalValue)} em pipeline
+                        {opportunities.length} oportunidades â€¢ {formatCurrency(metrics.totalValue)} em pipeline
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -214,7 +214,7 @@ export default function SalesFunnel() {
                         onClick={() => setShowMetricsModal(true)}
                         leftIcon={<HiOutlineChartBar className="w-4 h-4" />}
                     >
-                        Métricas
+                        MÃ©tricas
                     </Button>
                     <Button
                         onClick={() => setShowAddModal(true)}
@@ -274,12 +274,12 @@ export default function SalesFunnel() {
                                             <h4 className="font-medium text-gray-900 dark:text-white text-sm line-clamp-2">
                                                 {opp.title}
                                             </h4>
-                                            <button
+                                            <Button variant="ghost"
                                                 onClick={() => handleViewDetails(opp)}
                                                 className="p-1 text-gray-400 hover:text-primary-500"
                                             >
                                                 <HiOutlineEye className="w-4 h-4" />
-                                            </button>
+                                            </Button>
                                         </div>
 
                                         <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-xs mb-2">
@@ -299,7 +299,7 @@ export default function SalesFunnel() {
                                         {opp.interactions.length > 0 && (
                                             <div className="mt-2 pt-2 border-t border-gray-100 dark:border-dark-600 flex items-center gap-1 text-gray-400 text-xs">
                                                 <HiOutlineClock className="w-3 h-3" />
-                                                <span>{opp.interactions.length} interações</span>
+                                                <span>{opp.interactions.length} interaÃ§Ãµes</span>
                                             </div>
                                         )}
                                     </div>
@@ -365,11 +365,11 @@ export default function SalesFunnel() {
                 </Card>
                 <Card padding="md" className="text-center">
                     <p className="text-2xl font-bold text-blue-600">{metrics.winRate}%</p>
-                    <p className="text-sm text-gray-500">Taxa de Conversão</p>
+                    <p className="text-sm text-gray-500">Taxa de ConversÃ£o</p>
                 </Card>
                 <Card padding="md" className="text-center">
                     <p className="text-2xl font-bold text-orange-600">{metrics.avgTimeToClose} dias</p>
-                    <p className="text-sm text-gray-500">Tempo Médio</p>
+                    <p className="text-sm text-gray-500">Tempo MÃ©dio</p>
                 </Card>
             </div>
 
@@ -388,7 +388,7 @@ export default function SalesFunnel() {
                         placeholder="Ex: Empresa XYZ"
                     />
                     <Input
-                        label="Título da Oportunidade *"
+                        label="TÃ­tulo da Oportunidade *"
                         value={newOpportunity.title}
                         onChange={(e) => setNewOpportunity({ ...newOpportunity, title: e.target.value })}
                         placeholder="Ex: Contrato de Fornecimento"
@@ -477,7 +477,7 @@ export default function SalesFunnel() {
                                 }}
                                 leftIcon={<HiOutlinePlus className="w-4 h-4" />}
                             >
-                                Adicionar Interação
+                                Adicionar InteraÃ§Ã£o
                             </Button>
                             <Button
                                 variant="success"
@@ -504,12 +504,12 @@ export default function SalesFunnel() {
                         {/* Interactions */}
                         <div>
                             <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                                Histórico de interações ({selectedOpportunity.interactions.length})
+                                HistÃ³rico de interaÃ§Ãµes ({selectedOpportunity.interactions.length})
                             </h4>
                             <div className="space-y-2 max-h-60 overflow-y-auto">
                                 {selectedOpportunity.interactions.length === 0 ? (
                                     <p className="text-gray-500 text-sm text-center py-4">
-                                        Nenhuma interação registada
+                                        Nenhuma interaÃ§Ã£o registada
                                     </p>
                                 ) : (
                                     selectedOpportunity.interactions.map((int) => (
@@ -536,13 +536,13 @@ export default function SalesFunnel() {
                         {selectedOpportunity.stageHistory.length > 0 && (
                             <div>
                                 <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                                    Histórico de Etapas
+                                    HistÃ³rico de Etapas
                                 </h4>
                                 <div className="space-y-2">
                                     {selectedOpportunity.stageHistory.map((entry) => (
                                         <div key={entry.id} className="flex items-center gap-2 text-sm">
                                             <span className="text-gray-500">{entry.fromStageName}</span>
-                                            <span>→</span>
+                                            <span>â†’</span>
                                             <span className="font-medium">{entry.toStageName}</span>
                                             <span className="text-gray-400 text-xs">
                                                 ({entry.timeInPreviousStage} dias)
@@ -560,7 +560,7 @@ export default function SalesFunnel() {
             <Modal
                 isOpen={showInteractionModal}
                 onClose={() => setShowInteractionModal(false)}
-                title="Nova Interação"
+                title="Nova InteraÃ§Ã£o"
                 size="md"
             >
                 <div className="space-y-4">
@@ -571,13 +571,13 @@ export default function SalesFunnel() {
                         options={Object.entries(INTERACTION_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
                     />
                     <Input
-                        label="Título *"
+                        label="TÃ­tulo *"
                         value={newInteraction.title}
                         onChange={(e) => setNewInteraction({ ...newInteraction, title: e.target.value })}
-                        placeholder="Ex: Chamada de apresentação"
+                        placeholder="Ex: Chamada de apresentaÃ§Ã£o"
                     />
                     <Textarea
-                        label="Descrição"
+                        label="DescriÃ§Ã£o"
                         value={newInteraction.description}
                         onChange={(e) => setNewInteraction({ ...newInteraction, description: e.target.value })}
                         rows={3}
@@ -593,20 +593,20 @@ export default function SalesFunnel() {
                         ]}
                     />
                     <Input
-                        label="Próxima Ação"
+                        label="PrÃ³xima AÃ§Ã£o"
                         value={newInteraction.nextAction}
                         onChange={(e) => setNewInteraction({ ...newInteraction, nextAction: e.target.value })}
                         placeholder="Ex: Enviar proposta"
                     />
                     <Input
-                        label="Data da Próxima Ação"
+                        label="Data da PrÃ³xima AÃ§Ã£o"
                         type="date"
                         value={newInteraction.nextActionDate}
                         onChange={(e) => setNewInteraction({ ...newInteraction, nextActionDate: e.target.value })}
                     />
                     <div className="flex justify-end gap-2 pt-4">
                         <Button variant="ghost" onClick={() => setShowInteractionModal(false)}>Cancelar</Button>
-                        <Button onClick={handleAddInteraction}>Registar Interação</Button>
+                        <Button onClick={handleAddInteraction}>Registar InteraÃ§Ã£o</Button>
                     </div>
                 </div>
             </Modal>
@@ -621,16 +621,16 @@ export default function SalesFunnel() {
                 <div className="space-y-4">
                     <p className="text-gray-600 dark:text-gray-300">
                         {closeData.won
-                            ? 'Parabéns! Esta oportunidade foi convertida com sucesso.'
+                            ? 'ParabÃ©ns! Esta oportunidade foi convertida com sucesso.'
                             : 'Indique o motivo pelo qual esta oportunidade foi perdida.'
                         }
                     </p>
                     <Textarea
-                        label={closeData.won ? 'Observações (opcional)' : 'Motivo da Perda *'}
+                        label={closeData.won ? 'ObservaÃ§Ãµes (opcional)' : 'Motivo da Perda *'}
                         value={closeData.reason}
                         onChange={(e) => setCloseData({ ...closeData, reason: e.target.value })}
                         rows={3}
-                        placeholder={closeData.won ? 'Detalhes adicionais...' : 'Ex: Preço, concorrência, timing...'}
+                        placeholder={closeData.won ? 'Detalhes adicionais...' : 'Ex: PreÃ§o, concorrÃªncia, timing...'}
                     />
                     <div className="flex justify-end gap-2 pt-4">
                         <Button variant="ghost" onClick={() => setShowCloseModal(false)}>Cancelar</Button>
@@ -648,7 +648,7 @@ export default function SalesFunnel() {
             <Modal
                 isOpen={showMetricsModal}
                 onClose={() => setShowMetricsModal(false)}
-                title="Métricas do Funil"
+                title="MÃ©tricas do Funil"
                 size="lg"
             >
                 <div className="space-y-6">
@@ -664,11 +664,11 @@ export default function SalesFunnel() {
                         </div>
                         <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-center">
                             <p className="text-2xl font-bold text-blue-600">{metrics.winRate}%</p>
-                            <p className="text-sm text-blue-700">Conversão</p>
+                            <p className="text-sm text-blue-700">ConversÃ£o</p>
                         </div>
                         <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg text-center">
                             <p className="text-2xl font-bold text-orange-600">{metrics.avgTimeToClose}d</p>
-                            <p className="text-sm text-orange-700">Tempo Médio</p>
+                            <p className="text-sm text-orange-700">Tempo MÃ©dio</p>
                         </div>
                     </div>
 
@@ -682,7 +682,7 @@ export default function SalesFunnel() {
                                     <div className="flex items-center gap-4 text-sm">
                                         <span>{stage.count} ops</span>
                                         <span className="font-semibold text-primary-600">{formatCurrency(stage.value)}</span>
-                                        <span className="text-gray-500">{stage.avgTimeInStage}d média</span>
+                                        <span className="text-gray-500">{stage.avgTimeInStage}d mÃ©dia</span>
                                     </div>
                                 </div>
                             ))}

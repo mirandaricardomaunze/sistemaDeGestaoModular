@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, Button, Badge, LoadingSpinner, EmptyState, ConfirmationModal } from '../ui';
@@ -165,7 +165,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                             {t('hotel_module.housekeeping.title')}
                         </h3>
                         <p className="text-[10px] text-gray-500 font-medium">
-                            {pendingTasks.length} {t('hotel_module.housekeeping.status.pending')} • {inProgressTasks.length} {t('hotel_module.housekeeping.status.in_progress')} • {completedTasks.length} {t('hotel_module.housekeeping.status.completed')}
+                            {pendingTasks.length} {t('hotel_module.housekeeping.status.pending')} â€¢ {inProgressTasks.length} {t('hotel_module.housekeeping.status.in_progress')} â€¢ {completedTasks.length} {t('hotel_module.housekeeping.status.completed')}
                         </p>
                     </div>
                 </div>
@@ -173,7 +173,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                 <div className="flex items-center gap-2">
                     <div className="flex gap-1 bg-gray-100 dark:bg-dark-900 rounded-lg p-1">
                         {['all', 'pending', 'in_progress', 'completed'].map((status) => (
-                            <button
+                            <Button variant="ghost"
                                 key={status}
                                 onClick={() => setFilter(status as 'all' | 'pending' | 'in_progress' | 'completed')}
                                 className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${filter === status
@@ -183,7 +183,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                             >
                                 {status === 'all' ? t('common.all')
                                     : t(`hotel_module.housekeeping.status.${status}`)}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                     <Button
@@ -299,7 +299,7 @@ export default function HousekeepingPanel({ onRoomCleaned }: HousekeepingPanelPr
                                 )}
                                 {task.status === 'completed' && (
                                     <div className="flex-1 text-center text-xs text-green-600 font-bold py-2">
-                                        ✅ {t('common.finished')} {formatTime(task.completedAt)}
+                                        âœ… {t('common.finished')} {formatTime(task.completedAt)}
                                     </div>
                                 )}
                             </div>

@@ -43,9 +43,9 @@ export function PharmacyShiftDetailsModal({ isOpen, session, onClose, onPrint }:
                             <p className="text-white/50 text-[10px] uppercase font-bold tracking-widest leading-none">ID: #{session.id.slice(-6).toUpperCase()}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors">
+                    <Button variant="ghost" onClick={onClose} className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors">
                         <HiOutlineXMark className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Body */}

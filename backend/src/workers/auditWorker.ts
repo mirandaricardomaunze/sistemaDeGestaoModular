@@ -21,18 +21,20 @@ export function createAuditWorker(): Worker | null {
         async (job) => {
             // Late import to avoid circular dependency (auditQueue → prisma → auditQueue)
             const { basePrisma } = await import('../lib/prismaBase');
-            const { userId, userName, action, entity, entityId, newData, companyId } = job.data as {
+            const { userId, userName, action, entity, entityId, oldData, newData, reason, companyId } = job.data as {
                 userId: string | undefined;
                 userName: string;
                 action: string;
                 entity: string;
                 entityId: string;
-                newData: object | undefined;
+                oldData?: object;
+                newData?: object;
+                reason?: string;
                 companyId: string;
             };
 
             await basePrisma.auditLog.create({
-                data: { userId, userName, action, entity, entityId, newData, companyId },
+                data: { userId, userName, action, entity, entityId, oldData, newData, reason, companyId },
             });
         },
         {

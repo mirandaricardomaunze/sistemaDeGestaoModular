@@ -66,7 +66,7 @@ export class HospitalityChannelsService {
      * Endpoint simulado para Importar de um icalLink (AirBnb, Booking).
      * O sistema dever fazer GET nesse `.ics`, converter VEVENT para as datas e bloquear a Room.
      */
-    async syncFromICal(companyId: string, roomId: string, icalUrl: string) {
+    async syncFromICal(companyId: string, roomId: string, _icalUrl: string) {
         // Implementação MVP de Importação
         const room = await prisma.room.findFirst({
             where: { id: roomId, companyId }

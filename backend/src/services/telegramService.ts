@@ -1,7 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { chatService } from './chatService';
-import { prisma } from '../lib/prisma';
-import { logger } from '../utils/logger';
 
 export class TelegramService {
     private bot: TelegramBot | null = null;

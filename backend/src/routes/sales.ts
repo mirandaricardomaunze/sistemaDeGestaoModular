@@ -1,9 +1,7 @@
 import { Router, Response } from 'express';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
-import { logger } from '../utils/logger';
 import { salesService } from '../services/salesService';
-import { validateCreateSale, validateSalesQuery, formatZodError } from '../utils/validation';
-import { z } from 'zod';
+import { validateCreateSale, validateSalesQuery } from '../utils/validation';
 import { ApiError } from '../middleware/error.middleware';
 import { emitToCompany } from '../lib/socket';
 

@@ -27,9 +27,14 @@ describe('getPaginationParams()', () => {
         expect(limit).toBe(1);
     });
 
-    it('clamps limit to maximum 100', () => {
+    it('clamps limit to maximum 2000', () => {
+        const { limit } = getPaginationParams({ limit: '5000' });
+        expect(limit).toBe(2000);
+    });
+
+    it('keeps limit within the cap when explicitly requested', () => {
         const { limit } = getPaginationParams({ limit: '500' });
-        expect(limit).toBe(100);
+        expect(limit).toBe(500);
     });
 
     it('handles non-numeric strings gracefully', () => {

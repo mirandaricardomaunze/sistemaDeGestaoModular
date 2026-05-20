@@ -29,21 +29,21 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
             throw ApiError.unauthorized('Sessão terminada. Faça login novamente.');
         }
 
-        req.userId = decoded.userId;
-        req.userRole = decoded.role;
-        // Favor name from token, fallback to userId (UUID), never allow empty string
-        req.userName = decoded.name || decoded.userId || 'Utilizador';
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: { id: true, name: true, role: true, companyId: true, isActive: true }
+        });
 
-        // If token has no companyId (old token or super_admin), fetch from DB as fallback
-        if (decoded.companyId) {
-            req.companyId = decoded.companyId;
-        } else if (decoded.role !== 'super_admin') {
-            const user = await prisma.user.findUnique({
-                where: { id: decoded.userId },
-                select: { companyId: true }
-            });
-            req.companyId = user?.companyId ?? undefined;
+        if (!user || !user.isActive) {
+            throw ApiError.unauthorized('Utilizador bloqueado ou desativado.');
         }
+
+        req.userId = user.id;
+        req.userRole = user.role;
+        // Favor live DB data so role/status changes take effect without waiting
+        // for the old JWT to expire.
+        req.userName = user.name || decoded.name || user.id || 'Utilizador';
+        req.companyId = user.companyId ?? undefined;
 
         tenantContext.run({ companyId: req.companyId, userId: req.userId }, () => next());
     } catch (error) {
@@ -55,13 +55,16 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 export const authorize = (...roles: string[]) => {
     return (req: AuthRequest, res: Response, next: NextFunction) => {
         if (!req.userRole || !roles.includes(req.userRole)) {
-            // Log authorization failures so they are visible in the audit trail
+            // Log authorization failures so they are visible in the audit trail.
+            // companyId is required for tenant-scoped audit queries — copy it from
+            // the request (set by `authenticate` upstream).
             prisma.auditLog.create({
                 data: {
                     userId: req.userId,
-                    userName: 'Anônimo',
+                    userName: req.userName ?? 'Anônimo',
                     action: 'ACCESS_DENIED',
                     entity: 'Authorization',
+                    companyId: req.companyId,
                     ipAddress: req.ip,
                     userAgent: req.headers['user-agent'],
                     newData: { path: req.path, method: req.method, userRole: req.userRole, requiredRoles: roles }

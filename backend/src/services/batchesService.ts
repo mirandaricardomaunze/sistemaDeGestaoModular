@@ -31,7 +31,7 @@ const BATCH_FIELD_ALLOWLIST = [
     'supplier.id', 'supplier.name',
     'warehouse.id', 'warehouse.name', 'warehouse.code'
 ] as const;
-import { addDays, isAfter, isBefore, differenceInDays } from 'date-fns';
+import { addDays, isBefore, differenceInDays } from 'date-fns';
 import { stockService } from './stockService';
 
 export type BatchStatus = 'active' | 'expiring_soon' | 'expired' | 'depleted' | 'quarantine';

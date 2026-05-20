@@ -119,7 +119,7 @@ export function ExportButton({
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-800 rounded-xl shadow-card-hover border border-slate-300/70 dark:border-dark-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="py-1">
                         {/* Excel Option */}
-                        <button
+                        <Button variant="ghost"
                             onClick={() => handleExport('excel')}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-dark-700 transition-colors"
                         >
@@ -128,10 +128,10 @@ export function ExportButton({
                                 <p className="font-semibold">Excel (.xlsx)</p>
                                 <p className="text-xs text-slate-600 dark:text-gray-400">Folha de cálculo</p>
                             </div>
-                        </button>
+                        </Button>
 
                         {/* PDF Option */}
-                        <button
+                        <Button variant="ghost"
                             onClick={() => handleExport('pdf')}
                             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-dark-700 transition-colors"
                         >
@@ -140,7 +140,7 @@ export function ExportButton({
                                 <p className="font-semibold">PDF</p>
                                 <p className="text-xs text-slate-600 dark:text-gray-400">Documento formatado</p>
                             </div>
-                        </button>
+                        </Button>
                     </div>
 
                     {/* Data count */}

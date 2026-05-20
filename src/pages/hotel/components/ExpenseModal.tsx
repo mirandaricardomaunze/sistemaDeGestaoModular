@@ -1,4 +1,4 @@
-import { logger } from '../../../utils/logger';
+﻿import { logger } from '../../../utils/logger';
 import { useState, useEffect } from 'react';
 import { HiOutlineXMark, HiOutlineCheck } from 'react-icons/hi2';
 import { Input, Select, Textarea, Button } from '../../../components/ui';
@@ -8,9 +8,9 @@ import { toast } from 'react-hot-toast';
 // Expense categories
 export const expenseCategories = [
     { value: 'cleaning', label: 'Limpeza' },
-    { value: 'maintenance', label: 'Manutenção' },
-    { value: 'utilities', label: 'Utilities (Água, Luz)' },
-    { value: 'salaries', label: 'Salários' },
+    { value: 'maintenance', label: 'ManutenÃ§Ã£o' },
+    { value: 'utilities', label: 'Utilities (Ãgua, Luz)' },
+    { value: 'salaries', label: 'SalÃ¡rios' },
     { value: 'supplies', label: 'Suprimentos' },
     { value: 'marketing', label: 'Marketing' },
     { value: 'insurance', label: 'Seguros' },
@@ -28,8 +28,8 @@ export const expenseStatusOptions = [
 // Payment methods
 export const paymentMethods = [
     { value: 'cash', label: 'Dinheiro' },
-    { value: 'card', label: 'Cartão' },
-    { value: 'transfer', label: 'Transferência' },
+    { value: 'card', label: 'CartÃ£o' },
+    { value: 'transfer', label: 'TransferÃªncia' },
     { value: 'check', label: 'Cheque' },
     { value: 'other', label: 'Outro' },
 ];
@@ -101,7 +101,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
 
         // Validation
         if (!formData.category || !formData.description || !formData.amount) {
-            toast.error('Por favor, preencha todos os campos obrigatórios');
+            toast.error('Por favor, preencha todos os campos obrigatÃ³rios');
             return;
         }
 
@@ -149,12 +149,12 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                             {expense ? 'Editar Despesa' : 'Nova Despesa'}
                         </h2>
-                        <button
+                        <Button variant="ghost"
                             onClick={onClose}
                             className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                         >
                             <HiOutlineXMark className="w-6 h-6" />
-                        </button>
+                        </Button>
                     </div>
 
                     <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -183,7 +183,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
                         {/* Description */}
                         <Input
                             type="text"
-                            label="Descrição"
+                            label="DescriÃ§Ã£o"
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                             required
@@ -218,7 +218,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
 
                             {/* Payment Method */}
                             <Select
-                                label="Método de Pagamento"
+                                label="MÃ©todo de Pagamento"
                                 value={formData.paymentMethod}
                                 onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
                                 options={paymentMethods}
@@ -229,10 +229,10 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
                         {/* Reference */}
                         <Input
                             type="text"
-                            label="Referência"
+                            label="ReferÃªncia"
                             value={formData.reference}
                             onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-                            placeholder="Número da fatura, recibo, etc."
+                            placeholder="NÃºmero da fatura, recibo, etc."
                         />
 
                         {/* Notes */}
@@ -241,7 +241,7 @@ export function ExpenseModal({ isOpen, onClose, onSave, expense }: ExpenseModalP
                             value={formData.notes}
                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                             rows={3}
-                            placeholder="Informações adicionais..."
+                            placeholder="InformaÃ§Ãµes adicionais..."
                         />
 
                         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-dark-600">

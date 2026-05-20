@@ -20,6 +20,7 @@ import { cn } from '../utils/helpers';
 import type { Employee } from '../types';
 import { ExportEmployeesButton } from '../components/common/ExportButton';
 import { useEmployees } from '../hooks/useData';
+import { Button } from '../components/ui/Button';
 
 type Tab = 'dashboard' | 'list' | 'attendance' | 'ponto' | 'vacations' | 'payroll' | 'permissions';
 
@@ -69,7 +70,7 @@ export default function Employees() {
                         { id: 'payroll', label: 'Salários', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
                         { id: 'permissions', label: 'Permissões', icon: <HiOutlineShieldCheck className="w-5 h-5" /> },
                     ].map((tab) => (
-                        <button
+                        <Button variant="ghost"
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as Tab)}
                             className={cn(
@@ -81,7 +82,7 @@ export default function Employees() {
                         >
                             {tab.icon}
                             <span>{tab.label}</span>
-                        </button>
+                        </Button>
                     ))}
                 </div>
             </div>

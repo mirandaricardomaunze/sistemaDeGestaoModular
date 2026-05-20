@@ -274,6 +274,7 @@ model Product {
   transferItems        StockTransferItem[]
   supplierInvoiceItems SupplierInvoiceItem[]
   warehouseStocks      WarehouseStock[]
+  commissionRules      CommissionRule[]
 
   @@unique([companyId, code])
   @@unique([companyId, barcode])
@@ -313,9 +314,10 @@ model Category {
   updatedAt   DateTime   @updatedAt
   companyId   String?
   company     Company?   @relation(fields: [companyId], references: [id])
-  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryTree")
-  products    Product[]
+  parent          Category?        @relation("CategoryTree", fields: [parentId], references: [id])
+  children        Category[]       @relation("CategoryTree")
+  products        Product[]
+  commissionRules CommissionRule[]
 
   @@unique([companyId, code])
   @@map("categories")
@@ -343,6 +345,7 @@ model Warehouse {
   transfersTo    StockTransfer[]  @relation("TargetWarehouse")
   stocks         WarehouseStock[]
   physicalInventories PhysicalInventory[]
+  salesTargets   SalesTarget[]
   company        Company?         @relation(fields: [companyId], references: [id])
 
   @@unique([companyId, code])
@@ -1397,6 +1400,7 @@ model AuditLog {
   entityId  String?
   oldData   Json?
   newData   Json?
+  reason    String?
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
@@ -2533,14 +2537,20 @@ model CommissionRule {
   type       CommissionType @default(fixed)
   rate       Decimal?       @db.Decimal(5, 2)
   tiers      Json?
+  productId  String?
+  categoryId String?
   isActive   Boolean        @default(true)
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
   companyId  String?
   company    Company?       @relation(fields: [companyId], references: [id])
   employee   Employee?      @relation(fields: [employeeId], references: [id])
+  product    Product?       @relation(fields: [productId], references: [id])
+  category   Category?      @relation(fields: [categoryId], references: [id])
 
   @@index([companyId])
+  @@index([productId])
+  @@index([categoryId])
   @@map("commission_rules")
 }
 
@@ -2627,21 +2637,24 @@ model CalendarAttendee {
 }
 
 model SalesTarget {
-  id         String     @id @default(uuid())
-  employeeId String?
-  type       TargetType @default(MONTHLY)
-  value      Decimal    @db.Decimal(15, 2)
-  startDate  DateTime
-  endDate    DateTime
-  isActive   Boolean    @default(true)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  companyId  String?
-  company    Company?   @relation(fields: [companyId], references: [id])
-  employee   Employee?  @relation(fields: [employeeId], references: [id])
+  id          String     @id @default(uuid())
+  employeeId  String?
+  warehouseId String?
+  type        TargetType @default(MONTHLY)
+  value       Decimal    @db.Decimal(15, 2)
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  companyId   String?
+  company     Company?   @relation(fields: [companyId], references: [id])
+  employee    Employee?  @relation(fields: [employeeId], references: [id])
+  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
 
   @@index([companyId])
   @@index([employeeId])
+  @@index([warehouseId])
   @@map("sales_targets")
 }
 
@@ -3141,6 +3154,7 @@ enum CommissionType {
   fixed
   tiered
   profit_based
+  target_based
 }
 
 enum AttendeeStatus {

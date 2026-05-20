@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/helpers';
+import { Button } from './Button';
 
 export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
     label?: string;
@@ -49,7 +50,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         {...props}
                     />
                     {isPassword && showPasswordToggle ? (
-                        <button
+                        <Button variant="ghost"
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-primary-500 transition-colors"
@@ -64,7 +65,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
                             )}
-                        </button>
+                        </Button>
                     ) : rightIcon && (
                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-500 dark:text-gray-400">
                             {rightIcon}

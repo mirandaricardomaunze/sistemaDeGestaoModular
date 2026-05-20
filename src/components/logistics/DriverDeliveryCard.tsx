@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DriverDeliveryCard Component
  *
  * Responsibility: Render a single delivery card for the Driver Panel.
@@ -30,7 +30,7 @@ import {
     HiOutlineArrowPath,
 } from 'react-icons/hi2';
 
-// ──-Constants ────────────────────────────────────────────────────────────────
+// â”€â”€-Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PRIORITY_CONFIG = {
     urgent: {
@@ -60,7 +60,7 @@ const PRIORITY_CONFIG = {
 } as const;
 
 const STATUS_ACTION_CONFIG: Partial<Record<Delivery['status'], { label: string; className: string; icon: React.ElementType }>> = {
-    in_transit:       { label: 'Iniciar Trânsito',     className: 'bg-blue-600 hover:bg-blue-700 text-white',    icon: HiOutlineTruck },
+    in_transit:       { label: 'Iniciar TrÃ¢nsito',     className: 'bg-blue-600 hover:bg-blue-700 text-white',    icon: HiOutlineTruck },
     out_for_delivery: { label: 'Saiu para Entrega',    className: 'bg-indigo-600 hover:bg-indigo-700 text-white', icon: HiOutlineMapPin },
     delivered:        { label: 'Marcar Entregue',      className: 'bg-emerald-600 hover:bg-emerald-700 text-white', icon: HiOutlineCheckCircle },
     failed:           { label: 'Registar Falha',       className: 'bg-red-600 hover:bg-red-700 text-white',       icon: HiOutlineXCircle },
@@ -68,7 +68,7 @@ const STATUS_ACTION_CONFIG: Partial<Record<Delivery['status'], { label: string; 
     cancelled:        { label: 'Cancelar',             className: 'border border-gray-300 dark:border-dark-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-dark-700', icon: HiOutlineXCircle },
 };
 
-// ──-Sub-component: Failure Reason Input ────────────────────────────────────-
+// â”€â”€-Sub-component: Failure Reason Input â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€-
 
 interface FailureInputProps {
     value: string;
@@ -83,7 +83,7 @@ function FailureReasonInput({ value, onChange, onConfirm, onCancel, isLoading }:
         <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 space-y-2">
             <p className="text-sm font-medium text-red-700 dark:text-red-300 flex items-center gap-1">
                 <HiOutlineExclamationTriangle className="w-4 h-4" />
-                Motivo da falha (obrigatório)
+                Motivo da falha (obrigatÃ³rio)
             </p>
             <textarea
                 className="w-full text-sm rounded-lg border border-red-300 dark:border-red-700 bg-white dark:bg-dark-800 text-gray-900 dark:text-gray-100 p-2 focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
@@ -111,7 +111,7 @@ function FailureReasonInput({ value, onChange, onConfirm, onCancel, isLoading }:
     );
 }
 
-// ──-Main Component ──────────────────────────────────────────────────────────-
+// â”€â”€-Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€-
 
 interface DriverDeliveryCardProps {
     item: DriverPanelDelivery;
@@ -192,7 +192,7 @@ export function DriverDeliveryCard({ item, onStatusUpdate, isUpdating }: DriverD
                         >
                             {delivery.status === 'pending' ? 'Pendente' :
                              delivery.status === 'scheduled' ? 'Agendada' :
-                             delivery.status === 'in_transit' ? 'Em Trânsito' :
+                             delivery.status === 'in_transit' ? 'Em TrÃ¢nsito' :
                              delivery.status === 'out_for_delivery' ? 'Em Entrega' : delivery.status}
                         </Badge>
                     </div>
@@ -243,7 +243,7 @@ export function DriverDeliveryCard({ item, onStatusUpdate, isUpdating }: DriverD
                         if (!actionConfig) return null;
                         const ActionIcon = actionConfig.icon;
                         return (
-                            <button
+                            <Button variant="ghost"
                                 key={status}
                                 type="button"
                                 onClick={() => handleActionClick(status)}
@@ -253,7 +253,7 @@ export function DriverDeliveryCard({ item, onStatusUpdate, isUpdating }: DriverD
                             >
                                 <ActionIcon className="w-4 h-4" aria-hidden="true" />
                                 {label}
-                            </button>
+                            </Button>
                         );
                     })}
                 </div>
@@ -273,19 +273,19 @@ export function DriverDeliveryCard({ item, onStatusUpdate, isUpdating }: DriverD
             )}
 
             {/* Timeline Toggle */}
-            <button
+            <Button variant="ghost"
                 type="button"
                 onClick={() => setIsTimelineOpen((prev) => !prev)}
                 className="w-full flex items-center justify-between px-4 sm:px-5 py-2.5 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-dark-700/50 hover:bg-gray-100 dark:hover:bg-dark-700 transition-colors border-t border-gray-100 dark:border-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
                 aria-expanded={isTimelineOpen}
                 aria-controls={`timeline-${delivery.id}`}
             >
-                <span>Ver histórico de estados</span>
+                <span>Ver histÃ³rico de estados</span>
                 {isTimelineOpen
                     ? <HiOutlineChevronUp className="w-4 h-4" aria-hidden="true" />
                     : <HiOutlineChevronDown className="w-4 h-4" aria-hidden="true" />
                 }
-            </button>
+            </Button>
 
             {isTimelineOpen && (
                 <div
@@ -306,7 +306,7 @@ export function DriverDeliveryCard({ item, onStatusUpdate, isUpdating }: DriverD
                 <div className="space-y-4">
                     <div className="p-4 bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-100 dark:border-primary-800">
                         <p className="text-sm text-primary-800 dark:text-primary-300 font-medium">
-                            Por favor, peça ao cliente para assinar no campo abaixo para confirmar a recepção da entrega #{delivery.number}.
+                            Por favor, peÃ§a ao cliente para assinar no campo abaixo para confirmar a recepÃ§Ã£o da entrega #{delivery.number}.
                         </p>
                     </div>
                     

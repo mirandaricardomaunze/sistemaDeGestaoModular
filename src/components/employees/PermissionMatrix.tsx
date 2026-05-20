@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { HiOutlineShieldCheck, HiOutlineLockClosed, HiOutlineBookmarkSquare } from 'react-icons/hi2';
 import { Card, Button, LoadingSpinner } from '../ui';
@@ -73,9 +73,9 @@ export default function PermissionMatrix() {
                 <div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         <HiOutlineShieldCheck className="w-6 h-6 text-primary-600" />
-                        Matriz de Permissões
+                        Matriz de PermissÃµes
                     </h3>
-                    <p className="text-sm text-gray-500">Defina o nível de acesso para cada função do sistema</p>
+                    <p className="text-sm text-gray-500">Defina o nÃ­vel de acesso para cada funÃ§Ã£o do sistema</p>
                 </div>
                 <Button
                     variant="primary"
@@ -83,7 +83,7 @@ export default function PermissionMatrix() {
                     isLoading={isSaving}
                     leftIcon={<HiOutlineBookmarkSquare className="w-5 h-5" />}
                 >
-                    Guardar Alterações
+                    Guardar AlteraÃ§Ãµes
                 </Button>
             </div>
 
@@ -92,7 +92,7 @@ export default function PermissionMatrix() {
                     <thead>
                         <tr className="bg-gray-50 dark:bg-dark-800">
                             <th className="text-left p-4 border-b border-gray-200 dark:border-dark-700 min-w-[200px]">
-                                Módulo / Funcionalidade
+                                MÃ³dulo / Funcionalidade
                             </th>
                             {roles.map(role => (
                                 <th key={role.id} className="text-center p-4 border-b border-gray-200 dark:border-dark-700 min-w-[120px]">
@@ -118,7 +118,7 @@ export default function PermissionMatrix() {
 
                                     return (
                                         <td key={`${role.id}-${module.code}`} className="p-4 border-b border-gray-100 dark:border-dark-700 text-center">
-                                            <button
+                                            <Button variant="ghost"
                                                 disabled={isAdmin}
                                                 onClick={() => togglePermission(role.id, module.code)}
                                                 className={cn(
@@ -135,7 +135,7 @@ export default function PermissionMatrix() {
                                                 ) : (
                                                     <HiOutlineLockClosed className="w-5 h-5" />
                                                 )}
-                                            </button>
+                                            </Button>
                                         </td>
                                     );
                                 })}
@@ -148,7 +148,7 @@ export default function PermissionMatrix() {
             <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-900/20">
                 <p className="text-sm text-blue-700 dark:text-blue-400 flex items-start gap-2">
                     <HiOutlineShieldCheck className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                    As alterações feitas aqui afectam todos os utilizadores com a função correspondente. Utilizadores activos deverão fazer refresh para as novas permissões entrarem em vigor.
+                    As alteraÃ§Ãµes feitas aqui afectam todos os utilizadores com a funÃ§Ã£o correspondente. Utilizadores activos deverÃ£o fazer refresh para as novas permissÃµes entrarem em vigor.
                 </p>
             </div>
         </Card>

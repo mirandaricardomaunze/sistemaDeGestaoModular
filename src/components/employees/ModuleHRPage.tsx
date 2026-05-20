@@ -423,7 +423,11 @@ function PayrollPanel({ config, employees: allEmp }: { config: ModuleHRConfig; e
 
     const handleStatus = async (id: string, status: 'processed' | 'paid') => {
         try {
-            status === 'processed' ? await processPayroll(id) : await updatePayroll(id, { status });
+            if (status === 'processed') {
+                await processPayroll(id);
+            } else {
+                await updatePayroll(id, { status });
+            }
             toast.success(`Marcado como ${status === 'paid' ? 'pago' : 'processado'}`);
             refetch();
         } catch { toast.error('Erro ao actualizar estado'); }

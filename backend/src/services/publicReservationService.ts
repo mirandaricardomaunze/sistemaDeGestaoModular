@@ -22,7 +22,7 @@ type CreateReservationInput = {
 
 export class PublicReservationService {
     async listAvailableRooms(params: AvailableRoomsParams) {
-        const { checkIn, checkOut, guests, type, companyId } = params;
+        const { checkIn, checkOut, type, companyId } = params;
         if (!companyId) throw ApiError.badRequest('Empresa não identificada. Faça login novamente.');
         if (!checkIn || !checkOut) throw ApiError.badRequest('Datas de check-in e check-out são obrigatórias');
 

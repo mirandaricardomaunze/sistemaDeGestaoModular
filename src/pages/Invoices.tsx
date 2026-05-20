@@ -1,4 +1,4 @@
-import { logger } from '../utils/logger';
+﻿import { logger } from '../utils/logger';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -37,7 +37,7 @@ import type { Invoice, InvoiceStatus } from '../types';
 import toast from 'react-hot-toast';
 import { PAGE_SIZE } from '../utils/constants';
 
-// ── Local shapes for invoice-source items and product picks ────────────────
+// â”€â”€ Local shapes for invoice-source items and product picks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 type SourceItem = {
     productId?: string | null;
     description: string;
@@ -67,7 +67,7 @@ type ApiValidationError = { path?: string; message?: string };
 // Time period options
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 Mês' },
+    { value: '1m', label: '1 MÃªs' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -77,9 +77,9 @@ const periodOptions: { value: TimePeriod; label: string }[] = [
 const invoiceItemSchema = z.object({
     id: z.string(),
     productId: z.string().optional().nullable(),
-    description: z.string().min(1, 'Descrição obrigatória'),
-    quantity: z.coerce.number().min(1, 'Mínimo 1'),
-    unitPrice: z.coerce.number().min(0.01, 'Preço inválido'),
+    description: z.string().min(1, 'DescriÃ§Ã£o obrigatÃ³ria'),
+    quantity: z.coerce.number().min(1, 'MÃ­nimo 1'),
+    unitPrice: z.coerce.number().min(0.01, 'PreÃ§o invÃ¡lido'),
     discount: z.coerce.number().min(0).default(0),
     total: z.number(),
 });
@@ -87,13 +87,13 @@ const invoiceItemSchema = z.object({
 const invoiceSchema = z.object({
     orderId: z.string().optional(),
     orderNumber: z.string().optional(),
-    customerName: z.string().min(2, 'Nome obrigatório'),
-    customerEmail: z.string().email('Email inválido').optional().or(z.literal('')),
+    customerName: z.string().min(2, 'Nome obrigatÃ³rio'),
+    customerEmail: z.string().email('Email invÃ¡lido').optional().or(z.literal('')),
     customerPhone: z.string().optional(),
     customerAddress: z.string().optional(),
     customerDocument: z.string().optional(),
-    issueDate: z.string().min(1, 'Data obrigatória'),
-    dueDate: z.string().min(1, 'Vencimento obrigatório'),
+    issueDate: z.string().min(1, 'Data obrigatÃ³ria'),
+    dueDate: z.string().min(1, 'Vencimento obrigatÃ³rio'),
     items: z.array(invoiceItemSchema).min(1, 'Adicione pelo menos um item'),
     discount: z.coerce.number().min(0).default(0),
     tax: z.coerce.number().min(0).default(0),
@@ -105,9 +105,9 @@ type InvoiceFormData = z.infer<typeof invoiceSchema>;
 
 // Payment Schema
 const paymentSchema = z.object({
-    amount: z.coerce.number().min(0.01, 'Valor obrigatório'),
-    method: z.string().min(1, 'Método obrigatório'),
-    date: z.string().min(1, 'Data obrigatória'),
+    amount: z.coerce.number().min(0.01, 'Valor obrigatÃ³rio'),
+    method: z.string().min(1, 'MÃ©todo obrigatÃ³rio'),
+    date: z.string().min(1, 'Data obrigatÃ³ria'),
     reference: z.string().optional(),
     notes: z.string().optional(),
 });
@@ -300,7 +300,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
             discount: 0,
             tax: 0,
             notes: '',
-            terms: 'Pagamento em at 30 dias após emissão.',
+            terms: 'Pagamento em at 30 dias apÃ³s emissÃ£o.',
         },
     });
 
@@ -329,8 +329,8 @@ export default function Invoices({ originModule }: InvoicesProps) {
     const paymentMethods = [
         { value: 'pix', label: 'PIX' },
         { value: 'cash', label: 'Dinheiro' },
-        { value: 'card', label: 'Cartão' },
-        { value: 'transfer', label: 'Transferência' },
+        { value: 'card', label: 'CartÃ£o' },
+        { value: 'transfer', label: 'TransferÃªncia' },
         { value: 'mpesa', label: 'M-Pesa' },
     ];
 
@@ -446,7 +446,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                 total: Number(source.total || 0),
             });
 
-            toast.success(`${source.type === 'pharmacy' ? 'Venda de Farmácia' : 'Encomenda'} ${source.number} carregada!`);
+            toast.success(`${source.type === 'pharmacy' ? 'Venda de FarmÃ¡cia' : 'Encomenda'} ${source.number} carregada!`);
         }
     };
 
@@ -535,7 +535,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
             const responseData = apiErr?.response?.data;
             if (responseData?.errors && Array.isArray(responseData.errors)) {
                 const errorDetails = responseData.errors.map((e) => `${e.path}: ${e.message}`).join(', ');
-                toast.error(`Erro de validação: ${errorDetails}`);
+                toast.error(`Erro de validaÃ§Ã£o: ${errorDetails}`);
             } else {
                 const message = responseData?.message || responseData?.error || apiErr?.message || 'Erro ao criar fatura';
                 toast.error(message);
@@ -548,8 +548,8 @@ export default function Invoices({ originModule }: InvoicesProps) {
     type RHFFieldErrors = Record<string, { message?: string; root?: { message?: string } } | undefined>;
     const onFormError = (errors: RHFFieldErrors) => {
         const firstError = Object.values(errors).find((e) => e?.message || e?.root?.message);
-        const message = firstError?.message || firstError?.root?.message || 'Verifique os campos obrigatórios';
-        toast.error(`Erro de validação: ${message}`);
+        const message = firstError?.message || firstError?.root?.message || 'Verifique os campos obrigatÃ³rios';
+        toast.error(`Erro de validaÃ§Ã£o: ${message}`);
         logger.error('Form validation errors:', errors);
     };
 
@@ -574,7 +574,6 @@ export default function Invoices({ originModule }: InvoicesProps) {
             resetPayment();
         } catch (err) {
             logger.error('Error registering payment:', err);
-        } finally {
         }
     };
 
@@ -630,14 +629,14 @@ export default function Invoices({ originModule }: InvoicesProps) {
 
     const tabs = [
         { id: 'invoices' as const, label: 'Faturas', icon: <HiOutlineDocumentText className="w-5 h-5" /> },
-        { id: 'credit_notes' as const, label: 'Notas de Crédito', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
+        { id: 'credit_notes' as const, label: 'Notas de CrÃ©dito', icon: <HiOutlineBanknotes className="w-5 h-5" /> },
     ];
 
     return (
         <div className="space-y-6">
             <PageHeader 
-                title={`Facturação & Crédito ${originModule === 'pharmacy' ? 'Farmácia' : ''}`}
-                subtitle={`Gestão de Facturas ${originModule === 'pharmacy' ? 'da Farmácia' : ''}, Notas de Crédito e Fluxos de Recebimento`}
+                title={`FacturaÃ§Ã£o & CrÃ©dito ${originModule === 'pharmacy' ? 'FarmÃ¡cia' : ''}`}
+                subtitle={`GestÃ£o de Facturas ${originModule === 'pharmacy' ? 'da FarmÃ¡cia' : ''}, Notas de CrÃ©dito e Fluxos de Recebimento`}
                 icon={<HiOutlineDocumentText className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <>
@@ -779,7 +778,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                     <div className="flex-1 relative">
                                         <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                                         <Input 
-                                            placeholder="Buscar facturas por número ou cliente..." 
+                                            placeholder="Buscar facturas por nÃºmero ou cliente..." 
                                             value={search} 
                                             onChange={(e) => setSearch(e.target.value)} 
                                             className="pl-10 bg-white dark:bg-dark-900 border-none shadow-sm h-11"
@@ -795,7 +794,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                     </div>
                                 </div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">
-                                    {pagination?.total || invoices.length} facturas encontradas no período
+                                    {pagination?.total || invoices.length} facturas encontradas no perÃ­odo
                                 </p>
                             </Card>
                         </div>
@@ -817,13 +816,13 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 <table className="min-w-full divide-y divide-slate-200/60 dark:divide-dark-700/50">
                                     <thead className="bg-slate-50/50 dark:bg-dark-800">
                                         <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Número</th>
+                                            <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">NÃºmero</th>
                                             <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Cliente</th>
                                             <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Vencimento</th>
                                             <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-gray-500">Total</th>
                                             <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-gray-500">Pago</th>
                                             <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-widest text-gray-500">Status</th>
-                                            <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-widest text-gray-500">Ações</th>
+                                            <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-widest text-gray-500">AÃ§Ãµes</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-200/60 dark:divide-dark-700/50">
@@ -851,10 +850,10 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex justify-center gap-1">
-                                                        <button onClick={() => handleViewInvoice(inv)} className="p-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors" title="Ver"><HiOutlineEye className="w-4 h-4 text-gray-500" /></button>
-                                                        <button onClick={() => handlePrintInvoice(inv)} className="p-1.5 hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-lg transition-colors" title="Imprimir"><HiOutlinePrinter className="w-4 h-4 text-primary-500" /></button>
-                                                        {inv.status === 'draft' && <button onClick={() => handleSendInvoice(inv)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Enviar"><HiOutlineEnvelope className="w-4 h-4 text-blue-500" /></button>}
-                                                        {(inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue') && <button onClick={() => { setSelectedInvoice(inv); resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') }); setShowPaymentModal(true); }} className="p-1.5 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors" title="Pagamento"><HiOutlineBanknotes className="w-4 h-4 text-green-500" /></button>}
+                                                        <Button variant="ghost" onClick={() => handleViewInvoice(inv)} className="p-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors" title="Ver"><HiOutlineEye className="w-4 h-4 text-gray-500" /></Button>
+                                                        <Button variant="ghost" onClick={() => handlePrintInvoice(inv)} className="p-1.5 hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-lg transition-colors" title="Imprimir"><HiOutlinePrinter className="w-4 h-4 text-primary-500" /></Button>
+                                                        {inv.status === 'draft' && <Button variant="ghost" onClick={() => handleSendInvoice(inv)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Enviar"><HiOutlineEnvelope className="w-4 h-4 text-blue-500" /></Button>}
+                                                        {(inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue') && <Button variant="ghost" onClick={() => { setSelectedInvoice(inv); resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') }); setShowPaymentModal(true); }} className="p-1.5 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors" title="Pagamento"><HiOutlineBanknotes className="w-4 h-4 text-green-500" /></Button>}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -892,7 +891,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             <div className="flex items-center justify-between mb-3">
                                 <h4 className="font-semibold text-primary-700 dark:text-primary-300">Vincular Venda ou Encomenda</h4>
                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary-500">
-                                    {availableSources.length} disponíveis
+                                    {availableSources.length} disponÃ­veis
                                 </span>
                             </div>
 
@@ -901,7 +900,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 <div className="relative">
                                     <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
                                     <Input
-                                        placeholder="Pesquisar por número, cliente ou tipo..."
+                                        placeholder="Pesquisar por nÃºmero, cliente ou tipo..."
                                         value={sourceSearch}
                                         onChange={(e) => {
                                             setSourceSearch(e.target.value);
@@ -911,7 +910,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                         className="pl-10 bg-white dark:bg-dark-900"
                                     />
                                     {selectedOrderNumber && (
-                                        <button
+                                        <Button variant="ghost"
                                             type="button"
                                             onClick={() => {
                                                 handleOrderSelect('');
@@ -920,13 +919,13 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 hover:text-red-500 font-medium"
                                         >
                                             Limpar
-                                        </button>
+                                        </Button>
                                     )}
                                 </div>
 
                                 {showSourceResults && (
                                     <div className="relative z-10 w-full mt-1 bg-white dark:bg-dark-800 rounded-lg shadow-lg border border-gray-200 dark:border-dark-700 max-h-72 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
-                                        <button
+                                        <Button variant="ghost"
                                             type="button"
                                             onClick={() => {
                                                 handleOrderSelect('');
@@ -935,18 +934,18 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                             }}
                                             className="w-full text-left p-3 border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-700 text-sm text-gray-600 dark:text-gray-300"
                                         >
-                                            <span className="italic">Criação Manual (Sem vínculo)</span>
-                                        </button>
+                                            <span className="italic">CriaÃ§Ã£o Manual (Sem vÃ­nculo)</span>
+                                        </Button>
                                         {filteredSources.length === 0 ? (
                                             <div className="p-6 text-center text-sm text-gray-500">
                                                 {availableSources.length === 0
-                                                    ? 'Nenhuma venda ou encomenda pendente de faturação encontrada.'
+                                                    ? 'Nenhuma venda ou encomenda pendente de faturaÃ§Ã£o encontrada.'
                                                     : `Nenhum resultado para "${sourceSearch}"`}
                                             </div>
                                         ) : (
                                             <div className="p-2 space-y-1">
                                                 {filteredSources.map((source) => (
-                                                    <button
+                                                    <Button variant="ghost"
                                                         key={source.id}
                                                         type="button"
                                                         onClick={() => {
@@ -964,7 +963,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                                                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                                                         : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                                                                 )}>
-                                                                    {source.type === 'pharmacy' ? 'Farmácia' : 'Comercial'}
+                                                                    {source.type === 'pharmacy' ? 'FarmÃ¡cia' : 'Comercial'}
                                                                 </span>
                                                                 <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">{source.number}</span>
                                                                 {source.status && source.status !== 'completed' && (
@@ -978,7 +977,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                                         <div className="text-right ml-3">
                                                             <span className="font-bold text-primary-600 dark:text-primary-400">{formatCurrency(Number(source.total))}</span>
                                                         </div>
-                                                    </button>
+                                                    </Button>
                                                 ))}
                                             </div>
                                         )}
@@ -1016,7 +1015,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             )}
 
                             {availableSources.length === 0 && (
-                                <p className="text-xs text-amber-600 mt-2 italic">Nenhuma venda ou encomenda pendente de faturação encontrada.</p>
+                                <p className="text-xs text-amber-600 mt-2 italic">Nenhuma venda ou encomenda pendente de faturaÃ§Ã£o encontrada.</p>
                             )}
                         </Card>
                     )}
@@ -1028,10 +1027,10 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Input label="Telefone" {...register('customerPhone')} />
                         <Input label="Documento (BI/NUIT)" {...register('customerDocument')} />
-                        <Input label="Endereço" {...register('customerAddress')} />
+                        <Input label="EndereÃ§o" {...register('customerAddress')} />
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Input label="Emissão *" type="date" {...register('issueDate')} error={errors.issueDate?.message} />
+                        <Input label="EmissÃ£o *" type="date" {...register('issueDate')} error={errors.issueDate?.message} />
                         <Input label="Vencimento *" type="date" {...register('dueDate')} error={errors.dueDate?.message} />
                         <Input
                             label={lockedSource ? 'Desconto (da encomenda)' : 'Desconto'}
@@ -1041,7 +1040,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             {...register('discount')}
                         />
                         <Input
-                            label={lockedSource ? `IVA (${lockedSource.taxRate}% — congelado)` : 'IVA'}
+                            label={lockedSource ? `IVA (${lockedSource.taxRate}% â€” congelado)` : 'IVA'}
                             type="number"
                             step="0.01"
                             disabled={!!lockedSource}
@@ -1050,7 +1049,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     </div>
                     {lockedSource && (
                         <p className="text-xs text-amber-600 italic -mt-2">
-                            Os valores foram herdados da {lockedSource.type === 'pharmacy' ? 'venda' : 'encomenda'}. Para alterar preços ou IVA, remova o vínculo acima.
+                            Os valores foram herdados da {lockedSource.type === 'pharmacy' ? 'venda' : 'encomenda'}. Para alterar preÃ§os ou IVA, remova o vÃ­nculo acima.
                         </p>
                     )}
 
@@ -1079,7 +1078,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         {!lockedSource && (
                         <div className="relative">
                             <Input
-                                placeholder="esquisar produto no inventário por nome ou código..."
+                                placeholder="esquisar produto no inventÃ¡rio por nome ou cÃ³digo..."
                                 value={productSearch}
                                 onChange={(e) => {
                                     setProductSearch(e.target.value);
@@ -1092,7 +1091,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                 <div className="absolute z-[100] w-full mt-1 bg-white dark:bg-dark-800 rounded-lg shadow-2xl border border-gray-200 dark:border-dark-700 max-h-60 overflow-y-auto overflow-x-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                                     <div className="p-2 space-y-1">
                                         {filteredProducts.map((p) => (
-                                            <button
+                                            <Button variant="ghost"
                                                 key={p.id}
                                                 type="button"
                                                 onClick={() => handleAddProduct(p)}
@@ -1108,7 +1107,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                                                 <div className="text-right">
                                                     <span className="font-bold text-primary-600 dark:text-primary-400">{formatCurrency(p.price)}</span>
                                                 </div>
-                                            </button>
+                                            </Button>
                                         ))}
                                     </div>
                                 </div>
@@ -1128,19 +1127,19 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         {fields.map((field, index) => (
                             <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
                                 <div className="col-span-5">
-                                    <Input placeholder="Descrição" disabled={!!lockedSource} {...register(`items.${index}.description`)} />
+                                    <Input placeholder="DescriÃ§Ã£o" disabled={!!lockedSource} {...register(`items.${index}.description`)} />
                                 </div>
                                 <div className="col-span-2">
                                     <Input type="number" placeholder="Qtd" disabled={!!lockedSource} {...register(`items.${index}.quantity`)} onChange={() => updateItemTotal(index)} />
                                 </div>
                                 <div className="col-span-2">
-                                    <Input type="number" step="0.01" placeholder="Preço" disabled={!!lockedSource} {...register(`items.${index}.unitPrice`)} onChange={() => updateItemTotal(index)} />
+                                    <Input type="number" step="0.01" placeholder="PreÃ§o" disabled={!!lockedSource} {...register(`items.${index}.unitPrice`)} onChange={() => updateItemTotal(index)} />
                                 </div>
                                 <div className="col-span-2">
                                     <p className="text-sm font-medium text-gray-900 dark:text-white">{formatCurrency(watchItems?.[index]?.total || 0)}</p>
                                 </div>
                                 <div className="col-span-1">
-                                    {!lockedSource && fields.length > 1 && <button type="button" onClick={() => remove(index)} className="p-2 text-red-500 hover:bg-red-50 rounded"><HiOutlineTrash className="w-4 h-4" /></button>}
+                                    {!lockedSource && fields.length > 1 && <Button variant="ghost" type="button" onClick={() => remove(index)} className="p-2 text-red-500 hover:bg-red-50 rounded"><HiOutlineTrash className="w-4 h-4" /></Button>}
                                 </div>
                             </div>
                         ))}
@@ -1150,7 +1149,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         </div>
                     </div>
 
-                    <Input label="Observações" {...register('notes')} />
+                    <Input label="ObservaÃ§Ãµes" {...register('notes')} />
                     <Input label="Termos" {...register('terms')} />
 
                     <div className="flex gap-3 justify-end pt-4 border-t">
@@ -1167,10 +1166,10 @@ export default function Invoices({ originModule }: InvoicesProps) {
                     <p className="text-sm text-gray-500">Valor pendente: <span className="font-medium text-red-600">{formatCurrency(selectedInvoice?.amountDue || 0)}</span></p>
                     <div className="grid grid-cols-2 gap-4">
                         <Input label="Valor *" type="number" step="0.01" {...registerPayment('amount')} error={paymentErrors.amount?.message} />
-                        <Select label="Método *" options={paymentMethods} {...registerPayment('method')} error={paymentErrors.method?.message} />
+                        <Select label="MÃ©todo *" options={paymentMethods} {...registerPayment('method')} error={paymentErrors.method?.message} />
                     </div>
                     <Input label="Data *" type="date" {...registerPayment('date')} error={paymentErrors.date?.message} />
-                    <Input label="Referência" {...registerPayment('reference')} placeholder="Nº transação, comprovante..." />
+                    <Input label="ReferÃªncia" {...registerPayment('reference')} placeholder="NÂº transaÃ§Ã£o, comprovante..." />
                     <div className="flex gap-3 justify-end pt-4 border-t">
                         <Button type="button" variant="ghost" onClick={() => setShowPaymentModal(false)}>Cancelar</Button>
                         <Button type="submit">Registrar Pagamento</Button>
@@ -1196,7 +1195,7 @@ export default function Invoices({ originModule }: InvoicesProps) {
                             </div>
                         </div>
                         <div className="grid grid-cols-3 gap-4 text-sm">
-                            <div><p className="text-gray-500">Emissão</p><p className="font-medium">{format(parseISO(selectedInvoice.issueDate), 'dd/MM/yyyy')}</p></div>
+                            <div><p className="text-gray-500">EmissÃ£o</p><p className="font-medium">{format(parseISO(selectedInvoice.issueDate), 'dd/MM/yyyy')}</p></div>
                             <div><p className="text-gray-500">Vencimento</p><p className="font-medium">{format(parseISO(selectedInvoice.dueDate), 'dd/MM/yyyy')}</p></div>
                             {selectedInvoice.paidDate && <div><p className="text-gray-500">Pago em</p><p className="font-medium text-green-600">{format(parseISO(selectedInvoice.paidDate), 'dd/MM/yyyy')}</p></div>}
                         </div>

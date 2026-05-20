@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { Button } from './Button';
 
 interface Tab {
     id: string;
@@ -57,7 +58,7 @@ export function Tabs({ tabs, activeTab, onChange, variant = 'default', className
     return (
         <div className={`${baseClasses} ${variant === 'underline' ? 'border-b border-slate-200 dark:border-dark-600' : ''} ${className}`}>
             {tabs.map(tab => (
-                <button
+                <Button variant="ghost"
                     key={tab.id}
                     type="button"
                     onClick={() => !tab.disabled && onChange(tab.id)}
@@ -66,7 +67,7 @@ export function Tabs({ tabs, activeTab, onChange, variant = 'default', className
                 >
                     {tab.icon}
                     {tab.label}
-                </button>
+                </Button>
             ))}
         </div>
     );

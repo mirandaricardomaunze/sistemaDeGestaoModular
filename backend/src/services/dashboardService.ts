@@ -2,7 +2,6 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { ApiError } from '../middleware/error.middleware';
 import { cacheService, CacheKeys } from './cacheService';
-import { logger } from '../utils/logger';
 
 export function invalidateDashboardCache(companyId: string): void {
     if (!companyId) return;

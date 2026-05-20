@@ -129,7 +129,7 @@ export function parseScaleData(raw: string): ScaleReading | null {
     }
 
     // S número (assume gramas)
-    const numberOnly = text.match(/^[\s+\-]*([\d.,]+)/);
+    const numberOnly = text.match(/^[\s+-]*([\d.,]+)/);
     if (numberOnly) {
         const weight = parseFloat(numberOnly[1].replace(',', '.'));
         if (!isNaN(weight) && weight >= 0) {

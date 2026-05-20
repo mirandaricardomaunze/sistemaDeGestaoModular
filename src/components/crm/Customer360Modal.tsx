@@ -19,6 +19,7 @@ import type { Customer } from '../../types';
 import { useSales } from '../../hooks/useSales';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Button } from '../ui/Button';
 
 interface Customer360ModalProps {
     isOpen: boolean;
@@ -77,14 +78,14 @@ export function Customer360Modal({ isOpen, onClose, customer }: Customer360Modal
                                             <div className="absolute bottom-0 left-0 -ml-10 -mb-10 w-40 h-40 rounded-full bg-primary-400/20 blur-2xl pointer-events-none"></div>
                                             
                                             <div className="absolute top-4 right-4">
-                                                <button
+                                                <Button variant="ghost"
                                                     type="button"
                                                     className="rounded-full bg-white/10 p-2 text-white/70 hover:bg-white/20 hover:text-white transition-all outline-none"
                                                     onClick={onClose}
                                                 >
                                                     <span className="sr-only">Fechar painel</span>
                                                     <HiOutlineXMark className="h-6 w-6" aria-hidden="true" />
-                                                </button>
+                                                </Button>
                                             </div>
 
                                             <div className="relative flex items-center gap-6 mt-4">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { HotelRoom as HotelRoomBase } from '../../types/hotel';
 
@@ -202,27 +202,27 @@ export default function HospitalityManagement() {
                                         </td>
                                         <td className="px-4 py-4 text-right">
                                             <div className="flex justify-end gap-2">
-                                                <button
+                                                <Button variant="ghost"
                                                     onClick={() => handleCopyICal(room.id)}
                                                     className="p-2 text-gray-400 hover:text-emerald-600 transition-colors"
                                                     title="iCal"
                                                 >
                                                     <HiOutlineArrowTopRightOnSquare className="w-4 h-4" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="ghost"
                                                     onClick={() => handleOpenEditModal(room)}
                                                     className="p-2 text-gray-400 hover:text-primary-600 transition-colors"
                                                     title={t('common.edit')}
                                                 >
                                                     <HiOutlinePencil className="w-4 h-4" />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button variant="ghost"
                                                     onClick={() => handleDeleteClick(room.id)}
                                                     className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                                                     title={t('common.delete')}
                                                 >
                                                     <HiOutlineTrash className="w-4 h-4" />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>

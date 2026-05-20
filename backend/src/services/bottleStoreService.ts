@@ -1,9 +1,21 @@
 import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { subMonths, startOfDay, endOfDay, format } from 'date-fns';
 import { stockService } from './stockService';
 import { ApiError } from '../middleware/error.middleware';
 import { ResultHandler } from '../utils/result';
+
+// Movement types accepted by stockService.recordMovement (kept in sync with
+// stockService.MovementType). Validated here so the route handler never has to
+// cast — invalid values return 400 with a precise Zod error.
+const stockMovementSchema = z.object({
+    productId: z.string().uuid('productId inválido'),
+    quantity: z.coerce.number().refine(n => n !== 0, 'quantity não pode ser zero'),
+    type: z.enum(['purchase', 'sale', 'return_in', 'return_out', 'adjustment', 'expired', 'transfer', 'loss']),
+    reason: z.string().max(500).optional(),
+    warehouseId: z.string().uuid('warehouseId inválido').optional(),
+});
 
 type BatchListQuery = {
     productId?: string;
@@ -43,13 +55,7 @@ export interface BottleStoreQuery {
     limit?: number | string;
 }
 
-export interface StockMovementData {
-    productId: string;
-    quantity: number | string;
-    type: string;
-    reason?: string;
-    warehouseId?: string;
-}
+export type StockMovementData = z.input<typeof stockMovementSchema>;
 
 export class BottleStoreService {
     async getDashboardStats(companyId: string, range: string) {
@@ -188,13 +194,35 @@ export class BottleStoreService {
     }
 
     async recordStockMovement(companyId: string, performedBy: string, data: StockMovementData) {
-        const { productId, quantity, type, reason, warehouseId } = data;
-        const product = await prisma.product.findFirst({ where: { id: productId, companyId, category: { equals: 'beverages', mode: 'insensitive' } } });
-        if (!product) throw ApiError.notFound('Produto não encontrado ou não pertence à categoria de bebidas');
+        const parsed = stockMovementSchema.parse(data);
+        const { productId, quantity, type, reason, warehouseId } = parsed;
+
+        // Discriminate by originModule (authoritative tenant-module ownership)
+        // rather than by `category` (descriptive only). The previous filter
+        // blocked any bottle-store product that didn't have the literal string
+        // "beverages" as its category, which surprised callers.
+        const product = await prisma.product.findFirst({
+            where: {
+                id: productId,
+                companyId,
+                OR: [
+                    { originModule: { equals: 'bottle_store', mode: 'insensitive' } },
+                    { category: { equals: 'beverages', mode: 'insensitive' } },
+                ],
+            },
+            select: { id: true },
+        });
+        if (!product) throw ApiError.notFound('Produto não encontrado neste módulo (bottle store)');
 
         return stockService.recordMovement({
-            productId, companyId, quantity: Number(quantity), movementType: type as 'purchase' | 'sale' | 'return_in' | 'return_out' | 'adjustment' | 'expired' | 'transfer' | 'loss',
-            originModule: 'BOTTLE_STORE', performedBy, reason, warehouseId
+            productId,
+            companyId,
+            quantity,
+            movementType: type,
+            originModule: 'BOTTLE_STORE',
+            performedBy,
+            reason,
+            warehouseId,
         });
     }
 

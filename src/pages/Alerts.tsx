@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AlertsPage - Full page view for managing all alerts
  * 
  * Uses the new modular notification system with filtering,
@@ -18,30 +18,47 @@ import {
     HiOutlineExclamationTriangle as HiOutlineExclamationTriangle,
     HiOutlineExclamationCircle,
     HiOutlineInformationCircle,
-    HiOutlineChevronRight
+    HiOutlineChevronRight,
+    HiOutlineMagnifyingGlass,
+    HiOutlineXMark
 } from 'react-icons/hi2';
 import { cn } from '../utils/helpers';
-import { useAlerts } from '../hooks/useAlerts';
-import { Button, Badge, Card, Pagination, usePagination, Select } from '../components/ui';
+import { useAlerts, useUnreadCount } from '../hooks/useAlerts';
+import { useTenant } from '../contexts/TenantContext';
+import { Button, Badge, Card, Pagination, usePagination, Select, ConfirmationModal } from '../components/ui';
 import type { Alert, AlertModule, AlertPriority } from '../services/api';
 
 // ============================================================================
 // Configuration
 // ============================================================================
 
-const MODULE_CONFIG: Record<string, { label: string; color: string }> = {
-    inventory: { label: 'Inventário', color: 'blue' },
-    invoices: { label: 'Facturas', color: 'green' },
-    hospitality: { label: 'Hotelaria', color: 'purple' },
-    pharmacy: { label: 'Farmácia', color: 'red' },
-    crm: { label: 'crm', color: 'orange' },
-    pos: { label: 'pos', color: 'cyan' },
+const MODULE_CONFIG: Record<string, { label: string }> = {
+    inventory: { label: 'InventÃ¡rio' },
+    invoices: { label: 'Facturas' },
+    hospitality: { label: 'Hotelaria' },
+    pharmacy: { label: 'FarmÃ¡cia' },
+    crm: { label: 'CRM' },
+    pos: { label: 'POS' },
+};
+
+// Each alert module is shown only if the tenant has at least one of these
+// underlying modules enabled. Examples:
+//   - "InventÃ¡rio" requires any product-carrying module (commercial/pharmacy/â€¦)
+//   - "Hotelaria" requires the hospitality module
+//   - Core modules (invoices, crm, pos) match themselves
+const MODULE_REQUIRES: Record<string, string[]> = {
+    inventory: ['commercial', 'pharmacy', 'bottle_store', 'restaurant'],
+    invoices: ['invoices', 'commercial', 'pharmacy', 'hospitality', 'bottle_store', 'restaurant'],
+    hospitality: ['hospitality'],
+    pharmacy: ['pharmacy'],
+    crm: ['crm'],
+    pos: ['pos', 'commercial', 'pharmacy', 'bottle_store', 'restaurant'],
 };
 
 const PRIORITY_CONFIG: Record<AlertPriority, { label: string; color: string; icon: React.ReactNode }> = {
-    critical: { label: 'Crítico', color: 'red', icon: <HiOutlineExclamationCircle className="w-5 h-5" /> },
+    critical: { label: 'CrÃ­tico', color: 'red', icon: <HiOutlineExclamationCircle className="w-5 h-5" /> },
     high: { label: 'Alto', color: 'orange', icon: <HiOutlineExclamationTriangle className="w-5 h-5" /> },
-    medium: { label: 'Médio', color: 'yellow', icon: <HiOutlineInformationCircle className="w-5 h-5" /> },
+    medium: { label: 'MÃ©dio', color: 'yellow', icon: <HiOutlineInformationCircle className="w-5 h-5" /> },
     low: { label: 'Baixo', color: 'blue', icon: <HiOutlineInformationCircle className="w-5 h-5" /> }
 };
 
@@ -52,9 +69,24 @@ const PRIORITY_CONFIG: Record<AlertPriority, { label: string; color: string; ico
 export default function AlertsPage() {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const { hasModule } = useTenant();
     const [selectedModule, setSelectedModule] = useState<AlertModule | 'all'>('all');
     const [showResolved, setShowResolved] = useState(false);
     const [selectedPriority, setSelectedPriority] = useState<AlertPriority | 'all'>('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
+
+    // Server-side unread counts power the badges on module chips
+    const { counts: unreadCounts } = useUnreadCount();
+
+    const visibleModuleEntries = React.useMemo(
+        () => Object.entries(MODULE_CONFIG).filter(([key]) => {
+            const requires = MODULE_REQUIRES[key] ?? [key];
+            return requires.some(m => hasModule(m));
+        }),
+        [hasModule]
+    );
 
     const {
         alerts,
@@ -73,6 +105,15 @@ export default function AlertsPage() {
         priority: selectedPriority === 'all' ? undefined : selectedPriority
     });
 
+    const filteredAlerts = React.useMemo(() => {
+        if (!searchQuery.trim()) return alerts;
+        const q = searchQuery.trim().toLowerCase();
+        return alerts.filter(a =>
+            a.title.toLowerCase().includes(q) ||
+            a.message.toLowerCase().includes(q)
+        );
+    }, [alerts, searchQuery]);
+
     const {
         currentPage,
         setCurrentPage,
@@ -80,10 +121,19 @@ export default function AlertsPage() {
         setItemsPerPage,
         paginatedItems: paginatedAlerts,
         totalItems,
-    } = usePagination(alerts, 10);
+    } = usePagination(filteredAlerts, 10);
 
     const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString('pt-MZ', {
+        const date = new Date(dateStr);
+        const diffMs = Date.now() - date.getTime();
+        const diffMin = Math.floor(diffMs / 60000);
+        if (diffMin < 1) return 'agora mesmo';
+        if (diffMin < 60) return `hÃ¡ ${diffMin} min`;
+        const diffH = Math.floor(diffMin / 60);
+        if (diffH < 24) return `hÃ¡ ${diffH} h`;
+        const diffD = Math.floor(diffH / 24);
+        if (diffD < 7) return `hÃ¡ ${diffD} d`;
+        return date.toLocaleDateString('pt-MZ', {
             day: '2-digit',
             month: 'short',
             year: 'numeric',
@@ -164,16 +214,21 @@ export default function AlertsPage() {
                 <Card className="p-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Não Lidos</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">NÃ£o Lidos</p>
                             <p className="text-2xl font-bold text-primary-600">{unreadCount}</p>
                         </div>
-                        <div className="w-3 h-3 rounded-full bg-primary-500 animate-pulse" />
+                        <div className="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-500/15 border border-transparent dark:border-primary-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110 relative">
+                            <HiOutlineBell className="w-6 h-6 text-primary-600 dark:text-primary-300" />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary-500 animate-pulse ring-2 ring-white dark:ring-dark-800" />
+                            )}
+                        </div>
                     </div>
                 </Card>
                 <Card className="p-4 border-l-4 border-l-red-500">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">Críticos</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">CrÃ­ticos</p>
                             <p className="text-2xl font-bold text-red-600">{criticalCount}</p>
                         </div>
                         <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-500/15 border border-transparent dark:border-red-500/20 flex items-center justify-center backdrop-blur-sm shadow-sm transition-transform hover:scale-110">
@@ -195,13 +250,34 @@ export default function AlertsPage() {
             </div>
 
             {/* Filters */}
-            <Card className="p-4">
-                <div className="flex flex-col sm:flex-row gap-4">
+            <Card className="p-4 space-y-4">
+                {/* Search bar */}
+                <div className="relative">
+                    <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Procurar por tÃ­tulo ou mensagem..."
+                        className="w-full pl-10 pr-10 py-2.5 text-sm rounded-xl border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    />
+                    {searchQuery && (
+                        <Button variant="ghost"
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-dark-600 transition-colors"
+                            aria-label="Limpar busca"
+                        >
+                            <HiOutlineXMark className="w-4 h-4" />
+                        </Button>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto] gap-4 items-start">
                     {/* Module Filter */}
-                    <div className="flex-1">
+                    <div className="min-w-0">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             <HiOutlineFilter className="w-4 h-4 inline mr-1" />
-                            Módulo
+                            MÃ³dulo
                         </label>
                         <div className="flex flex-wrap gap-2">
                             <Button
@@ -209,26 +285,41 @@ export default function AlertsPage() {
                                 variant={selectedModule === 'all' ? 'primary' : 'ghost'}
                                 onClick={() => setSelectedModule('all')}
                                 className={cn(
-                                    'font-medium transition-colors',
+                                    'font-medium transition-colors gap-2',
                                     selectedModule !== 'all' && 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400'
                                 )}
                             >
                                 Todos
+                                {unreadCounts?.total ? (
+                                    <span className={cn(
+                                        'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold rounded-full',
+                                        selectedModule === 'all' ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700 dark:bg-dark-600 dark:text-gray-300'
+                                    )}>{unreadCounts.total}</span>
+                                ) : null}
                             </Button>
-                            {Object.entries(MODULE_CONFIG).map(([key, config]) => (
-                                <Button
-                                    key={key}
-                                    size="sm"
-                                    variant={selectedModule === key ? 'primary' : 'ghost'}
-                                    onClick={() => setSelectedModule(key as AlertModule)}
-                                    className={cn(
-                                        'font-medium transition-colors',
-                                        selectedModule !== key && 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400'
-                                    )}
-                                >
-                                    {config.label}
-                                </Button>
-                            ))}
+                            {visibleModuleEntries.map(([key, config]) => {
+                                const moduleCount = unreadCounts?.byModule?.[key] ?? 0;
+                                return (
+                                    <Button
+                                        key={key}
+                                        size="sm"
+                                        variant={selectedModule === key ? 'primary' : 'ghost'}
+                                        onClick={() => setSelectedModule(key as AlertModule)}
+                                        className={cn(
+                                            'font-medium transition-colors gap-2',
+                                            selectedModule !== key && 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-dark-700 dark:text-gray-400'
+                                        )}
+                                    >
+                                        {config.label}
+                                        {moduleCount > 0 && (
+                                            <span className={cn(
+                                                'inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold rounded-full',
+                                                selectedModule === key ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700 dark:bg-dark-600 dark:text-gray-300'
+                                            )}>{moduleCount}</span>
+                                        )}
+                                    </Button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -240,9 +331,9 @@ export default function AlertsPage() {
                             onChange={(e) => setSelectedPriority(e.target.value as AlertPriority | 'all')}
                             options={[
                                 { value: 'all', label: 'Todas' },
-                                { value: 'critical', label: 'Crítico' },
+                                { value: 'critical', label: 'CrÃ­tico' },
                                 { value: 'high', label: 'Alto' },
-                                { value: 'medium', label: 'Médio' },
+                                { value: 'medium', label: 'MÃ©dio' },
                                 { value: 'low', label: 'Baixo' }
                             ]}
                         />
@@ -274,27 +365,50 @@ export default function AlertsPage() {
                                     !showResolved && 'bg-gray-100 text-gray-600 dark:bg-dark-700'
                                 )}
                             >
-                                Todos
+                                Incluir Resolvidos
                             </Button>
                         </div>
                     </div>
                 </div>
 
-                {/* Bulk Actions */}
-                {showResolved && (
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-dark-600">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={clearResolved}
-                            className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 gap-2"
-                        >
-                            <HiOutlineTrash className="w-4 h-4" />
-                            Limpar Resolvidos
-                        </Button>
-                    </div>
-                )}
+                {/* Bulk Actions â€” always visible so the affordance isn't hidden behind a toggle */}
+                <div className="pt-4 border-t border-gray-200 dark:border-dark-600 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {totalItems > 0
+                            ? `${totalItems} alerta${totalItems > 1 ? 's' : ''} ${searchQuery ? 'encontrado' + (totalItems > 1 ? 's' : '') : ''}`
+                            : 'Sem alertas para os filtros actuais'}
+                    </p>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setConfirmClearOpen(true)}
+                        className="text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 gap-2"
+                    >
+                        <HiOutlineTrash className="w-4 h-4" />
+                        Limpar Resolvidos
+                    </Button>
+                </div>
             </Card>
+
+            <ConfirmationModal
+                isOpen={confirmClearOpen}
+                onClose={() => !isClearing && setConfirmClearOpen(false)}
+                onConfirm={async () => {
+                    try {
+                        setIsClearing(true);
+                        await clearResolved();
+                        setConfirmClearOpen(false);
+                    } finally {
+                        setIsClearing(false);
+                    }
+                }}
+                title="Limpar alertas resolvidos?"
+                message="Todos os alertas marcados como resolvidos serÃ£o removidos permanentemente. Esta acÃ§Ã£o nÃ£o pode ser desfeita."
+                confirmText="Sim, remover"
+                cancelText="Cancelar"
+                variant="danger"
+                isLoading={isClearing}
+            />
 
             {/* Alerts List */}
             <Card className="overflow-hidden">
@@ -310,7 +424,7 @@ export default function AlertsPage() {
                             Sem Alertas
                         </h3>
                         <p className="text-gray-500 dark:text-gray-400">
-                            Não existem alertas para os filtros seleccionados.
+                            NÃ£o existem alertas para os filtros seleccionados.
                         </p>
                     </div>
                 ) : (

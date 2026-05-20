@@ -16,6 +16,7 @@ export interface AuditLogParams {
     entityId?: string;
     oldData?: Prisma.InputJsonValue | unknown;
     newData?: Prisma.InputJsonValue | unknown;
+    reason?: string;
     ipAddress?: string;
     userAgent?: string;
     companyId?: string;
@@ -33,6 +34,7 @@ export class AuditService {
                     entityId: params.entityId,
                     oldData: params.oldData as Prisma.InputJsonValue | undefined,
                     newData: params.newData as Prisma.InputJsonValue | undefined,
+                    reason: params.reason,
                     ipAddress: params.ipAddress,
                     userAgent: params.userAgent,
                     companyId: params.companyId,

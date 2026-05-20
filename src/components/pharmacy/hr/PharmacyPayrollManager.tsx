@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import {
     HiOutlineBanknotes,
     HiOutlineCheckCircle,
@@ -61,7 +61,7 @@ export const PharmacyPayrollManager: React.FC = () => {
         setShowProcessConfirm(false);
         const draftIds = payrollData?.filter(p => p.status === 'draft').map(p => p.id) || [];
         if (draftIds.length === 0) {
-            toast('Não h rascunhos por processar');
+            toast('NÃ£o h rascunhos por processar');
             return;
         }
         setProcessingAll(true);
@@ -87,7 +87,7 @@ export const PharmacyPayrollManager: React.FC = () => {
 
     const months = [
         { value: '1', label: 'Janeiro' }, { value: '2', label: 'Fevereiro' },
-        { value: '3', label: 'Março' }, { value: '4', label: 'Abril' },
+        { value: '3', label: 'MarÃ§o' }, { value: '4', label: 'Abril' },
         { value: '5', label: 'Maio' }, { value: '6', label: 'Junho' },
         { value: '7', label: 'Julho' }, { value: '8', label: 'Agosto' },
         { value: '9', label: 'Setembro' }, { value: '10', label: 'Outubro' },
@@ -109,7 +109,7 @@ export const PharmacyPayrollManager: React.FC = () => {
                 <div className="flex flex-col md:flex-row items-end justify-between gap-4">
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
                         <Select
-                            label="Mês de Referência"
+                            label="MÃªs de ReferÃªncia"
                             options={months}
                             value={month.toString()}
                             onChange={(e) => setMonth(Number(e.target.value))}
@@ -161,7 +161,7 @@ export const PharmacyPayrollManager: React.FC = () => {
             {/* Stats from real data */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <Card variant="glass" className="p-5 border-l-4 border-l-blue-500">
-                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 italic">Total Líquido</p>
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1 italic">Total LÃ­quido</p>
                     <h3 className="text-2xl font-black tracking-tighter">{formatCurrency(stats.totalNet)}</h3>
                 </Card>
                 <Card variant="glass" className="p-5 border-l-4 border-l-green-500">
@@ -169,11 +169,11 @@ export const PharmacyPayrollManager: React.FC = () => {
                     <h3 className="text-2xl font-black tracking-tighter text-green-600">{formatCurrency(stats.totalPaid)}</h3>
                 </Card>
                 <Card variant="glass" className="p-5 border-l-4 border-l-red-500">
-                    <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1 italic">Retenção INSS (3%)</p>
+                    <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-1 italic">RetenÃ§Ã£o INSS (3%)</p>
                     <h3 className="text-2xl font-black tracking-tighter text-red-600">{formatCurrency(stats.totalINSS)}</h3>
                 </Card>
                 <Card variant="glass" className="p-5 border-l-4 border-l-teal-500">
-                    <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest mb-1 italic">Comissões Totais</p>
+                    <p className="text-[10px] font-black text-teal-600 uppercase tracking-widest mb-1 italic">ComissÃµes Totais</p>
                     <h3 className="text-2xl font-black tracking-tighter text-teal-600">{formatCurrency(stats.totalBonus)}</h3>
                 </Card>
             </div>
@@ -185,26 +185,26 @@ export const PharmacyPayrollManager: React.FC = () => {
                         <TableLoadingState
                             columns={7}
                             rows={8}
-                            message="A carregar salários..."
+                            message="A carregar salÃ¡rios..."
                         />
                     )}
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="bg-gray-50/50 dark:bg-dark-900/50 text-[10px] font-black uppercase text-gray-500 tracking-widest border-b border-gray-100 dark:border-dark-700/50 whitespace-nowrap">
                                 <th className="px-6 py-4 text-left">Colaborador</th>
-                                <th className="px-6 py-4 text-right">Salário Base</th>
-                                <th className="px-6 py-4 text-right italic">Comissão/Bónus</th>
-                                <th className="px-6 py-4 text-right text-red-500 italic">Dedução (INSS+IRT)</th>
-                                <th className="px-6 py-4 text-right font-black">Líquido a Receber</th>
+                                <th className="px-6 py-4 text-right">SalÃ¡rio Base</th>
+                                <th className="px-6 py-4 text-right italic">ComissÃ£o/BÃ³nus</th>
+                                <th className="px-6 py-4 text-right text-red-500 italic">DeduÃ§Ã£o (INSS+IRT)</th>
+                                <th className="px-6 py-4 text-right font-black">LÃ­quido a Receber</th>
                                 <th className="px-6 py-4 text-center">Estado</th>
-                                <th className="px-6 py-4 text-right">Acções</th>
+                                <th className="px-6 py-4 text-right">AcÃ§Ãµes</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-dark-700/50">
                             {!isLoading && (!payrollData || payrollData.length === 0) ? (
                                 <tr>
                                     <td colSpan={7} className="py-20 text-center text-gray-400 font-medium italic">
-                                        Nenhum registo disponível para {months.find(m => m.value === month.toString())?.label} / {year}
+                                        Nenhum registo disponÃ­vel para {months.find(m => m.value === month.toString())?.label} / {year}
                                     </td>
                                 </tr>
                             ) : !isLoading && (
@@ -222,7 +222,7 @@ export const PharmacyPayrollManager: React.FC = () => {
                                                     </div>
                                                     <div>
                                                         <p className="font-black text-gray-900 dark:text-white uppercase text-xs">{employee?.name ?? ''}</p>
-                                                        <p className="text-[10px] text-gray-400 font-medium">{employee?.department || 'Farmácia'} • {employee?.code ?? ''}</p>
+                                                        <p className="text-[10px] text-gray-400 font-medium">{employee?.department || 'FarmÃ¡cia'} â€¢ {employee?.code ?? ''}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -245,30 +245,30 @@ export const PharmacyPayrollManager: React.FC = () => {
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex justify-end gap-1">
                                                     {p.status === 'draft' && (
-                                                        <button
+                                                        <Button variant="ghost"
                                                             onClick={() => handleUpdateStatus(p.id, 'processed')}
                                                             className="p-2 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors"
                                                             title="Processar"
                                                         >
                                                             <HiOutlineCheckCircle className="w-5 h-5" />
-                                                        </button>
+                                                        </Button>
                                                     )}
                                                     {p.status === 'processed' && (
-                                                        <button
+                                                        <Button variant="ghost"
                                                             onClick={() => handleUpdateStatus(p.id, 'paid')}
                                                             className="p-2 rounded-lg hover:bg-green-50 text-green-600 transition-colors"
                                                             title="Marcar como Pago"
                                                         >
                                                             <HiOutlineBanknotes className="w-5 h-5" />
-                                                        </button>
+                                                        </Button>
                                                     )}
-                                                    <button
+                                                    <Button variant="ghost"
                                                         onClick={() => openPayslip(p)}
                                                         className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                                                         title="Ver Recibo"
                                                     >
                                                         <HiOutlinePrinter className="w-5 h-5" />
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -295,7 +295,7 @@ export const PharmacyPayrollManager: React.FC = () => {
             <Modal
                 isOpen={isPayslipOpen}
                 onClose={() => setIsPayslipOpen(false)}
-                title="Recibo de Salário (Payslip)"
+                title="Recibo de SalÃ¡rio (Payslip)"
                 size="lg"
             >
                 {selectedPayroll && (() => {
@@ -305,8 +305,8 @@ export const PharmacyPayrollManager: React.FC = () => {
                         <div className="p-2 space-y-6">
                             <div className="flex justify-between items-start border-b-2 border-dashed border-gray-100 pb-6">
                                 <div>
-                                    <h1 className="text-xl font-black text-gray-900 uppercase">FARMÁCIA MULTICORE</h1>
-                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Recibo de Remuneração</p>
+                                    <h1 className="text-xl font-black text-gray-900 uppercase">FARMÃCIA MULTICORE</h1>
+                                    <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Recibo de RemuneraÃ§Ã£o</p>
                                 </div>
                                 <div className="text-right">
                                     <Badge variant="outline">{months[month - 1].label} {year}</Badge>
@@ -330,22 +330,22 @@ export const PharmacyPayrollManager: React.FC = () => {
                             <div className="space-y-4">
                                 <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                                     <div className="flex justify-between text-xs font-bold border-b border-gray-100 pb-2">
-                                        <span>DESCRIÇÃO</span>
+                                        <span>DESCRIÃ‡ÃƒO</span>
                                         <span>VALOR (MT)</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-gray-600">Salário Base</span>
+                                        <span className="text-gray-600">SalÃ¡rio Base</span>
                                         <span className="font-mono font-bold">{formatCurrency(Number(selectedPayroll.baseSalary))}</span>
                                     </div>
                                     {Number(selectedPayroll.bonus) > 0 && (
                                         <div className="flex justify-between text-sm text-teal-600">
-                                            <span className="font-medium italic">Comissões / Bónus</span>
+                                            <span className="font-medium italic">ComissÃµes / BÃ³nus</span>
                                             <span className="font-mono font-black">+{formatCurrency(Number(selectedPayroll.bonus))}</span>
                                         </div>
                                     )}
                                     {Number(selectedPayroll.allowances) > 0 && (
                                         <div className="flex justify-between text-sm text-teal-600">
-                                            <span className="font-medium italic">Subsídios (Transp./Alim.)</span>
+                                            <span className="font-medium italic">SubsÃ­dios (Transp./Alim.)</span>
                                             <span className="font-mono font-black">+{formatCurrency(Number(selectedPayroll.allowances))}</span>
                                         </div>
                                     )}
@@ -356,11 +356,11 @@ export const PharmacyPayrollManager: React.FC = () => {
                                         </div>
                                     )}
                                     <div className="flex justify-between text-sm text-red-500">
-                                        <span className="font-medium italic">Retenção INSS (3%)</span>
+                                        <span className="font-medium italic">RetenÃ§Ã£o INSS (3%)</span>
                                         <span className="font-mono font-black">-{formatCurrency(inss)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm text-red-500">
-                                        <span className="font-medium italic">Retenção IRT</span>
+                                        <span className="font-medium italic">RetenÃ§Ã£o IRT</span>
                                         <span className="font-mono font-black">-{formatCurrency(irt)}</span>
                                     </div>
                                     {Number(selectedPayroll.advances) > 0 && (
@@ -373,7 +373,7 @@ export const PharmacyPayrollManager: React.FC = () => {
 
                                 <div className="flex justify-between items-center p-6 bg-primary-600 rounded-lg text-white shadow-xl shadow-primary-500/20">
                                     <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Líquido a Receber</p>
+                                        <p className="text-[10px] font-black uppercase tracking-widest opacity-80">LÃ­quido a Receber</p>
                                         <p className="text-xs italic opacity-80">
                                             {selectedPayroll.paidAt
                                                 ? `Pago em ${formatDate(selectedPayroll.paidAt)}`
@@ -415,8 +415,8 @@ export const PharmacyPayrollManager: React.FC = () => {
                 isOpen={showProcessConfirm}
                 onClose={() => setShowProcessConfirm(false)}
                 onConfirm={confirmProcessAll}
-                title="Processar Salários"
-                message={`Deseja processar todos os rascunhos de salários para o período de ${months.find(m => m.value === month.toString())?.label} / ${year}?`}
+                title="Processar SalÃ¡rios"
+                message={`Deseja processar todos os rascunhos de salÃ¡rios para o perÃ­odo de ${months.find(m => m.value === month.toString())?.label} / ${year}?`}
                 confirmText="Sim, Processar Todos"
                 cancelText="Cancelar"
                 variant="primary"

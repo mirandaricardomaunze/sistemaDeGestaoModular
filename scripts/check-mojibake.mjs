@@ -66,7 +66,7 @@ for (const file of files) {
 
 if (offenders.length === 0) process.exit(0);
 
-console.error(`\n⚠️  Mojibake detectado em ${offenders.length} ficheiro(s) (${totalHits} linha(s)):\n`);
+console.error(`\n� ️  Mojibake detectado em ${offenders.length} ficheiro(s) (${totalHits} linha(s)):\n`);
 for (const { file, matches } of offenders) {
     console.error(`  ${file}`);
     for (const m of matches.slice(0, 5)) {

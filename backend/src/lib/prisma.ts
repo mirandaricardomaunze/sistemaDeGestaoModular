@@ -1,13 +1,11 @@
-import { PrismaClient } from '@prisma/client';
 import { tenantContext } from './context';
 import { logger } from '../utils/logger';
 import { auditQueue, AUDIT_JOB_OPTIONS } from '../queues/auditQueue';
+import { basePrisma } from './prismaBase';
 
-// ── P5 Performance Fix ───────────────────────────────────────────────────────
-// O basePrisma usado aqui é independente do prismaBase.ts.
-// O prismaBase.ts é usado APENAS pelo auditWorker para evitar recursão.
-// Este basePrisma (abaixo) é o cliente que alimenta a extensão de tenant.
-const basePrisma = new PrismaClient();
+// Single PrismaClient instance shared between the tenant-extended `prisma`
+// (used by routes/services) and the audit worker. Avoids exhausting the
+// Supabase pool with duplicate connection pools.
 
 // Shape of args common to Prisma operations we touch in the extension below.
 // Each field is optional because not every operation passes every key.
@@ -15,6 +13,42 @@ type TenantArgs = {
     where?: Record<string, unknown> & { id?: string; companyId?: string };
     data?: Record<string, unknown> & { id?: string } | Array<Record<string, unknown>>;
 };
+
+// Models for which we capture the previous row (oldData) before an update/delete.
+// Restricted to entities where "what changed" is auditable: fiscal documents,
+// stock, pricing, customers/suppliers, fiscal config, employees, approvals.
+// Excludes high-throughput caches/logs (StockMovement, AuditLog, dashboard caches)
+// to avoid doubling DB load on writes.
+const OLD_DATA_MODELS = new Set<string>([
+    'Product', 'Sale', 'Invoice', 'CreditNote', 'DebitNote',
+    'Customer', 'Supplier', 'Employee', 'CustomerOrder', 'PurchaseOrder',
+    'SupplierInvoice', 'CompanySettings', 'CompanyModule', 'User',
+    'PayrollRecord', 'ApprovalRequest', 'OrderCancellationRequest',
+    'TaxConfig', 'IvaRate', 'IRPSBracket', 'DocumentSeries',
+    'Warehouse', 'PriceTier', 'CommissionRule',
+]);
+
+// Map PascalCase model name → camelCase Prisma client accessor (e.g. CompanyModule → companyModule).
+function modelAccessor(model: string): string {
+    return model.charAt(0).toLowerCase() + model.slice(1);
+}
+
+// Fetch the existing row before an update/delete so the audit log can carry
+// `oldData`. Returns null on any failure — never blocks the main mutation.
+type FindUniqueClient = {
+    findUnique?: (args: { where: { id: string } }) => Promise<unknown>;
+};
+async function fetchOldData(model: string, id: string): Promise<unknown> {
+    if (!OLD_DATA_MODELS.has(model)) return null;
+    try {
+        const accessor = (basePrisma as unknown as Record<string, FindUniqueClient>)[modelAccessor(model)];
+        if (!accessor?.findUnique) return null;
+        return await accessor.findUnique({ where: { id } });
+    } catch (err) {
+        logger.warn('Failed to capture oldData for audit', { model, id, err });
+        return null;
+    }
+}
 
 export const prisma = basePrisma.$extends({
     query: {
@@ -36,13 +70,14 @@ export const prisma = basePrisma.$extends({
                     'User', 'Product', 'Category', 'Warehouse', 'StockMovement',
                     'Customer', 'Supplier', 'Sale', 'PharmacySale', 'Medication',
                     'Employee', 'Transaction', 'Invoice', 'Alert', 'Booking', 'Room',
+                    'CompanyModule', 'CompanySettings', 'CalendarEvent',
                     // Stock & logistics
                     'StockTransfer', 'StockReservation', 'PriceTier', 'ProductBatch', 'WarehouseStock',
                     'PurchaseOrder', 'SupplierInvoice', 'CreditNote', 'DebitNote', 'CustomerOrder', 'OrderCancellationRequest', 'DocumentSeries',
                     // Restaurant
                     'RestaurantTable', 'RestaurantMenuItem', 'RestaurantOrder', 'RestaurantReservation',
                     // CRM
-                    'FunnelStage', 'Opportunity', 'Campaign', 'Interaction',
+                    'FunnelStage', 'Opportunity', 'Campaign',
                     // HR
                     'AttendanceRecord', 'PayrollRecord', 'VacationRequest', 'AcademicQualification',
                     'CommissionRule',
@@ -60,7 +95,7 @@ export const prisma = basePrisma.$extends({
                     'IRPSBracket',
                     // Payments & cash
                     'MpesaTransaction', 'CashSession', 'CreditPayment', 'BottleReturn',
-                    'LoyaltyTransaction', 'CustomerHistory',
+                    'CustomerHistory',
                     // Hospitality
                     'HousekeepingTask', 'BookingConsumption',
                     // Config & audit (company-scoped)
@@ -89,6 +124,22 @@ export const prisma = basePrisma.$extends({
                     }
                 }
 
+                // ── P5: Capture `oldData` for update/delete on critical models ──
+                // Runs BEFORE the mutation so we record the row in its pre-change
+                // state. Only fires for the allowlist (OLD_DATA_MODELS) and only
+                // when we can target a single id — `updateMany`/`deleteMany` are
+                // skipped to avoid fetching unbounded result sets.
+                let oldData: object | undefined;
+                const singleIdMutation =
+                    tenantModels.includes(model)
+                    && ['update', 'delete'].includes(operation)
+                    && typeof tArgs.where?.id === 'string';
+                if (singleIdMutation) {
+                    const fetched = await fetchOldData(model, tArgs.where!.id as string);
+                    // JSON round-trip normalises Prisma Decimal/Date into plain JSON.
+                    oldData = fetched ? JSON.parse(JSON.stringify(fetched)) : undefined;
+                }
+
                 // Execute the actual query first
                 const result = await query(args);
 
@@ -109,6 +160,7 @@ export const prisma = basePrisma.$extends({
                         action: operation.toUpperCase(),
                         entity: model,
                         entityId: auditId,
+                        oldData,
                         newData: operation !== 'delete' ? (tArgs.data as object | undefined) : undefined,
                         companyId,
                     };
@@ -120,9 +172,16 @@ export const prisma = basePrisma.$extends({
                         });
                     } else {
                         // Fallback → escrita directa (comportamento anterior)
-                        basePrisma.auditLog.create({ data: auditPayload }).catch((auditErr: unknown) => {
-                            logger.error('CRITICAL: Audit log creation failed', { error: auditErr, model, operation });
-                        });
+                        if (process.env.NODE_ENV === 'test') {
+                            // Em ambiente de teste, aguardamos a criação do log de auditoria para evitar concorrência e vazamento de conexões
+                            await basePrisma.auditLog.create({ data: auditPayload }).catch((auditErr: unknown) => {
+                                logger.error('CRITICAL: Audit log creation failed in test', { error: auditErr, model, operation });
+                            });
+                        } else {
+                            basePrisma.auditLog.create({ data: auditPayload }).catch((auditErr: unknown) => {
+                                logger.error('CRITICAL: Audit log creation failed', { error: auditErr, model, operation });
+                            });
+                        }
                     }
                 }
 

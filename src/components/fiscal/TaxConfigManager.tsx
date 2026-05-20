@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import {
     HiOutlineCog6Tooth as HiOutlineCog,
     HiOutlinePlus,
@@ -78,7 +78,7 @@ export default function TaxConfigManager() {
         e.preventDefault();
 
         if (!formData.name.trim()) {
-            toast.error('Nome do imposto é obrigatório');
+            toast.error('Nome do imposto Ã© obrigatÃ³rio');
             return;
         }
 
@@ -89,7 +89,7 @@ export default function TaxConfigManager() {
                 ...formData,
                 updatedAt: now,
             });
-            toast.success('Configuração atualizada com sucesso!');
+            toast.success('ConfiguraÃ§Ã£o atualizada com sucesso!');
         } else {
             const newConfig: TaxConfig = {
                 id: generateId(),
@@ -99,7 +99,7 @@ export default function TaxConfigManager() {
                 updatedAt: now,
             };
             addTaxConfig(newConfig);
-            toast.success('Configuração criada com sucesso!');
+            toast.success('ConfiguraÃ§Ã£o criada com sucesso!');
         }
 
         setShowModal(false);
@@ -107,26 +107,26 @@ export default function TaxConfigManager() {
 
     const handleDelete = (id: string) => {
         deleteTaxConfig(id);
-        toast.success('Configuração removida!');
+        toast.success('ConfiguraÃ§Ã£o removida!');
         setShowDeleteConfirm(null);
     };
 
     const handleUpdateBracket = (id: string, field: keyof IRPSBracket, value: number | boolean) => {
         updateIRPSBracket(id, { [field]: value });
-        toast.success('Escalão atualizado!');
+        toast.success('EscalÃ£o atualizado!');
     };
 
     const typeOptions = [
         { value: 'iva', label: 'IVA - Imposto sobre Valor Acrescentado' },
-        { value: 'inss_employee', label: 'INSS - Contribuição Trabalhador' },
-        { value: 'inss_employer', label: 'INSS - Contribuição Empregador' },
+        { value: 'inss_employee', label: 'INSS - ContribuiÃ§Ã£o Trabalhador' },
+        { value: 'inss_employer', label: 'INSS - ContribuiÃ§Ã£o Empregador' },
         { value: 'irt', label: 'IRPS - Imposto Rendimento Pessoas Singulares' },
-        { value: 'withholding', label: 'Retenção na Fonte' },
+        { value: 'withholding', label: 'RetenÃ§Ã£o na Fonte' },
     ];
 
     const applicableOptions = [
         { value: 'invoices', label: 'Faturas' },
-        { value: 'salaries', label: 'Salários' },
+        { value: 'salaries', label: 'SalÃ¡rios' },
         { value: 'suppliers', label: 'Fornecedores' },
         { value: 'all', label: 'Todos' },
     ];
@@ -148,7 +148,7 @@ export default function TaxConfigManager() {
         <div className="space-y-6">
             {/* Tabs */}
             <div className="flex gap-2 border-b border-gray-200 dark:border-dark-700">
-                <button
+                <Button variant="ghost"
                     onClick={() => setActiveTab('taxes')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'taxes'
                         ? 'border-primary-500 text-primary-600 dark:text-primary-400'
@@ -156,9 +156,9 @@ export default function TaxConfigManager() {
                         }`}
                 >
                     <HiOutlineCog className="w-4 h-4 inline mr-2" />
-                    Configuração de Impostos
-                </button>
-                <button
+                    ConfiguraÃ§Ã£o de Impostos
+                </Button>
+                <Button variant="ghost"
                     onClick={() => setActiveTab('irt')}
                     className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'irt'
                         ? 'border-primary-500 text-primary-600 dark:text-primary-400'
@@ -167,7 +167,7 @@ export default function TaxConfigManager() {
                 >
                     <HiOutlineInformationCircle className="w-4 h-4 inline mr-2" />
                     Tabela IRPS Progressivo
-                </button>
+                </Button>
             </div>
 
             {activeTab === 'taxes' ? (
@@ -176,10 +176,10 @@ export default function TaxConfigManager() {
                     <div className="flex justify-between items-center">
                         <div className="flex flex-col">
                             <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
-                                Impostos e Retenções
+                                Impostos e RetenÃ§Ãµes
                             </h3>
                             <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
-                                Configure as taxas de IVA, INSS, IRPS e outras retenções
+                                Configure as taxas de IVA, INSS, IRPS e outras retenÃ§Ãµes
                             </p>
                         </div>
                         <Button 
@@ -200,16 +200,16 @@ export default function TaxConfigManager() {
                                         <th className="px-6 py-4 text-left font-black">Tipo</th>
                                         <th className="px-6 py-4 text-left font-black">Nome</th>
                                         <th className="px-6 py-4 text-center font-black">Taxa (%)</th>
-                                        <th className="px-6 py-4 text-center font-black">Aplicável a</th>
+                                        <th className="px-6 py-4 text-center font-black">AplicÃ¡vel a</th>
                                         <th className="px-6 py-4 text-center font-black">Estado</th>
-                                        <th className="px-6 py-4 text-right font-black">Ações</th>
+                                        <th className="px-6 py-4 text-right font-black">AÃ§Ãµes</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white dark:bg-dark-900 divide-y divide-gray-200 dark:divide-dark-700">
                                     {paginatedConfigs.length === 0 ? (
                                         <tr>
                                             <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                                                Nenhuma configuração encontrada
+                                                Nenhuma configuraÃ§Ã£o encontrada
                                             </td>
                                         </tr>
                                     ) : (
@@ -251,20 +251,20 @@ export default function TaxConfigManager() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                                     <div className="flex justify-end gap-2">
-                                                        <button
+                                                        <Button variant="ghost"
                                                             onClick={() => handleOpenModal(config)}
                                                             className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
                                                             title="Editar"
                                                         >
                                                             <HiOutlinePencil className="w-5 h-5" />
-                                                        </button>
-                                                        <button
+                                                        </Button>
+                                                        <Button variant="ghost"
                                                             onClick={() => setShowDeleteConfirm(config.id)}
                                                             className="p-2 text-gray-400 hover:text-red-600 transition-colors"
                                                             title="Eliminar"
                                                         >
                                                             <HiOutlineTrash className="w-5 h-5" />
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -291,10 +291,10 @@ export default function TaxConfigManager() {
                     <div className="flex justify-between items-center">
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                Tabela IRPS - Moçambique 2024
+                                Tabela IRPS - MoÃ§ambique 2024
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Escalões progressivos do Imposto sobre Rendimento do Trabalho
+                                EscalÃµes progressivos do Imposto sobre Rendimento do Trabalho
                             </p>
                         </div>
                     </div>
@@ -304,11 +304,11 @@ export default function TaxConfigManager() {
                             <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
                                 <thead className="bg-slate-50/80 dark:bg-dark-800/80 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-dark-700/50 whitespace-nowrap">
                                     <tr>
-                                        <th className="px-6 py-4 text-left font-black">Escalão</th>
-                                        <th className="px-6 py-4 text-right font-black">Rendimento Mínimo</th>
-                                        <th className="px-6 py-4 text-right font-black">Rendimento Máximo</th>
+                                        <th className="px-6 py-4 text-left font-black">EscalÃ£o</th>
+                                        <th className="px-6 py-4 text-right font-black">Rendimento MÃ­nimo</th>
+                                        <th className="px-6 py-4 text-right font-black">Rendimento MÃ¡ximo</th>
                                         <th className="px-6 py-4 text-center font-black">Taxa (%)</th>
-                                        <th className="px-6 py-4 text-right font-black">Dedução Fixa</th>
+                                        <th className="px-6 py-4 text-right font-black">DeduÃ§Ã£o Fixa</th>
                                         <th className="px-6 py-4 text-center font-black">Estado</th>
                                     </tr>
                                 </thead>
@@ -335,7 +335,7 @@ export default function TaxConfigManager() {
                                                 {formatCurrency(bracket.fixedDeduction)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <button
+                                                <Button variant="ghost"
                                                     onClick={() => handleUpdateBracket(bracket.id, 'isActive', !bracket.isActive)}
                                                     className={`p-2 rounded-lg transition-colors ${bracket.isActive
                                                         ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
@@ -347,7 +347,7 @@ export default function TaxConfigManager() {
                                                     ) : (
                                                         <HiOutlineXMark className="w-5 h-5" />
                                                     )}
-                                                </button>
+                                                </Button>
                                             </td>
                                         </tr>
                                     ))}
@@ -362,13 +362,13 @@ export default function TaxConfigManager() {
                             <HiOutlineInformationCircle className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                             <div>
                                 <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                                    Fórmula de Cálculo do IRPS
+                                    FÃ³rmula de CÃ¡lculo do IRPS
                                 </h4>
                                 <p className="text-blue-700 dark:text-blue-400 text-sm mb-2">
-                                    <strong>IRPS = (Salário Bruto x Taxa%) - Dedução Fixa</strong>
+                                    <strong>IRPS = (SalÃ¡rio Bruto x Taxa%) - DeduÃ§Ã£o Fixa</strong>
                                 </p>
                                 <p className="text-blue-600 dark:text-blue-500 text-sm">
-                                    Exemplo: Para um salário de 50.000 MZN, aplica-se o escalão 3 (20%):<br />
+                                    Exemplo: Para um salÃ¡rio de 50.000 MZN, aplica-se o escalÃ£o 3 (20%):<br />
                                     IRPS = (50.000 x 20%) - 3.267 = 10.000 - 3.267 = <strong>6.733 MZN</strong>
                                 </p>
                             </div>
@@ -401,10 +401,10 @@ export default function TaxConfigManager() {
                     />
 
                     <Input
-                        label="Descrição"
+                        label="DescriÃ§Ã£o"
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        placeholder="Descrição breve do imposto"
+                        placeholder="DescriÃ§Ã£o breve do imposto"
                     />
 
                     <Input
@@ -420,11 +420,11 @@ export default function TaxConfigManager() {
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Aplicável a
+                            AplicÃ¡vel a
                         </label>
                         <div className="flex flex-wrap gap-2">
                             {applicableOptions.map((option) => (
-                                <button
+                                <Button variant="ghost"
                                     key={option.value}
                                     type="button"
                                     onClick={() => {
@@ -440,7 +440,7 @@ export default function TaxConfigManager() {
                                         }`}
                                 >
                                     {option.label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
@@ -463,7 +463,7 @@ export default function TaxConfigManager() {
                             Cancelar
                         </Button>
                         <Button type="submit">
-                            {editingConfig ? 'Guardar Alterações' : 'Criar Imposto'}
+                            {editingConfig ? 'Guardar AlteraÃ§Ãµes' : 'Criar Imposto'}
                         </Button>
                     </div>
                 </form>
@@ -474,8 +474,8 @@ export default function TaxConfigManager() {
                 isOpen={!!showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(null)}
                 onConfirm={() => { if (showDeleteConfirm) handleDelete(showDeleteConfirm); }}
-                title="Confirmar Eliminação"
-                message="Tem certeza que deseja eliminar esta configuração de imposto? Esta ação não pode ser desfeita."
+                title="Confirmar EliminaÃ§Ã£o"
+                message="Tem certeza que deseja eliminar esta configuraÃ§Ã£o de imposto? Esta aÃ§Ã£o nÃ£o pode ser desfeita."
                 confirmText="Eliminar"
                 cancelText="Cancelar"
                 variant="danger"

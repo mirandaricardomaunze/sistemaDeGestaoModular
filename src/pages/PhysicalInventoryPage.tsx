@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import {
     HiOutlineArrowPath,
     HiOutlineCheckCircle,
@@ -144,7 +144,7 @@ export default function PhysicalInventoryPage() {
                             <div className="p-5 text-sm text-slate-500">A carregar contagens...</div>
                         ) : inventoriesQuery.data?.length ? (
                             inventoriesQuery.data.map((inventory) => (
-                                <button
+                                <Button variant="ghost"
                                     key={inventory.id}
                                     type="button"
                                     onClick={() => setSelectedId(inventory.id)}
@@ -158,7 +158,7 @@ export default function PhysicalInventoryPage() {
                                         <Badge variant={statusVariant[inventory.status]}>{inventory.status}</Badge>
                                     </div>
                                     <p className="mt-2 text-[11px] text-slate-500">{inventory._count?.lines ?? 0} linhas</p>
-                                </button>
+                                </Button>
                             ))
                         ) : (
                             <div className="p-8 text-sm text-slate-500">Sem contagens para este filtro.</div>

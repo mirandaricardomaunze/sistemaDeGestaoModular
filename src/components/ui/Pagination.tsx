@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { Button } from './Button';
 import {
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
@@ -85,14 +86,18 @@ export function Pagination({
             <div className="flex items-center gap-4">
                 {showItemsPerPage && onItemsPerPageChange && (
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-600 dark:text-gray-400">Por página:</span>
+                        <label htmlFor="pagination-page-size" className="text-sm text-slate-600 dark:text-gray-400">
+                            Por página:
+                        </label>
                         <select
+                            id="pagination-page-size"
                             value={itemsPerPage}
                             onChange={(e) => {
                                 onItemsPerPageChange(Number(e.target.value));
                                 onPageChange(1);
                             }}
-                            className="px-2 py-1.5 text-sm rounded-lg border border-slate-300/80 dark:border-dark-600 bg-white dark:bg-dark-800 text-slate-800 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            aria-label="Itens por página"
+                            className="px-2 py-1.5 text-sm rounded-lg border border-slate-300/80 dark:border-dark-600 bg-white dark:bg-dark-800 text-slate-800 dark:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                         >
                             {itemsPerPageOptions.map((option) => (
                                 <option key={option} value={option}>
@@ -103,74 +108,83 @@ export function Pagination({
                     </div>
                 )}
 
-                <nav className="flex items-center gap-1">
-                    <button
+                <nav className="flex items-center gap-1" aria-label="Paginação">
+                    <Button variant="ghost"
+                        type="button"
                         onClick={() => onPageChange(1)}
                         disabled={currentPage === 1 || totalItems === 0}
-                        className="p-2 rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        title="Primeira página"
+                        aria-label="Primeira página"
+                        className="p-2 rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     >
                         <HiOutlineChevronDoubleLeft className="w-4 h-4" />
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button variant="ghost"
+                        type="button"
                         onClick={() => onPageChange(currentPage - 1)}
                         disabled={currentPage === 1 || totalItems === 0}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700"
-                        title="Página anterior"
+                        aria-label="Página anterior"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     >
                         <HiOutlineChevronLeft className="w-4 h-4" />
                         <span className="inline">Anterior</span>
-                    </button>
+                    </Button>
 
                     <div className="flex items-center gap-1">
                         {totalItems > 0 ? (
                             pageNumbers.map((page, index) => (
                                 page === 'ellipsis' ? (
-                                    <span key={`ellipsis-${index}`} className="px-2 text-slate-500">
+                                    <span key={`ellipsis-${index}`} className="px-2 text-slate-500" aria-hidden="true">
                                         ...
                                     </span>
                                 ) : (
-                                    <button
+                                    <Button variant="ghost"
                                         key={page}
+                                        type="button"
                                         onClick={() => onPageChange(page)}
-                                        className={`min-w-[36px] h-9 px-3 rounded-lg text-sm font-semibold transition-colors ${currentPage === page
+                                        aria-label={`Ir para a página ${page}`}
+                                        aria-current={currentPage === page ? 'page' : undefined}
+                                        className={`min-w-[36px] h-9 px-3 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${currentPage === page
                                             ? 'bg-primary-600 text-white shadow-sm'
                                             : 'text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700'
                                             }`}
                                     >
                                         {page}
-                                    </button>
+                                    </Button>
                                 )
                             ))
                         ) : (
-                            <button
+                            <Button
+                                type="button"
                                 disabled
+                                aria-current="page"
                                 className="min-w-[36px] h-9 px-3 rounded-lg text-sm font-medium bg-primary-600 text-white shadow-sm opacity-50 cursor-not-allowed"
                             >
                                 1
-                            </button>
+                            </Button>
                         )}
                     </div>
 
-                    <button
+                    <Button variant="ghost"
+                        type="button"
                         onClick={() => onPageChange(currentPage + 1)}
                         disabled={currentPage === totalPages || totalItems === 0}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700"
-                        title="Próxima página"
+                        aria-label="Próxima página"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-gray-300 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-slate-300/80 dark:border-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     >
                         <span className="inline">Próximo</span>
                         <HiOutlineChevronRight className="w-4 h-4" />
-                    </button>
+                    </Button>
 
-                    <button
+                    <Button variant="ghost"
+                        type="button"
                         onClick={() => onPageChange(totalPages)}
                         disabled={currentPage === totalPages || totalItems === 0}
-                        className="p-2 rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        title="Última página"
+                        aria-label="Última página"
+                        className="p-2 rounded-lg text-slate-600 dark:text-gray-400 hover:bg-white dark:hover:bg-dark-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     >
                         <HiOutlineChevronDoubleRight className="w-4 h-4" />
-                    </button>
+                    </Button>
                 </nav>
             </div>
         </div>

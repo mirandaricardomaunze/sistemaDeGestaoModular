@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +19,7 @@ interface CreateCreditNoteModalProps {
 
 const creditNoteSchema = z.object({
     invoiceId: z.string().min(1, 'Selecione uma fatura'),
-    reason: z.string().min(3, 'Motivo obrigatório'),
+    reason: z.string().min(3, 'Motivo obrigatÃ³rio'),
     items: z.array(z.object({
         productId: z.string().optional().nullable(),
         description: z.string(),
@@ -29,7 +29,7 @@ const creditNoteSchema = z.object({
         total: z.number(),
         originalInvoiceItemId: z.string()
     })).refine((items) => items.some(item => item.quantity > 0), {
-        message: "Selecione pelo menos um item para devolução",
+        message: "Selecione pelo menos um item para devoluÃ§Ã£o",
         path: ["items"] // This might not map perfectly in array errors but verifies the whole array
     })
 });
@@ -138,11 +138,11 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
             });
 
             onCreate(result);
-            toast.success("Nota de Crédito emitida com sucesso!");
+            toast.success("Nota de CrÃ©dito emitida com sucesso!");
             handleClose();
         } catch (error) {
             logger.error('Error creating credit note:', error);
-            toast.error('Erro ao emitir nota de crédito');
+            toast.error('Erro ao emitir nota de crÃ©dito');
         }
     };
 
@@ -153,7 +153,7 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={handleClose} title="Emitir Nota de Crédito" size="lg">
+        <Modal isOpen={isOpen} onClose={handleClose} title="Emitir Nota de CrÃ©dito" size="lg">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
                 {/* Invoice Selector */}
@@ -164,7 +164,7 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
                     {!selectedInvoice ? (
                         <div className="space-y-2">
                             <Input
-                                placeholder="Buscar por número ou cliente..."
+                                placeholder="Buscar por nÃºmero ou cliente..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
@@ -210,7 +210,7 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
                     <>
                         {/* Reason */}
                         <Input
-                            label="Motivo da Devolução"
+                            label="Motivo da DevoluÃ§Ã£o"
                             {...register('reason')}
                             placeholder="Ex: Produto defeituoso, Troca..."
                             error={errors.reason?.message}
@@ -218,7 +218,7 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
 
                         {/* Items Selection */}
                         <div className="space-y-3">
-                            <h4 className="font-medium text-gray-900 dark:text-white">Itens para Devolução</h4>
+                            <h4 className="font-medium text-gray-900 dark:text-white">Itens para DevoluÃ§Ã£o</h4>
                             <div className="border rounded-lg overflow-hidden dark:border-gray-700">
                                 <table className="w-full text-sm text-left">
                                     <thead className="bg-gray-50 dark:bg-dark-800 text-gray-500 uppercase text-xs">
@@ -239,21 +239,21 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
                                                 <td className="px-4 py-3 text-right text-gray-500">{item.maxQuantity}</td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center justify-center gap-2">
-                                                        <button
+                                                        <Button variant="ghost"
                                                             type="button"
                                                             onClick={() => handleQuantityChange(index, item.quantity - 1)}
                                                             className="w-6 h-6 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200"
                                                         >
                                                             -
-                                                        </button>
+                                                        </Button>
                                                         <span className="w-8 text-center font-medium">{item.quantity}</span>
-                                                        <button
+                                                        <Button variant="ghost"
                                                             type="button"
                                                             onClick={() => handleQuantityChange(index, item.quantity + 1)}
                                                             className="w-6 h-6 rounded bg-gray-100 dark:bg-gray-700 flex items-center justify-center hover:bg-gray-200"
                                                         >
                                                             +
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right font-medium">
@@ -280,7 +280,7 @@ export default function CreateCreditNoteModal({ isOpen, onClose, invoices, onCre
                                 Cancelar
                             </Button>
                             <Button type="submit" className="flex-1">
-                                Gerar Nota de Crédito
+                                Gerar Nota de CrÃ©dito
                             </Button>
                         </div>
                     </>

@@ -27,6 +27,7 @@ import {
 import { logger } from '../../utils/logger';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { Button } from '../ui/Button';
 import {
     productsAPI,
     customersAPI,
@@ -897,7 +898,7 @@ export default function GlobalSearch() {
 
             {showResults && availableModules.length > 1 && (
                 <div className="flex items-center gap-1.5 px-3 py-2 border-b border-slate-200 dark:border-dark-700 overflow-x-auto scrollbar-thin">
-                    <button
+                    <Button variant="ghost"
                         onClick={() => setActiveFilter('all')}
                         className={`shrink-0 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide transition-colors ${
                             activeFilter === 'all'
@@ -907,13 +908,13 @@ export default function GlobalSearch() {
                     >
                         Todos
                         {allCounts.all > 0 && <span className="ml-1.5 opacity-75">{allCounts.all}</span>}
-                    </button>
+                    </Button>
                     {availableModules.map((cfg) => {
                         const count = allCounts[cfg.code] || 0;
                         if (count === 0) return null;
                         const Icon = cfg.icon;
                         return (
-                            <button
+                            <Button variant="ghost"
                                 key={cfg.code}
                                 onClick={() => setActiveFilter(cfg.code)}
                                 className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wide transition-colors ${
@@ -925,7 +926,7 @@ export default function GlobalSearch() {
                                 <Icon className="w-3 h-3" />
                                 {cfg.label}
                                 <span className="opacity-75">{count}</span>
-                            </button>
+                            </Button>
                         );
                     })}
                 </div>
@@ -941,7 +942,7 @@ export default function GlobalSearch() {
                                         <HiOutlineClock className="w-3 h-3" />
                                         Pesquisas Recentes
                                     </div>
-                                    <button
+                                    <Button variant="ghost"
                                         onClick={() => {
                                             clearRecent(recentScope);
                                             setRecent([]);
@@ -949,10 +950,10 @@ export default function GlobalSearch() {
                                         className="text-[11px] text-gray-400 hover:text-red-500"
                                     >
                                         Limpar
-                                    </button>
+                                    </Button>
                                 </div>
                                 {recent.map((q, i) => (
-                                    <button
+                                    <Button variant="ghost"
                                         key={i}
                                         onClick={() => {
                                             setQuery(q);
@@ -962,7 +963,7 @@ export default function GlobalSearch() {
                                     >
                                         <HiOutlineMagnifyingGlass className="w-3.5 h-3.5 text-gray-400" />
                                         {q}
-                                    </button>
+                                    </Button>
                                 ))}
                             </>
                         ) : (
@@ -986,7 +987,7 @@ export default function GlobalSearch() {
                                     {availableModules.slice(0, 6).map((cfg) => {
                                         const Icon = cfg.icon;
                                         return (
-                                            <button
+                                            <Button variant="ghost"
                                                 key={cfg.code}
                                                 onClick={() => {
                                                     setOpen(false);
@@ -1000,7 +1001,7 @@ export default function GlobalSearch() {
                                                 <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300 text-center leading-tight">
                                                     {cfg.label}
                                                 </span>
-                                            </button>
+                                            </Button>
                                         );
                                     })}
                                 </div>
@@ -1053,7 +1054,7 @@ export default function GlobalSearch() {
                                             (m) => m.code === (item.module || meta.module)
                                         );
                                         return (
-                                            <button
+                                            <Button variant="ghost"
                                                 key={`${item.type}-${item.id}`}
                                                 onMouseEnter={() => setActiveIndex(flatIdx)}
                                                 onClick={() => handleSelect(item)}
@@ -1089,7 +1090,7 @@ export default function GlobalSearch() {
                                                             : 'text-gray-300 group-hover:text-primary-500'
                                                     }`}
                                                 />
-                                            </button>
+                                            </Button>
                                         );
                                     })}
                                 </div>
@@ -1125,7 +1126,7 @@ export default function GlobalSearch() {
     return (
         <div ref={containerRef} className="relative flex-1 max-w-md">
             {/* Mobile trigger button (visible < md) */}
-            <button
+            <Button variant="ghost"
                 onClick={() => {
                     setOpen(true);
                     setTimeout(() => inputRef.current?.focus(), 0);
@@ -1134,7 +1135,7 @@ export default function GlobalSearch() {
                 title={t('common.search')}
             >
                 <HiOutlineMagnifyingGlass className="w-5 h-5" />
-            </button>
+            </Button>
 
             {/* Desktop inline input (md+) */}
             <div className="hidden md:block relative">
@@ -1158,7 +1159,7 @@ export default function GlobalSearch() {
                 />
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center gap-2">
                     {query && (
-                        <button
+                        <Button variant="ghost"
                             onClick={() => {
                                 setQuery('');
                                 inputRef.current?.focus();
@@ -1167,7 +1168,7 @@ export default function GlobalSearch() {
                             title="Limpar"
                         >
                             <HiOutlineXMark className="w-3.5 h-3.5" />
-                        </button>
+                        </Button>
                     )}
                     <kbd className="hidden lg:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-black text-slate-600 dark:text-gray-400 bg-white dark:bg-dark-700 border border-slate-300 dark:border-dark-600 rounded-lg shadow-sm">
                         <span className="text-[12px]">{isMac ? '⌘' : 'Ctrl'}</span>
@@ -1187,7 +1188,7 @@ export default function GlobalSearch() {
             {open && (
                 <div className="md:hidden fixed inset-0 z-[100] bg-white dark:bg-dark-800 flex flex-col">
                     <div className="flex items-center gap-2 p-3 border-b border-gray-200 dark:border-dark-700">
-                        <button
+                        <Button variant="ghost"
                             onClick={() => {
                                 setOpen(false);
                                 setQuery('');
@@ -1196,7 +1197,7 @@ export default function GlobalSearch() {
                             title="Fechar"
                         >
                             <HiOutlineXMark className="w-5 h-5" />
-                        </button>
+                        </Button>
                         <div className="relative flex-1">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <HiOutlineMagnifyingGlass

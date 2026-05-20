@@ -360,13 +360,14 @@ export default function AuditLogViewer() {
             header: 'Accoes',
             cell: ({ row }) => (
                 <div className="text-right">
-                    <button
+                    <Button variant="ghost"
+                        type="button"
                         onClick={() => handleViewDetails(row.original)}
-                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                        title="Ver Detalhes"
+                        aria-label="Ver detalhes"
+                        className="p-2 text-gray-400 hover:text-blue-600 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg"
                     >
                         <HiOutlineEye className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
             ),
         },
@@ -421,25 +422,31 @@ export default function AuditLogViewer() {
                         >
                             Exportar
                         </Button>
-                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[120px]">
-                            <button
+                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 min-w-[120px]" role="menu">
+                            <Button variant="ghost"
+                                type="button"
                                 onClick={handleExportCSV}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-700 rounded-t-lg"
+                                role="menuitem"
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-t-lg focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-dark-700"
                             >
                                 CSV
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="ghost"
+                                type="button"
                                 onClick={handleExportJSON}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-700"
+                                role="menuitem"
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-dark-700"
                             >
                                 JSON
-                            </button>
-                            <button
+                            </Button>
+                            <Button variant="ghost"
+                                type="button"
                                 onClick={handleExportPDF}
-                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-700 rounded-b-lg"
+                                role="menuitem"
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-dark-700 rounded-b-lg focus:outline-none focus-visible:bg-gray-100 dark:focus-visible:bg-dark-700"
                             >
                                 PDF
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -455,12 +462,14 @@ export default function AuditLogViewer() {
                                 <HiOutlineArrowPath className="w-4 h-4 mr-1" />
                                 Limpar
                             </Button>
-                            <button
+                            <Button variant="ghost"
+                                type="button"
                                 onClick={() => setShowFilters(false)}
-                                className="p-1 text-gray-400 hover:text-gray-600"
+                                aria-label="Fechar filtros"
+                                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                             >
                                 <HiOutlineXMark className="w-5 h-5" />
-                            </button>
+                            </Button>
                         </div>
                     </div>
 

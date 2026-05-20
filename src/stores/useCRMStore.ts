@@ -825,7 +825,8 @@ export const useCRMStore = create<CRMState>()(
                 return get().customerCRMData.find((c) => c.customerId === customerId);
             },
         }),
-        {\n            name: 'crm-storage',
+        {
+            name: 'crm-storage',
             version: 2,
             migrate: (persistedState: unknown) => {
                 const state = persistedState as CRMState;

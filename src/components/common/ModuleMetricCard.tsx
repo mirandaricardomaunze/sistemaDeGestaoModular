@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { HiOutlineArrowTrendingUp, HiOutlineArrowTrendingDown } from 'react-icons/hi2';
 import { cn } from '../../utils/helpers';
+import { Button } from '../ui/Button';
 
 export const CHART_COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#f43f5e', '#8b5cf6', '#0ea5e9'];
 
@@ -11,24 +12,24 @@ const PALETTE: Record<string, {
     iconBg: string; iconColor: string;
     accent: string;
 }> = {
-    primary:   { cardBg: 'bg-gradient-to-br from-white to-indigo-50 dark:from-indigo-950/30 dark:to-indigo-950/20',   cardBorder: 'border border-indigo-200/80 dark:border-indigo-500/20',   iconBg: 'bg-indigo-600 dark:bg-indigo-500/15 border border-indigo-600 dark:border-indigo-500/25',   iconColor: 'text-white dark:text-indigo-300',   accent: 'bg-indigo-600' },
-    indigo:    { cardBg: 'bg-gradient-to-br from-white to-indigo-50 dark:from-indigo-950/30 dark:to-indigo-950/20',   cardBorder: 'border border-indigo-200/80 dark:border-indigo-500/20',   iconBg: 'bg-indigo-600 dark:bg-indigo-500/15 border border-indigo-600 dark:border-indigo-500/25',   iconColor: 'text-white dark:text-indigo-300',   accent: 'bg-indigo-600' },
-    success:   { cardBg: 'bg-gradient-to-br from-white to-emerald-50 dark:from-emerald-950/30 dark:to-emerald-950/20',  cardBorder: 'border border-emerald-200/80 dark:border-emerald-500/20',  iconBg: 'bg-emerald-600 dark:bg-emerald-500/15 border border-emerald-600 dark:border-emerald-500/25',  iconColor: 'text-white dark:text-emerald-300',  accent: 'bg-emerald-600' },
-    green:     { cardBg: 'bg-gradient-to-br from-white to-emerald-50 dark:from-emerald-950/30 dark:to-emerald-950/20',  cardBorder: 'border border-emerald-200/80 dark:border-emerald-500/20',  iconBg: 'bg-emerald-600 dark:bg-emerald-500/15 border border-emerald-600 dark:border-emerald-500/25',  iconColor: 'text-white dark:text-emerald-300',  accent: 'bg-emerald-600' },
-    emerald:   { cardBg: 'bg-gradient-to-br from-white to-emerald-50 dark:from-emerald-950/30 dark:to-emerald-950/20',  cardBorder: 'border border-emerald-200/80 dark:border-emerald-500/20',  iconBg: 'bg-emerald-600 dark:bg-emerald-500/15 border border-emerald-600 dark:border-emerald-500/25',  iconColor: 'text-white dark:text-emerald-300',  accent: 'bg-emerald-600' },
-    warning:   { cardBg: 'bg-gradient-to-br from-white to-amber-50 dark:from-amber-950/30 dark:to-amber-950/20',    cardBorder: 'border border-amber-200/80 dark:border-amber-500/20',      iconBg: 'bg-amber-500 dark:bg-amber-500/15 border border-amber-500 dark:border-amber-500/25',        iconColor: 'text-white dark:text-amber-300',      accent: 'bg-amber-500' },
-    amber:     { cardBg: 'bg-gradient-to-br from-white to-amber-50 dark:from-amber-950/30 dark:to-amber-950/20',    cardBorder: 'border border-amber-200/80 dark:border-amber-500/20',      iconBg: 'bg-amber-500 dark:bg-amber-500/15 border border-amber-500 dark:border-amber-500/25',        iconColor: 'text-white dark:text-amber-300',      accent: 'bg-amber-500' },
-    yellow:    { cardBg: 'bg-gradient-to-br from-white to-amber-50 dark:from-amber-950/30 dark:to-amber-950/20',    cardBorder: 'border border-amber-200/80 dark:border-amber-500/20',      iconBg: 'bg-amber-500 dark:bg-amber-500/15 border border-amber-500 dark:border-amber-500/25',        iconColor: 'text-white dark:text-amber-300',      accent: 'bg-amber-500' },
-    danger:    { cardBg: 'bg-gradient-to-br from-white to-red-50 dark:from-red-950/30 dark:to-red-950/20',      cardBorder: 'border border-red-200/80 dark:border-red-500/20',          iconBg: 'bg-red-600 dark:bg-red-500/15 border border-red-600 dark:border-red-500/25',                iconColor: 'text-white dark:text-red-300',          accent: 'bg-red-600' },
-    red:       { cardBg: 'bg-gradient-to-br from-white to-red-50 dark:from-red-950/30 dark:to-red-950/20',      cardBorder: 'border border-red-200/80 dark:border-red-500/20',          iconBg: 'bg-red-600 dark:bg-red-500/15 border border-red-600 dark:border-red-500/25',                iconColor: 'text-white dark:text-red-300',          accent: 'bg-red-600' },
-    info:      { cardBg: 'bg-gradient-to-br from-white to-blue-50 dark:from-blue-950/30 dark:to-blue-950/20',     cardBorder: 'border border-blue-200/80 dark:border-blue-500/20',        iconBg: 'bg-blue-600 dark:bg-blue-500/15 border border-blue-600 dark:border-blue-500/25',            iconColor: 'text-white dark:text-blue-300',        accent: 'bg-blue-600' },
-    blue:      { cardBg: 'bg-gradient-to-br from-white to-blue-50 dark:from-blue-950/30 dark:to-blue-950/20',     cardBorder: 'border border-blue-200/80 dark:border-blue-500/20',        iconBg: 'bg-blue-600 dark:bg-blue-500/15 border border-blue-600 dark:border-blue-500/25',            iconColor: 'text-white dark:text-blue-300',        accent: 'bg-blue-600' },
-    cyan:      { cardBg: 'bg-gradient-to-br from-white to-cyan-50 dark:from-cyan-950/30 dark:to-cyan-950/20',     cardBorder: 'border border-cyan-200/80 dark:border-cyan-500/20',        iconBg: 'bg-cyan-600 dark:bg-cyan-500/15 border border-cyan-600 dark:border-cyan-500/25',            iconColor: 'text-white dark:text-cyan-300',        accent: 'bg-cyan-600' },
-    purple:    { cardBg: 'bg-gradient-to-br from-white to-purple-50 dark:from-purple-950/30 dark:to-purple-950/20',   cardBorder: 'border border-purple-200/80 dark:border-purple-500/20',    iconBg: 'bg-purple-600 dark:bg-purple-500/15 border border-purple-600 dark:border-purple-500/25',    iconColor: 'text-white dark:text-purple-300',    accent: 'bg-purple-600' },
-    violet:    { cardBg: 'bg-gradient-to-br from-white to-violet-50 dark:from-violet-950/30 dark:to-violet-950/20',   cardBorder: 'border border-violet-200/80 dark:border-violet-500/20',    iconBg: 'bg-violet-600 dark:bg-violet-500/15 border border-violet-600 dark:border-violet-500/25',    iconColor: 'text-white dark:text-violet-300',    accent: 'bg-violet-600' },
-    teal:      { cardBg: 'bg-gradient-to-br from-white to-teal-50 dark:from-teal-950/30 dark:to-teal-950/20',     cardBorder: 'border border-teal-200/80 dark:border-teal-500/20',        iconBg: 'bg-teal-600 dark:bg-teal-500/15 border border-teal-600 dark:border-teal-500/25',            iconColor: 'text-white dark:text-teal-300',        accent: 'bg-teal-600' },
-    orange:    { cardBg: 'bg-gradient-to-br from-white to-orange-50 dark:from-orange-950/30 dark:to-orange-950/20',   cardBorder: 'border border-orange-200/80 dark:border-orange-500/20',    iconBg: 'bg-orange-600 dark:bg-orange-500/15 border border-orange-600 dark:border-orange-500/25',    iconColor: 'text-white dark:text-orange-300',    accent: 'bg-orange-600' },
-    slate:     { cardBg: 'bg-gradient-to-br from-white to-slate-50 dark:from-slate-900/40 dark:to-slate-900/20',    cardBorder: 'border border-slate-300 dark:border-slate-600/20',      iconBg: 'bg-slate-700 dark:bg-slate-500/15 border border-slate-700 dark:border-slate-500/25',        iconColor: 'text-white dark:text-slate-300',      accent: 'bg-slate-700' },
+    primary:   { cardBg: 'bg-gradient-to-br from-white to-indigo-50/50 dark:from-indigo-950/30 dark:to-indigo-950/20',   cardBorder: 'border border-indigo-300/80 dark:border-indigo-500/20',   iconBg: 'bg-indigo-600 dark:bg-indigo-500/15 border border-indigo-600 dark:border-indigo-500/25',   iconColor: 'text-white dark:text-indigo-300',   accent: 'bg-indigo-600' },
+    indigo:    { cardBg: 'bg-gradient-to-br from-white to-indigo-50/50 dark:from-indigo-950/30 dark:to-indigo-950/20',   cardBorder: 'border border-indigo-300/80 dark:border-indigo-500/20',   iconBg: 'bg-indigo-600 dark:bg-indigo-500/15 border border-indigo-600 dark:border-indigo-500/25',   iconColor: 'text-white dark:text-indigo-300',   accent: 'bg-indigo-600' },
+    success:   { cardBg: 'bg-gradient-to-br from-white to-emerald-50/50 dark:from-emerald-950/30 dark:to-emerald-950/20',  cardBorder: 'border border-emerald-300/80 dark:border-emerald-500/20',  iconBg: 'bg-emerald-600 dark:bg-emerald-500/15 border border-emerald-600 dark:border-emerald-500/25',  iconColor: 'text-white dark:text-emerald-300',  accent: 'bg-emerald-600' },
+    green:     { cardBg: 'bg-gradient-to-br from-white to-emerald-50/50 dark:from-emerald-950/30 dark:to-emerald-950/20',  cardBorder: 'border border-emerald-300/80 dark:border-emerald-500/20',  iconBg: 'bg-emerald-600 dark:bg-emerald-500/15 border border-emerald-600 dark:border-emerald-500/25',  iconColor: 'text-white dark:text-emerald-300',  accent: 'bg-emerald-600' },
+    emerald:   { cardBg: 'bg-gradient-to-br from-white to-emerald-50/50 dark:from-emerald-950/30 dark:to-emerald-950/20',  cardBorder: 'border border-emerald-300/80 dark:border-emerald-500/20',  iconBg: 'bg-emerald-600 dark:bg-emerald-500/15 border border-emerald-600 dark:border-emerald-500/25',  iconColor: 'text-white dark:text-emerald-300',  accent: 'bg-emerald-600' },
+    warning:   { cardBg: 'bg-gradient-to-br from-white to-amber-50/50 dark:from-amber-950/30 dark:to-amber-950/20',    cardBorder: 'border border-amber-300/80 dark:border-amber-500/20',      iconBg: 'bg-amber-500 dark:bg-amber-500/15 border border-amber-500 dark:border-amber-500/25',        iconColor: 'text-white dark:text-amber-300',      accent: 'bg-amber-500' },
+    amber:     { cardBg: 'bg-gradient-to-br from-white to-amber-50/50 dark:from-amber-950/30 dark:to-amber-950/20',    cardBorder: 'border border-amber-300/80 dark:border-amber-500/20',      iconBg: 'bg-amber-500 dark:bg-amber-500/15 border border-amber-500 dark:border-amber-500/25',        iconColor: 'text-white dark:text-amber-300',      accent: 'bg-amber-500' },
+    yellow:    { cardBg: 'bg-gradient-to-br from-white to-amber-50/50 dark:from-amber-950/30 dark:to-amber-950/20',    cardBorder: 'border border-amber-300/80 dark:border-amber-500/20',      iconBg: 'bg-amber-500 dark:bg-amber-500/15 border border-amber-500 dark:border-amber-500/25',        iconColor: 'text-white dark:text-amber-300',      accent: 'bg-amber-500' },
+    danger:    { cardBg: 'bg-gradient-to-br from-white to-red-50/50 dark:from-red-950/30 dark:to-red-950/20',      cardBorder: 'border border-red-300/80 dark:border-red-500/20',          iconBg: 'bg-red-600 dark:bg-red-500/15 border border-red-600 dark:border-red-500/25',                iconColor: 'text-white dark:text-red-300',          accent: 'bg-red-600' },
+    red:       { cardBg: 'bg-gradient-to-br from-white to-red-50/50 dark:from-red-950/30 dark:to-red-950/20',      cardBorder: 'border border-red-300/80 dark:border-red-500/20',          iconBg: 'bg-red-600 dark:bg-red-500/15 border border-red-600 dark:border-red-500/25',                iconColor: 'text-white dark:text-red-300',          accent: 'bg-red-600' },
+    info:      { cardBg: 'bg-gradient-to-br from-white to-blue-50/50 dark:from-blue-950/30 dark:to-blue-950/20',     cardBorder: 'border border-blue-300/80 dark:border-blue-500/20',        iconBg: 'bg-blue-600 dark:bg-blue-500/15 border border-blue-600 dark:border-blue-500/25',            iconColor: 'text-white dark:text-blue-300',        accent: 'bg-blue-600' },
+    blue:      { cardBg: 'bg-gradient-to-br from-white to-blue-50/50 dark:from-blue-950/30 dark:to-blue-950/20',     cardBorder: 'border border-blue-300/80 dark:border-blue-500/20',        iconBg: 'bg-blue-600 dark:bg-blue-500/15 border border-blue-600 dark:border-blue-500/25',            iconColor: 'text-white dark:text-blue-300',        accent: 'bg-blue-600' },
+    cyan:      { cardBg: 'bg-gradient-to-br from-white to-cyan-50/50 dark:from-cyan-950/30 dark:to-cyan-950/20',     cardBorder: 'border border-cyan-300/80 dark:border-cyan-500/20',        iconBg: 'bg-cyan-600 dark:bg-cyan-500/15 border border-cyan-600 dark:border-cyan-500/25',            iconColor: 'text-white dark:text-cyan-300',        accent: 'bg-cyan-600' },
+    purple:    { cardBg: 'bg-gradient-to-br from-white to-purple-50/50 dark:from-purple-950/30 dark:to-purple-950/20',   cardBorder: 'border border-purple-300/80 dark:border-purple-500/20',    iconBg: 'bg-purple-600 dark:bg-purple-500/15 border border-purple-600 dark:border-purple-500/25',    iconColor: 'text-white dark:text-purple-300',    accent: 'bg-purple-600' },
+    violet:    { cardBg: 'bg-gradient-to-br from-white to-violet-50/50 dark:from-violet-950/30 dark:to-violet-950/20',   cardBorder: 'border border-violet-300/80 dark:border-violet-500/20',    iconBg: 'bg-violet-600 dark:bg-violet-500/15 border border-violet-600 dark:border-violet-500/25',    iconColor: 'text-white dark:text-violet-300',    accent: 'bg-violet-600' },
+    teal:      { cardBg: 'bg-gradient-to-br from-white to-teal-50/50 dark:from-teal-950/30 dark:to-teal-950/20',     cardBorder: 'border border-teal-300/80 dark:border-teal-500/20',        iconBg: 'bg-teal-600 dark:bg-teal-500/15 border border-teal-600 dark:border-teal-500/25',            iconColor: 'text-white dark:text-teal-300',        accent: 'bg-teal-600' },
+    orange:    { cardBg: 'bg-gradient-to-br from-white to-orange-50/50 dark:from-orange-950/30 dark:to-orange-950/20',   cardBorder: 'border border-orange-300/80 dark:border-orange-500/20',    iconBg: 'bg-orange-600 dark:bg-orange-500/15 border border-orange-600 dark:border-orange-500/25',    iconColor: 'text-white dark:text-orange-300',    accent: 'bg-orange-600' },
+    slate:     { cardBg: 'bg-gradient-to-br from-white to-slate-50 dark:from-slate-900/40 dark:to-slate-900/20',    cardBorder: 'border border-slate-300 dark:border-slate-600/35',      iconBg: 'bg-slate-700 dark:bg-slate-500/15 border border-slate-700 dark:border-slate-500/25',        iconColor: 'text-white dark:text-slate-300',      accent: 'bg-slate-700' },
 };
 
 
@@ -71,8 +72,10 @@ export function MetricCard({
 
     return (
         <div className={cn(
-            'relative group overflow-hidden rounded-2xl shadow-card hover:shadow-card-hover transition-all duration-300',
-            'active:scale-[0.99]',
+            'relative group overflow-hidden rounded-2xl transition-all duration-300 ease-out',
+            'shadow-[0_4px_20px_-4px_rgba(148,163,184,0.12)] hover:shadow-[0_12px_30px_-6px_rgba(148,163,184,0.25)]',
+            'dark:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] dark:hover:shadow-[0_12px_35px_-6px_rgba(0,0,0,0.7)]',
+            'hover:-translate-y-1 active:scale-[0.99]',
             p.cardBg, p.cardBorder, className
         )}>
             {/* Subtle inner glow */}
@@ -82,7 +85,7 @@ export function MetricCard({
             <div className="p-5 relative z-10">
                 <div className="flex items-center justify-between mb-5">
                     <div className={cn(
-                        'w-12 h-12 rounded-2xl flex items-center justify-center shadow-md transition-all duration-300',
+                        'w-12 h-12 rounded-2xl flex items-center justify-center shadow-md transition-all duration-300 group-hover:scale-110',
                         p.iconBg, p.iconColor
                     )}>
                         {icon}
@@ -184,7 +187,7 @@ export function FilterCard({
     const labelColor = `text-${colorName} opacity-70 dark:text-${colorName.replace('600', '400').replace('500', '300')} dark:opacity-60`;
 
     return (
-        <button
+        <Button variant="ghost"
             onClick={onClick}
             type="button"
             className={cn(
@@ -222,6 +225,6 @@ export function FilterCard({
                 isActive ? 'w-full' : 'w-0 group-hover:w-8',
                 p.accent
             )} />
-        </button>
+        </Button>
     );
 }

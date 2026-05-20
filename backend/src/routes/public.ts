@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { publicReservationService } from '../services/publicReservationService';
-import { ApiError } from '../middleware/error.middleware';
 import { rateLimiters } from '../middleware/rateLimit';
 import { emailQueue, JOB_OPTIONS } from '../queues/emailQueue';
 import { prisma } from '../lib/prisma';

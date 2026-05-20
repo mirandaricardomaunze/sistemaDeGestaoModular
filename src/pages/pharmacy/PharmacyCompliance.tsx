@@ -1,6 +1,7 @@
 import { useState, lazy, Suspense } from 'react';
 import { cn } from '../../utils/helpers';
 import { HiOutlineClipboardDocumentList, HiOutlineExclamationCircle, HiOutlineBolt } from 'react-icons/hi2';
+import { Button } from '../../components/ui/Button';
 
 const PharmacyNarcoticRegister = lazy(() => import('./PharmacyNarcoticRegister'));
 const PharmacyRecalls = lazy(() => import('./PharmacyRecalls'));
@@ -31,7 +32,7 @@ export default function PharmacyCompliance() {
                 {TABS.map(t => {
                     const Icon = t.icon;
                     return (
-                        <button
+                        <Button variant="ghost"
                             key={t.id}
                             onClick={() => setTab(t.id as ComplianceTab)}
                             className={cn(
@@ -43,7 +44,7 @@ export default function PharmacyCompliance() {
                         >
                             <Icon className="w-4 h-4" />
                             {t.label}
-                        </button>
+                        </Button>
                     );
                 })}
             </div>

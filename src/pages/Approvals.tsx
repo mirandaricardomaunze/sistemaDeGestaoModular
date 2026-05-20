@@ -12,13 +12,13 @@ import {
     EmptyState,
     PageHeader,
     Select,
+    Tabs,
     Textarea,
 } from '../components/ui';
 import { MetricCard } from '../components/common/ModuleMetricCard';
 import { useApprovals, useApprovalActions } from '../hooks/useApprovals';
 import {
     APPROVAL_REQUEST_LABELS,
-    APPROVAL_REQUEST_STATUSES,
     APPROVAL_REQUEST_TYPES,
     type ApprovalRequest,
     type ApprovalRequestStatus,
@@ -135,31 +135,50 @@ function ApprovalRow({ item, canDecide }: { item: ApprovalRequest; canDecide: bo
     );
 }
 
+type ApprovalView = 'pending' | 'history';
+
+const HISTORY_STATUSES: ApprovalRequestStatus[] = ['approved', 'rejected', 'expired', 'cancelled'];
+
 export default function Approvals() {
     const { user } = useAuthStore();
     const role = user?.role ?? '';
     const canDecide = ['super_admin', 'admin', 'manager'].includes(role);
 
-    const [statusFilter, setStatusFilter] = useState<ApprovalRequestStatus | ''>('pending');
+    const [view, setView] = useState<ApprovalView>('pending');
+    const [historyStatus, setHistoryStatus] = useState<ApprovalRequestStatus | ''>('');
     const [typeFilter, setTypeFilter] = useState<ApprovalRequestType | ''>('');
 
-    const { items, pagination, isLoading } = useApprovals({
-        status: statusFilter || undefined,
+    const queryStatus: ApprovalRequestStatus | undefined =
+        view === 'pending' ? 'pending' : (historyStatus || undefined);
+
+    const { items: rawItems, pagination, isLoading } = useApprovals({
+        status: queryStatus,
         requestType: typeFilter || undefined,
         limit: 50,
     });
+
+    const items = useMemo(() => {
+        if (view === 'pending') return rawItems;
+        // History tab: exclude pending when no specific status is picked
+        const filtered = historyStatus ? rawItems : rawItems.filter(i => i.status !== 'pending');
+        return [...filtered].sort((a, b) => {
+            const aT = a.decidedAt ?? a.createdAt;
+            const bT = b.decidedAt ?? b.createdAt;
+            return bT.localeCompare(aT);
+        });
+    }, [rawItems, view, historyStatus]);
 
     const counts = useMemo(() => {
         const acc: Record<ApprovalRequestStatus, number> = {
             pending: 0, approved: 0, rejected: 0, expired: 0, cancelled: 0,
         };
-        for (const item of items) acc[item.status]++;
+        for (const item of rawItems) acc[item.status]++;
         return acc;
-    }, [items]);
+    }, [rawItems]);
 
-    const statusOptions = [
-        { value: '', label: 'Todos os estados' },
-        ...APPROVAL_REQUEST_STATUSES.map(s => ({ value: s, label: STATUS_LABEL[s] })),
+    const historyStatusOptions = [
+        { value: '', label: 'Histórico (todos)' },
+        ...HISTORY_STATUSES.map(s => ({ value: s, label: STATUS_LABEL[s] })),
     ];
 
     const typeOptions = [
@@ -171,14 +190,14 @@ export default function Approvals() {
         <div className="space-y-6 animate-fade-in pb-10">
             <PageHeader
                 title="Aprovações"
-                subtitle="Pedidos de aprovação que requerem decisão de gestor"
+                subtitle="Pedidos de aprovação e histórico de decisões"
                 icon={<HiOutlineShieldCheck className="text-primary-600 dark:text-primary-400" />}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <MetricCard
                     label="Pendentes"
-                    value={counts.pending}
+                    value={view === 'pending' ? (pagination?.total ?? counts.pending) : counts.pending}
                     icon={<HiOutlineClock className="w-6 h-6" />}
                     color="amber"
                     isLoading={isLoading}
@@ -199,13 +218,33 @@ export default function Approvals() {
                 />
             </div>
 
+            <Tabs
+                variant="underline"
+                activeTab={view}
+                onChange={(id) => setView(id as ApprovalView)}
+                tabs={[
+                    {
+                        id: 'pending',
+                        label: 'Pendentes',
+                        icon: <HiOutlineClock className="w-4 h-4" />,
+                    },
+                    {
+                        id: 'history',
+                        label: 'Histórico',
+                        icon: <HiOutlineCheckCircle className="w-4 h-4" />,
+                    },
+                ]}
+            />
+
             <Card className="p-4">
                 <div className="flex flex-col md:flex-row gap-3">
-                    <Select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value as ApprovalRequestStatus | '')}
-                        options={statusOptions}
-                    />
+                    {view === 'history' && (
+                        <Select
+                            value={historyStatus}
+                            onChange={(e) => setHistoryStatus(e.target.value as ApprovalRequestStatus | '')}
+                            options={historyStatusOptions}
+                        />
+                    )}
                     <Select
                         value={typeFilter}
                         onChange={(e) => setTypeFilter(e.target.value as ApprovalRequestType | '')}
@@ -218,11 +257,11 @@ export default function Approvals() {
                 <Card className="p-12 text-center text-gray-500">A carregar...</Card>
             ) : items.length === 0 ? (
                 <EmptyState
-                    title={statusFilter === 'pending' && typeFilter === '' ? 'Sem pedidos pendentes' : 'Sem pedidos'}
+                    title={view === 'pending' ? 'Sem pedidos pendentes' : 'Sem registos no histórico'}
                     description={
-                        statusFilter === 'pending' && typeFilter === ''
+                        view === 'pending'
                             ? 'Quando um operador solicitar uma aprovação, o pedido aparecerá aqui.'
-                            : 'Não existem pedidos de aprovação com os filtros actuais.'
+                            : 'Ainda não há decisões registadas com os filtros actuais.'
                     }
                     icon={<HiOutlineShieldCheck className="w-12 h-12" />}
                 />

@@ -1,8 +1,8 @@
-import { Prisma, PrismaClient } from '@prisma/client';
-import { ApiError } from '../middleware/error.middleware';
+import { Prisma } from '@prisma/client';
+import { prisma, type ExtendedPrismaClient } from '../lib/prisma';
 
 export class CRMService {
-    constructor(private prisma: PrismaClient) { }
+    constructor(private prisma: ExtendedPrismaClient) { }
 
     async getOpportunities(companyId: string, filters: { search?: string; stageId?: string; customerId?: string; limit?: number } = {}) {
         const where: Prisma.OpportunityWhereInput = { companyId };
@@ -44,4 +44,4 @@ export class CRMService {
     }
 }
 
-export const crmService = new CRMService(new PrismaClient());
+export const crmService = new CRMService(prisma);

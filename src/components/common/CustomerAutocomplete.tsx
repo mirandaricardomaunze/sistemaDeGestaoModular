@@ -4,6 +4,7 @@ import { useCustomers } from '../../hooks/useData';
 import { useDebounce } from '../../hooks/useDebounce';
 import { cn } from '../../utils/helpers';
 import type { Customer } from '../../types';
+import { Button } from '../ui/Button';
 
 interface CustomerAutocompleteProps {
     selectedId: string | null;
@@ -75,7 +76,7 @@ export default function CustomerAutocomplete({
                             {displayValue || 'Cliente seleccionado'}
                         </span>
                     </div>
-                    <button
+                    <Button variant="ghost"
                         type="button"
                         onClick={() => handlePick(null)}
                         disabled={disabled}
@@ -83,7 +84,7 @@ export default function CustomerAutocomplete({
                         title="Limpar"
                     >
                         <HiOutlineXMark className="w-4 h-4" />
-                    </button>
+                    </Button>
                 </div>
             ) : (
                 <div className="relative">
@@ -103,13 +104,13 @@ export default function CustomerAutocomplete({
             {open && !selectedId && (
                 <div className="absolute z-30 mt-1 left-0 right-0 max-h-72 overflow-y-auto bg-white dark:bg-dark-800 border border-slate-300/70 dark:border-dark-700 rounded-lg shadow-card-hover">
                     {showWalkInOption && (
-                        <button
+                        <Button variant="ghost"
                             type="button"
                             onClick={() => handlePick(null)}
                             className="w-full text-left px-3 py-2 text-sm font-semibold text-slate-600 dark:text-gray-400 hover:bg-slate-50 dark:hover:bg-dark-700 border-b border-slate-200 dark:border-dark-700"
                         >
                             {walkInLabel}
-                        </button>
+                        </Button>
                     )}
 
                     {isLoading && (
@@ -123,7 +124,7 @@ export default function CustomerAutocomplete({
                     )}
 
                     {!isLoading && customers.map((c: Customer) => (
-                        <button
+                        <Button variant="ghost"
                             key={c.id}
                             type="button"
                             onClick={() => handlePick(c)}
@@ -140,7 +141,7 @@ export default function CustomerAutocomplete({
                                     </div>
                                 )}
                             </div>
-                        </button>
+                        </Button>
                     ))}
                 </div>
             )}

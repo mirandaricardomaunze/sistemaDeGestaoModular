@@ -1,7 +1,7 @@
 import { logger } from '../../utils/logger';
 import { useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Button } from '../ui';
+import { Button, ConfirmationModal, Input } from '../ui';
 import { SmartTable } from '../ui/SmartTable';
 import {
     HiOutlinePlus,
@@ -33,6 +33,11 @@ export default function DebitNoteManager({ invoices }: DebitNoteManagerProps) {
     const [showPrintModal, setShowPrintModal] = useState(false);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [pendingAction, setPendingAction] = useState<{ note: DebitNote; type: 'cancel' | 'settle' } | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [emailPromptNote, setEmailPromptNote] = useState<DebitNote | null>(null);
+    const [emailInput, setEmailInput] = useState('');
+    const [isSendingEmail, setIsSendingEmail] = useState(false);
 
     const fetchDebitNotes = async () => {
         try {
@@ -79,22 +84,12 @@ export default function DebitNoteManager({ invoices }: DebitNoteManagerProps) {
         setShowPrintModal(true);
     };
 
-    const handleCancel = async (note: DebitNote) => {
+    const handleCancel = (note: DebitNote) => {
         if (note.status !== 'issued') {
             toast.error(`Só é possível cancelar notas emitidas (estado: ${note.status})`);
             return;
         }
-        if (!window.confirm(`Cancelar a Nota de Débito ${note.number}? Esta acção reduz o saldo em dívida da fatura.`)) {
-            return;
-        }
-        try {
-            const updated = await invoicesAPI.cancelDebitNote(note.id);
-            setDebitNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
-            toast.success('Nota de débito cancelada');
-        } catch (error) {
-            logger.error('Error cancelling debit note:', error);
-            toast.error('Erro ao cancelar nota de débito');
-        }
+        setPendingAction({ note, type: 'cancel' });
     };
 
     const handleDownloadPdf = async (note: DebitNote) => {
@@ -114,33 +109,50 @@ export default function DebitNoteManager({ invoices }: DebitNoteManagerProps) {
         }
     };
 
-    const handleSendEmail = async (note: DebitNote) => {
-        const email = window.prompt('Email do destinatário (deixe em branco para usar o do cliente):');
-        if (email === null) return; // cancelled
+    const handleSendEmail = (note: DebitNote) => {
+        setEmailInput('');
+        setEmailPromptNote(note);
+    };
+
+    const confirmSendEmail = async () => {
+        if (!emailPromptNote) return;
         try {
-            const result = await invoicesAPI.sendDebitNoteByEmail(note.id, email || undefined);
+            setIsSendingEmail(true);
+            const result = await invoicesAPI.sendDebitNoteByEmail(emailPromptNote.id, emailInput.trim() || undefined);
             toast.success(result.message);
+            setEmailPromptNote(null);
         } catch (error) {
             logger.error('Error sending debit note email:', error);
             toast.error('Erro ao enviar email');
+        } finally {
+            setIsSendingEmail(false);
         }
     };
 
-    const handleSettle = async (note: DebitNote) => {
+    const handleSettle = (note: DebitNote) => {
         if (note.status !== 'issued') {
             toast.error(`Só é possível liquidar notas emitidas (estado: ${note.status})`);
             return;
         }
-        if (!window.confirm(`Marcar a Nota de Débito ${note.number} como liquidada?`)) {
-            return;
-        }
+        setPendingAction({ note, type: 'settle' });
+    };
+
+    const confirmPendingAction = async () => {
+        if (!pendingAction) return;
+        const { note, type } = pendingAction;
         try {
-            const updated = await invoicesAPI.settleDebitNote(note.id);
+            setIsProcessing(true);
+            const updated = type === 'cancel'
+                ? await invoicesAPI.cancelDebitNote(note.id)
+                : await invoicesAPI.settleDebitNote(note.id);
             setDebitNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
-            toast.success('Nota de débito liquidada');
+            toast.success(type === 'cancel' ? 'Nota de débito cancelada' : 'Nota de débito liquidada');
+            setPendingAction(null);
         } catch (error) {
-            logger.error('Error settling debit note:', error);
-            toast.error('Erro ao liquidar nota de débito');
+            logger.error(`Error ${type === 'cancel' ? 'cancelling' : 'settling'} debit note:`, error);
+            toast.error(type === 'cancel' ? 'Erro ao cancelar nota de débito' : 'Erro ao liquidar nota de débito');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -345,6 +357,43 @@ export default function DebitNoteManager({ invoices }: DebitNoteManagerProps) {
                     debitNote={selectedNote}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={!!pendingAction}
+                onClose={() => !isProcessing && setPendingAction(null)}
+                onConfirm={confirmPendingAction}
+                title={pendingAction?.type === 'cancel' ? 'Cancelar nota de débito?' : 'Liquidar nota de débito?'}
+                message={
+                    pendingAction?.type === 'cancel'
+                        ? `Cancelar a Nota de Débito ${pendingAction?.note.number}? Esta acção reduz o saldo em dívida da fatura.`
+                        : `Marcar a Nota de Débito ${pendingAction?.note.number} como liquidada?`
+                }
+                confirmText={pendingAction?.type === 'cancel' ? 'Sim, cancelar' : 'Sim, liquidar'}
+                cancelText="Voltar"
+                variant={pendingAction?.type === 'cancel' ? 'danger' : 'primary'}
+                isLoading={isProcessing}
+            />
+
+            <ConfirmationModal
+                isOpen={!!emailPromptNote}
+                onClose={() => !isSendingEmail && setEmailPromptNote(null)}
+                onConfirm={confirmSendEmail}
+                title="Enviar nota de débito por email"
+                message="Deixe em branco para enviar para o email do cliente registado na fatura."
+                confirmText="Enviar"
+                cancelText="Cancelar"
+                variant="primary"
+                isLoading={isSendingEmail}
+            >
+                <Input
+                    type="email"
+                    label="Email do destinatário (opcional)"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="exemplo@empresa.com"
+                    autoFocus
+                />
+            </ConfirmationModal>
         </div>
     );
 }

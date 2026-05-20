@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { HiOutlineExclamationCircle } from 'react-icons/hi2';
 import { logger } from '../utils/logger';
 import { env } from '../config/env';
+import { Button } from './ui/Button';
 
 interface Props {
     children: ReactNode;
@@ -78,19 +79,19 @@ export class ErrorBoundary extends Component<Props, State> {
                             )}
 
                             <div className="flex gap-3 justify-center">
-                                <button
+                                <Button variant="ghost"
                                     onClick={this.handleReset}
                                     className="px-4 py-2 bg-gray-200 dark:bg-dark-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-dark-600 transition-colors"
                                 >
                                     Tentar Novamente
-                                </button>
+                                </Button>
 
-                                <button
+                                <Button variant="ghost"
                                     onClick={() => window.location.reload()}
                                     className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                                 >
                                     Recarregar Página
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     </div>

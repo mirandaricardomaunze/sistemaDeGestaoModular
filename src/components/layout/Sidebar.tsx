@@ -217,11 +217,12 @@ const menuItems: MenuItem[] = [
     // ============================================================================
     // COMMERCIAL Module - Complete commerce management (Premium)
     // ============================================================================
-    { id: 'commercial_insights', labelKey: 'Insights & Relatórios', icon: HiOutlineChartBar, path: '/commercial/insights', module: 'commercial' },
+    { id: 'commercial_dashboard', labelKey: 'Dashboard', icon: HiOutlineSquares2X2, path: '/commercial/dashboard', module: 'commercial' },
+    { id: 'commercial_reports', labelKey: 'Relatórios', icon: HiOutlineChartBar, path: '/commercial/reports', module: 'commercial' },
     { id: 'commercial_pos', labelKey: 'Ponto de Venda', icon: HiOutlineShoppingCart, path: '/commercial/pos', module: 'commercial' },
     { id: 'commercial_shifts', labelKey: 'nav.shifts', icon: HiOutlineCalculator, path: '/commercial/history?tab=shifts', module: 'commercial' },
     { id: 'commercial_history', labelKey: 'nav.history', icon: HiOutlineClock, path: '/commercial/history', module: 'commercial' },
-    { id: 'commercial_stock', labelKey: 'nav.stock_movements', icon: HiOutlineArrowPath, path: '/commercial/history?tab=stock', module: 'commercial' },
+    { id: 'commercial_stock', labelKey: 'Movimentos', icon: HiOutlineArrowPath, path: '/commercial/history?tab=stock', module: 'commercial' },
     { id: 'commercial_inventory', labelKey: 'Inventário', icon: HiOutlineCube, path: '/commercial/inventory', module: 'commercial' },
     { id: 'commercial_physical_inventory', labelKey: 'Inventario Fisico', icon: HiOutlineClipboardDocumentList, path: '/inventory/physical', module: 'commercial' },
     { id: 'commercial_purchase_orders', labelKey: 'Ordens de Compra', icon: HiOutlineClipboardDocumentList, path: '/commercial/purchase-orders', module: 'commercial' },
@@ -316,6 +317,7 @@ const menuItems: MenuItem[] = [
 
 
 import { useUnreadCount } from '../../hooks/useAlerts';
+import { Button } from '../ui/Button';
 
 export default function Sidebar() {
     const navigate = useNavigate();
@@ -372,22 +374,43 @@ export default function Sidebar() {
 
     // Modules that each have their own dedicated sidebar section
     const SPECIALIZED_MODULES = ['pharmacy', 'commercial', 'hospitality', 'bottle_store', 'logistics', 'restaurant'];
+    // Core/generic modules — included by default at registration. Hidden when a
+    // specialized module is active because each specialized section has its own
+    // POS / CRM / Invoices / HR pages.
+    const CORE_MODULE_CODES = ['pos', 'crm', 'hr', 'invoices', 'financial'];
     // Items that are always visible regardless of module (system-level)
     const ALWAYS_VISIBLE_IDS = ['calendar', 'alerts', 'fiscal', 'audit', 'backups', 'help', 'settings', 'super_admin'];
 
     const isSuperAdmin = user?.role === 'super_admin';
-    // Determine which specialized module this user belongs to
-    const userSpecializedModule = !isSuperAdmin
-        ? SPECIALIZED_MODULES.find(m => hasModule(m))
-        : undefined;
 
-    // The active module for UI display and theme (current path takes priority)
+    // All specialized modules the user has active (supports multi-module tenants).
+    const userSpecializedModules = !isSuperAdmin
+        ? SPECIALIZED_MODULES.filter(m => hasModule(m))
+        : [];
+    const hasAnySpecialized = userSpecializedModules.length > 0;
+
+    // The active module for UI display and theme (current path takes priority,
+    // then first specialized module the user has, then default commercial).
     const activeModuleCode = SPECIALIZED_MODULES.includes(currentModule)
         ? currentModule
-        : (userSpecializedModule || 'commercial');
+        : (userSpecializedModules[0] || 'commercial');
 
     // Resolve sidebar color theme for current user's module
     const theme = MODULE_THEMES[activeModuleCode] || DEFAULT_THEME;
+
+    // Brand-click destination: prefer the active module's own dashboard.
+    // Falls back to the generic /dashboard for tenants without a specialized module.
+    const MODULE_DASHBOARD_PATH: Record<string, string> = {
+        pharmacy: '/pharmacy/dashboard',
+        commercial: '/commercial/dashboard',
+        hospitality: '/hospitality/dashboard',
+        bottle_store: '/bottle-store/dashboard',
+        restaurant: '/restaurant/dashboard',
+        logistics: '/logistics/dashboard',
+    };
+    const brandHomePath = hasAnySpecialized
+        ? (MODULE_DASHBOARD_PATH[activeModuleCode] ?? '/dashboard')
+        : '/dashboard';
 
     const filteredMenuItems = menuItems.filter(item => {
         // Super admin exclusive items
@@ -404,13 +427,23 @@ export default function Sidebar() {
 
         const itemModule = item.module as string | undefined;
 
-        if (userSpecializedModule) {
-            // User has a specialized module: ONLY show items for that module
-            return itemModule === userSpecializedModule;
-        } else {
-            // Não specialized module (edge case): show generic core items only
-            return !itemModule || !SPECIALIZED_MODULES.includes(itemModule);
+        // Items with no module attached = generic (reports, calendar, alerts, …).
+        // The generic global Dashboard is a special case: each specialized module
+        // exposes its own Dashboard (pharmacy_dashboard, commercial_dashboard, …),
+        // so we hide the generic one when a specialized module is active.
+        if (!itemModule) {
+            if (item.id === 'dashboard' && hasAnySpecialized) return false;
+            return true;
         }
+
+        // User must have the module active
+        if (!hasModule(itemModule)) return false;
+
+        // When user has a specialized module, hide the generic core duplicates
+        // (the specialized section already exposes its own POS / CRM / Invoices / HR).
+        if (hasAnySpecialized && CORE_MODULE_CODES.includes(itemModule)) return false;
+
+        return true;
     });
 
     // Get user initials
@@ -447,7 +480,7 @@ export default function Sidebar() {
             >
                 {/* Logo / Brand */}
                 <div className="flex items-center justify-between min-h-[90px] px-6 py-4 flex-shrink-0 bg-slate-50 dark:bg-dark-800/50 rounded-t-2xl border-b border-slate-200 dark:border-dark-700/50 transition-all duration-300">
-                    <div className="flex items-center gap-4 overflow-hidden group/brand cursor-pointer" onClick={() => navigate('/dashboard')}>
+                    <div className="flex items-center gap-4 overflow-hidden group/brand cursor-pointer" onClick={() => navigate(brandHomePath)}>
                         {companySettings.logo ? (
                             <div className="relative">
                                 <div className={cn('absolute -inset-1.5 bg-gradient-to-r rounded-xl blur-sm opacity-20 group-hover/brand:opacity-40 transition duration-1000 group-hover/brand:duration-300', theme.brandGradient)}></div>
@@ -480,8 +513,10 @@ export default function Sidebar() {
                         )}
                     </div>
                     <button
+                        type="button"
                         onClick={toggleSidebar}
-                        className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-white hover:bg-primary-50 dark:bg-transparent dark:hover:bg-primary-900/20 text-slate-500 hover:text-primary-600 transition-all duration-200 group/btn shadow-sm ring-1 ring-slate-300 dark:ring-dark-700"
+                        aria-label={sidebarOpen ? 'Fechar barra lateral' : 'Abrir barra lateral'}
+                        className="hidden lg:flex items-center justify-center w-8 h-8 rounded-xl bg-white hover:bg-primary-50 dark:bg-transparent dark:hover:bg-primary-900/20 text-slate-500 hover:text-primary-600 transition-all duration-200 group/btn shadow-sm ring-1 ring-slate-300 dark:ring-dark-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                     >
                         {sidebarOpen ? (
                             <HiOutlineChevronLeft className="w-5 h-5 transition-transform group-hover/btn:-translate-x-0.5" />
@@ -516,7 +551,7 @@ export default function Sidebar() {
                             <div key={item.id} className="relative">
                                 {/* Main Menu Item */}
                                 {hasSubmenu ? (
-                                    <button
+                                    <Button variant="ghost"
                                         onClick={() => toggleSubmenu(item.id)}
                                         className={cn(
                                             'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative group',
@@ -553,7 +588,7 @@ export default function Sidebar() {
                                                 {t(item.labelKey)}
                                             </div>
                                         )}
-                                    </button>
+                                    </Button>
                                 ) : (
                                     <NavLink
                                         to={item.path}
@@ -651,16 +686,16 @@ export default function Sidebar() {
                                     </p>
                                 </div>
                             </div>
-                            <button
+                            <Button variant="danger"
                                 onClick={handleLogout}
                                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-[11px] font-black uppercase tracking-widest text-red-600 dark:text-red-400 bg-red-50/50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-xl transition-all border border-red-100 dark:border-red-900/30 group/logout"
                             >
                                 <HiOutlineArrowLeftOnRectangle className="w-4 h-4 transition-transform group-hover/logout:translate-x-1" />
                                 {t('auth.logout')}
-                            </button>
+                            </Button>
                         </div>
                     ) : (
-                        <button
+                        <Button variant="danger"
                             onClick={handleLogout}
                             className="w-full flex items-center justify-center p-3 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all group relative border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                             title={t('auth.logout')}
@@ -670,7 +705,7 @@ export default function Sidebar() {
                             <div className="absolute left-full ml-4 px-3 py-2 bg-gray-900/95 dark:bg-dark-700/95 backdrop-blur-md text-white text-[11px] font-black uppercase tracking-widest rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap z-[10000] shadow-2xl ring-1 ring-white/10">
                                 {t('auth.logout')}
                             </div>
-                        </button>
+                        </Button>
                     )}
                 </div>
             </aside>

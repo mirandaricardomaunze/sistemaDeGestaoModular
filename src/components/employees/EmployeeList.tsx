@@ -1,4 +1,4 @@
-import { logger } from '../../utils/logger';
+﻿import { logger } from '../../utils/logger';
 import { useState, useMemo } from 'react';
 import {
     useReactTable,
@@ -69,14 +69,14 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
                 await updateEmployee(employeeToToggle.id, { isActive: !employeeToToggle.isActive });
                 toast.success(
                     employeeToToggle.isActive
-                        ? 'Funcionário desativado!'
-                        : 'Funcionário ativado!'
+                        ? 'FuncionÃ¡rio desativado!'
+                        : 'FuncionÃ¡rio ativado!'
                 );
                 setDeleteModalOpen(false);
                 setEmployeeToToggle(null);
             } catch (error) {
                 logger.error('Error toggling employee status:', error);
-                toast.error('Erro ao alterar status do funcionário');
+                toast.error('Erro ao alterar status do funcionÃ¡rio');
             }
         }
     };
@@ -146,7 +146,7 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
                 ),
             }),
             columnHelper.accessor('salary', {
-                header: 'Salário',
+                header: 'SalÃ¡rio',
                 cell: (info) => (
                     <span className="font-semibold text-gray-900 dark:text-white">
                         {formatCurrency(info.getValue())}
@@ -163,17 +163,17 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
             }),
             columnHelper.display({
                 id: 'actions',
-                header: 'Ações',
+                header: 'AÃ§Ãµes',
                 cell: ({ row }) => (
                     <div className="flex items-center gap-2">
-                        <button
+                        <Button variant="ghost"
                             onClick={() => onEdit?.(row.original)}
                             className="p-2 rounded-lg bg-slate-50 dark:bg-dark-700 hover:bg-primary-50 dark:hover:bg-primary-900/20 text-slate-400 hover:text-primary-600 transition-all border border-slate-100 dark:border-dark-600 hover:border-primary-200"
                             title="Editar"
                         >
                             <HiOutlinePencilSquare className="w-4 h-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={() => handleToggleStatus(row.original)}
                             className={cn(
                                 "p-2 rounded-lg transition-all border",
@@ -184,7 +184,7 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
                             title={row.original.isActive ? 'Desativar' : 'Ativar'}
                         >
                             <HiOutlineTrash className="w-4 h-4" />
-                        </button>
+                        </Button>
                     </div>
                 ),
             }),
@@ -306,8 +306,8 @@ export default function EmployeeList({ onEdit, onAddEmployee, department, hideHe
                     setEmployeeToToggle(null);
                 }}
                 onConfirm={confirmToggleStatus}
-                title={employeeToToggle?.isActive ? 'Desativar Funcionário' : 'Ativar Funcionário'}
-                message={`Tem certeza que deseja ${employeeToToggle?.isActive ? 'desativar' : 'ativar'} o funcionário "${employeeToToggle?.name}"?`}
+                title={employeeToToggle?.isActive ? 'Desativar FuncionÃ¡rio' : 'Ativar FuncionÃ¡rio'}
+                message={`Tem certeza que deseja ${employeeToToggle?.isActive ? 'desativar' : 'ativar'} o funcionÃ¡rio "${employeeToToggle?.name}"?`}
                 confirmText={employeeToToggle?.isActive ? 'Desativar' : 'Ativar'}
                 variant={employeeToToggle?.isActive ? 'danger' : 'info'}
             />

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HiCheck } from 'react-icons/hi2';
 import { languages, type LanguageCode } from '../../i18n';
+import { Button } from '../ui/Button';
 
 export default function LanguageSelector() {
     const { i18n } = useTranslation();
@@ -28,7 +29,7 @@ export default function LanguageSelector() {
 
     return (
         <div className="relative" ref={dropdownRef}>
-            <button
+            <Button variant="ghost"
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center gap-2 px-3 h-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ring-1 shadow-sm
                     ${isOpen 
@@ -39,7 +40,7 @@ export default function LanguageSelector() {
             >
                 <span className="text-base">{currentLang.flag}</span>
                 <span className="hidden md:inline">{currentLang.name}</span>
-            </button>
+            </Button>
 
             {isOpen && (
                 <div className="absolute right-0 mt-3 w-52 bg-white dark:bg-dark-800/95 backdrop-blur-xl rounded-2xl shadow-card-hover border border-slate-300/70 dark:border-dark-700/50 py-2 z-50 animate-slide-up">
@@ -47,7 +48,7 @@ export default function LanguageSelector() {
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">Selecionar Idioma</p>
                     </div>
                     {languages.map((lang) => (
-                        <button
+                        <Button variant="ghost"
                             key={lang.code}
                             onClick={() => changeLanguage(lang.code)}
                             className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium transition-all ${lang.code === i18n.language
@@ -60,7 +61,7 @@ export default function LanguageSelector() {
                             {lang.code === i18n.language && (
                                 <HiCheck className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                             )}
-                        </button>
+                        </Button>
                     ))}
                 </div>
             )}

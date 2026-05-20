@@ -43,7 +43,7 @@ async function migrate() {
         ];
 
         for (const m of modules) {
-            const module = await prisma.module.upsert({
+            await prisma.module.upsert({
                 where: { code: m.code },
                 update: { name: m.name },
                 create: { code: m.code, name: m.name }

@@ -38,7 +38,6 @@ import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { QuickActionCard } from '../../components/common/QuickActionCard';
 import { SalesHeatmap } from '../../components/commercial/analytics/SalesHeatmap';
 import { SegmentedControl } from '../../components/common/SegmentedControl';
-import { CHART_TOOLTIP_STYLE } from '../../utils/constants';
 
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
@@ -49,7 +48,7 @@ const PERIOD_OPTIONS = [
     { label: '1 Ano', value: 365 },
 ];
 
-const PANEL_SURFACE = 'bg-white dark:bg-dark-800 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_18px_42px_-26px_rgba(15,23,42,0.7)]';
+const PANEL_SURFACE = 'bg-white dark:bg-dark-800 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]';
 const PANEL_TITLE = 'font-black text-[11px] text-slate-700 dark:text-gray-300 uppercase tracking-widest';
 const MICRO_LABEL = 'text-[9px] font-black uppercase tracking-widest text-slate-600 dark:text-gray-300';
 
@@ -411,14 +410,14 @@ export default function CommercialDashboard() {
                                             content={({ active, payload, label }) => {
                                                 if (active && payload && payload.length) {
                                                     return (
-                                                        <div style={CHART_TOOLTIP_STYLE}>
-                                                            <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-1">
+                                                        <div className="bg-white/95 dark:bg-dark-900/95 backdrop-blur-md border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-2xl text-[12px] text-slate-900 dark:text-white">
+                                                            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">
                                                                 {label ? new Date(label).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' }) : ''}
                                                             </p>
                                                             <p className="text-sm font-black text-primary-600 dark:text-primary-400">
                                                                 {formatCurrency(Number(payload[0].value))}
                                                             </p>
-                                                            <p className="text-[9px] font-bold text-slate-500 uppercase mt-1">Receita</p>
+                                                            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-1">Receita</p>
                                                         </div>
                                                     );
                                                 }
@@ -450,46 +449,46 @@ export default function CommercialDashboard() {
                             <h2 className={PANEL_TITLE}>Foco de Gestão</h2>
                         </div>
                         <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200/90 dark:border-red-500/20 transition-all hover:shadow-md group">
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-dark-900 border border-slate-200/80 dark:border-white/5 border-l-4 border-l-red-500 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(148,163,184,0.08)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_2px_8px_rgba(148,163,184,0.04)] dark:shadow-none group">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-red-600 dark:bg-red-500/20 flex items-center justify-center text-white dark:text-red-300 shadow-sm">
+                                    <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400 shadow-sm border border-red-100 dark:border-red-500/20">
                                         <HiOutlineExclamationTriangle className="w-4 h-4" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-black text-red-800 dark:text-red-400 uppercase tracking-tight">Validades</p>
-                                        <p className="text-[10px] text-red-700 dark:text-red-400/70 font-bold uppercase">{nearExpiry.length} produtos críticos</p>
+                                        <p className="text-xs font-black text-slate-800 dark:text-gray-200 uppercase tracking-tight">Validades</p>
+                                        <p className="text-[10px] text-slate-500 dark:text-gray-400 font-bold uppercase">{nearExpiry.length} produtos críticos</p>
                                     </div>
                                 </div>
-                                <HiOutlineArrowTrendingUp className="w-4 h-4 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <HiOutlineArrowTrendingUp className="w-4 h-4 text-red-500 opacity-0 group-hover:opacity-100 transition-all duration-300" />
                             </div>
 
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="w-full h-auto justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200/90 dark:border-amber-500/20 hover:shadow-md cursor-pointer group text-left normal-case tracking-normal"
+                                className="w-full h-auto justify-between p-3 rounded-xl bg-white dark:bg-dark-900 border border-slate-200/80 dark:border-white/5 border-l-4 border-l-amber-500 hover:bg-slate-50 dark:hover:bg-dark-850 hover:shadow-[0_8px_30px_rgba(148,163,184,0.08)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] hover:-translate-y-0.5 cursor-pointer shadow-[0_2px_8px_rgba(148,163,184,0.04)] dark:shadow-none group text-left normal-case tracking-normal transition-all duration-300"
                                 onClick={() => setShowRiskModal(true)}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-amber-500 dark:bg-amber-500/20 flex items-center justify-center text-white dark:text-amber-300 shadow-sm">
+                                    <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-sm border border-amber-100 dark:border-amber-500/20">
                                         <HiOutlineUsers className="w-4 h-4" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-black text-amber-800 dark:text-amber-400 uppercase tracking-tight">Risco Churn</p>
-                                        <p className="text-[10px] text-amber-700 dark:text-amber-400/70 font-bold uppercase">{atRiskCustomers.length} inactivos</p>
+                                        <p className="text-xs font-black text-slate-800 dark:text-gray-200 uppercase tracking-tight">Risco Churn</p>
+                                        <p className="text-[10px] text-slate-500 dark:text-gray-400 font-bold uppercase">{atRiskCustomers.length} inactivos</p>
                                     </div>
                                 </div>
-                                <span className="text-[9px] font-black text-amber-700 uppercase">Ver</span>
+                                <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase bg-amber-50 dark:bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-200/50 dark:border-amber-500/20">Ver</span>
                             </Button>
 
-                            <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/90 dark:border-emerald-500/20 transition-all hover:shadow-md group">
+                            <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-dark-900 border border-slate-200/80 dark:border-white/5 border-l-4 border-l-emerald-500 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_30px_rgba(148,163,184,0.08)] dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)] shadow-[0_2px_8px_rgba(148,163,184,0.04)] dark:shadow-none group">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-600 dark:bg-emerald-500/20 flex items-center justify-center text-white dark:text-emerald-300 shadow-sm">
+                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-sm border border-emerald-100 dark:border-emerald-500/20">
                                         <HiOutlineArrowTrendingUp className="w-4 h-4" />
                                     </div>
                                     <div>
-                                        <p className="text-xs font-black text-emerald-800 dark:text-emerald-400 uppercase tracking-tight">Classe A</p>
-                                        <p className="text-[10px] text-emerald-700/70 dark:text-emerald-400/60 font-bold uppercase">{abcData.filter(p => p.classification === 'A').length} estratégicos</p>
+                                        <p className="text-xs font-black text-slate-800 dark:text-gray-200 uppercase tracking-tight">Classe A</p>
+                                        <p className="text-[10px] text-slate-500 dark:text-gray-400 font-bold uppercase">{abcData.filter(p => p.classification === 'A').length} estratégicos</p>
                                     </div>
                                 </div>
                             </div>
@@ -532,9 +531,9 @@ export default function CommercialDashboard() {
                                                 content={({ active, payload }) => {
                                                     if (active && payload && payload.length) {
                                                         return (
-                                                            <div style={CHART_TOOLTIP_STYLE}>
-                                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{payload[0].name}</p>
-                                                                <p className="text-xs font-black text-white">{payload[0].value} Produtos</p>
+                                                            <div className="bg-white/95 dark:bg-dark-900/95 backdrop-blur-md border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-2xl text-[12px] text-slate-900 dark:text-white">
+                                                                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1">{payload[0].name}</p>
+                                                                <p className="text-xs font-black text-slate-900 dark:text-white">{payload[0].value} Produtos</p>
                                                             </div>
                                                         );
                                                     }

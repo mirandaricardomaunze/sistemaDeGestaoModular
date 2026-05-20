@@ -1,13 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { salesTargetsAPI, type SalesTarget } from '../services/api';
+import {
+    salesTargetsAPI,
+    type SalesTarget,
+    type SalesTargetListFilters,
+} from '../services/api';
 
-export function useSalesTargets(employeeId?: string) {
+export function useSalesTargets(filters: SalesTargetListFilters = {}) {
     const queryClient = useQueryClient();
+    const { employeeId, warehouseId } = filters;
 
     const query = useQuery({
-        queryKey: ['commercial', 'targets', employeeId ?? 'all'],
-        queryFn: () => salesTargetsAPI.list(employeeId),
+        queryKey: ['commercial', 'targets', { employeeId: employeeId ?? null, warehouseId: warehouseId ?? null }],
+        queryFn: () => salesTargetsAPI.list({ employeeId, warehouseId }),
     });
 
     const createMutation = useMutation({
@@ -47,4 +52,12 @@ export function useSalesTargets(employeeId?: string) {
         isSaving: createMutation.isPending || updateMutation.isPending,
         isDeleting: deleteMutation.isPending
     };
+}
+
+export function useSalesTargetsSummary() {
+    return useQuery({
+        queryKey: ['commercial', 'targets', 'summary'],
+        queryFn: () => salesTargetsAPI.summary(),
+        staleTime: 60_000,
+    });
 }

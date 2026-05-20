@@ -1,4 +1,4 @@
-import {
+﻿import {
     HiOutlineShare,
     HiOutlineEnvelope,
     HiOutlineDocumentArrowDown,
@@ -44,7 +44,7 @@ export default function ShareButton({
             toast.success('DF baixado! Agora pode partilhar.');
             setStep('share');
         } else {
-            toast.error('Função de gerar PDF não disponível');
+            toast.error('FunÃ§Ã£o de gerar PDF nÃ£o disponÃ­vel');
         }
     };
 
@@ -55,11 +55,11 @@ export default function ShareButton({
             toast.success('xcel baixado! Agora pode partilhar.');
             setStep('share');
         } else {
-            toast.error('Função de gerar Excel não disponível');
+            toast.error('FunÃ§Ã£o de gerar Excel nÃ£o disponÃ­vel');
         }
     };
 
-    const shareMessage = `${title}*\n\n${description}\n\nocumento: ${fileName}.pdf\n\n✅ Gerado por ${companyName}`;
+    const shareMessage = `${title}*\n\n${description}\n\nocumento: ${fileName}.pdf\n\nâœ… Gerado por ${companyName}`;
     const emailSubject = `${title} - ${companyName}`;
     const emailBody = `Ol,\n\nSegue em anexo o documento: ${title}\n\n${description}\n\nPor favor, veja o ficheiro anexo.\n\nAtenciosamente,\n${companyName}`;
 
@@ -105,7 +105,7 @@ export default function ShareButton({
                     Partilhar
                 </Button>
             ) : (
-                <button
+                <Button variant="ghost"
                     onClick={() => {
                         setShowModal(true);
                         setStep('download');
@@ -115,7 +115,7 @@ export default function ShareButton({
                     title="Partilhar"
                 >
                     <HiOutlineShare className="w-5 h-5" />
-                </button>
+                </Button>
             )}
 
             <Modal
@@ -158,7 +158,7 @@ export default function ShareButton({
                                     <strong>Passo 1:</strong> Primeiro, baixe o ficheiro
                                 </p>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button
+                                    <Button variant="danger"
                                         onClick={handleDownloadPDF}
                                         disabled={!onGeneratePDF}
                                         className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-red-500 dark:hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -170,9 +170,9 @@ export default function ShareButton({
                                             <p className="font-medium text-gray-900 dark:text-white">PDF</p>
                                             <p className="text-xs text-gray-500">Documento PDF</p>
                                         </div>
-                                    </button>
+                                    </Button>
 
-                                    <button
+                                    <Button variant="ghost"
                                         onClick={handleDownloadExcel}
                                         disabled={!onGenerateExcel}
                                         className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-green-500 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -184,16 +184,16 @@ export default function ShareButton({
                                             <p className="font-medium text-gray-900 dark:text-white">Excel</p>
                                             <p className="text-xs text-gray-500">Planilha XLS</p>
                                         </div>
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
 
-                            <button
+                            <Button variant="ghost"
                                 onClick={() => setStep('share')}
                                 className="w-full text-sm text-primary-600 hover:underline"
                             >
-                                J tenho o ficheiro → Ir para partilha
-                            </button>
+                                J tenho o ficheiro â†’ Ir para partilha
+                            </Button>
                         </>
                     )}
 
@@ -206,7 +206,7 @@ export default function ShareButton({
                                 </p>
                                 <div className="grid grid-cols-2 gap-3">
                                     {/* WhatsApp */}
-                                    <button
+                                    <Button variant="ghost"
                                         onClick={handleShareWhatsApp}
                                         className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-green-500 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10 transition-all"
                                     >
@@ -217,10 +217,10 @@ export default function ShareButton({
                                             <p className="font-medium text-gray-900 dark:text-white">WhatsApp</p>
                                             <p className="text-xs text-gray-500">Enviar mensagem</p>
                                         </div>
-                                    </button>
+                                    </Button>
 
                                     {/* Email */}
-                                    <button
+                                    <Button
                                         onClick={handleShareEmail}
                                         className="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-200 dark:border-dark-600 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all"
                                     >
@@ -231,7 +231,7 @@ export default function ShareButton({
                                             <p className="font-medium text-gray-900 dark:text-white">Email</p>
                                             <p className="text-xs text-gray-500">Enviar por email</p>
                                         </div>
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
 
@@ -240,7 +240,7 @@ export default function ShareButton({
                                 <p className="text-sm text-amber-800 dark:text-amber-300 mb-2">
                                      <strong>Dica:</strong> Copie a mensagem e anexe o ficheiro manualmente
                                 </p>
-                                <button
+                                <Button variant="ghost"
                                     onClick={handleCopyMessage}
                                     className="flex items-center gap-2 px-3 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-200 transition-colors text-sm font-medium"
                                 >
@@ -255,15 +255,15 @@ export default function ShareButton({
                                             Copiar mensagem
                                         </>
                                     )}
-                                </button>
+                                </Button>
                             </div>
 
-                            <button
+                            <Button variant="ghost"
                                 onClick={() => setStep('download')}
                                 className="w-full text-sm text-gray-500 hover:text-gray-700"
                             >
-                                ← Voltar para baixar ficheiro
-                            </button>
+                                â† Voltar para baixar ficheiro
+                            </Button>
                         </>
                     )}
 

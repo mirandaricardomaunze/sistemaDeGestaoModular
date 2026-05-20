@@ -174,7 +174,7 @@ export default function Dashboard() {
             action: item.title,
             detail: item.description,
             time: formatRelativeTime(item.timestamp),
-            icon: item.type === 'sale' ? 'ðŸ’°' : 'ðŸ””'
+            icon: item.type === 'sale' ? '💰' : '🔔'
         })).slice(0, 5);
     }, [recentActivity]);
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Card, Button, Badge, Input, Select, Modal, PageHeader, SmartTable } from '../../components/ui';
 import {
@@ -129,13 +129,13 @@ export default function FuelPage() {
             header: '',
             cell: ({ row }) => (
                 <div className="text-right">
-                    <button
+                    <Button variant="ghost"
                         onClick={() => setDeleteConfirm(row.original.id)}
                         className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                         title={t('common.delete')}
                     >
                         <HiOutlineTrash className="w-5 h-5" />
-                    </button>
+                    </Button>
                 </div>
             ),
         },

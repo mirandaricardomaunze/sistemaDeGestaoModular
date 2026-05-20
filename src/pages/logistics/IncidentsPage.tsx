@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { Card, Button, Badge, Input, Select, Modal, LoadingSpinner, PageHeader, Pagination } from '../../components/ui';
 import { 
     HiOutlinePlus, 
@@ -204,7 +204,7 @@ export default function IncidentsPage() {
                                         </div>
                                         <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-1">{incident.description}</p>
                                         <p className="text-xs text-gray-400 font-medium">
-                                            {incident.vehicle?.plate} • {incident.driver?.name || 'Sem motorista'}
+                                            {incident.vehicle?.plate} â€¢ {incident.driver?.name || 'Sem motorista'}
                                         </p>
                                     </td>
                                     <td className="px-6 py-4">
@@ -218,12 +218,12 @@ export default function IncidentsPage() {
                                         </p>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <button 
+                                        <Button variant="ghost" 
                                             onClick={() => setDeleteConfirm(incident.id)}
                                             className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                                         >
                                             <HiOutlineTrash className="w-5 h-5" />
-                                        </button>
+                                        </Button>
                                     </td>
                                 </tr>
                             ))}
@@ -335,7 +335,7 @@ export default function IncidentsPage() {
                 </form>
             </Modal>
 
-            {/* Modal de Confirmação de Deleção */}
+            {/* Modal de ConfirmaÃ§Ã£o de DeleÃ§Ã£o */}
             <Modal
                 isOpen={!!deleteConfirm}
                 onClose={() => setDeleteConfirm(null)}

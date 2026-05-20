@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,9 +20,9 @@ import toast from 'react-hot-toast';
 
 // Customer Schema
 const customerSchema = z.object({
-    name: z.string().min(2, 'Nome é obrigatório'),
-    phone: z.string().min(10, 'Telefone inválido'),
-    email: z.string().email('Email inválido').optional().or(z.literal('')),
+    name: z.string().min(2, 'Nome Ã© obrigatÃ³rio'),
+    phone: z.string().min(10, 'Telefone invÃ¡lido'),
+    email: z.string().email('Email invÃ¡lido').optional().or(z.literal('')),
     address: z.string().optional(),
 });
 
@@ -30,7 +30,7 @@ type CustomerFormData = z.infer<typeof customerSchema>;
 
 // Order Details Schema
 const detailsSchema = z.object({
-    deliveryDate: z.string().min(1, 'Data de entrega é obrigatória'),
+    deliveryDate: z.string().min(1, 'Data de entrega Ã© obrigatÃ³ria'),
     priority: z.enum(['low', 'normal', 'high', 'urgent']),
     notes: z.string().optional(),
     paymentMethod: z.enum(['cash', 'card', 'pix', 'invoice']),
@@ -58,7 +58,7 @@ const STEPS = [
     { id: 1, title: 'Cliente', icon: HiOutlineUser },
     { id: 2, title: 'Produtos', icon: HiOutlineShoppingCart },
     { id: 3, title: 'Detalhes', icon: HiOutlineDocumentText },
-    { id: 4, title: 'Confirmação', icon: HiOutlineCheck },
+    { id: 4, title: 'ConfirmaÃ§Ã£o', icon: HiOutlineCheck },
 ];
 
 const priorityOptions = [
@@ -70,7 +70,7 @@ const priorityOptions = [
 
 const paymentOptions = [
     { value: 'cash', label: 'Dinheiro' },
-    { value: 'card', label: 'Cartão' },
+    { value: 'card', label: 'CartÃ£o' },
     { value: 'pix', label: 'PIX' },
     { value: 'invoice', label: 'Faturado' },
 ];
@@ -141,7 +141,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
 
         // Validate stock
         if (selectedProduct.currentStock < quantity) {
-            toast.error(`Estoque insuficiente! Disponível: ${selectedProduct.currentStock}`);
+            toast.error(`Estoque insuficiente! DisponÃ­vel: ${selectedProduct.currentStock}`);
             return;
         }
 
@@ -155,7 +155,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
             const newQty = newItems[existingIndex].quantity + quantity;
 
             if (selectedProduct.currentStock < newQty) {
-                toast.error(`Estoque insuficiente! Disponível: ${selectedProduct.currentStock}`);
+                toast.error(`Estoque insuficiente! DisponÃ­vel: ${selectedProduct.currentStock}`);
                 return;
             }
 
@@ -180,7 +180,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
     const handleUpdateQuantity = (index: number, newQty: number) => {
         const item = orderItems[index];
         if (newQty > item.product.currentStock) {
-            toast.error(`Estoque máximo: ${item.product.currentStock}`);
+            toast.error(`Estoque mÃ¡ximo: ${item.product.currentStock}`);
             return;
         }
         if (newQty < 1) return;
@@ -287,12 +287,12 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                             error={customerErrors.email?.message}
                         />
                         <Input
-                            label="Endereço de Entrega"
+                            label="EndereÃ§o de Entrega"
                             {...registerCustomer('address')}
                         />
                         <div className="flex justify-end pt-4">
                             <Button type="submit">
-                                Próximo
+                                PrÃ³ximo
                             </Button>
                         </div>
                     </form>
@@ -310,12 +310,12 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                         leftIcon={<HiOutlineMagnifyingGlass className="w-5 h-5" />}
                                         value={productSearch}
                                         onChange={(e) => setProductSearch(e.target.value)}
-                                        placeholder="Digite nome ou código..."
+                                        placeholder="Digite nome ou cÃ³digo..."
                                     />
                                     {productSearch && (
                                         <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                             {filteredProducts.map((product) => (
-                                                <button
+                                                <Button variant="ghost"
                                                     key={product.id}
                                                     onClick={() => {
                                                         setSelectedProduct(product);
@@ -328,13 +328,13 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                                             {product.name}
                                                         </p>
                                                         <p className="text-sm text-gray-500">
-                                                            Código: {product.code} • Estoque: {product.currentStock}
+                                                            CÃ³digo: {product.code} â€¢ Estoque: {product.currentStock}
                                                         </p>
                                                     </div>
                                                     <span className="font-semibold text-primary-600">
                                                         {formatCurrency(product.price)}
                                                     </span>
-                                                </button>
+                                                </Button>
                                             ))}
                                         </div>
                                     )}
@@ -359,7 +359,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                 <div className="mt-3 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
                                     <p className="text-sm">
                                         Selecionado: <span className="font-semibold">{selectedProduct.name}</span>
-                                        {' • '}
+                                        {' â€¢ '}
                                         {formatCurrency(selectedProduct.price)}
                                         {selectedProduct.currentStock <= 5 && (
                                             <span className="ml-2 text-yellow-600">
@@ -410,21 +410,21 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center justify-center gap-2">
-                                                        <button
+                                                        <Button variant="ghost"
                                                             onClick={() => handleUpdateQuantity(index, item.quantity - 1)}
                                                             className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-600 hover:bg-gray-200 dark:hover:bg-dark-500"
                                                         >
                                                             -
-                                                        </button>
+                                                        </Button>
                                                         <span className="w-12 text-center font-medium">
                                                             {item.quantity}
                                                         </span>
-                                                        <button
+                                                        <Button variant="ghost"
                                                             onClick={() => handleUpdateQuantity(index, item.quantity + 1)}
                                                             className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-dark-600 hover:bg-gray-200 dark:hover:bg-dark-500"
                                                         >
                                                             +
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-right text-gray-900 dark:text-white">
@@ -434,12 +434,12 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                                     {formatCurrency(item.product.price * item.quantity)}
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <button
+                                                    <Button variant="ghost"
                                                         onClick={() => handleRemoveProduct(index)}
                                                         className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
                                                     >
                                                         <HiOutlineTrash className="w-5 h-5" />
-                                                    </button>
+                                                    </Button>
                                                 </td>
                                             </tr>
                                         ))
@@ -466,7 +466,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                 Voltar
                             </Button>
                             <Button onClick={() => setCurrentStep(3)} disabled={!canProceedStep2}>
-                                Próximo
+                                PrÃ³ximo
                             </Button>
                         </div>
                     </div>
@@ -495,12 +495,12 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                         />
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                                Observações
+                                ObservaÃ§Ãµes
                             </label>
                             <textarea
                                 className="input min-h-[100px]"
                                 {...registerDetails('notes')}
-                                placeholder="Instruções especiais, detalhes de entrega..."
+                                placeholder="InstruÃ§Ãµes especiais, detalhes de entrega..."
                             />
                         </div>
                         <div className="flex justify-between pt-4">
@@ -508,7 +508,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                 Voltar
                             </Button>
                             <Button type="submit">
-                                Próximo
+                                PrÃ³ximo
                             </Button>
                         </div>
                     </form>
@@ -545,7 +545,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                                 )}
                                 {customerData?.address && (
                                     <div className="col-span-2">
-                                        <span className="text-gray-500">Endereço:</span>
+                                        <span className="text-gray-500">EndereÃ§o:</span>
                                         <span className="ml-2 font-medium text-gray-900 dark:text-white">
                                             {customerData.address}
                                         </span>
@@ -609,7 +609,7 @@ export default function OrderCreationWizard({ isOpen, onClose, onComplete }: Ord
                             </div>
                             {detailsData?.notes && (
                                 <div className="mt-3 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg">
-                                    <span className="text-sm text-gray-500">Observações:</span>
+                                    <span className="text-sm text-gray-500">ObservaÃ§Ãµes:</span>
                                     <p className="text-sm text-gray-900 dark:text-white mt-1">
                                         {detailsData.notes}
                                     </p>

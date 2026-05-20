@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { 
     HiOutlineMagnifyingGlass, 
     HiOutlineClock,
@@ -101,7 +101,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                         <HiOutlineArrowLeftOnRectangle className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Saídas Registadas</p>
+                        <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">SaÃ­das Registadas</p>
                         <h4 className="text-xl font-black font-mono">{attendance?.filter(a => a.checkOut).length || 0}</h4>
                     </div>
                 </Card>
@@ -130,16 +130,16 @@ export const PharmacyAttendanceControl: React.FC = () => {
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-gray-900 dark:text-white truncate">{person.name}</h4>
                                         <p className="text-[10px] uppercase font-black tracking-widest text-gray-400">
-                                            {person.role || (person.department + ' • ' + person.code)}
+                                            {person.role || (person.department + ' â€¢ ' + person.code)}
                                         </p>
                                     </div>
-                                    <button 
+                                    <Button variant="ghost" 
                                         onClick={() => openHistory(person)}
                                         className="p-2 rounded-lg hover:bg-white/50 dark:hover:bg-dark-700/50 text-gray-400 hover:text-primary-500 transition-colors"
-                                        title="Ver Histórico"
+                                        title="Ver HistÃ³rico"
                                     >
                                         <HiOutlineDocumentMagnifyingGlass className="w-5 h-5" />
-                                    </button>
+                                    </Button>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 py-2 border-y border-gray-100 dark:border-dark-700/50">
@@ -150,7 +150,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                                         </p>
                                     </div>
                                     <div className="space-y-1 text-right">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Saída</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">SaÃ­da</span>
                                         <p className={`text-xs font-black font-mono italic ${record?.checkOut ? 'text-blue-600' : 'text-gray-400'}`}>
                                             {record?.checkOut || '--:--'}
                                         </p>
@@ -189,14 +189,14 @@ export const PharmacyAttendanceControl: React.FC = () => {
             <Modal
                 isOpen={isHistoryOpen}
                 onClose={() => setIsHistoryOpen(false)}
-                title={`Histórico: ${selectedEmployee?.name}`}
+                title={`HistÃ³rico: ${selectedEmployee?.name}`}
                 size="lg"
             >
                 <div className="space-y-6">
                     {/* Monthly Summary */}
                     <div className="grid grid-cols-3 gap-4">
                         <div className="p-4 rounded-lg bg-teal-50 dark:bg-teal-900/10 border border-teal-100 dark:border-teal-900/20">
-                            <p className="text-[10px] font-black uppercase text-teal-600 mb-1">Presenças</p>
+                            <p className="text-[10px] font-black uppercase text-teal-600 mb-1">PresenÃ§as</p>
                             <p className="text-xl font-black text-teal-700">{statsSummary.present}</p>
                         </div>
                         <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
@@ -234,7 +234,7 @@ export const PharmacyAttendanceControl: React.FC = () => {
                                         </div>
                                         <div className="text-right">
                                             <p className="text-xs font-black font-mono">
-                                                {h.checkIn || '--:--'} → {h.checkOut || '--:--'}
+                                                {h.checkIn || '--:--'} â†’ {h.checkOut || '--:--'}
                                             </p>
                                             <p className="text-[10px] text-gray-400">{h.hoursWorked?.toFixed(1) || '0.0'}h trabalhadas</p>
                                         </div>

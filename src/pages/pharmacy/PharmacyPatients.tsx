@@ -144,7 +144,7 @@ export default function PharmacyPatients() {
                     {loadingCustomers ? <LoadingSpinner /> : (
                         <div className="space-y-2 max-h-[70vh] overflow-y-auto">
                             {filtered.map((c) => (
-                                <button
+                                <Button variant="ghost"
                                     key={c.id}
                                     onClick={() => { setSelectedPatient(c); setEditMode(false); setActiveTab('profile'); }}
                                     className={cn(
@@ -176,7 +176,7 @@ export default function PharmacyPatients() {
                                     {selectedPatient?.id === c.id && (
                                         <div className="absolute right-0 top-0 bottom-0 w-1 bg-emerald-500" />
                                     )}
-                                </button>
+                                </Button>
                             ))}
                             {filtered.length === 0 && <p className="text-center text-gray-400 py-8 text-sm">Nenhum paciente encontrado</p>}
                         </div>
@@ -295,7 +295,7 @@ export default function PharmacyPatients() {
 
                                             {/* Allergies */}
                                             <div>
-                                                <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">⚠️ï¸ Alergias Conhecidas</p>
+                                                <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">� ️ï¸ Alergias Conhecidas</p>
                                                 {editMode ? (
                                                     <div className="space-y-2">
                                                         <div className="flex flex-wrap gap-2 mb-2">
@@ -319,7 +319,7 @@ export default function PharmacyPatients() {
                                                             {profileForm.allergies.map((a: string) => (
                                                                 <span key={a} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-700 text-xs font-medium">
                                                                     {a}
-                                                                    <button onClick={() => setProfileForm((f) => ({ ...f, allergies: f.allergies.filter((x: string) => x !== a) }))}><HiOutlineXMark className="w-3 h-3" /></button>
+                                                                    <Button variant="ghost" onClick={() => setProfileForm((f) => ({ ...f, allergies: f.allergies.filter((x: string) => x !== a) }))}><HiOutlineXMark className="w-3 h-3" /></Button>
                                                                 </span>
                                                             ))}
                                                         </div>
@@ -358,7 +358,7 @@ export default function PharmacyPatients() {
                                                             {profileForm.chronicConditions.map((c: string) => (
                                                                 <span key={c} className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
                                                                     {c}
-                                                                    <button onClick={() => setProfileForm((f) => ({ ...f, chronicConditions: f.chronicConditions.filter((x: string) => x !== c) }))}><HiOutlineXMark className="w-3 h-3" /></button>
+                                                                    <Button variant="ghost" onClick={() => setProfileForm((f) => ({ ...f, chronicConditions: f.chronicConditions.filter((x: string) => x !== c) }))}><HiOutlineXMark className="w-3 h-3" /></Button>
                                                                 </span>
                                                             ))}
                                                         </div>

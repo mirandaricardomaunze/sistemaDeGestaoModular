@@ -116,12 +116,12 @@ export default function PaymentConfirmModal({ isOpen, onClose, record, onConfirm
                                 <p className="text-sm text-green-100">{record.employee.name}</p>
                             </div>
                         </div>
-                        <button
+                        <Button variant="ghost"
                             onClick={onClose}
                             className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                         >
                             <HiOutlineXMark className="w-5 h-5" />
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -147,7 +147,7 @@ export default function PaymentConfirmModal({ isOpen, onClose, record, onConfirm
                             {paymentMethods.map((method) => {
                                 const Icon = method.icon;
                                 return (
-                                    <button
+                                    <Button variant="ghost"
                                         key={method.id}
                                         type="button"
                                         onClick={() => setSelectedMethod(method.id)}
@@ -158,7 +158,7 @@ export default function PaymentConfirmModal({ isOpen, onClose, record, onConfirm
                                     >
                                         <Icon className="w-6 h-6" />
                                         <span className="text-xs font-medium text-center">{method.label}</span>
-                                    </button>
+                                    </Button>
                                 );
                             })}
                         </div>

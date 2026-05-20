@@ -11,11 +11,13 @@ import {
     HiOutlineTrash
 } from 'react-icons/hi2';
 import { chatAPI } from '../../services/chatAPI';
+import { ConfirmationModal } from '../ui';
 import type { Message } from '../../types/chat';
 import toast from 'react-hot-toast';
 import { logger } from '../../utils';
 import { useChatStore } from '../../stores/useChatStore';
 import { API_HOST } from '../../config/env';
+import { Button } from '../ui/Button';
 
 interface ChatWidgetProps {
     initiallyOpen?: boolean;
@@ -143,11 +145,14 @@ export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidge
         handleSend(suggestion);
     };
 
-    const handleClearHistory = () => {
-        if (confirm('Deseja limpar o histórico de conversas deste módulo?')) {
-            clearMessages(currentModule);
-            toast.success('Histórico limpo');
-        }
+    const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+
+    const handleClearHistory = () => setConfirmClearOpen(true);
+
+    const confirmClearHistory = () => {
+        clearMessages(currentModule);
+        toast.success('Histórico limpo');
+        setConfirmClearOpen(false);
     };
 
     // UI Helpers based on module
@@ -167,14 +172,15 @@ export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidge
         <>
             {/* Botão Flutuante */}
             {!isOpen && !isCommercialInsightsPage && (
-                <button
+                <Button variant="ghost"
+                    type="button"
                     onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-full shadow-2xl hover:shadow-primary-500/50 transition-all duration-300 flex items-center justify-center text-white z-50 group hover:scale-105"
-                    title="Assistente IA"
+                    aria-label="Abrir assistente IA"
+                    className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 rounded-full shadow-2xl hover:shadow-primary-500/50 transition-all duration-300 flex items-center justify-center text-white z-50 group hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-300"
                 >
                     <HiOutlineSparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
                     <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-green-400 rounded-full animate-pulse border-2 border-white" />
-                </button>
+                </Button>
             )}
 
             {/* Janela de Chat */}
@@ -199,20 +205,22 @@ export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidge
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    <button
+                                    <Button variant="ghost"
+                                        type="button"
                                         onClick={handleClearHistory}
-                                        className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors cursor-pointer"
-                                        title="Limpar Histórico"
+                                        aria-label="Limpar histórico"
+                                        className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                     >
                                         <HiOutlineTrash className="w-4 h-4" />
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button variant="ghost"
+                                        type="button"
                                         onClick={handleClose}
-                                        className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors cursor-pointer"
                                         aria-label="Fechar chat"
+                                        className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                                     >
                                         <HiOutlineXMark className="w-5 h-5" />
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
 
@@ -234,15 +242,16 @@ export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidge
                                         <div className="space-y-2 max-w-sm mx-auto px-2">
                                             <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Sugestões para você:</p>
                                             {suggestions.map((suggestion, index) => (
-                                                <button
+                                                <Button variant="ghost"
                                                     key={index}
+                                                    type="button"
                                                     onClick={() => handleSuggestionClick(suggestion)}
-                                                    className="w-full text-left px-4 py-3 bg-white dark:bg-dark-800 rounded-lg text-xs hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all border border-gray-200 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 group hover:shadow-md"
+                                                    className="w-full text-left px-4 py-3 bg-white dark:bg-dark-800 rounded-lg text-xs hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all border border-gray-200 dark:border-dark-700 hover:border-primary-300 dark:hover:border-primary-700 group hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                                                 >
                                                     <span className="text-gray-700 dark:text-gray-300 group-hover:text-primary-600 dark:group-hover:text-primary-400 font-medium">
                                                         {suggestion}
                                                     </span>
-                                                </button>
+                                                </Button>
                                             ))}
                                         </div>
                                     </div>
@@ -340,13 +349,15 @@ export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidge
                                         disabled={isLoading}
                                         maxLength={1000}
                                     />
-                                    <button
+                                    <Button variant="ghost"
+                                        type="button"
                                         onClick={() => handleSend()}
                                         disabled={!input.trim() || isLoading}
-                                        className="p-3 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 disabled:shadow-none"
+                                        aria-label="Enviar mensagem"
+                                        className="p-3 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 disabled:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
                                     >
                                         <HiOutlinePaperAirplane className="w-5 h-5 rotate-90" />
-                                    </button>
+                                    </Button>
                                 </div>
                                 <div className="flex items-center justify-center gap-2 mt-3">
                                     <HiOutlineSparkles className="w-3 h-3 text-primary-500" />
@@ -359,6 +370,17 @@ export default function ChatWidget({ initiallyOpen = false, onClose }: ChatWidge
                     </div>
                 </div>
             )}
+
+            <ConfirmationModal
+                isOpen={confirmClearOpen}
+                onClose={() => setConfirmClearOpen(false)}
+                onConfirm={confirmClearHistory}
+                title="Limpar histórico?"
+                message="Tem a certeza que deseja limpar o histórico de conversas deste módulo? Esta acção não pode ser desfeita."
+                confirmText="Sim, limpar"
+                cancelText="Cancelar"
+                variant="warning"
+            />
         </>
     );
 }

@@ -68,7 +68,6 @@ export class DocumentService {
         options.data.forEach(row => {
             currentX = 50;
             const rowY = doc.y;
-            const maxHeight = 0;
 
             options.columns.forEach(col => {
                 const cell = row[col.key];

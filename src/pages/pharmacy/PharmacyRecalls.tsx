@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, Button, Input, Badge, LoadingSpinner, Select, Textarea } from '../../components/ui';
 import type { BadgeVariant } from '../../components/ui/Badge';
@@ -39,7 +39,7 @@ interface AffectedSale {
 
 const SEVERITY_LABELS: Record<string, { label: string; variant: BadgeVariant }> = {
     voluntary: { label: 'Voluntria', variant: 'warning' },
-    mandatory: { label: 'Obrigatória', variant: 'danger' },
+    mandatory: { label: 'ObrigatÃ³ria', variant: 'danger' },
     urgent: { label: 'URGENTE', variant: 'danger' }
 };
 
@@ -106,7 +106,7 @@ export default function PharmacyRecalls() {
         <div className="space-y-6">
             <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Recalls</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">GestÃ£o de Recalls</h1>
                     <p className="text-gray-500 dark:text-gray-400">Recolha de lotes do mercado e rastreabilidade de pacientes afectados</p>
                 </div>
                 <Button onClick={() => setShowForm(true)} leftIcon={<HiOutlinePlus className="w-4 h-4" />}>Registar Recall</Button>
@@ -135,13 +135,13 @@ export default function PharmacyRecalls() {
                             value={form.severity}
                             onChange={e => setForm(f => ({ ...f, severity: e.target.value }))}
                             options={[
-                                { value: 'voluntary', label: 'Voluntária' },
-                                { value: 'mandatory', label: 'Obrigatória' },
+                                { value: 'voluntary', label: 'VoluntÃ¡ria' },
+                                { value: 'mandatory', label: 'ObrigatÃ³ria' },
                                 { value: 'urgent', label: 'Urgente' }
                             ]}
                         />
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Números de Lote Afectados *</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">NÃºmeros de Lote Afectados *</label>
                             <div className="flex gap-2 mb-2">
                                 <Input value={batchInput} onChange={e => setBatchInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addBatch()} placeholder="Ex: LT-2024-001" className="flex-1" />
                                 <Button size="sm" onClick={addBatch}>Adicionar</Button>
@@ -149,7 +149,7 @@ export default function PharmacyRecalls() {
                             <div className="flex flex-wrap gap-1">
                                 {form.batchNumbers.map(b => (
                                     <span key={b} className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-700 text-xs font-mono">
-                                        {b} <button onClick={() => setForm(f => ({ ...f, batchNumbers: f.batchNumbers.filter(x => x !== b) }))} className="ml-1">x</button>
+                                        {b} <Button variant="ghost" onClick={() => setForm(f => ({ ...f, batchNumbers: f.batchNumbers.filter(x => x !== b) }))} className="ml-1">x</Button>
                                     </span>
                                 ))}
                             </div>
@@ -183,7 +183,7 @@ export default function PharmacyRecalls() {
                         size="sm"
                         className={cn("rounded-lg", statusFilter === s ? "shadow-md" : "")}
                     >
-                        {s === '' ? 'Todos' : s === 'active' ? 'Activos' : s === 'monitoring' ? 'Monitorização' : 'Resolvidos'}
+                        {s === '' ? 'Todos' : s === 'active' ? 'Activos' : s === 'monitoring' ? 'MonitorizaÃ§Ã£o' : 'Resolvidos'}
                     </Button>
                 ))}
             </div>
@@ -209,7 +209,7 @@ export default function PharmacyRecalls() {
                                         <div className="flex gap-1">
                                             <Badge variant={SEVERITY_LABELS[r.severity]?.variant || 'gray'}>{SEVERITY_LABELS[r.severity]?.label}</Badge>
                                             <Badge variant={r.status === 'resolved' ? 'success' : r.status === 'monitoring' ? 'warning' : 'danger'}>
-                                                {r.status === 'resolved' ? 'Resolvido' : r.status === 'monitoring' ? 'Monitorização' : 'Activo'}
+                                                {r.status === 'resolved' ? 'Resolvido' : r.status === 'monitoring' ? 'MonitorizaÃ§Ã£o' : 'Activo'}
                                             </Badge>
                                         </div>
                                     </div>
@@ -255,7 +255,7 @@ export default function PharmacyRecalls() {
                                         <div key={sale.id} className="border border-gray-200 dark:border-dark-700 rounded-lg p-3">
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <p className="font-semibold text-sm">{sale.customer?.name || sale.customerName || 'Cliente Balcão'}</p>
+                                                    <p className="font-semibold text-sm">{sale.customer?.name || sale.customerName || 'Cliente BalcÃ£o'}</p>
                                                     {sale.customer?.phone && (
                                                         <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                                                             <HiOutlinePhone className="w-3 h-3" /> {sale.customer.phone}
@@ -286,15 +286,15 @@ export default function PharmacyRecalls() {
                         <Input label="Unidades Recuperadas" type="number" value={resolveForm.recoveredUnits} onChange={e => setResolveForm(f => ({ ...f, recoveredUnits: Number(e.target.value) }))} min={0} className="mb-4" />
                         <div className="mb-4">
                             <Textarea 
-                                label="Acção Tomada"
+                                label="AcÃ§Ã£o Tomada"
                                 rows={3}
                                 value={resolveForm.actionTaken}
                                 onChange={e => setResolveForm(f => ({ ...f, actionTaken: e.target.value }))}
-                                placeholder="Descreva as acções tomadas..."
+                                placeholder="Descreva as acÃ§Ãµes tomadas..."
                             />
                         </div>
                         <div className="flex gap-2">
-                            <Button onClick={() => resolveMutation.mutate()} isLoading={resolveMutation.isPending} leftIcon={<HiOutlineCheckCircle className="w-4 h-4" />}>Confirmar Resolução</Button>
+                            <Button onClick={() => resolveMutation.mutate()} isLoading={resolveMutation.isPending} leftIcon={<HiOutlineCheckCircle className="w-4 h-4" />}>Confirmar ResoluÃ§Ã£o</Button>
                             <Button variant="outline" onClick={() => setResolveModal(null)}>Cancelar</Button>
                         </div>
                     </Card>

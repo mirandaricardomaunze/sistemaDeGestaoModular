@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Pharmacy Reports
  *
- * Relatórios avançados: Vendas, Lucratividade, Stock, Top Clientes, Fornecedores.
+ * RelatÃ³rios avanÃ§ados: Vendas, Lucratividade, Stock, Top Clientes, Fornecedores.
  */
 
 import { useState, useMemo } from 'react';
@@ -164,9 +164,9 @@ export default function PharmacyReports() {
 
             setIsReportGenerated(true);
             setPage(targetPage);
-            toast.success('Relatório gerado!');
+            toast.success('RelatÃ³rio gerado!');
         } catch (error) {
-            toast.error('Erro ao gerar relatório: ' + ((error as Error).message || 'Erro desconhecido'));
+            toast.error('Erro ao gerar relatÃ³rio: ' + ((error as Error).message || 'Erro desconhecido'));
         } finally {
             setIsGenerating(false);
         }
@@ -207,7 +207,7 @@ export default function PharmacyReports() {
         return [
             { name: 'Normal', value: normal, color: '#22c55e' },
             { name: 'Baixo', value: low, color: '#f59e0b' },
-            { name: 'Crítico', value: critical, color: '#ef4444' },
+            { name: 'CrÃ­tico', value: critical, color: '#ef4444' },
             { name: 'Expirado', value: expired, color: '#6b7280' },
         ].filter(d => d.value > 0);
     }, [reportData.medications]);
@@ -215,8 +215,8 @@ export default function PharmacyReports() {
     const summary = reportData.summary || {};
 
     const handleExport = (type: 'pdf' | 'excel' | 'print') => {
-        if (!isReportGenerated) { toast.error('Gere o relatório antes de exportar!'); return; }
-        const periodLabel = `${period.start || 'Início'} a ${period.end || 'Fim'}`;
+        if (!isReportGenerated) { toast.error('Gere o relatÃ³rio antes de exportar!'); return; }
+        const periodLabel = `${period.start || 'InÃ­cio'} a ${period.end || 'Fim'}`;
         if (type === 'pdf' || type === 'print') {
             const action = type === 'print' ? 'print' : 'save';
             if (reportType === 'sales' || reportType === 'profitability') {
@@ -255,7 +255,7 @@ export default function PharmacyReports() {
                     action
                 );
             }
-            toast.success(type === 'print' ? 'A preparar impressão...' : 'PDF gerado!');
+            toast.success(type === 'print' ? 'A preparar impressÃ£o...' : 'PDF gerado!');
         } else {
             // CSV export
             let rows: string[][] = [];
@@ -263,11 +263,11 @@ export default function PharmacyReports() {
             if (reportType === 'sales' || reportType === 'profitability') {
                 filename = `vendas_${period.start || 'inicio'}_${period.end || 'fim'}`;
                 rows = [
-                    ['Nº Recibo', 'Data', 'Cliente', 'Método Pagamento', 'Total', 'Lucro'],
+                    ['NÂº Recibo', 'Data', 'Cliente', 'MÃ©todo Pagamento', 'Total', 'Lucro'],
                     ...reportData.sales.map((s) => [
                         s.receiptNumber || s.id?.slice(-8) || '',
                         s.createdAt ? s.createdAt.slice(0, 10) : '',
-                        s.customer?.name || 'Balcão',
+                        s.customer?.name || 'BalcÃ£o',
                         s.paymentMethod || '',
                         String(Number(s.total || 0).toFixed(2)),
                         String(Number(s.profit || 0).toFixed(2)),
@@ -276,20 +276,20 @@ export default function PharmacyReports() {
             } else if (reportType === 'stock') {
                 filename = `stock_${new Date().toISOString().slice(0, 10)}`;
                 rows = [
-                    ['Código', 'Medicamento', 'Categoria', 'Stock Total', 'Stock Mínimo', 'Stock Baixo'],
+                    ['CÃ³digo', 'Medicamento', 'Categoria', 'Stock Total', 'Stock MÃ­nimo', 'Stock Baixo'],
                     ...reportData.medications.map((m) => [
                         m.code || '',
                         m.name || '',
                         m.category?.name || '',
                         String(m.totalStock ?? 0),
                         String(m.minimumStock ?? 0),
-                        m.isLowStock ? 'Sim' : 'Não',
+                        m.isLowStock ? 'Sim' : 'NÃ£o',
                     ])
                 ];
             } else if (reportType === 'top-customers') {
                 filename = `top_clientes_${new Date().toISOString().slice(0, 10)}`;
                 rows = [
-                    ['Cliente', 'Total Compras', 'Nº Visitas', 'Última Compra'],
+                    ['Cliente', 'Total Compras', 'NÂº Visitas', 'Ãšltima Compra'],
                     ...reportData.customers.map((c) => [
                         c.name || '',
                         String(Number(c.totalSpent || 0).toFixed(2)),
@@ -300,7 +300,7 @@ export default function PharmacyReports() {
             } else if (reportType === 'suppliers') {
                 filename = `fornecedores_${new Date().toISOString().slice(0, 10)}`;
                 rows = [
-                    ['Fornecedor', 'Total Compras', 'Nº Encomendas', 'Última Encomenda'],
+                    ['Fornecedor', 'Total Compras', 'NÂº Encomendas', 'Ãšltima Encomenda'],
                     ...reportData.suppliers.map((s) => [
                         s.name || '',
                         String(Number(s.totalPurchases || 0).toFixed(2)),
@@ -328,7 +328,7 @@ export default function PharmacyReports() {
             {/* Header */}
             <div className="print:hidden">
                 <PageHeader
-                    title="Relatórios de Farmácia"
+                    title="RelatÃ³rios de FarmÃ¡cia"
                     subtitle="Vendas, Lucratividade, Stock, Clientes e Fornecedores"
                     icon={<HiOutlineDocumentChartBar />}
                     className="mb-4"
@@ -347,7 +347,7 @@ export default function PharmacyReports() {
                 <div className="flex flex-wrap items-center gap-4">
                     <div className="flex items-center h-10 gap-2 bg-gray-50 dark:bg-dark-700/50 p-1.5 rounded-lg border border-gray-100 dark:border-dark-600">
                         <Input type="date" value={period.start} onChange={e => setPeriod({ ...period, start: e.target.value })} className="w-36 border-none bg-transparent shadow-none focus:ring-0 h-full" />
-                        <span className="text-[10px] font-black uppercase tracking-tighter text-gray-400 px-1">até</span>
+                        <span className="text-[10px] font-black uppercase tracking-tighter text-gray-400 px-1">atÃ©</span>
                         <Input type="date" value={period.end} onChange={e => setPeriod({ ...period, end: e.target.value })} className="w-36 border-none bg-transparent shadow-none focus:ring-0 h-full" />
                     </div>
 
@@ -356,7 +356,7 @@ export default function PharmacyReports() {
                         {REPORT_OPTIONS.map(opt => {
                             const Icon = opt.icon;
                             return (
-                                <button
+                                <Button variant="ghost"
                                     key={opt.value}
                                     onClick={() => { setReportType(opt.value as ReportType); setIsReportGenerated(false); }}
                                     className={cn(
@@ -368,23 +368,23 @@ export default function PharmacyReports() {
                                 >
                                     <Icon className="w-4 h-4" />
                                     {opt.label}
-                                </button>
+                                </Button>
                             );
                         })}
                     </div>
 
                     {/* View toggle */}
                     <div className="flex items-center h-10 gap-1 bg-gray-100 dark:bg-dark-700 rounded-lg p-1 ml-auto">
-                        <button onClick={() => setViewMode('charts')} className={cn('p-2 h-full aspect-square rounded-md flex items-center justify-center', viewMode === 'charts' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
+                        <Button variant="ghost" onClick={() => setViewMode('charts')} className={cn('p-2 h-full aspect-square rounded-md flex items-center justify-center', viewMode === 'charts' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
                             <HiOutlineChartBar className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => setViewMode('table')} className={cn('p-2 h-full aspect-square rounded-md flex items-center justify-center', viewMode === 'table' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
+                        </Button>
+                        <Button variant="ghost" onClick={() => setViewMode('table')} className={cn('p-2 h-full aspect-square rounded-md flex items-center justify-center', viewMode === 'table' ? 'bg-white dark:bg-dark-600 shadow' : 'hover:bg-gray-200')}>
                             <HiOutlineTableCells className="w-4 h-4" />
-                        </button>
+                        </Button>
                     </div>
 
                     <Button variant="primary" className="h-10 px-6" onClick={() => handleGenerateReport(1)} disabled={isGenerating}>
-                        {isGenerating ? <><LoadingSpinner size="sm" /> A gerar...</> : 'Gerar Relatório'}
+                        {isGenerating ? <><LoadingSpinner size="sm" /> A gerar...</> : 'Gerar RelatÃ³rio'}
                     </Button>
                 </div>
             </Card>
@@ -393,7 +393,7 @@ export default function PharmacyReports() {
             {!isReportGenerated && !isGenerating && (
                 <Card className="p-12 text-center">
                     <HiOutlineDocumentChartBar className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-                    <h3 className="text-lg font-bold mb-2 text-gray-700 dark:text-gray-300">Selecione o tipo de relatório e clique em Gerar</h3>
+                    <h3 className="text-lg font-bold mb-2 text-gray-700 dark:text-gray-300">Selecione o tipo de relatÃ³rio e clique em Gerar</h3>
                     <p className="text-gray-500 text-sm mb-6">Vendas, Lucratividade, Stock, Top Clientes ou Fornecedores</p>
                     <Button variant="primary" onClick={() => handleGenerateReport(1)}>Gerar Agora</Button>
                 </Card>
@@ -421,13 +421,13 @@ export default function PharmacyReports() {
                             isCurrency
                         />
                         <MetricCard
-                            label="Margem Média"
+                            label="Margem MÃ©dia"
                             value={`${(summary.margin || 0).toFixed(1)}%`}
                             icon={<HiOutlineChartBar className="w-5 h-5" />}
                             color="blue"
                         />
                         <MetricCard
-                            label="Ticket Médio"
+                            label="Ticket MÃ©dio"
                             value={summary.avgTicket}
                             icon={<HiOutlineTableCells className="w-5 h-5" />}
                             color="purple"
@@ -455,7 +455,7 @@ export default function PharmacyReports() {
 
                             {/* Payment methods */}
                             <Card className="p-6">
-                                <h3 className="font-bold mb-4">Por Método de Pagamento</h3>
+                                <h3 className="font-bold mb-4">Por MÃ©todo de Pagamento</h3>
                                 <ResponsiveContainer width="100%" height={280}>
                                     <PieChart>
                                         <Pie data={paymentMethodData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}>
@@ -468,14 +468,14 @@ export default function PharmacyReports() {
 
                             {/* Daily transactions bar */}
                             <Card className="p-6 lg:col-span-2">
-                                <h3 className="font-bold mb-4">Transações por Dia</h3>
+                                <h3 className="font-bold mb-4">TransaÃ§Ãµes por Dia</h3>
                                 <ResponsiveContainer width="100%" height={200}>
                                     <BarChart data={dailySalesData}>
                                         <CartesianGrid strokeDasharray="3 3" />
                                         <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                                         <YAxis tick={{ fontSize: 11 }} />
                                         <Tooltip />
-                                        <Bar dataKey="transactions" name="Transações" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="transactions" name="TransaÃ§Ãµes" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </Card>
@@ -486,7 +486,7 @@ export default function PharmacyReports() {
                                 <table className="w-full">
                                     <thead className="bg-gray-50 dark:bg-dark-700">
                                         <tr className="text-xs text-gray-500 uppercase">
-                                            <th className="px-4 py-3 text-left">Nº Venda</th>
+                                            <th className="px-4 py-3 text-left">NÂº Venda</th>
                                             <th className="px-4 py-3 text-left">Data</th>
                                             <th className="px-4 py-3 text-left">Cliente</th>
                                             <th className="px-4 py-3 text-left">Pagamento</th>
@@ -563,7 +563,7 @@ export default function PharmacyReports() {
                     {viewMode === 'charts' ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <Card className="p-6">
-                                <h3 className="font-bold mb-4">Distribuição de Stock</h3>
+                                <h3 className="font-bold mb-4">DistribuiÃ§Ã£o de Stock</h3>
                                 <ResponsiveContainer width="100%" height={280}>
                                     <PieChart>
                                         <Pie data={stockDistribution} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
@@ -595,7 +595,7 @@ export default function PharmacyReports() {
                                         <tr className="text-xs text-gray-500 uppercase">
                                             <th className="px-4 py-3 text-left">Medicamento</th>
                                             <th className="px-4 py-3 text-right">Stock</th>
-                                            <th className="px-4 py-3 text-right">Mín.</th>
+                                            <th className="px-4 py-3 text-right">MÃ­n.</th>
                                             <th className="px-4 py-3 text-right">Valor</th>
                                             <th className="px-4 py-3 text-right">Validade</th>
                                             <th className="px-4 py-3 text-center">Estado</th>
@@ -639,7 +639,7 @@ export default function PharmacyReports() {
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <MetricCard
-                            label="Clientes Únicos"
+                            label="Clientes Ãšnicos"
                             value={reportData.customers.length}
                             icon={<HiOutlineUsers className="w-6 h-6" />}
                             color="blue"
@@ -681,9 +681,9 @@ export default function PharmacyReports() {
                                     <tr className="text-xs text-gray-500 uppercase">
                                         <th className="px-4 py-3 text-center">#</th>
                                         <th className="px-4 py-3 text-left">Cliente</th>
-                                        <th className="px-4 py-3 text-right">Transações</th>
+                                        <th className="px-4 py-3 text-right">TransaÃ§Ãµes</th>
                                         <th className="px-4 py-3 text-right">Total Gasto</th>
-                                        <th className="px-4 py-3 text-right">Ticket Médio</th>
+                                        <th className="px-4 py-3 text-right">Ticket MÃ©dio</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y dark:divide-dark-700">
@@ -695,7 +695,7 @@ export default function PharmacyReports() {
                                                     {idx + 1}
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-3 text-sm font-medium">{c.customerName || 'Cliente Balcão'}</td>
+                                            <td className="px-4 py-3 text-sm font-medium">{c.customerName || 'Cliente BalcÃ£o'}</td>
                                             <td className="px-4 py-3 text-sm text-right">{c.transactions}</td>
                                             <td className="px-4 py-3 text-sm text-right font-bold text-teal-600">{formatCurrency(c.totalSpent)}</td>
                                             <td className="px-4 py-3 text-sm text-right text-gray-500">{formatCurrency(c.transactions > 0 ? c.totalSpent / c.transactions : 0)}</td>

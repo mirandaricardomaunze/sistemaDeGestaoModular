@@ -74,17 +74,29 @@ export default function InventoryTable({
     const selectedWarehouse = externalWarehouse ?? localWarehouse;
 
     const handleCategoryChange = (val: string) => {
-        onCategoryChange ? onCategoryChange(val) : setLocalCategory(val);
+        if (onCategoryChange) {
+            onCategoryChange(val);
+        } else {
+            setLocalCategory(val);
+        }
         setPage(1);
     };
 
     const handleStatusChange = (val: string) => {
-        onStatusChange ? onStatusChange(val) : setLocalStatus(val);
+        if (onStatusChange) {
+            onStatusChange(val);
+        } else {
+            setLocalStatus(val);
+        }
         setPage(1);
     };
 
     const handleWarehouseChange = (val: string) => {
-        onWarehouseChange ? onWarehouseChange(val) : setLocalWarehouse(val);
+        if (onWarehouseChange) {
+            onWarehouseChange(val);
+        } else {
+            setLocalWarehouse(val);
+        }
         setPage(1);
     };
 
@@ -259,7 +271,7 @@ export default function InventoryTable({
                 header: 'Ações',
                 cell: ({ row }) => (
                     <div className="flex items-center gap-2">
-                        <button
+                        <Button variant="ghost"
                             onClick={() => {
                                 setSelectedProduct(row.original);
                                 setAdjustmentModalOpen(true);
@@ -268,8 +280,8 @@ export default function InventoryTable({
                             title="Ajustar Stock"
                         >
                             <HiOutlinePlusCircle className="w-4 h-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={() => {
                                 setSelectedProduct(row.original);
                                 setHistoryModalOpen(true);
@@ -278,28 +290,28 @@ export default function InventoryTable({
                             title="Ver Histórico de Stock"
                         >
                             <HiOutlineClock className="w-4 h-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={() => handleView(row.original)}
                             className="p-2 rounded-lg bg-primary-50/50 dark:bg-primary-500/10 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-500/20 transition-all border border-primary-100/50 dark:border-primary-500/20"
                             title="Ver detalhes"
                         >
                             <HiOutlineEye className="w-4 h-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={() => onEdit?.(row.original)}
                             className="p-2 rounded-lg bg-blue-50/50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-100/50 dark:border-blue-500/20"
                             title="Editar"
                         >
                             <HiOutlinePencilSquare className="w-4 h-4" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="ghost"
                             onClick={() => handleDeleteClick(row.original)}
                             className="p-2 rounded-lg bg-red-50/50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-all border border-red-100/50 dark:border-red-500/20"
                             title="Excluir"
                         >
                             <HiOutlineTrash className="w-4 h-4" />
-                        </button>
+                        </Button>
                     </div>
                 ),
             }),

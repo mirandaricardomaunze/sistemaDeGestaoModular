@@ -1,0 +1,36 @@
+-- Estende CommissionRule com escopo por produto/categoria (gap 1)
+-- e novo tipo `target_based` (gap 2: comissão atrelada a SalesTarget).
+-- Aditivo, sem perda de dados. Tudo opcional (NULL-friendly).
+
+-- 1) Novo valor no enum CommissionType
+ALTER TYPE "CommissionType" ADD VALUE IF NOT EXISTS 'target_based';
+
+-- 2) Colunas novas em commission_rules (scope por produto/categoria)
+ALTER TABLE "commission_rules" ADD COLUMN IF NOT EXISTS "productId"  TEXT;
+ALTER TABLE "commission_rules" ADD COLUMN IF NOT EXISTS "categoryId" TEXT;
+
+-- 3) Índices para queries por escopo
+CREATE INDEX IF NOT EXISTS "commission_rules_productId_idx"  ON "commission_rules"("productId");
+CREATE INDEX IF NOT EXISTS "commission_rules_categoryId_idx" ON "commission_rules"("categoryId");
+
+-- 4) Foreign keys (SET NULL para preservar histórico se produto/categoria for apagado)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'commission_rules_productId_fkey'
+    ) THEN
+        ALTER TABLE "commission_rules"
+        ADD CONSTRAINT "commission_rules_productId_fkey"
+        FOREIGN KEY ("productId") REFERENCES "products"("id")
+        ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'commission_rules_categoryId_fkey'
+    ) THEN
+        ALTER TABLE "commission_rules"
+        ADD CONSTRAINT "commission_rules_categoryId_fkey"
+        FOREIGN KEY ("categoryId") REFERENCES "categories"("id")
+        ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+END$$;

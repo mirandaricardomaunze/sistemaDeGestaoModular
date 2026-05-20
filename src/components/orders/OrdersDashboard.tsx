@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+﻿import { useState, useMemo } from 'react';
 import {
     HiOutlineClipboardDocumentList as HiOutlineClipboardDocumentList,
     HiOutlineClock,
@@ -106,7 +106,7 @@ const CHART_COLORS = ['#3b82f6', '#8b5cf6', '#f97316', '#22c55e', '#ef4444'];
 // Time period options
 type TimePeriod = '1m' | '3m' | '6m' | '1y';
 const periodOptions: { value: TimePeriod; label: string }[] = [
-    { value: '1m', label: '1 Mês' },
+    { value: '1m', label: '1 MÃªs' },
     { value: '3m', label: '3 Meses' },
     { value: '6m', label: '6 Meses' },
     { value: '1y', label: '1 Ano' },
@@ -242,7 +242,7 @@ export default function OrdersDashboard({
     const dateOptions = [
         { value: 'all', label: 'Todas as Datas' },
         { value: 'today', label: 'Hoje' },
-        { value: 'week', label: 'Últimos 7 dias' },
+        { value: 'week', label: 'Ãšltimos 7 dias' },
     ];
 
     return (
@@ -250,14 +250,14 @@ export default function OrdersDashboard({
             {/* Header */}
             <PageHeader
                 title="Dashboard de Encomendas"
-                subtitle="Visão geral e gerenciamento de pedidos"
+                subtitle="VisÃ£o geral e gerenciamento de pedidos"
                 icon={<HiOutlineClipboardDocumentList className="text-primary-600 dark:text-primary-400" />}
                 actions={
                     <div className="flex flex-wrap items-center gap-3">
                         {/* Period Filter */}
                         <div className="flex items-center h-10 bg-white dark:bg-dark-800 rounded-lg p-1 border border-gray-200 dark:border-dark-700 shadow-sm">
                             {periodOptions.map((option) => (
-                                <button
+                                <Button variant="ghost"
                                     key={option.value}
                                     onClick={() => setSelectedPeriod(option.value)}
                                     className={cn(
@@ -268,7 +268,7 @@ export default function OrdersDashboard({
                                     )}
                                 >
                                     {option.label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                         <Button 
@@ -304,7 +304,7 @@ export default function OrdersDashboard({
                     icon={<HiOutlineExclamationTriangle className="w-5 h-5" />}
                     badge={metrics.urgent > 0 ? (
                         <div className="flex items-center gap-1.5">
-                            <span className="text-[8px] font-black text-red-500 dark:text-red-400 uppercase tracking-tighter animate-pulse">Crítico</span>
+                            <span className="text-[8px] font-black text-red-500 dark:text-red-400 uppercase tracking-tighter animate-pulse">CrÃ­tico</span>
                             <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
                         </div>
                     ) : undefined}
@@ -323,7 +323,7 @@ export default function OrdersDashboard({
                 {/* Status Distribution */}
                 <Card padding="md">
                     <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
-                        Distribuição por Status
+                        DistribuiÃ§Ã£o por Status
                     </h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height={256}>
@@ -378,7 +378,7 @@ export default function OrdersDashboard({
                     <div className="flex flex-col sm:flex-row gap-4">
                         <div className="flex-1">
                             <Input
-                                placeholder="Buscar por número ou cliente..."
+                                placeholder="Buscar por nÃºmero ou cliente..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 leftIcon={<HiOutlineFilter className="w-5 h-5" />}
@@ -414,7 +414,7 @@ export default function OrdersDashboard({
                             <thead className="bg-gray-50 dark:bg-dark-700">
                                 <tr>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Número
+                                        NÃºmero
                                     </th>
                                     <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">
                                         Cliente
@@ -432,7 +432,7 @@ export default function OrdersDashboard({
                                         Valor
                                     </th>
                                     <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Ações
+                                        AÃ§Ãµes
                                     </th>
                                 </tr>
                             </thead>
@@ -472,85 +472,85 @@ export default function OrdersDashboard({
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex justify-center gap-1">
-                                                <button
+                                                <Button variant="ghost"
                                                     onClick={() => onViewOrder(order)}
                                                     className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
                                                     title="Ver detalhes"
                                                 >
                                                     <HiOutlineEye className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                                                </button>
+                                                </Button>
                                                 {order.status === 'created' && (
-                                                    <button
+                                                    <Button variant="ghost"
                                                         onClick={() => onPrintOrder(order)}
                                                         className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
                                                         title="Imprimir"
                                                     >
                                                         <HiOutlinePrinter className="w-5 h-5 text-purple-600" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                                 {order.status === 'printed' && (
-                                                    <button
+                                                    <Button variant="ghost"
                                                         onClick={() => onSeparateOrder(order)}
                                                         className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
                                                         title="Marcar como Separada"
                                                     >
                                                         <HiOutlineCube className="w-5 h-5 text-orange-600" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                                 {order.status === 'separated' && (
-                                                    <button
+                                                    <Button variant="ghost"
                                                         onClick={() => onCompleteOrder(order)}
                                                         className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
                                                         title="Finalizar Encomenda"
                                                     >
                                                         <HiOutlineCheck className="w-5 h-5 text-green-600" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                                 {order.status === 'completed' && (
-                                                    <button
+                                                    <Button variant="ghost"
                                                         onClick={() => onGenerateInvoice(order)}
                                                         className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
                                                         title="Gerar Fatura"
                                                     >
                                                         <HiOutlineDocumentText className="w-5 h-5 text-blue-600" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                                 {/* Reprint button - admin only, for orders already printed */}
                                                 {isAdmin && order.status !== 'created' && order.status !== 'cancelled' && (
-                                                    <button
+                                                    <Button variant="ghost"
                                                         onClick={() => onPrintOrder(order)}
                                                         className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
                                                         title="Reimprimir (Admin)"
                                                     >
                                                         <HiOutlinePrinter className="w-5 h-5 text-purple-400" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                                 {isAdmin && order.status === 'cancellation_requested' && (
                                                     <>
-                                                        <button
+                                                        <Button variant="ghost"
                                                             onClick={() => onApproveCancellation?.(order)}
                                                             className="p-2 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
                                                             title="Aprovar Cancelamento"
                                                         >
                                                             <HiOutlineCheckCircle className="w-5 h-5 text-green-600" />
-                                                        </button>
-                                                        <button
+                                                        </Button>
+                                                        <Button variant="ghost"
                                                             onClick={() => onRejectCancellation?.(order)}
                                                             className="p-2 hover:bg-gray-100 dark:hover:bg-dark-600 rounded-lg transition-colors"
                                                             title="Rejeitar Cancelamento"
                                                         >
                                                             <HiOutlineXCircle className="w-5 h-5 text-gray-600" />
-                                                        </button>
+                                                        </Button>
                                                     </>
                                                 )}
                                                 {order.status !== 'cancelled' && order.status !== 'cancellation_requested' && (
-                                                    <button
+                                                    <Button variant="ghost"
                                                         onClick={() => onCancelOrder(order)}
                                                         className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg group transition-colors"
                                                         title="Cancelar Encomenda"
                                                     >
                                                         <HiOutlineTrash className="w-5 h-5 text-gray-400 group-hover:text-red-600 transition-colors" />
-                                                    </button>
+                                                    </Button>
                                                 )}
                                             </div>
                                         </td>

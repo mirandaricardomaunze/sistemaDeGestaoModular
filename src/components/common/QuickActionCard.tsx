@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../../utils';
+import { Button } from '../ui/Button';
 
 interface QuickActionCardProps {
     icon: React.ElementType;
@@ -40,7 +41,7 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
 
     if (variant === 'dashed') {
         return (
-            <button
+            <Button variant="ghost"
                 onClick={() => navigate(path)}
                 className={cn(
                     "w-full p-4 rounded-2xl border-2 border-dashed transition-all duration-300 text-center",
@@ -59,12 +60,12 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
                 <p className="text-sm font-black uppercase tracking-widest text-slate-600 dark:text-gray-300">
                     {label}
                 </p>
-            </button>
+            </Button>
         );
     }
 
     return (
-        <button
+        <Button variant="ghost"
             onClick={() => navigate(path)}
             className={cn(
                 "flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 border group w-full",
@@ -88,6 +89,6 @@ export const QuickActionCard: React.FC<QuickActionCardProps> = ({
                     <p className="text-[9px] font-bold opacity-60 truncate uppercase tracking-tight mt-0.5">{description}</p>
                 )}
             </div>
-        </button>
+        </Button>
     );
 };

@@ -12,7 +12,7 @@ import {
     HiOutlineLockClosed,
 } from 'react-icons/hi2';
 import { useFiscalStore } from '../../stores/useFiscalStore';
-import { Card, Badge, Button } from '../ui';
+import { Card, Badge, Button, ConfirmationModal } from '../ui';
 import { formatCurrency } from '../../utils/helpers';
 import { formatPeriod, getCurrentFiscalPeriod } from '../../utils/fiscalCalculations';
 import toast from 'react-hot-toast';
@@ -22,6 +22,7 @@ export default function FiscalDashboard() {
 
     const [now] = useState(() => Date.now());
     const [isClosingPeriod, setIsClosingPeriod] = useState(false);
+    const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
     const metrics = useMemo(() => getDashboardMetrics(), [getDashboardMetrics]);
     const currentPeriod = getCurrentFiscalPeriod();
     const isCurrentPeriodClosed = fiscalPeriodStatus?.period === currentPeriod
@@ -54,16 +55,14 @@ export default function FiscalDashboard() {
         }
     };
 
-    const handleClosePeriod = async () => {
-        const confirmed = window.confirm(
-            `Fechar o período fiscal ${formatPeriod(currentPeriod)}? Depois do fecho, as retenções deste período ficam bloqueadas para edição manual.`
-        );
-        if (!confirmed) return;
+    const handleClosePeriod = () => setConfirmCloseOpen(true);
 
+    const confirmClosePeriod = async () => {
         setIsClosingPeriod(true);
         try {
             await closeFiscalPeriod(currentPeriod);
             toast.success('Período fiscal fechado com sucesso.');
+            setConfirmCloseOpen(false);
         } catch {
             toast.error('Não foi possível fechar o período fiscal.');
         } finally {
@@ -413,6 +412,18 @@ export default function FiscalDashboard() {
                     </div>
                 </div>
             </Card>
+
+            <ConfirmationModal
+                isOpen={confirmCloseOpen}
+                onClose={() => !isClosingPeriod && setConfirmCloseOpen(false)}
+                onConfirm={confirmClosePeriod}
+                title="Fechar período fiscal?"
+                message={`Fechar o período fiscal ${formatPeriod(currentPeriod)}? Depois do fecho, as retenções deste período ficam bloqueadas para edição manual.`}
+                confirmText="Sim, fechar"
+                cancelText="Cancelar"
+                variant="warning"
+                isLoading={isClosingPeriod}
+            />
         </div>
     );
 }
