@@ -27,6 +27,11 @@ interface UseCustomersParams {
 
 const QK = ['customers'] as const;
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+    const apiError = error as { response?: { data?: { message?: string; error?: string } }; message?: string };
+    return apiError.response?.data?.message || apiError.response?.data?.error || apiError.message || fallback;
+}
+
 export function useCustomers(params?: UseCustomersParams) {
     const queryClient = useQueryClient();
 
@@ -107,7 +112,7 @@ export function useCustomers(params?: UseCustomersParams) {
         },
         onError: (err) => {
             logger.error('Error creating customer:', err);
-            toast.error('Erro ao criar cliente');
+            toast.error(getApiErrorMessage(err, 'Erro ao criar cliente'));
         },
     });
 
@@ -135,7 +140,10 @@ export function useCustomers(params?: UseCustomersParams) {
             queryClient.invalidateQueries({ queryKey: QK });
             toast.success('Cliente actualizado com sucesso!');
         },
-        onError: (err) => logger.error('Error updating customer:', err),
+        onError: (err) => {
+            logger.error('Error updating customer:', err);
+            toast.error(getApiErrorMessage(err, 'Erro ao atualizar cliente'));
+        },
     });
 
     const deleteMutation = useMutation({
