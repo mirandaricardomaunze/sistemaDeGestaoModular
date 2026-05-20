@@ -84,6 +84,13 @@ export default function PharmacyPOS() {
     // Customer selector now uses CustomerAutocomplete (search-on-type) — no preload needed
     const { customers } = useCustomers({ page: 1, limit: 1 });
 
+    // Warm the offline cache for medications so the POS survives a network outage.
+    useEffect(() => {
+        void import('../../services/offline/catalogPrefetch')
+            .then(({ prefetchPharmacy }) => prefetchPharmacy())
+            .catch(() => {});
+    }, []);
+
     // Replaced manual useQuery with revamped hook
     const { data: medsResponse, isLoading, refetch: fetchMedications } = useMedications();
     const medications = medsResponse?.data || [];

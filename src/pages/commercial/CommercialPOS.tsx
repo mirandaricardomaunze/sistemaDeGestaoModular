@@ -105,8 +105,9 @@ import {
 } from '../../utils/crmIntegration';
 import { usePagination } from '../../components/ui/Pagination';
 import { HiOutlinePlay, HiOutlineStop, HiOutlineLockClosed, HiOutlineBanknotes, HiOutlineCloudArrowUp } from 'react-icons/hi2';
-import { useSyncManager } from '../../hooks/commercial/useSyncManager';
-import { offlineDB } from '../../services/offline/offlineDB';
+import { useOfflineSync } from '../../hooks/useOfflineSync';
+import { enqueueSale, OfflineQueueFullError } from '../../services/offline/offlineQueue';
+import { getCachedProducts, getCachedCustomers } from '../../services/offline/catalogPrefetch';
 import { commercialAPI } from '../../services/api/commercial.api';
 
 // Components
@@ -140,7 +141,7 @@ export default function CommercialPOS() {
         retry: false,
     });
 
-    const { isOnline, pendingCount } = useSyncManager(activeShift?.companyId);
+    const { isOnline, pendingCount } = useOfflineSync();
     const { data: shiftSummary } = useQuery<ShiftSummary | null>({
         queryKey: ['commercial', 'shift', 'summary'],
         queryFn: () => shiftAPI.getSummary(),
@@ -194,8 +195,8 @@ export default function CommercialPOS() {
 
     useEffect(() => {
         if (!isOnline) {
-            offlineDB.products.toArray().then(rows => setOfflineProducts(rows as POSProduct[]));
-            offlineDB.customers.toArray().then(rows => setOfflineCustomers(rows as POSCustomer[]));
+            getCachedProducts().then(rows => setOfflineProducts(rows as unknown as POSProduct[]));
+            getCachedCustomers().then(rows => setOfflineCustomers(rows as POSCustomer[]));
         }
     }, [isOnline]);
 
@@ -652,6 +653,30 @@ export default function CommercialPOS() {
     }, [cart.length, shift]);
 
     const handleConfirmPayment = async (payments: PaymentEntry[], isCredit: boolean, creditDueDays: number) => {
+        // Offline guard — verify per-product offline buffer is sufficient.
+        // The buffer was pre-reserved server-side at openShift; if any item
+        // exceeds it, the second-out-the-door terminal would oversell on sync.
+        if (!isOnline && activeShift?.id) {
+            const { getOfflineAvailability } = await import('../../services/offline/shiftReservations');
+            const aggregated = new Map<string, { name: string; needed: number }>();
+            for (const item of cart) {
+                const factor = item.unitMode === 'box' ? (Number(item.packSize) || 1) : 1;
+                const units = item.quantity * factor;
+                const current = aggregated.get(item.productId);
+                aggregated.set(item.productId, {
+                    name: item.product.name,
+                    needed: (current?.needed ?? 0) + units,
+                });
+            }
+            for (const [productId, { name, needed }] of aggregated) {
+                const available = await getOfflineAvailability(activeShift.id, productId);
+                if (available < needed) {
+                    toast.error(`Stock reservado offline insuficiente para "${name}" (disponível: ${available}, pedido: ${needed}). Restabeleça a ligação ou peça reposição.`, { duration: 8000 });
+                    return;
+                }
+            }
+        }
+
         setShowPaymentModal(false);
         setCheckoutLoading(true);
         try {
@@ -749,30 +774,54 @@ export default function CommercialPOS() {
             if (isOnline) {
                 saleResponse = await salesAPI.create(saleData) as SaleCreateResponse;
             } else {
-                await offlineDB.syncQueue.add({
-                    type: 'SALE',
-                    data: saleData,
-                    timestamp: Date.now(),
-                    status: 'pending',
-                    attempts: 0
-                });
-                
-                // Deduct stock locally immediately to prevent offline overselling
+                const { allocateNextFiscalNumber, consumeOfflineStock } = await import('../../services/offline/shiftReservations');
+                const allocation = activeShift?.id ? await allocateNextFiscalNumber(activeShift.id) : null;
+                if (!allocation) {
+                    toast.error('Bloco fiscal offline esgotado para este turno. Restabeleça a ligação para receber um novo bloco.', { duration: 8000 });
+                    return;
+                }
+
+                // Decrement offline reservation per product. Already validated
+                // above so failure here is unexpected; treat as hard error.
+                const stockDelta = new Map<string, number>();
                 for (const item of cart) {
-                    const productToUpdate = await offlineDB.products.get(item.productId);
-                    if (productToUpdate) {
-                        const factor = item.unitMode === 'box' ? (Number(item.packSize) || 1) : 1;
-                        const unitsToDeduct = item.quantity * factor;
-                        await offlineDB.products.update(item.productId, {
-                            currentStock: Math.max(0, productToUpdate.currentStock - unitsToDeduct)
-                        });
+                    const factor = item.unitMode === 'box' ? (Number(item.packSize) || 1) : 1;
+                    stockDelta.set(item.productId, (stockDelta.get(item.productId) ?? 0) + item.quantity * factor);
+                }
+                for (const [productId, units] of stockDelta) {
+                    const remaining = await consumeOfflineStock(activeShift!.id, productId, units);
+                    if (remaining === null) {
+                        toast.error('Falha a consumir reserva offline. Recarregue a página.', { duration: 8000 });
+                        return;
                     }
                 }
-                
-                // Immediately synchronize the UI list with the DB reflection
-                offlineDB.products.toArray().then(setOfflineProducts);
 
-                saleResponse = { receiptNumber: `OFF-${Date.now().toString().slice(-6)}` };
+                let queued;
+                try {
+                    queued = await enqueueSale({
+                        ...saleData,
+                        assignedFiscalNumber: allocation.assignedFiscalNumber,
+                        assignedFiscalSeries: allocation.assignedFiscalSeries,
+                    });
+                } catch (e) {
+                    if (e instanceof OfflineQueueFullError) {
+                        toast.error('Fila offline cheia (500 operações). Restaure a ligação antes de continuar a vender.', { duration: 8000 });
+                        return;
+                    }
+                    throw e;
+                }
+
+                // Reflect deduction in the UI list (server-truth comes after sync).
+                setOfflineProducts(prev => prev.map(p => {
+                    const delta = stockDelta.get(p.id);
+                    if (!delta) return p;
+                    return { ...p, currentStock: Math.max(0, p.currentStock - delta) };
+                }));
+
+                // Use the real fiscal number — receipt matches what the server
+                // will eventually record, so customers walk out with the right talão.
+                saleResponse = { receiptNumber: allocation.receiptNumber };
+                void queued;
             }
 
             // Refresh shift summary from DB (totals are computed server-side from sales)

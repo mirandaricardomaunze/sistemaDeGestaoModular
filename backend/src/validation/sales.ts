@@ -50,6 +50,10 @@ export interface CreateSaleInput {
     discountKind?: 'percent' | 'amount';
     discountAudit?: DiscountAudit;
     discountApprovalId?: string;
+    /** Fiscal number pre-assigned by an offline POS from its reserved block. */
+    assignedFiscalNumber?: number;
+    /** Series letter matching the pre-assigned block (must match server-side reservation). */
+    assignedFiscalSeries?: string;
 }
 
 // ============================================================================
@@ -114,7 +118,9 @@ export const createSaleSchema = z.object({
             reason: z.string().min(1).max(200),
             appliedBy: z.string().max(150)
         })).optional()
-    }).optional()
+    }).optional(),
+    assignedFiscalNumber: z.number().int().positive().optional(),
+    assignedFiscalSeries: z.string().min(1).max(10).optional()
 
 }).refine(
     (data) => {

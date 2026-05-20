@@ -715,6 +715,17 @@ export interface ShiftSession {
         customer?: { name: string };
     }>;
     _count?: { sales: number };
+    /** Pre-reserved fiscal block returned on shift open — used by the offline POS. */
+    fiscalReservation?: {
+        seriesId: string;
+        series: string;
+        prefix: string;
+        fromNumber: number;
+        toNumber: number;
+        nextNumber: number;
+    };
+    /** Pre-reserved per-product stock buffer returned on shift open. */
+    stockReservations?: Array<{ productId: string; quantity: number }>;
 }
 
 export interface ShiftZReport {
@@ -760,12 +771,22 @@ export const shiftAPI = {
 
     open: async (openingBalance: number, warehouseId?: string): Promise<ShiftSession> => {
         const res = await api.post('/commercial/shift/open', { openingBalance, warehouseId });
-        return res.data;
+        const session = res.data as ShiftSession;
+        if (session?.id) {
+            const { saveShiftReservations } = await import('../offline/shiftReservations');
+            await saveShiftReservations(session.id, session.fiscalReservation, session.stockReservations).catch(() => {});
+        }
+        return session;
     },
 
     close: async (closingBalance: number, notes?: string): Promise<ShiftSession> => {
         const res = await api.post('/commercial/shift/close', { closingBalance, notes });
-        return res.data;
+        const session = res.data as ShiftSession;
+        if (session?.id) {
+            const { clearShiftReservations } = await import('../offline/shiftReservations');
+            await clearShiftReservations(session.id).catch(() => {});
+        }
+        return session;
     },
 
     getHistory: async (params?: { page?: number; limit?: number; startDate?: string; endDate?: string; openedById?: string; warehouseId?: string; search?: string }) => {

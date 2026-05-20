@@ -180,7 +180,9 @@ export class SalesService {
             warehouseId,
             discountReason,
             discountKind,
-            discountAudit
+            discountAudit,
+            assignedFiscalNumber,
+            assignedFiscalSeries
         } = data;
 
         // ── Discount authorization (role-based ceiling + optional approval) ──
@@ -350,52 +352,120 @@ export class SalesService {
             const tax = computedTax;
             const total = computedTotal;
 
-            // 1. Document Series -- use FOR UPDATE to prevent duplicate receipt numbers under concurrency.
-            // Prisma.sql uses parameterized queries (safe against SQL injection).
-            const docSeriesResult = (await tx.$queryRaw(Prisma.sql`
-                SELECT id, series, "lastNumber" FROM document_series
-                WHERE prefix = 'FR' AND "isActive" = true AND "companyId" = ${companyId}
-                ORDER BY "createdAt" DESC
-                LIMIT 1
-                FOR UPDATE
-            `)) as Array<{ id: string; series: string; lastNumber: number }>;
+            // 1. Document Series — prefer the shift's pre-reserved fiscal block
+            // so offline POS receipts carry the same number the server records.
+            // Falls back to global allocation for non-POS sales or exhausted blocks.
+            let fiscalNumber: number;
+            let series: string;
+            let docSeriesLastNumberSnapshot: number;
+            const sessionReservation = sessionId
+                ? await tx.documentSeriesReservation.findUnique({
+                    where: { sessionId },
+                    include: { series: true },
+                })
+                : null;
 
-            let docSeries = docSeriesResult[0];
-            if (!docSeries) {
-                const yearCode = `FR-${new Date().getFullYear()}`;
-                docSeries = await tx.documentSeries.upsert({
-                    where: { companyId_code: { companyId, code: yearCode } },
-                    update: { isActive: true, prefix: 'FR' },
-                    create: {
-                        code: yearCode,
-                        name: `Faturas Recibo ${new Date().getFullYear()}`,
-                        prefix: 'FR',
-                        series: 'A',
-                        lastNumber: 0,
-                        isActive: true,
-                        companyId
-                    }
+            if (assignedFiscalNumber && sessionReservation) {
+                if (sessionReservation.releasedAt) {
+                    throw ApiError.badRequest('Bloco fiscal já libertado para esta sessão.');
+                }
+                if (assignedFiscalSeries && sessionReservation.series.series !== assignedFiscalSeries) {
+                    throw ApiError.badRequest('Série fiscal atribuída não corresponde ao bloco reservado.');
+                }
+                if (assignedFiscalNumber < sessionReservation.fromNumber || assignedFiscalNumber > sessionReservation.toNumber) {
+                    throw ApiError.badRequest(`Número fiscal ${assignedFiscalNumber} fora do bloco reservado [${sessionReservation.fromNumber}, ${sessionReservation.toNumber}].`);
+                }
+                if (assignedFiscalNumber < sessionReservation.nextNumber) {
+                    throw ApiError.badRequest(`Número fiscal ${assignedFiscalNumber} já foi consumido nesta sessão.`);
+                }
+                fiscalNumber = assignedFiscalNumber;
+                series = sessionReservation.series.series;
+                docSeriesLastNumberSnapshot = assignedFiscalNumber;
+                await tx.documentSeriesReservation.update({
+                    where: { id: sessionReservation.id },
+                    data: { nextNumber: assignedFiscalNumber + 1 },
+                });
+            } else if (sessionReservation && !sessionReservation.releasedAt && sessionReservation.nextNumber <= sessionReservation.toNumber) {
+                fiscalNumber = sessionReservation.nextNumber;
+                series = sessionReservation.series.series;
+                docSeriesLastNumberSnapshot = fiscalNumber;
+                await tx.documentSeriesReservation.update({
+                    where: { id: sessionReservation.id },
+                    data: { nextNumber: { increment: 1 } },
+                });
+            } else {
+                const docSeriesResult = (await tx.$queryRaw(Prisma.sql`
+                    SELECT id, series, "lastNumber" FROM document_series
+                    WHERE prefix = 'FR' AND "isActive" = true AND "companyId" = ${companyId}
+                    ORDER BY "createdAt" DESC
+                    LIMIT 1
+                    FOR UPDATE
+                `)) as Array<{ id: string; series: string; lastNumber: number }>;
+
+                let docSeries = docSeriesResult[0];
+                if (!docSeries) {
+                    const yearCode = `FR-${new Date().getFullYear()}`;
+                    docSeries = await tx.documentSeries.upsert({
+                        where: { companyId_code: { companyId, code: yearCode } },
+                        update: { isActive: true, prefix: 'FR' },
+                        create: {
+                            code: yearCode,
+                            name: `Faturas Recibo ${new Date().getFullYear()}`,
+                            prefix: 'FR',
+                            series: 'A',
+                            lastNumber: 0,
+                            isActive: true,
+                            companyId
+                        }
+                    });
+                }
+                fiscalNumber = Number(docSeries.lastNumber) + 1;
+                series = docSeries.series;
+                docSeriesLastNumberSnapshot = Number(docSeries.lastNumber);
+                await tx.documentSeries.update({
+                    where: { id: docSeries.id },
+                    data: { lastNumber: fiscalNumber }
                 });
             }
 
-            const series = docSeries.series;
-            // $queryRaw returns PostgreSQL INT as BigInt — coerce to JS number
-            const fiscalNumber = Number(docSeries.lastNumber) + 1;
             const receiptNumber = `FR ${series}/${String(fiscalNumber).padStart(4, '0')}`;
-
-            await tx.documentSeries.update({
-                where: { id: docSeries.id },
-                data: { lastNumber: fiscalNumber }
-            });
 
             // 3. Hash Code
             const today = new Date();
-            const hashData = `${receiptNumber}|${today.toISOString()}|${total}|${docSeries.lastNumber}`;
+            const hashData = `${receiptNumber}|${today.toISOString()}|${total}|${docSeriesLastNumberSnapshot}`;
             const hashCode = crypto.createHash('sha256').update(hashData).digest('hex').substring(0, 4).toUpperCase();
 
-            // 4. Validate Products & Stock
+            // 4. Validate Products & Stock — consume from this session's stock
+            // reservation first so a terminal does not block on its own buffer.
             for (const item of verifiedItems) {
-                await stockService.validateAvailability(item.productId, item.quantity, companyId, tx, warehouseId);
+                let remaining = item.quantity;
+                if (sessionId) {
+                    const reservation = await tx.stockReservation.findFirst({
+                        where: { sessionId, productId: item.productId, companyId },
+                    });
+                    if (reservation) {
+                        const reservedQty = Number(reservation.quantity);
+                        const consume = Math.min(reservedQty, remaining);
+                        if (consume > 0) {
+                            if (consume === reservedQty) {
+                                await tx.stockReservation.delete({ where: { id: reservation.id } });
+                            } else {
+                                await tx.stockReservation.update({
+                                    where: { id: reservation.id },
+                                    data: { quantity: { decrement: consume } },
+                                });
+                            }
+                            await tx.product.update({
+                                where: { id: item.productId },
+                                data: { reservedStock: { decrement: consume } },
+                            });
+                            remaining -= consume;
+                        }
+                    }
+                }
+                if (remaining > 0) {
+                    await stockService.validateAvailability(item.productId, remaining, companyId, tx, warehouseId);
+                }
             }
 
             // 5. Create Sale

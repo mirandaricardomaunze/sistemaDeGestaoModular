@@ -182,6 +182,13 @@ export default function RestaurantPOS() {
     const debouncedSearch = useDebounce(search, 400);
     const updateTableStatus = useUpdateTableStatus();
 
+    // Warm the offline cache for menu items so the POS survives a network outage.
+    useEffect(() => {
+        void import('../../services/offline/catalogPrefetch')
+            .then(({ prefetchRestaurantMenu }) => prefetchRestaurantMenu())
+            .catch(() => {});
+    }, []);
+
     const { products, isLoading } = useProducts({ search: debouncedSearch, category: selectedCategory || undefined, limit: 100, originModule: 'restaurant' });
     const { data: tablesData, refetch: refetchTables } = useRestaurantTables({ status: undefined });
     const tables = tablesData?.data || [];

@@ -114,31 +114,143 @@ export class CashSessionService {
     }
 
     /**
-     * Open a new session with an initial balance.
+     * Open a new session with an initial balance, reserving a fiscal-number
+     * block and an offline stock buffer atomically so the POS can sell offline
+     * with valid fiscal numbers and without overselling between terminals.
      */
     async openSession(companyId: string, userId: string, openingBalance: number, warehouseId?: string, terminalId?: string) {
         const existing = await this.getCurrentSession(companyId);
         if (existing) throw ApiError.badRequest('Já existe uma sessão de caixa aberta para esta empresa');
 
-        const session = await prisma.cashSession.create({
-            data: {
+        const FISCAL_BLOCK_SIZE = 100;
+        const STOCK_BUFFER_PER_PRODUCT = 5;
+        const STOCK_MIN_TO_RESERVE = 10;
+        const STOCK_RESERVATION_TTL_HOURS = 24;
+
+        const session = await prisma.$transaction(async (tx) => {
+            const created = await tx.cashSession.create({
+                data: {
+                    companyId,
+                    openedById: userId,
+                    openingBalance: Number(openingBalance),
+                    terminalId,
+                    warehouseId: warehouseId || null,
+                    status: 'open'
+                },
+                include: { openedBy: { select: { name: true } } }
+            });
+
+            // ── Fiscal block reservation (B7) ────────────────────────────────
+            // SELECT FOR UPDATE to serialize concurrent shift openings on the
+            // same series. We always reserve from the active 'FR' series.
+            const seriesRows = (await tx.$queryRaw(Prisma.sql`
+                SELECT id, series, "lastNumber" FROM document_series
+                WHERE prefix = 'FR' AND "isActive" = true AND "companyId" = ${companyId}
+                ORDER BY "createdAt" DESC
+                LIMIT 1
+                FOR UPDATE
+            `)) as Array<{ id: string; series: string; lastNumber: number }>;
+
+            let docSeries = seriesRows[0];
+            if (!docSeries) {
+                const yearCode = `FR-${new Date().getFullYear()}`;
+                docSeries = await tx.documentSeries.upsert({
+                    where: { companyId_code: { companyId, code: yearCode } },
+                    update: { isActive: true, prefix: 'FR' },
+                    create: {
+                        code: yearCode,
+                        name: `Faturas Recibo ${new Date().getFullYear()}`,
+                        prefix: 'FR',
+                        series: 'A',
+                        lastNumber: 0,
+                        isActive: true,
+                        companyId
+                    }
+                });
+            }
+
+            const fromNumber = Number(docSeries.lastNumber) + 1;
+            const toNumber = Number(docSeries.lastNumber) + FISCAL_BLOCK_SIZE;
+            await tx.documentSeries.update({
+                where: { id: docSeries.id },
+                data: { lastNumber: toNumber }
+            });
+            await tx.documentSeriesReservation.create({
+                data: {
+                    seriesId: docSeries.id,
+                    sessionId: created.id,
+                    companyId,
+                    fromNumber,
+                    toNumber,
+                    nextNumber: fromNumber,
+                }
+            });
+
+            // ── Stock reservation buffer (B3) ────────────────────────────────
+            // Reserve a small slice of in-stock products so an offline POS can
+            // sell up to that quantity without risking overselling against
+            // another terminal. Cap excludes scarce items (< 10 units).
+            const productScope: Prisma.ProductWhereInput = {
                 companyId,
-                openedById: userId,
-                openingBalance: Number(openingBalance),
-                terminalId,
-                warehouseId: warehouseId || null,
-                status: 'open'
-            },
-            include: { openedBy: { select: { name: true } } }
+                isActive: true,
+                currentStock: { gte: STOCK_MIN_TO_RESERVE },
+            };
+            const products = await tx.product.findMany({
+                where: productScope,
+                select: { id: true, currentStock: true, reservedStock: true },
+                take: 500, // safety cap to keep the transaction bounded
+            });
+            const expiresAt = new Date(Date.now() + STOCK_RESERVATION_TTL_HOURS * 60 * 60 * 1000);
+            const reservations: Array<{ productId: string; quantity: number }> = [];
+            for (const p of products) {
+                const free = Number(p.currentStock) - Number(p.reservedStock);
+                const reserveQty = Math.min(STOCK_BUFFER_PER_PRODUCT, Math.max(0, free));
+                if (reserveQty <= 0) continue;
+                reservations.push({ productId: p.id, quantity: reserveQty });
+            }
+            if (reservations.length > 0) {
+                await tx.stockReservation.createMany({
+                    data: reservations.map(r => ({
+                        productId: r.productId,
+                        quantity: r.quantity,
+                        sessionId: created.id,
+                        companyId,
+                        expiresAt,
+                    }))
+                });
+                // Update aggregated reservedStock so validateAvailability sees it.
+                for (const r of reservations) {
+                    await tx.product.update({
+                        where: { id: r.productId },
+                        data: { reservedStock: { increment: r.quantity } }
+                    });
+                }
+            }
+
+            return {
+                ...created,
+                fiscalReservation: {
+                    seriesId: docSeries.id,
+                    series: docSeries.series,
+                    prefix: 'FR',
+                    fromNumber,
+                    toNumber,
+                    nextNumber: fromNumber,
+                },
+                stockReservations: reservations,
+            };
         });
 
-        // Audit entry
         await auditService.log({
             userId,
             action: 'OPEN_SHIFT',
             entity: 'CashSession',
             entityId: session.id,
-            newData: { openingBalance },
+            newData: {
+                openingBalance,
+                fiscalBlock: { from: session.fiscalReservation.fromNumber, to: session.fiscalReservation.toNumber },
+                stockReservationCount: session.stockReservations.length,
+            },
             companyId
         });
 
@@ -241,18 +353,46 @@ export class CashSessionService {
             throw ApiError.badRequest('Informe uma justificativa para diferenças no fecho de caixa');
         }
 
-        const closedSession = await prisma.cashSession.update({
-            where: { id: session.id },
-            data: {
-                closedById: userId, 
-                closedAt: new Date(), 
-                closingBalance: Number(data.closingBalance), 
-                expectedBalance, 
-                difference,
-                ...stats,
-                notes: data.notes?.trim(), 
-                status: 'closed'
+        const closedSession = await prisma.$transaction(async (tx) => {
+            const updated = await tx.cashSession.update({
+                where: { id: session.id },
+                data: {
+                    closedById: userId,
+                    closedAt: new Date(),
+                    closingBalance: Number(data.closingBalance),
+                    expectedBalance,
+                    difference,
+                    ...stats,
+                    notes: data.notes?.trim(),
+                    status: 'closed'
+                }
+            });
+
+            // Release stock reservations attached to this session — restores
+            // reservedStock so other sessions can sell those units.
+            const stockReservations = await tx.stockReservation.findMany({
+                where: { sessionId: session.id },
+                select: { productId: true, quantity: true },
+            });
+            if (stockReservations.length > 0) {
+                for (const r of stockReservations) {
+                    await tx.product.update({
+                        where: { id: r.productId },
+                        data: { reservedStock: { decrement: Number(r.quantity) } }
+                    });
+                }
+                await tx.stockReservation.deleteMany({ where: { sessionId: session.id } });
             }
+
+            // Mark fiscal block as released — unused numbers in [nextNumber, toNumber]
+            // become gaps in the series. Gaps are legally acceptable in MZ
+            // provided audit trail is preserved; reusing them is not.
+            await tx.documentSeriesReservation.updateMany({
+                where: { sessionId: session.id, releasedAt: null },
+                data: { releasedAt: new Date() }
+            });
+
+            return updated;
         });
 
         // Audit entry for the close

@@ -1,6 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import toast from 'react-hot-toast';
-import { enqueueOperation, IDEMPOTENCY_HEADER } from '../offline/offlineQueue';
+import { enqueueOperation, IDEMPOTENCY_HEADER, OfflineQueueFullError } from '../offline/offlineQueue';
 import { cryptoRandomId } from '../../db/offlineDB';
 import { env } from '../../config/env';
 
@@ -105,6 +105,12 @@ api.interceptors.response.use(
                     Object.assign(error, { isOfflineQueued: true })
                 );
             } catch (e) {
+                if (e instanceof OfflineQueueFullError) {
+                    if (!skipErrorToast) {
+                        toast.error('Fila offline cheia (500 operações). Restaure a ligação para sincronizar antes de continuar.', { duration: 8000 });
+                    }
+                    return Promise.reject(Object.assign(error, { isOfflineQueueFull: true }));
+                }
                 // Fall through to normal error handling if enqueue fails.
             }
         }
@@ -130,6 +136,12 @@ api.interceptors.response.use(
             // Don't show toast for 403 if skipErrorToast is true
             if (!skipErrorToast) {
                 toast.error('Sem permissão para esta acção.');
+            }
+        } else if (error.response?.status === 400 || error.response?.status === 409 || error.response?.status === 422) {
+            if (!skipErrorToast) {
+                const body = error.response.data;
+                const message = body?.message || body?.error || 'Dados inválidos. Verifique e tente novamente.';
+                toast.error(message);
             }
         } else if (error.response?.status === 404) {
             // Let the calling code handle 404s
