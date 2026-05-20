@@ -46,6 +46,26 @@ import { formatCurrency, cn } from '../../utils';
 
 type TimeRange = '1M' | '2M' | '3M' | '6M' | '1Y';
 
+const GlassmorphicTooltip = ({ active, payload, label, formatter }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="backdrop-blur-md bg-white/95 dark:bg-dark-900/95 border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] z-50">
+                {label && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</p>}
+                {payload.map((item: any, index: number) => (
+                    <div key={index} className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{item.name}:</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">
+                            {formatter ? formatter(item.value) : item.value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
 export default function BottleStoreDashboard() {
     const [range, setRange] = useState<TimeRange>('1M');
     const { data, isLoading: loading, refetch: refetchStats } = useBottleStoreDashboard(range);
@@ -240,39 +260,39 @@ export default function BottleStoreDashboard() {
             {/* Expiry Alerts */}
             {expiryAlerts && (expiryAlerts.counts.expired > 0 || expiryAlerts.counts.expiringSoon > 0) && (
                 <div className="space-y-3">
-                    <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <HiOutlineExclamationCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                        <HiOutlineExclamationCircle className="w-5 h-5 text-rose-500 dark:text-rose-400" />
                         Alertas de Validade
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {expiryAlerts.expired.slice(0, 4).map((b: BottleStoreBatch) => (
-                            <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl bg-red-100/40 dark:bg-red-900/40 border border-red-200/50 dark:border-red-500/20 shadow-sm shadow-red-500/10">
-                                <div className="p-2 rounded-lg bg-red-200/60 text-red-700 dark:bg-red-900/60 dark:text-red-300 shadow-inner">
+                            <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 shadow-sm">
+                                <div className="p-2 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                                     <HiOutlineExclamationCircle className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-black text-red-900 dark:text-red-400 truncate tracking-tight uppercase">
+                                    <p className="text-xs font-black text-rose-700 dark:text-rose-400 truncate tracking-tight uppercase">
                                         {b.product?.name}
                                     </p>
-                                    <p className="text-[10px] text-red-600 font-bold italic uppercase">
+                                    <p className="text-[10px] text-rose-600/80 font-bold uppercase mt-0.5">
                                         Lote {b.batchNumber} • {b.quantity} un. EXPIRADO
                                     </p>
                                 </div>
-                                <span className="text-[10px] font-black text-red-700 whitespace-nowrap bg-red-200/60 px-2 py-0.5 rounded-full border border-red-300/30">
+                                <span className="text-[10px] font-black text-rose-700 whitespace-nowrap bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
                                     {b.expiryDate ? new Date(b.expiryDate).toLocaleDateString('pt-MZ') : ''}
                                 </span>
                             </div>
                         ))}
                         {expiryAlerts.expiringSoon.slice(0, 4).map((b: BottleStoreBatch) => (
-                            <div key={b.id} className="flex items-center gap-3 p-3 rounded-lg bg-amber-100 dark:bg-amber-900/40 border-none shadow-sm shadow-amber-500/10">
-                                <div className="p-2 rounded-lg bg-amber-200 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 shadow-inner">
+                            <div key={b.id} className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 shadow-sm">
+                                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                     <HiOutlineClock className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-black text-amber-800 dark:text-amber-400 truncate tracking-tight">{b.product?.name}</p>
-                                    <p className="text-[10px] text-amber-600 font-bold italic">Lote {b.batchNumber} "" {b.quantity} un.</p>
+                                    <p className="text-xs font-black text-amber-700 dark:text-amber-400 truncate tracking-tight uppercase">{b.product?.name}</p>
+                                    <p className="text-[10px] text-amber-600/80 font-bold uppercase mt-0.5">Lote {b.batchNumber} • {b.quantity} un.</p>
                                 </div>
-                                <span className="text-[10px] font-black text-amber-700 whitespace-nowrap bg-amber-200 px-2 py-0.5 rounded-full">
+                                <span className="text-[10px] font-black text-amber-700 whitespace-nowrap bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                                     {b.daysToExpiry}d restantes
                                 </span>
                             </div>
@@ -289,71 +309,64 @@ export default function BottleStoreDashboard() {
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Sales Chart */}
-                <Card padding="md" color="slate" className="lg:col-span-2">
+                <Card padding="md" className="lg:col-span-2 bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h2 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight">
                             Evolução de Vendas
                         </h2>
                         <Link to="/bottle-store/reports">
-                            <Button variant="ghost" size="sm">
-                                Ver mais <HiOutlineArrowRight className="w-4 h-4 ml-2" />
+                            <Button variant="ghost" size="sm" className="text-xs uppercase tracking-wider font-bold">
+                                Ver mais <HiOutlineArrowRight className="w-3.5 h-3.5 ml-1.5 inline" />
                             </Button>
                         </Link>
                     </div>
                     <div className="h-72">
                         <ResponsiveContainer width="100%" height={288}>
-                            <AreaChart data={chartData}>
+                            <AreaChart data={chartData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
                                         <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" vertical={false} />
-                                <XAxis dataKey="date" className="text-sm" stroke="#94a3b8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                                <YAxis className="text-sm" stroke="#94a3b8" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000}k`} />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: 'var(--tooltip-bg, #fff)',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                                    }}
-                                />
-                                <Area type="monotone" dataKey="amount" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
+                                <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200/50 dark:stroke-white/5" vertical={false} />
+                                <XAxis dataKey="date" className="text-[10px]" stroke="#94a3b8" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
+                                <YAxis className="text-[10px]" stroke="#94a3b8" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={(value) => formatCurrency(value).replace(',00', '')} />
+                                <Tooltip content={<GlassmorphicTooltip formatter={formatCurrency} />} />
+                                <Area type="monotone" dataKey="amount" name="Vendas" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
 
                 {/* Mix Chart */}
-                <Card padding="md" color="slate">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                <Card padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6 uppercase tracking-tight">
                         Mix de Vendas (Categorias)
                     </h2>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height={256}>
                             <PieChart>
-                                <Pie data={categoryData as unknown as Parameters<typeof Pie>[0]['data']} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={4} dataKey="value">
-                                    {categoryData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                                <Pie data={categoryData as unknown as Parameters<typeof Pie>[0]['data']} cx="50%" cy="50%" innerRadius={62} outerRadius={82} paddingAngle={4} dataKey="value">
+                                    {categoryData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke="rgba(255,255,255,0.05)" />)}
                                 </Pie>
-                                <Tooltip />
+                                <Tooltip content={<GlassmorphicTooltip />} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                     <div className="grid grid-cols-2 gap-2 mt-4">
                         {categoryData.map((item) => (
-                            <div key={item.name} className="flex items-center justify-between gap-2">
+                            <div key={item.name} className="flex items-center justify-between gap-2 p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-dark-700/30 transition-colors">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <div
-                                        className="w-3 h-3 rounded-full flex-shrink-0"
+                                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                                         style={{ backgroundColor: item.color }}
                                     />
-                                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 truncate">
                                         {item.name}
                                     </span>
                                 </div>
-                                <span className="text-xs font-medium text-gray-900 dark:text-white flex-shrink-0">
+                                <span className="text-xs font-black text-slate-900 dark:text-white flex-shrink-0">
                                     {item.value ? ((item.value / (stats.totalSales || 1)) * 100).toFixed(0) : 0}%
                                 </span>
                             </div>
@@ -365,9 +378,9 @@ export default function BottleStoreDashboard() {
             {/* Recent Activity & Quick Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Recent Activity */}
-                <Card padding="md" color="slate" className="lg:col-span-2">
+                <Card padding="md" className="lg:col-span-2 bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h2 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight">
                             Atividade Recente
                         </h2>
                         <div className="flex gap-2">
@@ -436,8 +449,8 @@ export default function BottleStoreDashboard() {
                 </Card>
 
                 {/* Quick Actions */}
-                <Card padding="md">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                <Card padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6 uppercase tracking-tight">
                         Ações Rápidas
                     </h2>
                     <div className="grid grid-cols-1 gap-3">

@@ -1131,7 +1131,7 @@ export default function GlobalSearch() {
                     setOpen(true);
                     setTimeout(() => inputRef.current?.focus(), 0);
                 }}
-                className="md:hidden p-2.5 rounded-lg bg-white hover:bg-slate-50 dark:bg-transparent dark:hover:bg-dark-700 text-slate-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors border border-slate-300 dark:border-transparent shadow-sm"
+                className="md:hidden p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-dark-700 text-slate-600 hover:text-primary-600 dark:text-gray-400 dark:hover:text-primary-400 transition-colors"
                 title={t('common.search')}
             >
                 <HiOutlineMagnifyingGlass className="w-5 h-5" />

@@ -58,6 +58,26 @@ const PERIOD_OPTIONS = [
     { label: '1 Ano', value: 365 },
 ];
 
+const GlassmorphicTooltip = ({ active, payload, label, formatter }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="backdrop-blur-md bg-white/95 dark:bg-dark-900/95 border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] z-50">
+                {label && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</p>}
+                {payload.map((item: any, index: number) => (
+                    <div key={index} className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{item.name}:</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">
+                            {formatter ? formatter(item.value) : item.value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
 export default function LogisticsDashboard() {
     const { t } = useTranslation();
     const { companySettings } = useStore();
@@ -347,38 +367,36 @@ export default function LogisticsDashboard() {
 
             {/* Data Visualization Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card color="slate" className="p-6 h-[400px] flex flex-col">
+                <Card className="p-6 h-[400px] flex flex-col bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                            <HiOutlineChartBar className="text-primary-600 dark:text-primary-400 w-5 h-5" />
+                        <h3 className="text-base font-bold text-gray-800 dark:text-white flex items-center gap-2 uppercase tracking-tight">
+                            <HiOutlineChartBar className="text-violet-600 dark:text-violet-400 w-5 h-5" />
                             {t('logistics_module.dashboard.charts.flow')}
                         </h3>
                         <Badge variant="primary" size="sm">{t('logistics_module.dashboard.charts.transferVolume')}</Badge>
                     </div>
                     <div className="flex-1 w-full">
                         <ResponsiveContainer width="100%" height={300}>
-                            <AreaChart data={transferStats}>
+                            <AreaChart data={transferStats} margin={{ left: 10, right: 10, top: 5, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
                                         <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 12 }} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                />
-                                <Area type="monotone" dataKey="valor" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-200/50 dark:stroke-white/5" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                                <Tooltip content={<GlassmorphicTooltip />} />
+                                <Area type="monotone" dataKey="valor" name="Transferências" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorValue)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </Card>
 
-                <Card className="p-6 h-[400px] flex flex-col bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-white/20 dark:border-white/10">
+                <Card className="p-6 h-[400px] flex flex-col bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                        <h3 className="text-base font-bold text-gray-800 dark:text-white flex items-center gap-2 uppercase tracking-tight">
                             <HiOutlineSquares2X2 className="text-indigo-600 dark:text-indigo-400 w-5 h-5" />
                             {t('logistics_module.dashboard.charts.distribution')}
                         </h3>
@@ -390,17 +408,17 @@ export default function LogisticsDashboard() {
                                     data={pieData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={60}
+                                    innerRadius={65}
                                     outerRadius={100}
-                                    paddingAngle={5}
+                                    paddingAngle={4}
                                     dataKey="value"
                                 >
                                     {pieData.map((_entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(255,255,255,0.05)" />
                                     ))}
                                 </Pie>
-                                <Tooltip />
-                                <Legend verticalAlign="bottom" height={36} />
+                                <Tooltip content={<GlassmorphicTooltip />} />
+                                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -417,44 +435,43 @@ export default function LogisticsDashboard() {
                         </h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {warehouses.map((w, index) => (
-                            <Card key={w.id} className="group hover:border-primary-500/30 transition-all cursor-pointer">
+                            <Card key={w.id} className="group bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 hover:border-primary-500/30 transition-all duration-300 cursor-pointer">
                                 <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-500/15 border border-primary-200/50 dark:border-primary-500/30 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all shadow-sm backdrop-blur-sm">
-                                            <HiOutlineMapPin className="w-6 h-6" />
+                                        <div className="w-11 h-11 rounded-xl bg-primary-500/10 border border-primary-500/20 text-primary-600 dark:text-primary-400 flex items-center justify-center group-hover:bg-primary-500 group-hover:text-white transition-all shadow-sm">
+                                            <HiOutlineMapPin className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors uppercase tracking-tight">{w.name}</h3>
+                                            <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors uppercase tracking-tight text-sm">{w.name}</h3>
                                             <p className="text-xs text-gray-500 font-medium">{w.location || 'Local não definido'}</p>
                                         </div>
                                     </div>
-                                    <Badge variant={w.isActive ? 'success' : 'danger'} className="rounded-lg px-3 py-1 font-bold">
+                                    <Badge variant={w.isActive ? 'success' : 'danger'} className="rounded-lg px-2 py-0.5 font-bold text-[10px]">
                                         {w.isActive ? t('common.active').toUpperCase() : t('logistics_module.routes.inactive').toUpperCase()}
                                     </Badge>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between text-xs font-bold text-gray-400">
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between text-[10px] font-black text-gray-400 uppercase tracking-wider">
                                         <span>{t('logistics_module.dashboard.stockOccupation')}</span>
-                                        <span>{Math.min(95, 20 + index * 15)}%</span>
+                                        <span className="tabular-nums">{Math.min(95, 20 + index * 15)}%</span>
                                     </div>
-                                    <div className="w-full h-2 bg-gray-100 dark:bg-dark-700 rounded-full overflow-hidden">
+                                    <div className="w-full h-1.5 bg-slate-100 dark:bg-dark-700 rounded-full overflow-hidden">
                                         <div
-                                            className="h-full bg-primary-500 rounded-full transition-all duration-1000"
+                                            className="h-full bg-gradient-to-r from-primary-500 to-violet-500 rounded-full transition-all duration-1000"
                                             style={{ width: `${Math.min(95, 20 + index * 15)}%` }}
-                                        ></div>
-                                    </div>
+                                        /></div>
 
-                                    <div className="flex items-center justify-between pt-2 border-t dark:border-dark-700">
+                                    <div className="flex items-center justify-between pt-2 border-t border-slate-100/70 dark:border-white/5">
                                         <div className="text-center">
-                                            <p className="text-[10px] text-gray-500 font-bold mb-1">{t('common.code').toUpperCase()}</p>
-                                            <span className="text-sm font-mono font-bold">{w.code}</span>
+                                            <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-0.5">{t('common.code').toUpperCase()}</p>
+                                            <span className="text-xs font-mono font-bold text-slate-900 dark:text-white">{w.code}</span>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[10px] text-gray-500 font-bold mb-1">{t('common.total_items').toUpperCase()}</p>
-                                            <span className="text-sm font-extrabold text-primary-600">{(w as { totalItems?: number }).totalItems || 0}</span>
+                                            <p className="text-[9px] text-gray-500 font-black uppercase tracking-widest mb-0.5">{t('common.total_items').toUpperCase()}</p>
+                                            <span className="text-sm font-extrabold text-primary-600 tabular-nums">{(w as { totalItems?: number }).totalItems || 0}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -472,9 +489,9 @@ export default function LogisticsDashboard() {
                         </h2>
                     </div>
 
-                    <Card className="p-0 overflow-hidden border-none shadow-xl">
-                        <div className="p-4 bg-indigo-50/80 dark:bg-dark-900/50 border-b border-indigo-100 dark:border-dark-700 flex items-center justify-between">
-                            <span className="text-xs font-black text-indigo-600 uppercase tracking-widest">{t('logistics_module.dashboard.liveTransfers')}</span>
+                    <Card className="p-0 overflow-hidden bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]">
+                        <div className="p-4 bg-indigo-500/5 dark:bg-indigo-500/10 border-b border-indigo-500/10 dark:border-indigo-500/20 flex items-center justify-between">
+                            <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">{t('logistics_module.dashboard.liveTransfers')}</span>
                             <Badge variant="primary" size="sm">{filteredTransfers.length}</Badge>
                         </div>
                         <div className="max-h-[500px] overflow-y-auto scrollbar-hidden">
@@ -498,11 +515,11 @@ export default function LogisticsDashboard() {
                                     ))}
                                 </div>
                             ) : filteredTransfers.length > 0 ? (
-                                <div className="divide-y dark:divide-dark-700">
+                                <div className="divide-y divide-slate-100/70 dark:divide-white/5">
                                     {filteredTransfers.slice(0, 8).map((tr: StockTransfer) => (
-                                        <div key={tr.id} className="p-4 hover:bg-white dark:hover:bg-dark-700/50 transition-all group">
+                                        <div key={tr.id} className="p-4 hover:bg-slate-50/50 dark:hover:bg-dark-700/20 transition-all group">
                                             <div className="flex items-start gap-3">
-                                                <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${tr.status === 'completed' ? 'bg-green-500' : 'bg-amber-400'}`}></div>
+                                                <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${tr.status === 'completed' ? 'bg-emerald-500' : 'bg-amber-400'}`}></div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between mb-1">
                                                         <span className="text-sm font-bold text-primary-600 font-mono">{tr.number}</span>

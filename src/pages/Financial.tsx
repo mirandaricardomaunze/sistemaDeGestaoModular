@@ -15,7 +15,8 @@ import {
     HiOutlineCurrencyDollar,
 } from 'react-icons/hi2';
 import { subDays, parseISO } from 'date-fns';
-import { Card, Button, Input, Select, Modal, Badge, Pagination, usePagination, ResponsiveValue, PageHeader } from '../components/ui';
+import { Card, Button, Input, Select, Modal, Badge, usePagination, ResponsiveValue, PageHeader, SmartTable } from '../components/ui';
+import type { ColumnDef } from '@tanstack/react-table';
 import { StatCard } from '../components/common/ModuleMetricCard';
 import { formatDate, generateId, cn } from '../utils/helpers';
 import type { Transaction, TransactionType, TransactionStatus } from '../types';
@@ -157,6 +158,105 @@ export default function Financial() {
         paginatedItems: paginatedTransactions,
         totalItems,
     } = usePagination(filteredTransactions, 10);
+
+    const transactionColumns = useMemo<ColumnDef<Transaction>[]>(() => [
+        {
+            id: 'type',
+            header: 'Tipo',
+            accessorKey: 'type',
+            cell: ({ row }) => (
+                <Badge variant={row.original.type === 'income' ? 'success' : 'danger'}>
+                    {row.original.type === 'income' ? 'Receita' : 'Despesa'}
+                </Badge>
+            ),
+        },
+        {
+            id: 'description',
+            header: 'Descrição',
+            accessorKey: 'description',
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium text-gray-900 dark:text-white">{row.original.description}</p>
+                    {row.original.reference && (
+                        <p className="text-xs text-gray-500">Ref: {row.original.reference}</p>
+                    )}
+                </div>
+            ),
+        },
+        {
+            id: 'category',
+            header: 'Categoria',
+            accessorKey: 'category',
+            cell: ({ row }) => (
+                <span className="text-gray-600 dark:text-gray-400 capitalize">
+                    {row.original.category.replace('_', ' ')}
+                </span>
+            ),
+        },
+        {
+            id: 'date',
+            header: 'Data',
+            accessorKey: 'date',
+            cell: ({ row }) => (
+                <span className="text-gray-600 dark:text-gray-400">{formatDate(row.original.date)}</span>
+            ),
+        },
+        {
+            id: 'amount',
+            header: 'Valor',
+            accessorKey: 'amount',
+            cell: ({ row }) => (
+                <span className={cn(row.original.type === 'income' ? 'text-green-600' : 'text-red-600')}>
+                    <ResponsiveValue value={row.original.amount} size="sm" className="font-semibold" />
+                </span>
+            ),
+        },
+        {
+            id: 'status',
+            header: 'Status',
+            accessorKey: 'status',
+            cell: ({ row }) => (
+                <Badge variant={row.original.status === 'completed' ? 'success' : 'warning'}>
+                    {row.original.status === 'completed' ? 'Concluído' : 'Pendente'}
+                </Badge>
+            ),
+        },
+        {
+            id: 'actions',
+            header: 'Ações',
+            enableSorting: false,
+            cell: ({ row }) => {
+                const t = row.original;
+                return (
+                    <div className="flex items-center gap-1">
+                        {t.status === 'pending' && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleMarkComplete(t.id)}
+                                className="text-gray-500 hover:text-green-600"
+                                title="Marcar como concluído"
+                            >
+                                <HiOutlineCheck className="w-4 h-4" />
+                            </Button>
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setTransactionToDelete(t);
+                                setDeleteModalOpen(true);
+                            }}
+                            className="text-gray-500 hover:text-red-600"
+                            title="Excluir"
+                        >
+                            <HiOutlineTrash className="w-4 h-4" />
+                        </Button>
+                    </div>
+                );
+            },
+        },
+    ], []);
 
     // Calculate summary (based on period)
     const summary = useMemo(() => {
@@ -376,108 +476,22 @@ export default function Financial() {
                         </Card>
 
                         {/* Transactions List */}
-                        <Card padding="none">
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-700">
-                                    <thead>
-                                        <tr className="text-[10px] text-gray-400 border-b border-gray-100 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-900/50 uppercase tracking-[0.2em] font-black italic">
-                                            <th className="px-6 py-4 text-left">Tipo</th>
-                                            <th className="px-6 py-4 text-left">DescriÃ§Ã£o</th>
-                                            <th className="px-6 py-4 text-left">Categoria</th>
-                                            <th className="px-6 py-4 text-left">Data</th>
-                                            <th className="px-6 py-4 text-left">Valor</th>
-                                            <th className="px-6 py-4 text-left">Status</th>
-                                            <th className="px-6 py-4 text-left">AÃ§Ãµes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 dark:divide-dark-700">
-                                        {filteredTransactions.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
-                                                    Nenhuma transaÃ§Ã£o encontrada
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            paginatedTransactions.map((t) => (
-                                                <tr key={t.id} className="bg-white dark:bg-dark-900 hover:bg-gray-50 dark:hover:bg-dark-800">
-                                                    <td className="px-6 py-4">
-                                                        <Badge variant={t.type === 'income' ? 'success' : 'danger'}>
-                                                            {t.type === 'income' ? 'Receita' : 'Despesa'}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <p className="font-medium text-gray-900 dark:text-white">{t.description}</p>
-                                                        {t.reference && (
-                                                            <p className="text-xs text-gray-500">Ref: {t.reference}</p>
-                                                        )}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400 capitalize">
-                                                        {t.category.replace('_', ' ')}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400">
-                                                        {formatDate(t.date)}
-                                                    </td>
-                                                    <td className={cn(
-                                                        'px-6 py-4',
-                                                        t.type === 'income' ? 'text-green-600' : 'text-red-600'
-                                                    )}>
-                                                        <ResponsiveValue
-                                                            value={t.amount}
-                                                            size="sm"
-                                                            className="font-semibold"
-                                                        />
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <Badge variant={t.status === 'completed' ? 'success' : 'warning'}>
-                                                            {t.status === 'completed' ? 'ConcluÃ­do' : 'Pendente'}
-                                                        </Badge>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-1">
-                                                            {t.status === 'pending' && (
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    onClick={() => handleMarkComplete(t.id)}
-                                                                    className="text-gray-500 hover:text-green-600"
-                                                                    title="Marcar como concluÃ­do"
-                                                                >
-                                                                    <HiOutlineCheck className="w-4 h-4" />
-                                                                </Button>
-                                                            )}
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                onClick={() => {
-                                                                    setTransactionToDelete(t);
-                                                                    setDeleteModalOpen(true);
-                                                                }}
-                                                                className="text-gray-500 hover:text-red-600"
-                                                                title="Excluir"
-                                                            >
-                                                                <HiOutlineTrash className="w-4 h-4" />
-                                                            </Button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </Card>
-
-                        {/* Pagination */}
-                        <div className="flex justify-center mt-6">
-                            <Pagination
-                                currentPage={currentPage}
-                                totalItems={totalItems}
-                                itemsPerPage={itemsPerPage}
-                                onPageChange={setCurrentPage}
-                                onItemsPerPageChange={setItemsPerPage}
-                                itemsPerPageOptions={[5, 10, 20, 50]}
-                            />
-                        </div>
+                        <SmartTable
+                            data={paginatedTransactions}
+                            columns={transactionColumns}
+                            hideToolbar
+                            emptyTitle="Nenhuma transação encontrada"
+                            emptyDescription="Ajuste os filtros ou registe uma nova transação."
+                            minHeight="450px"
+                            pagination={{
+                                currentPage,
+                                totalItems,
+                                itemsPerPage,
+                                onPageChange: setCurrentPage,
+                                onItemsPerPageChange: setItemsPerPage,
+                                itemsPerPageOptions: [5, 10, 20, 50],
+                            }}
+                        />
                     </div>
                 )}
 

@@ -24,7 +24,7 @@ export default function Header() {
     const navigate = useNavigate();
     const { theme, toggleTheme, toggleSidebar } = useStore();
     const { user, logout } = useAuthStore();
-    const { isOnline, isSyncing, pendingCount, failedCount } = useOfflineSync();
+    const { isOnline, networkOnline, isSyncing, pendingCount, failedCount, queueLevel } = useOfflineSync();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [showSyncPanel, setShowSyncPanel] = useState(false);
     const { t } = useTranslation();
@@ -69,7 +69,7 @@ export default function Header() {
                     {/* Theme Toggle */}
                     <Button variant="ghost"
                         onClick={toggleTheme}
-                        className="p-2.5 rounded-xl bg-white hover:bg-slate-50 dark:bg-transparent dark:hover:bg-dark-800 text-slate-700 dark:text-gray-300 transition-all duration-200 ring-1 ring-slate-300 dark:ring-dark-700/50 shadow-sm"
+                        className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-dark-800 text-slate-700 dark:text-gray-300 transition-all duration-200"
                         title={theme === 'light' ? t('settings.darkMode') : t('settings.lightMode')}
                     >
                         {theme === 'light' ? (
@@ -88,12 +88,18 @@ export default function Header() {
                         {(pendingCount > 0 || failedCount > 0) ? (
                             <Button variant="ghost"
                                 onClick={() => setShowSyncPanel(true)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ring-1 active:scale-95 ${
-                                    failedCount > 0
-                                        ? 'bg-red-100/60 text-red-700 hover:bg-red-200 ring-red-200 dark:bg-red-900/20 dark:text-red-300 dark:ring-red-900/40'
-                                        : 'bg-amber-100/50 text-amber-700 hover:bg-amber-200 ring-amber-200 dark:bg-amber-900/20 dark:text-amber-300 dark:ring-amber-900/40'
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                                    failedCount > 0 || queueLevel === 'full' || queueLevel === 'critical'
+                                        ? 'bg-red-100/60 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-300'
+                                        : 'bg-amber-100/50 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/20 dark:text-amber-300'
                                 }`}
-                                title={isOnline ? 'Ver fila de sincronizacao' : 'Offline - dados guardados localmente'}
+                                title={
+                                    queueLevel === 'full' ? 'Fila offline cheia (500). Restaure a ligação para sincronizar.' :
+                                    queueLevel === 'critical' ? 'Fila offline próxima do limite (>400). Restaure a ligação assim que possível.' :
+                                    !networkOnline ? 'Offline - dados guardados localmente' :
+                                    !isOnline ? 'Sem servidor - a tentar restabelecer ligação' :
+                                    'Ver fila de sincronização'
+                                }
                             >
                                 <HiArrowPath className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                                 <span className="hidden sm:inline">
@@ -103,11 +109,18 @@ export default function Header() {
                         ) : (
                             <Button variant="ghost"
                                 onClick={() => setShowSyncPanel(true)}
-                                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ring-1 ${isOnline
-                                    ? 'text-emerald-600 bg-white ring-slate-300 hover:bg-emerald-50 dark:bg-transparent dark:ring-dark-700/50 dark:hover:bg-emerald-900/10'
-                                    : 'text-amber-500 bg-amber-50 ring-amber-100 dark:bg-amber-900/20 dark:ring-amber-900/40 hover:bg-amber-100'
-                                    }`}
-                                title={isOnline ? 'Sistema online - clique para ver fila' : 'Sistema offline - dados salvos localmente'}
+                                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+                                    isOnline
+                                        ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/10'
+                                        : !networkOnline
+                                            ? 'text-amber-500 bg-amber-50/60 dark:bg-amber-900/20 hover:bg-amber-100'
+                                            : 'text-orange-600 bg-orange-50/60 dark:bg-orange-900/20 hover:bg-orange-100'
+                                }`}
+                                title={
+                                    isOnline ? 'Sistema online - clique para ver fila' :
+                                    !networkOnline ? 'Sistema offline - dados salvos localmente' :
+                                    'Sem servidor - a tentar restabelecer ligação'
+                                }
                             >
                                 {isOnline ? (
                                     <div className="relative flex h-2.5 w-2.5">
@@ -128,10 +141,10 @@ export default function Header() {
                     <div className="relative">
                         <Button variant="ghost"
                             onClick={() => setShowUserMenu(!showUserMenu)}
-                            className={`flex items-center gap-2 rounded-xl py-1 pl-1 pr-2 transition-all duration-200 ring-1 ${
+                            className={`flex items-center gap-2 rounded-xl py-1 pl-1 pr-2 transition-all duration-200 ${
                                 showUserMenu 
-                                ? 'bg-primary-50 ring-primary-200 dark:bg-primary-900/20 dark:ring-primary-800' 
-                                : 'bg-white hover:bg-slate-50 dark:bg-transparent dark:hover:bg-dark-800 ring-slate-300 dark:ring-dark-700/50 shadow-sm'
+                                ? 'bg-primary-50 dark:bg-primary-900/20' 
+                                : 'hover:bg-slate-100 dark:hover:bg-dark-800'
                             }`}
                         >
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-600 to-indigo-600 flex items-center justify-center shadow-sm shadow-primary-500/20 overflow-hidden">

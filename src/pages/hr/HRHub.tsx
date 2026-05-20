@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -184,22 +184,22 @@ function GlobalPerformancePanel() {
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 {[
-                    { label: 'Score medio', value: `${data.averageScore}%`, icon: HiOutlineChartBar, variant: 'primary' as const },
-                    { label: 'Alta performance', value: data.highPerformers, icon: HiOutlineCheckCircle, variant: 'success' as const },
-                    { label: 'A rever', value: data.needsReview, icon: HiOutlineExclamationTriangle, variant: 'warning' as const },
-                    { label: 'Com qualificacoes', value: data.qualified, icon: HiOutlineAcademicCap, variant: 'info' as const },
+                    { label: 'Score médio', value: `${data.averageScore}%`, icon: HiOutlineChartBar, color: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20' },
+                    { label: 'Alta performance', value: data.highPerformers, icon: HiOutlineCheckCircle, color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' },
+                    { label: 'A rever', value: data.needsReview, icon: HiOutlineExclamationTriangle, color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' },
+                    { label: 'Com qualificações', value: data.qualified, icon: HiOutlineAcademicCap, color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' },
                 ].map((metric) => {
                     const Icon = metric.icon;
                     return (
-                        <Card key={metric.label} padding="md">
+                        <Card key={metric.label} padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-xs font-bold uppercase tracking-widest text-gray-500">{metric.label}</p>
-                                    <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{metric.value}</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">{metric.label}</p>
+                                    <p className="text-2xl font-black text-gray-900 dark:text-white mt-1 tabular-nums">{metric.value}</p>
                                 </div>
-                                <Badge variant={metric.variant}>
-                                    <Icon className="w-4 h-4" />
-                                </Badge>
+                                <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0', metric.color)}>
+                                    <Icon className="w-5 h-5" />
+                                </div>
                             </div>
                         </Card>
                     );
@@ -207,19 +207,19 @@ function GlobalPerformancePanel() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <Card className="xl:col-span-2" padding="none">
-                    <div className="p-6 border-b border-gray-100 dark:border-dark-700">
+                <Card className="xl:col-span-2 bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]" padding="none">
+                    <div className="p-5 border-b border-slate-100/80 dark:border-white/5">
                         <h3 className="font-black text-sm uppercase tracking-widest text-gray-900 dark:text-white">
                             Ranking de performance
                         </h3>
                     </div>
-                    <div className="divide-y divide-gray-100 dark:divide-dark-700">
+                    <div className="divide-y divide-slate-100/70 dark:divide-white/5">
                         {data.topEmployees.length === 0 ? (
                             <p className="p-6 text-sm text-gray-500">Nenhum colaborador ativo encontrado.</p>
                         ) : data.topEmployees.map((employee, index) => (
-                            <div key={employee.id} className="p-4 flex items-center justify-between gap-4">
+                            <div key={employee.id} className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-dark-700/20 transition-colors">
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-9 h-9 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 flex items-center justify-center font-black">
+                                    <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-black text-sm">
                                         {index + 1}
                                     </div>
                                     <div className="min-w-0">
@@ -228,13 +228,13 @@ function GlobalPerformancePanel() {
                                     </div>
                                 </div>
                                 <div className="w-40 max-w-[45%]">
-                                    <div className="h-2 rounded-full bg-gray-100 dark:bg-dark-700 overflow-hidden">
+                                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-dark-700 overflow-hidden">
                                         <div
-                                            className="h-full rounded-full bg-primary-500"
+                                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-700"
                                             style={{ width: `${Math.min(Number(employee.performanceScore || 0), 100)}%` }}
                                         />
                                     </div>
-                                    <p className="text-right text-xs font-black text-gray-500 mt-1">
+                                    <p className="text-right text-xs font-black text-slate-500 mt-1 tabular-nums">
                                         {Number(employee.performanceScore || 0)}%
                                     </p>
                                 </div>
@@ -243,17 +243,17 @@ function GlobalPerformancePanel() {
                     </div>
                 </Card>
 
-                <Card padding="md">
+                <Card padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
                     <h3 className="font-black text-sm uppercase tracking-widest text-gray-900 dark:text-white mb-4">
-                        Distribuicao por departamento
+                        Distribuição por departamento
                     </h3>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         {data.departments.length === 0 ? (
                             <p className="text-sm text-gray-500">Sem dados por departamento.</p>
                         ) : data.departments.map(([department, count]) => (
-                            <div key={department} className="flex items-center justify-between gap-3">
-                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">{department}</span>
-                                <Badge variant="gray">{count}</Badge>
+                            <div key={department} className="flex items-center justify-between gap-3 py-1.5 border-b border-slate-100/60 dark:border-white/5 last:border-0">
+                                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">{department}</span>
+                                <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums flex-shrink-0">{count}</span>
                             </div>
                         ))}
                     </div>
@@ -297,46 +297,46 @@ function GlobalCompliancePanel() {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card padding="md" className="bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800">
-                    <p className="text-xs font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-300">Dossiers completos</p>
-                    <p className="text-3xl font-black text-emerald-800 dark:text-emerald-200 mt-2">{completeCount}</p>
+                <Card padding="md" className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 shadow-sm backdrop-blur-xl">
+                    <p className="text-xs font-black uppercase tracking-widest text-emerald-700 dark:text-emerald-400">Dossiers completos</p>
+                    <p className="text-3xl font-black text-emerald-700 dark:text-emerald-300 mt-2 tabular-nums">{completeCount}</p>
                 </Card>
-                <Card padding="md" className="bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-800">
-                    <p className="text-xs font-bold uppercase tracking-widest text-amber-700 dark:text-amber-300">Com pendencias</p>
-                    <p className="text-3xl font-black text-amber-800 dark:text-amber-200 mt-2">{compliance.length}</p>
+                <Card padding="md" className="bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 shadow-sm backdrop-blur-xl">
+                    <p className="text-xs font-black uppercase tracking-widest text-amber-700 dark:text-amber-400">Com pendências</p>
+                    <p className="text-3xl font-black text-amber-700 dark:text-amber-300 mt-2 tabular-nums">{compliance.length}</p>
                 </Card>
-                <Card padding="md">
-                    <p className="text-xs font-bold uppercase tracking-widest text-gray-500">Campos verificados</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">Documento, NUIT, INSS, NIB e contrato.</p>
+                <Card padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-sm">
+                    <p className="text-xs font-black uppercase tracking-widest text-gray-500">Campos verificados</p>
+                    <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mt-2">Documento, NUIT, INSS, NIB e contrato.</p>
                 </Card>
             </div>
 
-            <Card padding="none" className="overflow-hidden">
-                <div className="p-6 border-b border-gray-100 dark:border-dark-700 flex items-center gap-2">
-                    <HiOutlineDocumentText className="w-5 h-5 text-primary-600" />
+            <Card padding="none" className="overflow-hidden bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]">
+                <div className="p-5 border-b border-slate-100/80 dark:border-white/5 flex items-center gap-2">
+                    <HiOutlineDocumentText className="w-4 h-4 text-primary-600" />
                     <h3 className="font-black text-sm uppercase tracking-widest text-gray-900 dark:text-white">
-                        Pendencias de conformidade
+                        Pendências de conformidade
                     </h3>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-gray-50 dark:bg-dark-800 text-[10px] uppercase tracking-widest text-gray-500">
+                        <thead className="bg-slate-50/80 dark:bg-dark-900/50 text-[10px] uppercase tracking-widest text-slate-500 border-b border-slate-100/80 dark:border-white/5">
                             <tr>
-                                <th className="px-6 py-4">Colaborador</th>
-                                <th className="px-6 py-4">Pendencias</th>
-                                <th className="px-6 py-4">Contrato</th>
-                                <th className="px-6 py-4">Estado</th>
+                                <th className="px-6 py-3 font-black">Colaborador</th>
+                                <th className="px-6 py-3 font-black">Pendências</th>
+                                <th className="px-6 py-3 font-black">Contrato</th>
+                                <th className="px-6 py-3 font-black">Estado</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-dark-700">
+                        <tbody className="divide-y divide-slate-100/70 dark:divide-white/5">
                             {compliance.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                                        Sem pendencias de conformidade registadas.
+                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500 text-sm">
+                                        Sem pendências de conformidade registadas.
                                     </td>
                                 </tr>
                             ) : compliance.map(({ employee, missing, expiringContract, contractDays }) => (
-                                <tr key={employee.id} className="hover:bg-gray-50 dark:hover:bg-dark-800">
+                                <tr key={employee.id} className="hover:bg-slate-50/50 dark:hover:bg-dark-700/20 transition-colors">
                                     <td className="px-6 py-4">
                                         <p className="font-bold text-gray-900 dark:text-white">{employee.name}</p>
                                         <p className="text-xs text-gray-500">{employee.code} - {employee.department || employee.role}</p>

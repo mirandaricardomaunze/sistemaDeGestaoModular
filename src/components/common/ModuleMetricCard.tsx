@@ -191,7 +191,7 @@ export function FilterCard({
             onClick={onClick}
             type="button"
             className={cn(
-                'group relative flex h-28 flex-col justify-between overflow-hidden rounded-2xl border bg-gradient-to-br p-4 text-left shadow-card transition-all duration-300',
+                'group relative flex min-h-[8rem] flex-col gap-3 overflow-hidden rounded-2xl border bg-gradient-to-br p-5 text-left shadow-card transition-all duration-300',
                 'hover:-translate-y-0.5 hover:shadow-card-hover active:scale-[0.98]',
                 p.cardBg, p.cardBorder,
                 isActive ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-dark-900' : '',
@@ -199,27 +199,27 @@ export function FilterCard({
             )}
         >
             <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent dark:from-white/5 pointer-events-none" />
-            
+
             <div className="flex items-center justify-between w-full relative z-10">
-                <p className={cn("text-[10px] font-black uppercase tracking-widest", labelColor)}>
+                <p className={cn("text-[10px] font-black uppercase tracking-widest leading-tight", labelColor)}>
                     {label}
                 </p>
                 {isActive && (
-                    <span className="h-2 w-2 rounded-full bg-primary-600 shadow-[0_0_10px_rgba(59,84,255,0.5)] animate-pulse" />
+                    <span className="h-2 w-2 rounded-full bg-primary-600 shadow-[0_0_10px_rgba(59,84,255,0.5)] animate-pulse flex-none" />
                 )}
             </div>
-            
-            <p className={cn("mt-1 text-3xl font-black tracking-tighter relative z-10", textColor)}>
-                {value}
-            </p>
-            
-            {sublabel && (
-                <p className={cn("text-[10px] uppercase font-black opacity-60 relative z-10", textColor)}>
-                    {sublabel}
-                </p>
-            )}
 
-            {/* Subtle bottom accent line */}
+            <div className="flex flex-col gap-0.5 relative z-10">
+                <p className={cn("text-3xl font-black tracking-tighter leading-none", textColor)}>
+                    {value}
+                </p>
+                {sublabel && (
+                    <p className={cn("text-[10px] uppercase font-black opacity-60", textColor)}>
+                        {sublabel}
+                    </p>
+                )}
+            </div>
+
             <div className={cn(
                 'absolute bottom-0 left-0 h-1 transition-all duration-700 ease-out opacity-90',
                 isActive ? 'w-full' : 'w-0 group-hover:w-8',

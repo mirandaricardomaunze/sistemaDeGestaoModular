@@ -48,6 +48,43 @@ const dayNames: Record<string, string> = {
     '0': 'Dom', '1': 'Seg', '2': 'Ter', '3': 'Qua', '4': 'Qui', '5': 'Sex', '6': 'Sab'
 };
 
+const GlassmorphicTooltip = ({ active, payload, label, formatter }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="backdrop-blur-md bg-white/95 dark:bg-dark-900/95 border border-slate-200/90 dark:border-white/10 p-3 rounded-xl shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] z-50">
+                {label && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{label}</p>}
+                {payload.map((item: any, index: number) => (
+                    <div key={index} className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color || item.fill }} />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-350">
+                            {item.name}:
+                        </span>
+                        <span className="text-xs font-black text-slate-900 dark:text-white tabular-nums">
+                            {formatter ? formatter(item.value) : item.value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
+const CustomLegend = ({ payload }: any) => {
+    return (
+        <div className="flex items-center justify-end gap-4 mt-2">
+            {payload.map((entry: any, index: number) => (
+                <div key={`item-${index}`} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-550 dark:text-slate-400">
+                        {entry.value}
+                    </span>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 export default function PharmacyDashboard() {
     const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('1m');
     const { insights } = useSmartInsights();
@@ -257,40 +294,33 @@ export default function PharmacyDashboard() {
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Sales Chart */}
-                <Card padding="md" className="lg:col-span-2">
+                <Card padding="md" className="lg:col-span-2 bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h2 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight">
                             Vendas por Período
                         </h2>
                         <Link to="/pharmacy/reports">
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" className="text-xs uppercase tracking-wider font-bold">
                                 Ver Mais
-                                <HiOutlineArrowRight className="w-4 h-4 ml-2" />
+                                <HiOutlineArrowRight className="w-3.5 h-3.5 ml-1.5 inline" />
                             </Button>
                         </Link>
                     </div>
                     <div className="h-72">
                         {isLoadingChart ? <Skeleton className="w-full h-full rounded-lg" /> : (
                             <ResponsiveContainer width="100%" height={288}>
-                                <AreaChart data={salesData}>
+                                <AreaChart data={salesData} margin={{ left: 10, right: 10, top: 10, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="colorVendas" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3} />
+                                            <stop offset="5%" stopColor="#0d9488" stopOpacity={0.2} />
                                             <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-dark-700" />
-                                    <XAxis dataKey="name" className="text-sm" stroke="#94a3b8" />
-                                    <YAxis className="text-sm" stroke="#94a3b8" />
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: 'var(--tooltip-bg, #fff)',
-                                            border: 'none',
-                                            borderRadius: '12px',
-                                            boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-                                        }}
-                                    />
-                                    <Legend />
+                                    <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-slate-200/50 dark:stroke-white/5" />
+                                    <XAxis tickLine={false} axisLine={false} dataKey="name" className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500" stroke="currentColor" />
+                                    <YAxis tickLine={false} axisLine={false} className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500" stroke="currentColor" tickFormatter={(val) => formatCurrency(val).replace(',00', '')} />
+                                    <Tooltip content={<GlassmorphicTooltip formatter={formatCurrency} />} />
+                                    <Legend content={<CustomLegend />} />
                                     <Area
                                         type="monotone"
                                         dataKey="vendas"
@@ -306,8 +336,8 @@ export default function PharmacyDashboard() {
                 </Card>
 
                 {/* Top Products */}
-                <Card padding="md">
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                <Card padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
+                    <h2 className="text-base font-bold text-gray-900 dark:text-white mb-6 uppercase tracking-tight">
                         Mais Vendidos
                     </h2>
                     <div className="h-64">
@@ -318,33 +348,33 @@ export default function PharmacyDashboard() {
                                         data={categoryData}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
+                                        innerRadius={62}
+                                        outerRadius={82}
                                         paddingAngle={4}
                                         dataKey="value"
                                     >
                                         {categoryData.map((_, index) => (
-                                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} stroke="rgba(255,255,255,0.05)" />
                                         ))}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip content={<GlassmorphicTooltip />} />
                                 </PieChart>
                             </ResponsiveContainer>
                         )}
                     </div>
                     <div className="grid grid-cols-2 gap-2 mt-4">
                         {categoryData.slice(0, 4).map((item, index) => (
-                            <div key={item.name} className="flex items-center justify-between gap-2">
+                            <div key={item.name} className="flex items-center justify-between gap-2 p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-dark-700/30 transition-colors">
                                 <div className="flex items-center gap-2 min-w-0">
                                     <div
-                                        className="w-3 h-3 rounded-full flex-shrink-0"
+                                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                                         style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
                                     />
-                                    <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                                    <span className="text-xs font-semibold text-slate-655 dark:text-slate-400 truncate">
                                         {item.name}
                                     </span>
                                 </div>
-                                <span className="text-xs font-medium text-gray-900 dark:text-white flex-shrink-0">
+                                <span className="text-xs font-black text-slate-900 dark:text-white flex-shrink-0">
                                     {item.value}
                                 </span>
                             </div>
@@ -358,53 +388,54 @@ export default function PharmacyDashboard() {
                 <WeeklySalesWidget weeklyData={weeklySalesData} />
 
                 {/* Stock Alerts */}
-                <Card padding="md">
+                <Card padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        <h2 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight">
                             Alertas de Stock
                         </h2>
                         <Badge variant="danger">{(summary?.lowStockItems || 0) + (summary?.expiringSoonBatches || 0)}</Badge>
                     </div>
                     <div className="space-y-3">
                         {(summary?.lowStockItems || 0) > 0 && (
-                            <div className="flex items-start gap-3 p-3 bg-amber-100/40 dark:bg-amber-500/10 rounded-xl border border-amber-200/50 dark:border-amber-500/20">
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-amber-200/60 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300 shadow-inner">
+                            <div className="flex items-start gap-3 p-3 bg-amber-500/5 dark:bg-amber-500/10 rounded-xl border border-amber-500/20 shadow-sm">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                     <HiOutlineExclamationCircle className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-black text-amber-900 dark:text-amber-400 uppercase tracking-tight">
+                                    <p className="text-xs font-black text-amber-700 dark:text-amber-400 uppercase tracking-tight">
                                         Stock Baixo
                                     </p>
-                                    <p className="text-[10px] font-bold text-amber-800/70 dark:text-amber-400/60 uppercase">
+                                    <p className="text-[10px] font-bold text-amber-600/80 dark:text-amber-400/60 uppercase mt-0.5">
                                         {summary?.lowStockItems} medicamentos abaixo do mínimo
                                     </p>
                                 </div>
                             </div>
                         )}
                         {(summary?.expiringSoonBatches || 0) > 0 && (
-                            <div className="flex items-start gap-3 p-3 bg-red-100/40 dark:bg-red-500/10 rounded-xl border border-red-200/50 dark:border-red-500/20">
-                                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-red-200/60 text-red-700 dark:bg-red-500/20 dark:text-red-300 shadow-inner">
+                            <div className="flex items-start gap-3 p-3 bg-rose-500/5 dark:bg-rose-500/10 rounded-xl border border-rose-500/20 shadow-sm">
+                                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
                                     <HiOutlineExclamationCircle className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-black text-red-900 dark:text-red-400 uppercase tracking-tight">
+                                    <p className="text-xs font-black text-rose-700 dark:text-rose-400 uppercase tracking-tight">
                                         Próximo da Validade
                                     </p>
-                                    <p className="text-[10px] font-bold text-red-800/70 dark:text-red-400/60 uppercase">
+                                    <p className="text-[10px] font-bold text-rose-600/80 dark:text-rose-400/60 uppercase mt-0.5">
                                         {summary?.expiringSoonBatches} medicamentos expiram em 90 dias
                                     </p>
                                 </div>
                             </div>
                         )}
                         {(summary?.lowStockItems || 0) === 0 && (summary?.expiringSoonBatches || 0) === 0 && (
-                            <p className="text-center text-gray-500 dark:text-gray-400 py-8">
-                                Nenhum alerta pendente
-                            </p>
+                            <div className="flex flex-col items-center justify-center py-8 text-slate-400 dark:text-slate-500">
+                                <HiOutlineExclamationCircle className="w-8 h-8 opacity-45 mb-1.5" />
+                                <p className="text-sm font-semibold uppercase tracking-wide text-center">Nenhum alerta pendente</p>
+                            </div>
                         )}
                     </div>
                     <Link
                         to="/pharmacy/manage"
-                        className="block mt-4 text-center text-sm text-teal-600 dark:text-teal-400 hover:underline"
+                        className="block mt-4 text-center text-xs font-black uppercase tracking-wider text-teal-600 dark:text-teal-400 hover:text-teal-700 transition-colors"
                     >
                         Ver Stock Completo
                     </Link>
@@ -414,8 +445,8 @@ export default function PharmacyDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <Card padding="md">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <Card padding="md" className="bg-white/80 dark:bg-dark-800/80 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 transition-all duration-300">
+                <h2 className="text-base font-bold text-gray-900 dark:text-white mb-4 uppercase tracking-tight">
                     Acções Rápidas
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

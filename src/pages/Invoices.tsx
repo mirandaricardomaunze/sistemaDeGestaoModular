@@ -27,7 +27,8 @@ import {
     Tooltip,
 } from 'recharts';
 import { format, parseISO, addDays, subDays } from 'date-fns';
-import { Card, Button, Input, Select, Modal, Pagination, TableContainer, PageHeader } from '../components/ui';
+import { Card, Button, Input, Select, Modal, PageHeader, SmartTable } from '../components/ui';
+import type { ColumnDef } from '@tanstack/react-table';
 import { MetricCard } from '../components/common/ModuleMetricCard';
 import { InvoicePrintPreview, CreditNoteManager } from '../components/invoices';
 import MobilePaymentModal from '../components/pos/MobilePaymentModal';
@@ -385,6 +386,123 @@ export default function Invoices({ originModule }: InvoicesProps) {
 
     // Pagination logic (now server-side)
     const totalItems = pagination?.total || 0;
+
+    const invoiceColumns = useMemo<ColumnDef<Invoice>[]>(() => [
+        {
+            id: 'invoiceNumber',
+            header: 'Número',
+            accessorKey: 'invoiceNumber',
+            cell: ({ row }) => (
+                <span className="font-mono font-medium text-gray-900 dark:text-white">
+                    {row.original.invoiceNumber}
+                </span>
+            ),
+        },
+        {
+            id: 'customer',
+            header: 'Cliente',
+            accessorKey: 'customerName',
+            cell: ({ row }) => (
+                <div>
+                    <p className="font-medium text-gray-900 dark:text-white">{row.original.customerName}</p>
+                    {row.original.customerEmail && <p className="text-xs text-gray-500">{row.original.customerEmail}</p>}
+                </div>
+            ),
+        },
+        {
+            id: 'dueDate',
+            header: 'Vencimento',
+            accessorKey: 'dueDate',
+            cell: ({ row }) => (
+                <span className="text-gray-600 dark:text-gray-400">
+                    {format(parseISO(row.original.dueDate), 'dd/MM/yyyy')}
+                </span>
+            ),
+        },
+        {
+            id: 'total',
+            header: () => <span className="block text-right">Total</span>,
+            accessorKey: 'total',
+            cell: ({ row }) => (
+                <span className="block text-right font-semibold text-gray-900 dark:text-white">
+                    {formatCurrency(row.original.total)}
+                </span>
+            ),
+        },
+        {
+            id: 'amountPaid',
+            header: () => <span className="block text-right">Pago</span>,
+            accessorKey: 'amountPaid',
+            cell: ({ row }) => (
+                <span className="block text-right text-green-600">
+                    {formatCurrency(row.original.amountPaid)}
+                </span>
+            ),
+        },
+        {
+            id: 'status',
+            header: () => <span className="block text-center">Status</span>,
+            accessorKey: 'status',
+            cell: ({ row }) => {
+                const inv = row.original;
+                const cfg = statusConfig[inv.status.toLowerCase()];
+                const hex = cfg?.hex || '#64748b';
+                return (
+                    <div className="text-center">
+                        <span
+                            className="px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+                            style={{
+                                backgroundColor: hex + '20',
+                                color: hex,
+                                border: `1px solid ${hex}40`,
+                            }}
+                        >
+                            {cfg?.label || inv.status}
+                        </span>
+                    </div>
+                );
+            },
+        },
+        {
+            id: 'actions',
+            header: () => <span className="block text-center">Ações</span>,
+            enableSorting: false,
+            cell: ({ row }) => {
+                const inv = row.original;
+                const canSend = inv.status === 'draft';
+                const canPay = inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue';
+                return (
+                    <div className="flex justify-center gap-1">
+                        <Button variant="ghost" onClick={() => handleViewInvoice(inv)} className="p-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg" title="Ver">
+                            <HiOutlineEye className="w-4 h-4 text-gray-500" />
+                        </Button>
+                        <Button variant="ghost" onClick={() => handlePrintInvoice(inv)} className="p-1.5 hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-lg" title="Imprimir">
+                            <HiOutlinePrinter className="w-4 h-4 text-primary-500" />
+                        </Button>
+                        {canSend && (
+                            <Button variant="ghost" onClick={() => handleSendInvoice(inv)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg" title="Enviar">
+                                <HiOutlineEnvelope className="w-4 h-4 text-blue-500" />
+                            </Button>
+                        )}
+                        {canPay && (
+                            <Button
+                                variant="ghost"
+                                onClick={() => {
+                                    setSelectedInvoice(inv);
+                                    resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') });
+                                    setShowPaymentModal(true);
+                                }}
+                                className="p-1.5 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg"
+                                title="Pagamento"
+                            >
+                                <HiOutlineBanknotes className="w-4 h-4 text-green-500" />
+                            </Button>
+                        )}
+                    </div>
+                );
+            },
+        },
+    ], []);
 
 
 
@@ -800,83 +918,31 @@ export default function Invoices({ originModule }: InvoicesProps) {
                         </div>
 
                         {/* Invoice List */}
-                        <Card padding="none">
-                            <TableContainer
-                                isLoading={isLoading}
-                                isEmpty={invoices.length === 0}
-                                isError={!!error}
-                                errorMessage={error || undefined}
-                                onRetry={() => refetch()}
-                                emptyTitle="Nenhuma fatura encontrada"
-                                emptyDescription="Tente ajustar sua busca ou crie uma nova fatura."
-                                onEmptyAction={() => setShowFormModal(true)}
-                                emptyActionLabel="Nova Fatura"
-                                minHeight="450px"
-                            >
-                                <table className="min-w-full divide-y divide-slate-200/60 dark:divide-dark-700/50">
-                                    <thead className="bg-slate-50/50 dark:bg-dark-800">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">NÃºmero</th>
-                                            <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Cliente</th>
-                                            <th className="px-4 py-3 text-left text-xs font-black uppercase tracking-widest text-gray-500">Vencimento</th>
-                                            <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-gray-500">Total</th>
-                                            <th className="px-4 py-3 text-right text-xs font-black uppercase tracking-widest text-gray-500">Pago</th>
-                                            <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-widest text-gray-500">Status</th>
-                                            <th className="px-4 py-3 text-center text-xs font-black uppercase tracking-widest text-gray-500">AÃ§Ãµes</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200/60 dark:divide-dark-700/50">
-                                        {invoices.map((inv) => (
-                                            <tr key={inv.id} className="hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors">
-                                                <td className="px-4 py-3 font-mono font-medium text-gray-900 dark:text-white">{inv.invoiceNumber}</td>
-                                                <td className="px-4 py-3">
-                                                    <p className="font-medium text-gray-900 dark:text-white">{inv.customerName}</p>
-                                                    {inv.customerEmail && <p className="text-xs text-gray-500">{inv.customerEmail}</p>}
-                                                </td>
-                                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{format(parseISO(inv.dueDate), 'dd/MM/yyyy')}</td>
-                                                <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">{formatCurrency(inv.total)}</td>
-                                                <td className="px-4 py-3 text-right text-green-600">{formatCurrency(inv.amountPaid)}</td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <span 
-                                                        className="px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
-                                                        style={{ 
-                                                            backgroundColor: statusConfig[inv.status.toLowerCase()]?.hex + '20' || '#e2e8f0', 
-                                                            color: statusConfig[inv.status.toLowerCase()]?.hex || '#64748b',
-                                                            border: `1px solid ${statusConfig[inv.status.toLowerCase()]?.hex}40`
-                                                        }}
-                                                    >
-                                                        {statusConfig[inv.status.toLowerCase()]?.label || inv.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex justify-center gap-1">
-                                                        <Button variant="ghost" onClick={() => handleViewInvoice(inv)} className="p-1.5 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors" title="Ver"><HiOutlineEye className="w-4 h-4 text-gray-500" /></Button>
-                                                        <Button variant="ghost" onClick={() => handlePrintInvoice(inv)} className="p-1.5 hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-lg transition-colors" title="Imprimir"><HiOutlinePrinter className="w-4 h-4 text-primary-500" /></Button>
-                                                        {inv.status === 'draft' && <Button variant="ghost" onClick={() => handleSendInvoice(inv)} className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="Enviar"><HiOutlineEnvelope className="w-4 h-4 text-blue-500" /></Button>}
-                                                        {(inv.status === 'sent' || inv.status === 'partial' || inv.status === 'overdue') && <Button variant="ghost" onClick={() => { setSelectedInvoice(inv); resetPayment({ amount: inv.amountDue, method: 'pix', date: format(new Date(), 'yyyy-MM-dd') }); setShowPaymentModal(true); }} className="p-1.5 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors" title="Pagamento"><HiOutlineBanknotes className="w-4 h-4 text-green-500" /></Button>}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </TableContainer>
-                        </Card>
-
-                        {/* Pagination */}
-                        <div className="px-6 py-4">
-                            <Pagination
-                                currentPage={page}
-                                totalItems={totalItems}
-                                itemsPerPage={pageSize}
-                                onPageChange={setPage}
-                                onItemsPerPageChange={(size) => {
+                        <SmartTable
+                            data={invoices}
+                            columns={invoiceColumns}
+                            isLoading={isLoading}
+                            isError={!!error}
+                            errorMessage={error || undefined}
+                            onRetry={() => refetch()}
+                            emptyTitle="Nenhuma fatura encontrada"
+                            emptyDescription="Tente ajustar sua busca ou crie uma nova fatura."
+                            onEmptyAction={() => setShowFormModal(true)}
+                            emptyActionLabel="Nova Fatura"
+                            minHeight="450px"
+                            hideToolbar
+                            pagination={{
+                                currentPage: page,
+                                totalItems,
+                                itemsPerPage: pageSize,
+                                onPageChange: setPage,
+                                onItemsPerPageChange: (size) => {
                                     setPageSize(size);
                                     setPage(1);
-                                }}
-                                itemsPerPageOptions={[5, 10, 25, 50]}
-                            />
-                        </div>
+                                },
+                                itemsPerPageOptions: [5, 10, 25, 50],
+                            }}
+                        />
 
                     </div>
                 )}
