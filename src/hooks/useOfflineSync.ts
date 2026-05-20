@@ -7,24 +7,49 @@ import {
     type PendingOperation,
     type PendingSale,
 } from '../db/offlineDB';
-import { salesAPI, api } from '../services/api';
-import { IDEMPOTENCY_HEADER, pendingCounts } from '../services/offline/offlineQueue';
+import { api } from '../services/api';
+import { IDEMPOTENCY_HEADER, pendingCounts, purgeSynced, warningLevel, type QueueWarningLevel } from '../services/offline/offlineQueue';
 import toast from 'react-hot-toast';
 
 const TICK_INTERVAL_MS = 15_000;
+const HEALTHCHECK_INTERVAL_MS = 30_000;
+const PURGE_INTERVAL_MS = 5 * 60 * 1000;
+const HEALTHCHECK_TIMEOUT_MS = 5_000;
+
+async function pingBackend(): Promise<boolean> {
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), HEALTHCHECK_TIMEOUT_MS);
+        const res = await api.get('/health', {
+            signal: controller.signal,
+            // @ts-expect-error custom axios property
+            skipErrorToast: true,
+            skipOfflineQueue: true,
+        });
+        clearTimeout(timeout);
+        return res.status >= 200 && res.status < 300;
+    } catch {
+        return false;
+    }
+}
 
 export function useOfflineSync() {
-    const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const [networkOnline, setNetworkOnline] = useState(navigator.onLine);
+    const [serverReachable, setServerReachable] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
     const [pendingCount, setPendingCount] = useState(0);
     const [failedCount, setFailedCount] = useState(0);
+    const [queueLevel, setQueueLevel] = useState<QueueWarningLevel>('ok');
 
     const isSyncingRef = useRef(false);
+    const serverReachableRef = useRef(true);
+    const isOnline = networkOnline && serverReachable;
 
     const refreshCounts = useCallback(async () => {
         const counts = await pendingCounts();
         setPendingCount(counts.pending);
         setFailedCount(counts.failed);
+        setQueueLevel(warningLevel(counts.total));
     }, []);
 
     const markSynced = async (
@@ -78,10 +103,17 @@ export function useOfflineSync() {
             const attempts = (sale.attempts ?? 0) + 1;
             try {
                 await db.pendingSales.update(sale.id!, { status: 'syncing' as const });
-                await salesAPI.create({
-                    ...sale.data,
-                    clientId: sale.clientId,
-                } as unknown as Parameters<typeof salesAPI.create>[0]);
+                // Send clientId via header so the backend idempotency middleware
+                // dedupes retries; salesAPI.create alone would let the interceptor
+                // stamp a fresh UUID per attempt.
+                await api.request({
+                    url: '/sales',
+                    method: 'POST',
+                    data: sale.data,
+                    headers: { [IDEMPOTENCY_HEADER]: sale.clientId },
+                    // @ts-expect-error custom axios property
+                    skipOfflineQueue: true,
+                });
                 await markSynced('pendingSales', sale.id!);
                 success++;
             } catch (error) {
@@ -141,7 +173,7 @@ export function useOfflineSync() {
     };
 
     const syncAll = useCallback(async () => {
-        if (!navigator.onLine || isSyncingRef.current) return;
+        if (!navigator.onLine || !serverReachableRef.current || isSyncingRef.current) return;
         isSyncingRef.current = true;
         setIsSyncing(true);
 
@@ -157,6 +189,14 @@ export function useOfflineSync() {
                 );
                 await db.pendingSales.where('status').equals('done').delete();
                 await db.pendingOperations.where('status').equals('done').delete();
+
+                // Server state may have shifted while we were offline; force a
+                // catalog refresh so the next sale sees current prices/stock.
+                await db.catalogMeta.delete('products');
+                await db.catalogMeta.delete('customers');
+                void import('../services/offline/catalogPrefetch')
+                    .then(({ prefetchCatalog }) => prefetchCatalog(true))
+                    .catch(() => {});
             }
         } finally {
             isSyncingRef.current = false;
@@ -166,35 +206,53 @@ export function useOfflineSync() {
     }, [refreshCounts]);
 
     useEffect(() => {
-        const handleOnline = () => {
-            setIsOnline(true);
-            syncAll();
-        };
-        const handleOffline = () => setIsOnline(false);
+        const handleOnline = () => setNetworkOnline(true);
+        const handleOffline = () => setNetworkOnline(false);
 
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
 
         refreshCounts();
-        if (navigator.onLine) syncAll();
+        void purgeSynced();
 
-        const interval = setInterval(() => {
-            if (navigator.onLine) syncAll();
+        const tick = () => {
+            if (navigator.onLine && serverReachableRef.current) syncAll();
             else refreshCounts();
-        }, TICK_INTERVAL_MS);
+        };
+        const interval = setInterval(tick, TICK_INTERVAL_MS);
+
+        const setReachable = (ok: boolean) => {
+            const wasReachable = serverReachableRef.current;
+            serverReachableRef.current = ok;
+            setServerReachable(ok);
+            if (!wasReachable && ok) void syncAll();
+        };
+        const healthTick = async () => {
+            if (!navigator.onLine) { setReachable(false); return; }
+            setReachable(await pingBackend());
+        };
+        void healthTick();
+        const healthInterval = setInterval(() => { void healthTick(); }, HEALTHCHECK_INTERVAL_MS);
+
+        const purgeInterval = setInterval(() => { void purgeSynced(); }, PURGE_INTERVAL_MS);
 
         return () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
             clearInterval(interval);
+            clearInterval(healthInterval);
+            clearInterval(purgeInterval);
         };
     }, [syncAll, refreshCounts]);
 
     return {
         isOnline,
+        networkOnline,
+        serverReachable,
         isSyncing,
         pendingCount,
         failedCount,
+        queueLevel,
         syncAll,
         refreshCounts,
     };

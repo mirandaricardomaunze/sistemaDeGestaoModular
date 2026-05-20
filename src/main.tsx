@@ -36,14 +36,17 @@ const AppContainer = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const isAuthed = () => Boolean(localStorage.getItem('auth_token'));
     const schedulePrefetch = () => {
-      const run = () => {
+      const run = async () => {
+        await import('./services/offline/legacyDbMigration')
+          .then(({ migrateLegacyOfflineDB }) => migrateLegacyOfflineDB())
+          .catch(() => {});
         void import('./services/offline/catalogPrefetch')
           .then(({ prefetchCatalog }) => prefetchCatalog())
           .catch(() => {});
       };
       const idle = (window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
-      if (typeof idle === 'function') idle(run, { timeout: 5000 });
-      else setTimeout(run, 1500);
+      if (typeof idle === 'function') idle(() => { void run(); }, { timeout: 5000 });
+      else setTimeout(() => { void run(); }, 1500);
     };
     if (isAuthed()) schedulePrefetch();
     const onOnline = () => { if (isAuthed()) schedulePrefetch(); };

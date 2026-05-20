@@ -47,6 +47,24 @@ export interface CatalogMeta {
     count: number;
 }
 
+export interface ShiftFiscalReservation {
+    sessionId: string;         // primary key
+    seriesId: string;
+    series: string;            // e.g. 'A'
+    prefix: string;            // e.g. 'FR'
+    fromNumber: number;
+    toNumber: number;
+    nextNumber: number;        // cursor — increments as offline sales consume the block
+    openedAt: number;
+}
+
+export interface ShiftStockReservation {
+    id?: number;               // auto-increment
+    sessionId: string;
+    productId: string;
+    quantity: number;          // remaining units we can sell offline
+}
+
 export class OfflineDB extends Dexie {
     pendingSales!: Table<PendingSale>;
     pendingOperations!: Table<PendingOperation>;
@@ -54,7 +72,10 @@ export class OfflineDB extends Dexie {
     customers!: Table<Customer>;
     medications!: Table<Record<string, unknown>>;
     rooms!: Table<Record<string, unknown>>;
+    menuItems!: Table<Record<string, unknown>>;
     catalogMeta!: Table<CatalogMeta>;
+    shiftFiscalReservation!: Table<ShiftFiscalReservation>;
+    shiftStockReservations!: Table<ShiftStockReservation>;
 
     constructor() {
         super('OfflineDB');
@@ -97,6 +118,32 @@ export class OfflineDB extends Dexie {
                     if (row.error && !row.lastError) row.lastError = row.error;
                 });
             });
+
+        // v5 — adds restaurant menuItems table for offline POS coverage
+        this.version(5).stores({
+            pendingSales: '++id, clientId, status, timestamp, nextRetryAt, synced',
+            pendingOperations: '++id, clientId, module, method, status, timestamp, nextRetryAt, synced',
+            products: 'id, name, code, category',
+            customers: 'id, name, phone, document',
+            medications: 'id, name, registrationNumber',
+            rooms: 'id, number, type',
+            menuItems: 'id, name, category',
+            catalogMeta: 'key, lastSyncedAt',
+        });
+
+        // v6 — fiscal block + per-session stock reservation tracking (offline POS)
+        this.version(6).stores({
+            pendingSales: '++id, clientId, status, timestamp, nextRetryAt, synced',
+            pendingOperations: '++id, clientId, module, method, status, timestamp, nextRetryAt, synced',
+            products: 'id, name, code, category',
+            customers: 'id, name, phone, document',
+            medications: 'id, name, registrationNumber',
+            rooms: 'id, number, type',
+            menuItems: 'id, name, category',
+            catalogMeta: 'key, lastSyncedAt',
+            shiftFiscalReservation: 'sessionId',
+            shiftStockReservations: '++id, sessionId, productId, [sessionId+productId]',
+        });
     }
 }
 
