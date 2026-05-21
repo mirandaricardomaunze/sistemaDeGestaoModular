@@ -252,15 +252,14 @@ Os Dockerfiles em [frontend/Dockerfile](frontend/Dockerfile) e [backend/Dockerfi
 
 Este trabalho não bloqueia o dev local (`npm run dev` funciona). Adiar para sessão dedicada com tempo para testar builds Docker (~10 min cada).
 
-### .env files — follow-up (não bloqueante)
+### .env files — concluído ✅
 
-Os ficheiros `.env`, `.env.example`, `.env.production` na raiz contêm **apenas `VITE_*` variables** (são do frontend). Foram esquecidos no root quando o frontend moveu para `frontend/` no Passo 2.
+Movidos para `frontend/` em 2026-05-21:
+- `.env` (git mv — tracked)
+- `.env.example` (git mv — tracked)
+- `.env.production` (mv — gitignored)
 
-**Impacto actual**: Vite não os carrega porque o build agora corre dentro de `frontend/`. O `VITE_API_URL=https://api.multicore.co.mz/api` em produção **não está activo** — o build vai usar o default ou nada.
-
-**Fix**: `git mv .env .env.example .env.production frontend/`. `.env.docker` permanece no root (usado pelo docker-compose).
-
-Adiar conforme decisão do utilizador, mas tratar antes do próximo deploy de produção.
+`.env.docker` permanece no root (usado por `docker-compose.yml`).
 
 ### Legacy directories — removidos ✅
 
