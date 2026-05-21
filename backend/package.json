@@ -5,15 +5,16 @@
     "main": "dist/index.js",
     "scripts": {
         "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-        "build": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc",
-        "build:check": "node --max-old-space-size=4096 node_modules/typescript/bin/tsc --noEmit",
+        "build": "tsc",
+        "build:check": "tsc --noEmit",
+        "typecheck": "tsc --noEmit",
         "start": "node dist/index.js",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",
         "prisma:push": "prisma db push",
         "prisma:studio": "prisma studio",
         "seed": "ts-node prisma/seed.ts",
-        "test": "node --max-old-space-size=4096 node_modules/jest/bin/jest.js --runInBand"
+        "test": "jest --runInBand"
     },
     "dependencies": {
         "@google/generative-ai": "^0.24.1",

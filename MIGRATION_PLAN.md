@@ -119,7 +119,7 @@ refactor: move frontend files to frontend/ subdirectory
 
 ---
 
-## Passo 3 — Activar npm workspaces  🟡
+## Passo 3 — Activar npm workspaces  🟢
 
 **Objectivo**: declarar `frontend/` e `backend/` como workspaces; split do `package.json` raiz em três (root orquestrador + frontend + backend já existente).
 
@@ -292,7 +292,7 @@ git commit -m "docs: remove completed migration plan"
 |---|---|---|---|
 | 1 | Cleanup root (remover Prisma) | 🟢 concluído | (pendente) |
 | 2 | Mover frontend para `frontend/` | 🟢 concluído | (pendente) |
-| 3 | Activar npm workspaces | 🟡 não iniciado | — |
+| 3 | Activar npm workspaces | 🟢 concluído | (pendente) |
 | 4 | Configs derivadas + docs | 🟡 não iniciado | — |
 
 **Legenda**: 🟡 não iniciado · 🟠 em curso · 🟢 concluído · 🔴 bloqueado
