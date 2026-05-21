@@ -1,5 +1,7 @@
 # Sistema Backend
 
+> **Nota**: este é um workspace dentro do monorepo. Para setup completo (incluindo frontend), ver [../README.md](../README.md). Os comandos abaixo funcionam de dentro de `backend/`, mas é equivalente correr `npm <cmd> -w backend` a partir da raiz.
+
 ## Backend API para Multicore
 
 ### 🚀 Tecnologias

@@ -2,51 +2,81 @@
 
 ERP multi-tenant para Moçambique. Cobre Comercial, Farmácia, Hotelaria, Restauração, Garrafeira, Logística + módulos core (POS, CRM, Facturação, Fiscal, RH, Financeiro).
 
+## Layout — npm workspaces monorepo
+
+Frontend e backend são **packages independentes** em [frontend/](frontend/) e [backend/](backend/). A raiz é apenas **orquestradora**. Ver [.agent/skills/monorepo-structure/SKILL.md](.agent/skills/monorepo-structure/SKILL.md) para regras invioláveis.
+
 ## Stack
 
-- **Frontend**: React 19, TypeScript, Vite, TailwindCSS, React Query, Zustand (apenas state cliente — não usar para listas), React Hook Form + Zod
-- **Backend**: Node.js + Express + TypeScript, Prisma 7 (PostgreSQL/Supabase), Socket.IO, BullMQ + Redis, Winston
+- **Frontend** ([frontend/](frontend/)): React 19, TypeScript, Vite, TailwindCSS, React Query, Zustand (apenas state cliente — não usar para listas), React Hook Form + Zod
+- **Backend** ([backend/](backend/)): Node.js + Express + TypeScript, Prisma 6 (PostgreSQL/Supabase), Socket.IO, BullMQ + Redis, Winston
 - **Pacotes-chave**: jsPDF (PDFs), Dexie (IndexedDB offline), Leaflet (mapas), Recharts (charts)
 
-## Comandos
+## Comandos (sempre do root)
 
 | Acção | Comando |
 |---|---|
 | Dev (frontend + backend) | `npm run dev` |
-| Build frontend | `npm run build` |
-| Type-check frontend | `npx tsc --noEmit` |
-| Type-check backend | `cd backend && npx tsc --noEmit` (usar `NODE_OPTIONS=--max-old-space-size=6144`) |
-| Testes backend | `cd backend && npm test` |
+| Dev só frontend | `npm run dev -w frontend` |
+| Dev só backend | `npm run dev -w backend` |
+| Build (ambos) | `npm run build` |
+| Build frontend | `npm run build -w frontend` |
+| Type-check (ambos) | `npm run typecheck` |
+| Type-check frontend | `npm run typecheck -w frontend` |
+| Type-check backend | `npm run typecheck -w backend` (usar `NODE_OPTIONS=--max-old-space-size=6144` se necessário) |
+| Testes | `npm test` |
+| Testes backend | `npm test -w backend` |
 | Lint | `npm run lint` |
-| Prisma migrate | `cd backend && npx prisma migrate dev` |
+| Prisma migrate | `npm run prisma:migrate -w backend` |
+| Prisma generate | `npm run prisma:generate -w backend` |
+| Adicionar dep frontend | `npm i <pkg> -w frontend` |
+| Adicionar dep backend | `npm i <pkg> -w backend` |
+
+**Nunca** instalar deps de app no root — só ferramentas de repo (ESLint, TypeScript, concurrently).
 
 ## Estrutura
 
 ```
-/
-├─ src/                  # Frontend (React)
-│  ├─ pages/             # Routed pages (lazy via React.lazy)
-│  │  ├─ commercial/     # Módulo Comercial
-│  │  ├─ pharmacy/       # Módulo Farmácia
-│  │  ├─ hospitality/    # Módulo Hotelaria
-│  │  └─ ...
-│  ├─ components/
-│  │  ├─ ui/             # Sistema de design (Button, Modal, ConfirmationModal, Card, …)
-│  │  └─ <feature>/      # Componentes de domínio
-│  ├─ hooks/             # React Query hooks + custom hooks
-│  ├─ services/api/      # Axios clients tipados
-│  ├─ stores/            # Zustand (auth, preferências, offline queue)
-│  └─ contexts/          # TenantContext (multi-tenant), Theme, etc.
-├─ backend/src/
-│  ├─ routes/            # Thin Express handlers — delegam para services
-│  ├─ services/          # Lógica de negócio (única camada que toca em Prisma)
-│  ├─ middleware/        # auth, module-gating, rate limit, errors
-│  ├─ lib/               # prisma, socket, redis
-│  ├─ validation/        # Zod schemas por domínio
-│  ├─ utils/             # pagination helpers, logger
-│  ├─ queues/            # BullMQ workers
-│  └─ constants/         # módulos, planos, fiscal
-└─ .agent/skills/        # Regras de engenharia (16 skills) — ler antes de mexer numa área
+sistemas/                          # workspace root
+├─ package.json                    # workspaces=[frontend,backend], scripts orquestradores, overrides
+├─ package-lock.json               # único lockfile do monorepo
+├─ docker-compose.yml              # postgres, redis, backend, frontend
+├─ eslint.config.js                # config única — paths apontam para frontend/src/** e backend/src/**
+├─ CLAUDE.md, README.md
+├─ .agent/skills/                  # 17 SKILL.md — regras de engenharia
+├─ scripts/                        # utilitários do repo (mojibake)
+│
+├─ frontend/                       # workspace: React/Vite
+│  ├─ package.json                 # só deps de frontend
+│  ├─ vite.config.ts, tsconfig*.json, tailwind/postcss configs
+│  ├─ Dockerfile, nginx.conf
+│  ├─ index.html, public/
+│  └─ src/
+│     ├─ pages/                    # Routed pages (lazy via React.lazy)
+│     │  ├─ commercial/, pharmacy/, hospitality/, ...
+│     ├─ components/ui/            # Sistema de design (Button, Modal, ConfirmationModal, ...)
+│     ├─ components/<feature>/     # Componentes de domínio
+│     ├─ hooks/                    # React Query hooks + custom hooks
+│     ├─ services/api/             # Axios clients tipados
+│     ├─ stores/                   # Zustand (auth, preferências, offline queue)
+│     ├─ contexts/                 # TenantContext, Theme, etc.
+│     └─ db/, utils/
+│
+└─ backend/                        # workspace: Node/Express
+   ├─ package.json                 # só deps de backend
+   ├─ tsconfig.json, jest.config.js
+   ├─ Dockerfile, .dockerignore
+   ├─ prisma/                      # schema, migrations, seed
+   ├─ scripts/                     # admin scripts (fiscal, mojibake do backend)
+   └─ src/
+      ├─ routes/                   # Thin Express handlers — delegam para services
+      ├─ services/                 # Lógica de negócio (única camada que toca em Prisma)
+      ├─ middleware/               # auth, module-gating, rate limit, errors
+      ├─ lib/                      # prisma, socket, redis
+      ├─ validation/               # Zod schemas por domínio
+      ├─ utils/                    # pagination helpers, logger
+      ├─ queues/                   # BullMQ workers
+      └─ constants/                # módulos, planos, fiscal
 ```
 
 ## Convenções
@@ -66,7 +96,7 @@ ERP multi-tenant para Moçambique. Cobre Comercial, Farmácia, Hotelaria, Restau
 ### Frontend
 - **TanStack Query** para todos os reads (`useQuery`, `useInfiniteQuery`). Nunca guardar listas em Zustand.
 - **Zustand** apenas para state cliente (auth, UI, offline queue).
-- **ConfirmationModal** ([src/components/ui/ConfirmationModal.tsx](src/components/ui/ConfirmationModal.tsx)) para confirmações destrutivas — **nunca** `window.confirm/prompt/alert`.
+- **ConfirmationModal** ([frontend/src/components/ui/ConfirmationModal.tsx](frontend/src/components/ui/ConfirmationModal.tsx)) para confirmações destrutivas — **nunca** `window.confirm/prompt/alert`.
 - Páginas via `React.lazy()` para code-splitting.
 - Listas > 200 linhas → `VirtualTable` / `VirtualList`.
 - Prefetches de boot deferidos via `requestIdleCallback`.
@@ -74,12 +104,12 @@ ERP multi-tenant para Moçambique. Cobre Comercial, Farmácia, Hotelaria, Restau
 ### Money & IVA
 - Sempre `Decimal` no Prisma; nunca `Float` para valores monetários.
 - Conversão para `number` apenas na borda da apresentação.
-- Helpers em [src/utils/money.ts](src/utils/money.ts) (`toCents`, `toMoney`, `applyPercent`).
+- Helpers em [frontend/src/utils/money.ts](frontend/src/utils/money.ts) (`toCents`, `toMoney`, `applyPercent`).
 
 ### POS / Catálogo
 - `product.price` = preço da **CAIXA**; `packSize` = unidades por caixa; stock e `SaleItem.quantity` em **unidades**.
 - POS converte caixa → unidade antes de enviar para a API.
-- Catálogo é carregado uma vez com `limit: 2000` e a busca é client-side (ver [src/pages/commercial/CommercialPOS.tsx](src/pages/commercial/CommercialPOS.tsx)).
+- Catálogo é carregado uma vez com `limit: 2000` e a busca é client-side (ver [frontend/src/pages/commercial/CommercialPOS.tsx](frontend/src/pages/commercial/CommercialPOS.tsx)).
 
 ## Padrões de UI
 
@@ -91,13 +121,15 @@ ERP multi-tenant para Moçambique. Cobre Comercial, Farmácia, Hotelaria, Restau
 
 ## Skills
 
-A pasta [.agent/skills/](.agent/skills/) tem **16 SKILL.md** com regras detalhadas. Ler o relevante antes de tocar numa área:
+A pasta [.agent/skills/](.agent/skills/) tem **17+ SKILL.md** com regras detalhadas. Ler o relevante antes de tocar numa área:
 
+- `monorepo-structure` — layout npm workspaces, regras de packages
 - `security-and-auth` — JWT, bcrypt, rate limit, secrets
 - `data-integrity-and-validation` — Zod, transações, FK
 - `performance-and-caching` — N+1, pagination, virtualização, cache
 - `clean-architecture` — separação rotas/serviços
 - `multicore` — isolamento por `companyId`
+- `offline-mode` — IndexedDB, sync queue, reservas de série
 - `ui-ux-design` — sistema de design
 - `testing-standards` — coverage, tipos de testes
 - `observability-and-logs` — Winston, sem PII
@@ -112,6 +144,7 @@ A pasta [.agent/skills/](.agent/skills/) tem **16 SKILL.md** com regras detalhad
 1. Ler o skill relevante antes de mexer numa área.
 2. Backend: route → service → Prisma. Validar com Zod no início da route.
 3. Frontend: API client → React Query hook → componente. Estado cliente em Zustand.
-4. Antes de marcar tarefa completa: `npx tsc --noEmit` (frontend + backend) tem de passar.
+4. Antes de marcar tarefa completa: `npm run typecheck` (frontend + backend) tem de passar.
 5. Listas > 200 itens: virtualizar. Endpoints `GET /lista`: paginar.
 6. Acções destrutivas: `ConfirmationModal`, nunca `confirm()` nativo.
+7. Deps novas: sempre via `npm i <pkg> -w frontend` ou `-w backend` — nunca no root.

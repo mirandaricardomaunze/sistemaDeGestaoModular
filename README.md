@@ -1,73 +1,67 @@
-# React + TypeScript + Vite
+# Multicore ERP
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ERP multi-tenant para Moçambique. Cobre **Comercial, Farmácia, Hotelaria, Restauração, Garrafeira, Logística** + módulos core (POS, CRM, Facturação, Fiscal, RH, Financeiro).
 
-Currently, two official plugins are available:
+## Layout
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Monorepo **npm workspaces**:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+sistemas/
+├─ frontend/    # React 19 + Vite + TailwindCSS + TanStack Query
+├─ backend/     # Node + Express + Prisma 6 + Socket.IO + BullMQ
+└─ package.json # workspace orchestrator
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+A raiz é apenas orquestradora — toda a dependência de app vive no workspace correspondente. Ver [.agent/skills/monorepo-structure/SKILL.md](.agent/skills/monorepo-structure/SKILL.md) para regras.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Setup
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# 1. Instalar (do root — instala ambos workspaces)
+npm install
+
+# 2. Configurar backend
+cp backend/.env.example backend/.env
+# editar backend/.env (DATABASE_URL, JWT_SECRET, REDIS_URL, ...)
+
+# 3. Gerar Prisma client + correr migrations
+npm run prisma:generate -w backend
+npm run prisma:migrate -w backend
+
+# 4. (opcional) Seed inicial
+npm run seed -w backend
 ```
+
+## Comandos do dia-a-dia
+
+| Acção | Comando |
+|---|---|
+| Dev (frontend + backend em paralelo) | `npm run dev` |
+| Build (ambos) | `npm run build` |
+| Type-check (ambos) | `npm run typecheck` |
+| Testes (ambos) | `npm test` |
+| Lint | `npm run lint` |
+
+Para isolar um workspace, adicionar `-w frontend` ou `-w backend`. Exemplo:
+
+```bash
+npm run dev -w frontend
+npm run typecheck -w backend
+npm i axios -w frontend
+```
+
+## Docker
+
+```bash
+docker compose up -d            # postgres + redis + backend + frontend
+docker compose logs -f backend  # acompanhar backend
+docker compose down             # parar
+```
+
+## Documentação
+
+- [CLAUDE.md](CLAUDE.md) — guia completo do projecto (stack, convenções, comandos)
+- [.agent/skills/](.agent/skills/) — 17+ regras de engenharia por área (ler antes de mexer)
+- [backend/README.md](backend/README.md) — detalhes do backend
+- [MIGRATION_PLAN.md](MIGRATION_PLAN.md) — plano da migração para workspaces (apagar após conclusão)

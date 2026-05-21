@@ -227,42 +227,56 @@ refactor: enable npm workspaces (frontend + backend)
 
 ---
 
-## Passo 4 — Configs derivadas + docs  🟡
+## Passo 4 — Configs derivadas + docs  🟢
 
 **Objectivo**: actualizar tudo o que ainda assume o layout antigo.
 
 ### Ficheiros a editar
 
-- [ ] [eslint.config.js](eslint.config.js) — confirmar todos os globs (`backend/src/**` continua válido; `src/**` já está como `frontend/src/**` do passo 2)
-- [ ] [docker-compose.yml](docker-compose.yml) — já editado no passo 2, validar `docker compose build` corre
-- [ ] [scripts/check-mojibake.mjs](scripts/check-mojibake.mjs), [scripts/fix-mojibake.mjs](scripts/fix-mojibake.mjs), [scripts/hook-check-mojibake.mjs](scripts/hook-check-mojibake.mjs) — verificar se assumem `src/` raiz; ajustar para `frontend/src/` se necessário
-- [ ] [CLAUDE.md](CLAUDE.md) — actualizar:
-  - Tabela de comandos (usar `-w frontend` / `-w backend`)
-  - Árvore de pastas (mostrar `frontend/src/`, `backend/src/`)
-  - Mencionar workspaces como modelo do projecto
-- [ ] [README.md](README.md) — actualizar instruções de setup
-- [ ] [backend/README.md](backend/README.md) — se referir setup do monorepo, alinhar
-- [ ] `.dockerignore` (se existir) — verificar paths
+- [x] [eslint.config.js](eslint.config.js) — `frontend/src/**` aplicado no Passo 2
+- [x] [docker-compose.yml](docker-compose.yml) — frontend context ajustado no Passo 2 (mas Dockerfiles precisam re-escrita — ver "Docker — follow-up" abaixo)
+- [x] [scripts/check-mojibake.mjs](scripts/check-mojibake.mjs), [scripts/fix-mojibake.mjs](scripts/fix-mojibake.mjs), [scripts/hook-check-mojibake.mjs](scripts/hook-check-mojibake.mjs) — path-agnostic (recebem ficheiros como args), sem alteração necessária
+- [x] [CLAUDE.md](CLAUDE.md) — comandos via `-w`, árvore com `frontend/`+`backend/`, secção "Layout — npm workspaces monorepo" no topo
+- [x] [README.md](README.md) — reescrito do template Vite default para intro real do monorepo
+- [x] [backend/README.md](backend/README.md) — adicionada nota explicando que é workspace e apontando para README raiz
+- [x] `backend/.dockerignore` existe e está OK (paths relativos a backend/)
+
+### Docker — follow-up (não bloqueante)
+
+Os Dockerfiles em [frontend/Dockerfile](frontend/Dockerfile) e [backend/Dockerfile](backend/Dockerfile) usam `npm ci` com lockfile local, mas com workspaces o lockfile vive no root. Isto faz `docker compose build` falhar.
+
+**Fix necessário num commit separado**:
+1. `docker-compose.yml`: mudar ambos `context: ./<workspace>` para `context: .` + `dockerfile: <workspace>/Dockerfile`
+2. Reescrever cada Dockerfile para copiar root `package.json` + `package-lock.json` + ambos workspace `package.json`, fazer `npm ci -w <workspace>`, depois copiar só o source do workspace relevante
+3. Validar com `docker compose build` antes de fechar
+
+Este trabalho não bloqueia o dev local (`npm run dev` funciona). Adiar para sessão dedicada com tempo para testar builds Docker (~10 min cada).
+
+### .env files — follow-up (não bloqueante)
+
+Os ficheiros `.env`, `.env.example`, `.env.production` na raiz contêm **apenas `VITE_*` variables** (são do frontend). Foram esquecidos no root quando o frontend moveu para `frontend/` no Passo 2.
+
+**Impacto actual**: Vite não os carrega porque o build agora corre dentro de `frontend/`. O `VITE_API_URL=https://api.multicore.co.mz/api` em produção **não está activo** — o build vai usar o default ou nada.
+
+**Fix**: `git mv .env .env.example .env.production frontend/`. `.env.docker` permanece no root (usado pelo docker-compose).
+
+Adiar conforme decisão do utilizador, mas tratar antes do próximo deploy de produção.
+
+### Legacy directories — removidos ✅
+
+- `logs/` (vazio) — removido
+- `uploads/prescriptions/` (vazio) — removido
+- Ambos eram restos de quando backend corria a partir da raiz. Activo: `backend/logs/`, `backend/uploads/`.
 
 ### Validação final (gold path)
 
-```powershell
-# Do zero, simular onboarding de um novo dev
-Remove-Item -Recurse -Force node_modules, backend/node_modules, frontend/node_modules -ErrorAction SilentlyContinue
-Remove-Item package-lock.json -ErrorAction SilentlyContinue
-npm install
-
-npm run typecheck                          # ambos passam
-npm run build                              # ambos passam
-npm run lint                               # zero erros novos
-npm test                                   # ambos passam
-
-# Docker
-docker compose build
-docker compose up -d
-docker compose ps                          # frontend e backend healthy
-docker compose down
-```
+Executada 2026-05-21 — resultados:
+- `npm install` (clean): 1559 packages, OK ✅
+- `npm run typecheck`: frontend 0 erros, backend 0 erros ✅
+- `npm run build`: frontend (25.5s, dist/ gerado), backend (tsc OK) ✅
+- `npm run lint`: 111 problemas pré-existentes (13 errors, 98 warnings) — mesmos do Step 2, sem regressão
+- `npm test`: 19 test suites passed, 656 tests passed, 1 skipped ✅
+- `docker compose build`: **adiado** — ver "Docker — follow-up" acima
 
 ### Memory updates
 
@@ -293,7 +307,7 @@ git commit -m "docs: remove completed migration plan"
 | 1 | Cleanup root (remover Prisma) | 🟢 concluído | (pendente) |
 | 2 | Mover frontend para `frontend/` | 🟢 concluído | (pendente) |
 | 3 | Activar npm workspaces | 🟢 concluído | (pendente) |
-| 4 | Configs derivadas + docs | 🟡 não iniciado | — |
+| 4 | Configs derivadas + docs | 🟢 concluído | (pendente) |
 
 **Legenda**: 🟡 não iniciado · 🟠 em curso · 🟢 concluído · 🔴 bloqueado
 
