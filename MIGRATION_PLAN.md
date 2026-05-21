@@ -59,7 +59,7 @@ chore: remove Prisma deps from root (unused by frontend)
 
 ---
 
-## Passo 2 — Mover frontend para `frontend/`  🟡
+## Passo 2 — Mover frontend para `frontend/`  🟢
 
 **Objectivo**: criar pasta `frontend/` e mover todos os artefactos do frontend para lá. Ainda **sem** activar workspaces — root continua a ser uma app frontend, só fisicamente noutra pasta.
 
@@ -90,9 +90,9 @@ Remove-Item -Recurse -Force dist
 
 ### Edições obrigatórias após o move
 
-- [ ] [.gitignore](.gitignore) — actualizar paths: `dist/` → `frontend/dist/`
-- [ ] [eslint.config.js](eslint.config.js) linha 35 — `files: ['src/**/*.{ts,tsx}']` → `files: ['frontend/src/**/*.{ts,tsx}']`
-- [ ] [docker-compose.yml](docker-compose.yml) linha 81 — `context: .` (frontend service) → `context: ./frontend`; remover linha `dockerfile: Dockerfile` se redundante
+- [x] [.gitignore](.gitignore) — já cobre `dist` em qualquer profundidade; sem edit necessário
+- [x] [eslint.config.js](eslint.config.js) — `files: ['src/**/*.{ts,tsx}']` → `files: ['frontend/src/**/*.{ts,tsx}']`
+- [x] [docker-compose.yml](docker-compose.yml) — `context: .` (frontend) → `context: ./frontend`
 
 ### Validação
 
@@ -291,7 +291,7 @@ git commit -m "docs: remove completed migration plan"
 | Passo | Descrição | Estado | Commit |
 |---|---|---|---|
 | 1 | Cleanup root (remover Prisma) | 🟢 concluído | (pendente) |
-| 2 | Mover frontend para `frontend/` | 🟡 não iniciado | — |
+| 2 | Mover frontend para `frontend/` | 🟢 concluído | (pendente) |
 | 3 | Activar npm workspaces | 🟡 não iniciado | — |
 | 4 | Configs derivadas + docs | 🟡 não iniciado | — |
 
