@@ -15,10 +15,11 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from 'recharts';
 import { Card, Badge, Button, SmartTable, Skeleton } from '../../components/ui';
-import { MetricCard, FilterCard } from '../../components/common/ModuleMetricCard';
+import { MetricCard } from '../../components/common/ModuleMetricCard';
 import { formatCurrency, cn } from '../../utils/helpers';
 import { useStockAging, useSupplierPerformance, useSalesReport, useWarehouseDistribution } from '../../hooks/useCommercial';
 import { AISuggestionsPanel } from '../../components/commercial/analytics/AISuggestionsPanel';
+import { StockAgingSummaryCards, type StockAgingBucket } from '../../components/commercial/analytics/StockAgingSummaryCards';
 import type { StockAgingProduct, SupplierPerformance } from '../../services/api/commercial.api';
 import { useCategories } from '../../hooks/useData';
 import { CHART_TOOLTIP_STYLE } from '../../utils/constants';
@@ -48,7 +49,7 @@ interface CommercialReportsProps {
 export default function CommercialReports({ initialTab = 'sales' }: CommercialReportsProps) {
     const [activeTab, setActiveTab] = useState<ReportTab>(initialTab);
     const [period, setPeriod] = useState(30);
-    const [agingFilter, setAgingFilter] = useState<string>('');
+    const [agingFilter, setAgingFilter] = useState<StockAgingBucket | ''>('');
 
     const { data: salesData, isLoading: salesLoading, refetch: refetchSales } = useSalesReport(period);
     const { data: agingData, isLoading: agingLoading, refetch: refetchAging } = useStockAging();
@@ -488,23 +489,11 @@ export default function CommercialReports({ initialTab = 'sales' }: CommercialRe
                 ) : (
                     <div className="space-y-6">
                         {agingData?.summary && (
-                            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                                {Object.entries(AGING_CONFIG).map(([key, cfg]) => {
-                                    const count = agingData.summary[key as keyof typeof agingData.summary] as number;
-                                    
-                                    return (
-                                        <FilterCard
-                                            key={key}
-                                            label={cfg.label}
-                                            value={count}
-                                            sublabel="produtos"
-                                            color={cfg.palette}
-                                            isActive={agingFilter === key}
-                                            onClick={() => setAgingFilter(agingFilter === key ? '' : key)}
-                                        />
-                                    );
-                                })}
-                            </div>
+                            <StockAgingSummaryCards
+                                summary={agingData.summary}
+                                activeBucket={agingFilter}
+                                onBucketChange={setAgingFilter}
+                            />
                         )}
 
                         {/* Value at risk */}

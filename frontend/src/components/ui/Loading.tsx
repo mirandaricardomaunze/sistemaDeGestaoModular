@@ -46,57 +46,79 @@ export function LoadingOverlay({ message, fullScreen = true }: LoadingOverlayPro
     return (
         <>
             <style>{`
-                @keyframes mc-sweep {
-                    0%   { transform: translateX(-120%); }
-                    100% { transform: translateX(380%);  }
+                @keyframes mc-spin {
+                    to { transform: rotate(360deg); }
                 }
-                @keyframes mc-shimmer {
-                    0%   { transform: translateX(350%);  }
-                    100% { transform: translateX(-120%); }
+                @keyframes mc-bar {
+                    0%   { transform: translateX(-100%); }
+                    50%  { transform: translateX(0%); }
+                    100% { transform: translateX(100%); }
+                }
+                @keyframes mc-fade-in {
+                    from { opacity: 0; }
+                    to   { opacity: 1; }
+                }
+                @keyframes mc-card-in {
+                    from { opacity: 0; transform: translateY(4px) scale(0.98); }
+                    to   { opacity: 1; transform: translateY(0)   scale(1);    }
                 }
             `}</style>
 
             <div
                 className={cn(
-                    'flex flex-col items-center justify-center gap-4 z-50',
+                    'flex items-center justify-center',
                     fullScreen
-                        ? 'fixed inset-0 z-[99999] bg-black/50 backdrop-blur-sm'
-                        : 'absolute inset-0 rounded-xl bg-black/40 backdrop-blur-sm'
+                        ? 'fixed inset-0 z-[99999] bg-slate-900/55 dark:bg-black/65 backdrop-blur-md'
+                        : 'absolute inset-0 z-50 rounded-xl bg-white/70 dark:bg-dark-900/70 backdrop-blur-sm'
                 )}
+                style={{ animation: 'mc-fade-in 180ms ease-out' }}
                 role="status"
                 aria-live="polite"
+                aria-busy="true"
             >
-                {/* Scanner-beam progress bar */}
-                <div className={cn(
-                    'relative overflow-hidden rounded-full bg-white/10',
-                    fullScreen ? 'w-52 h-[3px]' : 'w-32 h-[2px]'
-                )}>
-                    {/* Primary beam with glow */}
-                    <div
-                        className="absolute inset-y-0 w-2/5 rounded-full"
-                        style={{
-                            background: 'linear-gradient(90deg, transparent 0%, #818cf8 40%, #ffffff 65%, #34d399 85%, transparent 100%)',
-                            boxShadow: '0 0 10px 3px rgba(99,102,241,0.55), 0 0 4px 1px rgba(52,211,153,0.35)',
-                            animation: 'mc-sweep 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite',
-                        }}
-                    />
-                    {/* Counter shimmer adds depth */}
-                    <div
-                        className="absolute inset-y-0 w-1/4 rounded-full opacity-20"
-                        style={{
-                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)',
-                            animation: 'mc-shimmer 2.4s ease-in-out infinite',
-                        }}
-                    />
-                </div>
+                <div
+                    className={cn(
+                        'flex flex-col items-center',
+                        fullScreen
+                            ? 'gap-5 rounded-2xl px-10 py-8 min-w-[240px] bg-white/95 dark:bg-dark-800/95 shadow-2xl ring-1 ring-slate-200/70 dark:ring-dark-600/60'
+                            : 'gap-3'
+                    )}
+                    style={fullScreen ? { animation: 'mc-card-in 220ms ease-out' } : undefined}
+                >
+                    {/* Dual-ring spinner */}
+                    <div className={cn('relative', fullScreen ? 'w-11 h-11' : 'w-8 h-8')}>
+                        <div className="absolute inset-0 rounded-full border-[3px] border-slate-200 dark:border-dark-600" />
+                        <div
+                            className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-primary-600 border-r-primary-600"
+                            style={{ animation: 'mc-spin 0.9s linear infinite' }}
+                        />
+                    </div>
 
-                {/* Status label */}
-                <p className={cn(
-                    'select-none font-medium text-white/60 tracking-widest uppercase',
-                    fullScreen ? 'text-[11px]' : 'text-[10px]'
-                )}>
-                    {displayMessage}
-                </p>
+                    {/* Status label */}
+                    <p
+                        className={cn(
+                            'select-none font-medium text-center tracking-tight',
+                            fullScreen
+                                ? 'text-sm text-slate-700 dark:text-gray-200'
+                                : 'text-xs text-slate-600 dark:text-gray-300'
+                        )}
+                    >
+                        {displayMessage}
+                    </p>
+
+                    {/* Indeterminate progress bar */}
+                    <div
+                        className={cn(
+                            'relative overflow-hidden rounded-full bg-slate-200/80 dark:bg-dark-700',
+                            fullScreen ? 'w-44 h-[3px] mt-1' : 'w-28 h-[2px]'
+                        )}
+                    >
+                        <div
+                            className="absolute inset-y-0 w-1/3 rounded-full bg-gradient-to-r from-transparent via-primary-600 to-transparent"
+                            style={{ animation: 'mc-bar 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite' }}
+                        />
+                    </div>
+                </div>
             </div>
         </>
     );

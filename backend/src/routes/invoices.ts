@@ -11,7 +11,7 @@ import { invoicesService } from '../services/invoicesService';
 import { ApiError } from '../middleware/error.middleware';
 import { prisma } from '../lib/prisma';
 import { pdfService } from '../services/pdfService';
-import { sendInvoiceEmail, sendNoteEmail } from '../utils/mail';
+import { sendInvoiceEmail, sendNoteEmail, dispatchEmail } from '../utils/mail';
 import { emitToCompany } from '../lib/socket';
 
 const router = Router();
@@ -200,9 +200,9 @@ router.post('/credit-notes/:id/send-email', authenticate, async (req: AuthReques
         companyInfo,
     );
 
-    await sendNoteEmail({
+    const creditNotePayload = {
         to: recipient,
-        type: 'credit',
+        type: 'credit' as const,
         note: {
             number: note.number,
             originalInvoiceNumber: note.originalInvoiceNumber,
@@ -220,8 +220,12 @@ router.post('/credit-notes/:id/send-email', authenticate, async (req: AuthReques
             phone: companyInfo.phone ?? undefined,
             taxId: companyInfo.taxId ?? undefined,
         },
-        pdfBuffer,
-    });
+    };
+    await dispatchEmail(
+        'note-email',
+        { ...creditNotePayload, pdfBase64: pdfBuffer.toString('base64') },
+        () => sendNoteEmail({ ...creditNotePayload, pdfBuffer }),
+    );
 
     res.json({ message: `Nota de Crédito enviada com sucesso para ${recipient}` });
 });
@@ -263,9 +267,9 @@ router.post('/debit-notes/:id/send-email', authenticate, async (req: AuthRequest
         companyInfo,
     );
 
-    await sendNoteEmail({
+    const debitNotePayload = {
         to: recipient,
-        type: 'debit',
+        type: 'debit' as const,
         note: {
             number: note.number,
             originalInvoiceNumber: note.originalInvoiceNumber,
@@ -283,8 +287,12 @@ router.post('/debit-notes/:id/send-email', authenticate, async (req: AuthRequest
             phone: companyInfo.phone ?? undefined,
             taxId: companyInfo.taxId ?? undefined,
         },
-        pdfBuffer,
-    });
+    };
+    await dispatchEmail(
+        'note-email',
+        { ...debitNotePayload, pdfBase64: pdfBuffer.toString('base64') },
+        () => sendNoteEmail({ ...debitNotePayload, pdfBuffer }),
+    );
 
     res.json({ message: `Nota de Débito enviada com sucesso para ${recipient}` });
 });
@@ -335,7 +343,7 @@ router.post('/:id/send-email', authenticate, async (req: AuthRequest, res) => {
     // Generate PDF and attach it
     const pdfBuffer = await pdfService.generateInvoicePDF(invoice, companyInfo);
 
-    await sendInvoiceEmail({
+    const invoicePayload = {
         to: recipientEmail,
         invoice: {
             invoiceNumber: invoice.invoiceNumber,
@@ -355,8 +363,12 @@ router.post('/:id/send-email', authenticate, async (req: AuthRequest, res) => {
             })),
         },
         company: companyInfo,
-        pdfBuffer,
-    });
+    };
+    await dispatchEmail(
+        'invoice-email',
+        { ...invoicePayload, pdfBase64: pdfBuffer.toString('base64') },
+        () => sendInvoiceEmail({ ...invoicePayload, pdfBuffer }),
+    );
 
     // Mark invoice as sent if it was draft
     if (invoice.status === 'draft') {

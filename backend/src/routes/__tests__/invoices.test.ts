@@ -30,6 +30,9 @@ jest.mock('../../services/pdfService', () => ({
 jest.mock('../../utils/mail', () => ({
     sendInvoiceEmail: jest.fn().mockResolvedValue(undefined),
     sendNoteEmail: jest.fn().mockResolvedValue(undefined),
+    dispatchEmail: jest.fn(async (_name: string, _data: unknown, directSend: () => Promise<unknown>) => {
+        await directSend();
+    }),
 }));
 
 async function cleanup() {

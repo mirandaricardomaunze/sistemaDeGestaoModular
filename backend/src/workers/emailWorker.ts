@@ -1,6 +1,15 @@
 import { Worker } from 'bullmq';
 import { connection } from '../config/redis';
-import { sendOTP, sendExpirationAlert, sendStockAlert, sendBookingConfirmation, sendDeliveryNotification, sendRecallAlert } from '../utils/mail';
+import {
+    sendPasswordResetEmail,
+    sendExpirationAlert,
+    sendStockAlert,
+    sendBookingConfirmation,
+    sendDeliveryNotification,
+    sendRecallAlert,
+    sendInvoiceEmail,
+    sendNoteEmail,
+} from '../utils/mail';
 import { logger } from '../utils/logger';
 
 /**
@@ -14,9 +23,9 @@ export function createEmailWorker(): Worker | null {
         'email-queue',
         async (job) => {
             switch (job.name) {
-                case 'send-otp':
-                    await sendOTP(job.data.email, job.data.otp);
-                    logger.info('OTP email sent', { to: job.data.email });
+                case 'password-reset':
+                    await sendPasswordResetEmail(job.data.to, job.data.name, job.data.otp);
+                    logger.info('Password reset email sent', { to: job.data.to });
                     break;
                 case 'expiration-alert':
                     await sendExpirationAlert(job.data);
@@ -38,6 +47,24 @@ export function createEmailWorker(): Worker | null {
                     await sendRecallAlert(job.data);
                     logger.info('Recall alert sent', { to: job.data.email, recall: job.data.recallNumber });
                     break;
+                case 'invoice-email': {
+                    const { pdfBase64, ...rest } = job.data;
+                    await sendInvoiceEmail({
+                        ...rest,
+                        pdfBuffer: pdfBase64 ? Buffer.from(pdfBase64, 'base64') : undefined,
+                    });
+                    logger.info('Invoice email sent', { to: job.data.to, invoice: job.data.invoice?.invoiceNumber });
+                    break;
+                }
+                case 'note-email': {
+                    const { pdfBase64, ...rest } = job.data;
+                    await sendNoteEmail({
+                        ...rest,
+                        pdfBuffer: pdfBase64 ? Buffer.from(pdfBase64, 'base64') : undefined,
+                    });
+                    logger.info('Note email sent', { to: job.data.to, type: job.data.type, number: job.data.note?.number });
+                    break;
+                }
                 default:
                     logger.warn('Unknown email job', { name: job.name });
             }

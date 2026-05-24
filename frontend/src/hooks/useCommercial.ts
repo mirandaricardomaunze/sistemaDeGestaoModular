@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { commercialAPI } from '../services/api/commercial.api';
+import { socketService } from '../services/socketService';
 import type {
     CommercialAnalytics,
     MarginAnalysis,
@@ -40,19 +41,64 @@ export function useCommercialAnalytics(warehouseId?: string) {
 
 // ── Margin Analysis Hook ─────────────────────────────────────────────────────
 
+// Eventos do sistema que podem alterar o quadro analítico da IA
+// (vendas, stock, tesouraria, alertas). Quando um destes é emitido,
+// invalidamos a query — com debounce para absorver bursts.
+const AI_SUGGESTION_TRIGGER_EVENTS = [
+    'sale:created',
+    'sale:voided',
+    'product:stock-updated',
+    'stock:low_stock_alert',
+    'inventory:low_stock',
+    'payment:success',
+    'invoice:created',
+    'invoice:paid',
+    'alert:new',
+    'ai:action_complete',
+] as const;
+
 export function useAIDecisionSuggestions(warehouseId?: string) {
+    const queryClient = useQueryClient();
+    const queryKey = ['commercial', 'ai-suggestions', warehouseId ?? 'all'];
+    const [lastEventAt, setLastEventAt] = useState<number | null>(null);
+
     const query = useQuery<AIDecisionSuggestion[]>({
-        queryKey: ['commercial', 'ai-suggestions', warehouseId ?? 'all'],
+        queryKey,
         queryFn: () => commercialAPI.getAIDecisionSuggestions(warehouseId),
         staleTime: 5 * 60_000,
         refetchInterval: 10 * 60_000,
     });
 
+    // Reactividade a eventos: agrupa bursts (1.5s) e força refetch da IA.
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        const triggerRefresh = () => {
+            setLastEventAt(Date.now());
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            debounceRef.current = setTimeout(() => {
+                void queryClient.invalidateQueries({ queryKey });
+            }, 1500);
+        };
+
+        const unsubscribers = AI_SUGGESTION_TRIGGER_EVENTS.map(evt =>
+            socketService.on(evt, triggerRefresh)
+        );
+
+        return () => {
+            unsubscribers.forEach(off => off());
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+        // queryKey é estável por warehouseId — incluímos só a string para evitar re-subscriptions.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [queryClient, warehouseId]);
+
     return {
         data: query.data ?? [],
         isLoading: query.isLoading,
+        isFetching: query.isFetching,
         error: query.error ? 'Erro ao carregar sugestões da IA' : null,
         refetch: query.refetch,
+        lastEventAt,
     };
 }
 

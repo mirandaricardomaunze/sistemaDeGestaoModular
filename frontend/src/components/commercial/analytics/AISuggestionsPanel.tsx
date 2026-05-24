@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiSparkles, HiOutlineArrowPath } from 'react-icons/hi2';
+import { HiSparkles, HiOutlineArrowPath, HiOutlineBolt } from 'react-icons/hi2';
 import { Card, Badge, Button, Skeleton } from '../../ui';
 import { cn } from '../../../utils/helpers';
 import { useAIDecisionSuggestions } from '../../../hooks/useCommercial';
+import { useSocket } from '../../../contexts/SocketContext';
 import type { AIDecisionSuggestion } from '../../../services/api';
 
 const PANEL_SURFACE = 'bg-white dark:bg-dark-800 backdrop-blur-xl border border-slate-200/90 dark:border-white/10 shadow-[0_12px_36px_-12px_rgba(148,163,184,0.18)] dark:shadow-[0_18px_42px_-26px_rgba(0,0,0,0.7)]';
@@ -35,19 +37,42 @@ export function AISuggestionsPanel({
     description = 'Recomendações automáticas com base em vendas, stock, caixa, facturas e previsão de procura.',
 }: AISuggestionsPanelProps) {
     const navigate = useNavigate();
+    const { isConnected } = useSocket();
     const {
         data: aiSuggestions,
         isLoading: aiSuggestionsLoading,
+        isFetching: aiSuggestionsFetching,
         error: aiSuggestionsError,
         refetch: refetchAISuggestions,
+        lastEventAt,
     } = useAIDecisionSuggestions(warehouseId);
 
+    // Flash visual de 2s sempre que um evento dispara um refetch — dá ao
+    // utilizador sinal de que o painel está a reagir em tempo real.
+    const [eventFlash, setEventFlash] = useState(false);
+    useEffect(() => {
+        if (!lastEventAt) return;
+        setEventFlash(true);
+        const t = setTimeout(() => setEventFlash(false), 2000);
+        return () => clearTimeout(t);
+    }, [lastEventAt]);
+
     return (
-        <Card padding="lg" className={cn(PANEL_SURFACE, 'border-l-4 border-l-primary-500')}>
+        <Card
+            padding="lg"
+            className={cn(
+                PANEL_SURFACE,
+                'border-l-4 border-l-primary-500 transition-shadow duration-500',
+                eventFlash && 'ring-2 ring-primary-400/60 dark:ring-primary-400/40 shadow-[0_0_0_4px_rgba(59,84,255,0.08)]'
+            )}
+        >
             <div className="flex flex-wrap items-start justify-between gap-4 mb-5">
                 <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-500/10 border border-primary-200 dark:border-primary-500/20 flex items-center justify-center">
+                    <div className="relative w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-500/10 border border-primary-200 dark:border-primary-500/20 flex items-center justify-center">
                         <HiSparkles className="w-5 h-5 text-primary-600 dark:text-primary-300" />
+                        {eventFlash && (
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-primary-500 ring-2 ring-white dark:ring-dark-800 animate-ping" />
+                        )}
                     </div>
                     <div>
                         <h3 className="text-sm font-black text-slate-950 dark:text-white uppercase tracking-widest">
@@ -58,7 +83,34 @@ export function AISuggestionsPanel({
                         </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {/* Indicador live: liga-se quando o socket está activo */}
+                    <span
+                        className={cn(
+                            'inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border',
+                            isConnected
+                                ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20'
+                                : 'bg-slate-100 dark:bg-dark-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-dark-600'
+                        )}
+                        title={isConnected ? 'A reagir a eventos em tempo real' : 'Sem ligação em tempo real — apenas polling periódico'}
+                    >
+                        <span className="relative flex h-1.5 w-1.5">
+                            {isConnected && (
+                                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                            )}
+                            <span className={cn(
+                                'relative inline-flex rounded-full h-1.5 w-1.5',
+                                isConnected ? 'bg-emerald-500' : 'bg-slate-400'
+                            )} />
+                        </span>
+                        {isConnected ? 'Live' : 'Offline'}
+                    </span>
+                    {eventFlash && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary-50 dark:bg-primary-500/10 text-primary-700 dark:text-primary-300 border border-primary-200 dark:border-primary-500/20">
+                            <HiOutlineBolt className="w-3 h-3" />
+                            Novo evento
+                        </span>
+                    )}
                     <Badge variant={aiSuggestions.some(item => item.source === 'ai') ? 'success' : 'info'} size="sm">
                         {aiSuggestions.some(item => item.source === 'ai') ? 'IA activa' : 'Regras + fallback'}
                     </Badge>
@@ -66,7 +118,7 @@ export function AISuggestionsPanel({
                         variant="ghost"
                         size="xs"
                         onClick={() => refetchAISuggestions()}
-                        leftIcon={<HiOutlineArrowPath className={cn('w-3.5 h-3.5', aiSuggestionsLoading && 'animate-spin')} />}
+                        leftIcon={<HiOutlineArrowPath className={cn('w-3.5 h-3.5', (aiSuggestionsLoading || aiSuggestionsFetching) && 'animate-spin')} />}
                     >
                         Actualizar IA
                     </Button>

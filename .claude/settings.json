@@ -13,7 +13,8 @@
       "Bash(echo \"BACKEND:$?\")",
       "Bash(echo \"FRONTEND:$?\")",
       "Bash(node scripts/fix-mojibake.mjs:*)",
-      "Bash(node scripts/check-mojibake.mjs:*)"
+      "Bash(node scripts/check-mojibake.mjs:*)",
+      "PowerShell($env:NODE_OPTIONS=\"--max-old-space-size=6144\"; npm run typecheck -w backend 2>&1 | Select-Object -Last 60)"
     ]
   },
   "hooks": {

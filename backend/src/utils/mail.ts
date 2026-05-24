@@ -1,5 +1,6 @@
 import nodemailer, { type SendMailOptions } from 'nodemailer';
 import { logger } from './logger';
+import { emailQueue, JOB_OPTIONS } from '../queues/emailQueue';
 
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -11,20 +12,49 @@ const transporter = nodemailer.createTransport({
     },
 });
 
-if (process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD)) {
+const smtpReady = () =>
+    !!(process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD));
+
+if (smtpReady()) {
     logger.info('SMTP configuration detected');
 } else {
     logger.warn('SMTP not configured -- recovery codes will be logged in development mode');
 }
 
-export const sendOTP = async (email: string, otp: string) => {
+/**
+ * Enfileira um email na BullMQ quando o Redis está disponível; caso contrário
+ * (dev/local sem Redis) cai de volta para envio síncrono. Garante que toda
+ * chamada de email passa pelo mesmo ponto e beneficia de retries.
+ */
+export async function dispatchEmail<T>(
+    jobName: string,
+    jobData: Record<string, unknown>,
+    directSend: () => Promise<T>,
+): Promise<void> {
+    if (emailQueue) {
+        try {
+            await emailQueue.add(jobName, jobData, JOB_OPTIONS);
+            return;
+        } catch (err) {
+            logger.warn(`Email queue error -- ${jobName} not enqueued, falling back to direct send`, {
+                error: (err as Error).message,
+            });
+        }
+    }
+    try {
+        await directSend();
+    } catch (err) {
+        logger.error(`Direct email send failed (${jobName})`, { error: (err as Error).message });
+    }
+}
+
+export const sendPasswordResetEmail = async (to: string, name: string, otp: string) => {
     // Development Log - Always log OTP to console in dev mode for easy testing
     if (process.env.NODE_ENV !== 'production') {
-        logger.debug(`[DEV] OTP for ${email}: ${otp}`);
+        logger.debug(`[DEV] OTP for ${to}: ${otp}`);
     }
 
-    // Check if SMTP is configured. If not, don't try to send but don't crash in dev.
-    if (!process.env.SMTP_USER || (!process.env.SMTP_PASS && !process.env.SMTP_PASSWORD)) {
+    if (!smtpReady()) {
         if (process.env.NODE_ENV !== 'production') {
             logger.warn('SMTP not configured -- skipping real email send');
             return { messageId: 'mock-id' };
@@ -32,28 +62,30 @@ export const sendOTP = async (email: string, otp: string) => {
         throw new Error('Configuração de e-mail (SMTP) em falta');
     }
 
-    const mailOptions = {
+    const mailOptions: SendMailOptions = {
         from: `"${process.env.SMTP_FROM_NAME || 'Multicore'}" <${process.env.SMTP_USER}>`,
-        to: email,
-        subject: 'Código de Recuperação de Senha',
+        to,
+        subject: 'Recuperação de Palavra-passe',
         html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <h2 style="color: #3b82f6; text-align: center;">Recuperação de Senha</h2>
-                <p>Olá,</p>
-                <p>Recebemos um pedido para redefinir a sua senha. Use o código abaixo para prosseguir:</p>
-                <div style="background-color: #f3f4f6; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1f2937; border-radius: 8px; margin: 20px 0;">
+            <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px">
+                <h2 style="color:#1e293b">Recuperação de Palavra-passe</h2>
+                <p>Olá <strong>${name}</strong>,</p>
+                <p>O seu código de recuperação é:</p>
+                <div style="font-size:36px;font-weight:bold;letter-spacing:12px;color:#2563eb;
+                            background:#eff6ff;padding:24px;border-radius:12px;text-align:center;margin:24px 0">
                     ${otp}
                 </div>
-                <p>Este código é válido por 15 minutos. Se você não solicitou esta alteração, ignore este e-mail.</p>
-                <hr style="border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0;">
-                <p style="font-size: 12px; color: #6b7280; text-align: center;">
-                    Este é um e-mail automático, por favor não responda.
+                <p>Este código expira em <strong>15 minutos</strong>.</p>
+                <p style="color:#64748b;font-size:13px">
+                    Se não solicitou a recuperação, ignore este email.
                 </p>
             </div>
         `,
     };
 
-    return transporter.sendMail(mailOptions);
+    const result = await transporter.sendMail(mailOptions);
+    logger.info('Password reset email sent', { to });
+    return result;
 };
 
 export const sendInvoiceEmail = async (params: {
@@ -337,9 +369,6 @@ export const sendStockAlert = async (data: {
 
     return transporter.sendMail(mailOptions);
 };
-
-const smtpReady = () =>
-    !!(process.env.SMTP_USER && (process.env.SMTP_PASS || process.env.SMTP_PASSWORD));
 
 // ── Booking Confirmation (Hospitality + Public reservations) ─────────────────
 

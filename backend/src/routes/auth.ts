@@ -8,7 +8,7 @@ import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { rateLimiters } from '../middleware/rateLimit';
 import { CORE_MODULES } from '../constants/modules.constants';
 import { blacklistToken } from '../lib/redis';
-import { sendPasswordResetEmail } from '../services/emailService';
+import { sendPasswordResetEmail, dispatchEmail } from '../utils/mail';
 
 const router = Router();
 
@@ -240,7 +240,11 @@ router.post('/forgot-password', rateLimiters.passwordReset, async (req, res) => 
         data: { otp: otpHash, otpExpiry, otpAttempts: 0 }
     });
 
-    await sendPasswordResetEmail(user.email, user.name, otpPlain);
+    await dispatchEmail(
+        'password-reset',
+        { to: user.email, name: user.name, otp: otpPlain },
+        () => sendPasswordResetEmail(user.email, user.name, otpPlain),
+    );
 
     res.json({ message: 'Se o email existir receberá um código de recuperação' });
 });

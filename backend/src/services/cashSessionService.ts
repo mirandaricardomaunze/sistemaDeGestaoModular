@@ -219,12 +219,18 @@ export class CashSessionService {
                     }))
                 });
                 // Update aggregated reservedStock so validateAvailability sees it.
-                for (const r of reservations) {
-                    await tx.product.update({
-                        where: { id: r.productId },
-                        data: { reservedStock: { increment: r.quantity } }
-                    });
-                }
+                // Single batched UPDATE (1 round-trip) instead of N tx.product.update
+                // calls — each of those would also trigger the audit extension's
+                // pre-fetch, blowing past the transaction timeout on slow links.
+                const values = Prisma.join(
+                    reservations.map(r => Prisma.sql`(${r.productId}::text, ${r.quantity}::int)`)
+                );
+                await tx.$executeRaw(Prisma.sql`
+                    UPDATE products AS p
+                    SET "reservedStock" = p."reservedStock" + v.qty
+                    FROM (VALUES ${values}) AS v(id, qty)
+                    WHERE p.id = v.id AND p."companyId" = ${companyId}
+                `);
             }
 
             return {
@@ -239,6 +245,10 @@ export class CashSessionService {
                 },
                 stockReservations: reservations,
             };
+        }, {
+            // Default is 5s; raise to 20s as a safety net for slow Supabase links.
+            timeout: 20000,
+            maxWait: 5000,
         });
 
         await auditService.log({
