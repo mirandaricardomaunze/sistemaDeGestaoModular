@@ -86,6 +86,24 @@ import { logger } from './utils/logger';
 // ── App Initialization ──────────────────────────────────────────────────────
 export const app = express();
 
+app.get('/api/health', (_req, res) => {
+    res.json({
+        status: 'OK',
+        service: 'sistema-backend',
+        uptime: process.uptime(),
+        timestamp: new Date()
+    });
+});
+
+app.get('/api/ready', async (_req, res) => {
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        res.json({ status: 'OK', database: 'CONNECTED', timestamp: new Date() });
+    } catch {
+        res.status(503).json({ status: 'ERROR', database: 'DISCONNECTED', timestamp: new Date() });
+    }
+});
+
 // Security Middleware
 app.use(helmet({
     strictTransportSecurity: {
@@ -237,14 +255,6 @@ app.use('/api/calendar', calendarRoutes);
 app.use('/api/approvals', approvalsRoutes);
 app.use('/api', validitiesRoutes);
 
-app.get('/api/health', async (req, res) => {
-    try {
-        await prisma.$queryRaw`SELECT 1`;
-        res.json({ status: 'OK', database: 'CONNECTED', timestamp: new Date() });
-    } catch (error) {
-        res.status(503).json({ status: 'ERROR', database: 'DISCONNECTED', timestamp: new Date() });
-    }
-});
 app.use(errorHandler);
 
 import { startCronJobs } from './cron/automation';
